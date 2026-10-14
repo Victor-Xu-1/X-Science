@@ -169,7 +169,9 @@ func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
 				}
 				operationCtx := ctx
 				cancelOperation := func() {}
-				if recoveryTimeout > 0 {
+				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
+					operationCtx, cancelOperation = withKernelRecoveryPreparationBudget(ctx, recoveryTimeout)
+				} else if recoveryTimeout > 0 {
 					operationCtx, cancelOperation = context.WithTimeoutCause(
 						ctx, recoveryTimeout, errSessionRunnerKernelRecoveryDeadline,
 					)
@@ -183,7 +185,7 @@ func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
 						return sessionRunnerToolProgressPersistenceBestEffort(event,
 							s.checkpointSessionRunnerToolEvent(recoveryCtx, options, run, event))
 					})
-				if recoveryTimeout > 0 && err != nil && errors.Is(operationCtx.Err(), context.DeadlineExceeded) {
+				if recoveryTimeout > 0 && err != nil && errors.Is(context.Cause(operationCtx), errSessionRunnerKernelRecoveryDeadline) {
 					err = sessionRunnerKernelRecoveryTimeout{
 						timeout: recoveryTimeout,
 						cause:   errSessionRunnerKernelRecoveryDeadline,

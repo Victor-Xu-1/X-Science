@@ -4,17 +4,33 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
+	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
-	"x-science/internal/toolprogress"
 )
+
+type resourceBudgetHoldingModel struct{ delegate *resourceContinuationModel }
+
+func (m resourceBudgetHoldingModel) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
+	response, err := m.delegate.Complete(ctx, request)
+	if err != nil || len(response.Message.ToolCalls) == 0 {
+		return response, err
+	}
+	var input map[string]any
+	if err := json.Unmarshal(response.Message.ToolCalls[0].Arguments, &input); err != nil {
+		return response, err
+	}
+	input["code"] = input["code"].(string) + "\nimport os, time\nwith open('resource-budget-running.txt', 'w') as marker:\n    marker.write('running')\nwhile not os.path.exists('resource-budget-release.txt'):\n    time.sleep(0.02)"
+	response.Message.ToolCalls[0].Arguments, err = json.Marshal(input)
+	return response, err
+}
 
 // Reclaim through the real interruption API without appending a new input or
 // generating a new model call. The initial request has reached resource waiting,
@@ -22,6 +38,7 @@ import (
 func reclaimResourceBudgetFixture(t *testing.T) (*resourceContinuationFixture, context.Context, *sessionRunnerChatRun, workspace.KernelLocalOperation) {
 	t.Helper()
 	x := newResourceContinuationFixture(t)
+	x.engine.Model = resourceBudgetHoldingModel{delegate: x.model}
 	task, stopTask := context.WithCancel(context.Background())
 	t.Cleanup(stopTask)
 	request, stopRequest := context.WithCancel(task)
@@ -77,15 +94,8 @@ func reclaimResourceBudgetFixture(t *testing.T) (*resourceContinuationFixture, c
 func TestRecoveredKernelResourceWaitDoesNotSpendPreparationBudget(t *testing.T) {
 	x, task, run, before := reclaimResourceBudgetFixture(t)
 	const preparationBudget = 500 * time.Millisecond
-	waiting := make(chan struct{})
-	var once sync.Once
 	ctx, cancel := context.WithCancel(task)
 	defer cancel()
-	ctx = toolprogress.WithReporter(ctx, func(update toolprogress.Update) {
-		if update.Phase == "waiting_for_resources" {
-			once.Do(func() { close(waiting) })
-		}
-	})
 	options := SessionRunnerChatOptions{
 		RunnerID: run.Transcript.Claim.RunnerID, SessionID: x.f.stream.SessionID,
 		OutputLimitBytes: defaultSessionRunnerOutputLimitBytes,
@@ -109,12 +119,31 @@ func TestRecoveredKernelResourceWaitDoesNotSpendPreparationBudget(t *testing.T) 
 			t.Error("recovery waiter did not stop during cleanup")
 		}
 	}()
-	select {
-	case <-waiting:
-	case result := <-done:
-		t.Fatalf("recovery ended before its original resource wait: resumed=%t err=%v", result.resumed, result.err)
-	case <-time.After(5 * time.Second):
-		t.Fatal("recovery did not publish actual resource waiting")
+	// Recovery owns its reporter. Observe the real persisted checkpoint for the
+	// new claim rather than injecting an outer reporter that it would replace.
+	progressID := transcriptRunnerClientMessageID(run.Transcript.Claim, chatToolCheckpointPhase("progress-000001-running", before.ToolCallID))
+	progressDeadline := time.NewTimer(5 * time.Second)
+	defer progressDeadline.Stop()
+	progressPoll := time.NewTicker(10 * time.Millisecond)
+	defer progressPoll.Stop()
+	for {
+		var count int
+		if err := x.f.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM transcript_events
+			WHERE stream_uid=? AND client_message_id=? AND runner_attempt=?
+			AND json_extract(payload_json,'$.toolCallId')=? AND json_extract(payload_json,'$.progress.phase')='waiting_for_resources'`,
+			x.f.stream.UID, progressID, run.Transcript.Claim.Attempt, before.ToolCallID).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count == 1 {
+			break
+		}
+		select {
+		case result := <-done:
+			t.Fatalf("recovery ended before its original resource wait: resumed=%t err=%v", result.resumed, result.err)
+		case <-progressDeadline.C:
+			t.Fatal("recovery did not persist actual resource waiting under the new claim")
+		case <-progressPoll.C:
+		}
 	}
 	select {
 	case result := <-done:
@@ -134,6 +163,30 @@ func TestRecoveredKernelResourceWaitDoesNotSpendPreparationBudget(t *testing.T) 
 	}
 	x.launcher.available.Store(true)
 	if err := x.backend.ReconcileStartups(task); err != nil {
+		t.Fatal(err)
+	}
+	startedDeadline := time.NewTimer(10 * time.Second)
+	defer startedDeadline.Stop()
+	for {
+		if _, err := os.Stat(filepath.Join(x.f.projectPath, "resource-budget-running.txt")); err == nil {
+			break
+		} else if !errors.Is(err, os.ErrNotExist) {
+			t.Fatal(err)
+		}
+		select {
+		case result := <-done:
+			t.Fatalf("recovery ended before actual execution ownership: resumed=%t err=%v", result.resumed, result.err)
+		case <-startedDeadline.C:
+			t.Fatal("admitted code did not reach its physical execution marker")
+		case <-progressPoll.C:
+		}
+	}
+	select {
+	case result := <-done:
+		t.Fatalf("preparation timer cut off an admitted execution: resumed=%t err=%v", result.resumed, result.err)
+	case <-time.After(2 * preparationBudget):
+	}
+	if err := os.WriteFile(filepath.Join(x.f.projectPath, "resource-budget-release.txt"), []byte("release"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	select {

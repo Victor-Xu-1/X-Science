@@ -103,8 +103,13 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 func resourceAdmissionContext(setup context.Context) (context.Context, context.CancelFunc) {
 	queued, cancel := context.WithCancelCause(setup)
 	stop := func() bool { return true }
+	endWait := func() {}
 	if source, ok := setup.(kernelruntime.ResourceAdmissionWaitContextSource); ok {
-		if original := source.ResourceAdmissionWaitContext(); original != nil {
+		original, cleanup := source.ResourceAdmissionWaitContext()
+		if cleanup != nil {
+			endWait = cleanup
+		}
+		if original != nil {
 			stop = context.AfterFunc(original, func() { cancel(resourceWaitContextError(original)) })
 			if original.Err() != nil {
 				cancel(resourceWaitContextError(original))
@@ -114,7 +119,7 @@ func resourceAdmissionContext(setup context.Context) (context.Context, context.C
 	if setup.Err() != nil {
 		cancel(resourceWaitContextError(setup))
 	}
-	return queued, func() { stop(); cancel(nil) }
+	return queued, func() { stop(); cancel(nil); endWait() }
 }
 
 func resourceWaitContextError(ctx context.Context) error {

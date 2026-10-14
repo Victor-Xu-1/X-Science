@@ -109,6 +109,17 @@ observes both the original runner/lease cancellation and the task lifetime;
 admitted startup retains its existing request-handoff semantics. Queue time does
 not consume the subsequent executor readiness timeout.
 
+An ordinary recovered operation's host preparation budget also excludes this
+durable resource wait. Preparation time consumed before waiting is not restored:
+the same remaining budget resumes after admission, through bounded dispatch.
+Only a successful handoff to the execution owner retires that preparation timer;
+a prepared database row alone does not. Foreground observation and long-running
+execution then retain their existing ownership and immutable execution timeout.
+Explicit caller/task cancellation and deadlines remain effective while queued,
+and software-runtime declared timeout policy is unchanged. Cancellation of a
+command RPC closes only its current connection and preserves the caller's cause;
+it neither cancels an unrelated backend nor changes a valid server result.
+
 Capacity-unavailable reservations and reserved-but-starting executors remain
 pending work while their exact current task/backend generations are active; a
 ready idle executor does not remain pending merely because it owns a reservation.

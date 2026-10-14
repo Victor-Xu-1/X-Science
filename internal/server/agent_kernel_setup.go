@@ -27,8 +27,11 @@ var _ kernelruntime.ResourceAdmissionWaitContextSource = detachedKernelLifecycle
 
 // Resource waiting has not started execution and must release an obsolete
 // runner/lease waiter. Normal admitted startup still survives request handoff.
-func (c detachedKernelLifecycleContext) ResourceAdmissionWaitContext() context.Context {
-	return c.values
+func (c detachedKernelLifecycleContext) ResourceAdmissionWaitContext() (context.Context, func()) {
+	if budget := kernelRecoveryPreparationBudgetFrom(c.values); budget != nil {
+		return c.values, budget.suspend()
+	}
+	return c.values, func() {}
 }
 
 func (c detachedKernelLifecycleContext) Err() error {
@@ -63,11 +66,11 @@ func detachedKernelSetupContext(ctx context.Context, executionTimeout time.Durat
 	}
 	setup, cancelSetup := context.WithCancelCause(context.WithoutCancel(ctx))
 	stopRequest := context.AfterFunc(ctx, func() {
-		if agentKernelCallerRequiresExecutionStop(ctx) {
+		if agentKernelCallerRequiresExecutionStop(ctx) || kernelRecoveryPreparationActive(ctx) {
 			cancelSetup(context.Cause(ctx))
 		}
 	})
-	if agentKernelCallerRequiresExecutionStop(ctx) {
+	if agentKernelCallerRequiresExecutionStop(ctx) || ctx.Err() != nil && kernelRecoveryPreparationActive(ctx) {
 		cancelSetup(context.Cause(ctx))
 	}
 	stopTask := func() bool { return true }

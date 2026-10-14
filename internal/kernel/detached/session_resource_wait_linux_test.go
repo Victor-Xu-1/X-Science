@@ -103,7 +103,9 @@ type resourceWaitRequestContext struct {
 	request context.Context
 }
 
-func (c resourceWaitRequestContext) ResourceAdmissionWaitContext() context.Context { return c.request }
+func (c resourceWaitRequestContext) ResourceAdmissionWaitContext() (context.Context, func()) {
+	return c.request, func() {}
+}
 
 func TestResourceWaitCancellationInterruptsSQLiteConnectionWait(t *testing.T) {
 	b, _, backend, _ := sessionResourceWaitFixture(t)
