@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { watch } from 'node:fs';
+import { renameSync, rmSync, watch, writeFileSync } from 'node:fs';
 
-const [hostPidText, notifyPidText, ...files] = process.argv.slice(2);
+const [hostPidText, notifyPidText, readyFile, ...files] = process.argv.slice(2);
 const hostPid = Number.parseInt(hostPidText ?? '', 10);
 const notifyPid = Number.parseInt(notifyPidText ?? '', 10);
 
@@ -11,9 +11,10 @@ if (
   hostPid <= 1 ||
   !Number.isSafeInteger(notifyPid) ||
   notifyPid <= 1 ||
+  !readyFile ||
   files.length === 0
 ) {
-  console.error('usage: frontend-dependency-watch.mjs HOST_PID NOTIFY_PID PACKAGE_FILE...');
+  console.error('usage: frontend-dependency-watch.mjs HOST_PID NOTIFY_PID READY_FILE PACKAGE_FILE...');
   process.exit(2);
 }
 
@@ -59,3 +60,18 @@ for (const file of files) {
 
 process.once('SIGINT', () => close(0));
 process.once('SIGTERM', () => close(0));
+
+// The host must not perform its install-to-watch fingerprint check until
+// every subscription exists. Publish one atomic receipt for this group only.
+const temporary = `${readyFile}.tmp.${process.pid}`;
+try {
+  writeFileSync(temporary, `watching:${notifyPid}\n`, { mode: 0o600 });
+  renameSync(temporary, readyFile);
+} catch (error) {
+  try {
+    rmSync(temporary, { force: true });
+  } catch (cleanupError) {
+    console.error(`[source-frontend] cannot remove this watcher's temporary receipt: ${cleanupError.message}`);
+  }
+  close(1, `[source-frontend] cannot publish dependency watcher readiness: ${error.message}`);
+}

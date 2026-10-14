@@ -157,6 +157,20 @@ prepare_dependencies() {
 
 launcher_pid=""
 frontend_pgid=""
+watcher_ready_file=""
+
+remove_watcher_ready_file() {
+  local observed=""
+  if [[ -n "$watcher_ready_file" && -f "$watcher_ready_file" ]]; then
+    observed=$(tr -d '\r\n' <"$watcher_ready_file")
+    if [[ -z "$observed" || "$observed" == "watching:$frontend_pgid" || "$observed" == "launch:$frontend_pgid" ]]; then
+      rm -f -- "$watcher_ready_file"
+    else
+      echo "[source-frontend] refusing to remove a different process group's watcher receipt" >&2
+    fi
+  fi
+  watcher_ready_file=""
+}
 
 process_group_exists() {
   local pgid="$1"
@@ -205,6 +219,7 @@ stop_frontend() {
     wait "$launcher_pid" 2>/dev/null || true
     launcher_pid=""
   fi
+  remove_watcher_ready_file
   if [[ -n "$frontend_pgid" ]]; then
     remove_owned_pid_file "$FRONTEND_PGID_FILE" "$frontend_pgid"
     frontend_pgid=""
@@ -232,14 +247,19 @@ trap shutdown INT TERM HUP
 
 start_frontend() {
   local supervisor_script
-  rm -f "$FRONTEND_PGID_FILE"
+  local startup_status=0
+  rm -f "$FRONTEND_PGID_FILE" || return 1
+  # A unique path prevents an earlier group's ready receipt from satisfying a
+  # replacement, even if the OS later reuses its process ID.
+  watcher_ready_file=$(mktemp "$STATE_ROOT/watcher-ready.XXXXXXXX") || return 1
   supervisor_script=$(cat <<'SUPERVISOR'
 set -Eeuo pipefail
 host_pid="$1"
 npm_bin="$2"
 watcher_script="$3"
 pgid_file="$4"
-shift 4
+ready_file="$5"
+shift 5
 package_files=("$@")
 supervisor_pid=$BASHPID
 temporary="$pgid_file.tmp.$supervisor_pid"
@@ -275,8 +295,34 @@ trap restart_supervisor USR1
 ) &
 watchdog_pid=$!
 
-node "$watcher_script" "$host_pid" "$supervisor_pid" "${package_files[@]}" &
+node "$watcher_script" "$host_pid" "$supervisor_pid" "$ready_file" "${package_files[@]}" &
 watcher_pid=$!
+
+wait_for_launch() {
+  local watcher_status=0
+  for _ in $(seq 1 500); do
+    if ! kill -0 "$watcher_pid" 2>/dev/null; then
+      wait "$watcher_pid" || watcher_status=$?
+      watcher_pid=""
+      if (( watcher_status == 0 )); then watcher_status=70; fi
+      echo "[source-frontend] dependency watcher exited before launch with status $watcher_status" >&2
+      return "$watcher_status"
+    fi
+    if [[ "$(tr -d '\r\n' <"$ready_file")" == "launch:$supervisor_pid" ]]; then
+      return 0
+    fi
+    sleep 0.02
+  done
+  echo "[source-frontend] timed out waiting for checked dependency launch authorization" >&2
+  return 70
+}
+
+launch_status=0
+wait_for_launch || launch_status=$?
+if (( launch_status != 0 )); then
+  terminate_group
+  exit "$launch_status"
+fi
 "$npm_bin" run dev &
 npm_pid=$!
 completed_pid=""
@@ -300,28 +346,31 @@ SUPERVISOR
     cd "$SOURCE_FRONTEND"
     exec setsid --fork --wait bash -c "$supervisor_script" _ \
       "$$" "$NPM_BIN" "$SCRIPT_DIR/frontend-dependency-watch.mjs" \
-      "$FRONTEND_PGID_FILE" "${package_files[@]}"
+      "$FRONTEND_PGID_FILE" "$watcher_ready_file" "${package_files[@]}"
   ) &
   launcher_pid=$!
 
   for _ in $(seq 1 100); do
     if [[ -f "$FRONTEND_PGID_FILE" ]]; then
       frontend_pgid=$(tr -d '\r\n' <"$FRONTEND_PGID_FILE")
-      if [[ "$frontend_pgid" =~ ^[0-9]+$ ]] && process_group_exists "$frontend_pgid"; then
-        echo "[source-frontend] Vite process group $frontend_pgid started from $SOURCE_FRONTEND"
+      if [[ "$frontend_pgid" =~ ^[0-9]+$ ]] && process_group_exists "$frontend_pgid" && \
+        [[ "$(tr -d '\r\n' <"$watcher_ready_file")" == "watching:$frontend_pgid" ]]; then
         return 0
       fi
     fi
     if ! kill -0 "$launcher_pid" 2>/dev/null; then
-      wait "$launcher_pid" 2>/dev/null || true
+      wait "$launcher_pid" 2>/dev/null || startup_status=$?
       launcher_pid=""
+      if (( startup_status == 75 )); then
+        return 75
+      fi
       echo "[source-frontend] frontend process group exited before startup completed" >&2
       return 1
     fi
     sleep 0.02
   done
 
-  echo "[source-frontend] timed out waiting for the frontend process group" >&2
+  echo "[source-frontend] timed out waiting for the frontend process group and dependency watcher" >&2
   stop_frontend
   return 1
 }
@@ -329,8 +378,19 @@ SUPERVISOR
 prepare_dependencies
 
 while true; do
-  active_key=$(dependency_key)
-  start_frontend
+  # Compare startup against what npm actually installed, not a newer snapshot
+  # that may have changed after prepare_dependencies recorded its receipt.
+  active_key=$(installed_dependency_key)
+  startup_status=0
+  start_frontend || startup_status=$?
+  if (( startup_status != 0 )); then
+    stop_frontend
+    if (( startup_status == 75 )); then
+      prepare_dependencies
+      continue
+    fi
+    exit "$startup_status"
+  fi
 
   # Close the install-to-watch race without scanning ordinary source files.
   if [[ "$(dependency_key)" != "$active_key" ]]; then
@@ -340,9 +400,15 @@ while true; do
     continue
   fi
 
+  # Only launch npm after subscriptions and the installed-key recheck. A
+  # watcher change signal during this handoff still exits the group with 75.
+  atomic_write "$watcher_ready_file" "launch:$frontend_pgid"
+  echo "[source-frontend] Vite process group $frontend_pgid started from $SOURCE_FRONTEND"
+
   frontend_status=0
   wait "$launcher_pid" || frontend_status=$?
   launcher_pid=""
+  remove_watcher_ready_file
   if [[ -n "$frontend_pgid" ]]; then
     remove_owned_pid_file "$FRONTEND_PGID_FILE" "$frontend_pgid"
     frontend_pgid=""
