@@ -5,11 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
+import ConversationLoadError from './components/ConversationLoadError';
 import ConversationLoadingSurface from './components/ConversationLoadingSurface';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import {
   getConversationOrNullShared,
+  invalidateConversationReadCaches,
   readRecentConversationRouteDetail,
   readConversationRouteSnapshot,
   rememberConversationRouteSnapshot,
@@ -20,6 +22,7 @@ import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/err
 import { scheduleConversationRoutePerformanceStage } from './conversationRoutePerformance';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { getConversationRuntimeViewSnapshot } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 
 const isXScienceConversationData = (conversation: TChatConversation | null | undefined): boolean => {
   const extra = conversation?.extra as { backend?: string; workspace?: string } | undefined;
@@ -73,7 +76,7 @@ const ChatConversationIndex: React.FC = () => {
 
   const recentRouteDetail = id && user?.id ? readRecentConversationRouteDetail(user.id, id) : undefined;
   const routeSnapshot = recentRouteDetail ?? (id && user?.id ? readConversationRouteSnapshot(user.id, id) : undefined);
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isValidating, mutate } = useSWR(
     id && user?.id ? `conversation/${user.id}/${id}` : null,
     () => getConversationOrNullShared(id!),
     { fallbackData: routeSnapshot, revalidateOnMount: !recentRouteDetail }
@@ -109,8 +112,21 @@ const ChatConversationIndex: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    return ipcBridge.conversation.listChanged.on((event) => {
-      if (event.conversation_id !== id || (event.action !== 'updated' && event.action !== 'created')) {
+    const bindingScope = getRendererAccountScopeToken();
+    const releaseMissing = addEventListener('conversation.detail.missing', (scopeToken, conversationId) => {
+      if (scopeToken !== bindingScope || bindingScope !== getRendererAccountScopeToken() || conversationId !== id) {
+        return;
+      }
+      invalidateConversationReadCaches(user?.id ?? '', id);
+      void mutate(null, { revalidate: false });
+    });
+    const releaseList = ipcBridge.conversation.listChanged.on((event) => {
+      if (bindingScope !== getRendererAccountScopeToken() || event.conversation_id !== id) return;
+      if (event.action === 'deleted') {
+        // A deletion is not an active-runtime metadata update. Bypass the
+        // navigation handoff and let the same detail authority confirm null.
+        invalidateConversationReadCaches(user?.id ?? '', id);
+        void mutate().catch(() => undefined);
         return;
       }
 
@@ -128,7 +144,11 @@ const ChatConversationIndex: React.FC = () => {
 
       void mutate();
     });
-  }, [data, id, mutate]);
+    return () => {
+      releaseMissing();
+      releaseList();
+    };
+  }, [data, id, mutate, user?.id]);
 
   useEffect(() => {
     if (!id || !isXScienceConversationData(data)) return;
@@ -155,11 +175,22 @@ const ChatConversationIndex: React.FC = () => {
     );
   }, [error]);
 
-  if (isLoading && !routeSnapshot && !data) return <ConversationLoadingSurface />;
   if (data === null) return <ConversationLoadingSurface />;
-  if (error && data === undefined) return <ConversationLoadingSurface />;
-  if (!data) return <ConversationLoadingSurface />;
-  return <ChatConversation conversation={data}></ChatConversation>;
+  const conversation = data ?? routeSnapshot;
+  if (!conversation && error) {
+    return (
+      <ConversationLoadError
+        retrying={Boolean(isValidating)}
+        onRetry={() => {
+          // SWR retains the error for this surface; a failed manual retry must
+          // not also become an unhandled event-handler rejection.
+          void mutate().catch(() => undefined);
+        }}
+      />
+    );
+  }
+  if (!conversation) return <ConversationLoadingSurface />;
+  return <ChatConversation conversation={conversation}></ChatConversation>;
 };
 
 export default ChatConversationIndex;

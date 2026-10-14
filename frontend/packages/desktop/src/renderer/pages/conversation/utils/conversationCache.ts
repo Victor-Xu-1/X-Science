@@ -8,7 +8,13 @@ import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { createKeyedSnapshotStore } from '@/renderer/services/keyedSnapshotStore';
-import { registerRendererAccountReset, rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import {
+  getRendererAccountOwnerId,
+  getRendererAccountScopeToken,
+  registerRendererAccountReset,
+  rendererAccountScopedKey,
+} from '@/renderer/services/rendererAccountScope';
+import { emitter } from '@/renderer/utils/emitter';
 import type { useSWRConfig } from 'swr';
 
 type ScopedMutator = ReturnType<typeof useSWRConfig>['mutate'];
@@ -111,10 +117,26 @@ export function beginConversationDetailHandoff(conversationId: string, durationM
   conversationDetailHandoffs.set(key, { expiresAt: Date.now() + Math.max(0, durationMs) });
 }
 
+/** Invalidate only this owner's detail; already-rendered SWR data survives transient read errors. */
+export function invalidateConversationReadCaches(ownerId: string, conversationId: string): void {
+  const conversationKey = conversationId.trim();
+  const normalizedOwnerId = ownerId.trim();
+  if (!conversationKey) return;
+  if (normalizedOwnerId) {
+    conversationRouteSnapshots.update(conversationRouteSnapshotKey(normalizedOwnerId, conversationKey), () => ({}));
+  }
+  if (normalizedOwnerId !== getRendererAccountOwnerId()) return;
+  const key = rendererAccountScopedKey(conversationKey);
+  conversationDetailRequests.delete(key);
+  conversationDetailHandoffs.delete(key);
+}
+
 export function getConversationOrNull(conversationId: string): Promise<TChatConversation | null> {
   const conversationKey = conversationId.trim();
   if (!conversationKey) return Promise.resolve(null);
   const key = rendererAccountScopedKey(conversationKey);
+  const ownerId = getRendererAccountOwnerId();
+  const scopeToken = getRendererAccountScopeToken();
   const active = conversationDetailRequests.get(key);
   if (active) return active;
   const handoff = conversationDetailHandoffs.get(key);
@@ -127,7 +149,9 @@ export function getConversationOrNull(conversationId: string): Promise<TChatConv
     .invoke({ id: conversationKey })
     .then((conversation) => {
       const activeHandoff = conversationDetailHandoffs.get(key);
-      if (activeHandoff && activeHandoff.expiresAt >= Date.now()) activeHandoff.value = conversation;
+      if (conversationDetailRequests.get(key) === request && activeHandoff && activeHandoff.expiresAt >= Date.now()) {
+        activeHandoff.value = conversation;
+      }
       return conversation;
     })
     .catch((error: unknown): TChatConversation | null => {
@@ -135,6 +159,19 @@ export function getConversationOrNull(conversationId: string): Promise<TChatConv
         return null;
       }
       throw error;
+    })
+    .then((conversation) => {
+      if (conversation === null) {
+        if (key !== rendererAccountScopedKey(conversationKey) || conversationDetailRequests.get(key) !== request) {
+          // The old reader must not set its own private missing flag either.
+          throw new DOMException('Conversation detail read superseded', 'AbortError');
+        }
+        // A nested runtime reader and the route share this canonical missing
+        // result. Do not leave only the nested composer's private missing flag.
+        invalidateConversationReadCaches(ownerId, conversationKey);
+        emitter.emit('conversation.detail.missing', scopeToken, conversationKey);
+      }
+      return conversation;
     })
     .finally(() => {
       if (conversationDetailRequests.get(key) === request) conversationDetailRequests.delete(key);

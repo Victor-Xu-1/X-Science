@@ -29,6 +29,8 @@ interface EventTypes {
   'xscience.runtime.reconciled': [string, TConversationRuntimeSummary];
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
+  // Read-only canonical detail absence; not a delete action or queue cleanup.
+  'conversation.detail.missing': [string, string]; // account scope token, conversation_id
   // 预览面板事件 / Preview panel events
   'preview.open': [
     { content: string; contentType: PreviewContentType; metadata?: { title?: string; file_name?: string } },
