@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
+	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
@@ -64,6 +66,13 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 		previous.Status != "failed" || previous.FinishedEventID <= 0 {
 		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
 	}
+	stream, err := s.transcriptStore.GetStream(ctx, authority.Stream.UID, authority.Stream.OwnerID)
+	if err != nil {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, err
+	}
+	if stream.InputRevision != previous.ClaimedInputRevision || stream.Epoch != authority.Stream.Epoch {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+	}
 
 	snapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, authority.Stream.UID, authority.Stream.OwnerID)
 	if err != nil {
@@ -72,9 +81,25 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	var terminalPayload map[string]any
 	deltas := make([]sessionRunnerCompletionRecoveryDelta, 0)
 	resetSeen := false
+	var userEntries []eventjournal.Entry
 	err = s.visitTranscriptWebProjectionSnapshotRaw(
 		ctx, authority.Stream, authority.Stream.OwnerID, snapshot, true,
 		func(projected transcriptstore.ProjectedEvent) error {
+			// Standalone streams use the same user-message projection as normal
+			// execution. Keep it bound to this immutable branch snapshot, not a
+			// second replay read which might already contain a later task.
+			if stream.Kind != transcriptstore.StreamKindFrameRef &&
+				(projected.Event.Type == "user_message" || projected.Event.Type == "user_input_response" || projected.Event.Type == "history_user_message") {
+				payload, err := transcriptPayloadObject(projected.ResolvedPayloadJSON)
+				if err != nil {
+					return err
+				}
+				payload["type"], payload["role"] = "message", "user"
+				// The shared prompt selector uses the last user message. Retain
+				// only that event so long standalone histories do not accumulate
+				// a second unbounded copy merely to recover their task intent.
+				userEntries = []eventjournal.Entry{{EventID: projected.Event.EventID, Message: payload}}
+			}
 			if projected.Event.RunnerAttempt == nil || *projected.Event.RunnerAttempt != previous.Attempt {
 				return nil
 			}
@@ -144,15 +169,57 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	if !ok {
 		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
 	}
-	sourceAuthority := &transcriptRunnerAuthority{Stream: authority.Stream, Claim: transcriptstore.RunnerClaim{
+	sourceAuthority := &transcriptRunnerAuthority{Stream: stream, Claim: transcriptstore.RunnerClaim{
 		StreamUID: authority.Stream.UID, OwnerID: authority.Stream.OwnerID, RunnerID: previous.RunnerID,
-		Attempt: previous.Attempt,
+		Attempt: previous.Attempt, ClaimedInputRevision: previous.ClaimedInputRevision,
 	}}
+	sourceRun := &sessionRunnerChatRun{
+		SessionID: stream.SessionID, Attempt: int(previous.Attempt), Transcript: sourceAuthority,
+	}
+	if stream.Kind == transcriptstore.StreamKindFrameRef {
+		// Recovery only reads canonical intent. Legacy repair belongs to the
+		// ordinary execution path; do not create/rebind intent during validation.
+		intent, found, err := s.transcriptStore.GetActiveFrameTaskIntent(ctx, stream.UID, stream.OwnerID)
+		if err != nil {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, err
+		}
+		if !found || strings.TrimSpace(intent.Text) == "" {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+		}
+		if err := applySessionRunnerTaskIntent(sourceRun, intent.Text, intent.Language, intent.ID, intent.Revision); err != nil {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, err
+		}
+	} else {
+		messages, err := sessionEntriesToProviderMessages("", userEntries)
+		if err != nil {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, err
+		}
+		intent := promptContextFromMessages(messages)
+		if intent == "" {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+		}
+		if err := applySessionRunnerTaskIntent(sourceRun, intent, sessionRunnerResponseLanguage(intent),
+			fmt.Sprintf("%s:input:%d", stream.UID, previous.ClaimedInputRevision), previous.ClaimedInputRevision); err != nil {
+			return sessionRunnerCompletionRecoveryCandidate{}, false, err
+		}
+	}
+	// A new user input or branch switch during candidate/intent reads must take
+	// the normal checkpoint path. An old completion may not finish the new task.
+	latest, err := s.transcriptStore.GetStream(ctx, stream.UID, stream.OwnerID)
+	if err != nil {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, err
+	}
+	latestSnapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, stream.UID, stream.OwnerID)
+	if err != nil {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, err
+	}
+	if latest.InputRevision != previous.ClaimedInputRevision || latest.Epoch != stream.Epoch ||
+		latestSnapshot != snapshot {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+	}
 	return sessionRunnerCompletionRecoveryCandidate{
 		Content: content, Detail: detail, ReasonCode: reasonCode, SourceAttempt: previous.Attempt,
-		Segment: segment, SourceRun: &sessionRunnerChatRun{
-			SessionID: authority.Stream.SessionID, Attempt: int(previous.Attempt), Transcript: sourceAuthority,
-		},
+		Segment: segment, SourceRun: sourceRun,
 	}, true, nil
 }
 
@@ -299,6 +366,14 @@ func (s *Server) recoverTranscriptCompletionOnly(
 	}
 	if candidate.ReasonCode == "artifact_reference_correction_required" {
 		if validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate); validationErr != nil {
+			var integrityErr *sessionRunnerReferenceIntegrityError
+			if errors.As(validationErr, &integrityErr) && len(integrityErr.MissingRequiredDeliverables) > 0 {
+				// An absent original deliverable requires execution, not another
+				// validation-only terminal failure. Keep the published candidate
+				// immutable and let the existing checkpoint repair path finish the
+				// work, including when other reference issues also remain.
+				return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
+			}
 			return "failed", validationErr.Error(), candidate.Segment, true, nil
 		}
 		if err := s.appendTranscriptAssistantEvent(context.WithoutCancel(ctx), run.Transcript, "completion-recovery-assistant", map[string]any{

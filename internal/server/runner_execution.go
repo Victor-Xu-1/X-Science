@@ -293,12 +293,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			taskIntentID = fmt.Sprintf("%s:input:%d", run.Transcript.Stream.UID, run.Transcript.Claim.ClaimedInputRevision)
 			taskIntentRevision = run.Transcript.Claim.ClaimedInputRevision
 		}
-		if strings.TrimSpace(taskIntent) == "" {
-			return "", errors.New("canonical transcript task intent is unavailable")
+		if err := applySessionRunnerTaskIntent(run, taskIntent, taskLanguage, taskIntentID, taskIntentRevision); err != nil {
+			return "", err
 		}
-		run.TaskIntent = taskIntent
-		run.TaskIntentID = taskIntentID
-		run.TaskIntentRevision = taskIntentRevision
 		messages = deactivateProviderSkillResultsForSelectedImplementation(
 			messages, s.skillCatalog, run.selectedImplementationsSnapshot(), run.TaskIntent,
 		)
