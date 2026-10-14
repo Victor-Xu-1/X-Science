@@ -60,7 +60,7 @@ func TestServerAgentRuntimeBridgeRunsModelToolCallAgainstRealToolGateway(t *test
 		case 2:
 			messages := request["messages"].([]any)
 			last := messages[len(messages)-1].(map[string]any)
-			if last["role"] != "tool" || last["tool_call_id"] != "call_task_1" || !strings.Contains(last["content"].(string), "bridge-created task") {
+			if last["role"] != "tool" || last["tool_call_id"] != requireProviderToolCallID(t, request, "task_create", 0) || !strings.Contains(last["content"].(string), "bridge-created task") {
 				t.Fatalf("second request missing real tool result: %#v", last)
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -804,7 +804,7 @@ func TestServerAgentRuntimeBridgeDeniesMutatingToolWhenApprovalDefaultsDeny(t *t
 			messages := request["messages"].([]any)
 			last := messages[len(messages)-1].(map[string]any)
 			content := last["content"].(string)
-			if last["role"] != "tool" || last["tool_call_id"] != "call_write_1" || !strings.Contains(content, "permission denied") {
+			if last["role"] != "tool" || last["tool_call_id"] != requireProviderToolCallID(t, request, "file_write", 0) || !strings.Contains(content, "permission denied") {
 				t.Fatalf("second request missing permission denial tool result: %#v", last)
 			}
 			w.Header().Set("Content-Type", "application/json")

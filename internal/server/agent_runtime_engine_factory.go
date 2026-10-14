@@ -79,7 +79,8 @@ func (s *Server) newAgentRuntimeEngineWithContext(
 		maxToolResultBytes = runnerLargeToolResultInlineLimit(maxToolResultBytes)
 	}
 	return agentruntime.Engine{
-		Model: model,
+		Model:                  model,
+		ToolCallIdentityPolicy: agentruntime.DurableToolCallIdentity,
 		Tools: serverAgentRuntimeToolGateway{
 			server:             s,
 			origin:             "agent-runtime",

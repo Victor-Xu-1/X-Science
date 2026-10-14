@@ -194,7 +194,7 @@ func TestTranscriptRunnerAskUserPausesUntilNewInputThenResumesCheckpoint(t *test
 		messages, _ := payload["messages"].([]any)
 		for _, item := range messages {
 			message, _ := item.(map[string]any)
-			if message["role"] != "tool" || message["tool_call_id"] != "ask-structure" {
+			if message["role"] != "tool" || message["tool_call_id"] != requireProviderToolCallID(t, payload, "ask_user", 0) {
 				continue
 			}
 			content, _ := message["content"].(string)

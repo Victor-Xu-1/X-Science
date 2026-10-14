@@ -338,9 +338,14 @@ type Engine struct {
 	Tools              ToolGateway
 	MaxToolResultBytes int64
 	LargeToolResults   LargeToolResultAuthority
-	OnEvent            func(Event)
-	OnEventError       func(Event) error
-	OnModelDelta       func(ModelStreamEvent) error
+	// ToolCallIdentityPolicy selects the identity authority for NEW model calls.
+	// Durable callers must use DurableToolCallIdentity so bounded provider
+	// history cannot alias an earlier persisted call. ExecuteToolBatch always
+	// retains the identities supplied by its durable recovery caller.
+	ToolCallIdentityPolicy ToolCallIdentityPolicy
+	OnEvent                func(Event)
+	OnEventError           func(Event) error
+	OnModelDelta           func(ModelStreamEvent) error
 	// AllowToolPreamble lets the publication owner approve a completed,
 	// non-final tool-round preamble independently of tool-choice admission.
 	// It never admits or executes the requested tool. Nil retains buffering.
