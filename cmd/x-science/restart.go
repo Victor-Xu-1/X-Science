@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -10,14 +9,6 @@ import (
 
 	"x-science/internal/config"
 )
-
-type runtimeRestartRequestedError struct {
-	Reason string
-}
-
-func (e *runtimeRestartRequestedError) Error() string {
-	return "runtime restart requested: " + e.Reason
-}
 
 func newRuntimeRestartRequester(requests chan<- string) func(string) error {
 	var requested atomic.Bool
@@ -42,15 +33,7 @@ func runMain() error {
 	if err := config.UpgradeProcessEnvironment(); err != nil {
 		return err
 	}
-	err := run()
-	var restart *runtimeRestartRequestedError
-	if !errors.As(err, &restart) {
-		return err
-	}
-	if err := launchRuntimeReplacement(); err != nil {
-		return fmt.Errorf("launch replacement after %s: %w", restart.Reason, err)
-	}
-	return nil
+	return finishRuntimeRun(run(), launchRuntimeReplacement)
 }
 
 func launchRuntimeReplacement() error {

@@ -132,7 +132,7 @@ func parseServeCommandFlags(args []string, output io.Writer) (serveCommandFlags,
 	return serveCommandFlags{version: *version, health: *health, runtimeEndpointFile: *runtimeEndpointFile}, false, nil
 }
 
-func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.Resolver, runtimeEndpointFile string) error {
+func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.Resolver, runtimeEndpointFile string) (runErr error) {
 	operationalLog, err := operationlog.Open(filepath.Join(cfg.HomeDir, "logs"))
 	if err != nil {
 		return fmt.Errorf("configure operational log retention: %w", err)
@@ -185,8 +185,10 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	if err != nil {
 		return fmt.Errorf("open workspace transcript Web read model: %w", err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancelCause := context.WithCancelCause(context.Background())
+	cancel := func() { cancelCause(server.ErrRuntimeDraining) }
 	defer cancel()
+	primaryWorkers := &runtimePrimaryWorkers{}
 	var app *server.Server
 	imOutbound, err := newIMOutboundDispatcher(ctx, cfg, runtimeHTTPClient, imOutboundRuntimeHooks{
 		Authorize: func(binding adaptercommon.IMSessionBinding) error {
@@ -338,9 +340,10 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	defer func() {
 		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer shutdownCancel()
-		if err := app.Close(shutdownContext); err != nil {
-			log.Printf("close kernel runtime: %v", err)
-		}
+		cleanupErr := shutdownPrimaryRuntime(shutdownContext, cancel, primaryWorkers, func(ctx context.Context) error {
+			return app.Close(ctx)
+		})
+		runErr = withRuntimeShutdownFailure(runErr, cleanupErr)
 	}()
 	if recovery, err := app.RecoverIMOutbound(ctx); err != nil {
 		return fmt.Errorf("recover IM outbound delivery: %w", err)
@@ -365,7 +368,10 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 	if err := startRoutineScheduler(ctx, routineScheduler); err != nil {
 		return fmt.Errorf("start routine scheduler: %w", err)
 	}
-	defer stopRoutineScheduler(app, routineScheduler)
+	defer func() {
+		cancel()
+		runErr = withRuntimeShutdownFailure(runErr, stopRoutineScheduler(app, routineScheduler))
+	}()
 	srv := &http.Server{
 		Addr:              cfg.Address(),
 		Handler:           withRoutineSchedulerWake(app.Handler(), routineScheduler.Wake),
@@ -382,20 +388,28 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		return fmt.Errorf("publish owned runtime endpoint: %w", err)
 	}
 	defer cleanupEndpoint()
-	serverErrCh := make(chan error, 1)
-	go func() {
-		serverErrCh <- srv.Serve(listener)
+	defer func() {
+		cancel()
+		shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		runErr = withRuntimeShutdownFailure(runErr, srv.Shutdown(shutdownContext))
 	}()
+	serverErrCh := make(chan error, 1)
+	primaryWorkers.Go(func() {
+		serverErrCh <- srv.Serve(listener)
+	})
 	startSupervisor := func(name string, run func(context.Context) error) {
 		app.ReportRuntimeComponent(name, errRuntimeComponentStarting)
-		go runRuntimeSupervisor(
-			ctx, name, func(runCtx context.Context, ready func()) error {
-				// Component construction and configuration have already completed;
-				// entering its lifecycle loop is the explicit readiness boundary.
-				ready()
-				return run(runCtx)
-			}, app.ReportRuntimeComponent, app.IsDraining, defaultRuntimeSupervisorPolicy(),
-		)
+		primaryWorkers.Go(func() {
+			runRuntimeSupervisor(
+				ctx, name, func(runCtx context.Context, ready func()) error {
+					// Component construction and configuration have already completed;
+					// entering its lifecycle loop is the explicit readiness boundary.
+					ready()
+					return run(runCtx)
+				}, app.ReportRuntimeComponent, app.IsDraining, defaultRuntimeSupervisorPolicy(),
+			)
+		})
 	}
 	startSupervisorWithReadiness := func(name string, run func(context.Context, func()) error) {
 		report := func(component string, componentErr error) {
@@ -408,7 +422,9 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 			}
 			app.ReportRuntimeComponent(component, componentErr)
 		}
-		go runRuntimeSupervisor(ctx, name, run, report, app.IsDraining, defaultRuntimeSupervisorPolicy())
+		primaryWorkers.Go(func() {
+			runRuntimeSupervisor(ctx, name, run, report, app.IsDraining, defaultRuntimeSupervisorPolicy())
+		})
 	}
 	startSupervisor("realtime-outbox", realtimeOutbox.Run)
 	fmt.Println("realtime outbox dispatcher enabled")
@@ -457,10 +473,10 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		return err
 	} else if stream != nil {
 		startSupervisor("feishu-stream", stream.Start)
-		go func() {
+		primaryWorkers.Go(func() {
 			<-ctx.Done()
 			stream.Close()
-		}()
+		})
 		fmt.Println("feishu stream adapter enabled")
 	}
 	if runnerOptions, enabled, err := newSessionRunnerCommandOptions(cfg); err != nil {
@@ -499,7 +515,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		fmt.Printf("workbench web UI enabled from %s\n", webRoot)
 		fmt.Printf("browser sign-in: %s\n", browserLoginURL(cfg))
 	}
-	go runLegacyFrameHistoryRecoveryLoop(ctx, transcriptRepository)
+	primaryWorkers.Go(func() { runLegacyFrameHistoryRecoveryLoop(ctx, transcriptRepository) })
 	if vmRestartManager != nil {
 		if err := vmRestartManager.MarkRuntimeStarted(); err != nil {
 			return fmt.Errorf("mark recovered VM runtime ready: %w", err)
@@ -524,21 +540,15 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 			drainErr := app.Drain(drainContext)
 			drainCancel()
 			cancel()
-			shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-			shutdownErr := srv.Shutdown(shutdownContext)
-			shutdownCancel()
-			return errors.Join(drainErr, shutdownErr)
+			return drainErr
 		case reason := <-restartRequests:
 			fmt.Printf("runtime restart requested (%s), shutting down\n", reason)
 			drainContext, drainCancel := context.WithTimeout(context.Background(), 5*time.Second)
 			drainErr := app.Drain(drainContext)
 			drainCancel()
 			cancel()
-			shutdownContext, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
-			shutdownErr := srv.Shutdown(shutdownContext)
-			shutdownCancel()
-			if err := errors.Join(drainErr, shutdownErr); err != nil {
-				return err
+			if drainErr != nil {
+				return drainErr
 			}
 			return &runtimeRestartRequestedError{Reason: reason}
 		case err := <-serverErrCh:
