@@ -17,6 +17,7 @@ import (
 	"x-science/internal/agentruntime"
 	"x-science/internal/kernel/detached"
 	"x-science/internal/kernelcontract"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/sciencecapability"
 	"x-science/internal/skills"
@@ -143,29 +144,7 @@ func TestKernelAdmissionNormalizedCheckpointBindsOperation(t *testing.T) {
 	if err := f.db.QueryRow(`SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_id=?`, f.stream.UID, operation.SourceEventID).Scan(&payload); err != nil {
 		t.Fatal(err)
 	}
-	var checkpoint struct {
-		ModelToolCalls []struct {
-			Arguments         json.RawMessage `json:"arguments"`
-			OriginalArguments json.RawMessage `json:"originalArguments"`
-		} `json:"modelToolCalls"`
-	}
-	if err := json.Unmarshal(payload, &checkpoint); err != nil || len(checkpoint.ModelToolCalls) != 1 {
-		t.Fatal("proposal provenance missing", err)
-	}
-	var authored map[string]any
-	if err := json.Unmarshal(checkpoint.ModelToolCalls[0].OriginalArguments, &authored); err != nil ||
-		stringValue(authored["command"]) != original["command"] || authored["environment"] != original["environment"] {
-		t.Fatalf("original proposal was replaced by execution authority: %#v %v", authored, err)
-	}
-	// A legacy reader that knows only modelToolCalls/arguments remains compatible;
-	// the actual workspace/transcript commit decoders already accepted this event.
-	var legacy struct {
-		ModelToolCalls []agentruntime.ToolCall `json:"modelToolCalls"`
-	}
-	if err := json.Unmarshal(payload, &legacy); err != nil || len(legacy.ModelToolCalls) != 1 ||
-		!bytes.Equal(legacy.ModelToolCalls[0].Arguments, expectedJSON) {
-		t.Fatalf("legacy decoder disagreed with canonical arguments: %#v %v", legacy, err)
-	}
+	assertKernelProposalProvenance(t, payload, call.Arguments, expectedJSON)
 	if operation.State == workspace.KernelLocalOperationStatePendingApproval {
 		operation, err = f.store.ResolveKernelLocalOperationApproval(ctx, workspace.ResolveKernelLocalOperationApprovalInput{
 			OwnerUserID: f.stream.OwnerID, OperationID: operation.OperationID, ExpectedStateVersion: operation.StateVersion,
@@ -230,6 +209,101 @@ func TestKernelAdmissionNormalizedCheckpointBindsOperation(t *testing.T) {
 	}
 	if _, err := replay.authorizeAgentKernelLocalOperation(withTranscriptRunnerChatRun(ctx, run), f.identity, call, "bash", replayInput, "verified-env"); err != nil {
 		t.Fatalf("reopened canonical operation cannot authorize its unchanged dispatch: %v", err)
+	}
+}
+
+func TestKernelAdmissionLargeProposalProvenanceStaysWithinEventLimit(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	run := &sessionRunnerChatRun{
+		SessionID: f.stream.SessionID, Attempt: int(f.claim.Attempt), ClaimToken: f.claim.ClaimToken,
+		Transcript:                         &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim},
+		managedEnvironmentBindings:         map[string]string{"requested-env": "verified-env"},
+		managedEnvironmentBindingsHydrated: true,
+	}
+	schemas := []agentruntime.ToolSchema{{Name: "python", Parameters: agentKernelLanguageToolParameters("Python", "verified-env")}}
+	gateway := serverAgentRuntimeToolGateway{server: f.server, taskRun: run, kernel: f.identity,
+		sessionID: f.stream.SessionID, toolSchemas: schemas, toolValidators: agentRuntimeToolValidators(schemas)}
+	// The code is admitted but never executed. Its single canonical copy fits the
+	// real event limit; copying the original body as provenance does not.
+	code := strings.Repeat("value = 1\n", 60000)
+	original := map[string]any{"code": code, "environment": "requested-env", "human_description": "Preparing controlled large source"}
+	call := agentruntime.ToolCall{ID: "large-kernel-provenance", Name: "python", Arguments: append(mustMarshalRawMessage(original), '\n')}
+	authored := append(json.RawMessage(nil), call.Arguments...)
+	if len(authored) <= 512<<10 || len(authored) >= transcriptstore.MaxEventPayloadBytes {
+		t.Fatalf("fixture is outside the intended large admitted range: %d bytes", len(authored))
+	}
+	expected := gateway.normalizeAdmittedToolArguments(call.Name, original)
+	expectedJSON, environment, err := kernelcontract.CanonicalInput(call.Name, mustMarshalRawMessage(expected))
+	if err != nil || environment != "verified-env" || expected["code"] != code {
+		t.Fatalf("fixture did not retain its full source through normalization: environment=%q err=%v", environment, err)
+	}
+	if err := f.server.checkpointChatModelToolCallsWithContext(ctx, SessionRunnerChatOptions{RunnerID: f.claim.RunnerID}, run, []agentruntime.ToolCall{call}, gateway); err != nil {
+		t.Fatalf("large admitted proposal cannot be checkpointed: %v", err)
+	}
+	if !bytes.Equal(call.Arguments, authored) {
+		t.Fatal("checkpoint replaced the original in-memory model proposal")
+	}
+	operation, found, err := f.store.GetKernelLocalOperationByToolCall(ctx, f.stream.OwnerID, f.stream.UID, call.ID)
+	if err != nil || !found {
+		t.Fatalf("operation found=%t err=%v", found, err)
+	}
+	digest := sha256.Sum256(expectedJSON)
+	if !bytes.Equal(operation.InputJSON, expectedJSON) || operation.InputSHA256 != hex.EncodeToString(digest[:]) || operation.Environment != environment {
+		t.Fatal("large proposal authority was truncated or changed")
+	}
+	items, err := f.store.ListToolCallBatchItems(ctx, f.stream.OwnerID, run.ToolBatchIDs[call.ID])
+	if err != nil || len(items) != 1 || !bytes.Equal(items[0].ArgumentsJSON, expectedJSON) {
+		t.Fatalf("large canonical batch differs from the operation: item_count=%d err=%v", len(items), err)
+	}
+	var payload []byte
+	if err := f.db.QueryRow(`SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_id=?`, f.stream.UID, operation.SourceEventID).Scan(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) > transcriptstore.MaxEventPayloadBytes {
+		t.Fatalf("checkpoint exceeded the real event limit: %d bytes", len(payload))
+	}
+	assertKernelProposalProvenance(t, payload, authored, expectedJSON)
+	var legacyCopied map[string]any
+	if err := json.Unmarshal(payload, &legacyCopied); err != nil {
+		t.Fatal(err)
+	}
+	proposal := legacyCopied["modelToolCalls"].([]any)[0].(map[string]any)
+	delete(proposal, "originalArgumentsSHA256")
+	delete(proposal, "originalArgumentsByteLength")
+	proposal["originalArguments"] = authored
+	copied, err := json.Marshal(legacyCopied)
+	if err != nil || len(copied) <= transcriptstore.MaxEventPayloadBytes {
+		t.Fatalf("fixture did not expose the original body-copy overflow: bytes=%d err=%v", len(copied), err)
+	}
+	t.Logf("original_bytes=%d checkpoint_bytes=%d old_body_copy_bytes=%d event_limit=%d", len(authored), len(payload), len(copied), transcriptstore.MaxEventPayloadBytes)
+}
+
+func assertKernelProposalProvenance(t *testing.T, payload, original, canonical []byte) {
+	t.Helper()
+	var checkpoint struct {
+		ModelToolCalls []struct {
+			OriginalArguments           json.RawMessage `json:"originalArguments"`
+			OriginalArgumentsSHA256     string          `json:"originalArgumentsSHA256"`
+			OriginalArgumentsByteLength int             `json:"originalArgumentsByteLength"`
+		} `json:"modelToolCalls"`
+	}
+	if err := json.Unmarshal(payload, &checkpoint); err != nil || len(checkpoint.ModelToolCalls) != 1 {
+		t.Fatal("proposal provenance missing", err)
+	}
+	digest := sha256.Sum256(original)
+	proposal := checkpoint.ModelToolCalls[0]
+	if len(proposal.OriginalArguments) != 0 || proposal.OriginalArgumentsSHA256 != hex.EncodeToString(digest[:]) || proposal.OriginalArgumentsByteLength != len(original) {
+		t.Fatal("proposal provenance copied a body or disagreed with the original raw bytes")
+	}
+	// A legacy reader that knows only modelToolCalls/arguments remains compatible;
+	// the actual workspace/transcript commit decoders already accepted this event.
+	var legacy struct {
+		ModelToolCalls []agentruntime.ToolCall `json:"modelToolCalls"`
+	}
+	if err := json.Unmarshal(payload, &legacy); err != nil || len(legacy.ModelToolCalls) != 1 ||
+		!bytes.Equal(legacy.ModelToolCalls[0].Arguments, canonical) {
+		t.Fatalf("legacy decoder disagreed with canonical arguments: %v", err)
 	}
 }
 

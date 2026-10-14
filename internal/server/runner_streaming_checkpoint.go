@@ -147,8 +147,11 @@ func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, op
 		}
 		if string(arguments) != string(call.Arguments) {
 			// Non-authoritative provenance only. Execution and approval bind solely
-			// to arguments above; no existing operation or proposal is rewritten.
-			toolCallPayload["originalArguments"] = append(json.RawMessage(nil), call.Arguments...)
+			// to arguments above. Do not duplicate the original body within the
+			// bounded event; its digest cannot reconstruct the original proposal.
+			originalDigest := sha256.Sum256(call.Arguments)
+			toolCallPayload["originalArgumentsSHA256"] = hex.EncodeToString(originalDigest[:])
+			toolCallPayload["originalArgumentsByteLength"] = len(call.Arguments)
 		}
 		if call.RejectedBeforeExecution {
 			toolCallPayload["rejectedBeforeExecution"] = true

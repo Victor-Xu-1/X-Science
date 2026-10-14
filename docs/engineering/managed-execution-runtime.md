@@ -86,10 +86,12 @@ Kernel proposals normalize task-owned environment aliases and registered runtime
 arguments before their checkpoint creates the immutable operation. The same
 gateway normalization governs dispatch; approval continues to compare the exact
 canonical input bytes, digest, environment and operation incarnation. A changed
-proposal retains `originalArguments` in that same checkpoint as provenance only;
-it is neither an execution authority nor a reason to rewrite an existing approved
-operation. Legacy checkpoint readers ignore this additional field, and recovered
-tool batches execute their already committed canonical arguments.
+proposal retains only `originalArgumentsSHA256` and `originalArgumentsByteLength`
+in that same checkpoint as bounded provenance of the original raw JSON bytes.
+The original body is not copied and cannot be reconstructed from its digest.
+These fields are neither execution authority nor a reason to rewrite an existing
+approved operation. Legacy checkpoint readers ignore this additional metadata,
+and recovered tool batches execute their already committed canonical arguments.
 
 Python, R and Bash executor validation use the shared `kernelcontract` field/type
 contract, including `memory_budget_mb`. REPL does not acquire a compute-budget
