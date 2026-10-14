@@ -13,8 +13,19 @@ function Assert-Equal {
 function New-HelperFixture {
   param([int]$ExitCode)
   $process = [pscustomobject]@{ Id = 1; HasExited = $false; ExitCode = $ExitCode }
-  $process | Add-Member ScriptMethod WaitForExit { $this.HasExited = $true }
-  $process | Add-Member ScriptMethod Kill { $this.HasExited = $true }
+  $process | Add-Member ScriptMethod WaitForExit {
+    param([int]$Milliseconds)
+    if ($global:sourceSupervisorFixture.Mode -eq 'wait-error' -and $Milliseconds -eq 0) {
+      throw [InvalidOperationException]::new('controlled wait failure')
+    }
+    $this.HasExited = $true
+    if ($Milliseconds -gt 0) {
+      Assert-Equal 5000 $Milliseconds 'normal unwind must bound its owned wait'
+      $global:sourceSupervisorFixture.CleanupWaits++
+      return $true
+    }
+  }
+  $process | Add-Member ScriptMethod Kill { $global:sourceSupervisorFixture.Kills++; $this.HasExited = $true }
   $process | Add-Member ScriptMethod Dispose {}
   return $process
 }
@@ -53,8 +64,8 @@ function Start-Sleep {
 
 function Stop-Process {
   param($Id, [switch]$Force)
-  Assert-Equal $global:sourceSupervisorFixture.Process.Id $Id 'only owned fixture may be stopped'
-  $global:sourceSupervisorFixture.Process.Kill()
+  $global:sourceSupervisorFixture.PIDReacquires++
+  throw 'cleanup must use the retained process object, never reacquire a PID'
 }
 
 function New-Object {
@@ -75,10 +86,14 @@ function Invoke-SupervisorFixture {
   $global:sourceSupervisorFixture = [pscustomobject]@{
     Mode = $Mode; Process = (New-HelperFixture $ExitCode); Starts = 0; Probes = 0
     RetrySleeps = 0; Releases = 0; MutexBusy = $MutexBusy.IsPresent; Arguments = @(); OwnedProcess = $null
+    Kills = 0; CleanupWaits = 0; PIDReacquires = 0
   }
   $savedLocalAppData = $env:LOCALAPPDATA
-  $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ('x-science-supervisor-' + [guid]::NewGuid())
-  $null = New-Item -ItemType Directory -Path $fixtureRoot
+  $expectedTempRoot = (Resolve-Path -LiteralPath ([IO.Path]::GetTempPath())).ProviderPath.TrimEnd('\')
+  $fixtureRoot = Join-Path $expectedTempRoot ('x-science-supervisor-' + [guid]::NewGuid())
+  $createdDirectory = New-Item -ItemType Directory -Path $fixtureRoot
+  $createdPath = $createdDirectory.FullName
+  $createdAt = $createdDirectory.CreationTimeUtc.Ticks
   try {
     $env:LOCALAPPDATA = $fixtureRoot
     $failure = $null
@@ -89,6 +104,8 @@ function Invoke-SupervisorFixture {
       ExitCode = $LASTEXITCODE; Error = $failure
       Starts = $global:sourceSupervisorFixture.Starts; Probes = $global:sourceSupervisorFixture.Probes
       RetrySleeps = $global:sourceSupervisorFixture.RetrySleeps; Releases = $global:sourceSupervisorFixture.Releases
+      Kills = $global:sourceSupervisorFixture.Kills; CleanupWaits = $global:sourceSupervisorFixture.CleanupWaits
+      PIDReacquires = $global:sourceSupervisorFixture.PIDReacquires
       Arguments = $global:sourceSupervisorFixture.Arguments
       Log = (Get-Content -Raw -LiteralPath (Join-Path $fixtureRoot 'XScience/source-dev/watchdog.log') -ErrorAction SilentlyContinue)
     }
@@ -102,8 +119,18 @@ function Invoke-SupervisorFixture {
       if (-not $process.HasExited) { $process.Kill(); [void]$process.WaitForExit(5000) }
       $process.Dispose()
     }
-    # Delete only this freshly created, exact test-owned directory.
-    Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
+    # Resolve again before recursive deletion; retain any replaced or redirected
+    # target rather than following it outside the freshly created fixture.
+    $currentDirectory = Get-Item -LiteralPath $createdPath -Force
+    $resolvedPath = (Resolve-Path -LiteralPath $createdPath).ProviderPath
+    if (-not $currentDirectory.PSIsContainer -or
+        ($currentDirectory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+        $currentDirectory.CreationTimeUtc.Ticks -ne $createdAt -or
+        $currentDirectory.FullName -cne $createdPath -or $resolvedPath -cne $createdPath -or
+        [IO.Path]::GetDirectoryName($resolvedPath) -cne $expectedTempRoot) {
+      throw 'Unexpected fixture cleanup identity; directory retained.'
+    }
+    Remove-Item -LiteralPath $resolvedPath -Recurse -Force
     Remove-Variable sourceSupervisorFixture -Scope Global
   }
 }
@@ -128,6 +155,17 @@ Assert-Equal 1 $result.Releases 'failed launch must release its mutex'
 Assert-Equal $true ($result.Log -match 'wsl_keepalive_start_failed') 'failed start must be observable'
 Assert-Equal $false ($result.Log -match 'controlled start failure|/fixture/keepalive.sh') 'logs contain only safe stage and exception type'
 'PASS: failed helper start'
+
+$result = Invoke-SupervisorFixture -Mode 'wait-error'
+Assert-Equal 1 $result.ExitCode 'failed wait must return failure'
+Assert-Equal 1 $result.Starts 'failed wait must not relaunch its helper'
+Assert-Equal 1 $result.Kills 'normal unwind must kill only the retained process once'
+Assert-Equal 1 $result.CleanupWaits 'normal unwind must join its owned process with a bounded wait'
+Assert-Equal 0 $result.PIDReacquires 'normal unwind must never reacquire a process by PID'
+Assert-Equal 1 $result.Releases 'failed wait must release the owned mutex'
+Assert-Equal $null $result.Error 'successful cleanup must preserve the controlled failure exit'
+Assert-Equal $true ($result.Log -match 'wsl_keepalive_wait_failed') 'failed wait must be observable'
+'PASS: retained-object normal unwind after wait failure'
 
 $result = Invoke-SupervisorFixture -Mode 'real-exit'
 Assert-Equal 17 $result.ExitCode 'actual owned child exit status must survive the real wait'
@@ -162,4 +200,4 @@ Assert-Equal $true ($installer.Contains('if ($Start)')) 'installation does not i
 $source = Get-Content -Raw -LiteralPath $supervisor
 Assert-Equal $false ($source -match 'Restart-SourceServices|Invoke-WebRequest|Update-SupervisorState') 'retired restart authority must be deleted'
 'PASS: installer and retired authority contract'
-'source-dev-supervisor-test: ok (6 focused contracts; no WSL, HTTP, service, or task operation)'
+'source-dev-supervisor-test: ok (7 focused contracts; no WSL, HTTP, service, or task operation)'

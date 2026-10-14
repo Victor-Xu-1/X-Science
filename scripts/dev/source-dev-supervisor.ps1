@@ -74,8 +74,10 @@ function Start-WslKeepalive {
 function Stop-WslKeepalive {
   param($Process)
   if ($null -eq $Process -or $Process.HasExited) { return }
-  Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
-  [void]$Process.WaitForExit(5000)
+  $Process.Kill()
+  if (-not $Process.WaitForExit(5000)) {
+    throw 'Owned keepalive did not exit within the cleanup budget.'
+  }
 }
 
 $mutex = New-Object System.Threading.Mutex($false, 'Local\XScienceSourceDevWatchdog')
