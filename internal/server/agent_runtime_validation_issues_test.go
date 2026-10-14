@@ -12,7 +12,7 @@ import (
 func TestAgentRuntimeAdmissionDiagnosticNamesUnexpectedProperties(t *testing.T) {
 	for _, test := range []struct {
 		name, arguments, corrected, path, actualType string
-		properties                              map[string]any
+		properties                                   map[string]any
 	}{
 		{
 			name: "top level", arguments: `{"label":"valid","unexpected":"PRIVATE_VALUE"}`,
