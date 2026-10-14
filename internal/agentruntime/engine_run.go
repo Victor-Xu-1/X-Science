@@ -210,6 +210,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 			batch, toolErr = e.ExecuteToolBatch(ctx, message.ToolCalls, 0, normalized.MediaPolicy, mediaBytesUsed)
 		}
 		messages = append(messages, batch.Messages...)
+		lastToolCallRoundSignature, consecutiveIdenticalToolRounds = pendingWaitRepetition(lastToolCallRoundSignature, consecutiveIdenticalToolRounds, batch, toolErr)
 		// Admission alone proves no effect. Reset the private repair window
 		// only after actual progress; retain per-family history until a valid
 		// call to that same operation target succeeds.

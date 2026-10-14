@@ -5,7 +5,6 @@ package detached
 import (
 	"context"
 	"errors"
-	"strconv"
 
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -36,8 +35,7 @@ func (b *Backend) reconcileResourceWait(ctx context.Context, backend workspace.K
 		}
 		return true, err
 	}
-	// Infrastructure availability is not an execution result. The existing
-	// notification/recovery path can now retry the original authorized call.
-	_, _, err = b.Store.CreateNotification(ctx, workspace.CreateNotificationInput{ID: "kernel-resources-" + backend.BackendID + "-" + strconv.FormatInt(backend.BackendGeneration, 10), SenderFrameID: backend.FrameID, RecipientFrameID: backend.FrameID, RootFrameID: backend.RootFrameID, OwnerUserID: backend.OwnerUserID, NotificationType: "resource_capacity_admitted", Payload: map[string]any{"backend_id": backend.BackendID, "backend_generation": backend.BackendGeneration, "kernel_id": backend.KernelID, "executed": false, "status": "execution_capacity_admitted", "memory_budget_bytes": reservation.RequestedBytes}})
-	return true, err
+	// The existing capacity notice committed with resource admission. Do not
+	// introduce a second publication window after external launch/readiness.
+	return true, nil
 }

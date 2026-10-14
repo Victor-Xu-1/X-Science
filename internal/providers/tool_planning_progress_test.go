@@ -49,7 +49,7 @@ func TestToolPlanningReasoningOnlyStreamHasBoundedProgress(t *testing.T) {
 			defer server.Close()
 			client, err := NewRuntimeModelClient(ModelProfile{
 				Provider: ProviderProfile{ID: "bounded-planning", Protocol: protocol, Endpoint: server.URL + "/v1beta/models/model:generateContent"},
-				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 256},
 			}, server.Client(), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -62,7 +62,7 @@ func TestToolPlanningReasoningOnlyStreamHasBoundedProgress(t *testing.T) {
 				Messages: []agentruntime.Message{{Role: "user", Content: "Perform the next analysis."}},
 				Tools:    []agentruntime.ToolSchema{{Name: "analysis", Parameters: map[string]any{"type": "object"}}},
 			}, func(event agentruntime.ModelStreamEvent) error { visible.WriteString(event.ContentDelta); return nil })
-			if !IsProviderEmptyResponse(err) || time.Since(started) > time.Second || requests.Load() != 1 {
+			if !IsProviderGenerationNoAction(err) || !IsProviderEmptyResponse(err) || time.Since(started) > time.Second || requests.Load() != 1 {
 				t.Fatalf("private-only generation was not bounded once: err=%v elapsed=%s requests=%d", err, time.Since(started), requests.Load())
 			}
 			if visible.Len() != 0 {
@@ -173,6 +173,9 @@ func TestToolPlanningUsefulActionRetainsProductiveStreaming(t *testing.T) {
 		if err := emit(action); err != nil {
 			t.Fatal(err)
 		}
+		// Public callback shape is observational. Only the provider decoder's
+		// admitted positive growth hands liveness over to its idle/byte budget.
+		planning.ObserveGrowth(1)
 		select {
 		case <-ctx.Done():
 			t.Fatalf("useful action was treated as a private-only stall: %v", context.Cause(ctx))
@@ -221,7 +224,7 @@ func TestToolPlanningPrivateStallPreservesAcceptedPrefix(t *testing.T) {
 	defer server.Close()
 	client, err := NewRuntimeModelClient(ModelProfile{
 		Provider: ProviderProfile{ID: "prefix-planning", Protocol: ProtocolOpenAICompatible, Endpoint: server.URL},
-		Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+		Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 256},
 	}, server.Client(), nil)
 	if err != nil {
 		t.Fatal(err)

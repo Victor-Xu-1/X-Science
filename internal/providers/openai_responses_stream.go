@@ -144,6 +144,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest)
+		idleReader.decodedGrowth = planning.ObserveGrowth
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIResponsesStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit, c.openAIResponsesResponseDecoder,
@@ -176,6 +177,9 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
 		err = classifyProviderStreamInterruption(ctx, requestCtx, emitted, err)
+		if ctx.Err() == nil && !emitted {
+			err = planning.NoCompletedAction(err)
+		}
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)
@@ -240,21 +244,28 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				return errors.New("OpenAI Responses stream function call identity is incomplete")
 			}
 			identity := openAIResponsesStreamCallIdentity{CallID: callID, Name: name}
-			if existing, found := accumulator.callIdentity[itemID]; found && existing != identity {
-				return errors.New("OpenAI Responses stream function call identity changed")
+			if existing, found := accumulator.callIdentity[itemID]; found {
+				if existing != identity {
+					return errors.New("OpenAI Responses stream function call identity changed")
+				}
+				return nil
 			}
+			growth := int64(len(itemID) + len(callID) + len(name))
+			if err := accumulator.reserveSemanticBytes(growth); err != nil {
+				return err
+			}
+			accumulator.callIdentity[itemID] = identity
+			recordProviderStreamProgress(reader, growth)
 			if !accumulator.toolBoundarySent {
 				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
 					return err
 				}
 				accumulator.toolBoundarySent = true
 			}
-			accumulator.callIdentity[itemID] = identity
 		case "response.output_text.delta":
 			if event.Delta == "" {
 				return nil
 			}
-			recordProviderStreamProgress(reader)
 			if err := accumulator.reserveSemanticBytes(int64(len(event.Delta))); err != nil {
 				if errors.Is(err, errProviderSemanticSegmentBoundary) && accumulator.emitted &&
 					len(accumulator.callIdentity) == 0 && len(accumulator.arguments) == 0 {
@@ -262,6 +273,7 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				}
 				return err
 			}
+			recordProviderStreamProgress(reader, int64(len(event.Delta)))
 			accumulator.content.WriteString(event.Delta)
 			accumulator.emitted = true
 			if err := emit(agentruntime.ModelStreamEvent{
@@ -270,9 +282,6 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				return err
 			}
 		case "response.function_call_arguments.delta":
-			if event.Delta != "" {
-				recordProviderStreamProgress(reader)
-			}
 			if err := accumulator.reserveSemanticBytes(int64(len(event.Delta))); err != nil {
 				return err
 			}
@@ -289,18 +298,20 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				accumulator.arguments[key] = builder
 			}
 			builder.WriteString(event.Delta)
+			if event.Delta != "" {
+				recordProviderStreamProgress(reader, int64(len(event.Delta)))
+			}
 		case "response.reasoning_text.delta", "response.reasoning_summary_text.delta":
 			if event.Delta != "" {
 				if err := accumulator.reserveSemanticBytes(int64(len(event.Delta))); err != nil {
 					return err
 				}
-				recordProviderStreamProgress(reader)
+				recordProviderStreamProgress(reader, int64(len(event.Delta)))
 				if err := emit(agentruntime.ModelStreamEvent{ReasoningActive: true}); err != nil {
 					return err
 				}
 			}
 		case "response.completed":
-			recordProviderStreamProgress(reader)
 			if err := accumulator.validateCompletedToolCalls(event.Response); err != nil {
 				return err
 			}
@@ -315,12 +326,14 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 			if isProviderStreamTruncatedReason(response.StopReason) {
 				return fmt.Errorf("%w: finish reason %s", errProviderResponseTruncated, response.StopReason)
 			}
+			previousSemanticBytes := accumulator.semanticBytes
 			if err := accumulator.observeCompletedSemanticBytes(openAIResponsesModelSemanticBytes(response)); err != nil {
 				return err
 			}
 			accumulator.requestID = requestID
 			accumulator.usage = usage
 			accumulator.completed = &response
+			recordProviderStreamProgress(reader, accumulator.semanticBytes-previousSemanticBytes)
 		case "response.incomplete":
 			accumulator.requestID = event.Response.ID
 			accumulator.usage = providerTokenUsage{PromptTokens: event.Response.Usage.InputTokens, CompletionTokens: event.Response.Usage.OutputTokens, TotalTokens: event.Response.Usage.TotalTokens}

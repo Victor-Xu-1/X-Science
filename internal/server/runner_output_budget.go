@@ -288,7 +288,8 @@ func (client *sessionOutputBudgetClient) run(ctx context.Context, request agentr
 		}
 		return response, callErr
 	}
-	if usingDefaultProbe && !nativeProgress.Load() && providers.IsProviderPlanningNoNativeProgress(callErr) {
+	if usingDefaultProbe && !nativeProgress.Load() &&
+		(providers.IsProviderPlanningNoNativeProgress(callErr) || providers.IsProviderGenerationNoNativeAction(callErr)) {
 		if err := client.retireFailedPlanningProbe(previousState); err != nil {
 			return response, errors.Join(callErr, err)
 		}

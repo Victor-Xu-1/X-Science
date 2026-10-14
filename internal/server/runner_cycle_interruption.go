@@ -91,7 +91,7 @@ func (s *Server) handleSessionRunnerChatInterruption(
 		if err := s.interruptClaimedSessionRunner(
 			options, result, activeRun, projectionClaim, transcriptAuthority,
 			"provider_stream_no_progress",
-			"the model provider returned no semantic output after bounded request retries; preserve completed tools and resume from the latest durable checkpoint",
+			"the model provider completed no usable public response or tool action before its bounded generation ended; preserve completed tools and resume from the latest durable checkpoint",
 		); err != nil {
 			return true, err
 		}

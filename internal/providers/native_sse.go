@@ -35,7 +35,7 @@ func readNativeSSE(reader io.Reader, limit int64, dispatch func(string, []byte) 
 		if raw == "" || raw == "[DONE]" {
 			return nil
 		}
-		semantics := nativeSSEEventSemantics([]byte(raw))
+		semantics := nativeSSEEventSemantics([]byte(raw), name)
 		if semantics.Bytes > limit-semanticBytes {
 			if semantics.HasToolCall || semantics.ExplicitTerminal {
 				return fmt.Errorf("%w: decoded response exceeded %d bytes", errProviderResponseTooLarge, limit)
@@ -55,11 +55,13 @@ func readNativeSSE(reader io.Reader, limit int64, dispatch func(string, []byte) 
 			return withOutputLimitDetails(limited, 0, "", nativeTerminalUsage([]byte(raw)))
 		}
 		semanticBytes += semantics.Bytes
-		if semantics.Bytes > 0 || semantics.ExplicitTerminal {
-			recordProviderStreamProgress(reader)
+		if err := dispatch(name, []byte(raw)); err != nil {
+			return err
 		}
+		// Generic framing accounts for the bounded payload, not protocol
+		// admission. Only the native decoder can publish recognized growth.
 		semanticToolCall = semanticToolCall || semantics.HasToolCall
-		return dispatch(name, []byte(raw))
+		return nil
 	}
 	for {
 		line, readErr := readProviderSSELine(buffered, eventLimit)
@@ -114,7 +116,7 @@ type nativeSSEEventSemanticInfo struct {
 	ExplicitTerminal bool
 }
 
-func nativeSSEEventSemantics(raw []byte) nativeSSEEventSemanticInfo {
+func nativeSSEEventSemantics(raw []byte, names ...string) nativeSSEEventSemanticInfo {
 	var event struct {
 		Type         string `json:"type"`
 		ContentBlock struct {
@@ -150,6 +152,9 @@ func nativeSSEEventSemantics(raw []byte) nativeSSEEventSemanticInfo {
 	}
 	var semantics nativeSSEEventSemanticInfo
 	eventType := strings.TrimSpace(event.Type)
+	if eventType == "" && len(names) > 0 {
+		eventType = strings.TrimSpace(names[0])
+	}
 	semantics.ExplicitTerminal = eventType == "message_stop"
 	switch eventType {
 	case "content_block_start":

@@ -37,6 +37,7 @@ type anthropicStreamEvent struct {
 		Type        string `json:"type"`
 		Text        string `json:"text,omitempty"`
 		Thinking    string `json:"thinking,omitempty"`
+		Signature   string `json:"signature,omitempty"`
 		PartialJSON string `json:"partial_json,omitempty"`
 	} `json:"delta,omitempty"`
 	Usage anthropicStreamUsage `json:"usage,omitempty"`
@@ -102,24 +103,31 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 			case "text":
 				if event.ContentBlock.Text != "" {
 					acc.content.WriteString(event.ContentBlock.Text)
+					recordProviderStreamProgress(response.Body, int64(len(event.ContentBlock.Text)))
 				}
 			case "tool_use":
 				name, err := normalizeModelToolName(event.ContentBlock.Name)
 				if err != nil {
 					return err
 				}
+				acc.tools[event.Index] = &anthropicStreamTool{ID: strings.TrimSpace(event.ContentBlock.ID), Name: name}
+				recordProviderStreamProgress(response.Body, int64(len(strings.TrimSpace(event.ContentBlock.ID))+len(event.ContentBlock.Name)))
 				if !acc.toolBoundarySent {
 					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
 						return err
 					}
 					acc.toolBoundarySent = true
 				}
-				acc.tools[event.Index] = &anthropicStreamTool{ID: strings.TrimSpace(event.ContentBlock.ID), Name: name}
 			}
 		case "content_block_delta":
 			switch event.Delta.Type {
+			case "signature_delta":
+				if event.Delta.Signature != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Signature)))
+				}
 			case "thinking_delta":
 				if event.Delta.Thinking != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Thinking)))
 					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true}); err != nil {
 						return err
 					}
@@ -128,6 +136,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 				if event.Delta.Text != "" {
 					acc.content.WriteString(event.Delta.Text)
 					acc.emitted = true
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Text)))
 					if err := emit(agentruntime.ModelStreamEvent{
 						Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: event.Delta.Text,
 					}); err != nil {
@@ -140,12 +149,18 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 					return fmt.Errorf("Anthropic input_json_delta references unknown content block %d", event.Index)
 				}
 				tool.Arguments.WriteString(event.Delta.PartialJSON)
+				if event.Delta.PartialJSON != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.PartialJSON)))
+				}
 			}
 		case "message_delta":
 			if event.Usage.OutputTokens != 0 {
 				acc.usage.CompletionTokens = event.Usage.OutputTokens
 			}
 		case "message_stop":
+			if !acc.stopped {
+				recordProviderStreamProgress(response.Body, 0)
+			}
 			acc.stopped = true
 		case "error":
 			return fmt.Errorf("Anthropic stream error %s: %s", strings.TrimSpace(event.Error.Type), strings.TrimSpace(event.Error.Message))

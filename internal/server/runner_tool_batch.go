@@ -72,6 +72,17 @@ func (s *Server) resumePendingAgentToolCalls(
 			return resumed, err
 		}
 		isKernel := !rejection.Rejected && kernelcontract.Admitted(item.ToolName, item.ArgumentsJSON)
+		if isKernel && item.State == workspace.ToolCallBatchItemStatePending {
+			admission, admissionErr := s.workspaceStore.KernelToolCallBatchAdmission(ctx, run.Transcript.Claim, batch.BatchID, item.Ordinal)
+			if admissionErr != nil {
+				return resumed, admissionErr
+			}
+			if admission.Deferred && !admission.OperationFound {
+				// The proposal is durable; its executable identity is not yet
+				// admitted. Resume the same ordinary start boundary below.
+				isKernel = false
+			}
+		}
 		if isKernel {
 			operation, found, err := s.workspaceStore.GetKernelLocalOperationByToolCall(
 				ctx, batch.OwnerUserID, batch.StreamUID, item.ToolCallID,

@@ -8,6 +8,16 @@ import (
 
 const maxNoProgressRecoveryCallLabels = 8
 
+// Waiting for real work is not repeating a completed action. Keep segment
+// budgets and cancellation, without claiming a material effect or resetting
+// durable recovery obligations.
+func pendingWaitRepetition(signature string, count int, batch ToolBatchExecution, err error) (string, int) {
+	if batch.OnlyPendingWaits && err == nil {
+		return "", 0
+	}
+	return signature, count
+}
+
 func toolRoundReportsMaterialProgress(messages []Message) bool {
 	for _, message := range messages {
 		if message.Role != "tool" {

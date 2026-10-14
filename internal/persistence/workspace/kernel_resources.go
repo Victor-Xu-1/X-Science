@@ -20,6 +20,27 @@ type KernelResourceReservation struct {
 	State          string
 }
 
+// CountPendingKernelResourceWaits projects the existing startup supervisor's
+// waiting authority. It neither admits resources nor starts a cancelled call.
+func (s *Store) CountPendingKernelResourceWaits(ctx context.Context, access KernelFrameAccess) (int, error) {
+	if s == nil || s.db == nil || ctx == nil {
+		return 0, errors.New("workspace resource wait authority is unavailable")
+	}
+	var count int
+	err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM kernel_resource_reservations r
+		JOIN kernel_execution_backends b ON b.backend_id=r.backend_id
+			AND b.backend_generation=r.backend_generation AND b.machine_boot_id=r.machine_boot_id
+		JOIN frames f ON f.id=b.frame_id AND f.incarnation_id=b.frame_incarnation_id
+		JOIN frames root ON root.id=b.root_frame_id AND root.incarnation_id=b.root_frame_incarnation_id
+		JOIN projects p ON p.id=b.project_id AND p.user_id=b.owner_user_id
+		WHERE r.state IN ('waiting','reserved') AND b.state='starting' AND f.status='processing'
+			AND f.project_id=p.id AND root.project_id=p.id
+			AND b.owner_user_id=? AND b.project_id=? AND b.frame_id=? AND b.frame_incarnation_id=?
+			AND b.root_frame_id=? AND b.root_frame_incarnation_id=?`, access.UserID, access.Frame.ProjectID,
+		access.Frame.ID, access.Frame.IncarnationID, access.Frame.RootFrameID, access.RootFrameIncarnationID).Scan(&count)
+	return count, err
+}
+
 // Capacity excludes the control-plane reserve. Usage is a current physical
 // observation for the exact reserved generation. Unknown usage is zero, so a
 // control outage cannot free a promise. Already-used memory is not counted
@@ -66,6 +87,7 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 	if err != nil {
 		return reservation, false, err
 	}
+	noticeAdded := false
 	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 		var generation int64
 		var boot, state string
@@ -75,12 +97,17 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 		if generation != backend.BackendGeneration || boot != backend.MachineBootID || state != KernelExecutionBackendStateStarting {
 			return ErrKernelExecutionBackendStale
 		}
-		var owner, frameIncarnation, rootIncarnation string
-		if err := tx.QueryRowContext(ctx, `SELECT p.user_id,f.incarnation_id,r.incarnation_id FROM projects p JOIN frames f ON f.project_id=p.id AND f.id=? JOIN frames r ON r.project_id=p.id AND r.id=? WHERE p.id=?`, backend.FrameID, backend.RootFrameID, backend.ProjectID).Scan(&owner, &frameIncarnation, &rootIncarnation); err != nil || owner != backend.OwnerUserID || frameIncarnation != backend.FrameIncarnationID || rootIncarnation != backend.RootFrameIncarnationID {
+		var owner, frameIncarnation, rootIncarnation, frameStatus string
+		if err := tx.QueryRowContext(ctx, `SELECT p.user_id,f.incarnation_id,r.incarnation_id,f.status FROM projects p JOIN frames f ON f.project_id=p.id AND f.id=? JOIN frames r ON r.project_id=p.id AND r.id=? WHERE p.id=?`, backend.FrameID, backend.RootFrameID, backend.ProjectID).Scan(&owner, &frameIncarnation, &rootIncarnation, &frameStatus); err != nil || owner != backend.OwnerUserID || frameIncarnation != backend.FrameIncarnationID || rootIncarnation != backend.RootFrameIncarnationID {
 			return ErrKernelExecutionBackendStale
 		}
 		now := s.now().UTC().Format(time.RFC3339Nano)
-		if _, err := tx.ExecContext(ctx, `INSERT INTO kernel_resource_reservations(backend_id,backend_generation,machine_boot_id,requested_bytes,reserved_bytes,state,created_at,updated_at) VALUES(?,?,?,?,0,'waiting',?,?) ON CONFLICT(backend_id,backend_generation) DO NOTHING`, backend.BackendID, generation, boot, requested, now, now); err != nil {
+		inserted, err := tx.ExecContext(ctx, `INSERT INTO kernel_resource_reservations(backend_id,backend_generation,machine_boot_id,requested_bytes,reserved_bytes,state,created_at,updated_at) VALUES(?,?,?,?,0,'waiting',?,?) ON CONFLICT(backend_id,backend_generation) DO NOTHING`, backend.BackendID, generation, boot, requested, now, now)
+		if err != nil {
+			return err
+		}
+		created, err := inserted.RowsAffected()
+		if err != nil {
 			return err
 		}
 		var sequence int64
@@ -141,12 +168,38 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 		if want > available {
 			return nil
 		}
+		// Only recovery of a previously persisted resource wait requires the
+		// processing precondition already used by its startup supervisor. Keep
+		// initial/manual admissions and reserved replays on their old contract.
+		if created == 0 && frameStatus != "processing" {
+			return ErrKernelExecutionBackendStale
+		}
 		if _, err := tx.ExecContext(ctx, `UPDATE kernel_resource_reservations SET reserved_bytes=?,state='reserved',updated_at=? WHERE backend_id=? AND backend_generation=? AND state='waiting'`, want, now, backend.BackendID, generation); err != nil {
 			return err
+		}
+		if created == 0 {
+			// Capacity admission is a durable fact, not readiness or execution.
+			// Its existing notice must commit with the promise so startup cannot
+			// become invisible between reservation and a later publication.
+			if _, _, err := createNotificationTx(ctx, tx, CreateNotificationInput{
+				ID:            "kernel-resources-" + backend.BackendID + "-" + strconv.FormatInt(generation, 10),
+				SenderFrameID: backend.FrameID, RecipientFrameID: backend.FrameID, RootFrameID: backend.RootFrameID,
+				OwnerUserID: backend.OwnerUserID, NotificationType: "resource_capacity_admitted",
+				Payload: map[string]any{"backend_id": backend.BackendID, "backend_generation": generation,
+					"kernel_id": backend.KernelID, "executed": false, "status": "execution_capacity_admitted", "memory_budget_bytes": requested},
+			}, s.now().UTC()); err != nil {
+				return err
+			}
+			noticeAdded = true
 		}
 		reservation.ReservedBytes, reservation.State, admitted = want, "reserved", true
 		return nil
 	})
+	if err != nil {
+		admitted = false
+	} else if noticeAdded {
+		s.signalOutboxWake()
+	}
 	return reservation, admitted, err
 }
 

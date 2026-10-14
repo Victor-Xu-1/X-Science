@@ -82,6 +82,52 @@ the current request's imports before returning success.
 
 ## Runtime authority
 
+Kernel proposals normalize task-owned environment aliases and registered runtime
+arguments before their checkpoint creates the immutable operation. The same
+gateway normalization governs dispatch; approval continues to compare the exact
+canonical input bytes, digest, environment and operation incarnation. A changed
+proposal retains only `originalArgumentsSHA256` and `originalArgumentsByteLength`
+in that same checkpoint as bounded provenance of the original raw JSON bytes.
+The original body is not copied and cannot be reconstructed from its digest.
+These fields are neither execution authority nor a reason to rewrite an existing
+approved operation. Legacy checkpoint readers ignore this additional metadata,
+and recovered tool batches execute their already committed canonical arguments.
+The direct checkpoint path resolves only built-in kernel schemas; it does not
+rediscover unrelated external connectors inside the bounded persistence window.
+
+Python, R and Bash executor validation use the shared `kernelcontract` field/type
+contract, including `memory_budget_mb`. REPL does not acquire a compute-budget
+field. An explicit budget below the observed executor minimum returns the typed
+`resource_budget_below_minimum` unstarted result with requested/minimum bytes and
+`retryable=false`; waiting for free capacity cannot fix the unchanged allocation.
+The model must submit a newly approved operation with a sufficient budget or an
+authorized different runtime. Budgets are never silently increased, the durable
+reservation floor remains enforced, and ordinary capacity waits remain retryable.
+
+Capacity-unavailable reservations and reserved-but-starting executors remain
+pending work while their exact current task/backend generations are active; a
+ready idle executor does not remain pending merely because it owns a reservation.
+The existing startup supervisor, not a second scheduler, retries resource admission.
+A previously persisted wait's admission and its `resource_capacity_admitted`
+notification commit in one transaction. Initial immediate admissions do not emit
+an extra notification; reserved replays remain idempotent. That notification
+does not execute a previously cancelled operation; a subsequent tool proposal
+still requires ordinary execution authorization and actual worker readiness.
+Legacy reserved rows without recorded wait origin are not given a fabricated
+notification. Empty notification observations
+(`idle`, timeout, or legacy empty completion) do not reset material-progress or
+generation-recovery budgets. Real delivered notifications and new execution
+effects retain their progress semantics.
+
+The native bounded notification wait also supplies a private host observation
+when durable work is still pending. A batch consisting only of those waits is
+not repetition of a completed action, so the per-segment identical-call guard
+does not interrupt it before the next wait. This is not a material-progress
+receipt: persisted correction budgets are unchanged. Zero-time peeks, idle
+queues, completed/uncollected results, failed calls and mixed action batches
+retain ordinary loop handling; raw tool JSON cannot grant this observation.
+Cancellation and the normal tool-round segment budget still apply.
+
 ### Documented alternatives to automatic input resolvers
 
 An automatic resolver is one evidence route, not a monopoly on a task's
@@ -526,6 +572,17 @@ terminal observation remains part of authoritative result settlement.
 Foreground results, background notifications and history reconstruction use
 one result-binding consumer. The durable receipt carries the source/target
 environment relationship and implementation identity, not a second controller.
+
+Ready preflight recommendations and synchronous environment/package reuse use
+the same `environment_binding` v1 builder as new managed operations. Its input
+records the canonical implementation actually admitted by the server, while
+the original proposed arguments remain unchanged. A version-bearing display
+name cannot reappear as a competing identity during live binding or recovery.
+Opaque/version identity comparison and scientific selection protection remain
+strict. Older receipts are not rewritten or guessed from the current selection;
+a newly admitted preflight/reuse receipt can repair their task-local binding.
+Bounded refusal diagnostics preserve the requested environment and both exact
+implementation lists, or explicitly mark whole omitted fields when over budget.
 
 Environment binding recovery publishes readiness only after the complete read
 has succeeded. Concurrent consumers wait for the same attempt; failures remain

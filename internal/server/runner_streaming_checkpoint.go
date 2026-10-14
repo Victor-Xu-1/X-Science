@@ -106,11 +106,19 @@ func (s *Server) checkpointChatContentDelta(
 	return nil
 }
 
-func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall) error {
+func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall, gateways ...serverAgentRuntimeToolGateway) error {
+	return s.checkpointChatModelToolCallsWithContext(context.Background(), options, run, calls, gateways...)
+}
+
+func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, options SessionRunnerChatOptions, run *sessionRunnerChatRun, calls []agentruntime.ToolCall, gateways ...serverAgentRuntimeToolGateway) error {
 	if run == nil || len(calls) == 0 {
 		return nil
 	}
 	payload := make([]any, 0, len(calls))
+	// A multi-call proposal may change task-scoped bindings before a later
+	// kernel executes. Persist its order now; admit each executable input only
+	// after its predecessors have committed their actual results.
+	orderedKernelAdmission := run.Transcript != nil && len(calls) > 1
 	kernelCallCount := 0
 	runtimeRecoveredCount := 0
 	for _, originalCall := range calls {
@@ -122,6 +130,16 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 			return err
 		}
 		arguments := call.Arguments
+		if kernelcontract.IsTool(name) && !call.RejectedBeforeExecution && !orderedKernelAdmission {
+			gateway, err := s.kernelCheckpointAdmissionGateway(ctx, options, run, name, gateways)
+			if err != nil {
+				return err
+			}
+			arguments, err = normalizedKernelCheckpointArguments(gateway, name, arguments)
+			if err != nil {
+				return err
+			}
+		}
 		if canonical, admitted := canonicalKernelCheckpointArguments(name, arguments); admitted {
 			arguments = canonical
 		}
@@ -130,6 +148,14 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 			"type":      "function",
 			"name":      name,
 			"arguments": decodeToolEventJSON(string(arguments)),
+		}
+		if string(arguments) != string(call.Arguments) {
+			// Non-authoritative provenance only. Execution and approval bind solely
+			// to arguments above. Do not duplicate the original body within the
+			// bounded event; its digest cannot reconstruct the original proposal.
+			originalDigest := sha256.Sum256(call.Arguments)
+			toolCallPayload["originalArgumentsSHA256"] = hex.EncodeToString(originalDigest[:])
+			toolCallPayload["originalArgumentsByteLength"] = len(call.Arguments)
 		}
 		if call.RejectedBeforeExecution {
 			toolCallPayload["rejectedBeforeExecution"] = true
@@ -155,6 +181,9 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 	}
 	batchDigest := sha256.Sum256(encodedBatch)
 	cacheKey := "chat-model-tool-calls-" + hex.EncodeToString(batchDigest[:])
+	if orderedKernelAdmission {
+		cacheKey += "-ordered-v1"
+	}
 	message := fmt.Sprintf("model selected %d tool call(s)", len(calls))
 	if runtimeRecoveredCount == len(calls) {
 		message = fmt.Sprintf("runtime recovered %d deterministic control transition(s)", len(calls))
@@ -171,6 +200,13 @@ func (s *Server) checkpointChatModelToolCalls(options SessionRunnerChatOptions, 
 			cacheKey),
 		"modelToolCalls": payload,
 		"resumeCacheKey": cacheKey,
+	}
+	if orderedKernelAdmission {
+		if kernelCallCount > 0 && run.Transcript.Stream.Kind != transcriptstore.StreamKindFrameRef {
+			return errors.New("durable kernel operations require a Frame transcript stream")
+		}
+		checkpointInput["kernelAdmissionVersion"] = workspace.KernelBatchAdmissionVersion
+		kernelCallCount = 0
 	}
 	if run.Transcript != nil {
 		payload := transcriptCheckpointPayload(checkpointInput)
@@ -462,10 +498,25 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 		}
 	}
 	var commitHook transcriptstore.RunnerCheckpointCommitHook
+	var kernelAdmission *kernelBatchStartPreparation
+	var admittedOperation workspace.KernelLocalOperation
+	if phase == "start" {
+		var err error
+		kernelAdmission, err = s.prepareKernelBatchStartAdmission(context.Background(), options, run, toolCallID, details)
+		if err != nil {
+			return err
+		}
+		if kernelAdmission != nil {
+			payload["kernelAdmission"] = kernelAdmission.Witness
+		}
+	}
 	batchMutation, err := s.prepareRunnerToolBatchCheckpointMutation(
 		context.Background(), run, toolCallID, phase,
 	)
 	if err != nil {
+		if kernelAdmission != nil {
+			return err
+		}
 		if phase != "approval_resumed" && (errors.Is(err, workspace.ErrToolCallBatchConflict) || errors.Is(err, workspace.ErrToolCallBatchStale)) {
 			fmt.Fprintf(os.Stderr, "[runner] tool batch checkpoint conflict for %s is tolerated: %v\n", toolCallID, err)
 			batchMutation = nil
@@ -473,19 +524,37 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 			return err
 		}
 	}
-	if batchMutation != nil || kernelTerminal {
+	if kernelAdmission != nil && batchMutation == nil {
+		return workspace.ErrToolCallBatchConflict
+	}
+	if batchMutation != nil || kernelTerminal || kernelAdmission != nil {
 		if s.workspaceStore == nil {
 			return errors.New("workspace store is required for durable tool settlement")
 		}
 		commitHook = func(ctx context.Context, tx *transcriptstore.ImmediateTransaction, event transcriptstore.Event, _ bool) (transcriptstore.RunnerCheckpointCommitReceipt, error) {
 			if batchMutation != nil {
 				if err := batchMutation(ctx, tx, event); err != nil {
+					if kernelAdmission != nil {
+						return transcriptstore.RunnerCheckpointCommitReceipt{}, err
+					}
 					if phase != "approval_resumed" && (errors.Is(err, workspace.ErrToolCallBatchConflict) || errors.Is(err, workspace.ErrToolCallBatchStale)) {
 						fmt.Fprintf(os.Stderr, "[runner] tool batch commit conflict for %s is tolerated: %v\n", toolCallID, err)
 					} else {
 						return transcriptstore.RunnerCheckpointCommitReceipt{}, fmt.Errorf("commit tool batch result: %w", err)
 					}
 				}
+			}
+			if kernelAdmission != nil {
+				var err error
+				admittedOperation, err = s.workspaceStore.CreateKernelLocalOperationForBatchStartTx(ctx, tx, run.Transcript.Claim, event, kernelAdmission.Input)
+				if err != nil {
+					return transcriptstore.RunnerCheckpointCommitReceipt{}, err
+				}
+				return transcriptstore.RunnerCheckpointCommitReceipt{KernelOperations: []transcriptstore.RunnerCheckpointKernelOperationReceipt{{
+					OperationID: admittedOperation.OperationID, Ordinal: admittedOperation.ToolCallOrdinal,
+					ToolCallID: admittedOperation.ToolCallID, Tool: admittedOperation.Tool, InputSHA256: admittedOperation.InputSHA256,
+					ApprovalRequestID: admittedOperation.ApprovalRequestID, RequestedEventID: "kernel-local-operation-requested:" + admittedOperation.OperationID, InitialStateVersion: 1,
+				}}}, nil
 			}
 			if kernelTerminal {
 				if err := s.workspaceStore.CommitKernelLocalOperationProtocolReceiptTx(ctx, tx, operationID, event); err != nil {
@@ -503,6 +572,9 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 		checkpointIdentity, payload, true, destinations, commitHook,
 	)
 	if err != nil {
+		if kernelAdmission != nil {
+			return err
+		}
 		if errors.Is(err, transcriptstore.ErrEventConflict) {
 			// A duplicate tool checkpoint with a divergent payload must not
 			// terminate the runner: the first checkpoint is already durable and
@@ -511,6 +583,21 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 			return nil
 		}
 		return err
+	}
+	if kernelAdmission != nil {
+		if admittedOperation.OperationID == "" {
+			return workspace.ErrKernelLocalOperationConflict
+		}
+		if run.KernelOperationIDs == nil {
+			run.KernelOperationIDs = map[string]string{}
+		}
+		run.KernelOperationIDs[toolCallID] = admittedOperation.OperationID
+		if err := s.resolveCheckpointKernelOperationPolicies(context.Background(), run, []transcriptstore.RunnerCheckpointKernelOperationReceipt{{
+			OperationID: admittedOperation.OperationID, ToolCallID: admittedOperation.ToolCallID,
+		}}); err != nil {
+			return err
+		}
+		s.workspaceStore.NotifyKernelOperationChanged()
 	}
 	if runnerToolSourcePhase(phase) && strings.TrimSpace(toolCallID) != "" && transcriptEvent.EventID > 0 {
 		if run.ToolSourceEventIDs == nil {

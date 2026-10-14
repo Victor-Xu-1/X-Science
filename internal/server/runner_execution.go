@@ -293,12 +293,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			taskIntentID = fmt.Sprintf("%s:input:%d", run.Transcript.Stream.UID, run.Transcript.Claim.ClaimedInputRevision)
 			taskIntentRevision = run.Transcript.Claim.ClaimedInputRevision
 		}
-		if strings.TrimSpace(taskIntent) == "" {
-			return "", errors.New("canonical transcript task intent is unavailable")
+		if err := applySessionRunnerTaskIntent(run, taskIntent, taskLanguage, taskIntentID, taskIntentRevision); err != nil {
+			return "", err
 		}
-		run.TaskIntent = taskIntent
-		run.TaskIntentID = taskIntentID
-		run.TaskIntentRevision = taskIntentRevision
 		messages = deactivateProviderSkillResultsForSelectedImplementation(
 			messages, s.skillCatalog, run.selectedImplementationsSnapshot(), run.TaskIntent,
 		)
@@ -643,7 +640,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			)
 		}
 		run.restoreNoProgressRecovery(state)
-		if recoveryContext := sessionRunnerNoProgressRecoveryContext(*run.NoProgressRecovery); recoveryContext != "" {
+		if recoveryContext := sessionRunnerNoProgressRecoveryContext(*run.NoProgressRecovery, runtimeToolAuthority); recoveryContext != "" {
 			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
 		}
 		if recoveryContext := run.generationRecoveryContext(); recoveryContext != "" {
@@ -711,6 +708,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	engine := s.newAgentRuntimeEngineWithContext(
 		withTranscriptRunnerChatRun(evidenceContext, run), options, runtimeToolAuthority,
 	)
+	kernelCheckpointGateway, kernelCheckpointGatewayFound := engine.Tools.(serverAgentRuntimeToolGateway)
 	initialModel := sessionRunnerResolvedModelClient{}
 	initialReady := false
 	if options.ModelProfile != nil && engine.Model != nil {
@@ -913,7 +911,10 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 					}
 				}
 				typedProgressObserved = false
-				if err := s.checkpointChatModelToolCalls(options, run, calls); err != nil {
+				if !kernelCheckpointGatewayFound {
+					return errors.New("kernel checkpoint normalization gateway is unavailable")
+				}
+				if err := s.checkpointChatModelToolCallsWithContext(deltaContext, options, run, calls, kernelCheckpointGateway); err != nil {
 					return err
 				}
 				run.beginNextAssistantSegment()

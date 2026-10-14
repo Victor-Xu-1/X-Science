@@ -83,7 +83,8 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 		}
 	}))
 	defer api.Close()
-	srv := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	fileRoot := t.TempDir()
+	srv := New(Options{Workspace: store, Transcript: repo, FileRoot: fileRoot})
 	t.Cleanup(func() { _ = srv.Close(context.Background()) })
 	if _, err := srv.settingsStore.Set("model.activeProviderId", "planning-provider"); err != nil {
 		t.Fatal(err)
@@ -111,12 +112,10 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 	}
 	options := SessionRunnerChatOptions{SessionID: "planning-frame", LeaseTTL: time.Minute, RequestTimeout: 100 * time.Millisecond,
 		MaxAttempts: 3, RequireSavedModel: true, DisableSkillDiscovery: true, DisableMCPDiscovery: true,
-		AllowedTools: []string{"todo_write", "ask_user"}}
+		ModelResponseLimitBytes: 256,
+		AllowedTools:            []string{"todo_write", "ask_user"}}
 	ctx := context.Background()
-	wantRequests := int64(1)
-	if savedAllowance {
-		wantRequests = 2
-	}
+	wantRequests := int64(sessionrunner.MaxRecoveryStreak)
 	wantReason := "provider_stream_no_progress"
 	if growingPrivate {
 		wantRequests = sessionrunner.MaxRecoveryStreak
@@ -126,6 +125,15 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 		wantRequests = sessionrunner.MaxRecoveryStreak
 	}
 	for cycle := int64(1); cycle <= wantRequests; cycle++ {
+		if cycle == 2 {
+			// Reopen the actual runtime SQLite/settings authorities while the
+			// canonical transcript remains durable. The new server must replay
+			// the prior generation streak, not treat private bytes as progress.
+			if err := srv.Close(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			srv = New(Options{Workspace: store, Transcript: repo, FileRoot: fileRoot})
+		}
 		options.RunnerID = fmt.Sprintf("planning-runner-%d", cycle)
 		result, err := srv.RunSessionRunnerChatOnce(ctx, options)
 		if err != nil {
@@ -175,8 +183,8 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 			if err != nil || !found {
 				t.Fatalf("resumable checkpoint lost: %t %v", found, err)
 			}
-			// A deliberate checkpoint resume remains possible. It gets its own
-			// action window, but no retired numerical budget or automatic replay.
+			// A deliberate checkpoint resume remains possible without erasing
+			// the exhausted unchanged-route streak or replaying a retired hint.
 			options.SessionID = "planning-frame"
 			options.RunnerID = "planning-manual-resume"
 			options.TranscriptResumeSource = transcriptstore.ResumeSourceCheckpoint

@@ -508,7 +508,7 @@ func (r *Repository) AppendRunnerCheckpoint(
 	if err := validatePayload(EventSourcePayload, input.PayloadJSON, nil); err != nil {
 		return RunnerCheckpoint{}, Event{}, false, err
 	}
-	if input.CommitHook == nil && runnerCheckpointContainsModelToolCalls(input.PayloadJSON) {
+	if input.CommitHook == nil && (runnerCheckpointContainsModelToolCalls(input.PayloadJSON) || runnerCheckpointContainsKernelAdmission(input.PayloadJSON)) {
 		return RunnerCheckpoint{}, Event{}, false, errors.New("model tool-call checkpoints require a durable batch commit hook")
 	}
 	var checkpoint RunnerCheckpoint
@@ -549,6 +549,9 @@ func validateRunnerCheckpointCommitReceipt(
 	payload []byte,
 	receipt RunnerCheckpointCommitReceipt,
 ) error {
+	if handled, err := validateOrderedKernelCheckpoint(ctx, conn, event, payload, receipt); handled {
+		return err
+	}
 	var checkpoint struct {
 		ModelToolCalls []runnerCheckpointDurableCall `json:"modelToolCalls"`
 	}

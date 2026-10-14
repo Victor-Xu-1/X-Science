@@ -34,17 +34,9 @@ func TestProviderPlanningFailureRetainsTypedIdentityAcrossRealStream(t *testing.
 				}
 				fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"private\"}}]}\n\n")
 				w.(http.Flusher).Flush()
-				ticker := time.NewTicker(10 * time.Millisecond)
-				defer ticker.Stop()
-				for {
-					select {
-					case <-r.Context().Done():
-						return
-					case <-ticker.C:
-						fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"private\"}}]}\n\n")
-						w.(http.Flusher).Flush()
-					}
-				}
+				// Genuine activity is admitted once, then the semantic idle
+				// boundary owns failure. It is not a public-response deadline.
+				<-r.Context().Done()
 			}))
 			defer server.Close()
 			client, err := NewRuntimeModelClient(ModelProfile{
@@ -64,13 +56,14 @@ func TestProviderPlanningFailureRetainsTypedIdentityAcrossRealStream(t *testing.
 				accepted.WriteString(event.ContentDelta)
 				return nil
 			})
-			if !IsProviderPlanningNoProgress(err) || !errors.Is(err, errProviderPlanningNoProgress) {
-				t.Fatalf("action deadline lost its typed cause: %v", err)
+			if !errors.Is(err, errOpenAIChatStreamIdleTimeout) || IsProviderPlanningNoProgress(err) ||
+				IsProviderGenerationNoAction(err) != (prefix == "") {
+				t.Fatalf("generation idle boundary lost its typed cause: %v", err)
 			}
 			if IsProviderEmptyResponse(err) != (prefix == "") || IsRecoverableStreamInterruption(err) != (prefix != "") {
 				t.Fatalf("typed cause changed the existing recovery contract: %v", err)
 			}
-			if IsProviderPlanningNoNativeProgress(err) != (prefix == "") {
+			if IsProviderGenerationNoNativeAction(err) != (prefix == "") {
 				t.Fatalf("action-window native evidence was not preserved: %v", err)
 			}
 			if accepted.String() != prefix || requests.Load() != 1 || ctx.Err() != nil {

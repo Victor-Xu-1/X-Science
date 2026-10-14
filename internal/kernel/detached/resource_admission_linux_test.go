@@ -19,9 +19,9 @@ func TestExplicitExecutorBudgetUsesLargeHostCapacityWithoutDefaultShareCeiling(t
 		t.Fatal(err)
 	}
 	launcher := &SystemdUserExecutorLauncher{meminfoPath: meminfo}
-	capacity, reserve, err := launcher.ResourceCapacity(context.Background(), 100<<30)
-	if err != nil || reserve != executorControlReserveBytes || capacity.AvailableBytes < 100<<30 {
-		t.Fatalf("explicit large-host capacity=%#v reserve=%d err=%v", capacity, reserve, err)
+	capacity, observation, err := launcher.ResourceCapacity(context.Background(), 100<<30)
+	if err != nil || observation.ReserveBytes != executorControlReserveBytes || observation.AvailableBytes != 112<<30 || capacity.AvailableBytes < 100<<30 {
+		t.Fatalf("explicit large-host capacity=%#v observation=%#v err=%v", capacity, observation, err)
 	}
 	defaultCapacity, _, err := launcher.ResourceCapacity(context.Background(), 0)
 	if err != nil || defaultCapacity.AvailableBytes >= capacity.AvailableBytes {

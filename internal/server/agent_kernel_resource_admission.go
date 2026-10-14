@@ -11,6 +11,18 @@ func agentKernelMemoryBudgetSchema() map[string]any {
 }
 
 func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
+	var belowMinimum *detached.ExecutorResourceBudgetBelowMinimumError
+	if errors.As(err, &belowMinimum) {
+		return map[string]any{
+			"backend_id": belowMinimum.BackendID, "backend_generation": belowMinimum.Generation,
+			"admission_state": "budget_below_executor_minimum",
+			"ok":              false, "executed": false, "status": "resource_budget_below_minimum",
+			"retryable": false, "execution_outcome": "not_started",
+			"requested_memory_bytes": belowMinimum.RequestedBytes, "minimum_memory_bytes": belowMinimum.MinimumBytes,
+			"error":    "The requested memory allocation is below the observed executor minimum. No computation was started and no budget was silently increased.",
+			"recovery": "submit_a_new_operation_with_an_explicit_budget_at_least_minimum_memory_bytes_or_choose_an_authorized_different_runtime",
+		}, true
+	}
 	var unavailable *detached.ExecutorResourceUnavailableError
 	if !errors.As(err, &unavailable) {
 		return nil, false

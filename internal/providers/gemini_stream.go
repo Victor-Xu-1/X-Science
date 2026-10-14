@@ -106,6 +106,31 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 			return errors.New("Gemini stream emitted output after its terminal reason")
 		}
 		for _, part := range candidate.Content.Parts {
+			growth := int64(len(part.Text))
+			if part.FunctionCall != nil {
+				name, err := normalizeModelToolName(part.FunctionCall.Name)
+				if err != nil {
+					return err
+				}
+				rawArguments, err := json.Marshal(part.FunctionCall.Args)
+				if err != nil {
+					return err
+				}
+				if len(rawArguments) == 0 || string(rawArguments) == "null" {
+					rawArguments = []byte("{}")
+				}
+				acc.toolCalls = append(acc.toolCalls, agentruntime.ToolCall{
+					ID:   fmt.Sprintf("gemini_call_%d", len(acc.toolCalls)+1),
+					Name: name, Arguments: json.RawMessage(rawArguments),
+				})
+				growth += int64(len(part.FunctionCall.Name))
+				if part.FunctionCall.Args != nil {
+					growth += int64(len(rawArguments))
+				}
+			}
+			if growth > 0 {
+				recordProviderStreamProgress(response.Body, growth)
+			}
 			if part.Thought && part.Text != "" {
 				// Each decoded private fragment is activity, even when its text
 				// repeats. Emit no body and keep public output state unchanged.
@@ -124,33 +149,19 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 					return err
 				}
 			}
-			if part.FunctionCall != nil {
-				name, err := normalizeModelToolName(part.FunctionCall.Name)
-				if err != nil {
+			if part.FunctionCall != nil && !acc.toolBoundarySent {
+				if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
 					return err
 				}
-				if !acc.toolBoundarySent {
-					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}); err != nil {
-						return err
-					}
-					acc.toolBoundarySent = true
-				}
-				rawArguments, err := json.Marshal(part.FunctionCall.Args)
-				if err != nil {
-					return err
-				}
-				if len(rawArguments) == 0 || string(rawArguments) == "null" {
-					rawArguments = []byte("{}")
-				}
-				acc.toolCalls = append(acc.toolCalls, agentruntime.ToolCall{
-					ID:   fmt.Sprintf("gemini_call_%d", len(acc.toolCalls)+1),
-					Name: name, Arguments: json.RawMessage(rawArguments),
-				})
+				acc.toolBoundarySent = true
 			}
 		}
 		if finishReason := strings.ToUpper(strings.TrimSpace(candidate.FinishReason)); finishReason != "" {
 			switch finishReason {
 			case "STOP":
+				if !acc.terminated {
+					recordProviderStreamProgress(response.Body, 0)
+				}
 				acc.terminated = true
 			case "MAX_TOKENS":
 				return fmt.Errorf("%w: finish reason max_tokens", errProviderResponseTruncated)

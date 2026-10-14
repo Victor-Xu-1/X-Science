@@ -372,13 +372,20 @@ func (s *Server) executeAgentEnvironmentManagementToolWithAuthority(
 			if decision, required := s.managedEnvironmentImplementationDecision(ctx, request.Implementation, false); required {
 				return decision, nil
 			}
-			return s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
+			preflight, err := s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
 				Operation: "create", Implementation: request.Implementation, Name: request.Name, Language: request.Language,
 				PythonVersion: request.PythonVersion, Packages: preflightPackages, Channels: request.Channels,
 				Imports:              request.ImportNames,
 				PackageSourceURLs:    managedPipPackageSourceURLs(request.PipFindLinks, request.PipExtraIndexURLs),
 				ResourceRequirements: request.ResourceRequirements,
 			})
+			if err != nil {
+				return nil, err
+			}
+			preflight["environment_binding"] = managedEnvironmentBindingReceipt(name, map[string]any{
+				"implementation": request.Implementation, "name": request.Name,
+			})
+			return preflight, nil
 		}
 		if request.Mode == "list" {
 			environments, err := authority.ListManagedEnvironments(ctx, kernelruntime.ManagedEnvironmentQuery{
@@ -518,6 +525,9 @@ func (s *Server) executeAgentEnvironmentManagementToolWithAuthority(
 				"environment":    managedEnvironmentInventorySummary(environment),
 				"requested_name": request.Name, "requested_packages": append([]string(nil), request.Packages...),
 				"compatible_environments": compatible, "preflight": preflight,
+				"environment_binding": managedEnvironmentBindingReceipt(name, map[string]any{
+					"implementation": request.Implementation, "name": request.Name,
+				}),
 			}, nil
 		}
 		if requirement, evidenceErr := s.managedEnvironmentSetupEvidenceRequirement(ctx, request.Implementation); evidenceErr != nil {
@@ -605,13 +615,20 @@ func (s *Server) executeAgentEnvironmentManagementToolWithAuthority(
 					return decision, nil
 				}
 			}
-			return s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
+			preflight, err := s.executeManagedEnvironmentResourcePreflight(ctx, identity, authority, managedEnvironmentPreflightSpec{
 				Operation: "install", Implementation: request.Implementation,
 				Environment: request.Environment, ForkTo: request.ForkTo,
 				Language: "python", Packages: request.Packages, Channels: request.Channels, UsePip: request.UsePip,
 				PackageSourceURLs:    managedPipPackageSourceURLs(request.PipFindLinks, request.PipExtraIndexURLs),
 				ResourceRequirements: request.ResourceRequirements,
 			})
+			if err != nil {
+				return nil, err
+			}
+			preflight["environment_binding"] = managedEnvironmentBindingReceipt(name, map[string]any{
+				"implementation": request.Implementation, "environment": request.Environment, "fork_to": request.ForkTo,
+			})
+			return preflight, nil
 		}
 		if request.Mode == "list" {
 			environment, found, err := authority.InspectManagedEnvironment(ctx, request.Environment)
@@ -691,6 +708,9 @@ func (s *Server) executeAgentEnvironmentManagementToolWithAuthority(
 					"requested_environment":   request.Environment,
 					"requested_packages":      append([]string(nil), request.Packages...),
 					"compatible_environments": compatible, "preflight": preflight,
+					"environment_binding": managedEnvironmentBindingReceipt(name, map[string]any{
+						"implementation": request.Implementation, "environment": request.Environment, "fork_to": request.ForkTo,
+					}),
 				}, nil
 			}
 			if requirement, evidenceErr := s.managedEnvironmentSetupEvidenceRequirement(ctx, request.Implementation); evidenceErr != nil {
