@@ -396,6 +396,8 @@
     "actionInspectEnvironment": "检查分析环境",
     "actionDeleteEnvironment": "删除分析环境",
     "progressQueued": "等待执行",
+    "progressWaitingForResources": "等待执行资源",
+    "progressStartingExecutionEnvironment": "正在启动执行环境",
     "progressCompleted": "已完成",
     "progressFailed": "执行失败",
     "progressCancelled": "已取消",

@@ -23,6 +23,7 @@ type executorResourcePlanner interface {
 // Admission capacity is clamped after reserve deduction. Keep the original
 // observation separately: adding the reserve back cannot undo that clamp.
 type executorCapacityObservation struct {
+	HostTotalBytes int64
 	AvailableBytes int64
 	ReserveBytes   int64
 }
@@ -38,7 +39,7 @@ func (l *SystemdUserExecutorLauncher) ResourceCapacity(ctx context.Context, requ
 	if requested > 0 {
 		reserve = executorControlReserveBytes
 	}
-	return workspace.KernelResourceCapacity{MaximumBytes: max(0, total-reserve), AvailableBytes: max(0, available-reserve), DefaultBytes: max(executorMemoryFloorBytes, memoryFraction(total, executorMemoryTotalFraction)), MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{}}, executorCapacityObservation{AvailableBytes: available, ReserveBytes: reserve}, nil
+	return workspace.KernelResourceCapacity{MaximumBytes: max(0, total-reserve), AvailableBytes: max(0, available-reserve), DefaultBytes: max(executorMemoryFloorBytes, memoryFraction(total, executorMemoryTotalFraction)), MinimumBytes: executorMemoryFloorBytes, Usage: map[string]int64{}}, executorCapacityObservation{HostTotalBytes: total, AvailableBytes: available, ReserveBytes: reserve}, nil
 }
 
 func (l *SystemdUserExecutorLauncher) ResourceUsage(ctx context.Context, id string, generation int64) (int64, ExecutorLaunchState, error) {
@@ -144,6 +145,16 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 		return 0, &ExecutorResourceBudgetBelowMinimumError{
 			BackendID: backend.BackendID, Generation: backend.BackendGeneration,
 			RequestedBytes: spec.ResourceMemoryBytes, MinimumBytes: capacity.MinimumBytes,
+		}
+	}
+	// Only an observed host total proves this upper bound. A zero generic
+	// MaximumBytes can mean unknown; an observed total below the reserve means
+	// genuinely zero capacity. Do not infer executor limits from the web cgroup.
+	if observation.HostTotalBytes > 0 && spec.ResourceMemoryBytes > max(0, observation.HostTotalBytes-observation.ReserveBytes) {
+		return 0, &ExecutorResourceBudgetExceedsCurrentCapacityError{
+			BackendID: backend.BackendID, Generation: backend.BackendGeneration,
+			RequestedBytes: spec.ResourceMemoryBytes, MaximumBytes: max(0, observation.HostTotalBytes-observation.ReserveBytes),
+			HostTotalBytes: observation.HostTotalBytes, ReserveBytes: observation.ReserveBytes,
 		}
 	}
 	reservations, err := b.Store.ListKernelResourceReservations(ctx, backend.MachineBootID)

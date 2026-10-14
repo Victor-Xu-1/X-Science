@@ -396,6 +396,8 @@
     "actionInspectEnvironment": "Inspect environment",
     "actionDeleteEnvironment": "Delete environment",
     "progressQueued": "Queued",
+    "progressWaitingForResources": "Waiting for execution resources",
+    "progressStartingExecutionEnvironment": "Starting execution environment",
     "progressCompleted": "Completed",
     "progressFailed": "Failed",
     "progressCancelled": "Cancelled",

@@ -10,6 +10,8 @@ export type ToolProgressPublicPresentation = {
 
 const PHASE_LABEL_KEYS: Record<string, ToolPublicDetailTextKey> = {
   queued: 'progressQueued',
+  waiting_for_resources: 'progressWaitingForResources',
+  starting: 'progressStartingExecutionEnvironment',
   operation_completed: 'progressCompleted',
   operation_failed: 'progressFailed',
   operation_cancelled: 'progressCancelled',
