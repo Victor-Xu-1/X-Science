@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 	"x-science/internal/sciencecapability"
