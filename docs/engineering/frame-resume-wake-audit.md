@@ -29,7 +29,7 @@ in time, or current operation state. Historical events are not rewritten.
 
 | Source | Witness |
 | --- | --- |
-| Continue request | Authenticated frame owner and a new accepted-request receipt bound to the observed wait |
+| Continue request | Authenticated frame owner and a stable client-command receipt bound to the original resume target |
 | Kernel operation | Committed operation identity/version when available, with decision identity/source/actor as decision metadata, not a claim that every wake was a human approval |
 | Kernel settlement | Immutable settlement outbox ID, expected operation version, notification ID, and observed committed operation version when available |
 | Automatic recovery | Exact stream, runner attempt and checkpoint sequence; the real checkpoint event ID is resolved without substituting a different latest checkpoint |
@@ -47,12 +47,45 @@ claim retains distinct armed revision events and the consumed armed-event
 reference. A mutable model revision is labeled observed evidence, not an
 immutable model-change command receipt.
 
+## Continue commands across HTTP retries
+
+The canonical frame detail includes `resume_target` with the actual
+`resume_event_id`, raw opaque `wait_ref`, and derived `state_ref`. A Continue
+POST supplies that original target and one UUID `client_command_id`, together
+with its controls. Missing preconditions return 428; a first-use stale target,
+conflicting command payload, or temporarily claimed dispatch returns a distinct
+409 code without changing the frame, controls, waiting fence, or presentation.
+The retired raw `/api/go/frames/{id}/resume` mutation returns 410 and points to
+the canonical endpoint instead of retaining an unkeyed competing authority.
+
+The existing resume core, optional wait wake, and compact accepted/no-op receipt
+commit in one transaction. Identical retries return that receipt before dynamic
+registry checks or current-state mutation; they cannot reinterpret an old
+command against a new waiting period. A post-commit publication failure remains
+retryable with the original body. Internal new-input admission retains its
+separate existing input authority and does not invent Continue commands.
+
+The state fingerprint uses existing frame incarnation, canonical stream/input,
+active branch/checkpoint, dispatch, and last real wake facts. It excludes clocks,
+leases, raw wait identities and passive diagnostic sequences. Real backstop
+claim/requeue can change the raw wait reference without changing the semantic
+target. An earlier reference is accepted only when its immutable interruption
+and the current reference prove the same canonical checkpoint/runner/reason
+after the same wake boundary inside the transaction. Legacy references lacking
+that proof remain exact-only. New input, branch, checkpoint, wake, or terminal
+state invalidates a first-use old target.
+
+The UI preserves one intent through ambiguous network, Abort, or subsequent GET
+failure. Busy may reuse that same body once when an existing state refresh
+proves the same semantic wait with a changed raw reference; no new polling,
+implicit retargeting, or unbounded retry is introduced. A stale target requires
+a refreshed state and a new explicit user intent.
+
 ## Boundaries
 
-An accepted Continue request is not proof of a physical human click. The
-current HTTP request has no stable client command key or original wait
-reference, so this audit contract does not claim cross-wait HTTP retry
-idempotency. That requires a separate request-protocol change.
+An accepted Continue request is not proof of a physical human click. The receipt
+proves accepted command identity and target, not successful execution or a
+completed scientific result. Unknown legacy evidence is not reconstructed.
 
 Checkpoint sequence and transcript event ID are distinct coordinates. This
 audit change resolves exact checkpoint witnesses but does not migrate the

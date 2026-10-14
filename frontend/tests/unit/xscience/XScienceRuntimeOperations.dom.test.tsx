@@ -80,6 +80,7 @@ const deferred = <T,>() => {
 };
 
 const failedSnapshot = {
+  resumeTarget: { resume_event_id: null, wait_ref: null, state_ref: `resume-state:${'a'.repeat(64)}` },
   frameId: 'frame-failed',
   rootFrameId: 'frame-failed',
   projectId: null,
@@ -1417,12 +1418,49 @@ describe('XScienceRuntimeOperations', () => {
     await waitFor(() =>
       expect(runtimeMocks.resume).toHaveBeenCalledWith(
         'frame-failed',
-        {},
+        expect.objectContaining({ client_command_id: expect.any(String), resume_target: failedSnapshot.resumeTarget }),
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     expect(onResumeStarted).toHaveBeenCalledOnce();
     expect(onResumed).toHaveBeenCalledWith('frame-failed', expect.objectContaining({ state: 'running' }));
+  });
+
+  it('reuses the original Continue body after an ambiguous POST or subsequent GET failure', async () => {
+    runtimeMocks.loadSnapshot.mockResolvedValue(failedSnapshot);
+    runtimeMocks.resume.mockRejectedValue(new Error('network outcome is unknown'));
+    await renderWithI18n(
+      <XScienceRuntimeOperations conversationId='frame-failed' runtimeState='idle' onResumed={vi.fn()} />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '继续运行' }));
+    await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledTimes(1));
+    const original = runtimeMocks.resume.mock.calls[0][1];
+    await waitFor(() => expect(screen.getByRole('button', { name: '继续运行' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: '继续运行' }));
+    await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledTimes(2));
+    expect(runtimeMocks.resume.mock.calls[1][1]).toBe(original);
+  });
+
+  it('allows only one same-body busy retry from existing same-wait refreshes', async () => {
+    const target = { ...failedSnapshot.resumeTarget, resume_event_id: 'resume-event', wait_ref: 'wait-1' };
+    runtimeMocks.loadSnapshot
+      .mockResolvedValueOnce({ ...failedSnapshot, resumeTarget: target })
+      .mockResolvedValueOnce({ ...failedSnapshot, resumeTarget: { ...target, wait_ref: 'wait-2' } })
+      .mockResolvedValue({ ...failedSnapshot, resumeTarget: { ...target, wait_ref: 'wait-3' } });
+    runtimeMocks.resume.mockRejectedValue(
+      Object.assign(new Error('temporarily claimed'), {
+        name: 'XScienceHttpError',
+        status: 409,
+        code: 'RESUME_COMMAND_BUSY',
+      })
+    );
+    await renderWithI18n(
+      <XScienceRuntimeOperations conversationId='frame-failed' runtimeState='idle' onResumed={vi.fn()} />
+    );
+    fireEvent.click(await screen.findByRole('button', { name: '继续运行' }));
+    await waitFor(() => expect(runtimeMocks.loadSnapshot).toHaveBeenCalledTimes(3));
+    expect(runtimeMocks.resume).toHaveBeenCalledTimes(2);
+    expect(runtimeMocks.resume.mock.calls[1][1]).toBe(runtimeMocks.resume.mock.calls[0][1]);
   });
 
   it('keeps a completed task capsule with details closed by default', async () => {

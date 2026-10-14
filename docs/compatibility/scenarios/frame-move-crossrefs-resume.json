@@ -80,14 +80,20 @@
       "name": "get-moved-frame",
       "method": "GET",
       "path": "/api/frames/${capture:rootFrameId}?shallow=true",
-      "expectedStatus": [200]
+      "expectedStatus": [200],
+      "capture": {"resumeTarget": "/resume_target"}
     },
     {
       "name": "resume-moved-frame",
       "method": "POST",
       "path": "/api/frames/${capture:rootFrameId}/resume",
       "headers": {"Origin": "${origin}", "X-Operon-CSRF": "${cookie:operon_csrf}"},
-      "body": {"plan_mode": false, "target_agent": "ONBOARDING"},
+      "body": {
+        "client_command_id": "00000000-0000-4000-8000-000000000022",
+        "resume_target": "${capture:resumeTarget}",
+        "plan_mode": false,
+        "target_agent": "ONBOARDING"
+      },
       "expectedStatus": [200]
     }
   ],
@@ -128,8 +134,11 @@
     "/steps/8/response/body/completed_at",
     "/steps/8/response/body/message_count",
     "/steps/8/response/body/output_data",
+    "/steps/8/response/body/resume_target",
     "/steps/9/request/path",
+    "/steps/9/request/body/resume_target",
     "/steps/9/response/body/root_frame_id",
+    "/steps/9/response/body/continue_command",
     "/steps/9/response/body/resumed_frames/0/frame_id"
   ],
   "redactions": []

@@ -80,6 +80,7 @@ type CancelCompatibilityFrameResult struct {
 }
 
 type ResumeCompatibilityFrameInput struct {
+	Command      *CompatibilityFrameContinueCommand
 	VerifierMode *string
 	MemoryMode   *string
 	PlanMode     *bool
@@ -100,6 +101,9 @@ type ResumeCompatibilityFrameResult struct {
 	AgentName       string
 	LeafFramesReady int
 	Event           *FrameEvent
+	ContinueCommand *CompatibilityFrameContinueReceipt
+	WakeEvent       *FrameEvent
+	NotifyDispatch  bool
 }
 
 const compatibilityMessagePredicate = `event_type IN (
@@ -676,12 +680,25 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 		return ResumeCompatibilityFrameResult{}, errors.New("root frame id is required")
 	}
 	ctx := context.Background()
+	if input.Command != nil {
+		return s.resumeCompatibilityFrameCommand(ctx, rootID, input)
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return ResumeCompatibilityFrameResult{}, fmt.Errorf("begin compatibility frame resume: %w", err)
 	}
 	defer tx.Rollback()
+	result, err := resumeCompatibilityFrameConversationTx(ctx, tx, rootID, input, s.now().UTC())
+	if err != nil {
+		return ResumeCompatibilityFrameResult{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return ResumeCompatibilityFrameResult{}, fmt.Errorf("commit compatibility frame resume: %w", err)
+	}
+	return result, nil
+}
 
+func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTransaction, rootID string, input ResumeCompatibilityFrameInput, now time.Time) (ResumeCompatibilityFrameResult, error) {
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id, parent_frame_id, agent_name, status, root_sequence
 		FROM frames WHERE root_frame_id = ? ORDER BY root_sequence, id`, rootID)
@@ -725,9 +742,6 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 	if existing, found, err := activeCompatibilityResume(ctx, tx, rootID); err != nil {
 		return ResumeCompatibilityFrameResult{}, err
 	} else if found {
-		if err := tx.Commit(); err != nil {
-			return ResumeCompatibilityFrameResult{}, fmt.Errorf("commit compatibility frame resume lookup: %w", err)
-		}
 		return existing, nil
 	}
 
@@ -764,7 +778,6 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 		return ResumeCompatibilityFrameResult{}, errors.New("no resumable leaf frames found")
 	}
 
-	now := s.now().UTC()
 	resumedAgentName := selected.AgentName
 	if selected.ID == rootID && input.TargetAgent != nil && strings.TrimSpace(*input.TargetAgent) != "" {
 		resumedAgentName = strings.TrimSpace(*input.TargetAgent)
@@ -802,16 +815,13 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 	if err != nil {
 		return ResumeCompatibilityFrameResult{}, err
 	}
-	if err := tx.Commit(); err != nil {
-		return ResumeCompatibilityFrameResult{}, fmt.Errorf("commit compatibility frame resume: %w", err)
-	}
 	return ResumeCompatibilityFrameResult{
 		RootFrameID: rootID, ResumedFrameID: selected.ID, AgentName: resumedAgentName,
 		LeafFramesReady: len(leaves), Event: &event,
 	}, nil
 }
 
-func activeCompatibilityResume(ctx context.Context, tx *sql.Tx, rootID string) (ResumeCompatibilityFrameResult, bool, error) {
+func activeCompatibilityResume(ctx context.Context, tx workspaceTransaction, rootID string) (ResumeCompatibilityFrameResult, bool, error) {
 	var event FrameEvent
 	var agentName, rawPayload string
 	err := tx.QueryRowContext(ctx, `

@@ -147,56 +147,6 @@ func (s *Store) MoveFrameToProject(frameID, targetProjectID string) (Frame, *Fra
 	return frame, &event, nil
 }
 
-func (s *Store) ResumeFrame(frameID string) (Frame, *FrameEvent, error) {
-	if strings.TrimSpace(frameID) == "" {
-		return Frame{}, nil, errors.New("frame id is required")
-	}
-	ctx := context.Background()
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return Frame{}, nil, fmt.Errorf("begin frame resume: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	var status string
-	if err := tx.QueryRowContext(ctx, `SELECT status FROM frames WHERE id = ?`, frameID).Scan(&status); err != nil {
-		return Frame{}, nil, fmt.Errorf("look up frame for resume: %w", err)
-	}
-	if status == FrameStatusProcessing {
-		if err := tx.Commit(); err != nil {
-			return Frame{}, nil, err
-		}
-		frame, _, err := s.GetFrame(frameID)
-		return frame, nil, err
-	}
-	if status == "completed" {
-		return Frame{}, nil, fmt.Errorf("completed frame %q cannot be resumed", frameID)
-	}
-	now := s.now().UTC()
-	if _, err := tx.ExecContext(ctx,
-		`UPDATE frames SET status = 'processing', updated_at = ? WHERE id = ?`,
-		now, frameID,
-	); err != nil {
-		return Frame{}, nil, fmt.Errorf("resume frame: %w", err)
-	}
-	event, err := appendFrameLifecycleEvent(ctx, tx, frameID, "frame_resumed", map[string]any{
-		"previousStatus": status,
-	}, now)
-	if err != nil {
-		return Frame{}, nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return Frame{}, nil, fmt.Errorf("commit frame resume: %w", err)
-	}
-	frame, found, err := s.GetFrame(frameID)
-	if err != nil {
-		return Frame{}, nil, fmt.Errorf("get resumed frame: %w", err)
-	}
-	if !found {
-		return Frame{}, nil, errors.New("frame disappeared after resume")
-	}
-	return frame, &event, nil
-}
-
 func appendFrameLifecycleEvent(ctx context.Context, tx workspaceTransaction, frameID, eventType string, payload map[string]any, now time.Time) (FrameEvent, error) {
 	var sequence int64
 	if err := tx.QueryRowContext(ctx,

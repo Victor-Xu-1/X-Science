@@ -77,12 +77,14 @@ func (s *Server) handleCompatibilityFrameResume(w http.ResponseWriter, r *http.R
 		return
 	}
 	var input struct {
-		VerifierMode *string `json:"verifier_mode"`
-		MemoryMode   *string `json:"memory_mode"`
-		PlanMode     *bool   `json:"plan_mode"`
-		UltraMode    *bool   `json:"ultra_mode"`
-		TargetAgent  *string `json:"target_agent"`
-		Model        *string `json:"model"`
+		ClientCommandID string                                    `json:"client_command_id"`
+		ResumeTarget    *workspace.CompatibilityFrameResumeTarget `json:"resume_target"`
+		VerifierMode    *string                                   `json:"verifier_mode"`
+		MemoryMode      *string                                   `json:"memory_mode"`
+		PlanMode        *bool                                     `json:"plan_mode"`
+		UltraMode       *bool                                     `json:"ultra_mode"`
+		TargetAgent     *string                                   `json:"target_agent"`
+		Model           *string                                   `json:"model"`
 	}
 	if r.Body != nil && r.ContentLength != 0 {
 		if err := decodeAgentCompatJSON(r, &input); err != nil {
@@ -98,6 +100,28 @@ func (s *Server) handleCompatibilityFrameResume(w http.ResponseWriter, r *http.R
 			writeV11Detail(w, http.StatusBadRequest, name+" must be off or on")
 			return
 		}
+	}
+	if input.ResumeTarget == nil || input.ClientCommandID == "" {
+		writeFrameContinueError(w, workspace.ErrFrameResumePrecondition)
+		return
+	}
+	if input.TargetAgent != nil {
+		normalized := normalizeBundledAgentName(*input.TargetAgent)
+		input.TargetAgent = &normalized
+	}
+	resumeInput := workspace.ResumeCompatibilityFrameInput{
+		VerifierMode: input.VerifierMode, MemoryMode: input.MemoryMode, PlanMode: input.PlanMode,
+		UltraMode: input.UltraMode, TargetAgent: input.TargetAgent, Model: input.Model,
+		Command: &workspace.CompatibilityFrameContinueCommand{ActorID: compatAgentUserID(r), ClientCommandID: input.ClientCommandID, Target: *input.ResumeTarget},
+	}
+	if replay, found, err := s.workspaceStore.LookupCompatibilityFrameContinueCommand(r.Context(), frame.ID, resumeInput); err != nil {
+		if !writeFrameContinueError(w, err) {
+			writeV11StoreError(w, err)
+		}
+		return
+	} else if found {
+		s.finishCompatibilityFrameContinue(w, replay)
+		return
 	}
 	if input.TargetAgent != nil {
 		targetAgent := normalizeBundledAgentName(*input.TargetAgent)
@@ -137,16 +161,12 @@ func (s *Server) handleCompatibilityFrameResume(w http.ResponseWriter, r *http.R
 			}
 		}
 	}
-	result, err := s.workspaceStore.ResumeCompatibilityFrameConversation(frame.ID, workspace.ResumeCompatibilityFrameInput{
-		VerifierMode:               input.VerifierMode,
-		MemoryMode:                 input.MemoryMode,
-		PlanMode:                   input.PlanMode,
-		UltraMode:                  input.UltraMode,
-		TargetAgent:                input.TargetAgent,
-		Model:                      input.Model,
-		AllowProcessingInterrupted: allowProcessingInterrupted,
-	})
+	resumeInput.AllowProcessingInterrupted = allowProcessingInterrupted
+	result, err := s.workspaceStore.ResumeCompatibilityFrameConversation(frame.ID, resumeInput)
 	if err != nil {
+		if writeFrameContinueError(w, err) {
+			return
+		}
 		message := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(message, "does not exist"):
@@ -162,50 +182,7 @@ func (s *Server) handleCompatibilityFrameResume(w http.ResponseWriter, r *http.R
 		}
 		return
 	}
-	if result.Event == nil {
-		writeV11StoreError(w, fmt.Errorf("frame resumed without a durable dispatch event"))
-		return
-	}
-	// Explicit Continue must make an existing fenced recovery dispatch
-	// claimable now. ResumeCompatibilityFrameConversation intentionally returns
-	// the active dispatch when the logical task is already processing; without
-	// consuming its notBefore fence the API would report success while leaving
-	// the task visibly failed until the automatic backstop elapsed.
-	currentDispatch, dispatchFound, dispatchErr := s.workspaceStore.GetCompatibilityFrameResumeDispatch(result.Event.ID)
-	if dispatchErr != nil {
-		writeV11StoreError(w, dispatchErr)
-		return
-	}
-	if dispatchFound && (!currentDispatch.NotBefore.IsZero() || currentDispatch.WaitingFor != "") {
-		if wakeEvent, woken, wakeErr := s.workspaceStore.WakeCompatibilityFrameResumeDispatch(workspace.FrameResumeDispatchWakeInput{
-			ResumeEventID: result.Event.ID, ExpectedWaitRef: currentDispatch.WaitRef,
-			Source: workspace.FrameResumeWakeContinue, ActorID: compatAgentUserID(r),
-			Cause: workspace.FrameResumeWakeCause{Kind: "continue_command", ReferenceID: uuid.NewString(), Evidence: "observed"},
-		}); wakeErr != nil {
-			writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake failed: %w", wakeErr))
-			return
-		} else if woken {
-			if publishErr := s.publishWorkspaceEvent(wakeEvent); publishErr != nil {
-				writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch wake delivery failed: %w", publishErr))
-				return
-			}
-		}
-	}
-	if err := s.registerFrameResumeDispatch(result.Event.ID, defaultFrameResumeReservationTTL); err != nil {
-		writeV11StoreError(w, fmt.Errorf("frame resumed but dispatch registration failed: %w", err))
-		return
-	}
-	if err := s.publishWorkspaceEvent(*result.Event); err != nil {
-		writeV11StoreError(w, fmt.Errorf("frame resumed but event delivery failed: %w", err))
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"root_frame_id": result.RootFrameID,
-		"resumed_frames": []map[string]any{{
-			"frame_id": result.ResumedFrameID, "agent_name": result.AgentName,
-		}},
-		"leaf_frames_ready": result.LeafFramesReady,
-	})
+	s.finishCompatibilityFrameContinue(w, result)
 }
 
 func (s *Server) handleCompatibilityQueuedMessage(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame, rawQueuedID string) {

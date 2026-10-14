@@ -1,4 +1,5 @@
 import type { TChatConversationStatus, TConversationRuntimeSummary } from '@/common/config/storage';
+import { normalizeXScienceResumeTarget, type XScienceResumeTarget } from './resumeCommandIntent';
 
 export type XScienceTaskMetricScope = {
   inputTokens: number | null;
@@ -18,6 +19,7 @@ export type XScienceTaskRunMetrics = {
 };
 
 export type XScienceRuntimeSnapshot = {
+  resumeTarget?: XScienceResumeTarget | null;
   frameId: string;
   rootFrameId: string;
   projectId: string | null;
@@ -449,6 +451,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
       retryReason === 'provider_transport_temporarily_unavailable');
   return {
     frameId,
+    resumeTarget: normalizeXScienceResumeTarget(value.resume_target),
     rootFrameId: stringValue(value.root_frame_id) || frameId,
     projectId: nullableString(value.project_id),
     agentName: nullableString(value.agent_name),

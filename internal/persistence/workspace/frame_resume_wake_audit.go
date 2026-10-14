@@ -149,7 +149,8 @@ func appendFrameResumeWakeAudit(ctx context.Context, tx workspaceTransaction, ro
 			return FrameEvent{}, errors.New("continue wake actor does not own the frame")
 		}
 		// This receipt proves an accepted authenticated request, not a physical
-		// human click, and does not supply cross-wait HTTP idempotency.
+		// human click. The HTTP command layer supplies cross-wait idempotency;
+		// this wake-audit helper alone does not create that request protocol.
 		command, err := appendCompatibilityDispatchAuditEvent(ctx, tx,
 			"frame-resume-continue-command:"+cause.ReferenceID, row.dispatch.FrameID,
 			"frame_resume_continue_command_accepted", map[string]any{

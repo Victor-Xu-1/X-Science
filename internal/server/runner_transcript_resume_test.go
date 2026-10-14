@@ -755,8 +755,14 @@ func TestFrameResumeRejectsMissingTranscriptBeforeWorkspaceMutation(t *testing.T
 		defer cancel()
 		_ = server.Close(ctx)
 	})
+	target, targetErr := store.GetCompatibilityFrameResumeTarget(context.Background(), "local", "frame-missing-stream")
+	if targetErr != nil {
+		t.Fatal(targetErr)
+	}
 	compatJSONRequest(t, server.Handler(), http.MethodPost,
-		"/api/frames/frame-missing-stream/resume", "local", map[string]any{}, http.StatusInternalServerError)
+		"/api/frames/frame-missing-stream/resume", "local", map[string]any{
+			"client_command_id": "006239c2-cc88-45fc-8e9f-d6e16a0c755d", "resume_target": target,
+		}, http.StatusInternalServerError)
 	frame, found, err := store.GetFrame("frame-missing-stream")
 	if err != nil || !found || frame.Status != "cancelled" {
 		t.Fatalf("frame=%#v found=%t err=%v", frame, found, err)

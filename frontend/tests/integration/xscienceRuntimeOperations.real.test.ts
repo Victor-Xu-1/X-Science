@@ -41,8 +41,8 @@ describe('X-Science runtime operations gateway', () => {
       headers: { 'content-type': 'application/json' },
       body: '{}',
     });
-    expect(resumeResponse.status).toBe(400);
-    expect(await resumeResponse.text()).toContain('not in a resumable state');
+    expect(resumeResponse.status).toBe(428);
+    expect(await resumeResponse.json()).toMatchObject({ code: 'RESUME_PRECONDITION_REQUIRED' });
 
     const messageResponse = await fetchImpl(
       `${gatewayBaseUrl}/api/conversations/${encodeURIComponent(frameId!)}/messages`,

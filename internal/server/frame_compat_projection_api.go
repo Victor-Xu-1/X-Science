@@ -223,6 +223,21 @@ func (s *Server) compatibilityFrameResponse(frame workspace.CompatibilityFrame, 
 	for key, value := range runtimeProjection {
 		response[key] = value
 	}
+	if single && frame.ID == frame.RootFrameID && frame.ParentFrameID == "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		access, found, err := s.workspaceStore.GetFrameRealtimeContext(frame.ID)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			target, err := s.workspaceStore.GetCompatibilityFrameResumeTarget(ctx, access.UserID, frame.ID)
+			if err != nil {
+				return nil, err
+			}
+			response["resume_target"] = target
+		}
+	}
 	return response, nil
 }
 
