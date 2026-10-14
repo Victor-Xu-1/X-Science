@@ -133,9 +133,10 @@ func TestDueRoutineUsesSavedProviderAndPersistsRealAgentRun(t *testing.T) {
 
 func TestRoutineAskUserDefersAndReconcilesTheSameTickAfterResume(t *testing.T) {
 	var requests atomic.Int32
+	var questionCallID atomic.Value
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sequence := requests.Add(1)
-		var payload map[string]any
+		var payload chatCompletionRequest
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			t.Fatal(err)
 		}
@@ -144,9 +145,28 @@ func TestRoutineAskUserDefersAndReconcilesTheSameTickAfterResume(t *testing.T) {
 		case 1:
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"routine-ask-structure","type":"function","function":{"name":"AskUserQuestion","arguments":"{\"questions\":[{\"question\":\"Which structure should the routine use?\",\"header\":\"Structure\",\"options\":[{\"label\":\"5FQD\",\"description\":\"Use the human CRBN complex.\",\"pros\":\"Matches the requested human-complex objective.\",\"cons\":\"Represents one conformation.\",\"readiness\":\"Structure availability has not been checked in this task.\",\"readiness_status\":\"unverified\",\"decision_evidence\":[\"user-input:current-task\"],\"readiness_evidence\":[],\"selection_basis\":\"user_objective\",\"expected_outcome\":\"Routine analysis using 5FQD if verified.\",\"selection_rationale\":\"Recommended for alignment with the requested species.\",\"recommended\":true},{\"label\":\"4TZ4\",\"description\":\"Use the alternate complex.\",\"pros\":\"Tests an alternate conformation.\",\"cons\":\"Does not match the primary species criterion as closely.\",\"readiness\":\"Structure availability has not been checked in this task.\",\"readiness_status\":\"unverified\",\"decision_evidence\":[\"user-input:current-task\"],\"readiness_evidence\":[],\"selection_basis\":\"user_objective\",\"expected_outcome\":\"Routine analysis using 4TZ4 if verified.\",\"selection_rationale\":\"Choose when conformational comparison is more important.\",\"recommended\":false}]}]}"}}]}}]}`))
 		case 2:
-			rawMessages, _ := json.Marshal(payload["messages"])
+			rawMessages, _ := json.Marshal(payload.Messages)
 			if !strings.Contains(string(rawMessages), "5FQD") || !strings.Contains(string(rawMessages), "answered") {
 				t.Fatalf("routine resume did not receive durable user input: %s", rawMessages)
+			}
+			callID, _ := questionCallID.Load().(string)
+			var assistantPaired, answerPaired bool
+			for _, message := range payload.Messages {
+				for _, call := range message.ToolCalls {
+					name, _ := canonicalRuntimeToolName(call.Function.Name)
+					if message.Role == "assistant" && call.ID == callID && name == "ask_user" {
+						assistantPaired = true
+					}
+				}
+				if message.Role == "tool" && message.ToolCallID == callID &&
+					strings.Contains(message.Content, "answered") && strings.Contains(message.Content, "5FQD") {
+					answerPaired = true
+				}
+			}
+			if callID == "" || !assistantPaired || !answerPaired {
+				t.Errorf("routine answer lost its durable call pair: id=%q assistant=%t answer=%t", callID, assistantPaired, answerPaired)
+				http.Error(w, "missing canonical question pair", http.StatusConflict)
+				return
 			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"Routine resumed with 5FQD and completed."}}]}`))
 		default:
@@ -183,11 +203,20 @@ func TestRoutineAskUserDefersAndReconcilesTheSameTickAfterResume(t *testing.T) {
 	if err != nil || !routineFrameEventExists(events, "routine_tick_waiting") || routineFrameEventExists(events, "routine_tick_failed") {
 		t.Fatalf("deferred events = %#v err=%v", events, err)
 	}
+	confirmations, err := srv.webConversationPendingConfirmations("frame-routine")
+	if err != nil || len(confirmations) != 1 {
+		t.Fatalf("routine pending question projection=%#v err=%v", confirmations, err)
+	}
+	pendingCallID := stringValue(confirmations[0]["id"])
+	if pendingCallID == "" || pendingCallID == "routine-ask-structure" || stringValue(confirmations[0]["call_id"]) != pendingCallID {
+		t.Fatalf("routine question did not retain its canonical call identity: %#v", confirmations[0])
+	}
+	questionCallID.Store(pendingCallID)
 
 	request := newLoopbackTestRequest(http.MethodPost, "/api/frames/frame-routine/resolve-input", nil)
 	request.Header.Set("X-Science-User-Id", "user-routine")
 	resolved, err := srv.resolveCompatibilityInput(request, frame, compatibilityResolveInputRequest{Responses: []compatibilityInputResponse{{
-		ToolID: "routine-ask-structure", Action: "answer",
+		ToolID: pendingCallID, Action: "answer",
 		Answers: map[string]string{"Which structure should the routine use?": "5FQD"},
 	}}})
 	if err != nil || resolved.Status != "accepted" {

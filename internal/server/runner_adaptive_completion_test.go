@@ -309,6 +309,7 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 		},
 	}
 	var requests atomic.Int64
+	var questionCallID atomic.Value
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var request chatCompletionRequest
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -333,6 +334,24 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 		case 3:
 			callID, toolName, arguments = "stage-choice", "ask_user", mustJSON(t, question)
 		case 4:
+			expectedCallID, _ := questionCallID.Load().(string)
+			var assistantPaired, answerPaired bool
+			for _, message := range request.Messages {
+				for _, call := range message.ToolCalls {
+					if message.Role == "assistant" && call.ID == expectedCallID && call.Function.Name == "ask_user" {
+						assistantPaired = true
+					}
+				}
+				if message.Role == "tool" && message.ToolCallID == expectedCallID &&
+					strings.Contains(message.Content, "answered") && strings.Contains(message.Content, "Continue") {
+					answerPaired = true
+				}
+			}
+			if expectedCallID == "" || !assistantPaired || !answerPaired {
+				t.Errorf("resumed stage answer lost its durable call pair: id=%q assistant=%t answer=%t", expectedCallID, assistantPaired, answerPaired)
+				http.Error(w, "missing canonical question pair", http.StatusConflict)
+				return
+			}
 			callID, toolName = "stage-finished", updateStepStatusToolName
 			arguments = `{"step":"Choose next computation","status":"completed","notes":"Continued after the user's route choice."}`
 		case 5:
@@ -370,6 +389,11 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 	if len(pending) != 1 {
 		t.Fatalf("stage question disappeared from durable input: %#v", pending)
 	}
+	pendingCallID := compatibilityServerPendingInputID(pending[0])
+	if pendingCallID == "" || pendingCallID == "stage-choice" {
+		t.Fatalf("stage question did not retain its canonical call identity: %#v", pending[0])
+	}
+	questionCallID.Store(pendingCallID)
 	questions := anySliceValue(pending[0]["questions"])
 	if len(questions) != 1 {
 		t.Fatalf("stage question was not durably normalized: %#v", pending[0])
@@ -383,7 +407,7 @@ func TestAskUserStageProgressPersistsThroughRealRunnerPause(t *testing.T) {
 	resolved := compatJSONRequest(t, server.Handler(), http.MethodPost,
 		"/api/frames/"+frameID+"/resolve-input", "local", map[string]any{
 			"responses": []any{map[string]any{
-				"tool_id": "stage-choice", "action": "answer",
+				"tool_id": pendingCallID, "action": "answer",
 				"answers": map[string]any{"Which computation should be run next?": "Continue"},
 			}},
 		}, http.StatusOK)
