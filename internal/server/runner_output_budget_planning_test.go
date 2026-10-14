@@ -64,7 +64,7 @@ func TestOutputBudgetPlanningDeadlineRetiresFailedProbeFallbackAcrossRecreation(
 			}))
 			t.Cleanup(f.api.Close)
 			limit := 17
-			f.profile = providers.ModelProfile{Provider: providers.ProviderProfile{ID: "planning", UserID: "owner", Protocol: providers.ProtocolOpenAICompatible, Endpoint: f.api.URL}, Model: "model", MaxTokens: &limit, Request: providers.RequestProfile{MaxAttempts: 1, Timeout: 100 * time.Millisecond}}
+			f.profile = providers.ModelProfile{Provider: providers.ProviderProfile{ID: "planning", UserID: "owner", Protocol: providers.ProtocolOpenAICompatible, Endpoint: f.api.URL}, Model: "model", MaxTokens: &limit, Request: providers.RequestProfile{MaxAttempts: 1, Timeout: 100 * time.Millisecond, MaxResponseBytes: 256}}
 			f.store = runtimekv.New(f.path)
 			t.Cleanup(func() { _ = f.store.Close() })
 			request := agentruntime.ModelRequest{Tools: []agentruntime.ToolSchema{{Name: "read_file", Parameters: map[string]any{"type": "object"}}}}
@@ -73,9 +73,9 @@ func TestOutputBudgetPlanningDeadlineRetiresFailedProbeFallbackAcrossRecreation(
 			}
 			f.reopen(t)
 			response, err := f.call(t, request)
-			if !providers.IsProviderPlanningNoProgress(err) || providers.IsProviderEmptyResponse(err) != (native != "content") ||
-				providers.IsProviderPlanningNoNativeProgress(err) != (native == "none") || len(response.Message.ToolCalls) != 0 {
-				t.Fatalf("planning deadline lost typed visibility boundary: %v", err)
+			if providers.IsProviderGenerationNoAction(err) != (native != "content") || providers.IsProviderEmptyResponse(err) != (native != "content") ||
+				providers.IsProviderGenerationNoNativeAction(err) != (native == "none") || len(response.Message.ToolCalls) != 0 {
+				t.Fatalf("generation byte boundary lost typed visibility boundary: %v", err)
 			}
 			f.reopen(t)
 			client := newSessionOutputBudgetClient(nil, f.store, f.profile, "task", "agent").(*sessionOutputBudgetClient)

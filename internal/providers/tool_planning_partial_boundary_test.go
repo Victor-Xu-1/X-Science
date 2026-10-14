@@ -94,7 +94,7 @@ func TestProviderPlanningPartialToolBoundaryIsNotNoNativeProgress(t *testing.T) 
 			}
 			client, err := NewRuntimeModelClient(ModelProfile{
 				Provider: ProviderProfile{ID: "partial-tool-planning", Protocol: fixture.protocol, Endpoint: endpoint},
-				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 64 << 10},
+				Model:    "model", Request: RequestProfile{Timeout: 100 * time.Millisecond, MaxAttempts: 3, MaxResponseBytes: 256},
 			}, server.Client(), nil)
 			if err != nil {
 				t.Fatal(err)
@@ -116,7 +116,7 @@ func TestProviderPlanningPartialToolBoundaryIsNotNoNativeProgress(t *testing.T) 
 				text.WriteString(event.ContentDelta)
 				return nil
 			})
-			if !IsProviderPlanningNoProgress(err) || !IsProviderEmptyResponse(err) || IsProviderPlanningNoNativeProgress(err) || IsRecoverableStreamInterruption(err) {
+			if !IsProviderGenerationNoAction(err) || !IsProviderEmptyResponse(err) || IsProviderGenerationNoNativeAction(err) || IsRecoverableStreamInterruption(err) {
 				t.Fatalf("partial native action was classified as absent or completed: %v", err)
 			}
 			if boundaries != 1 || reasoning == 0 || text.Len() != 0 || len(response.Message.ToolCalls) != 0 || response.Message.Content != "" {

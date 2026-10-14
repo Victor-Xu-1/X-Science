@@ -41,7 +41,7 @@ func newProviderEmptyResponseError(message string) error {
 	return &providerEmptyResponseError{message: message}
 }
 
-// IsProviderEmptyResponse reports a successful provider exchange that
+// IsProviderEmptyResponse reports a provider-owned response boundary that
 // produced neither user-visible text nor an executable tool call. It is a
 // typed no-progress boundary: bounded request retries may end, but the durable
 // logical task can continue from its last completed tool checkpoint.
@@ -49,7 +49,7 @@ func IsProviderEmptyResponse(err error) bool {
 	return errors.Is(err, errProviderEmptyResponse)
 }
 
-// IsProviderPlanningNoProgress identifies the provider-owned action deadline,
+// IsProviderPlanningNoProgress identifies the provider-owned initial activity deadline,
 // including its empty-response or accepted-prefix recovery wrapper. Error text,
 // ordinary empty responses and transport failures cannot establish this cause.
 func IsProviderPlanningNoProgress(err error) bool {
@@ -266,6 +266,6 @@ func (body *providerStreamIdleReadCloser) Close() error {
 	return body.closer.Close()
 }
 
-func (body *providerStreamIdleReadCloser) recordProgress() {
-	body.reader.reset()
+func (body *providerStreamIdleReadCloser) recordProgress(growth int64) {
+	body.reader.recordProgress(growth)
 }

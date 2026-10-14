@@ -102,6 +102,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 			case "text":
 				if event.ContentBlock.Text != "" {
 					acc.content.WriteString(event.ContentBlock.Text)
+					recordProviderStreamProgress(response.Body, int64(len(event.ContentBlock.Text)))
 				}
 			case "tool_use":
 				name, err := normalizeModelToolName(event.ContentBlock.Name)
@@ -115,6 +116,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 					acc.toolBoundarySent = true
 				}
 				acc.tools[event.Index] = &anthropicStreamTool{ID: strings.TrimSpace(event.ContentBlock.ID), Name: name}
+				recordProviderStreamProgress(response.Body, int64(len(strings.TrimSpace(event.ContentBlock.ID))+len(event.ContentBlock.Name)))
 			}
 		case "content_block_delta":
 			switch event.Delta.Type {
@@ -123,6 +125,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true}); err != nil {
 						return err
 					}
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Thinking)))
 				}
 			case "text_delta":
 				if event.Delta.Text != "" {
@@ -133,6 +136,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 					}); err != nil {
 						return err
 					}
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.Text)))
 				}
 			case "input_json_delta":
 				tool := acc.tools[event.Index]
@@ -140,12 +144,18 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 					return fmt.Errorf("Anthropic input_json_delta references unknown content block %d", event.Index)
 				}
 				tool.Arguments.WriteString(event.Delta.PartialJSON)
+				if event.Delta.PartialJSON != "" {
+					recordProviderStreamProgress(response.Body, int64(len(event.Delta.PartialJSON)))
+				}
 			}
 		case "message_delta":
 			if event.Usage.OutputTokens != 0 {
 				acc.usage.CompletionTokens = event.Usage.OutputTokens
 			}
 		case "message_stop":
+			if !acc.stopped {
+				recordProviderStreamProgress(response.Body, 0)
+			}
 			acc.stopped = true
 		case "error":
 			return fmt.Errorf("Anthropic stream error %s: %s", strings.TrimSpace(event.Error.Type), strings.TrimSpace(event.Error.Message))

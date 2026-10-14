@@ -8,14 +8,17 @@ import (
 
 // Decoder-confirmed progress renews a streaming request. SSE comments and
 // repeated transport heartbeats cannot keep a stalled generation alive.
-func recordProviderStreamProgress(reader io.Reader) {
-	if progress, ok := reader.(interface{ recordProgress() }); ok {
-		progress.recordProgress()
+func recordProviderStreamProgress(reader io.Reader, growth int64) {
+	if progress, ok := reader.(interface{ recordProgress(int64) }); ok {
+		progress.recordProgress(growth)
 	}
 }
 
-func (reader *openAIChatStreamIdleReader) recordProgress() {
+func (reader *openAIChatStreamIdleReader) recordProgress(growth int64) {
 	reader.reset()
+	if growth > 0 && reader.decodedGrowth != nil {
+		reader.decodedGrowth(growth)
+	}
 }
 
 // Error bodies and non-SSE fallbacks have no incremental protocol decoder.

@@ -219,6 +219,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest)
+		idleReader.decodedGrowth = planning.ObserveGrowth
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIChatStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit,
@@ -252,6 +253,9 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
 		err = classifyProviderStreamInterruption(ctx, requestCtx, emitted, err)
+		if ctx.Err() == nil && !emitted {
+			err = planning.NoCompletedAction(err)
+		}
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)
@@ -294,6 +298,7 @@ func isRecoverableOpenAIChatStreamFailure(err error) bool {
 type openAIChatStreamIdleReader struct {
 	reader           io.Reader
 	semanticProgress bool
+	decodedGrowth    func(int64)
 	timeout          time.Duration
 	cancel           context.CancelCauseFunc
 	mu               sync.Mutex
@@ -446,9 +451,7 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 				}
 				return false, err
 			}
-			if semanticDeltaBytes > 0 || choice.FinishReason != "" {
-				recordProviderStreamProgress(reader)
-			}
+			firstTerminal := accumulator.finishReason == "" && strings.TrimSpace(choice.FinishReason) != ""
 			if finishReason := strings.ToLower(strings.TrimSpace(choice.FinishReason)); finishReason != "" {
 				if accumulator.finishReason != "" && accumulator.finishReason != finishReason {
 					return false, errors.New("OpenAI chat stream changed its terminal reason")
@@ -522,6 +525,9 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 					call.Arguments.Reset()
 					call.Arguments.WriteString(merged)
 				}
+			}
+			if semanticDeltaBytes > 0 || firstTerminal {
+				recordProviderStreamProgress(reader, semanticDeltaBytes)
 			}
 		}
 		return false, nil

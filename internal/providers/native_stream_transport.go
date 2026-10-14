@@ -102,6 +102,7 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest)
+		idleReader.decodedGrowth = planning.ObserveGrowth
 		defer idleReader.Stop()
 		response.Body = &providerStreamIdleReadCloser{reader: idleReader, closer: response.Body}
 		decoded, requestID, usage, emitted, err = readStream(c.runtimeModelClient, *response, emit)
@@ -133,6 +134,9 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
 		err = classifyProviderStreamInterruption(ctx, requestCtx, emitted, err)
+		if ctx.Err() == nil && !emitted {
+			err = planning.NoCompletedAction(err)
+		}
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
 		c.emitAudit(record)

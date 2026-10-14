@@ -106,6 +106,7 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 			return errors.New("Gemini stream emitted output after its terminal reason")
 		}
 		for _, part := range candidate.Content.Parts {
+			growth := int64(len(part.Text))
 			if part.Thought && part.Text != "" {
 				// Each decoded private fragment is activity, even when its text
 				// repeats. Emit no body and keep public output state unchanged.
@@ -146,11 +147,21 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 					ID:   fmt.Sprintf("gemini_call_%d", len(acc.toolCalls)+1),
 					Name: name, Arguments: json.RawMessage(rawArguments),
 				})
+				growth += int64(len(part.FunctionCall.Name))
+				if part.FunctionCall.Args != nil {
+					growth += int64(len(rawArguments))
+				}
+			}
+			if growth > 0 {
+				recordProviderStreamProgress(response.Body, growth)
 			}
 		}
 		if finishReason := strings.ToUpper(strings.TrimSpace(candidate.FinishReason)); finishReason != "" {
 			switch finishReason {
 			case "STOP":
+				if !acc.terminated {
+					recordProviderStreamProgress(response.Body, 0)
+				}
 				acc.terminated = true
 			case "MAX_TOKENS":
 				return fmt.Errorf("%w: finish reason max_tokens", errProviderResponseTruncated)
