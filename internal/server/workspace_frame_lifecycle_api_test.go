@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"net/http"
 	"path/filepath"
 	"testing"
@@ -39,7 +38,7 @@ func TestWorkspaceFrameLifecycleHTTPAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	serverApp := New(Options{FileRoot: t.TempDir(), Workspace: store})
-	t.Cleanup(func() { _ = serverApp.Close(context.Background()) })
+	t.Cleanup(func() { closeTestServer(t, serverApp) })
 	app := serverApp.Handler()
 
 	serveWorkspaceJSON(t, app, http.MethodPost, "/api/go/frames/root-frame/messages/queued-1/retract", map[string]any{}, http.StatusOK)
