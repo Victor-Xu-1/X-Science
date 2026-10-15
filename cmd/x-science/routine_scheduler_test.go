@@ -121,6 +121,8 @@ func TestRoutineSchedulerFactoryAuditsMissingProviderFailure(t *testing.T) {
 	}()
 
 	auditStore := runtimekv.New(filepath.Join(root, "runtime-state.sqlite"))
+	const publicFailure = "The current model configuration is unavailable."
+	const privateDiagnostic = "No active model configuration is available"
 	// The factory path loads the signed agent catalog before the missing saved
 	// provider is reported. Under the repository-wide parallel test gate that
 	// real initialization can legitimately exceed three seconds, so wait for
@@ -128,9 +130,19 @@ func TestRoutineSchedulerFactoryAuditsMissingProviderFailure(t *testing.T) {
 	if cmdRoutineEventually(t, 10*time.Second, func() bool {
 		routine, routineErr := store.GetRoutine("routine-audit")
 		audits, auditErr := auditStore.List("routine-scheduler-audit")
-		return routineErr == nil && routine.TickCount == 1 && routine.IdleStreak == 1 &&
-			strings.Contains(routine.LastResults, "No active model configuration is available") &&
-			auditErr == nil && len(audits) > 0
+		if routineErr != nil || routine.TickCount != 1 || routine.IdleStreak != 1 ||
+			!strings.Contains(routine.LastResults, publicFailure) ||
+			strings.Contains(routine.LastResults, privateDiagnostic) || auditErr != nil || len(audits) == 0 {
+			return false
+		}
+		for _, audit := range audits {
+			message, _ := audit.Value["message"].(string)
+			if audit.Value["type"] == "scheduler_error" && strings.Contains(message, publicFailure) &&
+				!strings.Contains(message, privateDiagnostic) {
+				return true
+			}
+		}
+		return false
 	}) {
 		return
 	}
