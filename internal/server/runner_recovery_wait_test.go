@@ -218,25 +218,12 @@ func TestRecoveryConditionWaitUsesDurableChangesAndPreservesCancellation(t *test
 			if scenario == "upgrade" || scenario == "cancelled" {
 				revision--
 			}
-			if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
-				ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken,
-				ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode, RunnerAttempt: int(f.claim.Attempt),
-				CheckpointEventID: checkpoint.Sequence, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
-				RecoveryContractRevision: revision,
-			}); err != nil {
-				t.Fatal(err)
-			}
-			switch scenario {
-			case "user":
-				if _, _, _, err := f.repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
-					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, ClientMessageID: "changed-input",
-					FrameEventID: "changed-input-event", MessageUUID: "changed-input-message", Text: "Continue with the corrected input.",
-				}); err != nil {
-					t.Fatal(err)
-				}
-			case "material", "administrative":
+			if scenario == "material" || scenario == "administrative" {
+				// Only the actual claimed dispatch may continue its checkpoint.
+				// Persist the evidence before that same owner releases its claim;
+				// a blocked dispatch cannot be taken by an unrelated runner.
 				resumed, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
-					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "external-evidence",
+					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "frame-resume:" + claim.ResumeEvent.ID,
 					TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
 				})
 				if err != nil || !resumed.Claimed {
@@ -250,6 +237,23 @@ func TestRecoveryConditionWaitUsesDurableChangesAndPreservesCancellation(t *test
 					"status": "completed", "toolPhase": "completed", "toolName": tool,
 					"toolResult": map[string]any{"ok": true, "executed": true, "stdout": "new result"},
 				})
+			}
+			if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
+				ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken,
+				ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode, RunnerAttempt: int(f.claim.Attempt),
+				CheckpointEventID: checkpoint.EventID, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
+				RecoveryContractRevision: revision,
+			}); err != nil {
+				t.Fatal(err)
+			}
+			switch scenario {
+			case "user":
+				if _, _, _, err := f.repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
+					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, ClientMessageID: "changed-input",
+					FrameEventID: "changed-input-event", MessageUUID: "changed-input-message", Text: "Continue with the corrected input.",
+				}); err != nil {
+					t.Fatal(err)
+				}
 			case "cancelled":
 				cancelled := workspace.FrameStatusCancelled
 				if _, err := f.store.UpdateFrame(f.stream.SessionID, workspace.UpdateFrameInput{Status: &cancelled}); err != nil {

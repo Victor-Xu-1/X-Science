@@ -79,7 +79,7 @@ func TestKernelSoftwareRuntimeV55PreservesOperationGraphAndAdmitsUnifiedTool(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, created, err := repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+	if _, created, err := appendHistoricalMigrationFrameUserEvent(t, ctx, db, repo, transcriptstore.AppendFrameUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "task-v55", FrameEventID: "task-event-v55",
 		MessageUUID: "task-message-v55", Text: "Run software.",
 	}); err != nil || !created {

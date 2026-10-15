@@ -25,7 +25,7 @@ func (s *Store) TranscriptRepository(ctx context.Context) (*transcriptstore.Repo
 	if status.CurrentVersion != workspaceSchemaVersion || workspaceSchemaVersion < 24 {
 		return nil, errors.New("workspace transcript schema is unavailable")
 	}
-	repository := transcriptstore.NewRepositoryWithReadPool(s.db, s.readDB)
+	repository := transcriptstore.NewRepositoryWithRecoveryVerifier(s.db, s.readDB, validateKernelRecoveryAdmissionSource)
 	if err := repository.ValidateCurrentContract(ctx); err != nil {
 		return nil, err
 	}

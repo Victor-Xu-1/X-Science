@@ -82,6 +82,7 @@ func TestReconcileLegacyFrameHistoriesActivatesPlainHistoryWithoutAskUser(t *tes
 	if err != nil || !found || !authority.TranscriptPayloadActive() || authority.ActiveEpoch != 2 {
 		t.Fatalf("authority=%#v found=%t err=%v", authority, found, err)
 	}
+	assertHistoricalInputPrefixSettled(t, repo, db, authority.ActiveStreamUID, stream.OwnerID)
 	var eventType, source string
 	var payload []byte
 	if err := db.QueryRow(`SELECT event_type,source,payload_json FROM transcript_events

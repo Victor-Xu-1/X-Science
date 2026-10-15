@@ -21,168 +21,74 @@ func (r *Repository) ClaimNextRunner(ctx context.Context, input ClaimNextRunnerI
 }
 
 func (r *Repository) claimNextRunner(
-	ctx context.Context,
-	input ClaimNextRunnerInput,
-	includeStandalone bool,
+	ctx context.Context, input ClaimNextRunnerInput, includeStandalone bool,
 ) (ClaimNextRunnerResult, error) {
 	input.RunnerID = strings.TrimSpace(input.RunnerID)
 	if input.RunnerID == "" || input.TTL <= 0 {
 		return ClaimNextRunnerResult{}, errors.New("runner id and positive ttl are required")
 	}
+	// This lock protects only the in-memory fairness hint. It is independent of
+	// inputWakeMu: committing a claim may signal the existing input wake.
+	r.candidateMu.Lock()
+	defer r.candidateMu.Unlock()
+	index := 0
+	if includeStandalone {
+		index = 1
+	}
+	cursor := r.candidateCursor[index]
 	var result ClaimNextRunnerResult
+	var selectionErr error
 	err := r.withImmediate(ctx, func(conn *sql.Conn) error {
-		if _, err := reconcileTerminalFrameRunnerAttemptsConn(
-			ctx, &ImmediateTransaction{repository: r, conn: conn}, 16,
-		); err != nil {
+		if _, err := reconcileTerminalFrameRunnerAttemptsConn(ctx, &ImmediateTransaction{repository: r, conn: conn}, 16); err != nil {
 			return err
 		}
 		now := r.now().UTC()
-		var stream Stream
-		var kind string
-		err := conn.QueryRowContext(ctx, `
-			SELECT stream.stream_uid,stream.owner_id,stream.external_id,stream.session_id,stream.kind,
-				stream.project_id,stream.root_frame_id,stream.frame_id,stream.epoch,
-				stream.input_revision,stream.consumed_input_revision,stream.next_event_id,
-				stream.next_publication_seq,stream.next_checkpoint_sequence,stream.created_at,stream.updated_at
-			FROM transcript_streams stream
-			LEFT JOIN frames frame ON frame.id=stream.frame_id AND frame.project_id=stream.project_id
-			WHERE stream.input_revision>stream.consumed_input_revision
-				AND ((stream.kind='frame_ref' AND frame.id IS NOT NULL
-					AND frame.status NOT IN ('completed','failed','cancelled','canceled'))
-					OR (? AND stream.kind='standalone' AND EXISTS (
-						SELECT 1 FROM transcript_delivery_routes route
-						WHERE route.stream_uid=stream.stream_uid AND route.destination=stream.session_id
-							AND route.status='active'
-					)))
-				AND NOT EXISTS (
-					SELECT 1 FROM transcript_runner_attempts attempt
-					WHERE attempt.stream_uid=stream.stream_uid AND attempt.status='running' AND attempt.expires_at>?
-				)
-				AND (
-					NOT EXISTS (
-						SELECT 1 FROM transcript_runner_attempts attempt
-						WHERE attempt.stream_uid=stream.stream_uid
-					)
-					OR EXISTS (
-						SELECT 1 FROM transcript_runner_attempts latest
-						WHERE latest.stream_uid=stream.stream_uid
-							AND latest.attempt=(
-								SELECT MAX(candidate.attempt) FROM transcript_runner_attempts candidate
-								WHERE candidate.stream_uid=stream.stream_uid
-							)
-							AND (
-								(
-									latest.claimed_input_revision<stream.input_revision
-									AND (
-										SELECT input.event_type FROM transcript_events input
-										WHERE input.stream_uid=stream.stream_uid
-											AND input.event_type IN ('user_message','user_input_response')
-										ORDER BY input.publication_seq DESC LIMIT 1
-									)='user_message'
-								)
-								OR (
-									latest.status='running' AND latest.expires_at<=?
-									AND EXISTS (
-										SELECT 1 FROM transcript_runner_checkpoints checkpoint
-										WHERE checkpoint.stream_uid=stream.stream_uid
-											AND checkpoint.runner_attempt=latest.attempt
-										AND checkpoint.checkpoint_sequence=(
-											SELECT MAX(candidate.checkpoint_sequence) FROM transcript_runner_checkpoints candidate
-											WHERE candidate.stream_uid=stream.stream_uid AND candidate.runner_attempt=latest.attempt
-										)
-										AND checkpoint.resumable=1
-										AND COALESCE((
-											SELECT json_extract(event.payload_json,'$.auto_resume')
-											FROM transcript_events event
-											WHERE event.stream_uid=checkpoint.stream_uid AND event.event_id=checkpoint.event_id
-										),1)=1
-									)
-									AND (
-										latest.claimed_input_revision=stream.input_revision
-										OR (
-											latest.claimed_input_revision<stream.input_revision
-											AND (
-												SELECT input.event_type FROM transcript_events input
-												WHERE input.stream_uid=stream.stream_uid
-													AND input.event_type IN ('user_message','user_input_response')
-												ORDER BY input.publication_seq DESC LIMIT 1
-											)='user_input_response'
-										)
-									)
-								)
-								OR (
-									latest.status='running' AND latest.expires_at<=?
-									AND latest.claimed_input_revision=stream.input_revision
-									AND `+runnerPreparationProofFor("latest")+`
-								)
-							)
-					)
-				)
-				AND (
-					(
-						EXISTS (
-							SELECT 1 FROM transcript_runner_attempts latest
-							WHERE latest.stream_uid=stream.stream_uid
-								AND latest.attempt=(
-									SELECT MAX(candidate.attempt) FROM transcript_runner_attempts candidate
-									WHERE candidate.stream_uid=stream.stream_uid
-								)
-								AND latest.claimed_input_revision<stream.input_revision
-						)
-						AND (
-							SELECT input.event_type FROM transcript_events input
-							WHERE input.stream_uid=stream.stream_uid
-								AND input.event_type IN ('user_message','user_input_response')
-							ORDER BY input.publication_seq DESC LIMIT 1
-						)='user_message'
-					)
-					OR NOT EXISTS (
-						SELECT 1 FROM frame_events resume
-						WHERE resume.frame_id=stream.frame_id AND resume.event_type='frame_resumed'
-							AND json_extract(resume.payload, '$.dispatch.status') IN ('registered','claimed','blocked')
-					)
-				)
-			ORDER BY stream.updated_at,stream.stream_uid LIMIT 1`, includeStandalone, now, now, now,
-		).Scan(
-			&stream.UID, &stream.OwnerID, &stream.ExternalID, &stream.SessionID, &kind,
-			&stream.ProjectID, &stream.RootFrameID, &stream.FrameID, &stream.Epoch,
-			&stream.InputRevision, &stream.ConsumedInputRevision, &stream.NextEventID,
-			&stream.NextPublication, &stream.NextCheckpoint, &stream.CreatedAt, &stream.UpdatedAt,
-		)
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		stream.Kind = StreamKind(kind)
-		resumeSource, resumeCheckpoint, claimable, err := automaticFrameResumeRequestConn(ctx, conn, stream, now)
-		if err != nil {
-			return err
-		}
-		if !claimable {
-			return nil
-		}
-		claimed, err := r.claimRunnerConn(ctx, conn, stream, ClaimRunnerInput{
-			StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: input.RunnerID,
-			TTL: input.TTL, ResumeSource: resumeSource, ResumeCheckpoint: resumeCheckpoint,
-		}, now)
-		if err != nil {
-			return err
-		}
-		if claimed.Claimed {
+		for scanned := 0; scanned < 32; scanned++ {
+			stream, next, found, err := nextRunnerCandidateConn(ctx, conn, includeStandalone, now, cursor)
+			if err != nil {
+				return err
+			}
+			if !found {
+				cursor = runnerCandidateCursor{}
+				return nil
+			}
+			cursor = next
+			source, checkpoint, claimable, err := r.automaticFrameResumeRequestConn(ctx, conn, stream, now)
+			if err != nil {
+				// Revalidation has not mutated the candidate. Commit only the existing
+				// reconciliation and fairness hint, while reporting the source error.
+				// Never commit a failed claim's partial writes or turn conflict into work.
+				selectionErr = err
+				return nil
+			}
+			if !claimable {
+				continue
+			}
+			claimed, err := r.claimRunnerConn(ctx, conn, stream, ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: input.RunnerID, TTL: input.TTL, ResumeSource: source, ResumeCheckpoint: checkpoint}, now)
+			if err != nil {
+				return err
+			}
+			if !claimed.Claimed {
+				continue
+			}
 			stream, err = getStreamConn(ctx, conn, stream.UID, stream.OwnerID)
 			if err != nil {
 				return err
 			}
 			result = ClaimNextRunnerResult{Stream: stream, Claim: claimed.Claim, Claimed: true}
+			return nil
 		}
 		return nil
 	})
-	return result, schemaError(err)
+	// Failed transactions never advance the hint. An empty bounded page may
+	// advance it; the existing one-second worker poll continues the next page.
+	if err == nil {
+		r.candidateCursor[index] = cursor
+	}
+	return result, schemaError(errors.Join(err, selectionErr))
 }
 
-func automaticFrameResumeRequestConn(
+func (r *Repository) automaticFrameResumeRequestConn(
 	ctx context.Context,
 	conn *sql.Conn,
 	stream Stream,
@@ -192,6 +98,7 @@ func automaticFrameResumeRequestConn(
 	var status string
 	var expiresAt time.Time
 	var claimedInputRevision int64
+	recoveryWork := false
 	err := conn.QueryRowContext(ctx, `
 		SELECT attempt,status,expires_at,claimed_input_revision FROM transcript_runner_attempts
 		WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, stream.UID,
@@ -203,21 +110,45 @@ func automaticFrameResumeRequestConn(
 		return "", 0, false, err
 	}
 	if claimedInputRevision < stream.InputRevision {
-		inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+		evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
 		if err != nil {
 			return "", 0, false, err
 		}
-		if inputType == "user_message" {
+		if evidence.Authorized {
 			return ResumeSourceFresh, 0, true, nil
 		}
-		if inputType != "user_input_response" {
-			return "", 0, false, ErrEventConflict
+		coverage := evidence.Coverage
+		if coverage.Pending() && !coverage.Complete {
+			return "", 0, false, nil
 		}
+		recoveryWork = coverage.RecoveryWork()
 	}
 	if claimedInputRevision > stream.InputRevision {
 		return "", 0, false, ErrEventConflict
 	}
-	if status != "running" || expiresAt.After(now) {
+	if status != "running" {
+		if recoveryWork {
+			// A completed round no longer carries a prior wait. Other saved
+			// states (including historical reclaimed attempts) retain an
+			// explicit nonautomatic checkpoint until an authorized new input
+			// or continuation supersedes it.
+			if status != "completed" {
+				var payload string
+				err := conn.QueryRowContext(ctx, `SELECT e.payload_json FROM transcript_runner_checkpoints c
+					JOIN transcript_events e ON e.stream_uid=c.stream_uid AND e.event_id=c.event_id
+					WHERE c.stream_uid=? AND c.runner_attempt=? ORDER BY c.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt).Scan(&payload)
+				if err != nil && !errors.Is(err, sql.ErrNoRows) {
+					return "", 0, false, err
+				}
+				if err == nil && !runnerCheckpointAllowsAutomaticResume(payload) {
+					return "", 0, false, nil
+				}
+			}
+			return ResumeSourceRetry, 0, true, nil
+		}
+		return "", 0, false, nil
+	}
+	if expiresAt.After(now) {
 		return "", 0, false, nil
 	}
 	var checkpoint int64
@@ -232,6 +163,9 @@ func automaticFrameResumeRequestConn(
 		ORDER BY checkpoint.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt,
 	).Scan(&checkpoint, &resumable, &rawPayload)
 	if errors.Is(err, sql.ErrNoRows) {
+		if recoveryWork {
+			return ResumeSourceRetry, 0, true, nil
+		}
 		// Missing checkpoints are not proof of non-dispatch. Only the typed
 		// preparation admission and unchanged phase permit a fresh attempt.
 		if claimedInputRevision == stream.InputRevision {
@@ -243,10 +177,13 @@ func automaticFrameResumeRequestConn(
 	if err != nil {
 		return "", 0, false, err
 	}
-	if !resumable {
+	if !runnerCheckpointAllowsAutomaticResume(rawPayload) {
 		return "", 0, false, nil
 	}
-	if !runnerCheckpointAllowsAutomaticResume(rawPayload) {
+	if !resumable {
+		if recoveryWork {
+			return ResumeSourceRetry, 0, true, nil
+		}
 		return "", 0, false, nil
 	}
 	// The durable Frame resume dispatcher owns a stream only while its dispatch
@@ -274,22 +211,10 @@ func runnerCheckpointAllowsAutomaticResume(rawPayload string) bool {
 	return valid && autoResume
 }
 
-func latestRunnerInputEventTypeConn(ctx context.Context, conn *sql.Conn, streamUID string) (string, error) {
-	var eventType string
-	if err := conn.QueryRowContext(ctx, `
-		SELECT event_type FROM transcript_events
-		WHERE stream_uid=? AND event_type IN ('user_message','user_input_response')
-		ORDER BY publication_seq DESC LIMIT 1`, streamUID,
-	).Scan(&eventType); err != nil {
-		return "", err
-	}
-	return eventType, nil
-}
-
 // LatestRunnerInputEventType returns the most recent runner input event type
-// (user_message or user_input_response) for an owner-scoped stream. Resume
-// dispatch uses it to distinguish a new task message (which supersedes an
-// interruption checkpoint) from a durable answer to a waiting checkpoint.
+// (user_message or user_input_response) as a publication fact for the existing
+// plan-response guard. It is not admission coverage or execution handoff
+// authority; scheduling and resume consumers use GetInputCoverage instead.
 func (r *Repository) LatestRunnerInputEventType(
 	ctx context.Context,
 	streamUID, ownerID string,
@@ -354,6 +279,32 @@ func (r *Repository) claimRunnerConn(
 		result.OwnerRunnerID = activeRunner
 		return result, nil
 	}
+	if stream.Kind == StreamKindFrameRef {
+		var dedicated bool
+		if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM frame_events
+			WHERE frame_id=? AND event_type='frame_resumed'
+			AND json_extract(payload,'$.dispatch.status') IN ('registered','claimed','blocked'))`, stream.FrameID).Scan(&dedicated); err != nil {
+			return result, err
+		}
+		if dedicated {
+			owner, err := claimedFrameResumeAuthorizesRunnerConn(ctx, conn, stream, input.RunnerID)
+			if err != nil {
+				return result, err
+			}
+			if !owner {
+				// A coarse candidate is not permission to take the dedicated
+				// dispatcher. Only a verified new ordinary Fresh message can
+				// supersede it; checkpoint, retry and control input cannot.
+				if input.ResumeSource != ResumeSourceFresh {
+					return result, nil
+				}
+				evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
+				if err != nil || !evidence.Authorized {
+					return result, err
+				}
+			}
+		}
+	}
 	var latestAttempt, latestClaimedRevision, latestCheckpoint int64
 	var latestStatus, latestPhase string
 	latestErr := conn.QueryRowContext(ctx, `
@@ -384,11 +335,11 @@ func (r *Repository) claimRunnerConn(
 				return result, nil
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+				evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
 				if err != nil {
 					return result, err
 				}
-				if inputType != "user_message" {
+				if !evidence.Authorized {
 					return result, nil
 				}
 			} else {
@@ -452,11 +403,11 @@ func (r *Repository) claimRunnerConn(
 				return result, ErrCheckpointUnavailable
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+				evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
 				if err != nil {
 					return result, err
 				}
-				if inputType != "user_input_response" {
+				if evidence.Authorized || !evidence.Coverage.Complete && !explicitResume {
 					return result, ErrCheckpointUnavailable
 				}
 			} else if stream.InputRevision == stream.ConsumedInputRevision &&
@@ -470,6 +421,28 @@ func (r *Repository) claimRunnerConn(
 			}
 			if !authorized {
 				return result, nil
+			}
+		case ResumeSourceRetry:
+			coverage, err := r.inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
+			if err != nil {
+				return result, err
+			}
+			if !coverage.RecoveryWork() {
+				return result, nil
+			}
+			if latestStatus != "completed" && latestCheckpoint > 0 {
+				var resumable bool
+				var payload string
+				err := conn.QueryRowContext(ctx, `SELECT c.resumable,e.payload_json FROM transcript_runner_checkpoints c
+						JOIN transcript_events e ON e.stream_uid=c.stream_uid AND e.event_id=c.event_id
+						WHERE c.stream_uid=? AND c.runner_attempt=? AND c.checkpoint_sequence=?`,
+					stream.UID, latestAttempt, latestCheckpoint).Scan(&resumable, &payload)
+				if err != nil {
+					return result, err
+				}
+				if !runnerCheckpointAllowsAutomaticResume(payload) || latestStatus == "running" && resumable {
+					return result, ErrCheckpointUnavailable
+				}
 			}
 		default:
 			return result, nil

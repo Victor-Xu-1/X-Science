@@ -130,6 +130,11 @@ func TestTranscriptSchemaMigrationsUpgradeV22AndReopen(t *testing.T) {
 	applyTranscriptMigration(t, db, 36)
 	applyTranscriptMigration(t, db, 37)
 	applyTranscriptMigration(t, db, 38)
+	// Repository.Open attaches to the current installed transcript contract;
+	// workspace remains the migration authority. Keep every frozen historical
+	// cohort assertion above, then upgrade normally before reopening it.
+	applyTranscriptMigration(t, db, workspaceSchemaVersion)
+	assertSchemaJournalVersion(t, db, workspaceSchemaVersion)
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}

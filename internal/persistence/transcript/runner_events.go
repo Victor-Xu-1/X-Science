@@ -113,8 +113,19 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 			input.Claim.ClaimedInputRevision, input.Claim.StreamUID); err != nil {
 			return err
 		}
-		if err := applyFrameTerminalStatusConn(ctx, conn, stream, input.Status, statusDescription, now); err != nil {
+		stream.ConsumedInputRevision = max(stream.ConsumedInputRevision, input.Claim.ClaimedInputRevision)
+		evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
+		if err != nil {
 			return err
+		}
+		// A terminal execution receipt settles only its admitted prefix. A
+		// newer ordinary input keeps the existing Frame eligible for one next
+		// claim. Unknown legacy coverage is exposed through explicit Continue,
+		// never guessed or silently consumed. Cancellation is never resurrected.
+		if input.Status == "cancelled" || input.Status == "canceled" || !evidence.Authorized && !evidence.Coverage.RecoveryWork() {
+			if err := applyFrameTerminalStatusConn(ctx, conn, stream, input.Status, statusDescription, now); err != nil {
+				return err
+			}
 		}
 		receipt = FinishReceipt{StreamUID: input.Claim.StreamUID, Attempt: input.Claim.Attempt, EventID: event.EventID, Status: input.Status, FinishedAt: now}
 		return nil

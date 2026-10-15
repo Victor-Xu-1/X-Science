@@ -37,7 +37,7 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	for _, table := range []string{"compute_namespace_observed_source_receipts", "namespace_identity_aliases", "namespace_cutover_receipts", "kernel_runtime_identity_receipts", "namespace_kernel_operation_receipts", "namespace_transcript_event_receipts", "namespace_compute_job_receipts", "namespace_history_audit_receipts"} {
+	for _, table := range []string{"transcript_input_admissions", "compute_namespace_observed_source_receipts", "namespace_identity_aliases", "namespace_cutover_receipts", "kernel_runtime_identity_receipts", "namespace_kernel_operation_receipts", "namespace_transcript_event_receipts", "namespace_compute_job_receipts", "namespace_history_audit_receipts"} {
 		if _, err := tx.Exec(`DROP TABLE ` + table); err != nil {
 			t.Fatal(err)
 		}
@@ -45,6 +45,8 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 	// Reconstruct the actual v74 predecessor, including the unchanged v69
 	// startup guard. Removing only the v75 journal row leaves a hole once v76
 	// exists; retaining its newer trigger would also forge a historical shape.
+	// The v77 prospective relation and its table-owned triggers must likewise
+	// be absent in this private predecessor; source events/counters stay intact.
 	if _, err := tx.Exec(`DROP TRIGGER kernel_startup_terminal_receipt`); err != nil {
 		t.Fatal(err)
 	}

@@ -61,7 +61,7 @@ func TestKernelBashV56PreservesOperationGraphAndAdmitsBash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, created, err := repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+	if _, created, err := appendHistoricalMigrationFrameUserEvent(t, ctx, db, repo, transcriptstore.AppendFrameUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "task-v56", FrameEventID: "task-event-v56",
 		MessageUUID: "task-message-v56", Text: "Run a managed Bash step.",
 	}); err != nil || !created {

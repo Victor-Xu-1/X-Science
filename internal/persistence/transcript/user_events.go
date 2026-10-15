@@ -56,7 +56,7 @@ func (r *Repository) appendUserEventConn(
 	if err != nil || !created {
 		return event, created, err
 	}
-	if _, err := conn.ExecContext(ctx, `UPDATE transcript_streams SET input_revision=input_revision+1 WHERE stream_uid=?`, input.StreamUID); err != nil {
+	if err := admitEventInputConn(ctx, conn, stream, event, now); err != nil {
 		return Event{}, false, err
 	}
 	if err := activateFrameForNewInputConn(ctx, conn, stream, now); err != nil {
@@ -204,13 +204,14 @@ func (r *Repository) AdmitUserEvent(ctx context.Context, input AdmitUserEventInp
 		if err != nil {
 			return err
 		}
-		event, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
+		existing, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
 		if err != nil {
 			return err
 		}
 		if !found {
 			return ErrEventConflict
 		}
+		event = existing
 		if event.Type == "user_message" {
 			return nil
 		}
@@ -236,11 +237,10 @@ func (r *Repository) AdmitUserEvent(ctx context.Context, input AdmitUserEventInp
 			}
 			return ErrEventConflict
 		}
-		if _, err := conn.ExecContext(ctx, `UPDATE transcript_streams
-			SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, r.now().UTC(), stream.UID); err != nil {
+		event.Type = "user_message"
+		if err := admitEventInputConn(ctx, conn, stream, event, r.now().UTC()); err != nil {
 			return err
 		}
-		event.Type = "user_message"
 		admitted = true
 		tx.markInputAdded(true, nil)
 		return activateFrameForNewInputConn(ctx, conn, stream, r.now().UTC())
@@ -448,8 +448,7 @@ func appendFrameUserEventConn(
 				return err
 			}
 			frameEvent = transcriptPayloadFrameProjection(stream, event, payload)
-			if _, err := conn.ExecContext(ctx, `UPDATE transcript_streams
-				SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, now, stream.UID); err != nil {
+			if err := admitEventInputConn(ctx, conn, stream, event, now); err != nil {
 				return err
 			}
 			if input.DeferFrameActivation {
@@ -500,9 +499,7 @@ func appendFrameUserEventConn(
 		if err != nil || !created {
 			return err
 		}
-		_, err = conn.ExecContext(ctx, `
-			UPDATE transcript_streams SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, record.createdAt, stream.UID)
-		if err != nil {
+		if err := admitEventInputConn(ctx, conn, stream, event, record.createdAt); err != nil {
 			return err
 		}
 		if input.DeferFrameActivation {

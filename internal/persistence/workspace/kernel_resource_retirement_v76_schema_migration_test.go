@@ -76,7 +76,8 @@ func TestKernelResourceRetirementV76UpgradePreservesDataAndJournal(t *testing.T)
 		t.Fatalf("backup lost the original schema 75 guard: %v", err)
 	}
 	after, err := upgraded.SchemaStatus(ctx)
-	if err != nil || after.CurrentVersion != 76 || len(after.Migrations) != 76 || !reflect.DeepEqual(before.Migrations, after.Migrations[:75]) {
+	if err != nil || after.CurrentVersion != workspaceSchemaVersion || len(after.Migrations) != workspaceSchemaVersion ||
+		after.Migrations[75].Version != 76 || !reflect.DeepEqual(before.Migrations, after.Migrations[:75]) {
 		t.Fatalf("upgrade changed historical journal or omitted version 76: %+v err=%v", after, err)
 	}
 	current, found, err := upgraded.GetKernelExecutionBackend(ctx, backend.BackendID)

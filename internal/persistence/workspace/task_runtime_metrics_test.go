@@ -98,9 +98,15 @@ func TestRunnerTaskMetricsAuthorityKeepsCallsAcrossApprovalRevisions(t *testing.
 			t.Fatal(err)
 		}
 		answerID := fmt.Sprintf("metrics-approval-answer-%d", round)
-		answer, _, created, err := repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
-			StreamUID: claim.StreamUID, OwnerID: claim.OwnerID, ClientMessageID: answerID,
-			FrameEventID: answerID + "-event", MessageUUID: answerID + "-message", Text: "Approve this operation.",
+		// An approval answer is a control response, not a new composer task.
+		var answer transcriptstore.Event
+		err = repo.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+			var appendErr error
+			answer, created, appendErr = tx.AppendFrameInputResponse(ctx, transcriptstore.AppendFrameInputResponseInput{
+				StreamUID: claim.StreamUID, OwnerID: claim.OwnerID, FrameID: "tool-batch-frame", ClientMessageID: answerID,
+				PayloadJSON: []byte(`{"text":"Approve this operation.","decision":"allow"}`),
+			})
+			return appendErr
 		})
 		if err != nil || !created || answer.Type != "user_input_response" {
 			t.Fatalf("answer type=%q created=%t err=%v", answer.Type, created, err)

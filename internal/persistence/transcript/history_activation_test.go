@@ -56,6 +56,7 @@ func TestActivateAskUserHistoryCutoverCreatesOneServingPayloadEpoch(t *testing.T
 	if err != nil || !found || latest.UID != activated.TargetStreamUID || latest.Epoch != activated.TargetEpoch {
 		t.Fatalf("latest=%#v found=%t err=%v", latest, found, err)
 	}
+	assertHistoricalInputPrefixSettled(t, repo, db, latest.UID, stream.OwnerID)
 	authority, found, err := repo.GetFrameAuthorityBySession(context.Background(), stream.OwnerID, stream.SessionID)
 	if err != nil || !found || !authority.TranscriptPayloadActive() ||
 		authority.ActiveStreamUID != activated.TargetStreamUID || authority.ActiveEpoch != activated.TargetEpoch ||
