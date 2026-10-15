@@ -55,7 +55,7 @@ func (s *Store) enqueueManagedEndpointPrivateCleanupTx(ctx context.Context, tx *
 		if _, err := s.EnqueueOutboxTx(ctx, tx, EnqueueOutboxInput{
 			IdempotencyKey: key, Topic: ManagedEndpointPrivateCleanupTopic,
 			PartitionKey: ManagedEndpointPrivateCleanupTopic + ":" + key,
-			Type: ManagedEndpointPrivateCleanupType, AggregateType: "managed_endpoint_instance", AggregateID: id,
+			Type:         ManagedEndpointPrivateCleanupType, AggregateType: "managed_endpoint_instance", AggregateID: id,
 			Payload: payload, MaxAttempts: outboxDefaultMaxAttempts,
 		}); err != nil {
 			return err
