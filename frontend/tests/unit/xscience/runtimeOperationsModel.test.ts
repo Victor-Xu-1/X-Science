@@ -13,6 +13,30 @@ import { describe, expect, it } from 'vitest';
 import { projectAcceptedRuntimeStart } from '@/renderer/components/xScience/runtime/runtimeOperationsControllerModel';
 
 describe('X-Science runtime operations model', () => {
+  it('keeps only the closed provider failure category without treating it as execution authority', () => {
+    for (const kind of ['configuration_missing', 'subscription', 'authentication', 'access_denied', 'unavailable']) {
+      const snapshot = normalizeXScienceRuntimeSnapshot({
+        id: 'provider-pause',
+        status: 'paused',
+        model: 'saved-model',
+        runtime_interruption_reason: 'model_provider_unavailable',
+        runtime_provider_failure_kind: kind,
+      });
+      expect(snapshot).toMatchObject({ providerFailureKind: kind, modelId: 'saved-model', canResume: true });
+      expect(toXScienceRuntimeSummary(snapshot)).toMatchObject({ state: 'paused', is_processing: false });
+    }
+    for (const kind of [null, 'PRIVATE_PROVIDER_SENTINEL', { subscription: true }]) {
+      expect(
+        normalizeXScienceRuntimeSnapshot({
+          id: 'provider-pause',
+          status: 'paused',
+          runtime_interruption_reason: 'model_provider_unavailable',
+          runtime_provider_failure_kind: kind,
+        })
+      ).toMatchObject({ providerFailureKind: null });
+    }
+  });
+
   it('offers explicit continuation for retained input without fabricating a failed or paused status', () => {
     const completed = normalizeXScienceRuntimeSnapshot({
       id: 'retained',

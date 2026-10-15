@@ -6,6 +6,27 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
 describe('XScienceTaskAttentionNotice pause causes', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    'explains a subscription refusal through a closed category in %s',
+    async (language) => {
+      const onAction = vi.fn();
+      const props = {
+        kind: 'paused' as const,
+        reason: 'model_provider_unavailable',
+        providerFailureKind: 'subscription' as const,
+        onAction,
+      };
+      await renderWithI18n(<XScienceTaskAttentionNotice {...props} />, language);
+      const notice = screen.getByTestId('x-science-paused-attention');
+      expect(notice).toHaveTextContent(language === 'en-US' ? 'subscription or billing' : '订阅或计费');
+      expect(notice).toHaveTextContent(language === 'en-US' ? 'preserved' : '已保留');
+      expect(notice).not.toHaveTextContent(/model_provider_unavailable|waiting for model selection|等待选择模型/);
+      expect(onAction).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button'));
+      expect(onAction).toHaveBeenCalledOnce();
+    }
+  );
+
   it.each(['en-US', 'zh-CN'] as const)('shows the retained-input continuation action once in %s', async (language) => {
     const onAction = vi.fn();
     await renderWithI18n(
