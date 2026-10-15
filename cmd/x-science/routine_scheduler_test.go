@@ -136,8 +136,12 @@ func TestRoutineSchedulerFactoryAuditsMissingProviderFailure(t *testing.T) {
 			return false
 		}
 		for _, audit := range audits {
-			message, _ := audit.Value["message"].(string)
-			if audit.Value["type"] == "scheduler_error" && strings.Contains(message, publicFailure) &&
+			value, ok := audit.Value.(map[string]any)
+			if !ok {
+				continue
+			}
+			message, _ := value["message"].(string)
+			if value["type"] == "scheduler_error" && strings.Contains(message, publicFailure) &&
 				!strings.Contains(message, privateDiagnostic) {
 				return true
 			}
