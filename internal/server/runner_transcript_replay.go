@@ -248,8 +248,8 @@ func trustedScientificCorrectionReplayReceipt(
 // appendPriorTerminalCorrection carries the exact durable failure that caused
 // an explicitly resumed execution unit into the provider replay. The previous
 // terminal remains authoritative; this read projection neither rewrites it nor
-// treats its unverified evidence as valid. A new attempt must repair the named
-// failure using current trusted tools before it can complete.
+// treats its unverified evidence as valid. A new attempt uses current checks;
+// semantic observations alone do not force a tool call or certify completion.
 func (s *Server) loadPriorTerminalCorrection(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,

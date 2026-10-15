@@ -7,10 +7,10 @@ import (
 	"x-science/internal/agentruntime"
 )
 
-func TestFreshExecutionRequestRequiresCurrentSuccessfulExecution(t *testing.T) {
+func TestFreshExecutionFindingObservesCurrentSuccessfulExecution(t *testing.T) {
 	request := []agentruntime.Message{{Role: "user", Content: "请重新计算这组稳定性数据，并更新报告。"}}
-	if err := sessionRunnerFreshExecutionCompletionError(request, nil); err == nil {
-		t.Fatal("fresh execution request accepted without current execution evidence")
+	if finding := sessionRunnerFreshExecutionFinding(request, nil); finding == "" {
+		t.Fatal("missing current execution evidence was not disclosed")
 	}
 
 	result := []agentruntime.Message{
@@ -19,8 +19,8 @@ func TestFreshExecutionRequestRequiresCurrentSuccessfulExecution(t *testing.T) {
 		}}},
 		{Role: "tool", ToolCallID: "run-1", Content: `{"ok":true,"executed":true,"exit_status":"ok","stdout":"complete"}`},
 	}
-	if err := sessionRunnerFreshExecutionCompletionError(request, result); err != nil {
-		t.Fatalf("fresh successful execution rejected: %v", err)
+	if finding := sessionRunnerFreshExecutionFinding(request, result); finding != "" {
+		t.Fatalf("fresh successful execution was not recognized: %v", finding)
 	}
 }
 
@@ -46,7 +46,7 @@ func TestFreshExecutionRequestKeepsSeparatePositiveInstructions(t *testing.T) {
 		"不要重算旧版本。请重算新版本。",
 	} {
 		request := []agentruntime.Message{{Role: "user", Content: content}}
-		if !sessionRunnerFreshExecutionRequested(request) || sessionRunnerFreshExecutionCompletionError(request, nil) == nil {
+		if !sessionRunnerFreshExecutionRequested(request) || sessionRunnerFreshExecutionFinding(request, nil) == "" {
 			t.Fatalf("a negated unrelated action erased a positive fresh request: %q", content)
 		}
 	}

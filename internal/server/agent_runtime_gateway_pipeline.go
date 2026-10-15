@@ -304,9 +304,6 @@ func serverAgentRuntimeGatewayPreflight(invocation *toolgateway.Invocation) {
 		preflight = agentRuntimeUnresolvedSkillDirectoryPreflight(name, invocation.Input)
 	}
 	if preflight == nil {
-		preflight = agentRuntimeRequiredMCPRecoveryPreflight(invocation.Context, name, invocation.Input)
-	}
-	if preflight == nil {
 		preflight = agentRuntimeWorkspaceArtifactReferencePreflight(name, invocation.Input)
 	}
 	if preflight == nil {

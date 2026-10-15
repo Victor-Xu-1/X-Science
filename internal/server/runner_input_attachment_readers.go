@@ -153,47 +153,25 @@ func (run *sessionRunnerChatRun) unreadBuiltinAttachmentReadersReferencedBy(cont
 	return result
 }
 
-func (g serverAgentRuntimeToolGateway) agentRuntimeBuiltinAttachmentReaderPreflight(publicName string, input map[string]any) map[string]any {
+// Available built-in readers are an efficiency observation, not operation
+// admission. Neither an unread attachment nor a tool name in task prose makes
+// a different valid reader or package operation unauthorized.
+func (g serverAgentRuntimeToolGateway) builtinAttachmentReaderSuggestions(publicName string, input map[string]any) []sessionRunnerInputAttachmentReader {
 	if g.taskRun == nil {
 		return nil
 	}
-	var unread []sessionRunnerInputAttachmentReader
-	requestedPackages := []string(nil)
 	switch publicName {
 	case "manage_packages":
 		if !strings.EqualFold(strings.TrimSpace(stringValue(input["mode"])), "install") {
 			return nil
 		}
-		for _, requirement := range buildSessionRunnerExplicitToolContract(g.taskRun.TaskIntent).Requirements {
-			if requirement.Name == "manage_packages" {
-				return nil
-			}
-		}
-		requestedPackages = uniqueSortedFolded(skillStringValues(input["packages"]))
-		unread = g.taskRun.unreadBuiltinAttachmentReadersForPackages(requestedPackages)
+		return g.taskRun.unreadBuiltinAttachmentReadersForPackages(skillStringValues(input["packages"]))
 	case "bash", "python", "r", "repl", "powershell":
 		content := strings.Join([]string{
 			stringValue(input["command"]), stringValue(input["code"]), stringValue(input["script"]),
 		}, "\n")
-		unread = g.taskRun.unreadBuiltinAttachmentReadersReferencedBy(content)
+		return g.taskRun.unreadBuiltinAttachmentReadersReferencedBy(content)
 	default:
 		return nil
-	}
-	if len(unread) == 0 {
-		return nil
-	}
-	requiredReads := make([]map[string]any, 0, len(unread))
-	for _, state := range unread {
-		requiredReads = append(requiredReads, map[string]any{
-			"version_id": state.VersionID, "filename": state.Filename,
-			"format_id": state.FormatID, "reader": state.Reader,
-		})
-	}
-	return map[string]any{
-		"ok": false, "status": "builtin_attachment_reader_required", "executed": false,
-		"message":            "The requested operation bypasses built-in readers for unread task attachments.",
-		"required_reads":     requiredReads,
-		"requested_packages": requestedPackages,
-		"recovery":           "Read each listed immutable version_id with read_file first. Install additional packages only if that real read reports a missing capability needed by the task; do not provision duplicate readers speculatively.",
 	}
 }

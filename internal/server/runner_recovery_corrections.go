@@ -236,8 +236,7 @@ func sessionRunnerCorrectionReasonRequiresTool(reason, detail string) bool {
 	case sessionRunnerPlanStepsIncompleteReasonCode,
 		sessionRunnerPlanApprovalRequiredReasonCode,
 		sessionRunnerVisualArtifactValidationReasonCode,
-		sessionRunnerRealScientificEvidenceRequiredReasonCode,
-		"completion_review_correction_required":
+		sessionRunnerRealScientificEvidenceRequiredReasonCode:
 		return true
 	case "artifact_reference_correction_required":
 		// A missing deliverable requires a real workspace mutation. A final-answer
@@ -266,12 +265,6 @@ func recoveredRunnerInitialToolChoice(entries []eventjournal.Entry, availableToo
 		}
 	}
 	return nil
-}
-
-func runnerCorrectionRequiresMCPExecution(detail string) bool {
-	detail = strings.ToLower(strings.TrimSpace(detail))
-	return strings.Contains(detail, "real mcp method execution") &&
-		strings.Contains(detail, "no completed mcp tool result")
 }
 
 func runnerCorrectionReportsMissingDeliverable(detail string) bool {
@@ -371,7 +364,7 @@ func recoveredRunnerCorrectionContext(entries []eventjournal.Entry) string {
 	case "artifact_reference_correction_required":
 		transition = "repair_current_candidate"
 	case "completion_review_correction_required":
-		transition = "repair_rejected_acceptance_condition"
+		transition = "review_observation_with_current_state"
 	case sessionRunnerCompletionReviewRecoveryReasonCode:
 		transition = "restore_review_transport"
 	case sessionRunnerRequiredToolChoiceUnsatisfiedReasonCode:

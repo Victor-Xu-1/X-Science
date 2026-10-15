@@ -3623,17 +3623,20 @@ func TestRecoveredRunnerSourceGroundedExecutionExplainsMaterialRoute(t *testing.
 	}
 }
 
-func TestRecoveredRunnerMissingMCPReviewCorrectionExplainsLiveExecution(t *testing.T) {
+func TestRecoveredRunnerMissingMCPReviewRetainsObservation(t *testing.T) {
 	entries := []eventjournal.Entry{{Message: eventjournal.Message{
 		"type": "runner_checkpoint", "status": "interrupted",
 		"reason_code":   "completion_review_correction_required",
 		"resume_detail": "completion reviewer rejected the current candidate; explicit user-required tool evidence is incomplete; high: the explicitly requested real MCP method execution has no completed MCP tool result",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
-	for _, required := range []string{"x-science.runner_recovery.v1", `"required_transition":"repair_rejected_acceptance_condition"`, "no completed MCP tool result"} {
+	for _, required := range []string{"x-science.runner_recovery.v1", `"required_transition":"review_observation_with_current_state"`, "no completed MCP tool result"} {
 		if !strings.Contains(context, required) {
 			t.Fatalf("correction context=%q missing %q", context, required)
 		}
+	}
+	if recoveredRunnerCorrectionRequiresTool(entries) {
+		t.Fatal("historical MCP review manufactured an execution requirement")
 	}
 }
 

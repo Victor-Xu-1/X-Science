@@ -24,7 +24,8 @@ var (
 // existing model -> Transcript stream. It does not publish, cache, or project a
 // second response. For Chinese tasks it holds only the opening probe, releases
 // it into the ordinary durable stream once Chinese narration is established,
-// and rejects a clearly English opening before any user-visible bytes escape.
+// and attempts optional conversion before publishing a clearly English opening.
+// A usable primary final remains deliverable if that conversion is unavailable.
 type sessionRunnerResponseLanguageModelClient struct {
 	delegate agentruntime.ModelClient
 	language string
@@ -77,7 +78,7 @@ func (client *sessionRunnerResponseLanguageModelClient) Complete(
 	if !sessionRunnerRequiresChinese(client.language) || !english {
 		return response, nil
 	}
-	return client.localizeOrKeepToolCall(ctx, request, response)
+	return client.localizePrimaryResponse(ctx, request, response)
 }
 
 func (client *sessionRunnerResponseLanguageModelClient) CompleteStream(
@@ -238,7 +239,7 @@ func (client *sessionRunnerResponseLanguageModelClient) CompleteStream(
 		if agentruntime.InitialToolChoiceRequiresCall(request.ToolChoice) && len(response.Message.ToolCalls) == 0 {
 			return response, nil
 		}
-		translated, translateErr := client.localizeOrKeepToolCall(ctx, request, response)
+		translated, translateErr := client.localizePrimaryResponse(ctx, request, response)
 		if translateErr != nil {
 			return agentruntime.ModelResponse{}, translateErr
 		}
@@ -262,24 +263,36 @@ func (client *sessionRunnerResponseLanguageModelClient) CompleteStream(
 			response.Message.Content = ""
 			return response, nil
 		}
-		// The opening was already released as Chinese, so replacing the whole
-		// response would duplicate visible content. The existing correction
-		// checkpoint starts a fresh segment without rewriting published bytes.
-		return agentruntime.ModelResponse{}, sessionRunnerResponseLanguageMismatch{ValidationCode: "mixed_language_after_publication"}
+		if agentruntime.InitialToolChoiceRequiresCall(request.ToolChoice) {
+			return response, nil // The engine still owns the missing-action error.
+		}
+		// Already-published primary bytes cannot be replaced or replayed by a
+		// presentation conversion. Append only the honest limitation suffix.
+		advised := client.preserveFinalLanguage(response, "mixed_language_after_publication")
+		if err := ctx.Err(); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+		if suffix := strings.TrimPrefix(advised.Message.Content, response.Message.Content); suffix != "" && emit != nil {
+			if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: suffix}); err != nil {
+				return agentruntime.ModelResponse{}, err
+			}
+		}
+		return advised, nil
 	}
 	return response, nil
 }
 
 // A presentation conversion failure must not invalidate an otherwise valid
 // scientific action. Its audit records the failure; only the unlocalized prose
-// remains private. Cancellation still propagates and final answers still fail
-// validation. No replacement tool proposal from the translator is accepted.
+// remains private. This action/progress policy is separate from preserving a
+// completed primary final. No replacement translator tool proposal is accepted.
 func (client *sessionRunnerResponseLanguageModelClient) localizeOrKeepToolCall(ctx context.Context, request agentruntime.ModelRequest, original agentruntime.ModelResponse) (agentruntime.ModelResponse, error) {
 	translated, err := client.translateCandidate(ctx, request, original)
 	if errors.Is(err, context.Canceled) {
 		return agentruntime.ModelResponse{}, err
 	}
 	if err != nil && len(original.Message.ToolCalls) > 0 && ctx.Err() == nil {
+		original.Usage = translated.Usage
 		original.Message.Content = ""
 		return original, nil
 	}
@@ -295,11 +308,11 @@ func (client *sessionRunnerResponseLanguageModelClient) translateCandidate(
 	original agentruntime.ModelResponse,
 ) (agentruntime.ModelResponse, error) {
 	if client == nil || client.delegate == nil || strings.TrimSpace(original.Message.Content) == "" {
-		return agentruntime.ModelResponse{}, sessionRunnerResponseLanguageMismatch{}
+		return original, sessionRunnerResponseLanguageMismatch{}
 	}
 	encoded, err := json.Marshal(original.Message.Content)
 	if err != nil {
-		return agentruntime.ModelResponse{}, sessionRunnerResponseLanguageMismatch{}
+		return original, sessionRunnerResponseLanguageMismatch{}
 	}
 	zero := float64(0)
 	translationRequest := agentruntime.ModelRequest{
@@ -317,13 +330,14 @@ func (client *sessionRunnerResponseLanguageModelClient) translateCandidate(
 	if ctx.Err() != nil {
 		return agentruntime.ModelResponse{}, ctx.Err()
 	}
+	original.Usage = addModelUsage(original.Usage, translated.Usage)
 	if err != nil {
 		if client.audit != nil {
 			client.audit(map[string]any{"decision": "language_localization_failed", "failure_code": "provider_error", "input_bytes": len(original.Message.Content)})
 		}
 		// A provider/transport failure is not evidence of invalid language.
 		// Keep its identity for cancellation and the existing recovery policy.
-		return agentruntime.ModelResponse{}, fmt.Errorf("response presentation conversion: %w", err)
+		return original, fmt.Errorf("response presentation conversion: %w", err)
 	}
 	han, _, _ := sessionRunnerLanguageProfile(translated.Message.Content)
 	validationCode := ""
@@ -345,17 +359,15 @@ func (client *sessionRunnerResponseLanguageModelClient) translateCandidate(
 		if len(original.Message.ToolCalls) == 0 {
 			template := newResponseLanguageTemplate(original.Message.Content)
 			if len(template.literals) > 0 {
-				original.Usage = addModelUsage(original.Usage, translated.Usage)
 				return client.translateBoundPresentation(ctx, translationRequest, original, template)
 			}
 		}
-		return agentruntime.ModelResponse{}, sessionRunnerResponseLanguageMismatch{ValidationCode: validationCode}
+		return original, sessionRunnerResponseLanguageMismatch{ValidationCode: validationCode}
 	}
 	client.auditConversion(map[string]any{"decision": "language_localized", "input_bytes": len(original.Message.Content), "output_bytes": len(translated.Message.Content), "target_language": "zh"}, original.Message.Content, translated.Message.Content)
 	// Localization is not another agent turn. Preserve the original identity,
 	// stop reason, tool IDs and exact executable arguments.
 	original.Message.Content = translated.Message.Content
-	original.Usage = addModelUsage(original.Usage, translated.Usage)
 	return original, nil
 }
 

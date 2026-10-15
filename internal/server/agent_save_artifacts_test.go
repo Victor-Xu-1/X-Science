@@ -1107,8 +1107,8 @@ func TestAgentSaveArtifactsRejectsHeaderOnlySMILESWithoutCanonicalWrites(t *test
 	assertAgentSaveArtifactsNoCanonicalWrites(t, fixture)
 }
 
-func TestAgentSaveArtifactsFailsClosedWhenScientificValidatorIsUnavailable(t *testing.T) {
-	fixture := newAgentSaveArtifactsFixture(t)
+func TestAgentSaveArtifactsFailsClosedWhenScientificValidatorContractIsInvalid(t *testing.T) {
+	fixture := newAgentSaveArtifactsFixtureWithKernelManager(t, invalidScientificValidatorManager(t))
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/ethanol.sdf", validServerEthanolSDF)
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-unavailable-sdf", 1, write)
 	input := map[string]any{

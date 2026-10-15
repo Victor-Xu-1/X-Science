@@ -37,6 +37,7 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 		if sessionRunnerRequiresChinese(client.language) && sessionRunnerClearlyEnglishProgress(text) {
 			candidate := agentruntime.ModelResponse{Message: agentruntime.Message{Content: text, ToolCalls: response.Message.ToolCalls}}
 			translated, err := client.localizeOrKeepToolCall(ctx, request, candidate)
+			response.Usage = addModelUsage(response.Usage, translated.Usage)
 			if err != nil {
 				if ctx.Err() != nil {
 					return response, false, ctx.Err()
@@ -50,7 +51,6 @@ func (client *sessionRunnerResponseLanguageModelClient) localizeProgressBlocks(c
 				text = ""
 			} else {
 				text = translated.Message.Content
-				response.Usage = addModelUsage(response.Usage, translated.Usage)
 			}
 		}
 		localizedText.WriteString(text)

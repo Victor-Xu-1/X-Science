@@ -204,7 +204,16 @@ func (s *Server) sessionRunnerArtifactCommitReferences(
 			ArtifactID: artifactID, VersionID: versionID, Relation: transcriptstore.ArtifactRelationProduced,
 		})
 	}
-	for _, ref := range snapshot.References {
+	stored, err := s.sessionRunnerArtifactReferencesFromSnapshot(snapshot.References)
+	if err != nil {
+		return nil, err
+	}
+	return latestSessionRunnerArtifactReferences(append(result, stored...)), nil
+}
+
+func (s *Server) sessionRunnerArtifactReferencesFromSnapshot(refs []transcriptstore.ArtifactReference) ([]transcriptstore.ArtifactReferenceInput, error) {
+	result := make([]transcriptstore.ArtifactReferenceInput, 0, len(refs))
+	for _, ref := range refs {
 		artifactID := strings.TrimSpace(ref.ArtifactID)
 		internal, err := s.sessionRunnerInternalArtifact(artifactID)
 		if err != nil {
@@ -246,9 +255,13 @@ func (s *Server) sessionRunnerActiveArtifactCommitReferences(
 	if err != nil {
 		return nil, err
 	}
-	currentVersions := make(map[string]struct{}, len(currentRound.References))
+	return s.sessionRunnerArtifactReferencesForRound(run, commits, content, currentRound.References)
+}
+
+func (s *Server) sessionRunnerArtifactReferencesForRound(run *sessionRunnerChatRun, commits []transcriptstore.ArtifactReferenceInput, content string, round []transcriptstore.ArtifactReference) ([]transcriptstore.ArtifactReferenceInput, error) {
+	currentVersions := make(map[string]struct{}, len(round))
 	hasCurrentProduced := false
-	for _, ref := range currentRound.References {
+	for _, ref := range round {
 		versionID := strings.TrimSpace(ref.VersionID)
 		if versionID == "" {
 			continue

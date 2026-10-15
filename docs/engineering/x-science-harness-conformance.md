@@ -146,6 +146,14 @@ batches and generic input/output fallbacks do not define the public layout.
   loops.
 - REVIEWER and BOOKMARKER are fixed hidden jobs spawned by one completion
   checkpoint authority.
+  The checkpoint owns BOOKMARKER's child context: when review ends it closes
+  submission acceptance, cancels unfinished requests and joins the owned job.
+  Validated submissions are acknowledged only after the existing idempotent
+  annotation writes succeed; checkpoint closure does not discard accepted
+  annotations or waive protocol, persistence and live-claim failures.
+  The live-claim check precedes the existing annotation write, not an atomic
+  runner/input-revision transaction; canonical bookmark anchoring remains a
+  separate annotation-authority boundary.
 
 ## Discovery and MCP
 
@@ -311,16 +319,16 @@ eligible through the existing dispatcher without rewriting old checkpoints;
 user-decision, external-blocker and terminal/cancellation boundaries remain.
 Reader versions must understand the cause/condition contracts before resuming
 their checkpoints; rollback must preserve all original events.
-Response-presentation validation uses this same correction authority. A failed
-inline language conversion distinguishes upstream failures from empty output,
-wrong language, changed protected literals and unexpected tool proposals.
-Provider errors retain their identity; cancellation cannot release an original
-tool call. A validated original action is never replaced by a translator action.
+Response-presentation diagnostics distinguish auxiliary provider failures from
+empty conversion output, wrong language, changed protected literals and
+unexpected tool proposals. Original action validation remains independent;
+cancellation cannot release an original tool call, and a translator action
+never replaces a validated original action.
 Optional progress blocks keep their protocol bounds but are not execution
 prerequisites. Malformed native blocks or embedded envelopes are drained
 without publication; a complete valid action proposal still reaches ordinary
 schema, permission and admission checks. Metadata diagnostics record the
-discard without exposing private reasoning. Cancellation, transport failures,
+discard without exposing private reasoning. Cancellation, primary transport failures,
 total response limits and downstream publication errors cannot be discarded
 as presentation errors. This applies to streaming/nonstreaming and every
 response language; no correction budget is spent on optional narration.
@@ -336,11 +344,23 @@ that rejects a candidate containing protected literals, a single different
 route binds those literals to host-owned slots, validates each slot exactly
 once and restores original bytes. The primary action is never regenerated;
 invented or duplicated protected literals also fail validation. Both
-conversion costs count and presentation calls do not request hidden reasoning.
-An unusable final candidate remains distinct from optional progress. It
-preserves completed receipts through the existing typed correction/backoff
-authority; persistent inability to produce a valid final answer remains an
-explicit correctness blocker, not an endless retry or false completion.
+conversion costs count, including measured usage from rejected conversions.
+Both routes use the auxiliary request scope: neither replaces the main-agent
+context snapshot or its request-budget state. Presentation calls do not request
+hidden reasoning. A failed secondary conversion cannot discard a usable,
+nonempty primary final or restart completed tools. Instead, the original text,
+numbers, links and file identities are preserved with one localized notice and
+a payload-free diagnostic identifying the failure category. Successful
+preferred-language conversion remains unchanged; fallback adds no retries.
+If primary bytes were already published before a language switch, only the
+notice suffix is emitted, never a replacement or replay of that prefix.
+An unusable or empty primary final remains distinct from failed conversion.
+Primary provider failures, parent cancellation, downstream emission and
+persistence failures, and actual action/schema/security violations keep their
+existing authority. Their saved receipts and typed correction/backoff paths
+are not declared complete by a presentation notice. Historical language
+checkpoints without a preserved primary answer retain their existing recovery
+semantics; no old event is rewritten or missing answer fabricated.
 Terminal settlement chooses a safe machine reason before localizing public
 detail. The existing terminal event carries that reason atomically; frame
 details, persisted message history and live notifications project the same
@@ -738,26 +758,25 @@ tools are absent from new model snapshots.
     preferences only; they are not copied into a fixed per-conversation
     selection that would inject the entire enabled catalog before the first
     task.
-23. Completion evidence follows the canonical task contract rather than a
-    universal scientific gate. When the user explicitly limits both execution
-    and the final response to named tool operations, only successful receipts
-    for those exact operations can complete the task; a failed receipt or any
-    unrequested tool keeps the contract unsatisfied. Merely using
-    `search_skills` or `skill` inside a substantive scientific workflow never
-    weakens its authoritative-source, governed-compute, artifact, or delivery
-    requirements. When the user explicitly requires a read-back or re-read of
-    a concrete output filename, completion requires a successful `read_file`
-    receipt after that file's latest successful edit or save; an earlier,
-    unrelated, failed or non-executing read cannot satisfy the obligation.
-    If the user explicitly asks the final answer to report the first failure
-    code, that answer must include a bounded machine code from the first failed
-    durable tool receipt; later success does not erase or summarize it away.
-    The Web history projection preserves only those explicitly requested codes
-    that match the task-bound durable failure receipt; unrelated runtime
-    identifiers remain behind the normal public-message boundary.
-    Tool failures inside such workflows remain local evidence:
-    the model observes the concrete failure, makes a materially different
-    repair, and continues the same logical task from its durable checkpoint.
+23. Free-text mentions of tools, reruns, file read-backs or failure-code reports
+    are observations, not typed execution intent. Missing matching evidence
+    adds one neutral disclosure to the usable final answer before its review
+    and publication identity is bound; it cannot require another tool call,
+    create a corrective loop, or certify that an action was required or done.
+    Failed, rejected and non-executing receipts stay unchanged. Existing
+    failure-code presentation uses only codes backed by the current task's
+    durable failed receipt; text cannot manufacture a receipt or stable code.
+    Historical semantic Review conditions retire their forced-action
+    projection through ordinary continuation and current machine checks, not
+    a reason-based finish or an invented answer from checkpoint text. A REPL
+    cell is not required to contain an MCP invocation merely because old
+    review prose mentioned one. Built-in attachment-reader availability is an
+    efficiency observation and cannot block another valid reader or package
+    operation. Real tool schemas, permissions, active execution, input/lease
+    ownership, approved plans, idempotent effects and immutable artifact
+    integrity remain separate authorities. Earlier receipts cannot prove a
+    new computation, and delivering available results does not attest that
+    every unverified task expectation was fulfilled.
 24. Plan progression preserves model action ownership. A request to start a
     later step may advance only plan control; its notes, observations, source
     references and follow-ups cannot be rebound to the currently active step.

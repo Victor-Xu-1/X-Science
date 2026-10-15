@@ -268,6 +268,7 @@ func (s *Server) executeAgentSaveArtifacts(
 			continue
 		}
 		extension := strings.ToLower(filepath.Ext(relativePath))
+		scientificUnavailable := ""
 		if extension == ".sdf" || extension == ".smi" || extension == ".smiles" {
 			var validationErr error
 			if extension == ".sdf" {
@@ -276,10 +277,14 @@ func (s *Server) executeAgentSaveArtifacts(
 				_, validationErr = s.validateSMILESArtifact(ctx, snapshot)
 			}
 			if validationErr != nil {
-				_ = snapshot.Close()
-				_ = os.Remove(snapshotPath)
-				failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
-				continue
+				if reason, optional := optionalScientificValidationReason(validationErr); optional {
+					scientificUnavailable = reason
+				} else {
+					_ = snapshot.Close()
+					_ = os.Remove(snapshotPath)
+					failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
+					continue
+				}
 			}
 			if _, seekErr := snapshot.Seek(0, io.SeekStart); seekErr != nil {
 				_ = snapshot.Close()
@@ -428,6 +433,9 @@ func (s *Server) executeAgentSaveArtifacts(
 				request.Checkpoints[relativePath], stream.RootFrameID,
 				request.Environment, retention, intermediate, true,
 			))
+			if scientificUnavailable != "" {
+				warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
+			}
 			continue
 		}
 
@@ -480,6 +488,9 @@ func (s *Server) executeAgentSaveArtifacts(
 			artifactResult["retention_error"] = retentionError
 		}
 		artifacts = append(artifacts, artifactResult)
+		if scientificUnavailable != "" {
+			warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
+		}
 	}
 	if warning := s.agentSavedArtifactBatchQualityAdvisory(ctx, stream.ProjectID, artifacts); warning != nil {
 		warnings = append(warnings, warning)

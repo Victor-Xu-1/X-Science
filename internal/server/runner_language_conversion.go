@@ -12,18 +12,19 @@ import (
 func (client *sessionRunnerResponseLanguageModelClient) translateBoundPresentation(ctx context.Context, request agentruntime.ModelRequest, original agentruntime.ModelResponse, template responseLanguageTemplate) (agentruntime.ModelResponse, error) {
 	encoded, err := json.Marshal(template.text)
 	if err != nil {
-		return agentruntime.ModelResponse{}, err
+		return original, err
 	}
 	request.Messages = []agentruntime.Message{
 		{Role: "system", Content: simplifiedChineseTranslationInstruction + " 所有 ⟪literal-…⟫ 都是宿主管理的不可变数据槽；每个标记必须逐字保留一次，不得展开、遗漏或复制。"},
 		{Role: "user", Content: "请仅翻译下面 JSON 字符串中的叙述，保留数据槽标记：\n" + string(encoded)},
 	}
-	translated, err := client.delegate.Complete(ctx, request)
+	translated, err := client.delegate.Complete(withAuxiliaryContextUsage(ctx), request)
 	if ctx.Err() != nil {
 		return agentruntime.ModelResponse{}, ctx.Err()
 	}
+	original.Usage = addModelUsage(original.Usage, translated.Usage)
 	if err != nil {
-		return agentruntime.ModelResponse{}, fmt.Errorf("bound response presentation conversion: %w", err)
+		return original, fmt.Errorf("bound response presentation conversion: %w", err)
 	}
 	content, intact := template.restore(translated.Message.Content)
 	han, _, _ := sessionRunnerLanguageProfile(content)
@@ -42,11 +43,10 @@ func (client *sessionRunnerResponseLanguageModelClient) translateBoundPresentati
 	}
 	if code != "" {
 		client.auditConversion(map[string]any{"decision": "language_bound_conversion_failed", "failure_code": code, "literal_count": len(template.literals)}, original.Message.Content, content)
-		return agentruntime.ModelResponse{}, sessionRunnerResponseLanguageMismatch{ValidationCode: code}
+		return original, sessionRunnerResponseLanguageMismatch{ValidationCode: code}
 	}
 	client.auditConversion(map[string]any{"decision": "language_bound_conversion_repaired", "literal_count": len(template.literals)}, original.Message.Content, content)
 	original.Message.Content = content
-	original.Usage = addModelUsage(original.Usage, translated.Usage)
 	return original, nil
 }
 

@@ -1127,33 +1127,3 @@ func (m *Manager) managedPythonActivePrefix() (string, managedPythonRuntime, err
 	}
 	return resolved, runtime, nil
 }
-
-func (m *Manager) ScientificArtifactValidator() (python, validator, generation, rdkitVersion string, err error) {
-	if m == nil {
-		return "", "", "", "", errors.New("kernel manager is not configured")
-	}
-	runtime, err := loadManagedPythonRuntime(m.config)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	active := filepath.Join(m.config.CondaEnvsPath, runtime.entry.Name)
-	if err := m.verifyManagedPythonGeneration(runtime, active); err != nil {
-		return "", "", "", "", err
-	}
-	prefix, err := resolveManagedRuntimeGeneration(active)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	validator = strings.TrimSpace(m.config.SDFValidatorPath)
-	if validator == "" || !filepath.IsAbs(validator) {
-		return "", "", "", "", errors.New("scientific artifact validator is not configured")
-	}
-	if info, err := os.Stat(validator); err != nil || !info.Mode().IsRegular() {
-		return "", "", "", "", errors.New("scientific artifact validator is unavailable")
-	}
-	python, err = managedPythonExecutableAtPrefix(prefix)
-	if err != nil {
-		return "", "", "", "", err
-	}
-	return python, validator, runtime.activationGeneration, runtime.rdkitVersion, nil
-}

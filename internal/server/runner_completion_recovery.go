@@ -16,18 +16,20 @@ import (
 // contains no provider replay state: completion recovery may validate and
 // finish this exact candidate, but it must never generate a replacement.
 type sessionRunnerCompletionRecoveryCandidate struct {
-	Content       string
-	Detail        string
-	ReasonCode    string
-	SourceAttempt int64
-	Segment       transcriptstore.AssistantSegmentV1
-	SourceRun     *sessionRunnerChatRun
+	Content                   string
+	Detail                    string
+	ReasonCode                string
+	SourceAttempt             int64
+	Segment                   transcriptstore.AssistantSegmentV1
+	SourceRun                 *sessionRunnerChatRun
+	ScientificSelectionSource *transcriptstore.SealedFailedArtifactInput
 }
 
 type sessionRunnerCompletionRecoveryDelta struct {
 	index          int
 	text           string
 	segmentOrdinal int64
+	publicationSeq int64
 }
 
 // loadTranscriptCompletionRecoveryCandidate recognizes only a complete,
@@ -82,6 +84,10 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	deltas := make([]sessionRunnerCompletionRecoveryDelta, 0)
 	resetSeen := false
 	var userEntries []eventjournal.Entry
+	var conditions transcriptstore.RunnerCorrectionAssembler
+	var priorReferenceCondition *transcriptstore.RunnerCorrectionCondition
+	var priorReferenceEvent transcriptstore.Event
+	workAfterReference := false
 	err = s.visitTranscriptWebProjectionSnapshotRaw(
 		ctx, authority.Stream, authority.Stream.OwnerID, snapshot, true,
 		func(projected transcriptstore.ProjectedEvent) error {
@@ -108,6 +114,32 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 				return err
 			}
 			switch projected.Event.Type {
+			case "runner_checkpoint":
+				if chunk, err := s.observeNamespaceCorrectionChunk(ctx, stream.OwnerID, projected.Event, payload, &conditions); err != nil {
+					return err
+				} else if chunk {
+					return nil
+				}
+				cause, present, err := s.parseRunnerNamespaceCause(ctx, stream.OwnerID, projected.Event, payload)
+				if err != nil {
+					return err
+				}
+				if present {
+					cause, err = conditions.Resolve(cause)
+					if err != nil {
+						return err
+					}
+					if cause.Condition != nil && cause.Condition.Reference != nil {
+						priorReferenceCondition = cause.Condition
+						priorReferenceEvent = projected.Event
+						workAfterReference = false
+					} else if priorReferenceCondition != nil {
+						workAfterReference = true
+					}
+				}
+				if priorReferenceCondition != nil && (payload["modelToolCalls"] != nil || strings.TrimSpace(stringValue(payload["toolName"])) != "" || strings.TrimSpace(stringValue(payload["toolPhase"])) != "") {
+					workAfterReference = true
+				}
 			case "content_delta":
 				// Localized reasoning/activity text is UI state, not a provider-
 				// authored completion candidate. Every such projection uses the
@@ -137,8 +169,10 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 					return nil
 				}
 				deltas = append(deltas, sessionRunnerCompletionRecoveryDelta{
-					index: index, text: text, segmentOrdinal: segment.Ordinal,
+					index: index, text: text, segmentOrdinal: segment.Ordinal, publicationSeq: projected.Event.PublicationSeq,
 				})
+			case "assistant_message":
+				workAfterReference = true
 			case "content_reset":
 				resetSeen = true
 			case "runner_finished":
@@ -175,6 +209,7 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	}}
 	sourceRun := &sessionRunnerChatRun{
 		SessionID: stream.SessionID, Attempt: int(previous.Attempt), Transcript: sourceAuthority,
+		CorrectionCondition: priorReferenceCondition,
 	}
 	if stream.Kind == transcriptstore.StreamKindFrameRef {
 		// Recovery only reads canonical intent. Legacy repair belongs to the
@@ -217,10 +252,27 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 		latestSnapshot != snapshot {
 		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
 	}
-	return sessionRunnerCompletionRecoveryCandidate{
+	candidate := sessionRunnerCompletionRecoveryCandidate{
 		Content: content, Detail: detail, ReasonCode: reasonCode, SourceAttempt: previous.Attempt,
 		Segment: segment, SourceRun: sourceRun,
-	}, true, nil
+	}
+	if priorReferenceCondition != nil && len(priorReferenceCondition.Reference.InvalidScientificArtifacts) > 0 && !workAfterReference {
+		lastDelta := int64(0)
+		for _, delta := range deltas {
+			if delta.segmentOrdinal == segment.Ordinal && delta.publicationSeq > lastDelta {
+				lastDelta = delta.publicationSeq
+			}
+		}
+		if lastDelta > 0 && lastDelta < priorReferenceEvent.PublicationSeq {
+			candidate.ScientificSelectionSource = &transcriptstore.SealedFailedArtifactInput{
+				Projection: snapshot, OwnerID: stream.OwnerID, Epoch: stream.Epoch,
+				FailedAttempt: previous.Attempt, InputRevision: previous.ClaimedInputRevision,
+				CorrectionEventID: priorReferenceEvent.EventID, TerminalEventID: previous.FinishedEventID,
+				CorrectionCondition: priorReferenceCondition,
+			}
+		}
+	}
+	return candidate, true, nil
 }
 
 // contiguousCompletionRecoveryDeltaText verifies the terminal segment is a
@@ -288,7 +340,11 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	}
 	unresolved := len(unresolvedReferences)
 	malformedArtifactReferences := sessionRunnerArtifactReferenceSyntaxFailures(candidate.Content)
-	scientificFailures, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, candidate.Content)
+	scientificValidation, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, candidate.Content)
+	if err != nil {
+		return nil, err
+	}
+	scientificHistory, err := s.reconcileScientificArtifactHistory(ctx, candidate.SourceRun, &scientificValidation, &candidate)
 	if err != nil {
 		return nil, err
 	}
@@ -335,13 +391,13 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	sessionRunnerObserveUnsupportedCitationAdvisories(unsupported)
 	fatalCrossArtifactFailures := sessionRunnerFatalCrossArtifactFailures(candidate.SourceRun, crossArtifactFailures)
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
-		len(scientificFailures) == 0 && len(fatalCrossArtifactFailures) == 0 && len(researchValidation.Failures) == 0 && len(missingLocalArtifacts) == 0 &&
+		len(scientificValidation.Failures) == 0 && len(fatalCrossArtifactFailures) == 0 && len(researchValidation.Failures) == 0 && len(missingLocalArtifacts) == 0 &&
 		len(missingRequiredDeliverables) == 0 {
 		visual, err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
 		if err != nil {
 			return nil, err
 		}
-		return []*sessionRunnerCompletionAdvisory{visual,
+		return []*sessionRunnerCompletionAdvisory{visual, scientificValidation.advisory(), scientificHistory,
 			sessionRunnerCompletionQualityAdvisory(candidate.SourceRun, crossArtifactFailures, unsupported)}, nil
 	}
 	return nil, &sessionRunnerReferenceIntegrityError{
@@ -350,7 +406,7 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 		MalformedArtifactReferences:  malformedArtifactReferences,
 		UnsupportedCitations:         nil,
 		InvalidReferenceArtifacts:    append([]string(nil), artifactCandidates.contractFailures...),
-		InvalidScientificArtifacts:   scientificFailures,
+		InvalidScientificArtifacts:   scientificValidation.Failures,
 		CrossArtifactFailures:        fatalCrossArtifactFailures,
 		InvalidResearchArtifacts:     researchValidation.Failures,
 		MissingLocalArtifacts:        missingLocalArtifacts,
@@ -394,12 +450,10 @@ func (s *Server) recoverTranscriptCompletionOnly(
 		}
 		return "completed", "runner completion validation recovered immutable published candidate", candidate.Segment, true, nil
 	}
-	// Reviewer verdicts are intentionally not replayed: an independent review
-	// can invoke a provider and read-only tools, both forbidden on this recovery
-	// path. An explicit capsule restart must nevertheless enter the ordinary
-	// checkpoint correction path so the model can inspect and repair the rejected
-	// artifact. Returning "not handled" here does exactly that; unattended review
-	// auto-resume remains disabled, so a repeated rejection cannot form a loop.
+	// Semantic reviews enter ordinary continuation under the current advisory
+	// policy, not this completion-only path. Their summary is not a preserved
+	// answer or proof of current artifact identity; do not synthesize completion
+	// from it or replay a reviewer/provider here.
 	return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
 }
 

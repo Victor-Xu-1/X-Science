@@ -14,29 +14,18 @@ type sessionRunnerExplicitToolRequirement struct {
 	MinResults int
 }
 
-// sessionRunnerExplicitToolContract is a typed completion contract for tasks
-// whose user-visible objective is to exercise named tools. ReceiptOnly is set
-// only when the user scopes both execution and the final answer to those named
-// operations. It never converts a scientific deliverable into a tool receipt.
+// sessionRunnerExplicitToolContract contains heuristic observations from task
+// prose, not typed execution intent. Mentions can be explanatory or negative;
+// comparing them with receipts can disclose uncertainty but cannot require a
+// call, authorize execution, reject delivery, or certify task fulfilment.
 type sessionRunnerExplicitToolContract struct {
 	Requirements           []sessionRunnerExplicitToolRequirement
 	PostWriteReads         []string
 	ReportFirstFailureCode bool
 	RequireMCP             bool
-	ReceiptOnly            bool
 }
 
-var (
-	sessionRunnerExplicitSkillTokenPattern = regexp.MustCompile(`(?i)(?:^|[^a-z0-9_])skills?(?:$|[^a-z0-9_])`)
-	sessionRunnerToolOnlyExecutionPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)(?:只|仅)执行[^。！？\n]{0,240}(?:search_skills|web_search|manage_packages|(?:^|[^a-z0-9_])skills?(?:$|[^a-z0-9_])|mcp)`),
-		regexp.MustCompile(`(?i)\b(?:only|solely)\s+(?:execute|perform|run|call|use)[^.!?\n]{0,240}(?:search_skills|web_search|manage_packages|\bskills?\b|\bmcp\b)`),
-	}
-	sessionRunnerToolOnlyFinalPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`(?i)(?:最后|最终)[^。！？\n]{0,160}(?:只|仅)[^。！？\n]{0,160}(?:报告|说明|列出|返回)[^。！？\n]{0,160}(?:工具|search_skills|web_search|manage_packages|skill|mcp)`),
-		regexp.MustCompile(`(?i)\b(?:finally|final(?:\s+answer)?)\b[^.!?\n]{0,160}\bonly\b[^.!?\n]{0,160}\b(?:report|state|list|return)\b[^.!?\n]{0,160}(?:\btools?\b|search_skills|web_search|manage_packages|\bskills?\b|\bmcp\b)`),
-	}
-)
+var sessionRunnerExplicitSkillTokenPattern = regexp.MustCompile(`(?i)(?:^|[^a-z0-9_])skills?(?:$|[^a-z0-9_])`)
 
 func buildSessionRunnerExplicitToolContract(taskIntent string) sessionRunnerExplicitToolContract {
 	normalized := strings.ToLower(strings.TrimSpace(taskIntent))
@@ -79,22 +68,7 @@ func buildSessionRunnerExplicitToolContract(taskIntent string) sessionRunnerExpl
 		(strings.Contains(normalized, "真实") || strings.Contains(normalized, "actual") || strings.Contains(normalized, "method") || strings.Contains(normalized, "方法"))
 	contract.PostWriteReads = sessionRunnerExplicitPostWriteReadTargets(taskIntent)
 	contract.ReportFirstFailureCode = sessionRunnerRequiresFirstFailureCodeReport(taskIntent)
-	contract.ReceiptOnly = len(contract.Requirements) > 0 &&
-		matchesSessionRunnerContractPattern(taskIntent, sessionRunnerToolOnlyExecutionPatterns) &&
-		matchesSessionRunnerContractPattern(taskIntent, sessionRunnerToolOnlyFinalPatterns) &&
-		len(sessionRunnerExplicitDeliverableNames(taskIntent)) == 0 &&
-		len(sessionRunnerExplicitDeliverableFormats(taskIntent)) == 0 &&
-		!sessionRunnerRequiresDurableArtifact(taskIntent)
 	return contract
-}
-
-func matchesSessionRunnerContractPattern(value string, patterns []*regexp.Regexp) bool {
-	for _, pattern := range patterns {
-		if pattern.MatchString(value) {
-			return true
-		}
-	}
-	return false
 }
 
 func (contract sessionRunnerExplicitToolContract) gaps(messages []agentruntime.Message) []string {
@@ -106,11 +80,11 @@ func (contract sessionRunnerExplicitToolContract) gaps(messages []agentruntime.M
 			continue
 		}
 		if requirement.MinResults == 1 {
-			gaps = append(gaps, fmt.Sprintf("the explicitly requested %s action has no successful tool result", requirement.Name))
+			gaps = append(gaps, fmt.Sprintf("task text mentions %s, but no successful tool result was observed", requirement.Name))
 			continue
 		}
 		gaps = append(gaps, fmt.Sprintf(
-			"the task requires at least %d successful %s results, but the durable tool index contains %d",
+			"task text suggests %d %s results, but the durable successful tool index contains %d",
 			requirement.MinResults, requirement.Name, actual,
 		))
 	}
@@ -123,7 +97,7 @@ func (contract sessionRunnerExplicitToolContract) gaps(messages []agentruntime.M
 			}
 		}
 		if !hasMCP {
-			gaps = append(gaps, "the explicitly requested real MCP method execution has no successful MCP tool result")
+			gaps = append(gaps, "task text mentions live MCP execution, but no successful MCP tool result was observed")
 		}
 	}
 	gaps = append(gaps, sessionRunnerExplicitPostWriteReadGaps(contract.PostWriteReads, messages)...)
@@ -134,36 +108,6 @@ func (contract sessionRunnerExplicitToolContract) gaps(messages []agentruntime.M
 	// and owns that judgment. Do not reinterpret examples in free-form user text
 	// as hard requirements or substitute connector count for domain count here.
 	return gaps
-}
-
-func (contract sessionRunnerExplicitToolContract) receiptOnlySatisfied(messages []agentruntime.Message) bool {
-	if !contract.ReceiptOnly || len(contract.gaps(messages)) != 0 {
-		return false
-	}
-	allowed := make(map[string]struct{}, len(contract.Requirements))
-	for _, requirement := range contract.Requirements {
-		allowed[requirement.Name] = struct{}{}
-	}
-	for name, count := range sessionReviewerToolExecutionIndex(messages) {
-		if count.Results == 0 {
-			continue
-		}
-		normalized := strings.ToLower(strings.TrimSpace(name))
-		if _, ok := allowed[normalized]; ok {
-			continue
-		}
-		if contract.RequireMCP && strings.HasPrefix(normalized, "mcp__") {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
-// sessionRunnerExplicitToolContractGaps enforces only tool actions the user
-// named explicitly. It does not prescribe an order or infer domain workflows.
-func sessionRunnerExplicitToolContractGaps(taskIntent string, messages []agentruntime.Message) []string {
-	return buildSessionRunnerExplicitToolContract(taskIntent).gaps(messages)
 }
 
 func sessionRunnerSuccessfulToolExecutionIndex(messages []agentruntime.Message) map[string]int {

@@ -2960,13 +2960,13 @@ func TestSessionRunnerScientificArtifactGateRejectsBadFinalWithoutAutomaticRepla
 	server := fixture.server
 	if failures, err := server.validateSessionRunnerScientificArtifacts(
 		context.Background(), "project-save", commits, "No artifact link in this candidate.",
-	); err != nil || len(failures) != 0 {
+	); err != nil || len(failures.Failures) != 0 || len(failures.Unavailable) != 0 {
 		t.Fatalf("latest corrected SDF failures=%#v err=%v", failures, err)
 	}
 	if failures, err := server.validateSessionRunnerScientificArtifacts(
 		context.Background(), "project-save", commits,
 		"Explicit superseded version: {{artifact:"+badVersion.ID+"}}; ignored consumed version: "+unreferencedBadVersion.ID,
-	); err != nil || len(failures) != 1 || failures[0] != "invalid_sdf_records" {
+	); err != nil || len(failures.Failures) != 1 || failures.Failures[0] != "invalid_sdf_records" || len(failures.Unavailable) != 0 {
 		t.Fatalf("explicit bad SDF failures=%#v err=%v", failures, err)
 	}
 
@@ -3095,7 +3095,7 @@ func TestSessionRunnerCompletionExcludesInternalWorkingDataCommits(t *testing.T)
 	}
 }
 
-func TestSessionRunnerScientificArtifactGateFailsClosedWhenValidatorIsUnavailable(t *testing.T) {
+func TestSessionRunnerScientificArtifactGateFailsClosedWhenValidatorContractIsInvalid(t *testing.T) {
 	store := openRunnerArtifactCompletionStore(t)
 	artifact, version, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "artifact-unavailable-sdf", ProjectID: "project-a", Name: "molecules.sdf",
@@ -3104,14 +3104,14 @@ func TestSessionRunnerScientificArtifactGateFailsClosedWhenValidatorIsUnavailabl
 	if err != nil {
 		t.Fatal(err)
 	}
-	failures, err := (&Server{workspaceStore: store}).validateSessionRunnerScientificArtifacts(
+	failures, err := (&Server{workspaceStore: store, kernelManager: invalidScientificValidatorManager(t)}).validateSessionRunnerScientificArtifacts(
 		context.Background(), "project-a",
 		[]transcriptstore.ArtifactReferenceInput{{
 			ArtifactID: artifact.ID, VersionID: version.ID, Relation: transcriptstore.ArtifactRelationProduced,
 		}},
 		"[molecules.sdf]({{artifact:"+version.ID+"}})",
 	)
-	if failures != nil || !errors.Is(err, errScientificArtifactValidationUnavailable) {
+	if len(failures.Failures) != 0 || len(failures.Unavailable) != 0 || !errors.Is(err, errScientificArtifactValidationUnavailable) {
 		t.Fatalf("unavailable validator failures=%#v err=%v", failures, err)
 	}
 }

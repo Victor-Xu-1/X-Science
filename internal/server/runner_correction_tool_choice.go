@@ -113,7 +113,7 @@ func sessionRunnerCorrectionReadyForRevalidation(
 		return false
 	}
 	switch strings.TrimSpace(run.CorrectionReason) {
-	case "artifact_reference_correction_required", "completion_review_correction_required",
+	case "artifact_reference_correction_required",
 		sessionRunnerVisualArtifactValidationReasonCode:
 	default:
 		return false

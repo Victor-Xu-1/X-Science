@@ -105,13 +105,24 @@ JSON Schema、审批和任务归属检查决定。
 不是执行是否发生的依据；非终态、未执行的前置拒绝和失败回执不能冒充成功。
 计划状态反馈保留 `execution_ref`、`execution_binding` 和 `execution_continuation`，
 模型可以复用匹配的已有执行，不得因为反馈压缩丢失标识而再次执行。
-重新执行请求按相邻动作识别否定语义：明确“不重新计算”不产生新计算义务；
-同一消息中另有明确重新分析的要求时，该要求仍须有当前请求的成功执行证据。
+任务自由文本中出现工具名、重新分析、回读文件或报告失败代码，只产生可观察的线索，
+不是受校验的操作授权或强制执行契约。线索与已有记录不一致时，最终答复保留真实原文，
+在同一发布内容中附加一次中性未核实说明；不因此强迫调用、反复纠正或伪造成功回执。
+旧语义审阅条件经普通续接重走当前机器检查，不直接结束任务、不把旧说明还原成答案。
+内置附件读取器只提供可用性建议，不能因任务文字是否提到包管理器而改变操作准入。
+实际工具协议、权限、当前输入/租约、活动执行、已批准计划和不可变产物检查仍保持独立；
+只有真实成功的当前请求回执才可说明发生了新计算，历史结果不能冒充重新执行。
 
 对应回归（含真实 SQLite、终态协议结算和可控 HTTP 模型边界）：
 
 ```sh
 go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPlanPolicy|TestRecoveredAutonomousPlanCorrection|TestRecoveredToolContract|TestFreshExecution|TestAutonomousCompletionPublishesFinal|TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt|TestExecutionPlanStepRequiresScoped|TestExecutionReceiptAmbiguityAndPlanFence' -count=1
+```
+
+文本线索与真实执行权威的最小专项（不运行科研计算）：
+
+```sh
+go test ./internal/server -run '^(TestSemanticTaskWordingDoesNotBlockFinalAnswer|TestAttachmentReaderPreferenceDoesNotChangeOperationAdmission|TestSemanticDisclosureKeepsReceiptAndFinalIdentityBoundaries|TestSemanticCompletionPublishesOneTruthfulAnswer|TestSemanticReviewResumeUsesCurrentChecksWithoutForcedTools|TestGatewaySemanticReviewDoesNotForceMCPExecution)$' -count=1
 ```
 
 ## Focused verification · 验证入口
@@ -179,7 +190,14 @@ go test ./internal/server -run 'TestServerClose.*BackgroundShell|TestBackgroundS
 
 最终答复的语言判断与转写使用同一不可变字面量规则。结构化标识符、代码、链接、
 文件名和数字不是英文叙述，不因缺少汉字而触发转写或新的模型轮次；普通英文句子
-仍须满足当前任务的语言要求，包括全大写句子。所有完成纠正的真实模型执行都进入原有
+仍按当前任务的语言偏好尝试忠实转写，包括全大写句子。已有可用、非空主答复时，
+后续语言转换失败、改变字面量或提出工具调用，不再丢弃原答复或重新执行任务；保留
+精确原文并附加一次本地化说明，同时记录不含原文的失败类别审计。成功转换仍正常
+交付；已有不可变字面量绑定路线最多执行一次，不因降级新增重试。已显示主答复前缀
+后发生语言变化时，只追加说明，不替换或重复播放正文。两次辅助转换均与主请求的
+上下文快照隔离，已知用量仍计入总量。空主答复、主模型失败、父请求取消及消息
+发布或保存失败不适用这种呈现降级，仍由各自原有错误边界处理。
+所有完成纠正的真实模型执行都进入原有
 无进展观察，包括没有工具调用的视觉、引用及呈现修复：同一条件、同一恢复策略持续
 无有效进展时，保存任务与检查点并进入可继续的暂停状态，不重复自动请求模型，也不
 伪造完成或丢弃已接受输出。准备日志不会重置这一判断，健康工具和新证据不受影响。
