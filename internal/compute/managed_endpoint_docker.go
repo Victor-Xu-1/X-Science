@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const managedEndpointDockerInspectProjection = `{"Id":{{json .Id}},"Config":{"Labels":{"ai.x-science.endpoint-instance":{{json (index .Config.Labels "ai.x-science.endpoint-instance")}},"ai.x-science.endpoint-user":{{json (index .Config.Labels "ai.x-science.endpoint-user")}},"ai.x-science.endpoint-approval":{{json (index .Config.Labels "ai.x-science.endpoint-approval")}}}},"State":{"Status":{{json .State.Status}},"Running":{{json .State.Running}},"Restarting":{{json .State.Restarting}}},"HostConfig":{"LogConfig":{"Type":{{json .HostConfig.LogConfig.Type}},"Config":{"max-size":{{json (index .HostConfig.LogConfig.Config "max-size")}},"max-file":{{json (index .HostConfig.LogConfig.Config "max-file")}}}},"NetworkSettings":{"Ports":{{json .NetworkSettings.Ports}}}}`
+const managedEndpointDockerInspectProjection = `{"Id":{{json .Id}},"Config":{"Labels":{"ai.x-science.endpoint-instance":{{json (index .Config.Labels "ai.x-science.endpoint-instance")}},"ai.x-science.endpoint-user":{{json (index .Config.Labels "ai.x-science.endpoint-user")}},"ai.x-science.endpoint-approval":{{json (index .Config.Labels "ai.x-science.endpoint-approval")}}}},"State":{"Status":{{json .State.Status}},"Running":{{json .State.Running}},"Restarting":{{json .State.Restarting}}},"HostConfig":{"LogConfig":{"Type":{{json .HostConfig.LogConfig.Type}},"Config":{"max-size":{{json (index .HostConfig.LogConfig.Config "max-size")}},"max-file":{{json (index .HostConfig.LogConfig.Config "max-file")}}}}},"NetworkSettings":{"Ports":{{json .NetworkSettings.Ports}}}}`
 
 type managedEndpointDocker struct{ executable string }
 
