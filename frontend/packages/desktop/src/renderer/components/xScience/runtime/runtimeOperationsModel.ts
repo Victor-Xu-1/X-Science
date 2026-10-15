@@ -20,6 +20,8 @@ export type XScienceTaskRunMetrics = {
 
 export type XScienceRuntimeSnapshot = {
   resumeTarget?: XScienceResumeTarget | null;
+  /** Existing completed history has retained input that needs explicit continuation. */
+  pendingInputRequiresContinue?: boolean;
   frameId: string;
   rootFrameId: string;
   projectId: string | null;
@@ -393,6 +395,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
   const frameId = stringValue(value.id) || stringValue(value.frame_id);
   if (!frameId) throw new Error('X-Science frame response is missing an id');
   const status = (stringValue(value.status) || 'unknown').toLowerCase();
+  const pendingInputRequiresContinue = status === 'completed' && value.runtime_pending_input_requires_continue === true;
   const output = isRecord(value.output_data) ? value.output_data : null;
   const context = isRecord(value.context_data) ? value.context_data : null;
   const originalInput = context && isRecord(context._original_input) ? context._original_input : null;
@@ -452,6 +455,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
   return {
     frameId,
     resumeTarget: normalizeXScienceResumeTarget(value.resume_target),
+    pendingInputRequiresContinue,
     rootFrameId: stringValue(value.root_frame_id) || frameId,
     projectId: nullableString(value.project_id),
     agentName: nullableString(value.agent_name),
@@ -500,7 +504,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     reviewIssueCount: nonNegativeInteger(value.runtime_review_issue_count) ?? 0,
     reviewBlockingIssueCount: nonNegativeInteger(value.runtime_review_blocking_issue_count) ?? 0,
     canCancel: PROCESSING_STATES.has(status) || STARTING_STATES.has(status) || WAITING_STATES.has(status),
-    canResume: RESUMABLE_STATES.has(status),
+    canResume: RESUMABLE_STATES.has(status) || pendingInputRequiresContinue,
     pendingInputRequests,
     taskPlan,
     planApproval,

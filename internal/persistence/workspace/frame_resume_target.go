@@ -15,6 +15,7 @@ type frameResumeTargetFrame struct {
 	RootSequence                                                 int64
 	Stream, Branch                                               string
 	Epoch, AuthorityGeneration, InputRevision, BranchGeneration  int64
+	ConsumedInputRevision                                        int64
 	Checkpoint, LegacyInput, ResumeBoundary                      string
 }
 
@@ -63,7 +64,7 @@ func frameResumeTargetTx(ctx context.Context, tx workspaceTransaction, ownerID, 
 		SELECT f.id,f.incarnation_id,p.user_id,f.project_id,COALESCE(f.parent_frame_id,''),
 			f.root_frame_id,f.agent_name,f.status,f.root_sequence,
 			COALESCE(s.stream_uid,''),COALESCE(s.epoch,0),COALESCE(a.authority_generation,0),
-			COALESCE(s.input_revision,0),COALESCE(b.active_branch_id,''),COALESCE(b.generation,0),
+			COALESCE(s.input_revision,0),COALESCE(s.consumed_input_revision,0),COALESCE(b.active_branch_id,''),COALESCE(b.generation,0),
 			COALESCE((SELECT CAST(c.event_id AS TEXT) FROM transcript_branch_events be
 				JOIN transcript_runner_checkpoints c ON c.stream_uid=be.stream_uid AND c.event_id=be.event_id
 				WHERE be.stream_uid=s.stream_uid AND be.branch_id=b.active_branch_id ORDER BY be.ordinal DESC LIMIT 1),''),
@@ -87,7 +88,7 @@ func frameResumeTargetTx(ctx context.Context, tx workspaceTransaction, ownerID, 
 		var frame frameResumeTargetFrame
 		if err := rows.Scan(&frame.ID, &frame.Incarnation, &frame.Owner, &frame.Project, &frame.Parent,
 			&frame.Root, &frame.Agent, &frame.Status, &frame.RootSequence,
-			&frame.Stream, &frame.Epoch, &frame.AuthorityGeneration, &frame.InputRevision, &frame.Branch,
+			&frame.Stream, &frame.Epoch, &frame.AuthorityGeneration, &frame.InputRevision, &frame.ConsumedInputRevision, &frame.Branch,
 			&frame.BranchGeneration, &frame.Checkpoint, &frame.LegacyInput, &frame.ResumeBoundary); err != nil {
 			_ = rows.Close()
 			return state, err

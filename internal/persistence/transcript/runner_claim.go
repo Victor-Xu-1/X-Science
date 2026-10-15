@@ -48,7 +48,10 @@ func (r *Repository) claimNextRunner(
 			LEFT JOIN frames frame ON frame.id=stream.frame_id AND frame.project_id=stream.project_id
 			WHERE stream.input_revision>stream.consumed_input_revision
 				AND ((stream.kind='frame_ref' AND frame.id IS NOT NULL
-					AND frame.status NOT IN ('completed','failed','cancelled','canceled'))
+						AND frame.status NOT IN ('completed','failed','cancelled','canceled')
+						AND EXISTS (SELECT 1 FROM transcript_frame_authority authority
+							WHERE authority.owner_id=stream.owner_id AND authority.session_id=stream.session_id
+							AND authority.active_stream_uid=stream.stream_uid AND authority.active_epoch=stream.epoch))
 					OR (? AND stream.kind='standalone' AND EXISTS (
 						SELECT 1 FROM transcript_delivery_routes route
 						WHERE route.stream_uid=stream.stream_uid AND route.destination=stream.session_id
@@ -73,12 +76,7 @@ func (r *Repository) claimNextRunner(
 							AND (
 								(
 									latest.claimed_input_revision<stream.input_revision
-									AND (
-										SELECT input.event_type FROM transcript_events input
-										WHERE input.stream_uid=stream.stream_uid
-											AND input.event_type IN ('user_message','user_input_response')
-										ORDER BY input.publication_seq DESC LIMIT 1
-									)='user_message'
+									AND `+pendingInputKindSQL("stream", "latest.claimed_input_revision", true)+`
 								)
 								OR (
 									latest.status='running' AND latest.expires_at<=?
@@ -101,12 +99,7 @@ func (r *Repository) claimNextRunner(
 										latest.claimed_input_revision=stream.input_revision
 										OR (
 											latest.claimed_input_revision<stream.input_revision
-											AND (
-												SELECT input.event_type FROM transcript_events input
-												WHERE input.stream_uid=stream.stream_uid
-													AND input.event_type IN ('user_message','user_input_response')
-												ORDER BY input.publication_seq DESC LIMIT 1
-											)='user_input_response'
+											AND `+pendingInputKindSQL("stream", "latest.claimed_input_revision", false)+`
 										)
 									)
 								)
@@ -128,13 +121,8 @@ func (r *Repository) claimNextRunner(
 									WHERE candidate.stream_uid=stream.stream_uid
 								)
 								AND latest.claimed_input_revision<stream.input_revision
+								AND `+pendingInputKindSQL("stream", "latest.claimed_input_revision", true)+`
 						)
-						AND (
-							SELECT input.event_type FROM transcript_events input
-							WHERE input.stream_uid=stream.stream_uid
-								AND input.event_type IN ('user_message','user_input_response')
-							ORDER BY input.publication_seq DESC LIMIT 1
-						)='user_message'
 					)
 					OR NOT EXISTS (
 						SELECT 1 FROM frame_events resume
@@ -203,15 +191,15 @@ func automaticFrameResumeRequestConn(
 		return "", 0, false, err
 	}
 	if claimedInputRevision < stream.InputRevision {
-		inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+		coverage, err := inputCoverageConn(ctx, conn, stream, claimedInputRevision)
 		if err != nil {
 			return "", 0, false, err
 		}
-		if inputType == "user_message" {
-			return ResumeSourceFresh, 0, true, nil
+		if coverage.Pending() && !coverage.Complete {
+			return "", 0, false, nil
 		}
-		if inputType != "user_input_response" {
-			return "", 0, false, ErrEventConflict
+		if coverage.Pending() && coverage.HasMessage {
+			return ResumeSourceFresh, 0, true, nil
 		}
 	}
 	if claimedInputRevision > stream.InputRevision {
@@ -272,18 +260,6 @@ func runnerCheckpointAllowsAutomaticResume(rawPayload string) bool {
 	}
 	autoResume, valid := value.(bool)
 	return valid && autoResume
-}
-
-func latestRunnerInputEventTypeConn(ctx context.Context, conn *sql.Conn, streamUID string) (string, error) {
-	var eventType string
-	if err := conn.QueryRowContext(ctx, `
-		SELECT event_type FROM transcript_events
-		WHERE stream_uid=? AND event_type IN ('user_message','user_input_response')
-		ORDER BY publication_seq DESC LIMIT 1`, streamUID,
-	).Scan(&eventType); err != nil {
-		return "", err
-	}
-	return eventType, nil
 }
 
 // LatestRunnerInputEventType returns the most recent runner input event type
@@ -384,11 +360,11 @@ func (r *Repository) claimRunnerConn(
 				return result, nil
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+				coverage, err := inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
 				if err != nil {
 					return result, err
 				}
-				if inputType != "user_message" {
+				if !coverage.Pending() || !coverage.Complete || !coverage.HasMessage {
 					return result, nil
 				}
 			} else {
@@ -452,11 +428,11 @@ func (r *Repository) claimRunnerConn(
 				return result, ErrCheckpointUnavailable
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				inputType, err := latestRunnerInputEventTypeConn(ctx, conn, stream.UID)
+				coverage, err := inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
 				if err != nil {
 					return result, err
 				}
-				if inputType != "user_input_response" {
+				if coverage.HasMessage || !coverage.Complete && !explicitResume {
 					return result, ErrCheckpointUnavailable
 				}
 			} else if stream.InputRevision == stream.ConsumedInputRevision &&

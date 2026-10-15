@@ -100,6 +100,13 @@ const XScienceRuntimeStatusSurface = ({
       />
       {snapshot?.planApproval ? (
         <XScienceTaskAttentionNotice kind='plan' reason={null} onAction={onOpenPlan} />
+      ) : snapshot?.pendingInputRequiresContinue ? (
+        <XScienceTaskAttentionNotice
+          kind='pending_input'
+          reason={null}
+          busy={resuming}
+          onAction={snapshot.canResume ? onResume : undefined}
+        />
       ) : snapshot?.status === 'paused' && !pendingInputCount ? (
         <XScienceTaskAttentionNotice
           kind='paused'

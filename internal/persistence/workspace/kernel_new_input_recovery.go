@@ -10,42 +10,6 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// Composer messages retain this canonical provenance even when a paused task
-// receives them as user_input_response. AskUser aggregates lack that provenance;
-// edited AskUser answers explicitly contain tool_result blocks instead. Neither
-// revision growth nor natural-language interpretation is execution authority.
-func canonicalKernelRecoveryComposerInput(eventType, clientID string, payload []byte) bool {
-	var message struct {
-		MessageUUID     string `json:"messageUuid"`
-		UUID            string `json:"_uuid"`
-		ClientMessageID string `json:"clientMessageId"`
-		Role            string `json:"role"`
-		Origin          string `json:"messageOrigin"`
-		Text            string `json:"text"`
-		Content         []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-	}
-	if json.Unmarshal(payload, &message) != nil || message.Role != "user" ||
-		message.MessageUUID == "" || message.MessageUUID != message.UUID ||
-		message.ClientMessageID != clientID || clientID == "" || strings.TrimSpace(message.Text) == "" {
-		return false
-	}
-	if !(eventType == "user_message" && message.Origin == "task_intent" ||
-		eventType == "user_input_response" && message.Origin == "input_response") {
-		return false
-	}
-	textPresent := false
-	for _, block := range message.Content {
-		if block.Type == "tool_result" || block.Type == "tool_use" {
-			return false
-		}
-		textPresent = textPresent || block.Type == "text" && block.Text == message.Text
-	}
-	return textPresent
-}
-
 // Reconcile only never-prepared work at the existing live-claim recovery
 // admission boundary. The transaction retains original inputs, materializes a
 // non-execution result, and leaves normal protocol recovery to publish it once.
@@ -154,7 +118,7 @@ func latestKernelRecoveryComposerInput(ctx context.Context, tx *transcriptstore.
 		if err := rows.Scan(&input.eventID, &input.publication, &eventType, &clientID, &input.frameSequence, &payload); err != nil {
 			return kernelRecoveryInputAuthority{}, err
 		}
-		if canonicalKernelRecoveryComposerInput(eventType, clientID, payload) {
+		if transcriptstore.IsCanonicalFrameUserMessage(eventType, clientID, payload) {
 			return input, rows.Close()
 		}
 	}

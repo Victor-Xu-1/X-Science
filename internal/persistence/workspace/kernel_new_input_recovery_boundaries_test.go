@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestCanonicalKernelRecoveryComposerInput(t *testing.T) {
@@ -37,7 +39,7 @@ func TestCanonicalKernelRecoveryComposerInput(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := canonicalKernelRecoveryComposerInput("user_input_response", "client", payload); got != tc.want {
+			if got := transcriptstore.IsCanonicalFrameUserMessage("user_input_response", "client", payload); got != tc.want {
 				t.Fatalf("canonical=%t want=%t", got, tc.want)
 			}
 		})

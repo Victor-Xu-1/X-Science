@@ -5,7 +5,7 @@ import { runtimePausePresentation } from './runtimePausePresentation';
 import './XScienceTaskAttentionNotice.css';
 
 type Props = {
-  kind: 'plan' | 'paused';
+  kind: 'plan' | 'paused' | 'pending_input';
   reason: string | null;
   busy?: boolean;
   onAction?: () => void;
@@ -16,10 +16,10 @@ export default function XScienceTaskAttentionNotice({ kind, reason, busy = false
   const { t } = useTranslation();
   const pause = runtimePausePresentation(reason);
   const title = t(
-    `conversation.xscienceRuntime.runtimeOperations.${kind === 'plan' ? 'planApprovalTitle' : 'recoveryTitle'}`
+    `conversation.xscienceRuntime.runtimeOperations.${kind === 'plan' ? 'planApprovalTitle' : kind === 'pending_input' ? 'pendingInputContinuationTitle' : 'recoveryTitle'}`
   );
   const description = t(
-    `conversation.xscienceRuntime.runtimeOperations.${kind === 'plan' ? 'planApprovalDescription' : pause.description}`
+    `conversation.xscienceRuntime.runtimeOperations.${kind === 'plan' ? 'planApprovalDescription' : kind === 'pending_input' ? 'pendingInputContinuationDescription' : pause.description}`
   );
   const action = t(
     `conversation.xscienceRuntime.runtimeOperations.${kind === 'plan' ? 'openPlanApproval' : 'resumePausedTask'}`

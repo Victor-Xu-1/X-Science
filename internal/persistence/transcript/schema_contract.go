@@ -321,7 +321,8 @@ func SchemaContractStatements() []string {
 	statements = append(statements, historyOrdinaryV33Statements...)
 	statements = append(statements, historyOrdinaryCursorV34Statements...)
 	statements = append(statements, typedHistoryBootstrapV35Statements...)
-	return append(statements, webReadModelV38Statements...)
+	statements = append(statements, webReadModelV38Statements...)
+	return append(statements, InputAdmissionV77Statements()...)
 }
 
 func SchemaV23Statements() []string {

@@ -1106,6 +1106,9 @@ func (s *Store) ReclaimPreparedKernelLocalOperation(
 			return operation.RunnerID == "" && operation.ExecutionID == "" &&
 				operation.ReasonCode == input.ReasonCode
 		},
+		after: func(tx *transcriptstore.ImmediateTransaction, operation KernelLocalOperation) error {
+			return recordKernelRecoveryAdmissionTx(ctx, tx, operation)
+		},
 	})
 	if err == nil {
 		s.signalKernelRetentionWake()
@@ -1198,6 +1201,7 @@ func (s *Store) markKernelLocalOperationOutcomeUnknown(
 		return KernelLocalOperation{}, err
 	}
 	unknownDigest := sha256.Sum256(unknownResult)
+	var recoveryAdmissionRevision int64
 	operation, err := s.transitionKernelLocalOperation(ctx, kernelLocalOperationTransitionInput{
 		ownerUserID: input.OwnerUserID, operationID: input.OperationID,
 		expectedState: KernelLocalOperationStateStarted, expectedVersion: input.ExpectedStateVersion,
@@ -1256,6 +1260,7 @@ func (s *Store) markKernelLocalOperationOutcomeUnknown(
 			if err := reactivateKernelOperationFrameForRecoveryTx(ctx, tx, operation, now); err != nil {
 				return "", nil, err
 			}
+			recoveryAdmissionRevision = revision
 			return "admitted_input_revision=?", []any{revision}, nil
 		},
 		idempotent: func(operation KernelLocalOperation) bool {
@@ -1263,6 +1268,14 @@ func (s *Store) markKernelLocalOperationOutcomeUnknown(
 				bytes.Equal(operation.ResultJSON, unknownResult) && operation.ResultSHA256 == hex.EncodeToString(unknownDigest[:])
 		},
 		after: func(tx *transcriptstore.ImmediateTransaction, operation KernelLocalOperation) error {
+			if recoveryAdmissionRevision > 0 {
+				if operation.AdmittedInputRevision != recoveryAdmissionRevision {
+					return ErrKernelLocalOperationConflict
+				}
+				if err := recordKernelRecoveryAdmissionTx(ctx, tx, operation); err != nil {
+					return err
+				}
+			}
 			materialization, err := normalizeKernelToolResultMaterialization(
 				operation.OperationID, unknownResult, "", "", "native_v41", operation.UpdatedAt,
 			)

@@ -55,13 +55,13 @@ func (s *Server) claimTranscriptFrameRunner(
 			if stateErr != nil {
 				return nil, false, true, stateErr
 			}
-			inputType, inputErr := s.transcriptStore.LatestRunnerInputEventType(
-				ctx, stream.UID, stream.OwnerID,
+			coverage, inputErr := s.transcriptStore.GetInputCoverage(
+				ctx, stream.UID, stream.OwnerID, state.ClaimedInputRevision,
 			)
 			if inputErr != nil {
 				return nil, false, true, inputErr
 			}
-			if stream.InputRevision >= state.ClaimedInputRevision && inputType != "user_message" {
+			if stream.InputRevision >= state.ClaimedInputRevision && (!coverage.Pending() || coverage.Complete && !coverage.HasMessage) {
 				resumeSource = transcriptstore.ResumeSourceCheckpoint
 				resumeCheckpoint = checkpoint.Sequence
 			}

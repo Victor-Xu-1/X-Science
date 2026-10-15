@@ -875,9 +875,7 @@ func appendFrameAskUserResponseConn(
 	if err != nil || !created {
 		return Event{}, FrameReferenceEvent{}, false, err
 	}
-	if _, err := conn.ExecContext(ctx, `
-		UPDATE transcript_streams SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, now, stream.UID,
-	); err != nil {
+	if err := admitEventInputConn(ctx, conn, stream, event, now); err != nil {
 		return Event{}, FrameReferenceEvent{}, false, err
 	}
 	if err := activateFrameForNewInputConn(ctx, conn, stream, now); err != nil {

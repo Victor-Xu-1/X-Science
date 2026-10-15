@@ -60,6 +60,7 @@ export const projectAcceptedRuntimeStart = (
     runtimeTaskActive: true,
     canCancel: false,
     canResume: false,
+    pendingInputRequiresContinue: false,
   };
 };
 

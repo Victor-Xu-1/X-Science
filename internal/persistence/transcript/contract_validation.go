@@ -38,6 +38,9 @@ func (r *Repository) validateContract(ctx context.Context, requireCurrent bool) 
 		return schemaError(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := validateInputAdmissionContract(ctx, tx, requireCurrent); err != nil {
+		return err
+	}
 	typedBootstrapInstalled, err := typedHistoryBootstrapV35Installed(ctx, tx)
 	if err != nil {
 		return err

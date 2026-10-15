@@ -231,6 +231,15 @@ func (s *Server) compatibilityFrameResponse(frame workspace.CompatibilityFrame, 
 			return nil, err
 		}
 		if found {
+			if s.transcriptStore != nil {
+				requiresContinue, err := s.transcriptStore.FramePendingInputRequiresContinue(ctx, access.UserID, frame.ID)
+				if err != nil {
+					return nil, err
+				}
+				if requiresContinue {
+					response["runtime_pending_input_requires_continue"] = true
+				}
+			}
 			target, err := s.workspaceStore.GetCompatibilityFrameResumeTarget(ctx, access.UserID, frame.ID)
 			if err != nil {
 				return nil, err
