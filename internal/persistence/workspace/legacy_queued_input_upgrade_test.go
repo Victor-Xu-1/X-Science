@@ -55,6 +55,7 @@ func appendSchema76QueuedFrameInput(t *testing.T, store *Store, repo *transcript
 type legacyQueuedFixtureOptions struct {
 	stagedBeforeClaim bool
 	manualWait        bool
+	consumedControl   bool
 }
 
 func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool, options ...legacyQueuedFixtureOptions) (*Store, *transcriptstore.Repository, transcriptstore.Stream) {
@@ -139,6 +140,29 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool, options ...l
 			t.Fatalf("later manual wait: %+v %v", interrupted, err)
 		}
 	}
+	if option.consumedControl {
+		// Controlled negative only: an intervening prefix was consumed while
+		// this older marker survived. Keep the later control in the actual
+		// pre77 shape so Complete cannot short-circuit the C>R guard.
+		if _, err := db.Exec(`UPDATE transcript_streams SET consumed_input_revision=2 WHERE stream_uid=?`, stream.UID); err != nil {
+			t.Fatal(err)
+		}
+		staged, err := repo.StageUserEvent(t.Context(), transcriptstore.AppendUserEventInput{StreamUID: stream.UID,
+			OwnerID: stream.OwnerID, ClientMessageID: "later-control", PayloadJSON: []byte(`{"decision":"allow"}`)})
+		if err != nil || !staged.Created {
+			t.Fatalf("historical control: %+v %v", staged, err)
+		}
+		if err := repo.RunImmediate(t.Context(), func(tx *transcriptstore.ImmediateTransaction) error {
+			if _, err := tx.ExecContext(t.Context(), `UPDATE transcript_events SET event_type='user_input_response'
+				WHERE stream_uid=? AND event_id=? AND event_type='user_message_staged'`, stream.UID, staged.Event.EventID); err != nil {
+				return err
+			}
+			_, err := tx.ExecContext(t.Context(), `UPDATE transcript_streams SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, staged.Event.CreatedAt, stream.UID)
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := db.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -153,10 +177,14 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool, options ...l
 	}
 	stream, err = repo.GetStream(t.Context(), stream.UID, stream.OwnerID)
 	wantConsumed := int64(1)
+	wantInput := int64(2)
 	if prepared {
 		wantConsumed = 0
 	}
-	if err != nil || stream.InputRevision != 2 || stream.ConsumedInputRevision != wantConsumed {
+	if option.consumedControl {
+		wantInput, wantConsumed = 3, 2
+	}
+	if err != nil || stream.InputRevision != wantInput || stream.ConsumedInputRevision != wantConsumed {
 		t.Fatalf("upgrade changed input=%+v %v", stream, err)
 	}
 	var facts int
@@ -175,10 +203,23 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool, options ...l
 	return store, repo, stream
 }
 
+func assertLegacyQueuedFreshSource(t *testing.T, repo *transcriptstore.Repository, stream transcriptstore.Stream, prepared bool) {
+	t.Helper()
+	want := "legacy_finish"
+	if prepared {
+		want = "legacy_preparation"
+	}
+	evidence, err := repo.GetFreshMessageEvidence(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || !evidence.Authorized || evidence.Source != want || evidence.Coverage.Complete || evidence.BoundaryEventID <= 0 || evidence.InputEventID <= evidence.BoundaryEventID {
+		t.Fatalf("legacy proof source=%+v want=%s err=%v", evidence, want, err)
+	}
+}
+
 func TestSchema76QueuedFrameInputSurvivesUpgrade(t *testing.T) {
 	for _, prepared := range []bool{false, true} {
 		t.Run(map[bool]string{false: "after_finish", true: "prepared_inflight"}[prepared], func(t *testing.T) {
 			_, repo, stream := schema76QueuedInputUpgrade(t, true, prepared)
+			assertLegacyQueuedFreshSource(t, repo, stream, prepared)
 			claimed, err := repo.ClaimNextFrameRunner(t.Context(), transcriptstore.ClaimNextFrameRunnerInput{RunnerID: "upgraded-owner", TTL: time.Minute})
 			if err != nil || !claimed.Claimed || claimed.Claim.StreamUID != stream.UID || claimed.Claim.ClaimedInputRevision != 2 {
 				t.Fatalf("schema76 queued Frame stranded: %+v %v", claimed, err)
@@ -191,6 +232,7 @@ func TestSchema76QueuedStandaloneInputSurvivesUpgrade(t *testing.T) {
 	for _, prepared := range []bool{false, true} {
 		t.Run(map[bool]string{false: "after_finish", true: "prepared_inflight"}[prepared], func(t *testing.T) {
 			_, repo, stream := schema76QueuedInputUpgrade(t, false, prepared)
+			assertLegacyQueuedFreshSource(t, repo, stream, prepared)
 			claimed, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "upgraded-owner", TTL: time.Minute})
 			if err != nil || !claimed.Claimed || claimed.Claim.StreamUID != stream.UID || claimed.Claim.ClaimedInputRevision != 2 {
 				t.Fatalf("schema76 queued standalone stranded: %+v %v", claimed, err)

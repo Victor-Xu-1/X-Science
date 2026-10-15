@@ -78,26 +78,15 @@ func TestLegacyFreshEvidencePreservesLaterManualWait(t *testing.T) {
 func TestLegacyFreshEvidenceRejectsMismatchedPreparationAndConsumedPrefix(t *testing.T) {
 	for _, boundary := range []string{"claim_revision", "consumed_prefix"} {
 		t.Run(boundary, func(t *testing.T) {
-			store, repo, stream := schema76QueuedInputUpgrade(t, true, true)
+			store, repo, stream := schema76QueuedInputUpgrade(t, true, true, legacyQueuedFixtureOptions{consumedControl: boundary == "consumed_prefix"})
 			if boundary == "claim_revision" {
 				// Controlled corruption tests the marker identity, not a runtime repair.
 				if _, err := store.db.Exec(`UPDATE transcript_events SET payload_json=json_set(payload_json,'$.claimed_input_revision',99) WHERE stream_uid=? AND event_type='runner_preparation_admitted'`, stream.UID); err != nil {
 					t.Fatal(err)
 				}
-			} else {
-				// An intervening consumed prefix cannot be unlocked by an old marker.
-				if _, err := store.db.Exec(`UPDATE transcript_streams SET consumed_input_revision=2 WHERE stream_uid=?`, stream.UID); err != nil {
-					t.Fatal(err)
-				}
-				if err := repo.RunImmediate(t.Context(), func(tx *transcriptstore.ImmediateTransaction) error {
-					_, _, err := tx.AppendFrameInputResponse(t.Context(), transcriptstore.AppendFrameInputResponseInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, FrameID: stream.FrameID, ClientMessageID: "control-after-consumed", PayloadJSON: []byte(`{"decision":"allow"}`)})
-					return err
-				}); err != nil {
-					t.Fatal(err)
-				}
 			}
 			evidence, err := repo.GetFreshMessageEvidence(t.Context(), stream.UID, stream.OwnerID)
-			if err != nil || evidence.Authorized {
+			if err != nil || evidence.Authorized || evidence.Coverage.Complete {
 				t.Fatalf("invalid legacy boundary authorized: %+v %v", evidence, err)
 			}
 		})
