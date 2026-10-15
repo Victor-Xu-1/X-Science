@@ -32,6 +32,19 @@ func sessionRunnerCompletionAdvisoryCrossArtifactFailure(failure string) bool {
 		"artifact_table_contract_value_mismatch:",
 		"artifact_table_contract_row_missing:",
 		"artifact_table_contract_row_unexpected:",
+		// These describe a report's own checks or inferred presentation rules,
+		// not the host's durable execution/side-effect receipts. A valid report
+		// must be allowed to retain a failed quality check without being edited
+		// into a fabricated pass just to reach delivery.
+		"machine_validation_missing_passing_check:",
+		"machine_validation_false_check:",
+		"machine_validation_failed_status:",
+		"machine_validation_reported_failure:",
+		"machine_validation_invalid_root:",
+		"rank_score_pair_missing:",
+		"rank_score_non_numeric:",
+		"rank_score_mismatch:",
+		"environment_claim_conflict:",
 		// Source labels and inferred coverage are diagnostics, not a proof
 		// that a deliverable is structurally broken. They cannot impose a
 		// per-category retrieval quota at publication time.
@@ -242,12 +255,11 @@ func sessionRunnerRemoveRecoveredCorrectionContext(messages []chatCompletionMess
 }
 
 // sessionRunnerFatalCrossArtifactFailures applies the completion policy to
-// the current run. When verification is explicitly disabled, presentation
-// mismatches are observable diagnostics and do not block publication. All
-// other failures, and all unresolved/contract/scientific checks outside this
-// helper, remain fail-closed. A nil or legacy run intentionally keeps the
-// stricter behavior so test and migration contexts cannot silently weaken
-// their authority boundary.
+// the current run. Quality findings remain observable diagnostics regardless
+// of the optional reviewer setting; they do not authorize another automatic
+// repair cycle. Unknown or structural failures and all execution/identity
+// contracts outside this helper remain fail-closed. A missing run cannot
+// establish the authority for this delivery policy.
 func sessionRunnerFatalCrossArtifactFailures(run *sessionRunnerChatRun, failures []string) []string {
 	if len(failures) == 0 {
 		return nil
@@ -257,12 +269,7 @@ func sessionRunnerFatalCrossArtifactFailures(run *sessionRunnerChatRun, failures
 	for _, failure := range failures {
 		isAdvisory := sessionRunnerCompletionAdvisoryCrossArtifactFailure(failure)
 		evidenceGap := sessionRunnerEvidenceGapCrossArtifactFailure(failure)
-		lowerFailure := strings.ToLower(strings.TrimSpace(failure))
-		perRowDepthAdvisory := strings.HasPrefix(lowerFailure, "evidence_record_depth_missing:")
-		sourceUnavailableAdvisory := strings.HasPrefix(lowerFailure, "evidence_record_depth_unavailable:") ||
-			strings.HasPrefix(lowerFailure, "evidence_record_class_unavailable:")
-		if run != nil &&
-			(evidenceGap || (isAdvisory && (perRowDepthAdvisory || sourceUnavailableAdvisory || run.VerificationExplicitlyDisabled))) {
+		if run != nil && (evidenceGap || isAdvisory) {
 			advisory = append(advisory, failure)
 			continue
 		}
