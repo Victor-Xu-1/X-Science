@@ -84,7 +84,7 @@ func (fixture *managedEndpointPhysicalFixture) cleanupDocker(ctx context.Context
 	id := fixture.containerID
 	if id == "" {
 		// A lost create acknowledgement may precede the receipt. Enumerate only
-		// this unpredictable instance label + exact private locator; do not kill
+		// this Store-allocated instance label + exact private locator; do not kill
 		// by name. Every returned full ID still requires fresh typed inspection.
 		spec := fixture.registration.Owner.Docker
 		raw, err := managedEndpointPhysicalCommand(ctx, fixture.docker, "--context=default", "container", "ls", "--all", "--no-trunc", "--filter", "label=ai.x-science.endpoint-instance="+fixture.instance.ID, "--filter", "name=^/"+spec.Container+"$", "--format", "{{.ID}}")

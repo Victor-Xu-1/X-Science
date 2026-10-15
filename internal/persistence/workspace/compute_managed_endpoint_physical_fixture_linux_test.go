@@ -101,6 +101,26 @@ func managedEndpointPhysicalPrerequisites(t *testing.T) (string, string) {
 func newManagedEndpointPhysicalFixture(t *testing.T, binary, systemctl string, registration compute.ManagedEndpointRegistration) *managedEndpointPhysicalFixture {
 	t.Helper()
 	fixture := &managedEndpointPhysicalFixture{managedEndpointOwnerFixture: newManagedEndpointOwnerFixture(t, registration), binary: binary, systemctl: systemctl}
+	// ClaimManagedEndpointStart has already allocated the 16-byte instance ID
+	// inside its Store transaction; the fixture's subsequent Prepare is an
+	// idempotent read, not the time-derived fallback ID passed by that helper.
+	// The identifier is not cleanup authority: physical identity is checked too.
+	if id, err := hex.DecodeString(fixture.instance.ID); err != nil || len(id) != 16 {
+		t.Fatalf("physical fixture did not receive its Store-allocated instance: %q", fixture.instance.ID)
+	}
+	// Go's testing.TempDir creates its numbered child with mode0777 before
+	// umask, unlike the product's fresh0700 runtime directories. These two
+	// directories were just created exclusively by this fixture: set up that
+	// same private contract rather than weakening the production path check.
+	for _, directory := range []string{fixture.instance.RuntimeRoot, fixture.instance.ServiceDir} {
+		if err := os.Chmod(directory, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		info, err := os.Lstat(directory)
+		if err != nil || !info.IsDir() || info.Mode().Perm() != 0o700 || info.Mode()&os.ModeSymlink != 0 {
+			t.Fatalf("physical fixture directory is not private: %s (%v)", directory, err)
+		}
+	}
 	fixture.stores = []*Store{fixture.store}
 	fixture.ctx, fixture.cancel = context.WithTimeout(context.Background(), 45*time.Second)
 	fixture.wrapper = filepath.Join(fixture.instance.ServiceDir, "private-owner-worker")
