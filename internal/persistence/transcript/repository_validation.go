@@ -92,7 +92,8 @@ func validateRunnerEventInput(input AppendEventInput) error {
 func reservedRunnerEventType(eventType string) bool {
 	switch eventType {
 	case "user_message", "user_message_staged", "user_input_response", "runner_checkpoint", "runner_finished", "runner_reclaimed",
-		AskUserPromptEventType, AskUserResultEventType, memoryMutationReceiptEventType, RunnerPreparationAdmissionEventType, RunnerTimingResumeEventType:
+		AskUserPromptEventType, AskUserResultEventType, memoryMutationReceiptEventType, RunnerPreparationAdmissionEventType, RunnerTimingResumeEventType,
+		HistoricalInputNoticeEventType:
 		return true
 	default:
 		return false
