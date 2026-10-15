@@ -125,6 +125,8 @@ type managedEndpointUnitObservation struct {
 	Empty    bool
 }
 
+var errManagedEndpointWorkerNotReady = errors.New("managed endpoint activating worker has no confirmed process yet")
+
 func (unit *managedEndpointUnit) observe(ctx context.Context, instance ManagedEndpointOwnerInstance) (managedEndpointUnitObservation, error) {
 	name := ManagedEndpointUnitName(instance.ID)
 	raw, controlErr := managedEndpointControlCommand(ctx, unit.control, "--user", "show", "--property=LoadState,ActiveState,SubState,InvocationID,ControlGroup,MainPID", "--", name)
@@ -176,10 +178,16 @@ func (unit *managedEndpointUnit) observe(ctx context.Context, instance ManagedEn
 	}
 	pid, err := strconv.ParseInt(values["MainPID"], 10, 64)
 	if err != nil || pid < 1 {
+		if err == nil && pid == 0 && observation.State == "activating" {
+			return managedEndpointActivatingObservation(observation, name, values, pid)
+		}
 		return observation, errors.New("managed endpoint unit has no confirmed worker process")
 	}
 	ticks, state, err := managedEndpointProcessTicks(pid)
 	if err != nil || state == "Z" || state == "X" {
+		if observation.State == "activating" && errors.Is(err, os.ErrNotExist) {
+			return managedEndpointActivatingObservation(observation, name, values, pid)
+		}
 		return observation, errors.New("managed endpoint worker process incarnation is not live")
 	}
 	boot, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
@@ -194,6 +202,27 @@ func (unit *managedEndpointUnit) observe(ctx context.Context, instance ManagedEn
 		return observation, errors.New("managed endpoint original worker identity changed")
 	}
 	return observation, nil
+}
+
+// A typed startup observation is not an identity/stopped proof. Keep its
+// well-formed locator to fence this invocation while its first PID appears;
+// malformed projection, permissions and any later incarnation are not retries.
+func managedEndpointActivatingObservation(observation managedEndpointUnitObservation, name string, values map[string]string, pid int64) (managedEndpointUnitObservation, error) {
+	invocation, group := values["InvocationID"], values["ControlGroup"]
+	if len(invocation) != 32 || group == "/" || !strings.HasPrefix(group, "/") || filepath.Clean(group) != group || strings.ContainsRune(group, '\x00') {
+		return observation, errors.New("managed endpoint activating unit locator is malformed")
+	}
+	for _, value := range invocation {
+		if !(value >= '0' && value <= '9' || value >= 'a' && value <= 'f') {
+			return observation, errors.New("managed endpoint activating unit invocation is malformed")
+		}
+	}
+	boot, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		return observation, err
+	}
+	observation.Identity = ManagedEndpointRuntimeIdentity{Kind: "native-unit", BootID: strings.TrimSpace(string(boot)), Unit: name, InvocationID: invocation, ControlGroup: group, PID: pid}
+	return observation, errManagedEndpointWorkerNotReady
 }
 
 func managedEndpointProcessTicks(pid int64) (uint64, string, error) {

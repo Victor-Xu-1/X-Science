@@ -52,7 +52,7 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 	// nonmutating control handshake, including already/concurrently live units.
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	observed, err := runtime.unit.observe(ctx, instance)
+	observed, err := runtime.observeWorkerStartup(ctx, instance, replacement)
 	if err != nil {
 		return observed, err
 	}
@@ -110,7 +110,7 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 	// A concurrent same-claim caller may have launched the exact same unit.
 	// Observe it instead of interpreting an existing-unit error as a second job.
 	for {
-		observed, err = runtime.unit.observe(ctx, instance)
+		observed, err = runtime.observeWorkerStartup(ctx, instance, replacement)
 		if err != nil {
 			return observed, errors.Join(launchErr, err)
 		}
