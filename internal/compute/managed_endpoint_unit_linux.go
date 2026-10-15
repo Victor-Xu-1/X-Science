@@ -16,7 +16,20 @@ import (
 	"time"
 )
 
-type managedEndpointUnit struct{ run, control string }
+type managedEndpointUnit struct {
+	run, control string
+	// The adapter reads only the already established cgroup identity. Keeping
+	// the reader here also allows contradictory control/cgroup evidence to be
+	// tested without touching any actual service or host cgroup.
+	cgroupPopulated func(string) (bool, error)
+}
+
+func (unit *managedEndpointUnit) populated(group string) (bool, error) {
+	if unit.cgroupPopulated != nil {
+		return unit.cgroupPopulated(group)
+	}
+	return managedEndpointCgroupPopulated(group)
+}
 
 func newManagedEndpointUnit() (*managedEndpointUnit, error) {
 	run, err := exec.LookPath("systemd-run")
@@ -131,7 +144,7 @@ func (unit *managedEndpointUnit) observe(ctx context.Context, instance ManagedEn
 		observation.Absent = true
 		observation.Empty = true
 		if expectedWorker.Kind == "native-unit" && expectedWorker.Unit == name {
-			if populated, err := managedEndpointCgroupPopulated(expectedWorker.ControlGroup); err == nil {
+			if populated, err := unit.populated(expectedWorker.ControlGroup); err == nil {
 				observation.Empty = !populated
 			} else if !errors.Is(err, os.ErrNotExist) {
 				return observation, err
@@ -154,7 +167,7 @@ func (unit *managedEndpointUnit) observe(ctx context.Context, instance ManagedEn
 			return observation, errors.New("managed endpoint unit incarnation changed")
 		}
 		observation.Identity = expectedWorker
-		populated, err := managedEndpointCgroupPopulated(expectedWorker.ControlGroup)
+		populated, err := unit.populated(expectedWorker.ControlGroup)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
 			return observation, err
 		}
