@@ -225,28 +225,47 @@ func TestCorrectionBranchForkRetiresConditionAndStaleRead(t *testing.T) {
 }
 
 func TestCorrectionReadIsNotARepairActionOrArtifactInspection(t *testing.T) {
-	cause := (sessionRunnerCompletionReviewCorrection{Summary: "repair required", Issues: []sessionRunnerReviewIssue{{Claim: "repair the result", Severity: "major"}}}).runnerCorrection()
-	run := &sessionRunnerChatRun{}
-	run.restoreCorrection(&recoveredRunnerCorrection{ReasonCode: cause.ReasonCode, Detail: cause.Detail, Condition: cause.Condition})
-	arguments, _ := json.Marshal(map[string]any{"recovery_condition_id": cause.Condition.ContentID()})
-	messages := []agentruntime.Message{
-		{Role: "system", Content: sessionRunnerDurableCorrectionContextMarker},
-		{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "diagnostic-read", Name: "read_file", Arguments: arguments}}},
-		{Role: "tool", ToolCallID: "diagnostic-read", Content: `{"ok":true,"idempotent":true,"evidence_kind":"runtime_condition","content":"a bounded diagnostic page"}`},
-	}
-	tools := []agentruntime.ToolSchema{{Name: "read_file", Capabilities: []string{"artifact-read"}}}
-	if !sessionRunnerCorrectionStillRequiresAction(run, messages) || sessionRunnerCorrectionReadyForRevalidation(run, messages) {
-		t.Error("reading a diagnostic discharged the repair condition")
-	}
-	if runnerSuccessfulToolNamesSinceCorrection(messages)["read_file"] {
-		t.Error("diagnostic read was promoted to completed repair capability")
-	}
-	if runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
-		t.Error("diagnostic read replaced actual artifact inspection")
-	}
-	// Classification follows the typed call, never arbitrary result body labels.
-	messages[1].ToolCalls[0].Arguments = json.RawMessage(`{"file_path":"actual-result.csv"}`)
-	if sessionRunnerCorrectionStillRequiresAction(run, messages) || !runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
-		t.Error("ordinary artifact inspection behavior changed")
+	for _, test := range []struct {
+		name           string
+		semanticReview bool
+		requiresAction bool
+	}{
+		{name: "typed_missing_artifact", requiresAction: true},
+		{name: "semantic_review", semanticReview: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cause := (&sessionRunnerReferenceIntegrityError{MissingLocalArtifacts: []string{"actual-result.csv"}}).runnerCorrection()
+			if test.semanticReview {
+				cause = (sessionRunnerCompletionReviewCorrection{Summary: "review observation", Issues: []sessionRunnerReviewIssue{{Claim: "inspect the result", Severity: "major"}}}).runnerCorrection()
+			}
+			run := &sessionRunnerChatRun{}
+			run.restoreCorrection(&recoveredRunnerCorrection{ReasonCode: cause.ReasonCode, Detail: cause.Detail, Condition: cause.Condition})
+			// A semantic observation is already advisory before any read. The
+			// missing-file condition must still require genuine action afterward.
+			if sessionRunnerCorrectionStillRequiresAction(run, nil) != test.requiresAction {
+				t.Fatal("fixture does not preserve the intended correction authority")
+			}
+			arguments, _ := json.Marshal(map[string]any{"recovery_condition_id": cause.Condition.ContentID()})
+			messages := []agentruntime.Message{
+				{Role: "system", Content: sessionRunnerDurableCorrectionContextMarker},
+				{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{ID: "diagnostic-read", Name: "read_file", Arguments: arguments}}},
+				{Role: "tool", ToolCallID: "diagnostic-read", Content: `{"ok":true,"idempotent":true,"evidence_kind":"runtime_condition","content":"a bounded diagnostic page"}`},
+			}
+			tools := []agentruntime.ToolSchema{{Name: "read_file", Capabilities: []string{"artifact-read"}}}
+			if sessionRunnerCorrectionStillRequiresAction(run, messages) != test.requiresAction || sessionRunnerCorrectionReadyForRevalidation(run, messages) {
+				t.Error("reading a diagnostic changed the correction authority")
+			}
+			if runnerSuccessfulToolNamesSinceCorrection(messages)["read_file"] {
+				t.Error("diagnostic read was promoted to completed repair capability")
+			}
+			if runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
+				t.Error("diagnostic read replaced actual artifact inspection")
+			}
+			// Classification follows the typed call, never arbitrary result body labels.
+			messages[1].ToolCalls[0].Arguments = json.RawMessage(`{"file_path":"actual-result.csv"}`)
+			if sessionRunnerCorrectionStillRequiresAction(run, messages) || !runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
+				t.Error("ordinary artifact inspection behavior changed")
+			}
+		})
 	}
 }
