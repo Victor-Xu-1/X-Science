@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6a9ed4e10cb98c30cd265fec6a24ac2338a2f9d4d2caeb0082c3e184a3572006",
+  "adaptationFingerprintSHA256": "587c0ff812092ba50cbb84e3ee45775c4301567b75b6d9ade6878c22b1b1a662",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "377b58f3f4d9a34f4ada5f4d722a95a2e19f68493267663733fffa46e3e8523e",
+  "additionFingerprintSHA256": "f4462f50e42d91a1864fe0a7e062e68741d14c82c1088edc8b13bf6599f6a997",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -875,8 +875,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/runtimeOperationsModel.ts",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/runtimeOperationsModel.ts",
       "sourceSHA256": "1c95bcd6f7aac01530c330478005d729df338dd9a614c8c7d770db38a7ea063f",
-      "targetSHA256": "1e0769b0bf758dc805e1505139e805f5da2fbda73095f20dfd654bc76cbecc21",
-      "bytes": 36519,
+      "targetSHA256": "b5112208fed8416827afb4aa7f0c60b991c1c76472a8b597492f276f802812e3",
+      "bytes": 37308,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "7187fe2995fbc5fac6618597ce73471b27d42566130d0c1f2ece089d4abd379f",
-      "bytes": 256748,
+      "targetSHA256": "83ac345ff193bd215bb433069c7bd05990e3290bf6eb282d843b9c6b7ac48ffd",
+      "bytes": 257630,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "65a6dfe4541f97efc189f94792060d90f4fa97c571fb73b822dd43086039eb77",
-      "bytes": 81902,
+      "targetSHA256": "d3c32e31fc45f986071e3b26d3560cc91183dc18b47679522eab9f9561fdce3f",
+      "bytes": 83469,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2959,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "0ccf07e9531e619850b3da8c69e494bca05de26aeae3745af406969cabce1f08",
-      "bytes": 77387,
+      "targetSHA256": "34ab2fb210c280de501d5e3c1d7a53dd9038dbd82883f80eb52be16da6a0e192",
+      "bytes": 78676,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -5445,8 +5445,8 @@
       "path": "tests/unit/xscience/runtimeOperationsModel.test.ts",
       "originalPath": "tests/unit/synonbiomed/runtimeOperationsModel.test.ts",
       "sourceSHA256": "dd65ca1857a1dbc8a12e86afed81e3f497f43ab61d91f220a5617b414f903d1b",
-      "targetSHA256": "bc13f40738af52fd5b3b1015449731ca74858236102f384e2fa3853d187da4e8",
-      "bytes": 31915,
+      "targetSHA256": "7068db2b8b23a338c3e003b54fe90609c0b4428d1d9f35423079cab03caf8a92",
+      "bytes": 33026,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7992,8 +7992,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceRuntimeStatusSurface.tsx",
-      "sha256": "4bb7827d57ce153c2b7e41f267cd2c8c4520af7b202b0d17fc009ea9e51931bd",
-      "bytes": 4997,
+      "sha256": "33c4545e9ca68d4d748442ca51174f12b21fe819e4743160e262ea2cd2807550",
+      "bytes": 5098,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8010,14 +8010,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceTaskAttentionNotice.tsx",
-      "sha256": "43a21561e0b9ec1db0fc649a9104d4e4aecd8548eaf75a830ab3fda63bd48762",
-      "bytes": 1638,
+      "sha256": "51b9e87d31a511beec2b4b11f4b1b06effe3304bcbb3ebb9b57da8e100c07fa8",
+      "bytes": 2169,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceTaskCenterPanel.tsx",
-      "sha256": "858977ae37129d01155694eecab87c5a19234f26ca4d9f7b8de345151ec536d6",
-      "bytes": 17647,
+      "sha256": "56f176257900cf6d809c902a11fa47a81786cb5dd17e0e12d8d6b14c2b4373fe",
+      "bytes": 17671,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8028,8 +8028,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceTaskStatus.tsx",
-      "sha256": "eb89b8e24ec1b99446065dbab73ea8ba51316d5fa61abce2c21288e0854fcc4b",
-      "bytes": 29483,
+      "sha256": "61d7bcc0adb9b033bf6207c376d8026f64a86c0a34c742f4347e9508ac8fbe22",
+      "bytes": 29932,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8070,8 +8070,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/runtimePausePresentation.ts",
-      "sha256": "9b927bcf281576df181ecab16f6111d3174d0f880752f6a96925d0fc8bb4e09a",
-      "bytes": 535,
+      "sha256": "0a9a3d35219c822569ffa3687e689c1ca01af9ffef448d09f83f96e894ae5f57",
+      "bytes": 1391,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12636,14 +12636,14 @@
     },
     {
       "path": "tests/unit/xscience/XScienceTaskAttentionNotice.dom.test.tsx",
-      "sha256": "6fc6b2668abccd713028fdda52cf4cad729d08647ab283288062b8c5ef288229",
-      "bytes": 3310,
+      "sha256": "6185c2ecf6122e93599398846cf382898d9bd3ab204b5c1032da1258649d9bb9",
+      "bytes": 4292,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/xscience/XScienceTaskStatus.dom.test.tsx",
-      "sha256": "81ad160815f8448f545bab45271f41b80667005ac92eb96ac6c7010e7dacd3be",
-      "bytes": 46619,
+      "sha256": "ab1c08b6402509b7925e3ebce524219ff7bd5576dde95e3fc4bbb47a3900066c",
+      "bytes": 48237,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
