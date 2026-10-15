@@ -817,6 +817,11 @@ independent of the Web process. Docker services bind their actual daemon and
 immutable container identity, approved locator, loopback port binding and
 effective finite logging configuration. The shell's exit does not mean output
 EOF or readiness, and neither a port nor a container name proves ownership.
+Worker bootstrap also requires a bounded read-only protocol hello for the exact
+observed unit incarnation; a live MainPID or existing socket alone is not ready.
+Only dial-not-listening failures are retried within the same startup budget.
+Identity/protocol/permission failures do not trigger submit or relaunch, and
+closing an observation connection does not grant service cancellation authority.
 
 Cancellation and completion race the same durable claim. Ordinary request
 closure, observation timeout and Web drain do not authorize killing a service.

@@ -17,11 +17,11 @@ import (
 )
 
 // A systemd MainPID can exist before exec/SQLite-open/socket-listen completes.
-// Exercise that distinction without starting a real unit, container or script:
+// Exercise that distinction without a real unit/container or approved script:
 // only the finite control projection is fake, and the private Unix protocol is
 // real. No request here is allowed to submit, accept or cancel an action.
 func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
-	for _, scenario := range []string{"fresh_delayed_listener", "existing_delayed_listener", "foreign_socket_identity", "cancelled_wait"} {
+	for _, scenario := range []string{"fresh_delayed_listener", "existing_delayed_listener", "foreign_socket_identity", "cancelled_wait", "cancelled_connected_read"} {
 		t.Run(scenario, func(t *testing.T) {
 			runtime, instance := managedEndpointSocketFixture(t, scenario == "fresh_delayed_listener")
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -43,6 +43,10 @@ func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
 			}
 			requestCtx, stopRequest := context.WithCancelCause(ctx)
 			defer stopRequest(nil)
+			if scenario == "cancelled_connected_read" {
+				managedEndpointSocketConnectedCancel(t, runtime, instance, expected, requestCtx, stopRequest)
+				return
+			}
 			type result struct {
 				observed managedEndpointUnitObservation
 				err      error
@@ -139,7 +143,7 @@ func managedEndpointSocketIdentity(t *testing.T, instance ManagedEndpointOwnerIn
 	return ManagedEndpointRuntimeIdentity{Kind: "native-unit", BootID: strings.TrimSpace(string(boot)), Unit: ManagedEndpointUnitName(instance.ID), InvocationID: strings.Repeat("a", 32), ControlGroup: "/private-socket-fixture", PID: int64(os.Getpid()), StartTicks: ticks}
 }
 
-func managedEndpointSocketServer(t *testing.T, instance ManagedEndpointOwnerInstance, identity ManagedEndpointRuntimeIdentity) <-chan error {
+func managedEndpointSocketServer(t *testing.T, instance ManagedEndpointOwnerInstance, identity ManagedEndpointRuntimeIdentity, beforeResponse ...func()) <-chan error {
 	t.Helper()
 	path, err := managedEndpointSocketPath(instance)
 	if err != nil {
@@ -171,7 +175,37 @@ func managedEndpointSocketServer(t *testing.T, instance ManagedEndpointOwnerInst
 			finished <- errors.New("worker readiness attempted a mutating or foreign request")
 			return
 		}
+		for _, before := range beforeResponse {
+			before()
+		}
 		finished <- json.NewEncoder(connection).Encode(managedEndpointWorkerResponse{Version: ManagedEndpointOwnerProtocol, InstanceID: instance.ID, WorkerIdentity: identity})
 	}()
 	return finished
+}
+
+func managedEndpointSocketConnectedCancel(t *testing.T, runtime *ManagedEndpointSystemRuntime, instance ManagedEndpointOwnerInstance, expected managedEndpointUnitObservation, ctx context.Context, cancel context.CancelCauseFunc) {
+	t.Helper()
+	entered, release := make(chan struct{}), make(chan struct{})
+	defer close(release)
+	managedEndpointSocketServer(t, instance, expected.Identity, func() { close(entered); <-release })
+	finished := make(chan error, 1)
+	go func() {
+		_, err := runtime.call(ctx, instance, expected, "hello", ManagedEndpointAction{}, nil)
+		finished <- err
+	}()
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("controlled identity probe did not connect")
+	}
+	cause := errors.New("controlled observer closed after connect, before reply")
+	cancel(cause)
+	select {
+	case err := <-finished:
+		if !errors.Is(err, cause) {
+			t.Fatalf("connected read lost manual cancellation cause: %v", err)
+		}
+	case <-time.After(300 * time.Millisecond):
+		t.Fatal("connected identity probe ignored manual cancellation")
+	}
 }

@@ -48,6 +48,10 @@ func (runtime *ManagedEndpointSystemRuntime) validate(instance ManagedEndpointOw
 }
 
 func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instance ManagedEndpointOwnerInstance, launch, replacement bool) (managedEndpointUnitObservation, error) {
+	// One budget covers physical observation, launch acknowledgement and the
+	// nonmutating control handshake, including already/concurrently live units.
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	observed, err := runtime.unit.observe(ctx, instance)
 	if err != nil {
 		return observed, err
@@ -56,7 +60,7 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 		if instance.WorkerIdentity != (ManagedEndpointRuntimeIdentity{}) && instance.WorkerIdentity != observed.Identity && !replacement {
 			return observed, ErrManagedEndpointOwnershipUnknown
 		}
-		return observed, nil
+		return runtime.awaitWorkerControl(ctx, instance, observed)
 	}
 	if !launch {
 		return observed, ErrManagedEndpointOutcomeUnknown
@@ -100,26 +104,36 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 		return observed, err
 	}
 	launchErr := runtime.unit.launch(ctx, instance, runtime.executable)
+	if errors.Is(launchErr, ErrManagedEndpointCorruptOwner) || errors.Is(launchErr, ErrManagedEndpointOwnershipUnknown) || errors.Is(launchErr, os.ErrPermission) {
+		return observed, launchErr
+	}
 	// A concurrent same-claim caller may have launched the exact same unit.
 	// Observe it instead of interpreting an existing-unit error as a second job.
-	deadline := time.NewTimer(5 * time.Second)
-	defer deadline.Stop()
 	for {
 		observed, err = runtime.unit.observe(ctx, instance)
-		if err == nil && observed.Identity.PID > 0 {
-			return observed, nil
+		if err != nil {
+			return observed, errors.Join(launchErr, err)
+		}
+		if observed.Identity.PID > 0 {
+			if instance.WorkerIdentity != (ManagedEndpointRuntimeIdentity{}) && instance.WorkerIdentity != observed.Identity && !replacement {
+				return observed, ErrManagedEndpointOwnershipUnknown
+			}
+			return runtime.awaitWorkerControl(ctx, instance, observed)
 		}
 		select {
 		case <-ctx.Done():
-			return observed, context.Cause(ctx)
-		case <-deadline.C:
-			return observed, errors.Join(launchErr, err, errors.New("managed endpoint worker startup was not confirmed"))
+			return observed, errors.Join(launchErr, context.Cause(ctx))
 		case <-time.After(50 * time.Millisecond):
 		}
 	}
 }
 
-func (runtime *ManagedEndpointSystemRuntime) call(ctx context.Context, instance ManagedEndpointOwnerInstance, worker managedEndpointUnitObservation, method string, action ManagedEndpointAction, environment map[string]string) (ManagedEndpointAction, error) {
+func (runtime *ManagedEndpointSystemRuntime) call(ctx context.Context, instance ManagedEndpointOwnerInstance, worker managedEndpointUnitObservation, method string, action ManagedEndpointAction, environment map[string]string) (result ManagedEndpointAction, err error) {
+	defer func() {
+		if err != nil && ctx.Err() != nil {
+			err = context.Cause(ctx)
+		}
+	}()
 	socket, err := managedEndpointSocketPath(instance)
 	if err != nil {
 		return ManagedEndpointAction{}, err
@@ -129,6 +143,11 @@ func (runtime *ManagedEndpointSystemRuntime) call(ctx context.Context, instance 
 		return ManagedEndpointAction{}, err
 	}
 	defer connection.Close()
+	// DialContext alone cannot interrupt a later blocked read on manual
+	// cancellation. Closing this probe/response socket grants no kill authority
+	// and never authorizes resubmitting an accepted action.
+	stopClose := context.AfterFunc(ctx, func() { _ = connection.Close() })
+	defer stopClose()
 	deadline := time.Now().Add(5 * time.Second)
 	if limit, ok := ctx.Deadline(); ok && limit.Before(deadline) {
 		deadline = limit
@@ -164,7 +183,11 @@ func (runtime *ManagedEndpointSystemRuntime) call(ctx context.Context, instance 
 	if response.FailureCode != "" {
 		return response.Action, errors.New("managed endpoint worker supplied a failure code without a failure")
 	}
-	if response.Action.Ref != action.Ref {
+	if method == "hello" {
+		if response.Action != (ManagedEndpointAction{}) {
+			return response.Action, ErrManagedEndpointOwnershipUnknown
+		}
+	} else if response.Action.Ref != action.Ref {
 		return response.Action, ErrManagedEndpointStaleAction
 	}
 	return response.Action, nil

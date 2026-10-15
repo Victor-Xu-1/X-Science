@@ -21,6 +21,16 @@ func (worker *managedEndpointWorker) serveConnection(connection net.Conn) {
 		return
 	}
 	response := managedEndpointWorkerResponse{Version: ManagedEndpointOwnerProtocol, InstanceID: worker.instance.ID, WorkerIdentity: worker.identity}
+	if request.Method == "hello" {
+		// Readiness proves only this worker's identity. It must not depend on
+		// a journal/action outcome, or call Store/Accept/submit/cancel at all.
+		if request.Version != ManagedEndpointOwnerProtocol || request.InstanceID != worker.instance.ID || request.Action != (ManagedEndpointAction{}) || len(request.Environment) != 0 {
+			response.Failure = "managed endpoint readiness identity is invalid"
+			response.FailureCode = "invalid_authority"
+		}
+		_ = json.NewEncoder(connection).Encode(response)
+		return
+	}
 	if request.Version != ManagedEndpointOwnerProtocol || request.InstanceID != worker.instance.ID || request.Action.Ref.InstanceID != worker.instance.ID {
 		response.Failure = "managed endpoint request identity does not match"
 		response.FailureCode = "invalid_authority"
