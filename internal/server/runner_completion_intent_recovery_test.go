@@ -37,7 +37,7 @@ func TestCompletionRecoveryRestoresCanonicalDeliverableIntent(t *testing.T) {
 				run.Transcript.Claim.ClaimedInputRevision != authority.Claim.ClaimedInputRevision {
 				t.Fatalf("recovered task authority=%#v claim=%#v intent=%#v", run, run.Transcript.Claim, intent)
 			}
-			err = server.validateRecoveredTranscriptCompletionCandidate(context.Background(), session, candidate)
+			_, err = server.validateRecoveredTranscriptCompletionCandidate(context.Background(), session, candidate)
 			if !test.missing {
 				if err != nil {
 					t.Fatalf("ordinary prose completion gained a file obligation: %v", err)
@@ -95,7 +95,7 @@ func TestCompletionRecoveryPreservesStandaloneIntent(t *testing.T) {
 		candidate.SourceRun.TaskIntentRevision != authority.Claim.ClaimedInputRevision || candidate.SourceRun.TaskIntentID == "" {
 		t.Fatalf("standalone candidate=%#v found=%t err=%v", candidate, found, err)
 	}
-	if err := server.validateRecoveredTranscriptCompletionCandidate(context.Background(), session, candidate); err != nil {
+	if _, err := server.validateRecoveredTranscriptCompletionCandidate(context.Background(), session, candidate); err != nil {
 		t.Fatalf("standalone completion recovery was disabled: %v", err)
 	}
 }

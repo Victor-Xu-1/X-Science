@@ -210,9 +210,15 @@ migration or new storage engine is required by this interface.
 
 The Python chemistry runtime supplies RDKit 2D rendering. Interactive 3D
 structures are rendered only by the workbench Mol* preview from coordinate
-artifacts; Python helpers do not export a second HTML viewer. Publish a scene
-using the version-bound JSON example in the `cheminfo-render` Skill.
-Scene structure/version/hash validation is mandatory. Independent image review
+artifacts; Python helpers do not export a second HTML viewer. An optional
+combined scene uses the version-bound JSON example in `cheminfo-render`.
+A missing or invalid auxiliary scene produces one visible final-answer notice,
+not a completion rejection or an automatic model/tool repair round. Existing
+coordinates and results can be delivered without claiming a validated preview
+or scientific correctness. Explicitly required missing files remain delivery
+errors. Actual delivered image bytes, decoding and immutable hashes retain their
+integrity checks, including a valid scene's exact bound preview.
+Independent image review
 follows the session's existing `verifier_mode` setting for both single images and
 multi-structure scenes; a second structure does not implicitly enable it.
 The pre-review gate checks the actual image bytes and immutable hashes. The
@@ -223,12 +229,15 @@ new PNG artifact through the existing binary branch API, bound to the displayed
 structure version; local inline previews remain download-only. Snapshot saving
 does not overwrite coordinates or certify scientific correctness.
 
-Scene completion also validates selected, still-staged artifact versions before
-publishing them. Selection comes from the existing produced-artifact ledger and
+Scene diagnostics inspect selected, still-staged artifact versions before
+publication. Selection comes from the existing produced-artifact ledger and
 must match both artifact and version identity. Unselected drafts and cited-only
 inputs do not satisfy the scene contract; validation never changes publication
-state. Normal completion and checkpoint recovery use this same selection, so
-an unpublished valid scene cannot be trapped behind its own publication gate.
+state. Normal completion and checkpoint recovery use this same selection and
+persist advisories in the authoritative final assistant response. A typed old
+auxiliary scene correction no longer forces a tool call on Continue; historical
+messages and conditions remain immutable. Image-integrity targets and unknown
+legacy conditions are not waived by this policy.
 
 Image integrity checks use the exact produced snapshot versions selected for
 publication, not unrelated drafts, cited inputs or newer versions with the same

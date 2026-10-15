@@ -308,9 +308,15 @@ func (s *Server) handleSessionRunnerChatInterruption(
 			resumeDetail = "the provider repeatedly emitted a tool call after the outer runtime closed tool execution for immutable validation; preserve the current candidate and retry the terminal response without executing another tool"
 		}
 		if correction, found := latestRunnerCorrection(entries); found && recoveredRunnerCorrectionRequiresTool(entries) {
-			cause := correction.cause()
-			return true, s.interruptClaimedSessionRunnerWithCause(options, result, activeRun, projectionClaim, transcriptAuthority,
-				cause.ReasonCode, cause.Detail, &cause)
+			advisory, err := s.recoveredCompletionCorrectionIsAdvisory(options.SessionID, chatRun, correction)
+			if err != nil {
+				return true, err
+			}
+			if !advisory {
+				cause := correction.cause()
+				return true, s.interruptClaimedSessionRunnerWithCause(options, result, activeRun, projectionClaim, transcriptAuthority,
+					cause.ReasonCode, cause.Detail, &cause)
+			}
 		}
 		cause := newRunnerTextCorrection(reasonCode, resumeDetail)
 		if err := s.interruptClaimedSessionRunnerWithCause(

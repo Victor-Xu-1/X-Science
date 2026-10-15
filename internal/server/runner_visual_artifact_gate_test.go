@@ -14,27 +14,31 @@ import (
 	"x-science/internal/agentruntime"
 
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
-func TestVisualArtifactCorrectionPreservesActionableFailureWithManyArtifacts(t *testing.T) {
+func TestVisualArtifactCorrectionPreservesExactImageIntegrityTargets(t *testing.T) {
 	err := &sessionRunnerVisualArtifactValidationRequired{
-		Artifacts:              []string{"a.pdb", "b.pdb", "c.pdb", "d.pdb", "e.pdb", "f.pdb", "g.pdb", "h.pdb", "i.pdb"},
-		StructureSceneFailures: []string{"visible derived layer is missing for version-z"},
+		Artifacts: []string{"image.png (invalid image bytes)"},
+		Targets: []transcriptstore.RunnerVisualConditionArtifact{{
+			Name: "image.png", VersionID: "image-version", SHA256: strings.Repeat("a", 64), Failure: "invalid_image_integrity",
+		}},
 	}
 	for _, detail := range []string{err.Error(), err.runnerCorrection().Detail} {
-		if !strings.Contains(detail, err.StructureSceneFailures[0]) {
-			t.Fatalf("artifact name truncation hid the actionable repair condition: %s", detail)
+		if !strings.Contains(detail, "invalid image bytes") || strings.Contains(detail, "structure-scene") {
+			t.Fatalf("image repair lost its cause or gained an optional scene obligation: %s", detail)
 		}
 	}
-	if len(err.runnerCorrection().Condition.Visual.UnboundNames) != 10 {
-		t.Fatal("display summarization must not truncate the complete recovery condition")
+	visual := err.runnerCorrection().Condition.Visual
+	if len(visual.Artifacts) != 1 || visual.Artifacts[0] != err.Targets[0] || len(visual.UnboundNames) != 0 {
+		t.Fatal("image repair lost its exact integrity target")
 	}
 }
 
 func TestVisualArtifactCompletionGateSkipsSessionsWithoutWorkspaceFrame(t *testing.T) {
 	srv := New(Options{FileRoot: t.TempDir()})
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: "im:wechat:standalone"}, nil); err != nil {
+	if _, err := srv.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: "im:wechat:standalone"}, nil); err != nil {
 		t.Fatalf("non-workspace session unexpectedly required workspace visual evidence: %v", err)
 	}
 }
@@ -66,12 +70,12 @@ func TestVisualArtifactCompletionGateHonorsDisabledVerifierMode(t *testing.T) {
 	disabled := sessionstore.Session{ID: "frame-visual-policy", WorkDir: root, Orchestration: map[string]any{
 		"sessionConfig": map[string]any{"verifier_mode": "off"},
 	}}
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil {
+	if _, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil {
 		t.Fatalf("disabled verifier unexpectedly required visual evidence: %v", err)
 	}
 	enabled := disabled
 	enabled.Orchestration = map[string]any{"sessionConfig": map[string]any{"verifier_mode": "on"}}
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil {
+	if _, err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil {
 		t.Fatalf("pre-review integrity gate prevented the enabled independent reviewer from running: %v", err)
 	}
 }

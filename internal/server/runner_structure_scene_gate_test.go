@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -84,7 +83,7 @@ func TestStructureSceneManifestRequiresVisibleMotherAndDerivedLayers(t *testing.
 	}
 }
 
-func TestStructureSceneCompletionGateRequiresManifestForMultipleSnapshotStructures(t *testing.T) {
+func TestStructureSceneCompletionReportsMissingManifestWithoutBlocking(t *testing.T) {
 	root := t.TempDir()
 	store, err := workspace.Open(filepath.Join(root, "workspace.db"))
 	if err != nil {
@@ -102,19 +101,10 @@ func TestStructureSceneCompletionGateRequiresManifestForMultipleSnapshotStructur
 	writeSceneTestArtifact(t, store, "mother-artifact", "project-scene-missing", "mother.pdb", "ATOM mother", "frame-scene-missing")
 	writeSceneTestArtifact(t, store, "derived-artifact", "project-scene-missing", "derived.pdb", "ATOM derived", "frame-scene-missing")
 	srv := New(Options{FileRoot: root, Workspace: store})
-	err = srv.verifySessionRunnerVisualArtifactEvidence(sessionForSceneTest("frame-scene-missing", root), nil)
-	if err == nil {
-		t.Fatal("multiple snapshot structures passed without a structure-scene manifest")
-	}
-	var required *sessionRunnerVisualArtifactValidationRequired
-	if !errors.As(err, &required) || len(required.StructureSceneFailures) == 0 ||
-		!strings.Contains(strings.Join(required.StructureSceneFailures, " "), structureSceneManifestSchema) {
-		t.Fatalf("unexpected scene contract error: %#v", err)
-	}
-	detail := required.runnerCorrection().Detail
-	if strings.Contains(detail, "VisualReview") ||
-		!strings.Contains(detail, "mother_structure") || !strings.Contains(detail, "derived_structures") {
-		t.Fatalf("scene correction requests a retired tool or omits the native contract: %s", detail)
+	advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(sessionForSceneTest("frame-scene-missing", root), nil)
+	if err != nil || advisory == nil || advisory.Code != completionAdvisoryStructurePreview ||
+		!strings.Contains(strings.Join(advisory.Findings, " "), structureSceneManifestSchema) {
+		t.Fatalf("missing scene was blocked or silently certified: advisory=%#v error=%v", advisory, err)
 	}
 }
 
@@ -160,12 +150,12 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 		[]byte(`{"schema":"x-science.structure-scene.v1","preview_image":"old.png"}`), "application/json", "frame-scene-valid")
 	srv := New(Options{FileRoot: root, Workspace: store})
 	disabled := sessionForSceneTest("frame-scene-valid", root)
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil {
+	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil || advisory != nil {
 		t.Fatalf("disabled independent verifier rejected a structurally valid bound scene: %v", err)
 	}
 	enabled := disabled
 	enabled.Orchestration = map[string]any{"sessionConfig": map[string]any{"verifier_mode": "on"}}
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil {
+	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil || advisory != nil {
 		t.Fatalf("valid bound scene must reach the independent reviewer: %v", err)
 	}
 	// Save uses staged versions: completion must validate the selected draft
@@ -179,7 +169,7 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 	}
 	selected := transcriptstore.ArtifactReferenceInput{ArtifactID: "scene-manifest-artifact", VersionID: draft.ID, Relation: transcriptstore.ArtifactRelationProduced}
 	for _, session := range []sessionstore.Session{disabled, enabled} {
-		if err := srv.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil {
+		if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil || advisory != nil {
 			t.Fatalf("selected draft cannot reach publication: %v", err)
 		}
 	}
@@ -187,14 +177,23 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 		t.Fatalf("validation published the draft early: intermediate=%v found=%v err=%v", intermediate, found, err)
 	}
 	for name, candidate := range map[string]transcriptstore.ArtifactReferenceInput{
-		"unselected":     {},
-		"wrong version":  {ArtifactID: selected.ArtifactID, VersionID: "unselected-version", Relation: selected.Relation},
-		"wrong artifact": {ArtifactID: "another-artifact", VersionID: selected.VersionID, Relation: selected.Relation},
-		"cited only":     {ArtifactID: selected.ArtifactID, VersionID: selected.VersionID, Relation: transcriptstore.ArtifactRelationCited},
+		"unselected": {},
+		"cited only": {ArtifactID: selected.ArtifactID, VersionID: selected.VersionID, Relation: transcriptstore.ArtifactRelationCited},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err == nil {
-				t.Fatal("an unselected draft satisfied the completion gate")
+			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err != nil || advisory == nil {
+				t.Fatalf("unselected draft was certified or blocked completion: advisory=%#v error=%v", advisory, err)
+			}
+		})
+	}
+	// An optional preview never waives the selected artifact/version authority.
+	for name, candidate := range map[string]transcriptstore.ArtifactReferenceInput{
+		"wrong version":  {ArtifactID: selected.ArtifactID, VersionID: "unselected-version", Relation: selected.Relation},
+		"wrong artifact": {ArtifactID: "another-artifact", VersionID: selected.VersionID, Relation: selected.Relation},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err == nil || advisory != nil {
+				t.Fatalf("invalid artifact selection became an advisory: advisory=%#v error=%v", advisory, err)
 			}
 		})
 	}
@@ -207,8 +206,8 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 		t.Fatal(err)
 	}
 	selected.VersionID = invalid.ID
-	if err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{selected}); err == nil {
-		t.Fatal("selected draft bypassed preview digest validation")
+	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{selected}); err != nil || advisory == nil {
+		t.Fatalf("invalid optional scene digest was certified or blocked completion: advisory=%#v error=%v", advisory, err)
 	}
 }
 

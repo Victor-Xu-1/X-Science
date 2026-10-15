@@ -16,30 +16,19 @@ import (
 const sessionRunnerVisualArtifactValidationReasonCode = "visual_artifact_validation_required"
 
 type sessionRunnerVisualArtifactValidationRequired struct {
-	Artifacts              []string
-	Targets                []transcriptstore.RunnerVisualConditionArtifact
-	StructureSceneFailures []string
+	Artifacts []string
+	Targets   []transcriptstore.RunnerVisualConditionArtifact
 }
 
 func (err *sessionRunnerVisualArtifactValidationRequired) Error() string {
 	if err == nil {
 		return "generated visual artifacts require immutable visual validation"
 	}
-	// Keep repair causes separate from affected names: a large delivery must
-	// not consume the display budget before the model sees what to fix.
-	failures := summarizeVisualValidationItems(err.StructureSceneFailures)
 	names := summarizeVisualValidationItems(err.Artifacts)
-	if failures == "" && names == "" {
+	if names == "" {
 		return "generated visual artifacts require immutable visual validation"
 	}
-	if failures != "" {
-		detail := "multi-structure delivery does not satisfy the immutable structure-scene contract: " + failures
-		if names != "" {
-			detail += ". Affected artifacts: " + names
-		}
-		return detail
-	}
-	return "generated visual artifacts or structure scenes are not bound to the required immutable visual evidence: " + names
+	return "generated image artifacts failed immutable byte integrity validation: " + names
 }
 
 func summarizeVisualValidationItems(items []string) string {
@@ -51,18 +40,13 @@ func summarizeVisualValidationItems(items []string) string {
 }
 
 func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() transcriptstore.RunnerInterruptionCause {
-	var artifacts []string
+	// New hard failures only describe actual image targets. The historical
+	// scene-only UnboundNames shape is read for compatibility, never emitted.
+	visual := transcriptstore.RunnerVisualCondition{}
 	if err != nil {
-		artifacts = append([]string(nil), err.Artifacts...)
-		artifacts = append(artifacts, err.StructureSceneFailures...)
-	}
-	artifacts = uniqueSortedStrings(artifacts)
-	visual := transcriptstore.RunnerVisualCondition{UnboundNames: artifacts}
-	if err != nil && len(err.Targets) > 0 {
 		visual.Artifacts = append([]transcriptstore.RunnerVisualConditionArtifact(nil), err.Targets...)
-		visual.UnboundNames = append([]string(nil), err.StructureSceneFailures...)
 	}
-	detail := err.Error() + ". For multiple structures, save a x-science.structure-scene.v1 manifest using mother_structure and derived_structures entries with name/version_id, layers with version_id/role/representation/visible, and preview_image with name/version_id/sha256. Use the native Mol* preview and the cheminfo-render contract; do not generate a standalone HTML viewer or substitute a 2D grid for a 3D scene. Preserve coordinates and exact immutable hashes; repair the reported scene or manifest fields."
+	detail := err.Error() + ". Repair the reported image bytes or immutable hash binding. Preserve completed work and do not claim that invalid image content has been verified."
 	return newRunnerCorrection(sessionRunnerVisualArtifactValidationReasonCode,
 		detail,
 		transcriptstore.RunnerCorrectionCondition{Visual: &visual},
@@ -73,21 +57,21 @@ func (err *sessionRunnerVisualArtifactValidationRequired) runnerCorrection() tra
 // the user-controlled completion-verification pipeline. Optional independent
 // review may add broader judgment, but verifier_mode=off must not start or keep
 // a review workflow alive after the main task has completed.
-func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.Session, candidates []transcriptstore.ArtifactReferenceInput) error {
+func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.Session, candidates []transcriptstore.ArtifactReferenceInput) (*sessionRunnerCompletionAdvisory, error) {
 	// Not every runner entry point is backed by a workspace frame. IM,
 	// delegation, and direct TaskRun sessions can legitimately complete without
 	// one, and therefore cannot have workspace artifact versions to validate.
 	// Byte integrity is checked here. Independent interpretation belongs to the
 	// existing reviewer, not a retired tool that the main model cannot invoke.
 	if s == nil || s.workspaceStore == nil {
-		return nil
+		return nil, nil
 	}
 	frame, found, err := s.workspaceStore.GetFrame(session.ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !found {
-		return nil
+		return nil, nil
 	}
 	rootFrameID := strings.TrimSpace(frame.RootFrameID)
 	if rootFrameID == "" {
@@ -95,14 +79,14 @@ func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.
 	}
 	workspaceEvidence, err := s.sessionReviewerWorkspaceEvidence(session, rootFrameID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	deliveryEvidence, err := s.sessionRunnerVisualDeliveryEvidence(frame.ProjectID, candidates)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.verifyVisualArtifactEvidence(deliveryEvidence); err != nil {
-		return err
+		return nil, err
 	}
 	return s.verifyStructureSceneEvidence(workspaceEvidence.Artifacts, candidates)
 }
