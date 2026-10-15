@@ -827,11 +827,17 @@ operation, and an unknown fence is not released by elapsed time. Superseded
 cancelled actions can close their own truthful receipt without changing the
 newer endpoint claim or retiring its physical instance.
 
-The reconciler uses bounded keyset pages. Foreign refs and corrupt SQL/JSON keys
+The reconciler uses bounded keyset pages. A missing approved dependency is
+recorded on its original pending ref without blocking other refs in the page.
+No-admission/native cancellation and positive stopped-owner observation do not
+require a newly resolved start credential; they cannot execute a new lifecycle
+script. A durably recorded failed result is not a supervisor failure.
+Foreign refs and corrupt SQL/JSON keys
 are errors, not ordinary unknown owners or permission to restart. Failed stop
 receipts preserve the original physical identity. Retirement/removal requires
 positive proof for that exact owner; successful script exit alone is not such
-proof. A parked Docker container can reuse the stable physical instance only
+proof, and a missing unit name cannot override a still-populated original
+cgroup. A parked Docker container can reuse the stable physical instance only
 under a fresh claim and Accept, with current ID/daemon/logging checked again.
 
 Historical nil-owner registration bytes and hashes remain unchanged. Explicit

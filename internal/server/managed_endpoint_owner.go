@@ -117,8 +117,9 @@ func (s *Server) runOwnedManagedEndpoint(ctx context.Context, endpoint workspace
 	return state, err
 }
 
-// This supervisor only observes stored action references. It never retries a
-// start or creates a second compute scheduler on a web-process restart.
+// This supervisor observes accepted refs or first-dispatches the same original
+// unaccepted durable intent through its Accept CAS. It never replays accepted
+// scripts, creates another claim, or acts as a second compute scheduler.
 func (s *Server) RunManagedEndpointOwners(ctx context.Context) error {
 	if s.workspaceStore == nil {
 		return nil

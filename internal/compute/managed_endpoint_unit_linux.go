@@ -237,8 +237,17 @@ func (unit *managedEndpointUnit) stop(ctx context.Context, instance ManagedEndpo
 	if err != nil {
 		return nil, err
 	}
-	if before.Absent || before.Empty {
-		proof := &ManagedEndpointStoppedProof{Identity: before.Identity, ObservedAt: time.Now().UTC(), State: "absent", ControlReachable: true, CgroupEmpty: true}
+	if before.Absent && !before.Empty {
+		// A missing unit name is not proof that its original cgroup exited.
+		// Do not retire this owner or address a possibly reused unit by name.
+		return nil, errors.New("managed endpoint unit is absent but its original cgroup is still populated")
+	}
+	if before.Empty {
+		state := before.State
+		if before.Absent {
+			state = "absent"
+		}
+		proof := &ManagedEndpointStoppedProof{Identity: before.Identity, ObservedAt: time.Now().UTC(), State: state, ControlReachable: true, CgroupEmpty: before.Empty}
 		return proof, proof.ValidateFor(instance)
 	}
 	if instance.Identity.Kind != "native-unit" || before.Identity != instance.Identity {

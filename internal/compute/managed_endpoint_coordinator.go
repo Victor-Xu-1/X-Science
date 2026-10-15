@@ -157,28 +157,7 @@ func (coordinator *ManagedEndpointCoordinator) Reconcile(ctx context.Context, af
 			return last, err
 		}
 		observeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		var receipt ManagedEndpointOwnerReceipt
-		if action.CancelRequested {
-			environment, environmentErr := coordinator.Environment(observeCtx, instance, action.Ref.Kind)
-			if environmentErr != nil {
-				cancel()
-				return last, environmentErr
-			}
-			receipt, err = coordinator.Runtime.Cancel(observeCtx, instance, action, environment)
-		} else if !action.Accepted {
-			environment, environmentErr := coordinator.Environment(observeCtx, instance, action.Ref.Kind)
-			if environmentErr != nil {
-				cancel()
-				return last, environmentErr
-			}
-			if action.Ref.Kind == "start" {
-				receipt, err = coordinator.Runtime.Start(observeCtx, instance, action, environment)
-			} else {
-				receipt, err = coordinator.Runtime.Stop(observeCtx, instance, action, environment)
-			}
-		} else {
-			receipt, err = coordinator.Runtime.Observe(observeCtx, instance, action)
-		}
+		receipt, err := coordinator.reconcileAction(observeCtx, instance, action)
 		cancel()
 		if errors.Is(err, ErrManagedEndpointActionPending) {
 			continue
@@ -198,7 +177,13 @@ func (coordinator *ManagedEndpointCoordinator) Reconcile(ctx context.Context, af
 			}
 			continue
 		}
-		if _, _, finishErr := coordinator.finish(ctx, ref, receipt, err); finishErr != nil {
+		if receipt.Ref.InstanceID == "" {
+			receipt.Ref = ref
+		}
+		// A truthfully failed/cancelled receipt is still a completed observation.
+		// Only a Store/fence error aborts this scan; returning the user-facing
+		// result error here would restart the supervisor at its first ref.
+		if _, finishErr := coordinator.Store.FinishManagedEndpointAction(ctx, ref, receipt); finishErr != nil {
 			if errors.Is(finishErr, ErrManagedEndpointStaleAction) && action.CancelRequested {
 				if _, settleErr := coordinator.Store.SettleSupersededManagedEndpointAction(ctx, ref, &receipt); settleErr != nil {
 					return last, settleErr
