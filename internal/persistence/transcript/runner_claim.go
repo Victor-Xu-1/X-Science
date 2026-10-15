@@ -144,7 +144,7 @@ func (r *Repository) claimNextRunner(
 			return err
 		}
 		stream.Kind = StreamKind(kind)
-		resumeSource, resumeCheckpoint, claimable, err := automaticFrameResumeRequestConn(ctx, conn, stream, now)
+		resumeSource, resumeCheckpoint, claimable, err := r.automaticFrameResumeRequestConn(ctx, conn, stream, now)
 		if err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (r *Repository) claimNextRunner(
 	return result, schemaError(err)
 }
 
-func automaticFrameResumeRequestConn(
+func (r *Repository) automaticFrameResumeRequestConn(
 	ctx context.Context,
 	conn *sql.Conn,
 	stream Stream,
@@ -191,7 +191,7 @@ func automaticFrameResumeRequestConn(
 		return "", 0, false, err
 	}
 	if claimedInputRevision < stream.InputRevision {
-		coverage, err := inputCoverageConn(ctx, conn, stream, claimedInputRevision)
+		coverage, err := r.inputCoverageConn(ctx, conn, stream, claimedInputRevision)
 		if err != nil {
 			return "", 0, false, err
 		}
@@ -360,7 +360,7 @@ func (r *Repository) claimRunnerConn(
 				return result, nil
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				coverage, err := inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
+				coverage, err := r.inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
 				if err != nil {
 					return result, err
 				}
@@ -428,7 +428,7 @@ func (r *Repository) claimRunnerConn(
 				return result, ErrCheckpointUnavailable
 			}
 			if stream.InputRevision > latestClaimedRevision {
-				coverage, err := inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
+				coverage, err := r.inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
 				if err != nil {
 					return result, err
 				}

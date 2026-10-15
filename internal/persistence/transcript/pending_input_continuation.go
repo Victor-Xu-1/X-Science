@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func framePendingInputRequiresContinueConn(ctx context.Context, conn *sql.Conn, ownerID, frameID string, now time.Time) (bool, error) {
+func (r *Repository) framePendingInputRequiresContinueConn(ctx context.Context, conn *sql.Conn, ownerID, frameID string, now time.Time) (bool, error) {
 	var streamUID, frameStatus string
 	err := conn.QueryRowContext(ctx, `SELECT s.stream_uid,f.status FROM transcript_frame_authority a
 		JOIN transcript_streams s ON s.stream_uid=a.active_stream_uid AND s.owner_id=a.owner_id
@@ -24,7 +24,7 @@ func framePendingInputRequiresContinueConn(ctx context.Context, conn *sql.Conn, 
 	if err != nil {
 		return false, err
 	}
-	coverage, err := inputCoverageConn(ctx, conn, stream, stream.ConsumedInputRevision)
+	coverage, err := r.inputCoverageConn(ctx, conn, stream, stream.ConsumedInputRevision)
 	if err != nil || !coverage.Pending() || coverage.Complete {
 		return false, err
 	}
@@ -45,7 +45,7 @@ func (tx *ImmediateTransaction) FramePendingInputRequiresContinue(ctx context.Co
 	if tx == nil || tx.repository == nil || tx.conn == nil {
 		return false, ErrSchemaUnavailable
 	}
-	return framePendingInputRequiresContinueConn(ctx, tx.conn, ownerID, frameID, tx.repository.now().UTC())
+	return tx.repository.framePendingInputRequiresContinueConn(ctx, tx.conn, ownerID, frameID, tx.repository.now().UTC())
 }
 
 func (r *Repository) FramePendingInputRequiresContinue(ctx context.Context, ownerID, frameID string) (bool, error) {
@@ -61,5 +61,5 @@ func (r *Repository) FramePendingInputRequiresContinue(ctx context.Context, owne
 		return false, err
 	}
 	defer func() { _, _ = conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK") }()
-	return framePendingInputRequiresContinueConn(ctx, conn, ownerID, frameID, r.now().UTC())
+	return r.framePendingInputRequiresContinueConn(ctx, conn, ownerID, frameID, r.now().UTC())
 }

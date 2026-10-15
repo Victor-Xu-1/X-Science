@@ -204,13 +204,14 @@ func (r *Repository) AdmitUserEvent(ctx context.Context, input AdmitUserEventInp
 		if err != nil {
 			return err
 		}
-		event, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
+		existing, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
 		if err != nil {
 			return err
 		}
 		if !found {
 			return ErrEventConflict
 		}
+		event = existing
 		if event.Type == "user_message" {
 			return nil
 		}

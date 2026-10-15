@@ -113,7 +113,7 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 			input.Claim.ClaimedInputRevision, input.Claim.StreamUID); err != nil {
 			return err
 		}
-		coverage, err := inputCoverageConn(ctx, conn, stream, input.Claim.ClaimedInputRevision)
+		coverage, err := r.inputCoverageConn(ctx, conn, stream, input.Claim.ClaimedInputRevision)
 		if err != nil {
 			return err
 		}

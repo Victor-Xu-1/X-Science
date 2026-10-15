@@ -131,7 +131,11 @@ func (s *Store) resumeCompatibilityFrameCommand(ctx context.Context, rootID stri
 		return ResumeCompatibilityFrameResult{}, err
 	}
 	var result ResumeCompatibilityFrameResult
-	err = transcriptstore.NewRepository(s.db).RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+	repository, err := s.TranscriptRepository(ctx)
+	if err != nil {
+		return result, err
+	}
+	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 		replay, found, err := frameContinueReplayTx(ctx, tx, rootID, input, digest)
 		if err != nil || found {
 			result = replay

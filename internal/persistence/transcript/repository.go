@@ -17,12 +17,13 @@ const maxEventPayloadBytes = 1 << 20
 const MaxEventPayloadBytes = maxEventPayloadBytes
 
 type Repository struct {
-	db          *sql.DB
-	readDB      *sql.DB
-	now         func() time.Time
-	rand        io.Reader
-	inputWakeMu sync.Mutex
-	inputWake   chan struct{}
+	db                        *sql.DB
+	readDB                    *sql.DB
+	now                       func() time.Time
+	rand                      io.Reader
+	inputWakeMu               sync.Mutex
+	inputWake                 chan struct{}
+	recoveryAdmissionVerifier RecoveryAdmissionVerifier
 }
 
 // ImmediateTransaction is the shared SQLite authority used when a workspace

@@ -22,7 +22,7 @@ type InputCoverage struct {
 
 func (c InputCoverage) Pending() bool { return c.InputRevision > c.AfterRevision }
 
-func inputCoverageConn(ctx context.Context, conn *sql.Conn, stream Stream, after int64) (InputCoverage, error) {
+func (r *Repository) inputCoverageConn(ctx context.Context, conn *sql.Conn, stream Stream, after int64) (InputCoverage, error) {
 	if after < 0 || after > stream.InputRevision || stream.ConsumedInputRevision > stream.InputRevision {
 		return InputCoverage{}, ErrEventConflict
 	}
@@ -91,6 +91,16 @@ func inputCoverageConn(ctx context.Context, conn *sql.Conn, stream Stream, after
 			if eventID.Valid || !operationID.Valid || operationID.String == "" || !stateVersion.Valid || stateVersion.Int64 <= 0 || kind != "recovery" {
 				return coverage, ErrEventConflict
 			}
+			if r == nil || r.recoveryAdmissionVerifier == nil {
+				return coverage, ErrSchemaUnavailable
+			}
+			if err := r.recoveryAdmissionVerifier(ctx, conn, RecoveryAdmissionSource{
+				StreamUID: stream.UID, OwnerID: stream.OwnerID, ProjectID: stream.ProjectID, FrameID: stream.FrameID,
+				Epoch: stream.Epoch, BranchID: branchID, BranchGeneration: generation, InputRevision: revision,
+				OperationID: operationID.String, StateVersion: stateVersion.Int64,
+			}); err != nil {
+				return coverage, err
+			}
 			coverage.HasRecovery = true
 		default:
 			return coverage, ErrEventConflict
@@ -111,7 +121,7 @@ func (tx *ImmediateTransaction) InputCoverage(ctx context.Context, streamUID, ow
 	if err != nil {
 		return InputCoverage{}, err
 	}
-	return inputCoverageConn(ctx, tx.conn, stream, after)
+	return tx.repository.inputCoverageConn(ctx, tx.conn, stream, after)
 }
 
 func (r *Repository) GetInputCoverage(ctx context.Context, streamUID, ownerID string, after int64) (InputCoverage, error) {
@@ -131,7 +141,7 @@ func (r *Repository) GetInputCoverage(ctx context.Context, streamUID, ownerID st
 	if err != nil {
 		return InputCoverage{}, err
 	}
-	return inputCoverageConn(ctx, conn, stream, after)
+	return r.inputCoverageConn(ctx, conn, stream, after)
 }
 
 // This is a candidate index only. Every selected stream is revalidated by

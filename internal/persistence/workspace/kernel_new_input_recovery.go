@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
 )
