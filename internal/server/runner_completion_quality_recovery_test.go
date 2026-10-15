@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"strings"
@@ -113,7 +114,7 @@ func TestMolecularCompanionCountRecoveryPersistsOriginalOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	payload, _ := json.Marshal(map[string]any{"status": "interrupted", transcriptstore.RunnerInterruptionCauseField: interruption})
-	checkpoint, _, _, err := f.repo.AppendRunnerCheckpoint(ctx, transcriptstore.AppendRunnerCheckpointInput{
+	checkpoint, checkpointEvent, _, err := f.repo.AppendRunnerCheckpoint(ctx, transcriptstore.AppendRunnerCheckpointInput{
 		Claim: f.claim, ClientMessageID: "count-original-checkpoint", Phase: transcriptstore.RunnerPhaseExecuting,
 		Resumable: true, PayloadJSON: payload,
 	})
@@ -170,10 +171,13 @@ func TestMolecularCompanionCountRecoveryPersistsOriginalOnce(t *testing.T) {
 		}
 		if event.Event.EventID == checkpoint.EventID {
 			historicalConditions++
-			before, _ := json.Marshal(interruption)
-			after, _ := json.Marshal(body[transcriptstore.RunnerInterruptionCauseField])
-			if string(before) != string(after) {
-				t.Fatal("recovery rewrote the original typed count condition")
+			if !bytes.Equal(checkpointEvent.PayloadJSON, event.Event.PayloadJSON) {
+				t.Fatal("recovery rewrote the immutable original checkpoint bytes")
+			}
+			restored, present, err := transcriptstore.ParseRunnerInterruptionCause(body)
+			if err != nil || !present || restored.Condition == nil || restored.Condition.ContentID() != cause.Condition.ContentID() ||
+				restored.ReasonCode != cause.ReasonCode || restored.Detail != cause.Detail {
+				t.Fatalf("recovery changed the typed count condition identity: present=%t cause=%+v err=%v", present, restored, err)
 			}
 		}
 		if event.Event.Type == "content_delta" {
