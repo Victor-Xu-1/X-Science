@@ -25,7 +25,7 @@ func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
 	}
 	var exceeds *detached.ExecutorResourceBudgetExceedsCurrentCapacityError
 	if errors.As(err, &exceeds) {
-		return map[string]any{
+		receipt := map[string]any{
 			"backend_id": exceeds.BackendID, "backend_generation": exceeds.Generation,
 			"admission_state": "budget_exceeds_current_host_capacity",
 			"ok":              false, "executed": false, "status": "resource_budget_exceeds_current_capacity",
@@ -34,7 +34,21 @@ func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
 			"host_total_memory_bytes": exceeds.HostTotalBytes, "control_reserve_bytes": exceeds.ReserveBytes,
 			"error":    "The requested memory allocation exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and no budget was silently reduced.",
 			"recovery": "recheck_after_host_capacity_changes_or_submit_a_new_operation_with_a_different_explicit_budget_or_choose_an_authorized_different_runtime",
-		}, true
+		}
+		if exceeds.MinimumBytes > 0 {
+			receipt["minimum_memory_bytes"] = exceeds.MinimumBytes
+		}
+		if required := exceeds.RequiredBytes(); required > 0 {
+			receipt["required_memory_bytes"] = required
+		}
+		if exceeds.RequestedBytes == 0 {
+			receipt["error"] = "The minimum executor memory requirement exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and the default allocation request remains unchanged."
+		}
+		if exceeds.MinimumBytes > exceeds.MaximumBytes {
+			// No smaller explicit budget can satisfy this observed runtime floor.
+			receipt["recovery"] = "recheck_after_host_capacity_changes_or_choose_an_authorized_different_runtime"
+		}
+		return receipt, true
 	}
 	var unavailable *detached.ExecutorResourceUnavailableError
 	if !errors.As(err, &unavailable) {

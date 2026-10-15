@@ -42,3 +42,33 @@ func TestKernelResourceAdmissionDistinguishesCurrentHostBudgetLimit(t *testing.T
 		}
 	}
 }
+
+func TestKernelResourceAdmissionKeepsRequestSeparateFromInfeasibleMinimum(t *testing.T) {
+	for _, requested := range []int64{0, 1 << 30} {
+		t.Run(fmt.Sprintf("requested_%d", requested), func(t *testing.T) {
+			observation := &detached.ExecutorResourceBudgetExceedsCurrentCapacityError{
+				BackendID: "backend-default-floor", Generation: 3,
+				RequestedBytes: requested, MinimumBytes: 768 << 20,
+				MaximumBytes: 512 << 20, HostTotalBytes: 3584 << 20, ReserveBytes: 3 << 30,
+			}
+			receipt, found := kernelResourceAdmissionReceipt(fmt.Errorf("prepare executor: %w", observation))
+			if !found || receipt["executed"] != false || receipt["execution_outcome"] != "not_started" ||
+				receipt["retryable"] != false || receipt["status"] != "resource_budget_exceeds_current_capacity" {
+				t.Fatalf("infeasible runtime minimum became an execution or retry: %#v", receipt)
+			}
+			for key, want := range map[string]any{
+				"requested_memory_bytes": requested, "minimum_memory_bytes": int64(768 << 20),
+				"required_memory_bytes": max(requested, int64(768<<20)), "maximum_memory_bytes": int64(512 << 20),
+				"backend_id": "backend-default-floor", "backend_generation": int64(3),
+				"recovery": "recheck_after_host_capacity_changes_or_choose_an_authorized_different_runtime",
+			} {
+				if receipt[key] != want {
+					t.Errorf("receipt[%s]=%v, want %v", key, receipt[key], want)
+				}
+			}
+			if requested == 0 && receipt["error"] != "The minimum executor memory requirement exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and the default allocation request remains unchanged." {
+				t.Errorf("default request was incorrectly described as an excessive explicit budget: %v", receipt["error"])
+			}
+		})
+	}
+}
