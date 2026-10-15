@@ -23,12 +23,13 @@ var (
 // ManagedEndpointOwnerSpec is part of the approved registration. A nil spec
 // preserves the historical registration bytes and is not evidence of ownership.
 type ManagedEndpointOwnerSpec struct {
-	Version        int                             `json:"version"`
-	Kind           string                          `json:"kind"`
-	Output         ManagedEndpointOutputPolicy     `json:"output"`
-	Docker         *ManagedEndpointDockerSpec      `json:"docker,omitempty"`
-	Adopt          *ManagedEndpointRuntimeIdentity `json:"adopt,omitempty"`
-	LegacyApproval *ManagedEndpointLegacyApproval  `json:"legacyApproval,omitempty"`
+	Version               int                             `json:"version"`
+	Kind                  string                          `json:"kind"`
+	Output                ManagedEndpointOutputPolicy     `json:"output"`
+	Docker                *ManagedEndpointDockerSpec      `json:"docker,omitempty"`
+	Adopt                 *ManagedEndpointRuntimeIdentity `json:"adopt,omitempty"`
+	LegacyApproval        *ManagedEndpointLegacyApproval  `json:"legacyApproval,omitempty"`
+	StartupTimeoutSeconds int64                           `json:"startupTimeoutSeconds,omitempty"`
 }
 
 type ManagedEndpointLegacyApproval struct {
@@ -162,6 +163,9 @@ func (spec *ManagedEndpointOwnerSpec) Validate() error {
 	}
 	if spec.Version != ManagedEndpointOwnerProtocol || spec.Output.SegmentBytes < 4096 || spec.Output.SegmentBytes > 8<<20 || spec.Output.Segments < 1 || spec.Output.Segments > 8 {
 		return errors.New("managed endpoint owner version or bounded output policy is invalid")
+	}
+	if _, err := managedEndpointStartupBudget(spec.StartupTimeoutSeconds); err != nil {
+		return err
 	}
 	switch spec.Kind {
 	case "native-unit":
