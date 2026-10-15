@@ -72,6 +72,18 @@ func (fixture *managedEndpointPhysicalFixture) diagnoseDockerStart(t *testing.T)
 		return
 	}
 	t.Logf("Docker Start diagnostic owned container=%s running=%t status=%s exit=%d error=%q ports=%v", facts.ID, facts.Running, facts.Status, facts.ExitCode, managedEndpointPhysicalDiagnosticText(facts.Error, 512), facts.Ports)
+	const insideProbe = `import urllib.request
+opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+try:
+    with opener.open('http://127.0.0.1:8080/health', timeout=0.5) as response:
+        print('status=' + str(response.status))
+        print(response.read(256).decode('utf-8', errors='replace'))
+except Exception as error:
+    print(type(error).__name__ + ': ' + str(error))
+    raise SystemExit(1)
+`
+	inside, insideErr := managedEndpointPhysicalCommandLimit(ctx, 1024, fixture.docker, "--context=default", "container", "exec", "--", id, "python3", "-B", "-c", insideProbe)
+	t.Logf("Docker Start diagnostic owned inside HTTP<=1KiB (500ms, no proxy/bytecode writes): %q read=%v", inside, insideErr)
 	logs, logsErr := managedEndpointPhysicalCommandLimit(ctx, 2048, fixture.docker, "--context=default", "container", "logs", "--tail=12", "--", id)
 	t.Logf("Docker Start diagnostic owned logs<=2KiB (partial snapshot): %q read=%v", logs, logsErr)
 }
