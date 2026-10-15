@@ -177,9 +177,17 @@ facts. Do not loop over re-registration, `exec_peek`, Start or Stop to make a
 failure disappear. Known physical ownership with a failed stop is retained for
 an explicit retry. A positively stopped owner can be removed through its owned
 teardown path; unknown/live owners cannot be erased for convenience.
-Local actions retain the existing finite policy (Start/readiness up to two
-minutes, Stop up to one minute); this is not a claim that arbitrary image or
-weight preparation will finish inside that policy.
+Local Start and readiness share the finite budget approved in optional
+`owner.startupTimeoutSeconds`. Supply a positive integer number of seconds when
+the runbook/user requires a longer cold start; changing it requires the normal
+registration approval, not a per-call override. Omitted or zero preserves the
+historical two-minute default and approval bytes. Negative values or values
+that overflow the runtime duration are rejected. This is not a host-capacity
+estimate, an unlimited retry policy, or a limit on a healthy service's lifetime.
+Stop remains up to one minute, with its existing separate cleanup/control
+budgets. A short observation timeout does not cancel an accepted startup;
+explicit cancellation and the approved startup deadline still apply. No budget
+guarantees that arbitrary image or weight preparation will finish within it.
 
 ## Remote HTTPS endpoints
 
