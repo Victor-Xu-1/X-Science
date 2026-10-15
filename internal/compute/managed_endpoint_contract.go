@@ -392,6 +392,9 @@ type ManagedEndpointClaim struct {
 // commit live/stopped, and this contract does not add a second scheduler.
 type ManagedEndpointOwnerStore interface {
 	PrepareManagedEndpointAction(context.Context, ManagedEndpointClaim, string, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)
+	// The synchronous callback may publish only small private bootstrap files.
+	// It must not reenter Store or perform process/network/probe/output work.
+	WithManagedEndpointBootstrapPublication(context.Context, ManagedEndpointBootstrap, ManagedEndpointRuntimeIdentity, func(ManagedEndpointOwnerInstance, ManagedEndpointAction) error) error
 	AcceptManagedEndpointAction(context.Context, ManagedEndpointActionRef, ManagedEndpointRuntimeIdentity) (bool, error)
 	ReadManagedEndpointAction(context.Context, ManagedEndpointActionRef) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)
 	CurrentManagedEndpointAction(context.Context, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)

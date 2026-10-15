@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -365,8 +366,20 @@ func TestSessionRunnerCommandOnceCancelsProcessTreeWhenLeaseIsLost(t *testing.T)
 	if err != nil || !found || session.Runner == nil {
 		t.Fatalf("get active runner: found=%v session=%#v err=%v", found, session, err)
 	}
-	if _, released, err := srv.sessionStore.ReleaseRunner(sessionstore.RunnerClaimFromSession(session)); err != nil || !released {
-		t.Fatalf("release active runner: released=%v err=%v", released, err)
+	oldClaim := sessionstore.RunnerClaimFromSession(session)
+	if oldClaim.SessionID != sessionID || oldClaim.RunnerID != "worker-lease-loss" || oldClaim.Attempt <= 0 || oldClaim.ClaimToken == "" {
+		t.Fatalf("unexpected active runner identity: session=%q runner=%q attempt=%d", oldClaim.SessionID, oldClaim.RunnerID, oldClaim.Attempt)
+	}
+	// Inject owner revocation in this private Store, independently of the live
+	// deadline required by ReleaseRunner. Save serializes with every heartbeat.
+	session.Runner = nil
+	if err := srv.sessionStore.Save(session); err != nil {
+		t.Fatalf("revoke private runner identity: %v", err)
+	}
+	// Heartbeat permits expired-but-unreclaimed owners, so this proves identity
+	// loss rather than expiry of the deliberately short lease.
+	if revoked, renewed, err := srv.sessionStore.HeartbeatRunner(oldClaim, 80*time.Millisecond); !errors.Is(err, sessionstore.ErrRunnerClaimStale) || renewed || revoked.Runner != nil {
+		t.Fatalf("revoked runner heartbeat: renewed=%v runner=%#v err=%v", renewed, revoked.Runner, err)
 	}
 
 	select {

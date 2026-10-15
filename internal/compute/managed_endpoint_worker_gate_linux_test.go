@@ -18,6 +18,10 @@ type managedEndpointWorkerGateStore struct {
 	accepts  int
 }
 
+func (store *managedEndpointWorkerGateStore) WithManagedEndpointBootstrapPublication(context.Context, ManagedEndpointBootstrap, ManagedEndpointRuntimeIdentity, func(ManagedEndpointOwnerInstance, ManagedEndpointAction) error) error {
+	panic("unexpected bootstrap publication")
+}
+
 func (store *managedEndpointWorkerGateStore) AcquireManagedEndpointCleanup(context.Context, ManagedEndpointActionRef, *ManagedEndpointOwnerReceipt) (bool, error) {
 	panic("unexpected cleanup admission")
 }
