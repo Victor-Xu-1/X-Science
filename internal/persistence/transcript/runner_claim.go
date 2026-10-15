@@ -210,6 +210,22 @@ func (r *Repository) automaticFrameResumeRequestConn(
 	}
 	if status != "running" {
 		if recoveryWork {
+			// A completed round no longer carries a prior wait. Other saved
+			// states (including historical reclaimed attempts) retain an
+			// explicit nonautomatic checkpoint until an authorized new input
+			// or continuation supersedes it.
+			if status != "completed" {
+				var payload string
+				err := conn.QueryRowContext(ctx, `SELECT e.payload_json FROM transcript_runner_checkpoints c
+					JOIN transcript_events e ON e.stream_uid=c.stream_uid AND e.event_id=c.event_id
+					WHERE c.stream_uid=? AND c.runner_attempt=? ORDER BY c.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt).Scan(&payload)
+				if err != nil && !errors.Is(err, sql.ErrNoRows) {
+					return "", 0, false, err
+				}
+				if err == nil && !runnerCheckpointAllowsAutomaticResume(payload) {
+					return "", 0, false, nil
+				}
+			}
 			return ResumeSourceRetry, 0, true, nil
 		}
 		return "", 0, false, nil
@@ -470,7 +486,7 @@ func (r *Repository) claimRunnerConn(
 			if !coverage.RecoveryWork() {
 				return result, nil
 			}
-			if latestStatus == "running" && latestCheckpoint > 0 {
+			if latestStatus != "completed" && latestCheckpoint > 0 {
 				var resumable bool
 				var payload string
 				err := conn.QueryRowContext(ctx, `SELECT c.resumable,e.payload_json FROM transcript_runner_checkpoints c
@@ -480,7 +496,7 @@ func (r *Repository) claimRunnerConn(
 				if err != nil {
 					return result, err
 				}
-				if resumable || !runnerCheckpointAllowsAutomaticResume(payload) {
+				if !runnerCheckpointAllowsAutomaticResume(payload) || latestStatus == "running" && resumable {
 					return result, ErrCheckpointUnavailable
 				}
 			}

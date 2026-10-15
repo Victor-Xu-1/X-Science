@@ -10,6 +10,29 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
+// Historical kernel migration fixtures intentionally run an old installed
+// schema. Construct only their original first input, byte-for-byte equivalent
+// to the former writer; never call a schema77 admission writer on schema67.
+// Current-schema fixtures still use the production writer. This seed is not
+// used by either legitimate-reclaim regression and is not a runtime fallback.
+func seedHistoricalKernelTaskInput(t *testing.T, store *Store, stream transcriptstore.Stream) {
+	t.Helper()
+	const payload = `{"_uuid":"task-message","clientMessageId":"task","content":[{"text":"Analyze data.","type":"text"}],"messageOrigin":"task_intent","messageUuid":"task-message","role":"user","text":"Analyze data."}`
+	now := time.Now().UTC()
+	if _, err := store.db.Exec(`INSERT INTO transcript_events(stream_uid,event_id,publication_seq,client_message_id,event_type,source,payload_json,created_at)
+		VALUES(?,1,1,'task','user_message','payload',?,?)`, stream.UID, []byte(payload), now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`INSERT INTO transcript_branch_events(stream_uid,branch_id,ordinal,event_id)
+		SELECT stream_uid,active_branch_id,1,1 FROM transcript_branch_state WHERE stream_uid=?`, stream.UID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.db.Exec(`UPDATE transcript_streams SET input_revision=1,consumed_input_revision=0,
+		next_event_id=2,next_publication_seq=2 WHERE stream_uid=? AND input_revision=0 AND consumed_input_revision=0`, stream.UID); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // This fixture represents an installed schema76 database, before an admission
 // relation existed. SQL constructs its historical input facts; it is not a
 // runtime recovery mechanism, lease rewrite, or guessed migration backfill.

@@ -90,8 +90,12 @@ func TestRecoveryAdmissionAfterReclaimSurvivesCurrentRunnerFinish(t *testing.T) 
 }
 
 func TestRecoveryRetryRejectsUnknownForeignControlAndMessageSources(t *testing.T) {
-	for _, kind := range []string{"missing", "foreign", "control", "message_mixed"} {
+	for _, kind := range []string{"missing", "foreign", "control", "message_mixed", "expired_no_checkpoint", "manual_pause", "malformed_auto_pause", "new_input_after_pause"} {
 		t.Run(kind, func(t *testing.T) {
+			if kind == "expired_no_checkpoint" || kind == "manual_pause" || kind == "malformed_auto_pause" || kind == "new_input_after_pause" {
+				exerciseRecoveryRetryLeaseBoundary(t, kind)
+				return
+			}
 			if kind == "missing" {
 				_, repo, stream := admissionLegacyV76Fixture(t)
 				result, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "not-a-recovery", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceRetry})
@@ -133,6 +137,83 @@ func TestRecoveryRetryRejectsUnknownForeignControlAndMessageSources(t *testing.T
 				t.Fatalf("%s retry=%+v err=%v", kind, result, err)
 			}
 		})
+	}
+}
+
+func exerciseRecoveryRetryLeaseBoundary(t *testing.T, kind string) {
+	t.Helper()
+	store, repo, claim, operation := preparedAdmissionOperation(t)
+	if kind == "expired_no_checkpoint" {
+		if _, err := repo.InterruptRunner(t.Context(), transcriptstore.InterruptRunnerInput{Claim: claim, ClientMessageID: "previous-owner-left", ReasonCode: "runtime_draining", AutoResume: true}); err != nil {
+			t.Fatal(err)
+		}
+		if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID,
+			ClientMessageID: "new-owner-input", FrameEventID: "new-owner-input", MessageUUID: "new-owner-input", Text: "A new user request"}); err != nil {
+			t.Fatal(err)
+		}
+		current, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "new-owner-no-checkpoint", TTL: time.Second})
+		if err != nil || !current.Claimed || current.Claim.Attempt <= claim.Attempt {
+			t.Fatalf("new owner=%+v %v", current, err)
+		}
+		recovery, err := store.ReclaimPreparedKernelLocalOperation(t.Context(), recoveryAdmissionReclaimInput(claim, operation))
+		if err != nil {
+			t.Fatal(err)
+		}
+		state, err := repo.GetLatestRunnerRuntimeState(t.Context(), claim.StreamUID, claim.OwnerID)
+		if err != nil || state.LastCheckpointSequence != 0 {
+			t.Fatalf("unexpected checkpoint=%+v %v", state, err)
+		}
+		if auto, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "must-not-steal-live", TTL: time.Minute}); err != nil || auto.Claimed {
+			t.Fatalf("alive automatic=%+v %v", auto, err)
+		}
+		if direct, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID, RunnerID: "must-not-steal-direct", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceRetry}); err != nil || direct.Claimed {
+			t.Fatalf("alive direct=%+v %v", direct, err)
+		}
+		if _, err := repo.ValidateLiveRunnerClaim(t.Context(), current.Claim); err != nil {
+			t.Fatal(err)
+		}
+		// Let the actual short lease expire. No persisted clock or owner is
+		// rewritten, and recovery does not execute the operation's side effect.
+		<-time.NewTimer(time.Until(current.Claim.ExpiresAt) + time.Millisecond).C
+		next, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "reconcile-after-expiry", TTL: time.Minute})
+		if err != nil || !next.Claimed || next.Claim.ResumeSource != transcriptstore.ResumeSourceRetry || next.Claim.ClaimedInputRevision != recovery.AdmittedInputRevision {
+			t.Fatalf("expired exact recovery=%+v %v", next, err)
+		}
+		return
+	}
+	if kind == "malformed_auto_pause" {
+		if _, _, _, err := repo.AppendRunnerCheckpoint(t.Context(), transcriptstore.AppendRunnerCheckpointInput{Claim: claim,
+			ClientMessageID: "malformed-wait", Phase: transcriptstore.RunnerPhaseExecuting, Resumable: true, PayloadJSON: []byte(`{"auto_resume":"invalid"}`)}); err != nil {
+			t.Fatal(err)
+		}
+		lease, err := repo.HeartbeatRunner(t.Context(), transcriptstore.HeartbeatRunnerInput{Claim: claim, TTL: time.Millisecond})
+		if err != nil || !lease.Renewed {
+			t.Fatalf("short lease=%+v %v", lease, err)
+		}
+		<-time.NewTimer(time.Until(lease.ExpiresAt) + time.Millisecond).C
+	} else if _, err := repo.InterruptRunner(t.Context(), transcriptstore.InterruptRunnerInput{Claim: claim,
+		ClientMessageID: "explicit-pause", ReasonCode: "runtime_draining", AutoResume: false, Resumable: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ReclaimPreparedKernelLocalOperation(t.Context(), recoveryAdmissionReclaimInput(claim, operation)); err != nil {
+		t.Fatal(err)
+	}
+	if auto, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "must-respect-wait", TTL: time.Minute}); err != nil || auto.Claimed {
+		t.Fatalf("wait automatic=%+v %v", auto, err)
+	}
+	if direct, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID,
+		RunnerID: "must-respect-direct-wait", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceRetry}); !errors.Is(err, transcriptstore.ErrCheckpointUnavailable) || direct.Claimed {
+		t.Fatalf("wait direct=%+v %v", direct, err)
+	}
+	if kind == "new_input_after_pause" {
+		if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID,
+			ClientMessageID: "explicit-new-input", FrameEventID: "explicit-new-input", MessageUUID: "explicit-new-input", Text: "Continue with this new request"}); err != nil {
+			t.Fatal(err)
+		}
+		fresh, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "new-input-owner", TTL: time.Minute})
+		if err != nil || !fresh.Claimed || fresh.Claim.ResumeSource != transcriptstore.ResumeSourceFresh {
+			t.Fatalf("new input inherited an old pause: %+v %v", fresh, err)
+		}
 	}
 }
 

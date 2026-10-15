@@ -93,8 +93,10 @@ func TestPendingInputContinueTargetRejectsChangedAuthority(t *testing.T) {
 					t.Fatal(err)
 				}
 				_, err = repo.AppendFrameUserEventToBranch(t.Context(), transcriptstore.AppendFrameUserEventToBranchInput{
-					AppendFrameUserEventInput: transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "branch-input", FrameEventID: "branch-input", MessageUUID: "branch-input", Text: "Continue this branch"},
-					TargetBranchID:            state.ActiveBranchID, ExpectedActiveBranchID: state.ActiveBranchID, ExpectedGeneration: state.Generation, ClientMutationID: "continue-branch"})
+					AppendFrameUserEventInput: transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID,
+						ClientMessageID: "branch-continue:continue-branch", MessageUUID: "branch-continue:continue-branch",
+						FrameEventID: "frame-branch-continue:" + stream.FrameID + ":" + state.ActiveBranchID + ":continue-branch", Text: "Continue this branch"},
+					TargetBranchID: state.ActiveBranchID, ExpectedActiveBranchID: state.ActiveBranchID, ExpectedGeneration: state.Generation, ClientMutationID: "continue-branch"})
 				if err != nil {
 					t.Fatal(err)
 				}
