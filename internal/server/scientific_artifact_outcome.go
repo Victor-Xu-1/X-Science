@@ -39,9 +39,10 @@ type scientificArtifactUnavailableObservation struct {
 }
 
 type scientificArtifactCompletionValidation struct {
-	Failures    []string
-	Unavailable []scientificArtifactUnavailableObservation
-	Selection   []scientificArtifactIdentity
+	Failures               []string
+	AggregateCountFindings []string
+	Unavailable            []scientificArtifactUnavailableObservation
+	Selection              []scientificArtifactIdentity
 }
 
 type scientificArtifactIdentity struct {
@@ -60,6 +61,14 @@ func (validation scientificArtifactCompletionValidation) advisory() *sessionRunn
 		findings = append(findings, observation.VersionID+":"+observation.SHA256+":"+observation.Reason)
 	}
 	return &sessionRunnerCompletionAdvisory{Code: completionAdvisoryChemicalValidation, Findings: findings}
+}
+
+func (validation scientificArtifactCompletionValidation) aggregateCountAdvisory() *sessionRunnerCompletionAdvisory {
+	if len(validation.AggregateCountFindings) == 0 {
+		return nil
+	}
+	return &sessionRunnerCompletionAdvisory{Code: completionAdvisoryResultQuality,
+		Findings: append([]string(nil), validation.AggregateCountFindings...)}
 }
 
 func scientificArtifactUnavailableWarning(path, reason string, version workspace.ArtifactVersion) map[string]any {

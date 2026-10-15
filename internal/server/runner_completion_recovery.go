@@ -397,7 +397,7 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 		if err != nil {
 			return nil, err
 		}
-		return []*sessionRunnerCompletionAdvisory{visual, scientificValidation.advisory(), scientificHistory,
+		return []*sessionRunnerCompletionAdvisory{visual, scientificValidation.advisory(), scientificValidation.aggregateCountAdvisory(), scientificHistory,
 			sessionRunnerCompletionQualityAdvisory(candidate.SourceRun, crossArtifactFailures, unsupported)}, nil
 	}
 	return nil, &sessionRunnerReferenceIntegrityError{
