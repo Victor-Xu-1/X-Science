@@ -254,17 +254,24 @@ func managedEndpointPhysicalQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }
 
-type managedEndpointPhysicalCapture struct{ text []byte }
+type managedEndpointPhysicalCapture struct {
+	text  []byte
+	limit int
+}
 
 func (output *managedEndpointPhysicalCapture) Write(value []byte) (int, error) {
 	length := len(value)
-	if remain := (32 << 10) - len(output.text); remain > 0 {
+	if remain := output.limit - len(output.text); remain > 0 {
 		output.text = append(output.text, value[:min(remain, length)]...)
 	}
 	return length, nil
 }
 
 func managedEndpointPhysicalCommand(ctx context.Context, executable string, args ...string) (string, error) {
+	return managedEndpointPhysicalCommandLimit(ctx, 32<<10, executable, args...)
+}
+
+func managedEndpointPhysicalCommandLimit(ctx context.Context, limit int, executable string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 4*time.Second)
 	defer cancel()
 	command := exec.CommandContext(ctx, executable, args...)
@@ -275,7 +282,7 @@ func managedEndpointPhysicalCommand(ctx context.Context, executable string, args
 			command.Env = append(command.Env, name+"="+value)
 		}
 	}
-	output := &managedEndpointPhysicalCapture{}
+	output := &managedEndpointPhysicalCapture{limit: limit}
 	command.Stdout, command.Stderr = output, output
 	err := command.Run()
 	return strings.TrimSpace(string(output.text)), errors.Join(context.Cause(ctx), err)

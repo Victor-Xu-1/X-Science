@@ -43,13 +43,19 @@ type managedEndpointPhysicalDockerFacts struct {
 	Labels   map[string]string `json:"labels"`
 	Running  bool              `json:"running"`
 	Status   string            `json:"status"`
-	LogType  string            `json:"logType"`
-	LogSize  string            `json:"logSize"`
-	LogFiles string            `json:"logFiles"`
-	Memory   int64             `json:"memory"`
-	Swap     int64             `json:"swap"`
-	NanoCPU  int64             `json:"nanoCpu"`
-	PIDs     int64             `json:"pids"`
+	ExitCode int               `json:"exitCode"`
+	Error    string            `json:"error"`
+	Ports    map[string][]struct {
+		HostIP   string `json:"HostIp"`
+		HostPort string `json:"HostPort"`
+	} `json:"ports"`
+	LogType  string `json:"logType"`
+	LogSize  string `json:"logSize"`
+	LogFiles string `json:"logFiles"`
+	Memory   int64  `json:"memory"`
+	Swap     int64  `json:"swap"`
+	NanoCPU  int64  `json:"nanoCpu"`
+	PIDs     int64  `json:"pids"`
 }
 
 func (fixture *managedEndpointPhysicalFixture) dockerFacts(ctx context.Context, id string) (managedEndpointPhysicalDockerFacts, error) {
@@ -61,7 +67,7 @@ func (fixture *managedEndpointPhysicalFixture) dockerFacts(ctx context.Context, 
 	if err != nil || daemon != fixture.daemon {
 		return facts, errors.New("private Docker daemon identity changed")
 	}
-	const projection = `{"id":{{json .Id}},"name":{{json .Name}},"image":{{json .Image}},"labels":{"ai.x-science.endpoint-instance":{{json (index .Config.Labels "ai.x-science.endpoint-instance")}},"ai.x-science.endpoint-user":{{json (index .Config.Labels "ai.x-science.endpoint-user")}},"ai.x-science.endpoint-approval":{{json (index .Config.Labels "ai.x-science.endpoint-approval")}}},"running":{{json .State.Running}},"status":{{json .State.Status}},"logType":{{json .HostConfig.LogConfig.Type}},"logSize":{{json (index .HostConfig.LogConfig.Config "max-size")}},"logFiles":{{json (index .HostConfig.LogConfig.Config "max-file")}},"memory":{{json .HostConfig.Memory}},"swap":{{json .HostConfig.MemorySwap}},"nanoCpu":{{json .HostConfig.NanoCpus}},"pids":{{json .HostConfig.PidsLimit}}}`
+	const projection = `{"id":{{json .Id}},"name":{{json .Name}},"image":{{json .Image}},"labels":{"ai.x-science.endpoint-instance":{{json (index .Config.Labels "ai.x-science.endpoint-instance")}},"ai.x-science.endpoint-user":{{json (index .Config.Labels "ai.x-science.endpoint-user")}},"ai.x-science.endpoint-approval":{{json (index .Config.Labels "ai.x-science.endpoint-approval")}}},"running":{{json .State.Running}},"status":{{json .State.Status}},"exitCode":{{json .State.ExitCode}},"error":{{json .State.Error}},"ports":{{json .NetworkSettings.Ports}},"logType":{{json .HostConfig.LogConfig.Type}},"logSize":{{json (index .HostConfig.LogConfig.Config "max-size")}},"logFiles":{{json (index .HostConfig.LogConfig.Config "max-file")}},"memory":{{json .HostConfig.Memory}},"swap":{{json .HostConfig.MemorySwap}},"nanoCpu":{{json .HostConfig.NanoCpus}},"pids":{{json .HostConfig.PidsLimit}}}`
 	raw, err := managedEndpointPhysicalCommand(ctx, fixture.docker, "--context=default", "container", "inspect", "--format", projection, "--", id)
 	if err != nil {
 		return facts, err
@@ -164,6 +170,7 @@ func TestManagedEndpointDockerPhysicalLifecycle(t *testing.T) {
 	// original pending ref when the output worker is deliberately lost.
 	receipt, err := runtime.Start(fixture.ctx, fixture.instance, fixture.action, environment)
 	if err != nil || receipt.ValidateFor(fixture.instance, fixture.action.Ref) != nil {
+		fixture.diagnoseDockerStart(t)
 		t.Fatalf("physical Docker Start receipt=%#v err=%v", receipt, err)
 	}
 	fixture.containerID = receipt.Identity.ContainerID
