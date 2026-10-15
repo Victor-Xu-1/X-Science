@@ -23,10 +23,12 @@ ownership is a runtime contract, not inferred by parsing the approved script.
 
 The user connects the Model endpoints family in Compute settings and selects
 Local or remote/URL mode. Register with `credential="NVIDIA_API_KEY"`, the
-credential name, never a value. Local lifecycle actions receive only their
-explicit approved credential, `HOST_PORT`, `SERVICE_DIR`, an allowlisted OS
-base environment and generated owner labels. Arbitrary Web process environment
-variables are not inherited. The credential must not appear in argv, logs,
+credential name, never a value. Approved bootstrap/native scripts receive only
+their explicit approved credential, `HOST_PORT`, `SERVICE_DIR`, an allowlisted
+OS base environment and generated owner labels. Runtime-owned Docker controls
+use the allowlisted OS base environment, not a replay of that script environment.
+Arbitrary Web process environment variables are not inherited. The credential
+must not appear in argv, logs,
 unrelated generated files or a kernel environment; approved registry login may
 store auth only in the private service-scoped Docker configuration. A remote credential is provided only
 to its isolated inference cell as `INFER_API_KEY`.
@@ -44,8 +46,8 @@ host.model_endpoints.register(
     url=f"http://127.0.0.1:{port}",
     skill="<model-runbook-skill>",
     credential="NVIDIA_API_KEY",
-    start=START_SCRIPT,
-    stop="docker --context=default stop model-service",
+    start=START_SCRIPT,  # First fresh Docker bootstrap only.
+    stop=":",  # Required approval field; owned Docker Stop is runtime control.
     live="<readiness-route-from-runbook>",
     owner={
         "version": 1,
@@ -82,20 +84,37 @@ docker --context=default run -d --name model-service --restart=no \
   <runbook-image>
 ```
 
-The full approved start script may warm-start the original parked container or
-create a new one when none exists. Before effects, the adapter checks the actual
-daemon, immutable container ID, approved name, ownership labels and effective
-logging configuration. A daemon default of `json-file` alone is not finite log
-retention. Do not remove/recreate a foreign or mismatched container, disable
-logging, use an unbounded driver, or guess ownership from an open port.
+The approved start script is used only for the first fresh, unadopted Docker
+bootstrap, before an owner identity has been established. After positive owner
+identification, warm Start and Stop are runtime-owned Docker operations using
+the explicit context and full immutable container ID as typed arguments, not
+shell commands or a replay of the old name-based start/stop scripts. Failed-start
+cleanup also requires its original durable cleanup authority and positive owner
+identity before the runtime controls that exact ID. A same-name replacement is
+never a substitute for the original owner.
+
+The shared registration/approval contract still requires both script fields.
+For a new typed Docker registration, `stop=":"` above is an approved descriptor
+placeholder, not the teardown implementation. Existing registration bytes and
+hashes must remain unchanged unless the normal approval flow authorizes a
+change; do not rewrite old stop scripts merely to match this example. Native
+registrations retain their approved native lifecycle scripts.
+
+Establishing a live owner still requires actual daemon/ID, applicable ownership
+labels, loopback binding and effective bounded logging. A daemon default of
+`json-file` alone is not finite log retention. Do not remove/recreate a foreign
+or mismatched container, disable logging, use an unbounded driver, or guess
+ownership from an open port. A successful Docker control is not proof of HTTP
+readiness.
 
 Scripts must use the same explicit context as the owner descriptor. Keep their
 bytes stable and readable. `-e NVIDIA_API_KEY` passes the environment name rather
 than exposing its value in argv. Use cache permissions appropriate to the image's
 documented UID; do not use world-writable caches or unapproved recursive chown.
-Stop parks the original container; caches are not removed. A fresh Start after a
-positive Stop uses a new action/ref and admission CAS, not a replay of an old
-accepted action. The original physical container identity remains authoritative.
+Stop parks the original container; caches are not removed. Warm Start after a
+positive Stop uses a new action/ref and admission CAS, then controls the original
+container ID rather than rerunning bootstrap. The original physical container
+identity remains authoritative.
 
 ## Native process registration
 
@@ -112,7 +131,9 @@ worker/cgroup, not the Web request or shell stdout EOF, owns its lifetime.
 `setsid` does not move a child out of the owned cgroup. Readiness also verifies
 that the literal loopback listener belongs to that exact physical owner. A
 native script must not delegate its actual service to another unit/container
-and then claim the native owner descriptor covers it.
+and then claim the native owner descriptor covers it. When execution is needed,
+native Stop retains its approved script and exact unit/cgroup stopped proof;
+Docker's typed controls do not grant authority over an unrelated native daemon.
 
 ## Approval, recovery and historical registrations
 
@@ -139,11 +160,23 @@ accepted actions with missing/contradictory results are never blindly repeated.
 An ordinary Web disconnect/drain is not a user cancellation. Script exit,
 output EOF, readiness, owner identity and stopped proof are separate facts.
 
-Failure retains actual output, the original owner and known/unknown execution
+Local output recovery is also separate from owner authority. A clean validated
+durable cursor restores the recorded active ring segment, offset and counters;
+segment sizes or timestamps alone do not establish output order. Missing,
+malformed or pending historical cursor state is not silently repaired. The
+worker preserves the old files and emits an explicit `OutputWarning`: prior
+continuity and cumulative counters are unknown, and new pipe output is drained
+but not persisted. Its bounded preview and sequence/dropped-byte counts describe
+only that reader, not reconstructed historical output. This mode does not waive
+owner or private-directory checks, block an otherwise authorized exact Stop, or
+turn actual new disk-write failures into successful persistence. Even a clean
+cursor does not reconstruct output produced while its worker was absent.
+
+Failure preserves retained output, the original owner and known/unknown execution
 facts. Do not loop over re-registration, `exec_peek`, Start or Stop to make a
 failure disappear. Known physical ownership with a failed stop is retained for
-an explicit retry. A stopped owner can be removed with its owned evidence in
-the same transaction; unknown/live owners cannot be erased for convenience.
+an explicit retry. A positively stopped owner can be removed through its owned
+teardown path; unknown/live owners cannot be erased for convenience.
 Local actions retain the existing finite policy (Start/readiness up to two
 minutes, Stop up to one minute); this is not a claim that arbitrary image or
 weight preparation will finish inside that policy.
