@@ -108,7 +108,8 @@ func TestDefaultKernelMinimumExceedsProvenHostCapacityWithoutWaiting(t *testing.
 				var exceeds *ExecutorResourceBudgetExceedsCurrentCapacityError
 				if budget != 0 || !errors.As(err, &exceeds) {
 					t.Errorf("default minimum entered a permanent wait: budget=%d err=%v", budget, err)
-				} else if exceeds.RequestedBytes != 0 || exceeds.HostTotalBytes != test.total || exceeds.ReserveBytes != executorControlReserveBytes || exceeds.MaximumBytes != max(0, test.total-executorControlReserveBytes) {
+				} else if exceeds.RequestedBytes != 0 || exceeds.MinimumBytes != executorMemoryFloorBytes || exceeds.RequiredBytes() != executorMemoryFloorBytes ||
+					exceeds.HostTotalBytes != test.total || exceeds.ReserveBytes != executorControlReserveBytes || exceeds.MaximumBytes != max(0, test.total-executorControlReserveBytes) {
 					t.Errorf("default upper-bound evidence rewrote its request: %+v", exceeds)
 				}
 				if found {

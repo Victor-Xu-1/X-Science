@@ -21,13 +21,20 @@ type ExecutorResourceBudgetExceedsCurrentCapacityError struct {
 	BackendID      string
 	Generation     int64
 	RequestedBytes int64
+	MinimumBytes   int64
 	MaximumBytes   int64
 	HostTotalBytes int64
 	ReserveBytes   int64
 }
 
 func (err *ExecutorResourceBudgetExceedsCurrentCapacityError) Error() string {
-	return "the requested executor memory budget exceeds the observed host capacity after the control-plane reserve"
+	return "the required executor memory exceeds the observed host capacity after the control-plane reserve"
+}
+
+// Keep the immutable request (including default zero) separate from the
+// observed runtime floor. The default preference is not a mandatory budget.
+func (err *ExecutorResourceBudgetExceedsCurrentCapacityError) RequiredBytes() int64 {
+	return max(err.RequestedBytes, err.MinimumBytes)
 }
 
 // Capacity failure is an unstarted execution unit, not an application result.
