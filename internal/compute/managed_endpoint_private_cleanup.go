@@ -52,7 +52,7 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 		if sourceErr == nil || !retired.IsDir() || retired.Mode()&os.ModeSymlink != 0 {
 			return errors.New("managed endpoint private cleanup trash is ambiguous")
 		}
-		return removeManagedEndpointPrivateCleanupTrash(root, parent, trash)
+		return removeManagedEndpointPrivateCleanupTrash(ctx, root, parent, trash, retired, runtimeRoot, scope)
 	}
 	if errors.Is(sourceErr, os.ErrNotExist) {
 		return parent.Sync()
@@ -77,7 +77,7 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 	if err != nil || !os.SameFile(info, moved) {
 		return errors.New("managed endpoint private cleanup rename changed its owner")
 	}
-	return removeManagedEndpointPrivateCleanupTrash(root, parent, trash)
+	return removeManagedEndpointPrivateCleanupTrash(ctx, root, parent, trash, moved, runtimeRoot, scope)
 }
 
 // OpenRoot follows its argument's symlink. Recheck the current configured root
@@ -112,57 +112,49 @@ func openManagedEndpointPrivateCleanupRoot(path string) (*os.Root, *os.File, err
 	return root, parent, nil
 }
 
-func removeManagedEndpointPrivateCleanupTrash(root *os.Root, parent *os.File, trash string) error {
-	// Sync the rename before removing contents, including when this is a retry
-	// of a prior rename whose Sync failed. The original name cannot reappear
-	// after a crash with its owner.json already partially removed.
-	if err := parent.Sync(); err != nil {
-		return err
-	}
-	removeErr := root.RemoveAll(trash)
-	// Only a synced parent entry permits durable outbox acknowledgement. Even
-	// partial failures stay in their durable scoped trash for generic replay.
-	return errors.Join(removeErr, parent.Sync())
-}
-
 func validateManagedEndpointPrivateCleanupOwner(root *os.Root, runtimeRoot string, scope ManagedEndpointPrivateCleanup) error {
 	directory, err := root.OpenRoot(scope.InstanceID)
 	if err != nil {
 		return err
 	}
 	defer directory.Close()
+	_, err = validateManagedEndpointPrivateCleanupOwnerDirectory(directory, runtimeRoot, scope)
+	return err
+}
+
+func validateManagedEndpointPrivateCleanupOwnerDirectory(directory *os.Root, runtimeRoot string, scope ManagedEndpointPrivateCleanup) (os.FileInfo, error) {
 	info, err := directory.Lstat("owner.json")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !info.Mode().IsRegular() || info.Size() > 256<<10 {
-		return ErrManagedEndpointCorruptOwner
+		return nil, ErrManagedEndpointCorruptOwner
 	}
 	file, err := directory.Open("owner.json")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer file.Close()
 	opened, err := file.Stat()
 	if err != nil || !os.SameFile(info, opened) {
-		return ErrManagedEndpointCorruptOwner
+		return nil, ErrManagedEndpointCorruptOwner
 	}
 	decoder := json.NewDecoder(io.LimitReader(file, 256<<10+1))
 	decoder.DisallowUnknownFields()
 	var instance ManagedEndpointOwnerInstance
 	if err := decoder.Decode(&instance); err != nil {
-		return err
+		return nil, err
 	}
 	var extra any
 	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
-		return ErrManagedEndpointCorruptOwner
+		return nil, ErrManagedEndpointCorruptOwner
 	}
 	observed, err := ManagedEndpointPrivateCleanupFor(instance)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if instance.RuntimeRoot != runtimeRoot || observed != scope {
-		return errors.New("managed endpoint private owner descriptor does not match deletion scope")
+		return nil, errors.New("managed endpoint private owner descriptor does not match deletion scope")
 	}
-	return nil
+	return info, nil
 }
