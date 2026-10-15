@@ -34,6 +34,16 @@ func managedEndpointDatabasePathTx(ctx context.Context, tx *sql.Tx) (string, err
 }
 
 func readManagedEndpointInstanceTx(ctx context.Context, tx *sql.Tx, clause string, args ...any) (compute.ManagedEndpointOwnerInstance, error) {
+	return readManagedEndpointInstanceRowTx(ctx, tx, nil, clause, args...)
+}
+
+// Retired cleanup has an exact key, not a general switch which can relax an
+// active/admission read. All ordinary consumers retain the original path check.
+func readManagedEndpointInstanceRowTx(ctx context.Context, tx *sql.Tx, retired *managedEndpointRetiredPrivateCleanupKey, clause string, args ...any) (compute.ManagedEndpointOwnerInstance, error) {
+	if retired != nil {
+		clause = `instance_id=? AND owner_user_id=? AND endpoint_name=? AND retired_at IS NOT NULL`
+		args = []any{retired.instanceID, retired.userID, retired.endpoint}
+	}
 	var instance compute.ManagedEndpointOwnerInstance
 	var id, user, name, hash, raw string
 	var generation int64
@@ -44,7 +54,10 @@ func readManagedEndpointInstanceTx(ctx context.Context, tx *sql.Tx, clause strin
 	if err := json.Unmarshal([]byte(raw), &instance); err != nil {
 		return instance, fmt.Errorf("%w: malformed instance JSON", compute.ErrManagedEndpointCorruptOwner)
 	}
-	if instance.ID != id || instance.UserID != user || instance.Endpoint != name || instance.ApprovedHash != hash || instance.StartGeneration != generation || !serviceDir.Valid || instance.ServiceDir != serviceDir.String {
+	if instance.ID != id || instance.UserID != user || instance.Endpoint != name || instance.ApprovedHash != hash || instance.StartGeneration != generation {
+		return instance, fmt.Errorf("%w: SQL and instance keys disagree", compute.ErrManagedEndpointCorruptOwner)
+	}
+	if retired == nil && (!serviceDir.Valid || instance.ServiceDir != serviceDir.String) {
 		return instance, fmt.Errorf("%w: SQL and instance keys disagree", compute.ErrManagedEndpointCorruptOwner)
 	}
 	path, err := managedEndpointDatabasePathTx(ctx, tx)
