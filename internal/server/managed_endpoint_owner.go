@@ -137,6 +137,7 @@ func (s *Server) RunManagedEndpointOwners(ctx context.Context) error {
 	defer ticker.Stop()
 	var cursor *compute.ManagedEndpointActionRef
 	for {
+		s.reconcileManagedEndpointPrivateCleanup(ctx)
 		pending, err := s.workspaceStore.PendingManagedEndpointActions(ctx, cursor, 16)
 		if err != nil {
 			return err

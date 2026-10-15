@@ -860,14 +860,17 @@ func (s *Store) DeleteManagedEndpoint(name, userID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if endpoint.Location != "remote" {
-		var unresolved int
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND retired_at IS NULL`, endpoint.Name).Scan(&unresolved); err != nil {
-			return false, err
-		}
-		if unresolved != 0 || endpoint.State != "stopped" {
-			return false, compute.ErrManagedEndpointOwnershipUnknown
-		}
+	var unresolved int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND retired_at IS NULL`, endpoint.Name).Scan(&unresolved); err != nil {
+		return false, err
+	}
+	if unresolved != 0 || endpoint.Location != "remote" && endpoint.State != "stopped" {
+		return false, compute.ErrManagedEndpointOwnershipUnknown
+	}
+	// A later remote registration may still have retired local history. Capture
+	// each original scope, rather than dropping it with the registration rows.
+	if err := s.enqueueManagedEndpointPrivateCleanupTx(ctx, tx, endpoint); err != nil {
+		return false, err
 	}
 	// Explicit endpoint removal owns its retired lifecycle evidence. Active or
 	// unknown owners were rejected above; RESTRICT still protects other callers.
