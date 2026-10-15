@@ -88,37 +88,18 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	if err != nil {
 		return result, err
 	}
-	qualifiedEvidence := durableEvidence
-	sourceMaterialsObserved := false
-	if run != nil && run.Transcript != nil {
-		materials, materialErr := s.sessionRunnerResearchMaterials(ctx, run)
-		if materialErr != nil {
-			return result, materialErr
-		}
-		if len(materials.Attempts) > 0 || len(materials.Receipts) > 0 {
-			sourceMaterialsObserved = true
-			qualifiedEvidence = researchQualifiedEvidenceMessages(durableEvidence, materials)
-		}
-	}
-	sourceClaimFailures, err := s.validateSessionRunnerSourceClaimEvidence(
-		ctx, sessionRunnerProjectID(session), validationCommits, qualifiedEvidence,
+	sourceQuality, err := s.sessionRunnerCompletionSourceQuality(
+		ctx, sessionRunnerProjectID(session), run, validationCommits, durableEvidence,
 	)
 	if err != nil {
 		return result, err
 	}
-	evidenceDepthFailures, err := s.validateSessionRunnerEvidenceRecordDepth(
-		ctx, sessionRunnerProjectID(session), validationCommits, qualifiedEvidence,
-		run.trustedScientificReviewSignalsSnapshot(), sessionRunnerTaskIntent(run),
-	)
-	if err != nil {
-		return result, err
-	}
-	evidencePrefix := sessionRunnerDurableEvidencePrefix(qualifiedEvidence, result.Messages)
+	evidencePrefix := sessionRunnerDurableEvidencePrefix(sourceQuality.Evidence, result.Messages)
 	evidenceMessages := make([]agentruntime.Message, 0, len(evidencePrefix)+len(result.Messages))
 	evidenceMessages = append(evidenceMessages, evidencePrefix...)
 	evidenceMessages = append(evidenceMessages, result.Messages...)
 	unsupportedCitationRefs := []string(nil)
-	if sourceMaterialsObserved || s.sessionRunnerSourceWorkflowActive(run) || sessionRunnerCitationIntegrityRequired(run) {
+	if sourceQuality.MaterialsObserved || s.sessionRunnerSourceWorkflowActive(run) || sessionRunnerCitationIntegrityRequired(run) {
 		unsupportedCitationRefs = unsupportedSessionRunnerCitationReferencesWithArtifactCandidatesUsing(
 			evidenceMessages, candidateStart+len(evidencePrefix), result.FinalMessage.Content, nil, artifactCandidates,
 			s.sessionRunnerEvidenceTool,
@@ -135,8 +116,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		crossArtifactFailures,
 		sessionRunnerArtifactPublicationFreshnessFailures(result.Messages, result.FinalMessage.Content)...,
 	)
-	crossArtifactFailures = append(crossArtifactFailures, sourceClaimFailures...)
-	crossArtifactFailures = append(crossArtifactFailures, evidenceDepthFailures...)
+	crossArtifactFailures = append(crossArtifactFailures, sourceQuality.Findings...)
 	scientificFailures, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, result.FinalMessage.Content)
 	if err != nil {
 		return result, err

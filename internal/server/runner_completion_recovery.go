@@ -319,10 +319,17 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	if err != nil {
 		return nil, err
 	}
+	sourceQuality, err := s.sessionRunnerCompletionSourceQuality(
+		ctx, sessionRunnerProjectID(session), candidate.SourceRun, validationCommits, durableEvidence,
+	)
+	if err != nil {
+		return nil, err
+	}
+	crossArtifactFailures = append(crossArtifactFailures, sourceQuality.Findings...)
 	unsupported := []string(nil)
-	if sessionRunnerCitationIntegrityRequired(candidate.SourceRun) {
+	if sourceQuality.MaterialsObserved || s.sessionRunnerSourceWorkflowActive(candidate.SourceRun) || sessionRunnerCitationIntegrityRequired(candidate.SourceRun) {
 		unsupported = unsupportedSessionRunnerCitationReferencesWithArtifactCandidatesUsing(
-			durableEvidence, len(durableEvidence), candidate.Content, nil, artifactCandidates, s.sessionRunnerEvidenceTool,
+			sourceQuality.Evidence, len(sourceQuality.Evidence), candidate.Content, nil, artifactCandidates, s.sessionRunnerEvidenceTool,
 		)
 	}
 	sessionRunnerObserveUnsupportedCitationAdvisories(unsupported)
