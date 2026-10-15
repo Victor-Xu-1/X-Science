@@ -1203,7 +1203,13 @@ func initializeKernelLocalOperationFixture(t *testing.T, store *Store) (*Store, 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
+	var schemaVersion int
+	if err := store.db.QueryRow(`SELECT COALESCE(MAX(version),0) FROM workspace_schema_migrations`).Scan(&schemaVersion); err != nil {
+		t.Fatal(err)
+	}
+	if schemaVersion < 77 {
+		seedHistoricalKernelTaskInput(t, store, stream)
+	} else if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "task", FrameEventID: "task-event",
 		MessageUUID: "task-message", Text: "Analyze data.",
 	}); err != nil || !created {

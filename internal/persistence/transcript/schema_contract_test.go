@@ -57,7 +57,7 @@ func TestSchemaContractInstallsWithoutMigrationNumberAndSupportsRepository(t *te
 		HistoryOrdinaryCutoverContractID != "x-science.transcript.history-ordinary-cutover.v33" ||
 		TypedHistoryBootstrapContractID != "x-science.transcript.typed-history-bootstrap.v35" ||
 		WebReadModelContractID != "x-science.transcript.web-read-model.v38" ||
-		len(statements) != 128 || SchemaContractSHA256() != "ae46c62640d78f79166d3977a4bd87fdcd904fbded6f4b4ef61d8cc28a1695cb" {
+		len(statements) != 132 || SchemaContractSHA256() != "083d17102265c424d2100ec388fdbf3b5ff28cde7b199baa33253ea639052059" {
 		t.Fatalf("contract id=%q statements=%d sha=%q", SchemaContractID, len(statements), SchemaContractSHA256())
 	}
 	for index, statement := range statements {

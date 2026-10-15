@@ -10,8 +10,45 @@ import {
   toXScienceRuntimeSummary,
 } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { describe, expect, it } from 'vitest';
+import { projectAcceptedRuntimeStart } from '@/renderer/components/xScience/runtime/runtimeOperationsControllerModel';
 
 describe('X-Science runtime operations model', () => {
+  it('offers explicit continuation for retained input without fabricating a failed or paused status', () => {
+    const completed = normalizeXScienceRuntimeSnapshot({
+      id: 'retained',
+      status: 'completed',
+      runtime_pending_input_requires_continue: true,
+    });
+    expect(completed.status).toBe('completed');
+    expect(completed.canResume).toBe(true);
+    expect(completed.pendingInputRequiresContinue).toBe(true);
+    expect(completed.failureKind).toBeNull();
+    expect(toXScienceRuntimeSummary(completed)).toMatchObject({ state: 'idle', is_processing: false });
+    expect(normalizeXScienceRuntimeSnapshot({ id: 'retained', status: 'completed' }).canResume).toBe(false);
+    expect(
+      normalizeXScienceRuntimeSnapshot({
+        id: 'retained',
+        status: 'completed',
+        runtime_pending_input_requires_continue: 'true',
+      }).canResume
+    ).toBe(false);
+    const started = projectAcceptedRuntimeStart(completed, true)!;
+    expect(started.pendingInputRequiresContinue).toBe(false);
+    expect(started.canResume).toBe(false);
+    const accepted = normalizeXScienceRuntimeSnapshot({
+      id: 'retained',
+      status: 'processing',
+      runtime_pending_input_requires_continue: true,
+    });
+    expect(accepted.status).toBe('processing');
+    expect(accepted.pendingInputRequiresContinue).toBe(true);
+    expect(accepted.canResume).toBe(true);
+    expect(toXScienceRuntimeSummary(accepted)).toMatchObject({ state: 'paused', is_processing: false });
+    expect(projectAcceptedRuntimeStart(accepted, true)).toMatchObject({
+      pendingInputRequiresContinue: false,
+      canResume: false,
+    });
+  });
   it('keeps provider retry diagnostics closed without changing execution or approval semantics', () => {
     const base = {
       id: 'retry-frame',
@@ -112,6 +149,7 @@ describe('X-Science runtime operations model', () => {
       canResume: true,
       resumeTarget: null,
       pendingInputRequests: [],
+      pendingInputRequiresContinue: false,
       taskPlan: null,
       planApproval: null,
     });

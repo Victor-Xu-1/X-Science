@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 type CompatibilityProject struct {
@@ -747,9 +748,24 @@ func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTra
 
 	resumable := make([]compatibilityResumeFrameState, 0)
 	resumableParents := make(map[string]bool)
+	pendingRootInput := false
 	for _, frame := range frames {
+		pendingHistoricalInput := false
+		if frame.ID == rootID && (frame.Status == FrameStatusCompleted || frame.Status == FrameStatusProcessing) && input.Command != nil {
+			// This extension is available only to the existing authenticated,
+			// target-bound command transaction. It does not resurrect cancelled
+			// work, synthesize admission order, or bypass a live claim.
+			if transcriptTx, ok := tx.(*transcriptstore.ImmediateTransaction); ok {
+				var err error
+				pendingHistoricalInput, err = transcriptTx.FramePendingInputRequiresContinue(ctx, input.Command.ActorID, rootID)
+				if err != nil {
+					return ResumeCompatibilityFrameResult{}, err
+				}
+				pendingRootInput = pendingHistoricalInput
+			}
+		}
 		if frame.Status != "cancelled" && frame.Status != "failed" &&
-			!(input.AllowProcessingInterrupted && frame.Status == FrameStatusProcessing) {
+			!(input.AllowProcessingInterrupted && frame.Status == FrameStatusProcessing) && !pendingHistoricalInput {
 			continue
 		}
 		resumable = append(resumable, frame)
@@ -770,7 +786,7 @@ func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTra
 	}
 
 	selected := compatibilityResumeFrameState{}
-	if frames[rootIndex].Status == "cancelled" || frames[rootIndex].Status == "failed" {
+	if pendingRootInput || frames[rootIndex].Status == "cancelled" || frames[rootIndex].Status == "failed" {
 		selected = frames[rootIndex]
 	} else if len(leaves) > 0 {
 		selected = leaves[0]

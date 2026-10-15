@@ -2,6 +2,42 @@
 
 ## Single authorities
 
+Input admission is ordered by the sole stream revision, not event publication.
+Schema 77 prospectively binds every accepted revision to its exact user event
+or kernel recovery transition in the same transaction. Classification version 1
+is immutable; its server-derived kind is a candidate index, not independent
+execution authority. Finish, claim and resume verify the complete unconsumed
+interval against canonical sources and active branch ownership. A runner's first
+completion cannot hide a later ordinary input or exact recovery transition;
+replaying its recorded completion cannot overwrite the next owner's state.
+Recovery-only work uses the existing retry source only when an applicable
+provider continuation is unavailable. Cancellation and explicit waits remain
+authoritative; no terminal task is automatically resurrected.
+
+Historical revisions without this relation remain unknown, never reconstructed
+from publication order. Exact ordinary admission after the latest claimed and
+consumed prefix can authorize a fresh unit even when older mappings are absent;
+it does not make that history complete. A same-branch historical ordinary source
+may also prove new work after the exact latest preparation marker or its actual
+terminal receipt boundary, only while the consumed prefix has not advanced past
+that claim. Missing or mismatched markers, pre-marker staged sources and later
+nonautomatic waits remain unknown. Plan approval responses are typed controls,
+not composer tasks, and retain their dedicated checkpoint dispatcher.
+
+A completed or processing task with retained unknown input and no live owner
+exposes the existing explicit Continue action without changing its persisted
+status or falsely showing active execution. Its opaque target binds
+both input and consumed revisions; the command transaction rechecks ownership,
+branch, cancellation and live execution before dispatching a normal current-prefix
+claim. A conflicting source is an error, not a historical gap. Candidate scans
+use finite independent frame/all-channel keyset hints, not another scheduler or
+execution authority; unknown candidates cannot permanently hide later work.
+Standalone channels reuse ordinary new input to authorize retained work; no
+Frame-only Continue API or guessed historical mapping is introduced. Settled cloned or
+activated history stays historical with input equal to consumed revision and no
+copied execution admissions; only subsequent new inputs create admission facts.
+Migration 77 does not rewrite historical bytes, counters or migration identities.
+
 The public operation timeline follows
 [`tool-stream-presentation-contract.md`](./tool-stream-presentation-contract.md).
 That contract is the only grouping and typed-detail authority; raw protocol

@@ -45,7 +45,11 @@ export const projectAcceptedRuntimeStart = (
   snapshot: XScienceRuntimeSnapshot | null,
   acceptedStartPending: boolean
 ): XScienceRuntimeSnapshot | null => {
-  if (!snapshot || snapshot.status !== 'completed' || snapshot.runtimeAttempt !== null || !acceptedStartPending) {
+  if (
+    !snapshot ||
+    !acceptedStartPending ||
+    (!snapshot.pendingInputRequiresContinue && (snapshot.status !== 'completed' || snapshot.runtimeAttempt !== null))
+  ) {
     return snapshot;
   }
   return {
@@ -60,6 +64,7 @@ export const projectAcceptedRuntimeStart = (
     runtimeTaskActive: true,
     canCancel: false,
     canResume: false,
+    pendingInputRequiresContinue: false,
   };
 };
 

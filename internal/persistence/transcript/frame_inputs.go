@@ -152,8 +152,8 @@ func (tx *ImmediateTransaction) AppendFrameInputResponse(
 		}
 		return event, created, nil
 	}
-	_, err = tx.conn.ExecContext(ctx, `
-		UPDATE transcript_streams SET input_revision=input_revision+1,updated_at=? WHERE stream_uid=?`, now, stream.UID)
+	err = admitEventInputConn(ctx, tx.conn, stream, event, now)
+	tx.markInputAdded(err == nil, err)
 	return event, true, schemaError(err)
 }
 

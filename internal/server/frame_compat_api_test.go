@@ -1589,6 +1589,14 @@ func TestFrameCompatibilityKeepsFreshRunnerActiveAcrossKernelRecoveryHandoff(t *
 		TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint,
 		ResumeCheckpoint: interrupted.Checkpoint.Sequence,
 	})
+	if err != nil || recovered.Claimed {
+		t.Fatalf("unowned runner took the claimed recovery dispatch: claim=%#v err=%v", recovered, err)
+	}
+	recovered, err = repository.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "frame-resume:" + dispatch.ResumeEvent.ID,
+		TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint,
+		ResumeCheckpoint: interrupted.Checkpoint.Sequence,
+	})
 	if err != nil || !recovered.Claimed || recovered.Claim.Attempt != claim.Claim.Attempt {
 		t.Fatalf("recovered claim=%#v err=%v", recovered, err)
 	}

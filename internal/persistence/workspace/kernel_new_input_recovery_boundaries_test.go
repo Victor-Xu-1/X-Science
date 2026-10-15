@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestCanonicalKernelRecoveryComposerInput(t *testing.T) {
@@ -19,6 +21,7 @@ func TestCanonicalKernelRecoveryComposerInput(t *testing.T) {
 			m["content"] = []any{map[string]any{"type": "text", "text": "new intent"}, map[string]any{"type": "image", "source": "artifact"}}
 		}, true},
 		{"ask_user_aggregate", func(m map[string]any) { delete(m, "messageUuid"); delete(m, "_uuid"); delete(m, "clientMessageId") }, false},
+		{"plan_approval_control", func(m map[string]any) { m["planApprovalId"] = "approval" }, false},
 		{"edited_ask_user", func(m map[string]any) {
 			m["content"] = []any{map[string]any{"type": "tool_result", "tool_use_id": "ask", "content": "new intent"}}
 		}, false},
@@ -37,7 +40,7 @@ func TestCanonicalKernelRecoveryComposerInput(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got := canonicalKernelRecoveryComposerInput("user_input_response", "client", payload); got != tc.want {
+			if got := transcriptstore.IsCanonicalFrameUserMessage("user_input_response", "client", payload); got != tc.want {
 				t.Fatalf("canonical=%t want=%t", got, tc.want)
 			}
 		})

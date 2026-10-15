@@ -15,7 +15,7 @@ import (
 
 func TestRecoveredAutonomousPlanLegacyRequestDoesNotForceProviderToolChoice(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
-	seedAnsweredTaskIntake(t, f.server, f.stream.OwnerID, f.stream.SessionID)
+	claimAnsweredRecoveryFixtureInput(t, f)
 	intent, found, err := f.repo.EnsureActiveFrameTaskIntent(context.Background(), f.stream.UID, f.stream.OwnerID)
 	if err != nil || !found {
 		t.Fatalf("canonical task intent: found=%t error=%v", found, err)

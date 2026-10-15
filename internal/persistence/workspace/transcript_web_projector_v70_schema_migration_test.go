@@ -109,7 +109,7 @@ func newTranscriptWebV69Database(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+	if _, _, err := appendHistoricalMigrationFrameUserEvent(t, ctx, db, repo, transcriptstore.AppendFrameUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "client-v70",
 		FrameEventID: "event-v70", MessageUUID: "message-v70", Text: "preserve this source",
 	}); err != nil {

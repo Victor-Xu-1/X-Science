@@ -108,11 +108,17 @@ func (s *Server) configureTranscriptFrameResume(
 		return err
 	}
 	if stream.InputRevision > state.ClaimedInputRevision {
-		inputType, err := s.transcriptStore.LatestRunnerInputEventType(ctx, stream.UID, frameContext.UserID)
+		evidence, err := s.transcriptStore.GetFreshMessageEvidence(ctx, stream.UID, frameContext.UserID)
 		if err != nil {
 			return err
 		}
-		if inputType == "user_message" {
+		coverage := evidence.Coverage
+		if coverage.RecoveryWork() && state.Status == "completed" {
+			chat.TranscriptResumeSource = transcriptstore.ResumeSourceRetry
+			chat.TranscriptCheckpoint = 0
+			return nil
+		}
+		if evidence.Authorized || coverage.Pending() && !coverage.Complete {
 			// A fresh task message supersedes the old interruption checkpoint:
 			// the checkpoint-resume contract only accepts user_input_response
 			// as a newer input, so replaying a checkpoint after a fresh

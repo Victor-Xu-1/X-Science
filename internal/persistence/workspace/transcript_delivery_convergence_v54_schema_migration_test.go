@@ -49,7 +49,7 @@ func TestTranscriptDeliveryConvergenceV54RepairsOnlyKnownProjectionFailures(t *t
 		}); err != nil {
 			t.Fatal(err)
 		}
-		if _, created, err := repo.AppendUserEvent(ctx, transcriptstore.AppendUserEventInput{
+		if _, created, err := appendHistoricalMigrationUserEvent(t, ctx, db, repo, transcriptstore.AppendUserEventInput{
 			StreamUID: streamUID, OwnerID: "owner-v54", ClientMessageID: "message-" + streamUID,
 			PayloadJSON: []byte(`{"text":"fixture"}`), Destinations: []string{"ws"},
 		}); err != nil || !created {
@@ -69,7 +69,7 @@ func TestTranscriptDeliveryConvergenceV54RepairsOnlyKnownProjectionFailures(t *t
 	seedFailed("stream-v54-model-only", "user_input_response")
 	seedFailed("stream-v54-machine-only", transcriptstore.TerminalToolRecoveryEventType)
 	seedFailed("stream-v54-unsupported", "user_message")
-	if _, created, err := repo.AppendUserEvent(ctx, transcriptstore.AppendUserEventInput{
+	if _, created, err := appendHistoricalMigrationUserEvent(t, ctx, db, repo, transcriptstore.AppendUserEventInput{
 		StreamUID: "stream-v54-machine-only", OwnerID: "owner-v54", ClientMessageID: "follower-v54",
 		PayloadJSON: []byte(`{"text":"follower"}`), Destinations: []string{"ws"},
 	}); err != nil || !created {
