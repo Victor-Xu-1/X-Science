@@ -149,6 +149,9 @@ func managedEndpointSocketServer(t *testing.T, instance ManagedEndpointOwnerInst
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := listener.(*net.UnixListener).SetDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(func() { _ = listener.Close() })
 	finished := make(chan error, 1)
 	go func() {
