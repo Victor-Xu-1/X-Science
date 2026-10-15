@@ -74,7 +74,7 @@ func managedEndpointPhysicalPrerequisites(t *testing.T) (string, string) {
 	if err != nil {
 		t.Skip("physical managed-endpoint witness not run: systemctl is unavailable")
 	}
-	for _, name := range []string{"systemd-run", "awk", "sleep"} {
+	for _, name := range []string{"systemd-run", "sleep"} {
 		if _, err := exec.LookPath(name); err != nil {
 			t.Skipf("physical managed-endpoint witness not run: %s is unavailable", name)
 		}
@@ -88,6 +88,13 @@ func managedEndpointPhysicalPrerequisites(t *testing.T) (string, string) {
 	if state != "running" && state != "degraded" {
 		t.Skipf("physical managed-endpoint witness not run: user systemd unavailable (%q, %v)", state, err)
 	}
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		t.Skip("physical managed-endpoint witness not run: existing host python3 is unavailable")
+	}
+	if _, err := managedEndpointPhysicalCommand(ctx, python, "-c", "import os, signal; assert hasattr(signal, 'pidfd_send_signal'); os.close(os.pidfd_open(os.getpid()))"); err != nil {
+		t.Skipf("physical managed-endpoint witness not run: safe same-unit pidfd expiry is unavailable (%v)", err)
+	}
 	return binary, systemctl
 }
 
@@ -98,16 +105,25 @@ func newManagedEndpointPhysicalFixture(t *testing.T, binary, systemctl string, r
 	fixture.ctx, fixture.cancel = context.WithTimeout(context.Background(), 45*time.Second)
 	fixture.wrapper = filepath.Join(fixture.instance.ServiceDir, "private-owner-worker")
 	unit := compute.ManagedEndpointUnitName(fixture.instance.ID)
-	// The shell exec keeps the CLI as unit MainPID. A watchdog in the SAME
-	// cgroup can only stop this exact saved invocation, and dies with that unit.
-	// No bare PID, timeout-parent process, or out-of-unit cleanup daemon exists.
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	timer := filepath.Join(fixture.instance.ServiceDir, "private-owner-expiry.py")
+	if err := os.WriteFile(timer, []byte(managedEndpointPhysicalExpiry), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Exec keeps the CLI as unit MainPID. The SAME-cgroup expiry child pins its
+	// actual parent with pidfd before exec, so a lost systemd control socket or
+	// PID reuse cannot turn the timer into a kill of an unrelated process.
 	wrapper := "#!/bin/sh\nset -eu\nunit=" + managedEndpointPhysicalQuote(unit) + "\n" +
 		"case \"$(cat /proc/self/cgroup)\" in */\"$unit\"*) ;; *) exit 91 ;; esac\n" +
 		"invocation=$(" + managedEndpointPhysicalQuote(systemctl) + " --user show --value --property=InvocationID -- \"$unit\")\n" +
 		"test -n \"$invocation\"\n" +
 		managedEndpointPhysicalQuote(systemctl) + " --user set-property --runtime \"$unit\" MemoryMax=256M MemorySwapMax=0 TasksMax=32 CPUQuota=50%\n" +
-		"( sleep 50; current=$(" + managedEndpointPhysicalQuote(systemctl) + " --user show --value --property=InvocationID -- \"$unit\"); " +
-		"if test \"$current\" = \"$invocation\"; then " + managedEndpointPhysicalQuote(systemctl) + " --user stop -- \"$unit\"; fi ) >/dev/null 2>&1 &\n" +
+		"ready=" + managedEndpointPhysicalQuote(filepath.Join(fixture.instance.ServiceDir, "expiry-ready-")) + "\"$invocation\"\n" +
+		managedEndpointPhysicalQuote(python) + " " + managedEndpointPhysicalQuote(timer) + " \"$$\" \"$unit\" \"$ready\" >/dev/null 2>&1 &\n" +
+		"for attempt in 1 2 3 4 5 6 7 8 9 10; do test ! -s \"$ready\" || break; sleep 0.1; done\ntest -s \"$ready\"\n" +
 		"exec " + managedEndpointPhysicalQuote(binary) + " \"$@\"\n"
 	if err := os.WriteFile(fixture.wrapper, []byte(wrapper), 0o700); err != nil {
 		t.Fatal(err)
@@ -123,7 +139,7 @@ func newManagedEndpointPhysicalFixture(t *testing.T, binary, systemctl string, r
 			_ = store.Close()
 		}
 	})
-	t.Logf("physical fixture instance=%s unit=%s port=%d runtime=%s image=%s; same-unit timer50s + owned stop bound10s, HTTP children55s; no production ports", fixture.instance.ID, unit, registration.Port, fixture.instance.RuntimeRoot, managedEndpointPhysicalImage)
+	t.Logf("physical fixture instance=%s unit=%s port=%d runtime=%s image=%s; same-unit pidfd expiry TERM50s/KILL55s, HTTP children55s; no production ports", fixture.instance.ID, unit, registration.Port, fixture.instance.RuntimeRoot, managedEndpointPhysicalImage)
 	return fixture
 }
 

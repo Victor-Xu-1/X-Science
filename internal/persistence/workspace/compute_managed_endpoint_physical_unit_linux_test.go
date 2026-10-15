@@ -130,6 +130,28 @@ func managedEndpointPhysicalProcessLive(expected managedEndpointPhysicalProcess)
 	return err == nil && ticks == expected.Ticks && fields[0] != "Z" && fields[0] != "X", err
 }
 
+// Fixture-only containment timer, not a product runner. The descriptor refers
+// to its real parent (the unit MainPID before/after exec), never a later PID
+// lookup. It is itself killed when that unit exits normally.
+const managedEndpointPhysicalExpiry = `
+import os, signal, sys, time
+parent, unit, ready = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+assert os.getppid() == parent
+assert ('/' + unit) in open('/proc/self/cgroup').read()
+owner = os.pidfd_open(parent)
+with open(ready, 'x') as out:
+    out.write('parent pidfd pinned')
+try:
+    time.sleep(50)
+    signal.pidfd_send_signal(owner, signal.SIGTERM)
+    time.sleep(5)
+    signal.pidfd_send_signal(owner, signal.SIGKILL)
+except ProcessLookupError:
+    pass
+finally:
+    os.close(owner)
+`
+
 // The scientific runtime is deliberately not involved: a tiny standard-library
 // HTTP process and its setsid child self-expire after 55s, inherit only the owned
 // output descriptor, and write bounded records under their private directory.
