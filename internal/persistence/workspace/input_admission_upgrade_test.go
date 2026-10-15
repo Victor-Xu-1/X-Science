@@ -53,9 +53,18 @@ func admissionLegacyV76Fixture(t *testing.T) (*Store, *transcriptstore.Repositor
 	}
 	if _, err := db.Exec(`INSERT INTO transcript_branch_events(stream_uid,branch_id,ordinal,event_id)
 		SELECT b.stream_uid,b.active_branch_id,(SELECT COALESCE(MAX(m.ordinal),0)+1 FROM transcript_branch_events m WHERE m.stream_uid=b.stream_uid AND m.branch_id=b.active_branch_id),?
-		FROM transcript_branch_state b WHERE b.stream_uid=?;
-		UPDATE transcript_streams SET input_revision=input_revision+1,next_event_id=next_event_id+1,next_publication_seq=next_publication_seq+1 WHERE stream_uid=?`, eventID, stream.UID, stream.UID); err != nil {
+		FROM transcript_branch_state b WHERE b.stream_uid=?`, eventID, stream.UID); err != nil {
 		t.Fatal(err)
+	}
+	// Each prepared statement owns its bindings. The revision update must not
+	// reuse the preceding membership statement's event ID as its stream UID.
+	if _, err := db.Exec(`UPDATE transcript_streams SET input_revision=input_revision+1,
+		next_event_id=next_event_id+1,next_publication_seq=next_publication_seq+1 WHERE stream_uid=?`, stream.UID); err != nil {
+		t.Fatal(err)
+	}
+	beforeStream, err := legacy.GetStream(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || beforeStream.InputRevision != 2 || beforeStream.ConsumedInputRevision != 1 {
+		t.Fatalf("invalid schema76 fixture counters: %+v %v", beforeStream, err)
 	}
 	before, err := (&Store{db: db}).SchemaStatus(t.Context())
 	if err != nil || before.CurrentVersion != 76 {

@@ -123,7 +123,7 @@ func TestRecoveryRetryRejectsUnknownForeignControlAndMessageSources(t *testing.T
 			}
 			if kind == "message_mixed" {
 				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID,
-					ClientMessageID: "mixed-message", MessageUUID: "mixed-message", Text: "A new user request"}); err != nil {
+					ClientMessageID: "mixed-message", FrameEventID: "mixed-message", MessageUUID: "mixed-message", Text: "A new user request"}); err != nil {
 					t.Fatal(err)
 				}
 			}

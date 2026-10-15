@@ -77,7 +77,7 @@ func TestPendingInputContinueTargetRejectsChangedAuthority(t *testing.T) {
 			switch change {
 			case "input":
 				_, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID,
-					ClientMessageID: "new-input", MessageUUID: "new-input", Text: "New explicit input", DeferFrameActivation: true})
+					ClientMessageID: "new-input", FrameEventID: "new-input", MessageUUID: "new-input", Text: "New explicit input", DeferFrameActivation: true})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -93,7 +93,7 @@ func TestPendingInputContinueTargetRejectsChangedAuthority(t *testing.T) {
 					t.Fatal(err)
 				}
 				_, err = repo.AppendFrameUserEventToBranch(t.Context(), transcriptstore.AppendFrameUserEventToBranchInput{
-					AppendFrameUserEventInput: transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "branch-input", MessageUUID: "branch-input", Text: "Continue this branch"},
+					AppendFrameUserEventInput: transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "branch-input", FrameEventID: "branch-input", MessageUUID: "branch-input", Text: "Continue this branch"},
 					TargetBranchID:            state.ActiveBranchID, ExpectedActiveBranchID: state.ActiveBranchID, ExpectedGeneration: state.Generation, ClientMutationID: "continue-branch"})
 				if err != nil {
 					t.Fatal(err)
@@ -134,7 +134,7 @@ func TestPendingInputContinuationDoesNotMaskLiveOwnerOrCorruptSource(t *testing.
 					t.Fatal(err)
 				}
 				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: child.UID, OwnerID: child.OwnerID,
-					ClientMessageID: "child-input", MessageUUID: "child-input", Text: "Work under this root"}); err != nil {
+					ClientMessageID: "child-input", FrameEventID: "child-input", MessageUUID: "child-input", Text: "Work under this root"}); err != nil {
 					t.Fatal(err)
 				}
 				claim, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: child.UID, OwnerID: child.OwnerID,
@@ -144,7 +144,7 @@ func TestPendingInputContinuationDoesNotMaskLiveOwnerOrCorruptSource(t *testing.
 				}
 			} else {
 				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID,
-					ClientMessageID: "exact-but-corrupt", MessageUUID: "exact-but-corrupt", Text: "Retained input", DeferFrameActivation: true}); err != nil {
+					ClientMessageID: "exact-but-corrupt", FrameEventID: "exact-but-corrupt", MessageUUID: "exact-but-corrupt", Text: "Retained input", DeferFrameActivation: true}); err != nil {
 					t.Fatal(err)
 				}
 				if _, err := store.db.Exec(`DROP TRIGGER transcript_input_admissions_immutable;

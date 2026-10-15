@@ -47,7 +47,7 @@ func TestCloneSettledInputKeepsHistoricalPrefixAndAdmitsOnlyNewInput(t *testing.
 		t.Fatalf("source admission changed: %d %v", sourceFacts, err)
 	}
 	event, _, created, err := repo.AppendFrameUserEvent(t.Context(), AppendFrameUserEventInput{StreamUID: target.UID, OwnerID: target.OwnerID,
-		ClientMessageID: "after-copy", MessageUUID: "after-copy", Text: "Continue the copied task", MessageOrigin: "input_response"})
+		ClientMessageID: "after-copy", FrameEventID: "after-copy", MessageUUID: "after-copy", Text: "Continue the copied task", MessageOrigin: "input_response"})
 	if err != nil || !created {
 		t.Fatalf("new input created=%t err=%v", created, err)
 	}
