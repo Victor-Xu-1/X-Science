@@ -218,6 +218,26 @@ func TestRecoveryConditionWaitUsesDurableChangesAndPreservesCancellation(t *test
 			if scenario == "upgrade" || scenario == "cancelled" {
 				revision--
 			}
+			if scenario == "material" || scenario == "administrative" {
+				// Only the actual claimed dispatch may continue its checkpoint.
+				// Persist the evidence before that same owner releases its claim;
+				// a blocked dispatch cannot be taken by an unrelated runner.
+				resumed, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "frame-resume:" + claim.ResumeEvent.ID,
+					TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
+				})
+				if err != nil || !resumed.Claimed {
+					t.Fatalf("evidence claim: %#v %v", resumed, err)
+				}
+				tool := "python"
+				if scenario == "administrative" {
+					tool = updateStepStatusToolName
+				}
+				appendRunnerToolCheckpoint(t, f.repo, resumed.Claim, "new-evidence", map[string]any{
+					"status": "completed", "toolPhase": "completed", "toolName": tool,
+					"toolResult": map[string]any{"ok": true, "executed": true, "stdout": "new result"},
+				})
+			}
 			if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
 				ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken,
 				ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode, RunnerAttempt: int(f.claim.Attempt),
@@ -234,22 +254,6 @@ func TestRecoveryConditionWaitUsesDurableChangesAndPreservesCancellation(t *test
 				}); err != nil {
 					t.Fatal(err)
 				}
-			case "material", "administrative":
-				resumed, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
-					StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "external-evidence",
-					TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
-				})
-				if err != nil || !resumed.Claimed {
-					t.Fatalf("evidence claim: %#v %v", resumed, err)
-				}
-				tool := "python"
-				if scenario == "administrative" {
-					tool = updateStepStatusToolName
-				}
-				appendRunnerToolCheckpoint(t, f.repo, resumed.Claim, "new-evidence", map[string]any{
-					"status": "completed", "toolPhase": "completed", "toolName": tool,
-					"toolResult": map[string]any{"ok": true, "executed": true, "stdout": "new result"},
-				})
 			case "cancelled":
 				cancelled := workspace.FrameStatusCancelled
 				if _, err := f.store.UpdateFrame(f.stream.SessionID, workspace.UpdateFrameInput{Status: &cancelled}); err != nil {

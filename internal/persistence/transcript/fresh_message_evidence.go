@@ -35,6 +35,10 @@ func (r *Repository) freshMessageEvidenceConn(ctx context.Context, conn *sql.Con
 		return result, err
 	}
 	if coverage.HasMessage {
+		answers, err := waitingCheckpointAcceptsPendingAnswersConn(ctx, conn, stream, attempt, claimed, coverage)
+		if err != nil || answers {
+			return result, err
+		}
 		result.Authorized, result.Source = true, "exact_admission"
 		return result, nil
 	}
