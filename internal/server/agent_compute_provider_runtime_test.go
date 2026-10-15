@@ -762,18 +762,21 @@ func TestManagedInferenceComputeProviderUsesExactLoopbackProxyAndBaseURL(t *test
 	registration := compute.ManagedEndpointRegistration{
 		Name: "fixture-endpoint", URL: endpoint.URL + "/v1", Port: endpoint.Listener.Addr().(*net.TCPAddr).Port,
 		SkillName: "using-model-endpoint", LivePath: "/health", StartScript: "true", StopScript: "true",
+		Owner: &compute.ManagedEndpointOwnerSpec{Version: 1, Kind: "native-unit", Output: compute.ManagedEndpointOutputPolicy{SegmentBytes: 4096, Segments: 2}},
 	}
 	if err := store.UpsertManagedEndpoint(workspace.ManagedEndpoint{
 		Name: registration.Name, URL: registration.URL, Port: registration.Port,
 		State: "stopped", Location: "local", SkillName: registration.SkillName,
 		LivePath: registration.LivePath, StartScript: registration.StartScript, StopScript: registration.StopScript,
 		ApprovedScriptHash: compute.ApprovedManagedEndpointHash(registration), RegisteredBy: "owner-inference",
+		OwnerSpec: registration.Owner, ServiceDir: t.TempDir(),
 	}); err != nil {
 		t.Fatal(err)
 	}
 	server := New(Options{
 		Workspace: store, Transcript: repo, FileRoot: state, RuntimeAssetsDir: optional,
-		SkillDirectories: []string{filepath.Join(repositoryRoot, "skills", "x-science")}, KernelManager: manager,
+		ManagedEndpointRuntime: &managedEndpointAPIRuntime{store: store},
+		SkillDirectories:       []string{filepath.Join(repositoryRoot, "skills", "x-science")}, KernelManager: manager,
 	})
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)

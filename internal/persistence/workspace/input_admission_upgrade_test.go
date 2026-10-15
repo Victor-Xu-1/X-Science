@@ -102,7 +102,7 @@ func admissionLegacyV76Fixture(t *testing.T) (*Store, *transcriptstore.Repositor
 	}
 	t.Cleanup(func() { _ = store.Close() })
 	after, err := store.SchemaStatus(t.Context())
-	if err != nil || after.CurrentVersion != 77 || len(after.Migrations) != 77 || !reflect.DeepEqual(before.Migrations, after.Migrations[:76]) {
+	if err != nil || after.CurrentVersion != workspaceSchemaVersion || len(after.Migrations) != workspaceSchemaVersion || !reflect.DeepEqual(before.Migrations, after.Migrations[:76]) {
 		t.Fatalf("migration rewrote history: %+v err=%v", after, err)
 	}
 	if store.schemaBackupPath == "" {
@@ -145,7 +145,7 @@ func TestInputAdmissionV77PreservesUnknownHistoryAndMigrationIdentity(t *testing
 	if err := applyVersionedSchemaMigrations(t.Context(), store.db, time.Now); err != nil {
 		t.Fatal(err)
 	}
-	assertSchemaJournalVersion(t, store.db, 77)
+	assertSchemaJournalVersion(t, store.db, workspaceSchemaVersion)
 	var facts int
 	if err := store.db.QueryRow(`SELECT COUNT(*) FROM transcript_input_admissions`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("migration retry invented history: %d %v", facts, err)

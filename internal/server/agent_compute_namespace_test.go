@@ -37,6 +37,24 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
+	// Normal Open now installs78. This private historical fixture must remove
+	// only empty prospective owner evidence before reconstructing its74 shape.
+	var ownerActions, ownerInstances, ownerSpecs int
+	if err := tx.QueryRow(`SELECT (SELECT COUNT(*) FROM compute_managed_endpoint_actions),
+		(SELECT COUNT(*) FROM compute_managed_endpoint_instances),
+		(SELECT COUNT(*) FROM compute_managed_endpoints WHERE owner_spec_json IS NOT NULL)`).
+		Scan(&ownerActions, &ownerInstances, &ownerSpecs); err != nil || ownerActions != 0 || ownerInstances != 0 || ownerSpecs != 0 {
+		t.Fatalf("historical fixture contains owner evidence: actions=%d instances=%d specs=%d err=%v", ownerActions, ownerInstances, ownerSpecs, err)
+	}
+	for _, statement := range []string{
+		`DROP TABLE compute_managed_endpoint_actions`,
+		`DROP TABLE compute_managed_endpoint_instances`,
+		`ALTER TABLE compute_managed_endpoints DROP COLUMN owner_spec_json`,
+	} {
+		if _, err := tx.Exec(statement); err != nil {
+			t.Fatal(err)
+		}
+	}
 	for _, table := range []string{"transcript_input_admissions", "compute_namespace_observed_source_receipts", "namespace_identity_aliases", "namespace_cutover_receipts", "kernel_runtime_identity_receipts", "namespace_kernel_operation_receipts", "namespace_transcript_event_receipts", "namespace_compute_job_receipts", "namespace_history_audit_receipts"} {
 		if _, err := tx.Exec(`DROP TABLE ` + table); err != nil {
 			t.Fatal(err)
