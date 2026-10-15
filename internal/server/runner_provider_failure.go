@@ -1,6 +1,8 @@
 package server
 
 import (
+	"strings"
+
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 )
@@ -13,7 +15,7 @@ func runnerProviderFailureKind(interruption transcriptstore.RunnerInterruption) 
 	if interruption.ReasonCode != sessionRunnerModelProviderUnavailableReasonCode {
 		return ""
 	}
-	if interruption.ProviderFailureKind != "" {
+	if transcriptstore.ValidRunnerProviderFailureKind(interruption.ProviderFailureKind) {
 		return interruption.ProviderFailureKind
 	}
 	if interruption.ResumeDetail == sessionRunnerMissingModelConfigurationDetail {
@@ -23,6 +25,17 @@ func runnerProviderFailureKind(interruption transcriptstore.RunnerInterruption) 
 		return string(kind)
 	}
 	return "unavailable"
+}
+
+// Canonical and legacy host checkpoints use different field spelling, but
+// public consumers share one closed presentation classifier, never raw prose.
+func runnerProviderFailureKindFromPayload(payload map[string]any) string {
+	reason := strings.TrimSpace(firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"])))
+	return runnerProviderFailureKind(transcriptstore.RunnerInterruption{
+		ReasonCode:          strings.ToLower(reason),
+		ResumeDetail:        firstNonEmpty(webString(payload["resume_detail"]), webString(payload["resumeDetail"])),
+		ProviderFailureKind: webString(payload["provider_failure_kind"]),
+	})
 }
 
 func publicRunnerProviderFailureDetail(kind, language string) string {
