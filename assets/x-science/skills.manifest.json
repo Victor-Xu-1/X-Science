@@ -867,8 +867,8 @@
     },
     {
       "path": "managed-model-endpoints/SKILL.md",
-      "sha256": "5d2b49a543dad09269c9876c2ffd17d86d46406ee9eceba53cae9c971b749fc3",
-      "bytes": 8379
+      "sha256": "adfaffc1ca262902c2f115e662d0c2f41b2b3a9d418a43244cd42138cdb5a50a",
+      "bytes": 10610
     },
     {
       "path": "medicinal-chemistry-optimization/agents/openai.yaml",

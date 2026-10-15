@@ -64,7 +64,9 @@ func TestManagedEndpointPrivateCleanupRejectsUntrustedOwnerAndCanReplay(t *testi
 				foreign.UserID = "different-owner"
 				writeManagedEndpointPrivateCleanupJSON(t, filepath.Join(fixture.directory, "owner.json"), foreign)
 				protected = filepath.Join(fixture.directory, "output-0")
-				restore = func() { writeManagedEndpointPrivateCleanupJSON(t, filepath.Join(fixture.directory, "owner.json"), fixture.instance) }
+				restore = func() {
+					writeManagedEndpointPrivateCleanupJSON(t, filepath.Join(fixture.directory, "owner.json"), fixture.instance)
+				}
 			} else {
 				saved := fixture.directory + ".saved"
 				if err := os.Rename(fixture.directory, saved); err != nil {
