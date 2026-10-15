@@ -213,7 +213,8 @@ func TestManagedEndpointDockerPhysicalLifecycle(t *testing.T) {
 		t.Fatal("warm Start rewrote instance origin or skipped fresh Accept")
 	}
 	fixture.health(t, 2)
-	managedEndpointPhysicalScriptCount(t, fixture.instance.ServiceDir, 2)
+	// Typed warm Start restarts the same container without replaying bootstrap.
+	managedEndpointPhysicalScriptCount(t, fixture.instance.ServiceDir, 1)
 	if _, err := fixture.dockerFacts(fixture.ctx, fixture.containerID); err != nil {
 		t.Fatal(err)
 	}
