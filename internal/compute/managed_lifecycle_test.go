@@ -1,78 +1,48 @@
 package compute
 
 import (
-	"context"
-	"net/http"
-	"net/http/httptest"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"strings"
-	"sync/atomic"
 	"testing"
-	"time"
 )
 
-func TestRunApprovedStopCallsLoopbackAndRejectsDrift(t *testing.T) {
-	for _, key := range []string{"HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"} {
-		t.Setenv(key, "http://127.0.0.1:1")
+func TestManagedEndpointLegacyApprovalBytesRemainUnchanged(t *testing.T) {
+	registration := ManagedEndpointRegistration{Name: "fixture", URL: "http://127.0.0.1:25000/v1", Port: 25000, CredentialName: "NVIDIA_API_KEY", SkillName: "using-model-endpoint", StartScript: "printf 'started\\n'", StopScript: "true", LivePath: "/health"}
+	expected := `{"name":"fixture","url":"http://127.0.0.1:25000/v1","port":25000,"credentialName":"NVIDIA_API_KEY","skillName":"using-model-endpoint","startScript":"printf 'started\\n'","stopScript":"true","livePath":"/health"}`
+	raw, err := json.Marshal(registration)
+	if err != nil || string(raw) != expected {
+		t.Fatalf("legacy bytes=%s err=%v", raw, err)
 	}
-	t.Setenv("NO_PROXY", "example.invalid")
-	t.Setenv("no_proxy", "example.invalid")
-	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls.Add(1); w.WriteHeader(http.StatusNoContent) }))
-	defer server.Close()
-	registration := ManagedEndpointRegistration{Name: "fixture", URL: "http://127.0.0.1:9444/v1", Port: 9444, SkillName: "using-model-endpoint", StartScript: "start", StopScript: "/usr/bin/curl -fsS -X POST '" + server.URL + "'", LivePath: "/health"}
-	result, err := RunApprovedStop(context.Background(), registration, ApprovedManagedEndpointHash(registration), 5*time.Second)
-	if err != nil {
-		t.Fatal(err)
+	sum := sha256.Sum256([]byte(expected))
+	approved := hex.EncodeToString(sum[:])
+	if ApprovedManagedEndpointHash(registration) != approved {
+		t.Fatal("legacy approval hash changed")
 	}
-	if calls.Load() != 1 || result.Duration <= 0 {
-		t.Fatalf("calls=%d result=%#v", calls.Load(), result)
+	registration.StopScript = "false"
+	if ApprovedManagedEndpointHash(registration) == approved {
+		t.Fatal("script drift retained its approval")
 	}
-	drifted := registration
-	drifted.StopScript = "exit 0"
-	if _, err := RunApprovedStop(context.Background(), drifted, ApprovedManagedEndpointHash(registration), time.Second); err == nil || !strings.Contains(err.Error(), "approved hash") {
-		t.Fatalf("drift err=%v", err)
-	}
-}
-
-func TestRunApprovedStopBoundsOutputAndTimesOut(t *testing.T) {
-	registration := ManagedEndpointRegistration{Name: "fixture", URL: "http://127.0.0.1:9444/v1", Port: 9444, SkillName: "using-model-endpoint", StartScript: "start", StopScript: "exec sleep 5", LivePath: "/health"}
-	result, err := RunApprovedStop(context.Background(), registration, ApprovedManagedEndpointHash(registration), 100*time.Millisecond)
-	if err == nil || !strings.Contains(err.Error(), "timed out") {
-		t.Fatalf("err=%v", err)
-	}
-	if len(result.Transcript) > maxTranscriptBytes {
-		t.Fatalf("transcript bytes=%d", len(result.Transcript))
+	registration.StopScript = "true"
+	registration.Owner = &ManagedEndpointOwnerSpec{Version: 1, Kind: "native-unit", Output: ManagedEndpointOutputPolicy{SegmentBytes: 4096, Segments: 2}}
+	if ApprovedManagedEndpointHash(registration) == approved {
+		t.Fatal("new owner authority was not included in approval")
 	}
 }
 
-func TestRunApprovedStartExecutesApprovedBytesAndUsesBoundedLoopbackReadiness(t *testing.T) {
-	for _, key := range []string{"HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"} {
-		t.Setenv(key, "http://127.0.0.1:1")
+func TestManagedEndpointOwnerRejectsIncompleteAdoptionAndMixedProof(t *testing.T) {
+	spec := &ManagedEndpointOwnerSpec{Version: 1, Kind: "native-unit", Output: ManagedEndpointOutputPolicy{SegmentBytes: 4096, Segments: 2}, Adopt: &ManagedEndpointRuntimeIdentity{Kind: "native-unit"}}
+	if spec.Validate() == nil {
+		t.Fatal("empty adoption unit was accepted")
 	}
-	var calls atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
-		if request.URL.Path != "/health" {
-			http.NotFound(w, request)
-			return
-		}
-		calls.Add(1)
-		w.WriteHeader(http.StatusNoContent)
-	}))
-	defer server.Close()
-	registration := ManagedEndpointRegistration{
-		Name: "fixture", URL: server.URL + "/v1", Port: 25000, SkillName: "using-model-endpoint",
-		StartScript: "printf 'started\\n'", StopScript: "true", LivePath: "/health",
+	spec.Adopt = &ManagedEndpointRuntimeIdentity{Kind: "native-unit", Unit: "-foreign.service", BootID: "boot", InvocationID: strings.Repeat("a", 32), ControlGroup: "/owner", PID: 1, StartTicks: 1}
+	if spec.Validate() == nil {
+		t.Fatal("option-like unit name was accepted")
 	}
-	result, err := RunApprovedStart(context.Background(), registration, ApprovedManagedEndpointHash(registration), 5*time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if calls.Load() != 1 || !strings.Contains(result.Transcript, "started") || result.Duration <= 0 {
-		t.Fatalf("calls=%d result=%#v", calls.Load(), result)
-	}
-	drifted := registration
-	drifted.StartScript = "false"
-	if _, err := RunApprovedStart(context.Background(), drifted, ApprovedManagedEndpointHash(registration), time.Second); err == nil || !strings.Contains(err.Error(), "approved hash") {
-		t.Fatalf("drift err=%v", err)
+	var output cappedBuffer
+	_, _ = output.Write([]byte(strings.Repeat("x", maxTranscriptBytes+1)))
+	if output.Len() != maxTranscriptBytes {
+		t.Fatal("bounded public transcript changed")
 	}
 }

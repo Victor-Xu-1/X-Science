@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	cryptorand "crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -431,17 +432,42 @@ func (s *Server) kernelHostRegisterManagedEndpoint(ctx context.Context, access w
 		Name: name, URL: parsed.String(), Port: port, CredentialName: credential, SkillName: skillName,
 		StartScript: startScript, StopScript: stopScript, LivePath: livePath,
 	}
-	hash := compute.ApprovedManagedEndpointHash(registration)
+	if value, ok := input["owner"]; ok {
+		encoded, err := json.Marshal(value)
+		if err != nil || len(encoded) > 128<<10 {
+			return nil, kernelruntime.NewHostCallError("invalid_arguments", "managed endpoint owner contract is invalid")
+		}
+		decoder := json.NewDecoder(strings.NewReader(string(encoded)))
+		decoder.DisallowUnknownFields()
+		var owner compute.ManagedEndpointOwnerSpec
+		if err := decoder.Decode(&owner); err != nil || owner.Validate() != nil {
+			return nil, kernelruntime.NewHostCallError("invalid_arguments", "managed endpoint owner contract is invalid")
+		}
+		registration.Owner = &owner
+	}
+	if hosted && registration.Owner != nil {
+		return nil, kernelruntime.NewHostCallError("invalid_arguments", "remote managed endpoints cannot declare local owners")
+	}
 	existing, listErr := s.workspaceStore.ListManagedEndpoints(access.UserID, name, false)
 	if listErr != nil {
 		return nil, listErr
 	}
+	if len(existing) == 1 && existing[0].OwnerSpec == nil && registration.Owner != nil && registration.Owner.Adopt != nil {
+		registration.Owner.LegacyApproval = &compute.ManagedEndpointLegacyApproval{Registration: managedEndpointRegistration(existing[0]), Hash: existing[0].ApprovedScriptHash}
+	}
+	hash := compute.ApprovedManagedEndpointHash(registration)
 	changed := true
 	if len(existing) == 1 && strings.TrimPrefix(existing[0].ApprovedScriptHash, "sha256:") == hash {
 		changed = false
 	}
 	if changed {
+		if !hosted && registration.Owner == nil {
+			return nil, kernelruntime.NewHostCallError("invalid_arguments", "local managed endpoints require an explicit durable owner and bounded output policy")
+		}
 		approvalInput := copyMapAny(input)
+		if registration.Owner != nil {
+			approvalInput["owner"] = registration.Owner
+		}
 		approvalInput["port"] = port
 		if err := s.requireKernelCapabilityInstallApproval(ctx, access, "model-endpoint:"+name, methodModelEndpointRegister, "managed_model_endpoint", approvalInput, map[string]any{
 			"title":       "Register managed model endpoint " + name,
@@ -465,6 +491,7 @@ func (s *Server) kernelHostRegisterManagedEndpoint(ctx context.Context, access w
 		Name: name, URL: parsed.String(), Port: port, State: state, Location: location,
 		SkillName: skillName, CredentialName: &credentialCopy, LivePath: livePath,
 		StartScript: startScript, StopScript: stopScript, ApprovedScriptHash: hash,
+		OwnerSpec:  registration.Owner,
 		ServiceDir: serviceDir, RegisteredBy: access.UserID,
 	}); err != nil {
 		return nil, err

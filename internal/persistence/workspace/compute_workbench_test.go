@@ -163,8 +163,7 @@ func TestManagedEndpointClaimRejectsStaleFinisherAcrossStores(t *testing.T) {
 		t.Fatalf("first claim=%#v shouldRun=%v err=%v", firstClaim, shouldRun, err)
 	}
 
-	endpoint.State = "live"
-	if err := storeB.UpsertManagedEndpoint(endpoint); err != nil {
+	if _, err := storeB.FinishManagedEndpointStop(firstClaim.ClaimHandle, "first stop failed", errors.New("retryable fixture stop failure")); err != nil {
 		t.Fatal(err)
 	}
 	secondClaim, shouldRun, err := storeB.ClaimManagedEndpointStop(endpoint.Name, endpoint.RegisteredBy)

@@ -66,6 +66,7 @@ type Options struct {
 	FileRoot                              string
 	RuntimeAssetsDir                      string
 	ComputeRemoteDialer                   compute.RemoteDialer
+	ManagedEndpointRuntime                compute.ManagedEndpointOwnerRuntime
 	ComputeProviderDial                   kernelruntime.ProviderProxyDialFunc
 	ProviderOperationRunner               kernelruntime.ProviderOperationRunner
 	HostGPUDetector                       func(context.Context) compute.GPUInfo
@@ -168,6 +169,7 @@ type Server struct {
 	operations                            *registry.Registry
 	plugins                               *pluginhost.Host
 	fileRoot                              string
+	managedEndpointRuntime                compute.ManagedEndpointOwnerRuntime
 	runtimeAssetsDir                      string
 	settingsStore                         *settingsstore.Store
 	secretStore                           *secretstore.Store
@@ -564,6 +566,7 @@ func New(options Options) *Server {
 		operations:                            operations,
 		plugins:                               plugins,
 		fileRoot:                              options.FileRoot,
+		managedEndpointRuntime:                options.ManagedEndpointRuntime,
 		runtimeAssetsDir:                      cleanExistingDirectory(options.RuntimeAssetsDir),
 		settingsStore:                         settings,
 		secretStore:                           secrets,

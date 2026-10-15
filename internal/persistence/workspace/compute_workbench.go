@@ -14,6 +14,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"x-science/internal/compute"
 )
 
 var ErrManagedEndpointStopInProgress = errors.New("managed endpoint stop is already in progress")
@@ -38,27 +40,28 @@ type ComputeBioNeMoSettings struct {
 }
 
 type ManagedEndpoint struct {
-	Name               string     `json:"name"`
-	URL                string     `json:"url"`
-	Port               int        `json:"port"`
-	State              string     `json:"state"`
-	Location           string     `json:"location"`
-	SkillName          string     `json:"skillName"`
-	CredentialName     *string    `json:"credentialName"`
-	LivePath           string     `json:"livePath"`
-	StartScript        string     `json:"startScript"`
-	StopScript         string     `json:"stopScript"`
-	ApprovedScriptHash string     `json:"approvedScriptHash"`
-	LastError          *string    `json:"lastError"`
-	Transcript         *string    `json:"transcript"`
-	StateChangedAt     *time.Time `json:"-"`
-	StateChangedAtISO  *string    `json:"stateChangedAt"`
-	ServiceDir         string     `json:"serviceDir"`
-	ServiceDirBytes    *int64     `json:"serviceDirBytes"`
-	RegisteredBy       string     `json:"-"`
-	ClaimToken         string     `json:"-"`
-	ClaimGeneration    int64      `json:"-"`
-	ClaimHandle        string     `json:"-"`
+	Name               string                            `json:"name"`
+	URL                string                            `json:"url"`
+	Port               int                               `json:"port"`
+	State              string                            `json:"state"`
+	Location           string                            `json:"location"`
+	SkillName          string                            `json:"skillName"`
+	CredentialName     *string                           `json:"credentialName"`
+	LivePath           string                            `json:"livePath"`
+	StartScript        string                            `json:"startScript"`
+	StopScript         string                            `json:"stopScript"`
+	ApprovedScriptHash string                            `json:"approvedScriptHash"`
+	LastError          *string                           `json:"lastError"`
+	Transcript         *string                           `json:"transcript"`
+	StateChangedAt     *time.Time                        `json:"-"`
+	StateChangedAtISO  *string                           `json:"stateChangedAt"`
+	ServiceDir         string                            `json:"serviceDir"`
+	ServiceDirBytes    *int64                            `json:"serviceDirBytes"`
+	RegisteredBy       string                            `json:"-"`
+	ClaimToken         string                            `json:"-"`
+	ClaimGeneration    int64                             `json:"-"`
+	ClaimHandle        string                            `json:"-"`
+	OwnerSpec          *compute.ManagedEndpointOwnerSpec `json:"owner,omitempty"`
 }
 
 type ComputeJob struct {
@@ -385,8 +388,60 @@ func (s *Store) UpsertManagedEndpoint(endpoint ManagedEndpoint) error {
 		return err
 	}
 	defer tx.Rollback()
-	result, err := tx.ExecContext(ctx, `INSERT INTO compute_managed_endpoints(name,owner_user_id,url,port,state,location,skill_name,credential_name,live_path,start_script,stop_script,approved_script_hash,last_error,transcript,state_changed_at,service_dir,service_dir_bytes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET url=excluded.url,port=excluded.port,state=excluded.state,location=excluded.location,skill_name=excluded.skill_name,credential_name=excluded.credential_name,live_path=excluded.live_path,start_script=excluded.start_script,stop_script=excluded.stop_script,approved_script_hash=excluded.approved_script_hash,last_error=excluded.last_error,transcript=excluded.transcript,state_changed_at=excluded.state_changed_at,service_dir=excluded.service_dir,service_dir_bytes=excluded.service_dir_bytes WHERE COALESCE(compute_managed_endpoints.owner_user_id,'')=excluded.owner_user_id`,
-		endpoint.Name, endpoint.RegisteredBy, endpoint.URL, endpoint.Port, endpoint.State, endpoint.Location, endpoint.SkillName, endpoint.CredentialName, endpoint.LivePath, endpoint.StartScript, endpoint.StopScript, endpoint.ApprovedScriptHash, endpoint.LastError, endpoint.Transcript, changed, endpoint.ServiceDir, endpoint.ServiceDirBytes)
+	existing, existingErr := scanManagedEndpoint(tx.QueryRowContext(ctx, `SELECT `+managedEndpointColumns+` FROM compute_managed_endpoints WHERE name=?`, endpoint.Name))
+	if existingErr != nil && !errors.Is(existingErr, sql.ErrNoRows) {
+		return existingErr
+	}
+	if existingErr == nil {
+		if existing.RegisteredBy != endpoint.RegisteredBy {
+			return ErrManagedEndpointOwnerConflict
+		}
+		// Re-registering identical approved bytes is not a lifecycle command.
+		// Preserve the actual live/starting/stopping/failed owner and its claim.
+		if existing.ApprovedScriptHash == endpoint.ApprovedScriptHash && (existing.State == "live" || existing.State == "running" || existing.State == "starting" || existing.State == "stopping" || existing.State == "owner_unverified") {
+			return tx.Commit()
+		}
+		var unresolved int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND retired_at IS NULL`, endpoint.Name).Scan(&unresolved); err != nil {
+			return err
+		}
+		var retired int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND retired_at IS NOT NULL`, endpoint.Name).Scan(&retired); err != nil {
+			return err
+		}
+		resolvedFailure := existing.State == "failed" && unresolved == 0 && retired > 0
+		adoptingLegacy := existing.OwnerSpec == nil && endpoint.OwnerSpec != nil && endpoint.OwnerSpec.Kind == "docker" && endpoint.OwnerSpec.Adopt != nil && endpoint.OwnerSpec.LegacyApproval != nil
+		if adoptingLegacy {
+			legacy := endpoint.OwnerSpec.LegacyApproval
+			credential := ""
+			if existing.CredentialName != nil {
+				credential = *existing.CredentialName
+			}
+			old := compute.ManagedEndpointRegistration{Name: existing.Name, URL: existing.URL, Port: existing.Port, CredentialName: credential, SkillName: existing.SkillName, StartScript: existing.StartScript, StopScript: existing.StopScript, LivePath: existing.LivePath}
+			if legacy.Registration != old || strings.TrimPrefix(legacy.Hash, "sha256:") != strings.TrimPrefix(existing.ApprovedScriptHash, "sha256:") || endpoint.ServiceDir != existing.ServiceDir {
+				return compute.ErrManagedEndpointOwnershipUnknown
+			}
+		}
+		if unresolved != 0 || (existing.Location != "remote" && existing.State != "stopped" && !adoptingLegacy && !resolvedFailure) {
+			return compute.ErrManagedEndpointOwnershipUnknown
+		}
+	}
+	if endpoint.OwnerSpec != nil && endpoint.OwnerSpec.Adopt != nil {
+		endpoint.State = "owner_unverified"
+	}
+	var ownerJSON any
+	if endpoint.OwnerSpec != nil {
+		if err := endpoint.OwnerSpec.Validate(); err != nil {
+			return err
+		}
+		encoded, err := json.Marshal(endpoint.OwnerSpec)
+		if err != nil {
+			return err
+		}
+		ownerJSON = string(encoded)
+	}
+	result, err := tx.ExecContext(ctx, `INSERT INTO compute_managed_endpoints(name,owner_user_id,url,port,state,location,skill_name,credential_name,live_path,start_script,stop_script,approved_script_hash,last_error,transcript,state_changed_at,service_dir,service_dir_bytes,owner_spec_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(name) DO UPDATE SET url=excluded.url,port=excluded.port,state=excluded.state,location=excluded.location,skill_name=excluded.skill_name,credential_name=excluded.credential_name,live_path=excluded.live_path,start_script=excluded.start_script,stop_script=excluded.stop_script,approved_script_hash=excluded.approved_script_hash,last_error=excluded.last_error,transcript=excluded.transcript,state_changed_at=excluded.state_changed_at,service_dir=excluded.service_dir,service_dir_bytes=excluded.service_dir_bytes,owner_spec_json=excluded.owner_spec_json WHERE COALESCE(compute_managed_endpoints.owner_user_id,'')=excluded.owner_user_id`,
+		endpoint.Name, endpoint.RegisteredBy, endpoint.URL, endpoint.Port, endpoint.State, endpoint.Location, endpoint.SkillName, endpoint.CredentialName, endpoint.LivePath, endpoint.StartScript, endpoint.StopScript, endpoint.ApprovedScriptHash, endpoint.LastError, endpoint.Transcript, changed, endpoint.ServiceDir, endpoint.ServiceDirBytes, ownerJSON)
 	if err != nil {
 		return err
 	}
@@ -407,19 +462,30 @@ func (s *Store) UpsertManagedEndpoint(endpoint ManagedEndpoint) error {
 	return tx.Commit()
 }
 
-const managedEndpointColumns = `name,url,port,state,location,skill_name,credential_name,live_path,start_script,stop_script,approved_script_hash,last_error,transcript,state_changed_at,service_dir,service_dir_bytes,COALESCE(owner_user_id,''),stop_claim_token,stop_claim_generation`
+const managedEndpointColumns = `name,url,port,state,location,skill_name,credential_name,live_path,start_script,stop_script,approved_script_hash,last_error,transcript,state_changed_at,service_dir,service_dir_bytes,COALESCE(owner_user_id,''),stop_claim_token,stop_claim_generation,owner_spec_json`
 
 func scanManagedEndpoint(scanner interface{ Scan(...any) error }) (ManagedEndpoint, error) {
 	var endpoint ManagedEndpoint
 	var credential, lastError, transcript sql.NullString
 	var changed time.Time
 	var size sql.NullInt64
-	err := scanner.Scan(&endpoint.Name, &endpoint.URL, &endpoint.Port, &endpoint.State, &endpoint.Location, &endpoint.SkillName, &credential, &endpoint.LivePath, &endpoint.StartScript, &endpoint.StopScript, &endpoint.ApprovedScriptHash, &lastError, &transcript, &changed, &endpoint.ServiceDir, &size, &endpoint.RegisteredBy, &endpoint.ClaimToken, &endpoint.ClaimGeneration)
+	var ownerJSON sql.NullString
+	err := scanner.Scan(&endpoint.Name, &endpoint.URL, &endpoint.Port, &endpoint.State, &endpoint.Location, &endpoint.SkillName, &credential, &endpoint.LivePath, &endpoint.StartScript, &endpoint.StopScript, &endpoint.ApprovedScriptHash, &lastError, &transcript, &changed, &endpoint.ServiceDir, &size, &endpoint.RegisteredBy, &endpoint.ClaimToken, &endpoint.ClaimGeneration, &ownerJSON)
 	if err != nil {
 		return endpoint, err
 	}
 	if credential.Valid {
 		endpoint.CredentialName = &credential.String
+	}
+	if ownerJSON.Valid {
+		var spec compute.ManagedEndpointOwnerSpec
+		if err := json.Unmarshal([]byte(ownerJSON.String), &spec); err != nil {
+			return endpoint, fmt.Errorf("%w: malformed owner spec", compute.ErrManagedEndpointCorruptOwner)
+		}
+		if err := spec.Validate(); err != nil {
+			return endpoint, fmt.Errorf("%w: invalid owner spec", compute.ErrManagedEndpointCorruptOwner)
+		}
+		endpoint.OwnerSpec = &spec
 	}
 	if lastError.Valid {
 		endpoint.LastError = &lastError.String
@@ -496,10 +562,49 @@ func (s *Store) ClaimManagedEndpointStop(name, userID string) (ManagedEndpoint, 
 		return ManagedEndpoint{}, false, err
 	}
 	if endpoint.State == "stopped" {
-		return endpoint, false, tx.Commit()
+		var history int
+		if endpoint.OwnerSpec != nil {
+			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND owner_user_id=? AND approved_hash=?`, endpoint.Name, endpoint.RegisteredBy, endpoint.ApprovedScriptHash).Scan(&history); err != nil {
+				return endpoint, false, err
+			}
+		}
+		if history == 0 {
+			return endpoint, false, tx.Commit()
+		}
 	}
 	if endpoint.State == "stopping" {
 		return ManagedEndpoint{}, false, ErrManagedEndpointStopInProgress
+	}
+	if endpoint.State == "starting" && endpoint.OwnerSpec != nil {
+		instance, ownerErr := readManagedEndpointInstanceTx(ctx, tx, `endpoint_name=? AND owner_user_id=? AND retired_at IS NULL`, endpoint.Name, endpoint.RegisteredBy)
+		if ownerErr == nil {
+			oldRef := compute.ManagedEndpointActionRef{InstanceID: instance.ID, Kind: "start", ClaimHandle: endpoint.ClaimHandle, Generation: endpoint.ClaimGeneration}
+			if _, err := s.cancelManagedEndpointActionTx(ctx, tx, oldRef, instance); err != nil {
+				return ManagedEndpoint{}, false, err
+			}
+		} else if errors.Is(ownerErr, sql.ErrNoRows) && endpoint.OwnerSpec.Adopt == nil {
+			// No instance means Prepare/worker launch/Accept have never occurred.
+			// Fence the undispatched start before reporting observed stopped.
+			now := s.now().UTC()
+			result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state='stopped',state_changed_at=?,stop_claim_token='',stop_claim_generation=stop_claim_generation+1 WHERE name=? AND owner_user_id=? AND state='starting' AND stop_claim_token=? AND stop_claim_generation=?`, now, endpoint.Name, endpoint.RegisteredBy, endpoint.ClaimToken, endpoint.ClaimGeneration)
+			if err != nil {
+				return ManagedEndpoint{}, false, err
+			}
+			if count, err := result.RowsAffected(); err != nil || count != 1 {
+				return ManagedEndpoint{}, false, ErrManagedEndpointStopInProgress
+			}
+			endpoint.State = "stopped"
+			endpoint.ClaimToken = ""
+			endpoint.ClaimGeneration++
+			endpoint.ClaimHandle = ""
+			endpoint.StateChangedAt = &now
+			if err := s.enqueueManagedEndpointTx(ctx, tx, "managed_endpoint_update", "stopped_before_dispatch", endpoint, ""); err != nil {
+				return ManagedEndpoint{}, false, err
+			}
+			return endpoint, false, tx.Commit()
+		} else if !errors.Is(ownerErr, sql.ErrNoRows) {
+			return ManagedEndpoint{}, false, ownerErr
+		}
 	}
 	claimToken, err := newManagedEndpointClaimToken()
 	if err != nil {
@@ -549,7 +654,7 @@ func (s *Store) ClaimManagedEndpointStart(name, userID string) (ManagedEndpoint,
 	if endpoint.State == "starting" || endpoint.State == "stopping" {
 		return ManagedEndpoint{}, false, ErrManagedEndpointStartInProgress
 	}
-	if endpoint.State != "stopped" {
+	if endpoint.State != "stopped" && endpoint.State != "owner_unverified" {
 		return ManagedEndpoint{}, false, fmt.Errorf("managed endpoint cannot start from state %q", endpoint.State)
 	}
 	claimToken, err := newManagedEndpointClaimToken()
@@ -557,7 +662,7 @@ func (s *Store) ClaimManagedEndpointStart(name, userID string) (ManagedEndpoint,
 		return ManagedEndpoint{}, false, err
 	}
 	now := s.now().UTC()
-	result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state='starting',state_changed_at=?,stop_claim_token=?,stop_claim_generation=stop_claim_generation+1 WHERE name=? AND COALESCE(owner_user_id,'')=? AND state='stopped' AND stop_claim_generation=?`, now, claimToken, endpoint.Name, strings.TrimSpace(userID), endpoint.ClaimGeneration)
+	result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state='starting',state_changed_at=?,stop_claim_token=?,stop_claim_generation=stop_claim_generation+1 WHERE name=? AND COALESCE(owner_user_id,'')=? AND state=? AND stop_claim_generation=?`, now, claimToken, endpoint.Name, strings.TrimSpace(userID), endpoint.State, endpoint.ClaimGeneration)
 	if err != nil {
 		return ManagedEndpoint{}, false, err
 	}
@@ -601,6 +706,9 @@ func (s *Store) FinishManagedEndpointStart(handle, transcript string, startErr e
 	endpoint, err := scanManagedEndpoint(tx.QueryRowContext(ctx, `SELECT `+managedEndpointColumns+` FROM compute_managed_endpoints WHERE name=? AND state='starting' AND stop_claim_token=? AND stop_claim_generation=?`, endpointName, claimToken, claimGeneration))
 	if err != nil {
 		return "", err
+	}
+	if endpoint.OwnerSpec != nil {
+		return "", errors.New("owned endpoint completion requires a typed owner receipt")
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state=?,last_error=?,transcript=?,state_changed_at=?,stop_claim_token='' WHERE name=? AND state='starting' AND stop_claim_token=? AND stop_claim_generation=?`, state, lastError, nullString(transcript), now, endpointName, claimToken, claimGeneration)
 	if err != nil {
@@ -651,6 +759,9 @@ func (s *Store) FinishManagedEndpointStop(name, transcript string, stopErr error
 	endpoint, err := scanManagedEndpoint(tx.QueryRowContext(ctx, `SELECT `+managedEndpointColumns+` FROM compute_managed_endpoints WHERE name=? AND state='stopping' AND stop_claim_token=? AND stop_claim_generation=?`, endpointName, claimToken, claimGeneration))
 	if err != nil {
 		return "", err
+	}
+	if endpoint.OwnerSpec != nil {
+		return "", errors.New("owned endpoint completion requires a typed owner receipt")
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state=?,last_error=?,transcript=?,state_changed_at=?,stop_claim_token='' WHERE name=? AND state='stopping' AND stop_claim_token=? AND stop_claim_generation=?`, state, lastError, nullString(transcript), now, endpointName, claimToken, claimGeneration)
 	if err != nil {
@@ -722,6 +833,23 @@ func (s *Store) DeleteManagedEndpoint(name, userID string) (bool, error) {
 		return false, nil
 	}
 	if err != nil {
+		return false, err
+	}
+	if endpoint.Location != "remote" {
+		var unresolved int
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND retired_at IS NULL`, endpoint.Name).Scan(&unresolved); err != nil {
+			return false, err
+		}
+		if unresolved != 0 || endpoint.State != "stopped" {
+			return false, compute.ErrManagedEndpointOwnershipUnknown
+		}
+	}
+	// Explicit endpoint removal owns its retired lifecycle evidence. Active or
+	// unknown owners were rejected above; RESTRICT still protects other callers.
+	if _, err := tx.ExecContext(ctx, `DELETE FROM compute_managed_endpoint_actions WHERE instance_id IN (SELECT instance_id FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND owner_user_id=? AND retired_at IS NOT NULL)`, name, userID); err != nil {
+		return false, err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND owner_user_id=? AND retired_at IS NOT NULL`, name, userID); err != nil {
 		return false, err
 	}
 	result, err := tx.ExecContext(ctx, `DELETE FROM compute_managed_endpoints WHERE name=? AND COALESCE(owner_user_id,'')=?`, name, userID)
