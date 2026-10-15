@@ -47,3 +47,33 @@ func TestProviderFailureKindUsesTypedHTTPAndClosedMachineCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderPermanentAccount429IsNotRetryableWithoutQuotaProse(t *testing.T) {
+	for _, code := range []string{
+		"InvalidSubscription", "subscription_expired", "billing_not_active", "billing_hard_limit_reached",
+		"invalid_api_key", "authentication_error", "account_deactivated", "permission_denied", "access_denied",
+	} {
+		t.Run(code, func(t *testing.T) {
+			body := []byte(`{"error":{"code":"` + code + `","message":"repair account status"}}`)
+			if providerHTTPStatusRetryable(http.StatusTooManyRequests, body) {
+				t.Fatal("recognized permanent account rejection was treated as transient throttling")
+			}
+		})
+	}
+	for _, test := range []struct {
+		name, body string
+		status     int
+		want       bool
+	}{
+		{"unknown_429", `{"error":{"code":"UnknownFailure","message":"try later"}}`, 429, true},
+		{"throttling", `{"error":{"code":"rate_limit_exceeded","message":"too many requests"}}`, 429, true},
+		{"server_failure", `{"error":{"code":"InvalidSubscription","message":"repair account status"}}`, 503, true},
+		{"old_quota", `{"error":{"message":"quota exhausted"}}`, 429, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := providerHTTPStatusRetryable(test.status, []byte(test.body)); got != test.want {
+				t.Fatalf("retryable=%t want=%t", got, test.want)
+			}
+		})
+	}
+}
