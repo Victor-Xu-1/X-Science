@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"x-science/internal/compute"
@@ -17,23 +16,23 @@ import (
 func runManagedEndpointOwnerCLI(args []string) error {
 	flags := flag.NewFlagSet("managed-endpoint-owner", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	descriptor := flags.String("descriptor", "", "private server-created owner descriptor")
+	bootstrap := flags.String("bootstrap", "", "private captured owner scope and requested operation")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	if flags.NArg() != 0 || !filepath.IsAbs(*descriptor) {
-		return errors.New("managed endpoint worker requires one absolute private descriptor")
+	if flags.NArg() != 0 || *bootstrap == "" {
+		return errors.New("managed endpoint worker requires one captured bootstrap scope")
 	}
-	path, err := compute.ManagedEndpointOwnerWorkspacePath(*descriptor)
+	input, err := compute.ParseManagedEndpointBootstrap(*bootstrap)
 	if err != nil {
 		return err
 	}
-	store, err := workspace.OpenExisting(path)
+	store, err := workspace.OpenExisting(input.Scope.WorkspacePath)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	return compute.RunManagedEndpointOwnerWorker(ctx, *descriptor, store)
+	return compute.RunManagedEndpointOwnerWorker(ctx, input, store)
 }
