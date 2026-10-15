@@ -21,9 +21,10 @@ import (
 // only the finite control projection is fake, and the private Unix protocol is
 // real. No request here is allowed to submit, accept or cancel an action.
 func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
-	for _, scenario := range []string{"fresh_delayed_listener", "existing_delayed_listener", "foreign_socket_identity", "cancelled_wait", "cancelled_connected_read"} {
+	for _, scenario := range []string{"fresh_delayed_listener", "existing_delayed_listener", "foreign_socket_identity", "cancelled_wait", "cancelled_connected_read", "activating_pid_before_listener"} {
 		t.Run(scenario, func(t *testing.T) {
-			runtime, instance := managedEndpointSocketFixture(t, scenario == "fresh_delayed_listener")
+			pidDelayed := scenario == "activating_pid_before_listener"
+			runtime, instance := managedEndpointSocketFixture(t, scenario == "fresh_delayed_listener" || pidDelayed, pidDelayed)
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			expected, err := runtime.unit.observe(ctx, instance)
@@ -84,6 +85,11 @@ func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
 				}
 				return
 			}
+			if pidDelayed {
+				if err := os.WriteFile(filepath.Join(instance.RuntimeRoot, "pid-ready"), []byte("controlled exec completed"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
 			protocol = managedEndpointSocketServer(t, instance, expected.Identity)
 			outcome := <-finished
 			if outcome.err != nil || outcome.observed.Identity != expected.Identity {
@@ -96,7 +102,7 @@ func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
 	}
 }
 
-func managedEndpointSocketFixture(t *testing.T, fresh bool) (*ManagedEndpointSystemRuntime, ManagedEndpointOwnerInstance) {
+func managedEndpointSocketFixture(t *testing.T, fresh, pidDelayed bool) (*ManagedEndpointSystemRuntime, ManagedEndpointOwnerInstance) {
 	t.Helper()
 	// Keep the AF_UNIX address below108 bytes without borrowing another
 	// application's runtime directory. Remove only this exact MkdirTemp result.
@@ -118,8 +124,12 @@ func managedEndpointSocketFixture(t *testing.T, fresh bool) (*ManagedEndpointSys
 	}
 	quote := func(value string) string { return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'" }
 	control := filepath.Join(root, "private-systemctl")
-	script := "#!/bin/sh\nif ! test -f " + quote(state) + "; then printf 'LoadState=not-found\\nActiveState=inactive\\n'; exit 0; fi\n" +
-		fmt.Sprintf("printf 'LoadState=loaded\\nActiveState=active\\nInvocationID=%s\\nControlGroup=%s\\nMainPID=%d\\n'\n", identity.InvocationID, identity.ControlGroup, identity.PID)
+	script := "#!/bin/sh\nif ! test -f " + quote(state) + "; then printf 'LoadState=not-found\\nActiveState=inactive\\n'; exit 0; fi\n"
+	if pidDelayed {
+		script += "if ! test -f " + quote(filepath.Join(root, "pid-ready")) + "; then " +
+			fmt.Sprintf("printf 'LoadState=loaded\\nActiveState=activating\\nInvocationID=%s\\nControlGroup=%s\\nMainPID=0\\n'; exit 0; fi\n", identity.InvocationID, identity.ControlGroup)
+	}
+	script += fmt.Sprintf("printf 'LoadState=loaded\\nActiveState=active\\nInvocationID=%s\\nControlGroup=%s\\nMainPID=%d\\n'\n", identity.InvocationID, identity.ControlGroup, identity.PID)
 	if err := os.WriteFile(control, []byte(script), 0o700); err != nil {
 		t.Fatal(err)
 	}
