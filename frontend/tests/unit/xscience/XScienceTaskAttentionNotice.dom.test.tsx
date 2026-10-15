@@ -6,6 +6,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
 describe('XScienceTaskAttentionNotice pause causes', () => {
+  it.each(['en-US', 'zh-CN'] as const)('shows the retained-input continuation action once in %s', async (language) => {
+    const onAction = vi.fn();
+    await renderWithI18n(<XScienceTaskAttentionNotice kind='pending_input' reason={null} onAction={onAction} />, language);
+    const notice = screen.getByTestId('x-science-pending_input-attention');
+    expect(notice).toHaveTextContent(language === 'en-US' ? 'still pending' : '仍待处理');
+    expect(notice).toHaveTextContent(language === 'en-US' ? 'completed results are preserved' : '已完成结果均已保留');
+    expect(onAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button'));
+    expect(onAction).toHaveBeenCalledOnce();
+  });
   it.each(['en-US', 'zh-CN'] as const)(
     'explains model no-progress in %s without inventing retry history',
     async (language) => {

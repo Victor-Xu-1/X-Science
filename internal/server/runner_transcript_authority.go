@@ -61,7 +61,10 @@ func (s *Server) claimTranscriptFrameRunner(
 			if inputErr != nil {
 				return nil, false, true, inputErr
 			}
-			if stream.InputRevision >= state.ClaimedInputRevision && (!coverage.Pending() || coverage.Complete && !coverage.HasMessage) {
+			if coverage.RecoveryWork() && state.Status == "completed" {
+				resumeSource = transcriptstore.ResumeSourceRetry
+				resumeCheckpoint = 0
+			} else if stream.InputRevision >= state.ClaimedInputRevision && (!coverage.Pending() || coverage.Complete && !coverage.HasMessage) {
 				resumeSource = transcriptstore.ResumeSourceCheckpoint
 				resumeCheckpoint = checkpoint.Sequence
 			}

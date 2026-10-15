@@ -2,6 +2,28 @@
 
 ## Single authorities
 
+Input admission is ordered by the sole stream revision, not event publication.
+Schema 77 prospectively binds every accepted revision to its exact user event
+or kernel recovery transition in the same transaction. Classification version 1
+is immutable; its server-derived kind is a candidate index, not independent
+execution authority. Finish, claim and resume verify the complete unconsumed
+interval against canonical sources and active branch ownership. A runner's first
+completion cannot hide a later ordinary input or exact recovery transition;
+replaying its recorded completion cannot overwrite the next owner's state.
+Recovery-only work uses the existing retry source only when an applicable
+provider continuation is unavailable. Cancellation and explicit waits remain
+authoritative; no terminal task is automatically resurrected.
+
+Historical revisions without this relation are unknown, never reconstructed
+from publication order. A completed task with retained unknown input and no live
+owner exposes the existing explicit Continue action. Its opaque target binds
+both input and consumed revisions; the command transaction rechecks ownership,
+branch, cancellation and live execution before dispatching a normal current-prefix
+claim. A conflicting source is an error, not a historical gap. Settled cloned or
+activated history stays historical with input equal to consumed revision and no
+copied execution admissions; only subsequent new inputs create admission facts.
+Migration 77 does not rewrite historical bytes, counters or migration identities.
+
 The public operation timeline follows
 [`tool-stream-presentation-contract.md`](./tool-stream-presentation-contract.md).
 That contract is the only grouping and typed-detail authority; raw protocol

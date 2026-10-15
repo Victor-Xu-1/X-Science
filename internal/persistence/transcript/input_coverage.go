@@ -22,6 +22,13 @@ type InputCoverage struct {
 
 func (c InputCoverage) Pending() bool { return c.InputRevision > c.AfterRevision }
 
+// RecoveryWork requires a real recovery source. Control answers may accompany
+// that source but never independently authorize retry; ordinary new messages
+// use their existing fresh-input path instead.
+func (c InputCoverage) RecoveryWork() bool {
+	return c.Pending() && c.Complete && c.HasRecovery && !c.HasMessage
+}
+
 func (r *Repository) inputCoverageConn(ctx context.Context, conn *sql.Conn, stream Stream, after int64) (InputCoverage, error) {
 	if after < 0 || after > stream.InputRevision || stream.ConsumedInputRevision > stream.InputRevision {
 		return InputCoverage{}, ErrEventConflict
@@ -156,4 +163,11 @@ func pendingInputKindSQL(streamAlias, afterExpression string, message bool) stri
 	}
 	return "(" + streamAlias + ".input_revision>" + lower + " AND (SELECT COUNT(*) FROM transcript_input_admissions a WHERE " + interval + ")=" +
 		streamAlias + ".input_revision-" + lower + " AND " + hasMessage + ")"
+}
+
+func pendingRecoveryInputSQL(streamAlias, afterExpression string) string {
+	lower := "MAX(" + streamAlias + ".consumed_input_revision," + afterExpression + ")"
+	return "(" + pendingInputKindSQL(streamAlias, afterExpression, false) +
+		" AND EXISTS(SELECT 1 FROM transcript_input_admissions a WHERE a.stream_uid=" + streamAlias +
+		".stream_uid AND a.input_revision>" + lower + " AND a.input_revision<=" + streamAlias + ".input_revision AND a.input_kind='recovery'))"
 }

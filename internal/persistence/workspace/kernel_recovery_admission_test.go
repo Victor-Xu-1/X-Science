@@ -54,8 +54,10 @@ func TestRecoveryAdmissionAfterReclaimSurvivesCurrentRunnerFinish(t *testing.T) 
 	if _, err := repo.ValidateLiveRunnerClaim(t.Context(), current.Claim); err != nil {
 		t.Fatalf("current live owner changed: %v", err)
 	}
-	if _, receipt, _, err := repo.FinishRunner(t.Context(), transcriptstore.FinishRunnerInput{Claim: current.Claim,
-		ClientMessageID: "recovery-race-finish", Status: "completed", PayloadJSON: []byte(`{"text":"Prior input finished"}`)}); err != nil || receipt.Status != "completed" {
+	finish := transcriptstore.FinishRunnerInput{Claim: current.Claim,
+		ClientMessageID: "recovery-race-finish", Status: "completed", PayloadJSON: []byte(`{"text":"Prior input finished"}`)}
+	_, receipt, _, err := repo.FinishRunner(t.Context(), finish)
+	if err != nil || receipt.Status != "completed" {
 		t.Fatalf("finish receipt=%+v %v", receipt, err)
 	}
 	frame, found, err := store.GetFrame(operation.FrameID)
@@ -65,6 +67,72 @@ func TestRecoveryAdmissionAfterReclaimSurvivesCurrentRunnerFinish(t *testing.T) 
 	next, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "recovery-race-next", TTL: time.Minute})
 	if err != nil || !next.Claimed || next.Claim.ClaimedInputRevision != recovered.AdmittedInputRevision {
 		t.Errorf("recovery tail not claimable: %+v %v", next, err)
+	}
+	if !next.Claimed {
+		return
+	}
+	if next.Claim.ResumeSource != transcriptstore.ResumeSourceRetry {
+		t.Fatalf("recovery was misclassified as input: %+v", next.Claim)
+	}
+	if _, replay, created, err := repo.FinishRunner(t.Context(), finish); err != nil || created || replay.EventID != receipt.EventID {
+		t.Fatalf("recorded finish replay=%+v created=%t %v", replay, created, err)
+	}
+	if _, err := repo.ValidateLiveRunnerClaim(t.Context(), next.Claim); err != nil {
+		t.Fatalf("old receipt clobbered next owner: %v", err)
+	}
+	if _, _, _, err := repo.FinishRunner(t.Context(), transcriptstore.FinishRunnerInput{Claim: next.Claim,
+		ClientMessageID: "recovery-race-final", Status: "completed", PayloadJSON: []byte(`{"text":"Recovery input settled"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if extra, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "must-not-loop", TTL: time.Minute}); err != nil || extra.Claimed {
+		t.Fatalf("recovery loop=%+v %v", extra, err)
+	}
+}
+
+func TestRecoveryRetryRejectsUnknownForeignControlAndMessageSources(t *testing.T) {
+	for _, kind := range []string{"missing", "foreign", "control", "message_mixed"} {
+		t.Run(kind, func(t *testing.T) {
+			if kind == "missing" {
+				_, repo, stream := admissionLegacyV76Fixture(t)
+				result, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "not-a-recovery", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceRetry})
+				if err != nil || result.Claimed {
+					t.Fatalf("unknown retry=%+v %v", result, err)
+				}
+				return
+			}
+			store, repo, claim, operation := preparedAdmissionOperation(t)
+			if _, err := repo.InterruptRunner(t.Context(), transcriptstore.InterruptRunnerInput{Claim: claim, ClientMessageID: "retry-boundary", ReasonCode: "runtime_draining", AutoResume: true}); err != nil {
+				t.Fatal(err)
+			}
+			if kind == "control" {
+				if err := repo.RunImmediate(t.Context(), func(tx *transcriptstore.ImmediateTransaction) error {
+					_, _, err := tx.AppendFrameInputResponse(t.Context(), transcriptstore.AppendFrameInputResponseInput{StreamUID: claim.StreamUID,
+						OwnerID: claim.OwnerID, FrameID: operation.FrameID, ClientMessageID: "control-only", PayloadJSON: []byte(`{"role":"user","content":[{"type":"tool_result","tool_use_id":"approval","content":"yes"}]}`)})
+					return err
+				}); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if _, err := store.ReclaimPreparedKernelLocalOperation(t.Context(), recoveryAdmissionReclaimInput(claim, operation)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			owner := claim.OwnerID
+			if kind == "foreign" {
+				owner = "foreign"
+			}
+			if kind == "message_mixed" {
+				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID,
+					ClientMessageID: "mixed-message", MessageUUID: "mixed-message", Text: "A new user request"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			result, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: claim.StreamUID, OwnerID: owner,
+				RunnerID: "not-authorized-as-retry", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceRetry})
+			if result.Claimed || kind == "foreign" && !errors.Is(err, transcriptstore.ErrOwnerMismatch) || kind != "foreign" && err != nil {
+				t.Fatalf("%s retry=%+v err=%v", kind, result, err)
+			}
+		})
 	}
 }
 

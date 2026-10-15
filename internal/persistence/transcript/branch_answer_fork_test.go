@@ -70,6 +70,18 @@ func TestForkFrameAskUserAnswerBranchPersistsStructuredActions(t *testing.T) {
 				result.ReplacementFrameEvent.Type != "user_input_response" || !result.RunnerCancellation.Applied {
 				t.Fatalf("result=%#v", result)
 			}
+			var admittedKind, admittedBranch string
+			var admittedGeneration int64
+			if err := db.QueryRow(`SELECT input_kind,branch_id,branch_generation FROM transcript_input_admissions
+				WHERE stream_uid=? AND event_id=?`, stream.UID, result.ReplacementEvent.EventID).
+				Scan(&admittedKind, &admittedBranch, &admittedGeneration); err != nil ||
+				admittedKind != "control" || admittedBranch != result.BranchID || admittedGeneration != result.Generation {
+				t.Fatalf("admission kind=%q branch=%q generation=%d err=%v", admittedKind, admittedBranch, admittedGeneration, err)
+			}
+			coverage, err := repo.GetInputCoverage(t.Context(), stream.UID, stream.OwnerID, 0)
+			if err != nil || !coverage.Complete || !coverage.HasControl || coverage.HasMessage || !coverage.Pending() {
+				t.Fatalf("answer admission coverage=%+v err=%v", coverage, err)
+			}
 			var payload map[string]any
 			if err := json.Unmarshal(result.ReplacementFrameEvent.PayloadJSON, &payload); err != nil {
 				t.Fatal(err)

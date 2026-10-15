@@ -116,3 +116,51 @@ func TestPendingInputContinueTargetRejectsChangedAuthority(t *testing.T) {
 		})
 	}
 }
+
+func TestPendingInputContinuationDoesNotMaskLiveOwnerOrCorruptSource(t *testing.T) {
+	for _, boundary := range []string{"live_owner", "corrupt_source"} {
+		t.Run(boundary, func(t *testing.T) {
+			store, repo, stream := admissionLegacyV76Fixture(t)
+			input := admissionContinueInput(t, store, stream)
+			if boundary == "live_owner" {
+				now := time.Now().UTC()
+				if _, err := store.db.Exec(`INSERT INTO frames(id,incarnation_id,project_id,root_frame_id,parent_frame_id,agent_name,status,conversation_type,created_at,updated_at)
+					VALUES('live-child','46ebcf21-cdf7-41a2-9ed0-6087011bcd59',?,? ,?,'OPERON','processing','agent',?,?)`, stream.ProjectID, stream.RootFrameID, stream.FrameID, now, now); err != nil {
+					t.Fatal(err)
+				}
+				child, err := repo.CreateStream(t.Context(), transcriptstore.CreateStreamInput{UID: "frame:live-child", OwnerID: stream.OwnerID,
+					ExternalID: "live-child", SessionID: "live-child", Kind: transcriptstore.StreamKindFrameRef, FrameID: "live-child", RootFrameID: stream.RootFrameID, ProjectID: stream.ProjectID, Epoch: 1})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: child.UID, OwnerID: child.OwnerID,
+					ClientMessageID: "child-input", MessageUUID: "child-input", Text: "Work under this root"}); err != nil {
+					t.Fatal(err)
+				}
+				claim, err := repo.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{StreamUID: child.UID, OwnerID: child.OwnerID,
+					RunnerID: "live-child-owner", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceFresh})
+				if err != nil || !claim.Claimed {
+					t.Fatalf("live child claim=%+v %v", claim, err)
+				}
+			} else {
+				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), transcriptstore.AppendFrameUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID,
+					ClientMessageID: "exact-but-corrupt", MessageUUID: "exact-but-corrupt", Text: "Retained input", DeferFrameActivation: true}); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := store.db.Exec(`DROP TRIGGER transcript_input_admissions_immutable;
+					UPDATE transcript_input_admissions SET input_kind='control' WHERE stream_uid=?`, stream.UID); err != nil {
+					t.Fatal(err)
+				}
+				// Refresh the target to isolate source verification, not staleness.
+				input = admissionContinueInput(t, store, stream)
+			}
+			flag, err := repo.FramePendingInputRequiresContinue(t.Context(), stream.OwnerID, stream.FrameID)
+			if flag || boundary == "live_owner" && err != nil || boundary == "corrupt_source" && !errors.Is(err, transcriptstore.ErrEventConflict) {
+				t.Fatalf("%s flag=%t err=%v", boundary, flag, err)
+			}
+			if _, err := store.ResumeCompatibilityFrameConversation(stream.FrameID, input); err == nil {
+				t.Fatalf("%s accepted Continue", boundary)
+			}
+		})
+	}
+}

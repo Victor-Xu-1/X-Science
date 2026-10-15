@@ -76,7 +76,8 @@ func (r *Repository) claimNextRunner(
 							AND (
 								(
 									latest.claimed_input_revision<stream.input_revision
-									AND `+pendingInputKindSQL("stream", "latest.claimed_input_revision", true)+`
+									AND (`+pendingInputKindSQL("stream", "latest.claimed_input_revision", true)+`
+										OR `+pendingRecoveryInputSQL("stream", "latest.claimed_input_revision")+`)
 								)
 								OR (
 									latest.status='running' AND latest.expires_at<=?
@@ -180,6 +181,7 @@ func (r *Repository) automaticFrameResumeRequestConn(
 	var status string
 	var expiresAt time.Time
 	var claimedInputRevision int64
+	recoveryWork := false
 	err := conn.QueryRowContext(ctx, `
 		SELECT attempt,status,expires_at,claimed_input_revision FROM transcript_runner_attempts
 		WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, stream.UID,
@@ -201,11 +203,18 @@ func (r *Repository) automaticFrameResumeRequestConn(
 		if coverage.Pending() && coverage.HasMessage {
 			return ResumeSourceFresh, 0, true, nil
 		}
+		recoveryWork = coverage.RecoveryWork()
 	}
 	if claimedInputRevision > stream.InputRevision {
 		return "", 0, false, ErrEventConflict
 	}
-	if status != "running" || expiresAt.After(now) {
+	if status != "running" {
+		if recoveryWork {
+			return ResumeSourceRetry, 0, true, nil
+		}
+		return "", 0, false, nil
+	}
+	if expiresAt.After(now) {
 		return "", 0, false, nil
 	}
 	var checkpoint int64
@@ -220,6 +229,9 @@ func (r *Repository) automaticFrameResumeRequestConn(
 		ORDER BY checkpoint.checkpoint_sequence DESC LIMIT 1`, stream.UID, attempt,
 	).Scan(&checkpoint, &resumable, &rawPayload)
 	if errors.Is(err, sql.ErrNoRows) {
+		if recoveryWork {
+			return ResumeSourceRetry, 0, true, nil
+		}
 		// Missing checkpoints are not proof of non-dispatch. Only the typed
 		// preparation admission and unchanged phase permit a fresh attempt.
 		if claimedInputRevision == stream.InputRevision {
@@ -231,10 +243,13 @@ func (r *Repository) automaticFrameResumeRequestConn(
 	if err != nil {
 		return "", 0, false, err
 	}
-	if !resumable {
+	if !runnerCheckpointAllowsAutomaticResume(rawPayload) {
 		return "", 0, false, nil
 	}
-	if !runnerCheckpointAllowsAutomaticResume(rawPayload) {
+	if !resumable {
+		if recoveryWork {
+			return ResumeSourceRetry, 0, true, nil
+		}
 		return "", 0, false, nil
 	}
 	// The durable Frame resume dispatcher owns a stream only while its dispatch
@@ -263,9 +278,9 @@ func runnerCheckpointAllowsAutomaticResume(rawPayload string) bool {
 }
 
 // LatestRunnerInputEventType returns the most recent runner input event type
-// (user_message or user_input_response) for an owner-scoped stream. Resume
-// dispatch uses it to distinguish a new task message (which supersedes an
-// interruption checkpoint) from a durable answer to a waiting checkpoint.
+// (user_message or user_input_response) as a publication fact for the existing
+// plan-response guard. It is not admission coverage or execution handoff
+// authority; scheduling and resume consumers use GetInputCoverage instead.
 func (r *Repository) LatestRunnerInputEventType(
 	ctx context.Context,
 	streamUID, ownerID string,
@@ -446,6 +461,28 @@ func (r *Repository) claimRunnerConn(
 			}
 			if !authorized {
 				return result, nil
+			}
+		case ResumeSourceRetry:
+			coverage, err := r.inputCoverageConn(ctx, conn, stream, latestClaimedRevision)
+			if err != nil {
+				return result, err
+			}
+			if !coverage.RecoveryWork() {
+				return result, nil
+			}
+			if latestStatus == "running" && latestCheckpoint > 0 {
+				var resumable bool
+				var payload string
+				err := conn.QueryRowContext(ctx, `SELECT c.resumable,e.payload_json FROM transcript_runner_checkpoints c
+						JOIN transcript_events e ON e.stream_uid=c.stream_uid AND e.event_id=c.event_id
+						WHERE c.stream_uid=? AND c.runner_attempt=? AND c.checkpoint_sequence=?`,
+					stream.UID, latestAttempt, latestCheckpoint).Scan(&resumable, &payload)
+				if err != nil {
+					return result, err
+				}
+				if resumable || !runnerCheckpointAllowsAutomaticResume(payload) {
+					return result, ErrCheckpointUnavailable
+				}
 			}
 		default:
 			return result, nil

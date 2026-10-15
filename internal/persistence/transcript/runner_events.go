@@ -121,7 +121,7 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 		// newer ordinary input keeps the existing Frame eligible for one next
 		// claim. Unknown legacy coverage is exposed through explicit Continue,
 		// never guessed or silently consumed. Cancellation is never resurrected.
-		if input.Status == "cancelled" || input.Status == "canceled" || !coverage.Complete || !coverage.HasMessage {
+		if input.Status == "cancelled" || input.Status == "canceled" || !coverage.Complete || !coverage.HasMessage && !coverage.HasRecovery {
 			if err := applyFrameTerminalStatusConn(ctx, conn, stream, input.Status, statusDescription, now); err != nil {
 				return err
 			}

@@ -112,6 +112,11 @@ func (s *Server) configureTranscriptFrameResume(
 		if err != nil {
 			return err
 		}
+		if coverage.RecoveryWork() && state.Status == "completed" {
+			chat.TranscriptResumeSource = transcriptstore.ResumeSourceRetry
+			chat.TranscriptCheckpoint = 0
+			return nil
+		}
 		if coverage.Pending() && (!coverage.Complete || coverage.HasMessage) {
 			// A fresh task message supersedes the old interruption checkpoint:
 			// the checkpoint-resume contract only accepts user_input_response
