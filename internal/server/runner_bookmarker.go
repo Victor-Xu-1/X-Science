@@ -17,6 +17,7 @@ import (
 
 	"x-science/internal/agentruntime"
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
 )
@@ -39,6 +40,11 @@ type sessionBookmarkerSubmission struct {
 
 type sessionBookmarkerScope struct {
 	mu         sync.Mutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	closed     bool
+	accept     func(sessionBookmarkerSubmission) error
+	acceptErr  error
 	submitted  bool
 	submission sessionBookmarkerSubmission
 	window     map[int]agentruntime.Message
@@ -108,12 +114,49 @@ func (scope *sessionBookmarkerScope) submit(arguments json.RawMessage) error {
 	}
 	scope.mu.Lock()
 	defer scope.mu.Unlock()
+	if scope.closed {
+		return context.Canceled
+	}
+	if scope.ctx != nil {
+		if cause := context.Cause(scope.ctx); cause != nil {
+			return cause
+		}
+	}
 	if scope.submitted {
 		return errors.New("bookmarker submit_output was already called")
+	}
+	// Acceptance and checkpoint closure use the same lock. A submitted
+	// bookmark is already durable; no later engine error can waive a failed
+	// write or discard a successfully accepted annotation.
+	if scope.accept != nil {
+		if err := scope.accept(submission); err != nil {
+			scope.acceptErr = err
+			scope.closeLocked()
+			return err
+		}
 	}
 	scope.submitted = true
 	scope.submission = submission
 	return nil
+}
+
+func (scope *sessionBookmarkerScope) closeLocked() {
+	scope.closed = true
+	if scope.cancel != nil {
+		scope.cancel()
+	}
+}
+
+func (scope *sessionBookmarkerScope) close() {
+	scope.mu.Lock()
+	defer scope.mu.Unlock()
+	scope.closeLocked()
+}
+
+func (scope *sessionBookmarkerScope) acceptanceError() error {
+	scope.mu.Lock()
+	defer scope.mu.Unlock()
+	return scope.acceptErr
 }
 
 func (scope *sessionBookmarkerScope) snapshot() (sessionBookmarkerSubmission, bool) {
@@ -204,6 +247,29 @@ func buildSessionBookmarkerPrompt(result agentruntime.RunResult) (string, map[in
 		"⟦transcript:" + fence + ":begin⟧\n" + transcript + "\n⟦transcript:" + fence + ":end⟧", window
 }
 
+// The checkpoint owns this optional job until its finish function cancels and
+// joins it. Closing cannot race past an accepted, in-flight annotation write.
+func (s *Server) startSessionBookmarkerAtReviewCheckpoint(
+	ctx context.Context,
+	session sessionstore.Session,
+	options SessionRunnerChatOptions,
+	result agentruntime.RunResult,
+	run *sessionRunnerChatRun,
+	reviewIndex int,
+) func() error {
+	bookmarkerCtx, cancel := context.WithCancel(ctx)
+	prompt, window := buildSessionBookmarkerPrompt(result)
+	scope := &sessionBookmarkerScope{ctx: bookmarkerCtx, cancel: cancel, window: window}
+	done := make(chan error, 1)
+	go func() {
+		done <- s.runSessionBookmarkerAtReviewCheckpoint(bookmarkerCtx, session, options, result, run, reviewIndex, prompt, scope)
+	}()
+	return func() error {
+		scope.close()
+		return <-done
+	}
+}
+
 func (s *Server) runSessionBookmarkerAtReviewCheckpoint(
 	ctx context.Context,
 	session sessionstore.Session,
@@ -211,6 +277,8 @@ func (s *Server) runSessionBookmarkerAtReviewCheckpoint(
 	result agentruntime.RunResult,
 	run *sessionRunnerChatRun,
 	reviewIndex int,
+	prompt string,
+	scope *sessionBookmarkerScope,
 ) error {
 	spec, err := s.sessionCompletionBookmarkerExecutionSpec()
 	if err != nil {
@@ -232,18 +300,27 @@ func (s *Server) runSessionBookmarkerAtReviewCheckpoint(
 	}
 	bookmarkerCtx, stopHeartbeat := s.startSessionReviewerHeartbeat(ctx, claim)
 	finish := func(status string, cause error) error {
+		if heartbeatErr := stopHeartbeat(); heartbeatErr != nil {
+			cause = errors.Join(cause, heartbeatErr)
+			status = "failed"
+		}
 		description := "Bookmarker completed"
 		if cause != nil {
 			description = cause.Error()
 		}
 		finishErr := s.finishSessionReviewerFrame(frame.ID, status, description, reviewIndex)
-		if heartbeatErr := stopHeartbeat(); cause == nil && heartbeatErr != nil {
-			cause = heartbeatErr
-		}
 		return errors.Join(cause, finishErr)
 	}
-	prompt, window := buildSessionBookmarkerPrompt(result)
-	scope := &sessionBookmarkerScope{window: window}
+	var parentClaim transcriptstore.RunnerClaim
+	if run != nil && run.Transcript != nil {
+		parentClaim = run.Transcript.Claim
+	}
+	scope.accept = func(submission sessionBookmarkerSubmission) error {
+		if err := s.validateSessionBookmarkerClaims(bookmarkerCtx, session.ID, frame, claim, parentClaim); err != nil {
+			return err
+		}
+		return s.persistSessionBookmarkerSubmission(session, result, run, reviewIndex, submission, scope.window)
+	}
 	schema := sessionBookmarkerSubmitToolSchema()
 	runtimeOptions := options
 	runtimeOptions.SessionID = frame.ID
@@ -276,18 +353,41 @@ func (s *Server) runSessionBookmarkerAtReviewCheckpoint(
 		MaxConsecutiveIdenticalToolRounds: sessionRunnerConsecutiveIdenticalToolRoundBudget, ToolRoundBudget: agentruntime.NewToolRoundBudget(2),
 		MaxToolCallsPerRound: 1,
 	})
+	if acceptErr := scope.acceptanceError(); acceptErr != nil {
+		return finish(sessionReviewerFailureStatus(context.Background(), acceptErr), errors.Join(acceptErr, err))
+	}
 	if err != nil {
 		return finish(sessionReviewerFailureStatus(bookmarkerCtx, err), err)
 	}
-	submission, submitted := scope.snapshot()
+	_, submitted := scope.snapshot()
 	if !submitted {
 		err = errors.New("BOOKMARKER did not submit bookmarks")
 		return finish("failed", err)
 	}
-	if err := s.persistSessionBookmarkerSubmission(session, result, run, reviewIndex, submission, window); err != nil {
-		return finish("failed", err)
-	}
 	return finish("completed", nil)
+}
+
+func (s *Server) validateSessionBookmarkerClaims(ctx context.Context, sessionID string, frame workspace.Frame, claim, parentClaim transcriptstore.RunnerClaim) error {
+	if cause := context.Cause(ctx); cause != nil {
+		return cause
+	}
+	child, err := s.transcriptStore.ValidateLiveRunnerClaim(ctx, claim)
+	if err != nil {
+		return err
+	}
+	parent, err := s.transcriptStore.ValidateLiveRunnerClaim(ctx, parentClaim)
+	if err != nil {
+		return err
+	}
+	if parent.FrameID != sessionID || child.FrameID != frame.ID || frame.ParentFrameID != sessionID ||
+		parent.OwnerID != child.OwnerID || parent.ProjectID != child.ProjectID || parent.RootFrameID != child.RootFrameID ||
+		parent.InputRevision != parentClaim.ClaimedInputRevision || child.InputRevision != claim.ClaimedInputRevision {
+		return errors.New("bookmarker submission does not match its owning task")
+	}
+	// This is the existing read-only claim authority, not an atomic fence for
+	// the annotation store's subsequent write. Keep the original root and quote
+	// anchors; do not detach cancellation or authorize a different input.
+	return context.Cause(ctx)
 }
 
 func (s *Server) persistSessionBookmarkerSubmission(

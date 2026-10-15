@@ -146,6 +146,14 @@ batches and generic input/output fallbacks do not define the public layout.
   loops.
 - REVIEWER and BOOKMARKER are fixed hidden jobs spawned by one completion
   checkpoint authority.
+  The checkpoint owns BOOKMARKER's child context: when review ends it closes
+  submission acceptance, cancels unfinished requests and joins the owned job.
+  Validated submissions are acknowledged only after the existing idempotent
+  annotation writes succeed; checkpoint closure does not discard accepted
+  annotations or waive protocol, persistence and live-claim failures.
+  The live-claim check precedes the existing annotation write, not an atomic
+  runner/input-revision transaction; canonical bookmark anchoring remains a
+  separate annotation-authority boundary.
 
 ## Discovery and MCP
 

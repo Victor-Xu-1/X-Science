@@ -122,6 +122,7 @@ func TestAutomaticReviewerAndBookmarkerPersistPassAndBookmark(t *testing.T) {
 	const candidate = "**Result:** 42 samples passed validation."
 	messageHeader := regexp.MustCompile(`--- msg\[([0-9]+)\] assistant ---\n\*\*Result:\*\* 42 samples passed validation\.`)
 	var reviewerCalls, bookmarkerCalls atomic.Int32
+	var bookmarkerStore *workspace.Store
 	var requestMu sync.Mutex
 	requestKinds := []string{}
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +165,12 @@ func TestAutomaticReviewerAndBookmarkerPersistPassAndBookmark(t *testing.T) {
 		requestMu.Unlock()
 		responseMessage := map[string]any{"role": "assistant", "content": candidate}
 		if strings.Contains(system, "You are the REVIEWER") || strings.Contains(latestUser, "COMPLETION REVIEW SOURCE BINDING") || hasSubmit && hasRepl {
+			// This exercises the fast-bookmark path: do not let the reviewer
+			// finish until the real hidden job has durably saved its annotation.
+			if err := waitForCompletedBookmarker(r.Context(), bookmarkerStore); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			if hasToolResult || reviewerCalls.Add(1) > 1 {
 				responseMessage = map[string]any{"role": "assistant", "content": "review submitted"}
 			} else {
@@ -205,6 +212,7 @@ func TestAutomaticReviewerAndBookmarkerPersistPassAndBookmark(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
+	bookmarkerStore = store
 	if _, err := store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "owner", Name: "Project"}); err != nil {
 		t.Fatal(err)
 	}

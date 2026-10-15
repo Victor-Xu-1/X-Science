@@ -326,14 +326,11 @@ func (s *Server) runVerifiedSessionAgent(
 		}
 		return result, wrapSessionRunnerReviewStageError(err)
 	}
-	bookmarkerDone := make(chan error, 1)
-	go func() {
-		bookmarkerDone <- s.runSessionBookmarkerAtReviewCheckpoint(
-			ctx, session, reviewerOptions, result, run, reviewIndex,
-		)
-	}()
+	finishBookmarker := s.startSessionBookmarkerAtReviewCheckpoint(
+		ctx, session, reviewerOptions, result, run, reviewIndex,
+	)
 	defer func() {
-		if bookmarkerErr := <-bookmarkerDone; bookmarkerErr != nil {
+		if bookmarkerErr := finishBookmarker(); bookmarkerErr != nil {
 			// Bookmarking is a navigation aid, not a completion verdict. Preserve
 			// its hidden fixed-job failure without failing or retrying the task.
 			log.Printf("completion bookmarker checkpoint %d failed: %v", reviewIndex, bookmarkerErr)
