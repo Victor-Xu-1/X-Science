@@ -474,6 +474,9 @@ func scanManagedEndpoint(scanner interface{ Scan(...any) error }) (ManagedEndpoi
 	if err != nil {
 		return endpoint, err
 	}
+	if endpoint.ClaimToken != "" && endpoint.ClaimGeneration > 0 {
+		endpoint.ClaimHandle = managedEndpointClaimHandle(endpoint.Name, endpoint.ClaimToken, endpoint.ClaimGeneration)
+	}
 	if credential.Valid {
 		endpoint.CredentialName = &credential.String
 	}
