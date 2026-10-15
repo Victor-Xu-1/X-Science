@@ -92,6 +92,9 @@ type SessionOutboundDispatcher struct {
 }
 
 func (d *SessionOutboundDispatcher) SetRecoveryNoticeValidator(validator RecoveryNoticeValidator) {
+	if d == nil {
+		return
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.noticeValidator = validator

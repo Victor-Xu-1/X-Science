@@ -341,6 +341,12 @@ type Server struct {
 }
 
 func New(options Options) *Server {
+	// The native IM factory returns *Dispatcher(nil) when adapters are disabled.
+	// Normalize it before storing the interface so every existing absent-sink
+	// guard, including startup recovery, retains its original meaning.
+	if dispatcher, ok := options.IMOutbound.(*adaptercommon.SessionOutboundDispatcher); ok && dispatcher == nil {
+		options.IMOutbound = nil
+	}
 	runtimeMemoryConfig := memoryconfig.Default()
 	if options.MemoryConfig != nil {
 		runtimeMemoryConfig = *options.MemoryConfig
