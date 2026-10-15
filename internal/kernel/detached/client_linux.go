@@ -36,6 +36,9 @@ func (c Client) Call(ctx context.Context, input CommandRequest) (CommandResponse
 		return CommandResponse{}, fmt.Errorf("connect detached kernel executor: %w", commandContextIOError(ctx, err))
 	}
 	defer connection.Close()
+	// The caller publishes its cause before cancellation closes this connection.
+	// A separately armed socket deadline can fire before that publication and
+	// turn the same caller deadline into an unrelated transport timeout.
 	stopCancellation := context.AfterFunc(ctx, func() { _ = connection.Close() })
 	defer stopCancellation()
 	unixConnection, ok := connection.(*net.UnixConn)
@@ -44,11 +47,6 @@ func (c Client) Call(ctx context.Context, input CommandRequest) (CommandResponse
 	}
 	if err := validateUnixPeer(unixConnection, uint32(os.Geteuid())); err != nil {
 		return CommandResponse{}, err
-	}
-	if deadline, ok := ctx.Deadline(); ok {
-		if err := connection.SetDeadline(deadline); err != nil {
-			return CommandResponse{}, err
-		}
 	}
 	if err := writeAll(connection, frame); err != nil {
 		return CommandResponse{}, fmt.Errorf("write detached kernel command: %w", commandContextIOError(ctx, err))
