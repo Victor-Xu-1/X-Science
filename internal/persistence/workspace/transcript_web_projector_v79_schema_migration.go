@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
 )
@@ -27,14 +26,8 @@ var transcriptWebProjectorV79Migration = versionedSchemaMigration{
 }
 
 func preflightTranscriptWebProjectorV79(ctx context.Context, executor schemaMigrationQueryExecutor) error {
-	var tableSQL string
-	if err := executor.QueryRowContext(ctx, `SELECT sql FROM sqlite_schema
-		WHERE type='table' AND name='transcript_web_projection_state'`).Scan(&tableSQL); err != nil {
-		return fmt.Errorf("inspect transcript Web projection predecessor: %w", err)
-	}
-	compact := strings.NewReplacer(" ", "", "\n", "", "\r", "", "\t", "")
-	if compact.Replace(tableSQL) != compact.Replace(transcriptstore.WebReadModelV74ProjectionStateStatement()) {
-		return errors.New("transcript Web projector v13 predecessor is required")
+	if err := inspectTranscriptWebProjectorV79Source(ctx, executor); err != nil {
+		return err
 	}
 	var staging int
 	if err := executor.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema WHERE name IN (
@@ -49,6 +42,11 @@ func preflightTranscriptWebProjectorV79(ctx context.Context, executor schemaMigr
 }
 
 func migrateTranscriptWebProjectorV79(ctx context.Context, tx *sql.Tx) error {
+	// Recheck the same complete source contract in the DDL transaction; an
+	// earlier preflight read is not authority over a later schema snapshot.
+	if err := preflightTranscriptWebProjectorV79(ctx, tx); err != nil {
+		return err
+	}
 	for _, statement := range transcriptstore.WebReadModelProjectorV79RebuildStatements() {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err
