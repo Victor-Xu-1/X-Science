@@ -9,7 +9,7 @@ import (
 )
 
 func TestRecoveredSourceQualityNoticeMatchesFreshCompletion(t *testing.T) {
-	const source = `{"sources":[{"id":"source-1","identifier":"10.1000/example","claims_supported":[{"claim_id":"observed_count","source_locator":"Conclusion","evidence_excerpt":"The report describes a five-step sequence."}]}]}`
+	const source = `{"sources":[{"id":"source-1","claims_supported":["observed_count"]}]}`
 	f, session, run, _, _ := qualityArtifactCompletionFixture(t, "source_evidence.json", source)
 	ctx := context.Background()
 	commits, err := f.server.sessionRunnerArtifactCommitReferences(ctx, run)
@@ -17,7 +17,7 @@ func TestRecoveredSourceQualityNoticeMatchesFreshCompletion(t *testing.T) {
 		t.Fatal(err)
 	}
 	findings, err := f.server.validateSessionRunnerSourceClaimEvidence(ctx, session.Project.ID, commits, nil)
-	if err != nil || len(findings) != 1 || !strings.HasPrefix(findings[0], "source_claim_source_not_in_durable_receipts:") {
+	if err != nil || len(findings) != 1 || !strings.HasPrefix(findings[0], "source_claim_missing_attested_excerpt:") {
 		t.Fatalf("expected a structurally valid unverified source fixture: %#v %v", findings, err)
 	}
 	model := &artifactReferenceRepairModel{content: "The saved source ledger has unverified provenance.", testing: t}
