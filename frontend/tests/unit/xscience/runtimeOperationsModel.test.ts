@@ -141,6 +141,7 @@ describe('X-Science runtime operations model', () => {
       error: 'daemon restarted while frame was running',
       failureKind: 'service_interrupted',
       failureReason: 'runtime_draining',
+      providerFailureKind: null,
       errorStatus: null,
       modelId: null,
       taskMetrics: null,

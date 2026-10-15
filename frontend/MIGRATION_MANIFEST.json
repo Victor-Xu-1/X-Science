@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7a9b34d9e63341dab291fc18c8951429a29688e062c751f57dd5e15b59372408",
+  "adaptationFingerprintSHA256": "6c0ff22c211e9ecfa2070797d9ce38cbb749b92a78f055437efb31d3ad198de4",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "c7951c39caa1f7cdfa15e9741deb4a9c835862a087d4607b84e44c3ccdc9e7dd",
+  "additionFingerprintSHA256": "cc11d339145a9fe9a948a2718de4bb6b3e0e1ecd4168913a4c04dacf6d6e6749",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -5445,8 +5445,8 @@
       "path": "tests/unit/xscience/runtimeOperationsModel.test.ts",
       "originalPath": "tests/unit/synonbiomed/runtimeOperationsModel.test.ts",
       "sourceSHA256": "dd65ca1857a1dbc8a12e86afed81e3f497f43ab61d91f220a5617b414f903d1b",
-      "targetSHA256": "7068db2b8b23a338c3e003b54fe90609c0b4428d1d9f35423079cab03caf8a92",
-      "bytes": 33026,
+      "targetSHA256": "804b23253265b02f10d62e05cd5380ab4f2ed13dcb3735cd1d7b05008fd611ee",
+      "bytes": 33059,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8010,8 +8010,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceTaskAttentionNotice.tsx",
-      "sha256": "51b9e87d31a511beec2b4b11f4b1b06effe3304bcbb3ebb9b57da8e100c07fa8",
-      "bytes": 2169,
+      "sha256": "336f2ae87f7ec5cf397176aefcf4186b407a1d801824948c9bd2f9b87f510659",
+      "bytes": 2177,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12636,8 +12636,8 @@
     },
     {
       "path": "tests/unit/xscience/XScienceTaskAttentionNotice.dom.test.tsx",
-      "sha256": "6185c2ecf6122e93599398846cf382898d9bd3ab204b5c1032da1258649d9bb9",
-      "bytes": 4292,
+      "sha256": "6d61b7e20c2592074fa372413cbb5fd707866828b81250bd943de310597de996",
+      "bytes": 4687,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

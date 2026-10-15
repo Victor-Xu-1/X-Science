@@ -10,11 +10,13 @@ describe('XScienceTaskAttentionNotice pause causes', () => {
     'explains a subscription refusal through a closed category in %s',
     async (language) => {
       const onAction = vi.fn();
+      const onChooseModel = vi.fn();
       const props = {
         kind: 'paused' as const,
         reason: 'model_provider_unavailable',
         providerFailureKind: 'subscription' as const,
         onAction,
+        onChooseModel,
       };
       await renderWithI18n(<XScienceTaskAttentionNotice {...props} />, language);
       const notice = screen.getByTestId('x-science-paused-attention');
@@ -22,7 +24,11 @@ describe('XScienceTaskAttentionNotice pause causes', () => {
       expect(notice).toHaveTextContent(language === 'en-US' ? 'preserved' : '已保留');
       expect(notice).not.toHaveTextContent(/model_provider_unavailable|waiting for model selection|等待选择模型/);
       expect(onAction).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByRole('button'));
+      expect(onChooseModel).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: language === 'en-US' ? 'Select Model' : '选择模型' }));
+      expect(onChooseModel).toHaveBeenCalledOnce();
+      expect(onAction).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: language === 'en-US' ? 'Continue task' : '继续任务' }));
       expect(onAction).toHaveBeenCalledOnce();
     }
   );

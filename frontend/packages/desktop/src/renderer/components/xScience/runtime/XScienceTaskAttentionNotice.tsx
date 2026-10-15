@@ -43,7 +43,7 @@ export default function XScienceTaskAttentionNotice({
       </div>
       {providerPaused && onChooseModel ? (
         <Button disabled={busy} onClick={onChooseModel}>
-          {t('conversation.selectModel')}
+          {t('conversation.welcome.selectModel')}
         </Button>
       ) : null}
       {onAction ? (
