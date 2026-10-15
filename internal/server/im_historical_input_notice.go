@@ -50,16 +50,25 @@ func (s *Server) validateIMRecoveryNotice(ctx context.Context, binding adapterco
 		return false, err
 	}
 	entry, found, err := s.runtimeStore.Get(imOutboundRouteNamespace, imOutboundStateKey(binding.SessionID))
-	if err != nil || !found {
+	if err != nil {
 		return false, err
+	}
+	if !found {
+		// Absence of this projection is not proof of canonical revocation.
+		return false, errors.New("IM recovery notice route cannot be verified")
 	}
 	var state imOutboundRouteState
 	if err := decodeRuntimeValue(entry.Value, &state); err != nil {
 		return false, err
 	}
 	currentBinding, warning, err := s.restoreIMOutboundBinding(state)
-	if err != nil || warning != "" {
+	if err != nil {
 		return false, err
+	}
+	if warning != "" {
+		// Unavailable encrypted context is retryable uncertainty, not evidence
+		// that this notice was superseded. Do not ACK it or expose raw warning.
+		return false, errors.New("IM recovery notice context is unavailable")
 	}
 	// Bind applies these two defaults. Other persisted fields were normalized
 	// when written; include the recipient and encrypted context, not just owner.
