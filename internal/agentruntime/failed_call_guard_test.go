@@ -647,7 +647,7 @@ func TestFailedToolCallGuardAllowsChangingInvalidCorrectionsAndBlocksExactReplay
 		executions.Add(1)
 		return ToolResult{Value: map[string]any{
 			"ok": false, "code": "invalid_tool_arguments", "retryable": true,
-			"issues": []any{map[string]any{"path": "/query", "keyword": "required", "actual": "missing"}},
+			"issues": []any{map[string]any{"path": "/query", "keyword": "required", "actual_type": "missing"}},
 		}}, nil
 	}))
 	for index, arguments := range []string{`{"chembl_id":"CHEMBL1"}`, `{"drug_name":"gefitinib"}`} {
