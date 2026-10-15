@@ -117,7 +117,11 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		sessionRunnerArtifactPublicationFreshnessFailures(result.Messages, result.FinalMessage.Content)...,
 	)
 	crossArtifactFailures = append(crossArtifactFailures, sourceQuality.Findings...)
-	scientificFailures, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, result.FinalMessage.Content)
+	scientificValidation, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, result.FinalMessage.Content)
+	if err != nil {
+		return result, err
+	}
+	scientificHistory, err := s.reconcileScientificArtifactHistory(ctx, run, &scientificValidation, nil)
 	if err != nil {
 		return result, err
 	}
@@ -134,7 +138,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	}
 	fatalCrossArtifactFailures := sessionRunnerFatalCrossArtifactFailures(run, crossArtifactFailures)
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
-		len(missingLocalArtifacts) == 0 && len(fatalCrossArtifactFailures) == 0 && len(scientificFailures) == 0 &&
+		len(missingLocalArtifacts) == 0 && len(fatalCrossArtifactFailures) == 0 && len(scientificValidation.Failures) == 0 &&
 		len(researchValidation.Failures) == 0 && len(missingRequiredDeliverables) == 0 {
 		advisory, err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
 		if err != nil {
@@ -150,7 +154,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 			language = run.ResponseLanguage
 		}
 		replaceSessionRunnerFinalMessageContent(&result,
-			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory,
+			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory, scientificValidation.advisory(), scientificHistory,
 				sessionRunnerCompletionQualityAdvisory(run, crossArtifactFailures, unsupportedCitationRefs)))
 		return result, nil
 	}
@@ -160,7 +164,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		MalformedArtifactReferences:  malformedArtifactReferences,
 		UnsupportedCitations:         nil,
 		InvalidReferenceArtifacts:    append([]string(nil), artifactCandidates.contractFailures...),
-		InvalidScientificArtifacts:   scientificFailures,
+		InvalidScientificArtifacts:   scientificValidation.Failures,
 		CrossArtifactFailures:        fatalCrossArtifactFailures,
 		InvalidResearchArtifacts:     researchValidation.Failures,
 		MissingLocalArtifacts:        missingLocalArtifacts,

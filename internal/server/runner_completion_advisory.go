@@ -3,9 +3,11 @@ package server
 import "strings"
 
 const (
-	completionAdvisoryStructurePreview = "structure_preview_unverified"
-	completionAdvisoryResultQuality    = "result_quality_unverified"
-	completionAdvisoryTaskExpectations = "task_expectations_unverified"
+	completionAdvisoryStructurePreview   = "structure_preview_unverified"
+	completionAdvisoryResultQuality      = "result_quality_unverified"
+	completionAdvisoryTaskExpectations   = "task_expectations_unverified"
+	completionAdvisoryChemicalValidation = "chemical_validation_unavailable"
+	completionAdvisoryChemicalHistory    = "chemical_validation_history_unverified"
 )
 
 // Completion advisories are host findings, not another completion obligation.
@@ -49,6 +51,12 @@ func sessionRunnerCompletionAdvisoryText(code string) (english, chinese string) 
 	case completionAdvisoryTaskExpectations:
 		return "Execution details are unverified. Some actions or reporting details mentioned in the task text are not confirmed by the recorded results; this does not mean they were required or completed.",
 			"执行细节尚未核实。任务文字中提到的部分操作或报告细节未获已有记录确认；这并不表示这些操作必须执行或已经完成。"
+	case completionAdvisoryChemicalValidation:
+		return "Chemical validation was not performed because an optional validator is unavailable. Existing files are preserved without certifying molecular validity.",
+			"化学结构校验未执行：可选校验器当前不可用。现有文件已保留，但其分子结构有效性尚未验证。"
+	case completionAdvisoryChemicalHistory:
+		return "Earlier chemical-validation failures could not be matched to the current immutable selection and have not been revalidated.",
+			"先前的化学结构校验失败无法与当前不可变产物集合准确对应，且尚未重新验证；不能据此认为旧问题已解决。"
 	default:
 		return "", ""
 	}

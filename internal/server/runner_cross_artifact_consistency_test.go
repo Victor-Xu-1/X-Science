@@ -595,7 +595,7 @@ func TestSessionRunnerCompletionSkipsDeletedHistoricalProducedArtifact(t *testin
 	if failures, err := server.validateSessionRunnerCrossArtifactConsistency(context.Background(), "project-a", []transcriptstore.ArtifactReferenceInput{commit}); err != nil || len(failures) != 0 {
 		t.Fatalf("deleted historical cross-artifact failures=%#v err=%v", failures, err)
 	}
-	if failures, err := server.validateSessionRunnerScientificArtifacts(context.Background(), "project-a", []transcriptstore.ArtifactReferenceInput{commit}, ""); err != nil || len(failures) != 0 {
+	if failures, err := server.validateSessionRunnerScientificArtifacts(context.Background(), "project-a", []transcriptstore.ArtifactReferenceInput{commit}, ""); err != nil || len(failures.Failures) != 0 || len(failures.Unavailable) != 0 {
 		t.Fatalf("deleted historical scientific failures=%#v err=%v", failures, err)
 	}
 	if _, err := server.validateSessionRunnerScientificArtifacts(

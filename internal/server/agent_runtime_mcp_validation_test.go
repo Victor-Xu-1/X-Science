@@ -741,7 +741,7 @@ func TestAgentRuntimeSoftwareErrorCarriesStructuredRepairContract(t *testing.T) 
 
 func TestScientificArtifactValidationDoesNotRequireAuthorityWithoutSelectedArtifacts(t *testing.T) {
 	failures, err := (&Server{}).validateSessionRunnerScientificArtifacts(context.Background(), "", nil, "plain final answer")
-	if err != nil || len(failures) != 0 {
+	if err != nil || len(failures.Failures) != 0 || len(failures.Unavailable) != 0 {
 		t.Fatalf("empty scientific artifact selection failures=%#v err=%v", failures, err)
 	}
 }
