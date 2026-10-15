@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	transcriptWebProjectorV79CallbackID        = "transcript-web-projector-v79-rebuild"
+	transcriptWebProjectorV79CallbackID        = "transcript-web-projector-v79-rebuild-preserve-external-schema-v2"
 	transcriptWebProjectorV79PreflightIdentity = "transcript-web-projector-v79-upgrade-v1"
 	transcriptWebProjectorV79RuleSpec          = "x-science.workspace.transcript-web-projector.v79"
 )
@@ -47,10 +47,17 @@ func migrateTranscriptWebProjectorV79(ctx context.Context, tx *sql.Tx) error {
 	if err := preflightTranscriptWebProjectorV79(ctx, tx); err != nil {
 		return err
 	}
+	external, err := transcriptWebProjectorV79ExternalSchema(ctx, tx)
+	if err != nil {
+		return err
+	}
 	for _, statement := range transcriptstore.WebReadModelProjectorV79RebuildStatements() {
 		if _, err := tx.ExecContext(ctx, statement); err != nil {
 			return err
 		}
 	}
-	return nil
+	// An inbound reference outside the replaced tables may have been rewritten
+	// to a staging name. Reject within this same transaction so all DDL, rows
+	// and the not-yet-written journal entry roll back together.
+	return preserveTranscriptWebProjectorV79ExternalSchema(ctx, tx, external)
 }
