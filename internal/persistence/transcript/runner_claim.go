@@ -279,6 +279,32 @@ func (r *Repository) claimRunnerConn(
 		result.OwnerRunnerID = activeRunner
 		return result, nil
 	}
+	if stream.Kind == StreamKindFrameRef {
+		var dedicated bool
+		if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM frame_events
+			WHERE frame_id=? AND event_type='frame_resumed'
+			AND json_extract(payload,'$.dispatch.status') IN ('registered','claimed','blocked'))`, stream.FrameID).Scan(&dedicated); err != nil {
+			return result, err
+		}
+		if dedicated {
+			owner, err := claimedFrameResumeAuthorizesRunnerConn(ctx, conn, stream, input.RunnerID)
+			if err != nil {
+				return result, err
+			}
+			if !owner {
+				// A coarse candidate is not permission to take the dedicated
+				// dispatcher. Only a verified new ordinary Fresh message can
+				// supersede it; checkpoint, retry and control input cannot.
+				if input.ResumeSource != ResumeSourceFresh {
+					return result, nil
+				}
+				evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
+				if err != nil || !evidence.Authorized {
+					return result, err
+				}
+			}
+		}
+	}
 	var latestAttempt, latestClaimedRevision, latestCheckpoint int64
 	var latestStatus, latestPhase string
 	latestErr := conn.QueryRowContext(ctx, `

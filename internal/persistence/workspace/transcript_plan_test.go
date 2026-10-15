@@ -166,6 +166,13 @@ func TestApproveCompatibilityPlanWithTranscriptCommitsOneResumeAuthority(t *test
 	}); err != nil || generic.Claimed {
 		t.Fatalf("generic claim=%#v err=%v", generic, err)
 	}
+	if direct, err := repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "direct-non-dispatch-owner",
+		TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceCheckpoint,
+		ResumeCheckpoint: result.Checkpoint.Sequence,
+	}); err != nil || direct.Claimed {
+		t.Fatalf("direct caller stole dedicated dispatch=%#v err=%v", direct, err)
+	}
 	dispatch, claimed, err := store.ClaimNextCompatibilityFrameResumeDispatch("plan-dispatch", time.Minute)
 	if err != nil || !claimed || dispatch.ResumeEvent.ID != result.ResumeEvent.ID {
 		t.Fatalf("dispatch=%#v claimed=%t err=%v", dispatch, claimed, err)
