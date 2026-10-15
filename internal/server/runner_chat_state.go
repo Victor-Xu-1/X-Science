@@ -104,7 +104,7 @@ type sessionRunnerChatRun struct {
 	executedSkillInvocationKeys        map[string]struct{}
 	ReviewPolicy                       *sessionRunnerResolvedReviewPolicy
 	// Per-run presentation observation only; no execution or resume authority.
-	SemanticReviewObserved             bool
+	SemanticReviewObserved bool
 	// VerificationExplicitlyDisabled records the resolved user-owned
 	// verifier mode. It keeps ordinary completion and artifact saving from
 	// falling back to legacy strict-review behavior when review is off.
