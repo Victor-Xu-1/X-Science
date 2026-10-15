@@ -58,9 +58,14 @@ call PrepareAndDrawInPNG, or assume a drawing result has an img.data field.
    If a reviewed preview image is required, export/capture the actual Mol*
    scene and retain that image's saved version and SHA-256. A 2D molecule grid
    is not a screenshot of a 3D scene.
-4. For a multi-structure comparison, publish the existing structure-scene
-   manifest described below. It references saved structure versions; it does
-   not replace the coordinate files or create new computation results.
+4. A combined structure-scene manifest is optional presentation support for a
+   multi-structure comparison. When available, use the existing contract below;
+   it references saved versions and does not replace coordinates or computation.
+   If native capture or a valid scene is unavailable, deliver the existing
+   results and state that the combined preview is unverified. Do not keep
+   calling tools or reopen execution solely to satisfy this auxiliary preview.
+   An explicitly requested missing file remains a missing deliverable; never
+   claim that a capture, scientific result or image verification was completed.
 
 ## Multi-structure scene manifest
 

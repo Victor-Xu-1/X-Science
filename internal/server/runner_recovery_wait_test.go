@@ -102,7 +102,8 @@ func TestCorrectionProviderOnlyHTTPRecoveryWait(t *testing.T) {
 
 func TestCorrectionProviderOnlyRecoveryParksUnchangedConditionAfterReopen(t *testing.T) {
 	failures := map[string]error{
-		"visual":       &sessionRunnerVisualArtifactValidationRequired{Artifacts: []string{"scene.json"}, StructureSceneFailures: []string{"missing version-bound scene"}},
+		"visual": &sessionRunnerVisualArtifactValidationRequired{Artifacts: []string{"image.png (invalid bytes)"},
+			Targets: []transcriptstore.RunnerVisualConditionArtifact{{Name: "image.png", VersionID: "image-version", Failure: "invalid_image_integrity"}}},
 		"presentation": sessionRunnerFinalPresentationCorrection{},
 	}
 	for name, failure := range failures {

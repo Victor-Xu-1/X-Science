@@ -28,22 +28,22 @@ func TestVisualDeliveryUsesOnlyExactSelectedImages(t *testing.T) {
 	selected := save("valid", valid, true)
 	bad := save("unfinished", []byte("incomplete render"), true)
 	session := sessionstore.Session{ID: "frame-save", WorkDir: f.projectPath}
-	if err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil {
+	if _, err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil {
 		t.Fatalf("unselected intermediate image blocked valid delivery: %v", err)
 	}
 	if intermediate, found, err := f.store.ArtifactVersionIntermediate(selected.VersionID); err != nil || !found || !intermediate {
 		t.Fatal("validation published the selected draft")
 	}
-	if err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{bad}); err == nil {
+	if _, err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{bad}); err == nil {
 		t.Fatal("selected corrupt image passed")
 	}
 	bad.Relation = transcriptstore.ArtifactRelationCited
-	if err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected, bad}); err != nil {
+	if _, err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected, bad}); err != nil {
 		t.Fatalf("cited input was treated as a generated delivery: %v", err)
 	}
 	// A newer workspace version must not replace the selected immutable bytes.
 	save("valid", []byte("new unfinished render"), true)
-	if err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil {
+	if _, err := f.server.verifySessionRunnerVisualArtifactEvidence(session, []transcriptstore.ArtifactReferenceInput{selected}); err != nil {
 		t.Fatalf("new current version replaced the selected version: %v", err)
 	}
 	wrong := selected

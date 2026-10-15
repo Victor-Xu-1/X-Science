@@ -262,62 +262,62 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	ctx context.Context,
 	session sessionstore.Session,
 	candidate sessionRunnerCompletionRecoveryCandidate,
-) error {
+) (*sessionRunnerCompletionAdvisory, error) {
 	if candidate.SourceRun == nil || strings.TrimSpace(candidate.Content) == "" {
-		return transcriptstore.ErrEventConflict
+		return nil, transcriptstore.ErrEventConflict
 	}
 	commits, err := s.sessionRunnerArtifactCommitReferences(ctx, candidate.SourceRun)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	validationCommits, err := s.sessionRunnerActiveArtifactCommitReferences(
 		ctx, candidate.SourceRun, commits, candidate.Content,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	missingRequiredDeliverables, err := s.sessionRunnerMissingRequiredDeliverables(
 		session, candidate.SourceRun, commits,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	unresolvedReferences, err := s.unresolvedSessionRunnerArtifactReferences(session, candidate.SourceRun, commits, candidate.Content)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	unresolved := len(unresolvedReferences)
 	malformedArtifactReferences := sessionRunnerArtifactReferenceSyntaxFailures(candidate.Content)
 	scientificFailures, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, candidate.Content)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	crossArtifactFailures, err := s.validateSessionRunnerCrossArtifactConsistency(
 		ctx, sessionRunnerProjectID(session), validationCommits, candidate.Content,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	researchValidation, err := s.validateSessionRunnerResearchArtifactSelection(ctx, sessionRunnerProjectID(session), validationCommits)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	missingLocalArtifacts, err := s.sessionRunnerMissingLocalArtifactDependencies(
 		sessionRunnerProjectID(session), candidate.SourceRun, validationCommits, candidate.Content,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	artifactCandidates, err := s.sessionRunnerCompletionArtifactCandidateReferencesWithSelection(
 		session, candidate.SourceRun, validationCommits, candidate.Content,
 		researchValidation.SelectedVersions, researchValidation.ManifestFound,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	durableEvidence, err := s.sessionRunnerDurableEvidenceMessages(ctx, candidate.SourceRun)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	unsupported := []string(nil)
 	if sessionRunnerCitationIntegrityRequired(candidate.SourceRun) {
@@ -330,12 +330,9 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
 		len(scientificFailures) == 0 && len(fatalCrossArtifactFailures) == 0 && len(researchValidation.Failures) == 0 && len(missingLocalArtifacts) == 0 &&
 		len(missingRequiredDeliverables) == 0 {
-		if err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits); err != nil {
-			return err
-		}
-		return nil
+		return s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
 	}
-	return &sessionRunnerReferenceIntegrityError{
+	return nil, &sessionRunnerReferenceIntegrityError{
 		UnresolvedArtifacts:          unresolved,
 		UnresolvedArtifactReferences: append([]string(nil), unresolvedReferences...),
 		MalformedArtifactReferences:  malformedArtifactReferences,
@@ -365,7 +362,8 @@ func (s *Server) recoverTranscriptCompletionOnly(
 		return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
 	}
 	if candidate.ReasonCode == "artifact_reference_correction_required" {
-		if validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate); validationErr != nil {
+		advisory, validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate)
+		if validationErr != nil {
 			var integrityErr *sessionRunnerReferenceIntegrityError
 			if errors.As(validationErr, &integrityErr) && len(integrityErr.MissingRequiredDeliverables) > 0 {
 				// An absent original deliverable requires execution, not another
@@ -376,8 +374,9 @@ func (s *Server) recoverTranscriptCompletionOnly(
 			}
 			return "failed", validationErr.Error(), candidate.Segment, true, nil
 		}
+		content := appendSessionRunnerCompletionAdvisories(candidate.Content, candidate.SourceRun.ResponseLanguage, advisory)
 		if err := s.appendTranscriptAssistantEvent(context.WithoutCancel(ctx), run.Transcript, "completion-recovery-assistant", map[string]any{
-			"text": candidate.Content, "assistant_segment": transcriptstore.AssistantSegmentPayloadV1(candidate.Segment.Ordinal, ""),
+			"text": content, "assistant_segment": transcriptstore.AssistantSegmentPayloadV1(candidate.Segment.Ordinal, ""),
 		}); err != nil {
 			return "failed", fmt.Sprintf("append recovered transcript assistant message failed: %v", err), candidate.Segment, true, nil
 		}

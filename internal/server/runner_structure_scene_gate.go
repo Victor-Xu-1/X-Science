@@ -12,7 +12,7 @@ import (
 )
 
 // structureSceneManifestSchema is deliberately a single, versioned contract.
-// It is consumed by the existing completion gate and by the existing native
+// It is consumed by completion diagnostics and by the existing native
 // structure preview path; it is not a second delivery protocol.
 const (
 	structureSceneManifestSchema   = "x-science.structure-scene.v1"
@@ -46,14 +46,12 @@ type structureScenePreviewImage struct {
 	SHA256    string `json:"sha256"`
 }
 
-// verifyStructureSceneEvidence applies the generic derived-structure
-// delivery contract to the current snapshot inventory. A scene is required
-// whenever a task delivers two or more user-visible structures; this keeps
-// comparison/derived workflows honest without branching on a tool or domain
-// name. Single-structure tasks retain their existing completion behavior.
-func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifactEvidence, candidates []transcriptstore.ArtifactReferenceInput) error {
+// verifyStructureSceneEvidence reports optional comparison-preview gaps without
+// imposing another model/tool round. It still validates the actual bytes of an
+// exact bound preview; an advisory is never an image-integrity waiver.
+func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifactEvidence, candidates []transcriptstore.ArtifactReferenceInput) (*sessionRunnerCompletionAdvisory, error) {
 	if s == nil || s.workspaceStore == nil {
-		return errors.New("structure scene workspace store is unavailable")
+		return nil, errors.New("structure scene workspace store is unavailable")
 	}
 	// Completion validates before publishing. Only exact produced versions in
 	// its canonical delivery selection may participate while still staged;
@@ -68,14 +66,14 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 	for _, artifact := range artifacts {
 		retention, found, err := s.workspaceStore.ArtifactRetentionMode(artifact.ArtifactID)
 		if err != nil {
-			return fmt.Errorf("read structure scene retention for %s: %w", artifact.Name, err)
+			return nil, fmt.Errorf("read structure scene retention for %s: %w", artifact.Name, err)
 		}
 		if !found || retention != "snapshot" {
 			continue
 		}
 		intermediate, found, err := s.workspaceStore.ArtifactVersionIntermediate(artifact.VersionID)
 		if err != nil {
-			return fmt.Errorf("read structure scene version state for %s: %w", artifact.Name, err)
+			return nil, fmt.Errorf("read structure scene version state for %s: %w", artifact.Name, err)
 		}
 		if found && intermediate && selectedVersions[artifact.ArtifactID] != artifact.VersionID {
 			continue
@@ -90,21 +88,12 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 		}
 	}
 	if len(structures) < 2 {
-		return nil
+		return nil, nil
 	}
 
 	manifestArtifact, manifest, failures := s.findStructureSceneManifest(snapshotArtifacts)
-	if manifestArtifact == nil {
-		return &sessionRunnerVisualArtifactValidationRequired{
-			Artifacts:              structureSceneArtifactNames(structures),
-			StructureSceneFailures: failures,
-		}
-	}
-	if len(failures) > 0 {
-		return &sessionRunnerVisualArtifactValidationRequired{
-			Artifacts:              append(structureSceneArtifactNames(structures), manifestArtifact.Name),
-			StructureSceneFailures: failures,
-		}
+	if manifestArtifact == nil || len(failures) > 0 {
+		return &sessionRunnerCompletionAdvisory{Code: completionAdvisoryStructurePreview, Findings: failures}, nil
 	}
 
 	images := make([]sessionReviewerArtifactEvidence, 0, len(snapshotArtifacts))
@@ -115,10 +104,7 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 	}
 	failures = validateStructureSceneManifest(manifest, structures, images)
 	if len(failures) > 0 {
-		return &sessionRunnerVisualArtifactValidationRequired{
-			Artifacts:              append(structureSceneArtifactNames(structures), manifestArtifact.Name),
-			StructureSceneFailures: failures,
-		}
+		return &sessionRunnerCompletionAdvisory{Code: completionAdvisoryStructurePreview, Findings: failures}, nil
 	}
 
 	// A scene can reference an already-published preview outside the new
@@ -126,9 +112,9 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 	// decoder, without inspecting unrelated drafts in the workspace inventory.
 	preview := findArtifactByVersionID(images, manifest.PreviewImage.VersionID)
 	if preview == nil {
-		return errors.New("structure scene preview version is unavailable")
+		return nil, errors.New("structure scene preview version is unavailable")
 	}
-	return s.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{*preview})
+	return nil, s.verifyVisualArtifactEvidence([]sessionReviewerArtifactEvidence{*preview})
 }
 
 func (s *Server) findStructureSceneManifest(
@@ -322,14 +308,6 @@ func findArtifactByVersionID(artifacts []sessionReviewerArtifactEvidence, versio
 		}
 	}
 	return nil
-}
-
-func structureSceneArtifactNames(artifacts []sessionReviewerArtifactEvidence) []string {
-	names := make([]string, 0, len(artifacts))
-	for _, artifact := range artifacts {
-		names = append(names, artifact.Name)
-	}
-	return uniqueSortedStrings(names)
 }
 
 func structureArtifactName(name string) bool {

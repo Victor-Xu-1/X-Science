@@ -50,6 +50,8 @@ func TestRecoveredStructureSceneConditionIsAdvisoryButImageIntegrityIsNot(t *tes
 		{"scene", scene.Condition, true},
 		{"legacy text is not typed evidence", nil, false},
 		{"invalid condition", &transcriptstore.RunnerCorrectionCondition{}, false},
+		{"empty typed visual", newRunnerCorrection(sessionRunnerVisualArtifactValidationReasonCode, "unknown",
+			transcriptstore.RunnerCorrectionCondition{Visual: &transcriptstore.RunnerVisualCondition{}}).Condition, false},
 		{"image integrity", newRunnerCorrection(sessionRunnerVisualArtifactValidationReasonCode, "bad bytes",
 			transcriptstore.RunnerCorrectionCondition{Visual: &transcriptstore.RunnerVisualCondition{
 				Artifacts: []transcriptstore.RunnerVisualConditionArtifact{{

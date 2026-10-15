@@ -156,7 +156,8 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
 		len(missingLocalArtifacts) == 0 && len(fatalCrossArtifactFailures) == 0 && len(scientificFailures) == 0 &&
 		len(researchValidation.Failures) == 0 && len(missingRequiredDeliverables) == 0 {
-		if err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits); err != nil {
+		advisory, err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
+		if err != nil {
 			return result, err
 		}
 		if err := s.publishSessionRunnerCompletionArtifacts(
@@ -164,6 +165,12 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		); err != nil {
 			return result, err
 		}
+		language := ""
+		if run != nil {
+			language = run.ResponseLanguage
+		}
+		replaceSessionRunnerFinalMessageContent(&result,
+			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory))
 		return result, nil
 	}
 	return result, &sessionRunnerReferenceIntegrityError{

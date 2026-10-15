@@ -98,7 +98,7 @@ func TestRecoveredTranscriptCompletionRejectsMalformedArtifactLinkEnvelope(t *te
 	if err != nil || unresolved != 0 {
 		t.Fatalf("known completion recovery reference unresolved=%d err=%v commits=%#v", unresolved, err, commits)
 	}
-	err = server.validateRecoveredTranscriptCompletionCandidate(
+	_, err = server.validateRecoveredTranscriptCompletionCandidate(
 		context.Background(),
 		sessionstore.Session{ID: stream.SessionID, Project: &sessionstore.Project{ID: stream.ProjectID}},
 		sessionRunnerCompletionRecoveryCandidate{
