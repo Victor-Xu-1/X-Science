@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	compute "x-science/internal/compute"
 	workspace "x-science/internal/persistence/workspace"
@@ -477,7 +476,16 @@ func (s *Server) handleComputeManagedEndpointAction(w http.ResponseWriter, r *ht
 		writeAgentCompatError(w, http.StatusServiceUnavailable, errors.New("workspace store is unavailable"))
 		return
 	}
-	endpoint, shouldRun, err := s.workspaceStore.ClaimManagedEndpointStop(parts[0], compatAgentUserID(r))
+	coordinator, err := s.managedEndpointCoordinatorFor(parts[0], compatAgentUserID(r))
+	if errors.Is(err, sql.ErrNoRows) {
+		writeAgentCompatError(w, http.StatusNotFound, fmt.Errorf("unknown managed endpoint '%s'", parts[0]))
+		return
+	}
+	if err != nil {
+		writeAgentCompatError(w, http.StatusBadGateway, err)
+		return
+	}
+	endpoint, shouldRun, err := s.claimOwnedManagedEndpoint(parts[0], compatAgentUserID(r), "stop")
 	if errors.Is(err, sql.ErrNoRows) {
 		writeAgentCompatError(w, http.StatusNotFound, fmt.Errorf("unknown managed endpoint '%s'", parts[0]))
 		return
@@ -492,23 +500,9 @@ func (s *Server) handleComputeManagedEndpointAction(w http.ResponseWriter, r *ht
 	}
 	state := endpoint.State
 	if shouldRun {
-		credential := ""
-		if endpoint.CredentialName != nil {
-			credential = *endpoint.CredentialName
-		}
-		result, stopErr := compute.RunApprovedStop(r.Context(), compute.ManagedEndpointRegistration{
-			Name: endpoint.Name, URL: endpoint.URL, Port: endpoint.Port,
-			CredentialName: credential, SkillName: endpoint.SkillName,
-			StartScript: endpoint.StartScript, StopScript: endpoint.StopScript, LivePath: endpoint.LivePath,
-		}, endpoint.ApprovedScriptHash, 60*time.Second)
-
-		state, err = s.workspaceStore.FinishManagedEndpointStop(endpoint.ClaimHandle, result.Transcript, stopErr)
+		state, err = s.runOwnedManagedEndpoint(r.Context(), endpoint, coordinator)
 		if err != nil {
-			writeAgentCompatError(w, http.StatusInternalServerError, err)
-			return
-		}
-		if stopErr != nil {
-			writeAgentCompatError(w, http.StatusBadGateway, stopErr)
+			writeAgentCompatError(w, http.StatusBadGateway, err)
 			return
 		}
 	}
@@ -524,27 +518,19 @@ func (s *Server) handleComputeManagedEndpointAction(w http.ResponseWriter, r *ht
 }
 
 func (s *Server) stopManagedEndpointForTeardown(r *http.Request, userID, name string) error {
-	endpoint, shouldRun, err := s.workspaceStore.ClaimManagedEndpointStop(name, userID)
+	coordinator, err := s.managedEndpointCoordinatorFor(name, userID)
+	if err != nil {
+		return err
+	}
+	endpoint, shouldRun, err := s.claimOwnedManagedEndpoint(name, userID, "stop")
 	if err != nil {
 		return err
 	}
 	if !shouldRun {
 		return nil
 	}
-	credential := ""
-	if endpoint.CredentialName != nil {
-		credential = *endpoint.CredentialName
-	}
-	result, stopErr := compute.RunApprovedStop(r.Context(), compute.ManagedEndpointRegistration{
-		Name: endpoint.Name, URL: endpoint.URL, Port: endpoint.Port,
-		CredentialName: credential, SkillName: endpoint.SkillName,
-		StartScript: endpoint.StartScript, StopScript: endpoint.StopScript, LivePath: endpoint.LivePath,
-	}, endpoint.ApprovedScriptHash, 60*time.Second)
-	_, finishErr := s.workspaceStore.FinishManagedEndpointStop(endpoint.ClaimHandle, result.Transcript, stopErr)
-	if finishErr != nil {
-		return finishErr
-	}
-	return stopErr
+	_, err = s.runOwnedManagedEndpoint(r.Context(), endpoint, coordinator)
+	return err
 }
 
 func (s *Server) teardownManagedEndpoints(r *http.Request, userID string) (map[string]any, bool, error) {

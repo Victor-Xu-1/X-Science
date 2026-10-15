@@ -412,29 +412,22 @@ func (s *Server) executeAgentComputeProvider(
 }
 
 func (s *Server) ensureManagedInferenceEndpointReady(ctx context.Context, access workspace.KernelFrameAccess, name string) error {
-	endpoint, shouldRun, err := s.workspaceStore.ClaimManagedEndpointStart(name, access.UserID)
+	coordinator, err := s.managedEndpointCoordinatorFor(name, access.UserID)
+	if err != nil {
+		return err
+	}
+	endpoint, shouldRun, err := s.claimOwnedManagedEndpoint(name, access.UserID, "start")
 	if err != nil {
 		return err
 	}
 	if !shouldRun {
-		return nil
+		if endpoint.Location == "remote" {
+			return nil
+		}
+		return coordinator.CheckLive(ctx, access.UserID, name)
 	}
-	credential := ""
-	if endpoint.CredentialName != nil {
-		credential = *endpoint.CredentialName
-	}
-	result, startErr := compute.RunApprovedStart(ctx, compute.ManagedEndpointRegistration{
-		Name: endpoint.Name, URL: endpoint.URL, Port: endpoint.Port,
-		CredentialName: credential, SkillName: endpoint.SkillName,
-		StartScript: endpoint.StartScript, StopScript: endpoint.StopScript, LivePath: endpoint.LivePath,
-	}, endpoint.ApprovedScriptHash, 2*time.Minute)
-	if _, finishErr := s.workspaceStore.FinishManagedEndpointStart(endpoint.ClaimHandle, result.Transcript, startErr); finishErr != nil {
-		return finishErr
-	}
-	if startErr != nil {
-		return fmt.Errorf("managed inference endpoint start failed and remains failed until explicit Stop or re-registration: %w", startErr)
-	}
-	return nil
+	_, err = s.runOwnedManagedEndpoint(ctx, endpoint, coordinator)
+	return err
 }
 
 func (s *Server) agentComputeProviderAuthority(

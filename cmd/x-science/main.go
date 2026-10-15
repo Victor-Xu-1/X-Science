@@ -47,6 +47,8 @@ func run() error {
 	args := append([]string(nil), os.Args[1:]...)
 	if len(args) > 0 {
 		switch args[0] {
+		case "managed-endpoint-owner":
+			return runManagedEndpointOwnerCLI(args[1:])
 		case "release-manifest":
 			return runReleaseManifestCLI(args[1:], os.Stdout)
 		case "release-supply-chain":
@@ -438,6 +440,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		fmt.Println("compute provider runtime supervisor enabled")
 	}
 	startSupervisor("compute-provider-jobs", app.RunComputeProviderJobSupervisor)
+	startSupervisor("managed-endpoint-owners", app.RunManagedEndpointOwners)
 	fmt.Println("compute provider job supervisor enabled")
 	if app.ManagedScientificRuntimeProvisioningEnabled() {
 		startSupervisorWithReadiness("managed-scientific-runtimes", app.RunManagedScientificRuntimeProvisionerWithReady)

@@ -2161,7 +2161,7 @@ class _ModelEndpointsAccessor:
 
     def register(
         self, name, url, skill, start=None, stop=None, live=None,
-        credential="NVIDIA_API_KEY",
+        credential="NVIDIA_API_KEY", owner=None,
     ):
         for label, value in (("name", name), ("url", url), ("skill", skill)):
             if not isinstance(value, str) or not value.strip():
@@ -2170,10 +2170,10 @@ class _ModelEndpointsAccessor:
                 )
         hosted = url.strip().lower().startswith("https://")
         if hosted:
-            if any(value is not None for value in (start, stop, live)):
+            if any(value is not None for value in (start, stop, live, owner)):
                 raise TypeError(
                     "host.model_endpoints.register: remote endpoints take no "
-                    "start, stop, or live values"
+                    "start, stop, live, or local owner values"
                 )
         else:
             for label, value in (("start", start), ("stop", stop), ("live", live)):
@@ -2187,6 +2187,10 @@ class _ModelEndpointsAccessor:
             config.update({"start": start, "stop": stop, "live": live})
         if credential is not None:
             config["credential"] = credential
+        if owner is not None:
+            if not isinstance(owner, dict):
+                raise TypeError("host.model_endpoints.register: owner must be a mapping")
+            config["owner"] = owner
         return _host_rpc("host.model_endpoints.register", [config], {})
 
     def __repr__(self):

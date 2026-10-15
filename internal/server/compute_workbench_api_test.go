@@ -213,12 +213,12 @@ func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	if missingStop["detail"] != "unknown managed endpoint 'oracle-missing'" {
 		t.Fatalf("missing stop=%#v", missingStop)
 	}
-	stopped := requestJSON(t, mux, http.MethodPost, "/api/compute/managed-endpoints/fixture-nim/stop", nil, "owner-a", http.StatusOK).(map[string]any)
-	if stopped["state"] != "stopped" {
-		t.Fatalf("stopped=%#v", stopped)
+	stopped := requestCompute(t, mux, http.MethodPost, "/api/compute/managed-endpoints/fixture-nim/stop", nil, "owner-a")
+	if stopped.Code != http.StatusBadGateway || !strings.Contains(stopped.Body.String(), "ownership is unverified") {
+		t.Fatalf("legacy owner was guessed: %d %s", stopped.Code, stopped.Body.String())
 	}
-	if !stoppedRemotely.Load() {
-		t.Fatal("approved stop script did not reach the loopback endpoint")
+	if stoppedRemotely.Load() {
+		t.Fatal("legacy unowned script reached a potentially foreign loopback service")
 	}
 	drifted := compute.ManagedEndpointRegistration{Name: "fixture-drift", URL: "http://127.0.0.1:9555/v1", Port: 9555, SkillName: "using-model-endpoint", StartScript: "start", StopScript: "exit 0", LivePath: "/health"}
 	if err := store.UpsertManagedEndpoint(workspace.ManagedEndpoint{Name: drifted.Name, RegisteredBy: "owner-a", URL: drifted.URL, Port: drifted.Port, State: "live", Location: "local", SkillName: drifted.SkillName, LivePath: drifted.LivePath, StartScript: drifted.StartScript, StopScript: drifted.StopScript, ApprovedScriptHash: "invalid-approval", StateChangedAt: &now}); err != nil {
@@ -229,8 +229,7 @@ func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 		t.Fatalf("failed stop status=%d body=%s", failedStop.Code, failedStop.Body.String())
 	}
 	failedEndpoint := requestJSON(t, mux, http.MethodGet, "/api/compute/managed-endpoints?name=fixture-drift", nil, "owner-a", http.StatusOK).([]any)
-	if len(failedEndpoint) != 1 || failedEndpoint[0].(map[string]any)["state"] != "failed" ||
-		!strings.Contains(failedEndpoint[0].(map[string]any)["lastError"].(string), "approved hash") {
+	if len(failedEndpoint) != 1 || failedEndpoint[0].(map[string]any)["state"] != "live" {
 		t.Fatalf("failed endpoint=%#v", failedEndpoint)
 	}
 }
