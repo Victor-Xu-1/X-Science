@@ -16,9 +16,9 @@ import (
 
 // TranscriptWebProjectorVersion advances whenever reducer semantics change so
 // every existing derived view is rebuilt from its immutable Transcript source.
-// Version 12 recognizes resumed tools after inferred cancellation, including
-// histories quarantined by the previous reducer. Source events remain immutable.
-const TranscriptWebProjectorVersion = 13
+// Version 14 preserves accepted plain text-block arrays in payload-genesis
+// messages. Existing empty-body caches rebuild; source events stay immutable.
+const TranscriptWebProjectorVersion = 14
 
 var ErrTranscriptWebProjectionStale = errors.New("transcript Web projection state is stale")
 
