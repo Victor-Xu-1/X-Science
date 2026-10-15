@@ -437,6 +437,7 @@ type InterruptRunnerInput struct {
 	ClientMessageID          string
 	ReasonCode               string
 	ResumeDetail             string
+	ProviderFailureKind      string
 	Cause                    *RunnerInterruptionCause
 	RecoveryContractRevision int64
 	// Resumable preserves an exact checkpoint for an explicit user or

@@ -292,7 +292,7 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
           </dl>
         </div>
 
-        {phase === 'failed' && failureDetail ? (
+        {(phase === 'failed' || phase === 'paused') && failureDetail ? (
           <section
             className='x-science-task-center-panel__section x-science-task-center-panel__section--attention'
             aria-labelledby='x-science-task-center-failure-reason'

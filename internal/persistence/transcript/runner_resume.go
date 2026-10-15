@@ -24,14 +24,15 @@ const automaticCheckpointEligibilitySQL = `(COALESCE(json_extract(events.payload
 // must wait for a user or dispatch continue, except for the explicitly retired
 // correction-budget policy. This lookup also gates explicit continuation.
 type RunnerInterruption struct {
-	StreamUID          string
-	Attempt            int64
-	CheckpointSequence int64
-	EventID            int64
-	ReasonCode         string
-	ResumeDetail       string
-	AutoResume         bool
-	CreatedAt          time.Time
+	StreamUID           string
+	Attempt             int64
+	CheckpointSequence  int64
+	EventID             int64
+	ReasonCode          string
+	ResumeDetail        string
+	ProviderFailureKind string
+	AutoResume          bool
+	CreatedAt           time.Time
 }
 
 // LatestRunnerInterruption returns the most recent runner checkpoint that
@@ -104,6 +105,13 @@ func (r *Repository) LatestRunnerInterruption(
 		return RunnerInterruption{}, false, nil
 	}
 	interruption.ResumeDetail = strings.TrimSpace(stringValueFromAny(payload["resume_detail"]))
+	if value, present := payload["provider_failure_kind"]; present {
+		kind, ok := value.(string)
+		if !ok || kind == "" || validateRunnerProviderFailureKind(interruption.ReasonCode, kind) != nil {
+			return RunnerInterruption{}, false, errors.New("runner provider failure category is invalid")
+		}
+		interruption.ProviderFailureKind = kind
+	}
 	// Match the scheduler's eligibility contract, including historical records
 	// without an explicit flag and the retired correction-budget policy.
 	interruption.AutoResume = payload["auto_resume"] != false || interruption.ReasonCode == RetiredCorrectionBudgetReason

@@ -31,6 +31,8 @@ export type XScienceRuntimeSnapshot = {
   statusDescription: string | null;
   error: string | null;
   failureReason: string | null;
+  /** Closed provider condition; never raw response text or resume authority. */
+  providerFailureKind?: XScienceProviderFailureKind | null;
   failureKind: XScienceRuntimeFailureKind;
   errorStatus: number | null;
   modelId: string | null;
@@ -73,6 +75,26 @@ export type XScienceRuntimeSnapshot = {
   taskPlan: XSciencePlanReference | null;
   planApproval: XSciencePlanApproval | null;
 };
+
+export type XScienceProviderFailureKind =
+  | 'configuration_missing'
+  | 'subscription'
+  | 'authentication'
+  | 'access_denied'
+  | 'unavailable';
+
+function normalizeProviderFailureKind(value: unknown): XScienceProviderFailureKind | null {
+  switch (value) {
+    case 'configuration_missing':
+    case 'subscription':
+    case 'authentication':
+    case 'access_denied':
+    case 'unavailable':
+      return value;
+    default:
+      return null;
+  }
+}
 
 export type XScienceReviewVerdict = 'pass' | 'pass_with_warnings' | 'revise' | null;
 
@@ -456,6 +478,8 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     (retryPhase === 'running' || retryPhase === 'starting' || retryPhase === 'queued') &&
     (retryReason === 'model_provider_temporarily_unavailable' ||
       retryReason === 'provider_transport_temporarily_unavailable');
+  const failureReason =
+    safeRuntimeReason(value.runtime_failure_reason) ?? safeRuntimeReason(value.runtime_interruption_reason);
   return {
     frameId,
     resumeTarget: normalizeXScienceResumeTarget(value.resume_target),
@@ -467,8 +491,11 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     status,
     statusDescription,
     error,
-    failureReason:
-      safeRuntimeReason(value.runtime_failure_reason) ?? safeRuntimeReason(value.runtime_interruption_reason),
+    failureReason,
+    providerFailureKind:
+      failureReason === 'model_provider_unavailable'
+        ? normalizeProviderFailureKind(value.runtime_provider_failure_kind)
+        : null,
     failureKind,
     errorStatus,
     modelId: nullableString(value.model) ?? (originalInput ? nullableString(originalInput.model) : null),

@@ -524,6 +524,7 @@ describe('XScienceTaskStatus', () => {
         snapshot={snapshot('paused', {
           statusDescription: 'no active saved model provider is configured',
           failureReason: 'model_provider_unavailable',
+          providerFailureKind: 'configuration_missing',
         })}
         onResume={vi.fn()}
       />

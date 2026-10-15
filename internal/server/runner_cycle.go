@@ -469,13 +469,15 @@ func (s *Server) runSessionRunnerChatOnce(
 				(reasonCode == sessionRunnerModelProviderUnavailableReasonCode &&
 					s.sessionRunnerModelSelectionAdvancedSinceFailure(session.ID, resolutionErr))
 			resumeDetail := message
+			providerFailureKind := ""
 			if reasonCode == sessionRunnerModelProviderUnavailableReasonCode {
-				resumeDetail = "No active model configuration is available. Configure or select a model, then continue this same task."
+				resumeDetail = sessionRunnerMissingModelConfigurationDetail
+				providerFailureKind = "configuration_missing"
 				result.AwaitingModelSelection = true
 			}
-			interruptErr := s.interruptClaimedSessionRunnerLockedWithPolicy(
+			interruptErr := s.interruptClaimedSessionRunnerLockedWithCause(
 				context.WithoutCancel(ctx), options, &result, activeRun, projectionClaim,
-				transcriptAuthority, reasonCode, autoResume, resumeDetail,
+				transcriptAuthority, reasonCode, autoResume, resumeDetail, nil, providerFailureKind,
 			)
 			activeRun.settlement.Unlock()
 			if interruptErr != nil {

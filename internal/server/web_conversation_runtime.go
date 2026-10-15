@@ -152,7 +152,8 @@ func (s *Server) webConversationRuntimeSnapshot(frame workspace.CompatibilityFra
 			pending = 0
 			planApproval = false
 		} else if boolValue(runtimeProjection["runtime_paused"], false) &&
-			strings.EqualFold(strings.TrimSpace(stringValue(runtimeProjection["runtime_interruption_reason"])), sessionRunnerModelProviderUnavailableReasonCode) {
+			strings.EqualFold(strings.TrimSpace(stringValue(runtimeProjection["runtime_interruption_reason"])), sessionRunnerModelProviderUnavailableReasonCode) &&
+			stringValue(runtimeProjection["runtime_provider_failure_kind"]) == "configuration_missing" {
 			modelConfigurationWait = true
 		} else if boolValue(runtimeProjection["runtime_paused"], false) {
 			recoveryConditionWait = true
