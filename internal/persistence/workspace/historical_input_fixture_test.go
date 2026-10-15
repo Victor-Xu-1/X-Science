@@ -71,8 +71,11 @@ func appendHistoricalMigrationFrameUserEvent(t *testing.T, ctx context.Context, 
 		JOIN frames f ON f.id=s.frame_id WHERE s.stream_uid=? AND s.owner_id=?`, input.StreamUID, input.OwnerID).Scan(&frameStatus, &revision); err != nil {
 		return transcriptstore.Event{}, false, err
 	}
-	if frameStatus != "processing" || revision != 0 {
-		return transcriptstore.Event{}, false, fmt.Errorf("historical frame fixture must already be processing with no initial input")
+	// Both were legal initial states for the historical writer. Preserve its
+	// pending projector fixtures rather than rewriting their Frame status just
+	// to use today's helper. The old activation did not change pending Frames.
+	if (frameStatus != "processing" && frameStatus != "pending") || revision != 0 {
+		return transcriptstore.Event{}, false, fmt.Errorf("historical frame fixture requires a pending or processing Frame with no initial input")
 	}
 	// These payload-owned epochs never stored the caller's legacy FrameEventID.
 	// Preserve that input above and reproduce the former writer's exact bytes.
