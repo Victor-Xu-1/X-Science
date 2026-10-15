@@ -16,7 +16,10 @@ import (
 // Delete/outbox, physical-unit-stop or scientific-execution witness. The real
 // cleanup helper receives an exact descriptor-valid scope in test-owned paths.
 func TestManagedEndpointCapturedLaunchDoesNotRepublishCleanedPrivateScope(t *testing.T) {
-	runtimeRoot := t.TempDir()
+	runtimeRoot := filepath.Join(t.TempDir(), "owners")
+	if err := os.Mkdir(runtimeRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
 	instance := managedEndpointPrivateCleanupRootTestInstance(t, runtimeRoot)
 	directory := managedEndpointInstanceDirectory(instance)
 	if err := os.Mkdir(directory, 0o700); err != nil {
