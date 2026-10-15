@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,8 +26,8 @@ func (g serverAgentRuntimeToolGateway) agentRuntimeSkillExecutionContractPreflig
 		return nil
 	}
 	name := strings.ToLower(strings.TrimSpace(publicName))
-	if preflight := g.agentRuntimeBuiltinAttachmentReaderPreflight(name, input); preflight != nil {
-		return preflight
+	if suggestions := g.builtinAttachmentReaderSuggestions(name, input); len(suggestions) > 0 {
+		log.Printf("runner_attachment_reader_advisory count=%d", len(suggestions))
 	}
 	if preflight := g.agentRuntimeSelectedImplementationSkillPreflight(name, input); preflight != nil {
 		return preflight

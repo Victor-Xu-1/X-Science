@@ -394,12 +394,10 @@ func (s *Server) recoverTranscriptCompletionOnly(
 		}
 		return "completed", "runner completion validation recovered immutable published candidate", candidate.Segment, true, nil
 	}
-	// Reviewer verdicts are intentionally not replayed: an independent review
-	// can invoke a provider and read-only tools, both forbidden on this recovery
-	// path. An explicit capsule restart must nevertheless enter the ordinary
-	// checkpoint correction path so the model can inspect and repair the rejected
-	// artifact. Returning "not handled" here does exactly that; unattended review
-	// auto-resume remains disabled, so a repeated rejection cannot form a loop.
+	// Semantic reviews enter ordinary continuation under the current advisory
+	// policy, not this completion-only path. Their summary is not a preserved
+	// answer or proof of current artifact identity; do not synthesize completion
+	// from it or replay a reviewer/provider here.
 	return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
 }
 

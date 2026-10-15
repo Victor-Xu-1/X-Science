@@ -12,7 +12,11 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-func TestSessionRunnerExplicitToolContractRequiresNamedCompletedActions(t *testing.T) {
+func sessionRunnerExplicitToolContractGaps(taskIntent string, messages []agentruntime.Message) []string {
+	return buildSessionRunnerExplicitToolContract(taskIntent).gaps(messages)
+}
+
+func TestSessionRunnerExplicitToolObservationsCompareNamedCompletedActions(t *testing.T) {
 	task := "使用 search_skills 并实际加载至少两个 Skill；使用 web_search，并通过 MCP 的真实方法查询至少两个不同数据域，至少包含 PubMed；通过 manage_packages 安装依赖。"
 	if gaps := sessionRunnerExplicitToolContractGaps(task, nil); len(gaps) != 5 {
 		t.Fatalf("missing explicit tool gaps=%#v", gaps)
@@ -31,7 +35,7 @@ func TestSessionRunnerExplicitToolContractRequiresNamedCompletedActions(t *testi
 	}
 }
 
-func TestSessionRunnerExplicitToolContractRequiresSuccessfulResults(t *testing.T) {
+func TestSessionRunnerExplicitToolObservationsCountOnlySuccessfulResults(t *testing.T) {
 	task := "使用 search_skills 查找能力，然后使用 Skill 加载它。"
 	messages := []agentruntime.Message{
 		toolRound("search", "search_skills"),
@@ -44,7 +48,7 @@ func TestSessionRunnerExplicitToolContractRequiresSuccessfulResults(t *testing.T
 	}
 }
 
-func TestSessionRunnerExplicitToolContractRequiresPostWriteReadOfNamedFile(t *testing.T) {
+func TestSessionRunnerExplicitToolObservationsComparePostWriteReadOfNamedFile(t *testing.T) {
 	task := "创建 molecules.smi；最终保存成功后必须重新读取 molecules.smi，之后才能宣布完成。"
 	messages := []agentruntime.Message{
 		toolRoundWithInput("edit-invalid", "edit_file", `{"file_path":"molecules.smi"}`), toolResult("edit-invalid"),
@@ -93,7 +97,7 @@ func TestSessionRunnerExplicitToolContractRecognizesEnglishReadBackWithoutInferr
 	}
 }
 
-func TestSessionRunnerExplicitToolContractRequiresFirstFailureCodeInFinalAnswer(t *testing.T) {
+func TestSessionRunnerExplicitToolObservationsCompareFirstFailureCodeInFinalAnswer(t *testing.T) {
 	tasks := []string{
 		"最终只需简要报告首次失败代码、修复动作和最终产物。",
 		"In the final answer, report the first failure code and the repair.",
@@ -202,47 +206,6 @@ not_a_molecule invalid
 	final := "完成结果如下：修复动作与最终产物已验证。"
 	if gaps := contract.finalGaps(messages, final); len(gaps) != 1 || !strings.Contains(gaps[0], "invalid_smiles_records") {
 		t.Fatalf("exact browser final gaps=%#v", gaps)
-	}
-}
-
-func TestSessionRunnerExplicitToolReceiptScopeCompletesFromExactReceipts(t *testing.T) {
-	task := "请只执行运行时能力验收：使用 search_skills 查找 structure-based-molecule-generation，然后使用 skill 加载它；不要运行分子生成、不要创建环境、不要下载文件。最后仅报告两个工具是否成功，以及加载到的 Skill 名称。"
-	messages := []agentruntime.Message{
-		toolRound("search", "search_skills"), toolResult("search"),
-		toolRound("skill", "skill"), toolResult("skill"),
-	}
-	contract := buildSessionRunnerExplicitToolContract(task)
-	if !contract.ReceiptOnly {
-		t.Fatal("explicit tool-only task did not produce a receipt-only completion contract")
-	}
-	if !contract.receiptOnlySatisfied(messages) {
-		t.Fatal("exact successful receipts did not satisfy the receipt-only contract")
-	}
-}
-
-func TestSessionRunnerExplicitToolReceiptScopeRejectsUnexpectedWork(t *testing.T) {
-	task := "请只执行运行时能力验收：使用 search_skills 查找 structure-based-molecule-generation，然后使用 skill 加载它。最后仅报告两个工具是否成功，以及加载到的 Skill 名称。"
-	messages := []agentruntime.Message{
-		toolRound("search", "search_skills"), toolResult("search"),
-		toolRound("skill", "skill"), toolResult("skill"),
-		toolRound("python", "python"), toolResult("python"),
-	}
-	contract := buildSessionRunnerExplicitToolContract(task)
-	if contract.receiptOnlySatisfied(messages) {
-		t.Fatal("an unrequested execution was hidden by the receipt-only contract")
-	}
-}
-
-func TestSessionRunnerScientificDeliverableDoesNotBecomeToolReceiptOnly(t *testing.T) {
-	tasks := []string{
-		"使用 search_skills 查找分子生成能力并加载 Skill，然后基于口袋生成 30 个候选并完成对接排序。",
-		"Only use search_skills and load a Skill before generating and docking 30 molecules; deliver the structures and report.",
-	}
-	for _, task := range tasks {
-		contract := buildSessionRunnerExplicitToolContract(task)
-		if contract.ReceiptOnly {
-			t.Fatalf("scientific deliverable became receipt-only: %q", task)
-		}
 	}
 }
 
@@ -437,7 +400,7 @@ func TestSessionRunnerDurableExplicitToolContractDoesNotCrossTaskIntent(t *testi
 		t.Fatal(err)
 	}
 	gaps := sessionRunnerExplicitToolContractGaps("Use search_skills and manage_packages for a new task.", messages)
-	if len(gaps) != 1 || gaps[0] != "the explicitly requested manage_packages action has no successful tool result" {
+	if len(gaps) != 1 || gaps[0] != "task text mentions manage_packages, but no successful tool result was observed" {
 		t.Fatalf("prior task receipt crossed the active task boundary: %#v", gaps)
 	}
 }

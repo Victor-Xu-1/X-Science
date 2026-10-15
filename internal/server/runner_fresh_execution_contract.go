@@ -9,10 +9,9 @@ import (
 	"x-science/internal/agentruntime"
 )
 
-// sessionRunnerFreshExecutionRequested recognizes an explicit request to run
-// the calculation or analysis again. It does not choose a domain workflow or
-// tool; it only prevents a fresh execution claim from being satisfied by old
-// artifacts and prose from a prior input revision.
+// sessionRunnerFreshExecutionRequested is a task-text observation, not an
+// execution requirement. Its receipt comparison can disclose missing evidence
+// but cannot choose an action, authorize a run, or reject final delivery.
 func sessionRunnerFreshExecutionRequested(messages []agentruntime.Message) bool {
 	latest := ""
 	for index := len(messages) - 1; index >= 0; index-- {
@@ -94,22 +93,12 @@ func sessionRunnerHasFreshSuccessfulExecution(messages []agentruntime.Message) b
 	return false
 }
 
-func sessionRunnerFreshExecutionCompletionError(
+func sessionRunnerFreshExecutionFinding(
 	requestMessages, resultMessages []agentruntime.Message,
-) error {
+) string {
 	if !sessionRunnerFreshExecutionRequested(requestMessages) ||
 		sessionRunnerHasFreshSuccessfulExecution(resultMessages) {
-		return nil
+		return ""
 	}
-	detail := "the latest user input explicitly requested fresh computation or analysis, but this execution unit produced no successful execution receipt; prior artifacts and prior numerical prose cannot satisfy the new request"
-	return sessionRunnerCompletionReviewCorrection{
-		Summary: detail,
-		Issues: []sessionRunnerReviewIssue{{
-			MessageIndex: 0,
-			Claim:        "perform the requested calculation or analysis in the applicable verified execution path before publishing a replacement conclusion",
-			Verdict:      "fail",
-			Severity:     "high",
-			Evidence:     detail,
-		}},
-	}
+	return "task text mentions fresh computation or analysis, but no successful execution receipt was observed after the current request; prior results are not proof of a new execution"
 }

@@ -38,10 +38,10 @@ func (contract sessionRunnerExplicitToolContract) finalGaps(messages []agentrunt
 	}
 	codes, found := sessionRunnerFirstFailedToolCodes(messages)
 	if !found {
-		return []string{"the final answer must report the first failure code, but no failed tool receipt exists in the current logical task"}
+		return []string{"task text mentions a first failure code, but no failed tool receipt exists in the current logical task"}
 	}
 	if len(codes) == 0 {
-		return []string{"the final answer must report the first failure code, but the first failed tool receipt has no stable machine code"}
+		return []string{"task text mentions a first failure code, but the first failed tool receipt has no stable machine code"}
 	}
 	normalizedFinal := strings.ToLower(finalContent)
 	for _, code := range codes {
@@ -50,13 +50,13 @@ func (contract sessionRunnerExplicitToolContract) finalGaps(messages []agentrunt
 		}
 	}
 	return []string{fmt.Sprintf(
-		"the final answer omits the first failed tool receipt code; include one of: %s",
+		"the final answer does not mention a recorded first-failure code: %s",
 		strings.Join(codes, ", "),
 	)}
 }
 
 // Engine results may retain earlier assistant narration in FinalMessage for
-// provider compatibility. Completion contracts must inspect the latest actual
+// provider compatibility. Completion diagnostics inspect the latest actual
 // no-tool assistant candidate, not receipt-backed progress that happened to
 // mention the requested code before the work finished.
 func sessionRunnerLatestFinalCandidateContent(messages []agentruntime.Message, fallback string) string {

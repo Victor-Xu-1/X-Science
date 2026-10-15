@@ -105,13 +105,24 @@ JSON Schema、审批和任务归属检查决定。
 不是执行是否发生的依据；非终态、未执行的前置拒绝和失败回执不能冒充成功。
 计划状态反馈保留 `execution_ref`、`execution_binding` 和 `execution_continuation`，
 模型可以复用匹配的已有执行，不得因为反馈压缩丢失标识而再次执行。
-重新执行请求按相邻动作识别否定语义：明确“不重新计算”不产生新计算义务；
-同一消息中另有明确重新分析的要求时，该要求仍须有当前请求的成功执行证据。
+任务自由文本中出现工具名、重新分析、回读文件或报告失败代码，只产生可观察的线索，
+不是受校验的操作授权或强制执行契约。线索与已有记录不一致时，最终答复保留真实原文，
+在同一发布内容中附加一次中性未核实说明；不因此强迫调用、反复纠正或伪造成功回执。
+旧语义审阅条件经普通续接重走当前机器检查，不直接结束任务、不把旧说明还原成答案。
+内置附件读取器只提供可用性建议，不能因任务文字是否提到包管理器而改变操作准入。
+实际工具协议、权限、当前输入/租约、活动执行、已批准计划和不可变产物检查仍保持独立；
+只有真实成功的当前请求回执才可说明发生了新计算，历史结果不能冒充重新执行。
 
 对应回归（含真实 SQLite、终态协议结算和可控 HTTP 模型边界）：
 
 ```sh
 go test ./internal/server -run 'TestCompactPlanExecutionRepair|TestCompletionPlanPolicy|TestRecoveredAutonomousPlanCorrection|TestRecoveredToolContract|TestFreshExecution|TestAutonomousCompletionPublishesFinal|TestForegroundDetachedKernelWaitDoesNotCommitProvisionalTerminalReceipt|TestExecutionPlanStepRequiresScoped|TestExecutionReceiptAmbiguityAndPlanFence' -count=1
+```
+
+文本线索与真实执行权威的最小专项（不运行科研计算）：
+
+```sh
+go test ./internal/server -run '^(TestSemanticTaskWordingDoesNotBlockFinalAnswer|TestAttachmentReaderPreferenceDoesNotChangeOperationAdmission|TestSemanticDisclosureKeepsReceiptAndFinalIdentityBoundaries|TestSemanticCompletionPublishesOneTruthfulAnswer|TestSemanticReviewResumeUsesCurrentChecksWithoutForcedTools|TestGatewaySemanticReviewDoesNotForceMCPExecution)$' -count=1
 ```
 
 ## Focused verification · 验证入口

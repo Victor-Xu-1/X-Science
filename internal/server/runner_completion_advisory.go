@@ -5,6 +5,7 @@ import "strings"
 const (
 	completionAdvisoryStructurePreview = "structure_preview_unverified"
 	completionAdvisoryResultQuality    = "result_quality_unverified"
+	completionAdvisoryTaskExpectations = "task_expectations_unverified"
 )
 
 // Completion advisories are host findings, not another completion obligation.
@@ -45,6 +46,9 @@ func sessionRunnerCompletionAdvisoryText(code string) (english, chinese string) 
 	case completionAdvisoryResultQuality:
 		return "Result quality is unverified. Some consistency or evidence checks remain unresolved. Existing outputs are preserved; task completion does not certify their accuracy.",
 			"结果质量尚未验证。部分一致性或证据检查仍存在问题。现有输出已保留；任务完成不代表这些结果的准确性已经得到验证。"
+	case completionAdvisoryTaskExpectations:
+		return "Execution details are unverified. Some actions or reporting details mentioned in the task text are not confirmed by the recorded results; this does not mean they were required or completed.",
+			"执行细节尚未核实。任务文字中提到的部分操作或报告细节未获已有记录确认；这并不表示这些操作必须执行或已经完成。"
 	default:
 		return "", ""
 	}

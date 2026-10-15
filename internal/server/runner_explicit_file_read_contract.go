@@ -28,10 +28,9 @@ var (
 	)
 )
 
-// Explicit post-write reads are user-required execution evidence. They are
-// narrower than generic words such as inspect or verify: only an unambiguous
-// re-read/read-back request tied to a concrete task-relative filename creates
-// this deterministic completion obligation.
+// File-read wording is a task-text observation. A concrete filename allows
+// comparison with recorded read/write ordering, but free text is not a typed
+// execution obligation and cannot require another read or block delivery.
 func sessionRunnerExplicitPostWriteReadTargets(taskIntent string) []string {
 	seen := map[string]struct{}{}
 	for _, pattern := range sessionRunnerExplicitPostWriteReadPatterns {
@@ -119,7 +118,7 @@ func sessionRunnerExplicitPostWriteReadGaps(targets []string, messages []agentru
 			continue
 		}
 		gaps = append(gaps, fmt.Sprintf(
-			"the explicitly required post-write read of %s has no successful read_file receipt after the latest successful edit or save",
+			"task text mentions a post-write read of %s, but no successful read_file receipt follows a successful edit or save",
 			target,
 		))
 	}

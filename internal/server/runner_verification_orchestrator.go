@@ -242,21 +242,6 @@ func (s *Server) runVerifiedSessionAgent(
 	logicalTaskMessages = append(logicalTaskMessages, durableEvidence...)
 	logicalTaskMessages = append(logicalTaskMessages, request.Messages...)
 	logicalTaskMessages = append(logicalTaskMessages, result.Messages...)
-	explicitToolContract := buildSessionRunnerExplicitToolContract(sessionRunnerTaskIntent(run))
-	explicitToolGaps := explicitToolContract.gaps(logicalTaskMessages)
-	finalCandidateContent := sessionRunnerLatestFinalCandidateContent(result.Messages, result.FinalMessage.Content)
-	explicitToolGaps = append(explicitToolGaps, explicitToolContract.finalGaps(logicalTaskMessages, finalCandidateContent)...)
-	if len(explicitToolGaps) > 0 {
-		issues := make([]sessionRunnerReviewIssue, 0, len(explicitToolGaps))
-		for _, gap := range explicitToolGaps {
-			issues = append(issues, sessionRunnerReviewIssue{
-				MessageIndex: 0, Claim: gap, Verdict: "fail", Severity: "high", Evidence: gap,
-			})
-		}
-		return result, sessionRunnerCompletionReviewCorrection{
-			Summary: "explicit user-required tool evidence is incomplete", Issues: issues,
-		}
-	}
 	freshResultMessages := result.Messages
 	if len(result.Messages) >= len(request.Messages) {
 		// Engine.Run returns the complete provider-visible message window. Only
@@ -264,13 +249,19 @@ func (s *Server) runVerifiedSessionAgent(
 		// rerun; historical tool receipts belong to earlier input revisions.
 		freshResultMessages = result.Messages[len(request.Messages):]
 	}
-	if executionErr := sessionRunnerFreshExecutionCompletionError(request.Messages, freshResultMessages); executionErr != nil {
-		return result, executionErr
+	advisory := sessionRunnerTaskTextAdvisory(run, request.Messages, freshResultMessages, logicalTaskMessages,
+		sessionRunnerLatestFinalCandidateContent(result.Messages, result.FinalMessage.Content))
+	if advisory != nil {
+		language := ""
+		if run != nil {
+			language = run.ResponseLanguage
+		}
+		replaceSessionRunnerFinalMessageContent(&result,
+			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory))
 	}
-	// Task semantics are not reclassified from user prose here. Explicit Tool
-	// requests, typed plans, selected Skill contracts, active operations, and
-	// artifact/source lineage retain their own authorities. This completion
-	// stage only consumes those machine-readable contracts.
+	// Task wording is not execution authority. Retain the actual tool outcomes,
+	// typed plans, permissions, active operations and artifact identity checks;
+	// semantic observations must not manufacture another required action.
 	reviewRequired, policyErr := sessionRunnerEvidenceReviewRequired(session, run)
 	if policyErr != nil {
 		return result, wrapSessionRunnerReviewStageError(policyErr)

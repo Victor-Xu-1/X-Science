@@ -750,26 +750,25 @@ tools are absent from new model snapshots.
     preferences only; they are not copied into a fixed per-conversation
     selection that would inject the entire enabled catalog before the first
     task.
-23. Completion evidence follows the canonical task contract rather than a
-    universal scientific gate. When the user explicitly limits both execution
-    and the final response to named tool operations, only successful receipts
-    for those exact operations can complete the task; a failed receipt or any
-    unrequested tool keeps the contract unsatisfied. Merely using
-    `search_skills` or `skill` inside a substantive scientific workflow never
-    weakens its authoritative-source, governed-compute, artifact, or delivery
-    requirements. When the user explicitly requires a read-back or re-read of
-    a concrete output filename, completion requires a successful `read_file`
-    receipt after that file's latest successful edit or save; an earlier,
-    unrelated, failed or non-executing read cannot satisfy the obligation.
-    If the user explicitly asks the final answer to report the first failure
-    code, that answer must include a bounded machine code from the first failed
-    durable tool receipt; later success does not erase or summarize it away.
-    The Web history projection preserves only those explicitly requested codes
-    that match the task-bound durable failure receipt; unrelated runtime
-    identifiers remain behind the normal public-message boundary.
-    Tool failures inside such workflows remain local evidence:
-    the model observes the concrete failure, makes a materially different
-    repair, and continues the same logical task from its durable checkpoint.
+23. Free-text mentions of tools, reruns, file read-backs or failure-code reports
+    are observations, not typed execution intent. Missing matching evidence
+    adds one neutral disclosure to the usable final answer before its review
+    and publication identity is bound; it cannot require another tool call,
+    create a corrective loop, or certify that an action was required or done.
+    Failed, rejected and non-executing receipts stay unchanged. Existing
+    failure-code presentation uses only codes backed by the current task's
+    durable failed receipt; text cannot manufacture a receipt or stable code.
+    Historical semantic Review conditions retire their forced-action
+    projection through ordinary continuation and current machine checks, not
+    a reason-based finish or an invented answer from checkpoint text. A REPL
+    cell is not required to contain an MCP invocation merely because old
+    review prose mentioned one. Built-in attachment-reader availability is an
+    efficiency observation and cannot block another valid reader or package
+    operation. Real tool schemas, permissions, active execution, input/lease
+    ownership, approved plans, idempotent effects and immutable artifact
+    integrity remain separate authorities. Earlier receipts cannot prove a
+    new computation, and delivering available results does not attest that
+    every unverified task expectation was fulfilled.
 24. Plan progression preserves model action ownership. A request to start a
     later step may advance only plan control; its notes, observations, source
     references and follow-ups cannot be rebound to the currently active step.

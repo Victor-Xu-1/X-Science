@@ -163,17 +163,17 @@ func TestSessionReviewerArtifactFindingRequiresThatArtifactRead(t *testing.T) {
 	}
 }
 
-func TestRecoveredCompletionReviewCorrectionRemovesRecursiveArtifactSelfLink(t *testing.T) {
+func TestRecoveredCompletionReviewRetainsHistoryWithoutForcedTools(t *testing.T) {
 	entries := []eventjournal.Entry{{EventID: 1, Message: eventjournal.Message{
 		"type": "runner_finished", "status": "failed",
 		"detail": "completion reviewer rejected the current candidate; the report self-reference points to an older version",
 	}}}
 	context := recoveredRunnerCorrectionContext(entries)
 	if !strings.Contains(context, "x-science.runner_recovery.v1") ||
-		!strings.Contains(context, `"required_transition":"repair_rejected_acceptance_condition"`) ||
+		!strings.Contains(context, `"required_transition":"review_observation_with_current_state"`) ||
 		!strings.Contains(context, "self-reference points to an older version") ||
-		!recoveredRunnerCorrectionRequiresTool(entries) {
-		t.Fatalf("completion review recovery lost its structured failed condition: %q", context)
+		recoveredRunnerCorrectionRequiresTool(entries) {
+		t.Fatalf("completion review history was lost or forced an action: %q", context)
 	}
 }
 

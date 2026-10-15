@@ -24,6 +24,9 @@ func (s *Server) validateGeneratedPlanCompletion(frameID string, run *sessionRun
 func (s *Server) recoveredCompletionCorrectionIsAdvisory(
 	frameID string, run *sessionRunnerChatRun, correction recoveredRunnerCorrection,
 ) (bool, error) {
+	if sessionRunnerSemanticReviewIsAdvisory(correction) {
+		return true, nil
+	}
 	if sessionRunnerVisualCorrectionIsAdvisory(correction) {
 		return true, nil
 	}

@@ -36,6 +36,13 @@ func TestSemanticTaskWordingDoesNotBlockFinalAnswer(t *testing.T) {
 			}
 		})
 	}
+	t.Run("ordinary wording", func(t *testing.T) {
+		model := &artifactReferenceRepairModel{content: "The arithmetic result is four.", testing: t}
+		result, err := semanticCompletionFixture(t, context.Background(), "Explain two plus two.", model)
+		if err != nil || model.calls != 1 || result.FinalMessage.Content != model.content {
+			t.Fatalf("unrelated explanation changed: calls=%d final=%q error=%v", model.calls, result.FinalMessage.Content, err)
+		}
+	})
 }
 
 func semanticCompletionFixture(t *testing.T, ctx context.Context, task string, model agentruntime.ModelClient) (agentruntime.RunResult, error) {
@@ -73,6 +80,17 @@ func TestAttachmentReaderPreferenceDoesNotChangeOperationAdmission(t *testing.T)
 }
 
 func TestSemanticDisclosureKeepsReceiptAndFinalIdentityBoundaries(t *testing.T) {
+	for _, condition := range []*transcriptstore.RunnerCorrectionCondition{
+		{Schema: "unknown", ReasonCode: "completion_review_correction_required", Review: &transcriptstore.RunnerReviewCondition{}},
+		{Schema: transcriptstore.RunnerCorrectionConditionSchema, ReasonCode: "completion_review_correction_required",
+			Review: &transcriptstore.RunnerReviewCondition{}, Reference: &transcriptstore.RunnerReferenceCondition{UnresolvedArtifacts: 1}},
+		{Schema: transcriptstore.RunnerCorrectionConditionSchema, ReasonCode: "artifact_reference_correction_required",
+			Reference: &transcriptstore.RunnerReferenceCondition{UnresolvedArtifacts: 1}},
+	} {
+		if sessionRunnerSemanticReviewIsAdvisory(recoveredRunnerCorrection{ReasonCode: "completion_review_correction_required", Condition: condition}) {
+			t.Fatalf("invalid, mixed or foreign condition became semantic advice: %#v", condition)
+		}
+	}
 	messages := []agentruntime.Message{
 		toolRound("failed-search", "web_search"),
 		{Role: "tool", ToolCallID: "failed-search", Content: `{"ok":false,"code":"source_unavailable"}`},

@@ -22,7 +22,7 @@ func TestSemanticReviewResumeUsesCurrentChecksWithoutForcedTools(t *testing.T) {
 	cause := (sessionRunnerCompletionReviewCorrection{
 		Summary: "explicit user-required tool evidence is incomplete",
 		Issues: []sessionRunnerReviewIssue{{MessageIndex: 0, Verdict: "fail", Severity: "high",
-			Claim: "the explicitly requested real MCP method execution has no successful MCP tool result",
+			Claim:    "the explicitly requested real MCP method execution has no successful MCP tool result",
 			Evidence: "the explicitly requested real MCP method execution has no successful MCP tool result"}},
 	}).runnerCorrection()
 	interrupted, err := f.repo.InterruptRunner(context.Background(), transcriptstore.InterruptRunnerInput{

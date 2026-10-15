@@ -608,6 +608,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	taskContract := buildSessionRunnerTaskContract(taskIntent, taskIntentID, taskIntentRevision)
 	recoveredCorrectionAdvisory := false
+	if run != nil {
+		run.SemanticReviewObserved = false
+	}
 	if correction, found := latestRunnerCorrection(entries); found {
 		staleAdvisory, err := s.recoveredCompletionCorrectionIsAdvisory(intakeFrameID, run, correction)
 		if err != nil {
@@ -615,14 +618,15 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 		recoveredCorrectionAdvisory = staleAdvisory
 		if staleAdvisory {
-			// This correction was emitted before the explicit review policy was
-			// resolved. Drop only the synthetic correction context; replayed user,
+			// The current policy treats this historical condition as advisory.
+			// Drop only the synthetic correction context; replayed user,
 			// assistant, tool, and artifact receipts remain authoritative.
 			messages = sessionRunnerRemoveRecoveredCorrectionContext(messages)
 		} else {
 			taskContract = applyRecoveredRunnerCorrectionToTaskContract(taskContract, correction)
 		}
 		if run != nil {
+			run.SemanticReviewObserved = staleAdvisory && sessionRunnerSemanticReviewIsAdvisory(correction)
 			if staleAdvisory {
 				run.restoreCorrection(nil)
 			} else {
