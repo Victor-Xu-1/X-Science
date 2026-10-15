@@ -29,6 +29,7 @@ func TestManagedEndpointNativePhysicalLifecycle(t *testing.T) {
 		" -u \"$SERVICE_DIR/native-http.py\" main \"$X_SCIENCE_ENDPOINT_INSTANCE\" \"$HOST_PORT\" \"$SERVICE_DIR\" 127.0.0.1 &\n"
 	stop := "set -eu\nprintf 'stop\\n' >> \"$SERVICE_DIR/stop-invocations\"\n"
 	registration := managedEndpointPhysicalRegistration("native-unit", managedEndpointPhysicalPort(t), start, stop)
+	registration.Owner.StartupTimeoutSeconds = 300
 	fixture := newManagedEndpointPhysicalFixture(t, binary, systemctl, registration)
 	if err := os.WriteFile(filepath.Join(fixture.instance.ServiceDir, "native-http.py"), []byte(managedEndpointPhysicalPython), 0o600); err != nil {
 		t.Fatal(err)
@@ -41,6 +42,9 @@ func TestManagedEndpointNativePhysicalLifecycle(t *testing.T) {
 		t.Fatalf("native shell exit/owner/EOF facts conflated: state=%s receipt=%#v err=%v", state, receipt, err)
 	}
 	fixture.reload(t, receipt.Ref)
+	if fixture.instance.Registration.Owner == nil || fixture.instance.Registration.Owner.StartupTimeoutSeconds != 300 {
+		t.Fatal("native worker did not preserve its approved startup budget")
+	}
 	if err := fixture.verifyPrivateWorker(fixture.ctx, fixture.instance.Identity); err != nil {
 		t.Fatal(err)
 	}

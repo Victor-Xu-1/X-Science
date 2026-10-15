@@ -139,7 +139,7 @@ func (s *Server) drainTranscriptIMRoute(ctx context.Context, ownerID, sessionID 
 	if err != nil || !result.Claimed {
 		return err
 	}
-	message, err := transcriptIMMessage(result.Claim)
+	message, err := s.transcriptIMDeliveryMessage(ctx, result.Claim)
 	if err != nil {
 		_, failErr := s.transcriptStore.FailDelivery(ctx, transcriptstore.FailDeliveryInput{
 			Claim: result.Claim, ErrorCode: "im_projection_failed", RetryAfter: time.Second, MaxAttempts: transcriptIMMaxAttempts,

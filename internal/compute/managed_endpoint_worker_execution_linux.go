@@ -12,17 +12,13 @@ import (
 func (worker *managedEndpointWorker) execute(parent context.Context, action ManagedEndpointAction, values map[string]string) {
 	worker.execution.Lock()
 	defer worker.execution.Unlock()
-	deadline := 2 * time.Minute
-	if action.Ref.Kind == "stop" {
-		deadline = time.Minute
-	}
-	ctx, cancel := context.WithTimeout(parent, deadline)
-	defer cancel()
-	started := time.Now()
-	receipt := ManagedEndpointOwnerReceipt{Ref: action.Ref, Accepted: true}
 	worker.mu.Lock()
 	instance := worker.instance
 	worker.mu.Unlock()
+	ctx, cancel := managedEndpointActionContext(parent, action.Ref.Kind, instance.Registration.Owner)
+	defer cancel()
+	started := time.Now()
+	receipt := ManagedEndpointOwnerReceipt{Ref: action.Ref, Accepted: true}
 	if instance.Registration.Owner.Kind == "native-unit" {
 		receipt.Identity = worker.identity
 		receipt.OwnerVerified = true

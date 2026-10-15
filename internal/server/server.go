@@ -660,7 +660,7 @@ func New(options Options) *Server {
 		compactSummarizer:                     options.CompactSummarizer,
 		runnerDiagnostics:                     options.RunnerDiagnostics,
 		adapterDiagnostics:                    options.AdapterDiagnostics,
-		imOutbound:                            options.IMOutbound,
+		imOutbound:                            normalizeIMOutboundSink(options.IMOutbound),
 		transcriptIMClaims:                    map[transcriptIMClaimKey]transcriptstore.DeliveryClaim{},
 		transcriptIMRoutes:                    map[string]string{},
 		imInboundLocks:                        map[string]*imInboundSessionLock{},
@@ -676,6 +676,7 @@ func New(options Options) *Server {
 	}
 	server.speechClientForURL = server.publicSourceHTTPClient
 	server.webImageClientForURL = server.publicSourceHTTPClient
+	server.bindIMRecoveryNoticeValidator()
 	if mcpDirectory != nil {
 		mcpDirectory.SetConnectorUsageRecorder(func(ctx context.Context, userID string, connector mcpdirectory.RuntimeConnector, toolName string, callErr error) {
 			server.recordMCPConnectorInvocation(ctx, userID, connector.ID, connector.Source, connector.Name, toolName, callErr)

@@ -276,6 +276,11 @@ func (s *Server) RecoverIMOutbound(ctx context.Context) (IMOutboundRecoveryRepor
 			}
 		}
 		if configured {
+			if _, guarded := s.imOutbound.(adaptercommon.SessionRecoveryNoticeSink); guarded {
+				if _, err := s.transcriptStore.EnsureHistoricalInputNotice(ctx, binding.OwnerUserID, binding.SessionID); err != nil {
+					return report, err
+				}
+			}
 			if _, err := s.transcriptStore.RecoverFailedDeliveryIntents(
 				ctx, binding.OwnerUserID, binding.SessionID, transcriptIMRecoverMax,
 			); err != nil {
