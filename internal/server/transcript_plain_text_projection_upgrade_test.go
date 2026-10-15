@@ -70,7 +70,7 @@ func TestTranscriptPlainTextPublicReadRebuildsV13EmptyBody(t *testing.T) {
 	}
 	defer tx.Rollback()
 	if _, err := tx.ExecContext(t.Context(), `UPDATE transcript_web_messages SET message_json=?,message_sha256=?
-		WHERE stream_uid=? AND branch_id=? AND message_id=?`, oldBody, transcriptstore.TranscriptWebSHA256(oldBody),
+		WHERE stream_uid=? AND branch_id=? AND message_id=?`, string(oldBody), transcriptstore.TranscriptWebSHA256(oldBody),
 		stream.UID, fence.BranchID, identity); err != nil {
 		t.Fatal(err)
 	}
