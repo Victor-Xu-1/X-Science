@@ -222,8 +222,8 @@ func TestWebConversationRuntimeProjectsMissingModelAsRecoverableInput(t *testing
 	}
 	interrupted, err := repository.InterruptRunner(context.Background(), transcriptstore.InterruptRunnerInput{
 		Claim: claim.Claim, ClientMessageID: "model-wait-interrupted",
-		ReasonCode:   sessionRunnerModelProviderUnavailableReasonCode,
-		ResumeDetail: "Configure or select a model, then continue this same task.",
+		ReasonCode: sessionRunnerModelProviderUnavailableReasonCode, ProviderFailureKind: "configuration_missing",
+		ResumeDetail: sessionRunnerMissingModelConfigurationDetail,
 		Resumable:    true, AutoResume: false, Destinations: []string{"ws"},
 	})
 	if err != nil || !interrupted.Created {

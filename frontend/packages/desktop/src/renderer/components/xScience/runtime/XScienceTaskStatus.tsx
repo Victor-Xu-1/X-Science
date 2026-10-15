@@ -245,14 +245,19 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const status = projected?.ok ? projected.value : null;
   const failureKindKey = snapshot?.failureKind ? failureKindKeys[snapshot.failureKind] : undefined;
   const failureKindLabel = failureKindKey ? t(failureKindKey) : null;
+  const providerPaused = status?.phase === 'paused' && snapshot?.failureReason === 'model_provider_unavailable';
+  const providerPause = providerPaused
+    ? runtimePausePresentation(snapshot?.failureReason ?? null, snapshot?.providerFailureKind)
+    : null;
   const failureReasonKey =
     snapshot?.status === 'failed' && snapshot.failureReason ? failureReasonKeys[snapshot.failureReason] : undefined;
   const publicFailureLabel =
     (failureReasonKey ? t(failureReasonKey) : null) ??
     failureKindLabel ??
     (snapshot?.status === 'failed' ? t('conversation.xscienceRuntime.runtimeOperations.taskFailed') : null);
-  const guidedFailureDetail =
-    snapshot?.failureKind === 'model_not_found'
+  const guidedFailureDetail = providerPause
+    ? t(`conversation.xscienceRuntime.runtimeOperations.${providerPause.description}`)
+    : snapshot?.failureKind === 'model_not_found'
       ? recoveryModelLabel
         ? t('conversation.xscienceRuntime.runtimeOperations.modelUnavailableWithRecovery', {
             model: recoveryModelLabel,
@@ -299,7 +304,8 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
           })
         : t('conversation.xscienceRuntime.runtimeOperations.continueRunning');
   const chooseModelAction =
-    (snapshot?.failureKind === 'model_not_found' || snapshot?.failureKind === 'safety_refusal') && onChooseModel
+    (providerPaused || snapshot?.failureKind === 'model_not_found' || snapshot?.failureKind === 'safety_refusal') &&
+    onChooseModel
       ? onChooseModel
       : undefined;
   const taskActive = status ? isXScienceLongTaskActive(status) : false;
@@ -312,7 +318,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     snapshotError !== null &&
     (runtimeAuthorityUnavailable || ACTIVE_RUNTIME_STATES.has(runtimeState) || taskActive);
   const resumableRun = Boolean(status?.canResume && onResume);
-  const waitingForModel = status?.phase === 'paused' && status.failureReason === 'model_provider_unavailable';
+  const waitingForModel = providerPaused && snapshot?.providerFailureKind === 'configuration_missing';
   const resumablePause =
     resumableRun && !waitingForModel && (status?.phase === 'cancelled' || status?.phase === 'paused');
   const reviewInterrupted = Boolean(
@@ -404,7 +410,10 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
       title = t('conversation.xscienceRuntime.runtimeOperations.taskWaitingModel');
       dataState = 'waiting_input';
     } else if (resumablePause || phase === 'paused') {
-      const pause = runtimePausePresentation(phase === 'paused' ? (status?.failureReason ?? null) : null);
+      const pause = runtimePausePresentation(
+        phase === 'paused' ? (status?.failureReason ?? null) : null,
+        snapshot?.providerFailureKind
+      );
       title = t(`conversation.xscienceRuntime.runtimeOperations.${pause.title}`);
     } else if ((phase === 'running' || phase === 'starting' || phase === 'queued') && snapshot?.retryReason) {
       title = t(
@@ -530,7 +539,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
                 reviewVerdict={status?.reviewVerdict ?? null}
                 reviewIssueCount={status?.reviewIssueCount ?? 0}
                 pendingInputCount={pendingInputCount}
-                recoveryAvailable={failure || authorityPending || unsupported}
+                recoveryAvailable={failure || authorityPending || unsupported || providerPaused}
                 recoveryResumeLabel={resumableRun ? recoveryResumeLabel : null}
                 failureDetail={failureDetail}
                 onClose={() => setDetailsOpen(false)}
