@@ -98,7 +98,7 @@ func TestSessionRunnerProviderSubscriptionFailureUsesSafeDurableProjection(t *te
 	}
 	projected := compatJSONRequest(t, srv.Handler(), http.MethodGet, "/api/frames/"+frameID, "local", nil, http.StatusOK)
 	assertProviderFailurePublicProjection(t, projected, "subscription")
-	frame, found, err := store.GetFrame(frameID)
+	frame, found, err := store.GetCompatibilityFrame(frameID)
 	if err != nil || !found {
 		t.Fatalf("frame found=%t err=%v", found, err)
 	}
@@ -148,7 +148,7 @@ func TestFrameProviderFailureProjectionClassifiesOnlyLegacyHTTPEnvelope(t *testi
 			original := append([]byte(nil), interrupted.Event.PayloadJSON...)
 			projected := compatJSONRequest(t, srv.Handler(), http.MethodGet, "/api/frames/"+frameID, "local", nil, http.StatusOK)
 			assertProviderFailurePublicProjection(t, projected, test.want)
-			frame, found, err := store.GetFrame(frameID)
+			frame, found, err := store.GetCompatibilityFrame(frameID)
 			if err != nil || !found {
 				t.Fatalf("frame found=%t err=%v", found, err)
 			}
