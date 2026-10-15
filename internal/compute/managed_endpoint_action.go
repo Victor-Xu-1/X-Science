@@ -70,6 +70,15 @@ func runManagedEndpointOwnedAction(ctx context.Context, script string, environme
 	}
 	command := exec.CommandContext(ctx, "/bin/sh", "-c", script)
 	command.Env = append([]string(nil), environment...)
+	return runManagedEndpointOwnedCommand(ctx, command, output)
+}
+
+// Both approved bootstrap scripts and typed owner controls use the same finite
+// process/descriptor boundary. A typed Docker control never enters a shell.
+func runManagedEndpointOwnedCommand(ctx context.Context, command *exec.Cmd, output *os.File) managedEndpointActionExit {
+	if ctx == nil || command == nil || output == nil {
+		return managedEndpointActionExit{Err: errors.New("managed endpoint command contract is invalid")}
+	}
 	command.Stdout, command.Stderr = output, output
 	control, err := subprocess.Prepare(command)
 	if err != nil {

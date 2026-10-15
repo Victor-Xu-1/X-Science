@@ -46,8 +46,12 @@ func (worker *managedEndpointWorker) execute(parent context.Context, action Mana
 			}
 		}
 		if receipt.Failure == "" && !receipt.NoScript {
-			if err := docker.validateNamedOwner(ctx, instance, action.Ref.Kind == "start"); err != nil {
-				receipt.Failure = err.Error()
+			if instance.Identity == (ManagedEndpointRuntimeIdentity{}) && instance.Registration.Owner.Adopt == nil {
+				if action.Ref.Kind != "start" {
+					receipt.Failure = ErrManagedEndpointOwnershipUnknown.Error()
+				} else if err := docker.validateNamedOwner(ctx, instance, true); err != nil {
+					receipt.Failure = err.Error()
+				}
 			}
 			if receipt.Failure == "" && action.Ref.Kind == "start" && instance.Identity.Kind == "docker" {
 				_, state, err := docker.inspect(ctx, instance)
@@ -64,6 +68,12 @@ func (worker *managedEndpointWorker) execute(parent context.Context, action Mana
 		// Preflight failure is not a script exit. Keep that distinction visible.
 	} else if action.Ref.Kind == "start" && managedEndpointInitialAdoption(instance, action.Ref) {
 		receipt.NoScript = true
+	} else if docker != nil && (action.Ref.Kind == "stop" || instance.Identity.Kind == "docker") {
+		exit := docker.controlOwned(ctx, instance, action.Ref.Kind, worker.writer)
+		receipt.ProcessExited, receipt.ExitCode = exit.Exited, exit.Code
+		if exit.Err != nil {
+			receipt.Failure = exit.Err.Error()
+		}
 	} else {
 		script := instance.Registration.StartScript
 		if action.Ref.Kind == "stop" {
@@ -179,16 +189,7 @@ func (worker *managedEndpointWorker) cleanupDocker(instance ManagedEndpointOwner
 		receipt.StoppedProof = proof
 		return
 	}
-	if err := docker.validateNamedOwner(ctx, instance, false); err != nil {
-		receipt.CleanupFailure = err.Error()
-		return
-	}
-	environment, err := managedEndpointActionEnvironment(instance, values)
-	if err != nil {
-		receipt.CleanupFailure = err.Error()
-		return
-	}
-	exit := runManagedEndpointOwnedAction(ctx, instance.Registration.StopScript, environment, worker.writer)
+	exit := docker.controlOwned(ctx, instance, "stop", worker.writer)
 	receipt.CleanupProcessExited, receipt.CleanupExitCode = exit.Exited, exit.Code
 	if exit.Err != nil {
 		receipt.CleanupFailure = exit.Err.Error()
