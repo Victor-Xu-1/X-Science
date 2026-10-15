@@ -96,12 +96,7 @@ func RunManagedEndpointOwnerWorker(ctx context.Context, descriptor string, store
 		return errors.New("managed endpoint worker is not the positively identified unit owner")
 	}
 	outputDir := filepath.Join(managedEndpointInstanceDirectory(instance), "output")
-	output, err := newManagedEndpointOutput(outputDir, instance.Registration.Owner.Output)
-	recovered := false
-	if errors.Is(err, os.ErrExist) {
-		output, err = reopenManagedEndpointOutput(outputDir, instance.Registration.Owner.Output)
-		recovered = true
-	}
+	output, recovered, err := managedEndpointOutputForWorker(outputDir, instance.Registration.Owner.Output)
 	if err != nil {
 		return err
 	}

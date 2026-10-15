@@ -126,7 +126,9 @@ func (worker *managedEndpointWorker) execute(parent context.Context, action Mana
 	if outputErr != nil {
 		receipt.Failure = errors.Join(errors.New(receipt.Failure), fmt.Errorf("managed endpoint output persistence: %w", outputErr)).Error()
 	}
-	if worker.recoveredOutput {
+	if warning := worker.output.continuityWarning(); warning != "" {
+		receipt.OutputWarning = warning
+	} else if worker.recoveredOutput {
 		receipt.OutputWarning = "The output reader was reconstructed after worker loss; earlier output continuity is unverified."
 	}
 	receipt.Duration = time.Since(started)
