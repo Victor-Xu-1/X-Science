@@ -159,9 +159,9 @@ func exerciseRecoveryRetryLeaseBoundary(t *testing.T, kind string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		state, err := repo.GetLatestRunnerRuntimeState(t.Context(), claim.StreamUID, claim.OwnerID)
-		if err != nil || state.LastCheckpointSequence != 0 {
-			t.Fatalf("unexpected checkpoint=%+v %v", state, err)
+		state, found, err := repo.GetLatestRunnerRuntimeState(t.Context(), claim.StreamUID, claim.OwnerID)
+		if err != nil || !found || state.LastCheckpointSequence != 0 {
+			t.Fatalf("unexpected checkpoint=%+v found=%t %v", state, found, err)
 		}
 		if auto, err := repo.ClaimNextRunner(t.Context(), transcriptstore.ClaimNextRunnerInput{RunnerID: "must-not-steal-live", TTL: time.Minute}); err != nil || auto.Claimed {
 			t.Fatalf("alive automatic=%+v %v", auto, err)
