@@ -135,6 +135,15 @@ func (worker *managedEndpointWorker) requestCancel(action ManagedEndpointAction,
 	if !canonical.CancelRequested {
 		return ErrManagedEndpointStaleAction
 	}
+	if !managedEndpointInitialAdoption(worker.instance, action.Ref) {
+		won, err := worker.store.AcquireManagedEndpointCleanup(gateCtx, action.Ref, nil)
+		if err != nil {
+			return err
+		}
+		if !won {
+			return ErrManagedEndpointStaleAction
+		}
+	}
 	worker.mu.Lock()
 	defer worker.mu.Unlock()
 	if action.Ref != worker.action.Ref || !action.CancelRequested {

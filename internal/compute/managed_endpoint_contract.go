@@ -217,6 +217,7 @@ type ManagedEndpointOwnerInstance struct {
 	WorkspacePath   string                         `json:"workspacePath"`
 	InitialAction   ManagedEndpointActionRef       `json:"initialAction"`
 	WorkerIdentity  ManagedEndpointRuntimeIdentity `json:"workerIdentity"`
+	CleanupRef      *ManagedEndpointActionRef      `json:"cleanupRef,omitempty"`
 }
 
 func (instance ManagedEndpointOwnerInstance) Validate() error {
@@ -255,6 +256,14 @@ func (instance ManagedEndpointOwnerInstance) Validate() error {
 			return errors.New("managed endpoint worker identity does not match its instance")
 		}
 	}
+	if instance.CleanupRef != nil {
+		if err := instance.CleanupRef.Validate(); err != nil {
+			return err
+		}
+		if instance.CleanupRef.InstanceID != instance.ID {
+			return errors.New("managed endpoint cleanup fence belongs to another instance")
+		}
+	}
 	if instance.Identity != (ManagedEndpointRuntimeIdentity{}) {
 		return instance.Identity.ValidateFor(instance)
 	}
@@ -290,6 +299,8 @@ type ManagedEndpointOwnerReceipt struct {
 	ProcessExited        bool                           `json:"processExited"`
 	NoScript             bool                           `json:"noScript,omitempty"`
 	NotStarted           bool                           `json:"notStarted,omitempty"`
+	NoOwnerCreated       bool                           `json:"noOwnerCreated,omitempty"`
+	WorkerStoppedProof   *ManagedEndpointStoppedProof   `json:"workerStoppedProof,omitempty"`
 	CleanupProcessExited bool                           `json:"cleanupProcessExited,omitempty"`
 	CleanupExitCode      *int                           `json:"cleanupExitCode,omitempty"`
 	CleanupFailure       string                         `json:"cleanupFailure,omitempty"`
@@ -376,8 +387,12 @@ type ManagedEndpointOwnerStore interface {
 	PrepareManagedEndpointAction(context.Context, ManagedEndpointClaim, string, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)
 	AcceptManagedEndpointAction(context.Context, ManagedEndpointActionRef, ManagedEndpointRuntimeIdentity) (bool, error)
 	ReadManagedEndpointAction(context.Context, ManagedEndpointActionRef) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)
+	CurrentManagedEndpointAction(context.Context, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error)
 	RecordManagedEndpointObservationFailure(context.Context, ManagedEndpointActionRef, error) error
 	CancelManagedEndpointAction(context.Context, ManagedEndpointActionRef) (bool, error)
+	AcquireManagedEndpointCleanup(context.Context, ManagedEndpointActionRef, *ManagedEndpointOwnerReceipt) (bool, error)
+	ReserveManagedEndpointNoOwnerCleanup(context.Context, ManagedEndpointActionRef) (bool, error)
+	SettleSupersededManagedEndpointAction(context.Context, ManagedEndpointActionRef, *ManagedEndpointOwnerReceipt) (bool, error)
 	FinishManagedEndpointAction(context.Context, ManagedEndpointActionRef, ManagedEndpointOwnerReceipt) (string, error)
 	PendingManagedEndpointActions(context.Context, *ManagedEndpointActionRef, int) ([]ManagedEndpointActionRef, error)
 	ReadManagedEndpointLiveOwner(context.Context, string, string) (ManagedEndpointOwnerInstance, error)

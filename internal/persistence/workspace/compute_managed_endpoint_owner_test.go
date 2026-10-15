@@ -51,11 +51,12 @@ func newManagedEndpointOwnerFixture(t *testing.T, overrides ...compute.ManagedEn
 	if err := store.UpsertManagedEndpoint(endpoint); err != nil {
 		t.Fatal(err)
 	}
-	claimed, run, err := store.ClaimManagedEndpointStart(endpoint.Name, endpoint.RegisteredBy)
+	runtimeRoot := t.TempDir()
+	claimed, run, err := store.ClaimManagedEndpointStart(endpoint.Name, endpoint.RegisteredBy, runtimeRoot)
 	if err != nil || !run {
 		t.Fatalf("claim run=%t err=%v", run, err)
 	}
-	instance, action, err := store.PrepareManagedEndpointAction(context.Background(), managedEndpointOwnerTestClaim(claimed, registration), fmt.Sprintf("private-owner-%x", time.Now().UnixNano()), t.TempDir())
+	instance, action, err := store.PrepareManagedEndpointAction(context.Background(), managedEndpointOwnerTestClaim(claimed, registration), fmt.Sprintf("private-owner-%x", time.Now().UnixNano()), runtimeRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +83,7 @@ func (fixture managedEndpointOwnerFixture) ready(t *testing.T) compute.ManagedEn
 
 func (fixture managedEndpointOwnerFixture) stop(t *testing.T) (compute.ManagedEndpointOwnerInstance, compute.ManagedEndpointAction) {
 	t.Helper()
-	claimed, run, err := fixture.store.ClaimManagedEndpointStop(fixture.instance.Endpoint, fixture.instance.UserID)
+	claimed, run, err := fixture.store.ClaimManagedEndpointStop(fixture.instance.Endpoint, fixture.instance.UserID, fixture.instance.RuntimeRoot)
 	if err != nil || !run {
 		t.Fatalf("stop claim run=%t err=%v", run, err)
 	}

@@ -75,9 +75,9 @@ func (s *Server) claimOwnedManagedEndpoint(name, userID, kind string) (workspace
 		return workspace.ManagedEndpoint{}, false, err
 	}
 	if kind == "start" {
-		return s.workspaceStore.ClaimManagedEndpointStart(name, userID)
+		return s.workspaceStore.ClaimManagedEndpointStart(name, userID, filepath.Join(s.fileRoot+"-managed-endpoints", ".owners"))
 	}
-	return s.workspaceStore.ClaimManagedEndpointStop(name, userID)
+	return s.workspaceStore.ClaimManagedEndpointStop(name, userID, filepath.Join(s.fileRoot+"-managed-endpoints", ".owners"))
 }
 
 func (s *Server) ownedManagedEndpoint(name, userID string) (workspace.ManagedEndpoint, error) {

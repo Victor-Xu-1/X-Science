@@ -56,6 +56,22 @@ func (s *Store) FinishManagedEndpointAction(ctx context.Context, ref compute.Man
 		}
 	}
 	validationErr := receipt.ValidateFor(instance, ref)
+	if receipt.NoOwnerCreated {
+		eligible, err := managedEndpointNoOwnerCreatedTx(ctx, tx, instance, ref, action)
+		if err != nil {
+			return "", err
+		}
+		if !eligible {
+			return "", compute.ErrManagedEndpointCorruptOwner
+		}
+		if err := validateManagedEndpointNoOwnerReceipt(instance, receipt); err != nil {
+			return "", err
+		}
+		validationErr = nil
+		if receipt.Failure != "" {
+			validationErr = errors.New(receipt.Failure)
+		}
+	}
 	if action.CancelRequested && validationErr == nil {
 		return "", errors.New("cancelled endpoint action cannot commit success")
 	}
@@ -80,12 +96,18 @@ func (s *Store) FinishManagedEndpointAction(ctx context.Context, ref compute.Man
 	if receipt.Identity != (compute.ManagedEndpointRuntimeIdentity{}) && receipt.OwnerVerified {
 		instance.Identity = receipt.Identity
 	}
+	if receipt.HasPositiveStoppedProof(instance) || receipt.NotStarted || receipt.NoOwnerCreated {
+		instance.CleanupRef = nil
+	}
 	instanceRaw, err := json.Marshal(instance)
 	if err != nil {
 		return "", err
 	}
 	var retired any
 	if receipt.HasPositiveStoppedProof(instance) {
+		retired = now
+	}
+	if receipt.NoOwnerCreated {
 		retired = now
 	}
 	if receipt.NotStarted && instance.Identity == (compute.ManagedEndpointRuntimeIdentity{}) && instance.Registration.Owner.Adopt == nil {

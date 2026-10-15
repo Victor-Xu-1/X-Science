@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"x-science/internal/compute"
 )
 
@@ -27,6 +26,14 @@ func (s *Store) AcceptManagedEndpointAction(ctx context.Context, ref compute.Man
 	}
 	if action.CancelRequested || action.Receipt != nil {
 		return false, compute.ErrManagedEndpointStaleAction
+	}
+	if instance.CleanupRef != nil && *instance.CleanupRef != ref {
+		return false, compute.ErrManagedEndpointActionPending
+	}
+	if noOwner, err := managedEndpointNoOwnerCreatedTx(ctx, tx, instance, ref, action); err != nil {
+		return false, err
+	} else if noOwner {
+		return false, compute.ErrManagedEndpointOwnershipUnknown
 	}
 	if action.Accepted {
 		return false, tx.Commit()

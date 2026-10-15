@@ -49,6 +49,13 @@ func (coordinator *ManagedEndpointCoordinator) Run(ctx context.Context, claim Ma
 		if current.Accepted {
 			return "", ManagedEndpointOwnerReceipt{}, errors.Join(err, coordinator.Store.RecordManagedEndpointObservationFailure(settleCtx, action.Ref, err))
 		}
+		if action.Ref.Kind == "stop" {
+			observed, observeErr := coordinator.Runtime.Observe(settleCtx, instance, current)
+			if observeErr == nil && observed.NoScript {
+				return coordinator.finish(settleCtx, action.Ref, observed, nil)
+			}
+			return "", observed, errors.Join(err, observeErr, coordinator.Store.RecordManagedEndpointObservationFailure(settleCtx, action.Ref, err))
+		}
 		return coordinator.finish(settleCtx, action.Ref, ManagedEndpointOwnerReceipt{Ref: action.Ref, NotStarted: true, Failure: err.Error()}, err)
 	}
 	var receipt ManagedEndpointOwnerReceipt
@@ -130,8 +137,9 @@ func (coordinator *ManagedEndpointCoordinator) finish(ctx context.Context, ref M
 	return state, receipt, runErr
 }
 
-// Reconcile observes one bounded page. It never calls Start or repeats a
-// missing script result. The caller retains the cursor for the next burst.
+// Reconcile observes accepted actions or first-dispatches the same unaccepted
+// durable intent through the original admission CAS. It never creates a new
+// claim/ref or replays an accepted script whose outcome is missing.
 func (coordinator *ManagedEndpointCoordinator) Reconcile(ctx context.Context, after *ManagedEndpointActionRef, limit int) (*ManagedEndpointActionRef, error) {
 	refs, err := coordinator.Store.PendingManagedEndpointActions(ctx, after, limit)
 	if err != nil {
@@ -157,6 +165,17 @@ func (coordinator *ManagedEndpointCoordinator) Reconcile(ctx context.Context, af
 				return last, environmentErr
 			}
 			receipt, err = coordinator.Runtime.Cancel(observeCtx, instance, action, environment)
+		} else if !action.Accepted {
+			environment, environmentErr := coordinator.Environment(observeCtx, instance, action.Ref.Kind)
+			if environmentErr != nil {
+				cancel()
+				return last, environmentErr
+			}
+			if action.Ref.Kind == "start" {
+				receipt, err = coordinator.Runtime.Start(observeCtx, instance, action, environment)
+			} else {
+				receipt, err = coordinator.Runtime.Stop(observeCtx, instance, action, environment)
+			}
 		} else {
 			receipt, err = coordinator.Runtime.Observe(observeCtx, instance, action)
 		}
@@ -168,13 +187,27 @@ func (coordinator *ManagedEndpointCoordinator) Reconcile(ctx context.Context, af
 			return last, context.Cause(ctx)
 		}
 		if err != nil {
+			if errors.Is(err, ErrManagedEndpointStaleAction) && action.CancelRequested {
+				if _, settleErr := coordinator.Store.SettleSupersededManagedEndpointAction(ctx, ref, nil); settleErr != nil {
+					return last, settleErr
+				}
+				continue
+			}
 			if recordErr := coordinator.Store.RecordManagedEndpointObservationFailure(ctx, ref, err); recordErr != nil && !errors.Is(recordErr, ErrManagedEndpointStaleAction) {
 				return last, recordErr
 			}
 			continue
 		}
-		if _, _, finishErr := coordinator.finish(ctx, ref, receipt, err); finishErr != nil && !errors.Is(finishErr, ErrManagedEndpointStaleAction) {
-			return last, finishErr
+		if _, _, finishErr := coordinator.finish(ctx, ref, receipt, err); finishErr != nil {
+			if errors.Is(finishErr, ErrManagedEndpointStaleAction) && action.CancelRequested {
+				if _, settleErr := coordinator.Store.SettleSupersededManagedEndpointAction(ctx, ref, &receipt); settleErr != nil {
+					return last, settleErr
+				}
+				continue
+			}
+			if !errors.Is(finishErr, ErrManagedEndpointStaleAction) {
+				return last, finishErr
+			}
 		}
 	}
 	if len(refs) < limit {

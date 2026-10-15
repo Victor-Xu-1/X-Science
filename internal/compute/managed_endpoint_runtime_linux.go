@@ -213,6 +213,15 @@ func (runtime *ManagedEndpointSystemRuntime) Start(ctx context.Context, instance
 
 func (runtime *ManagedEndpointSystemRuntime) finalize(ctx context.Context, instance ManagedEndpointOwnerInstance, worker managedEndpointUnitObservation, receipt ManagedEndpointOwnerReceipt) (ManagedEndpointOwnerReceipt, error) {
 	if (receipt.Failure != "" || receipt.Ref.Kind == "stop") && instance.Registration.Owner.Kind == "native-unit" && instance.Registration.Owner.Adopt == nil {
+		if receipt.Ref.Kind == "start" {
+			won, err := runtime.store.AcquireManagedEndpointCleanup(ctx, receipt.Ref, &receipt)
+			if err != nil {
+				return receipt, err
+			}
+			if !won {
+				return receipt, ErrManagedEndpointStaleAction
+			}
+		}
 		owned := instance
 		owned.Identity = worker.Identity
 		proof, cleanupErr := runtime.unit.stop(ctx, owned)
@@ -242,6 +251,9 @@ func (runtime *ManagedEndpointSystemRuntime) Stop(ctx context.Context, instance 
 	if action.Ref.Kind != "stop" {
 		return ManagedEndpointOwnerReceipt{}, ErrManagedEndpointStaleAction
 	}
+	if receipt, done, err := runtime.noOwnerCreatedReceipt(ctx, instance, action); err != nil || done {
+		return receipt, err
+	}
 	if action.Accepted {
 		return runtime.Observe(ctx, instance, action)
 	}
@@ -269,6 +281,11 @@ func (runtime *ManagedEndpointSystemRuntime) Observe(ctx context.Context, instan
 	if err := runtime.validate(instance, action); err != nil {
 		return ManagedEndpointOwnerReceipt{}, err
 	}
+	if action.Ref.Kind == "stop" && !action.Accepted {
+		if receipt, done, err := runtime.noOwnerCreatedReceipt(ctx, instance, action); err != nil || done {
+			return receipt, err
+		}
+	}
 	if receipt, done, err := runtime.stoppedNativeReceipt(ctx, instance, action); err != nil || done {
 		return receipt, err
 	}
@@ -277,7 +294,7 @@ func (runtime *ManagedEndpointSystemRuntime) Observe(ctx context.Context, instan
 	}
 	worker, err := runtime.worker(ctx, instance, false, false)
 	if err != nil {
-		return ManagedEndpointOwnerReceipt{}, err
+		return runtime.recoverDockerReceipt(ctx, instance, action, err)
 	}
 	observed, err := runtime.call(ctx, instance, worker, "observe", action, nil)
 	if err != nil {
@@ -303,6 +320,24 @@ func (runtime *ManagedEndpointSystemRuntime) Cancel(ctx context.Context, instanc
 	}
 	instance = current
 	action.CancelRequested = true
+	if action.Ref.Kind == "stop" && !canonical.Accepted {
+		if receipt, done, err := runtime.noOwnerCreatedReceipt(ctx, instance, action); err != nil || done {
+			if done {
+				receipt.Failure = "managed endpoint stop cancelled before admission"
+			}
+			return receipt, err
+		}
+	}
+	initialAdoption := managedEndpointInitialAdoption(instance, action.Ref)
+	if !initialAdoption {
+		won, err := runtime.store.AcquireManagedEndpointCleanup(ctx, action.Ref, nil)
+		if err != nil {
+			return ManagedEndpointOwnerReceipt{}, err
+		}
+		if !won {
+			return ManagedEndpointOwnerReceipt{}, ErrManagedEndpointStaleAction
+		}
+	}
 	worker, err := runtime.unit.observe(ctx, instance)
 	if err != nil {
 		return ManagedEndpointOwnerReceipt{}, err
@@ -335,7 +370,7 @@ func (runtime *ManagedEndpointSystemRuntime) Cancel(ctx context.Context, instanc
 	if receipt.Failure == "" {
 		receipt.Failure = "managed endpoint action cancelled before handoff"
 	}
-	if instance.Registration.Owner.Kind == "native-unit" && instance.Registration.Owner.Adopt == nil {
+	if instance.Registration.Owner.Kind == "native-unit" && !initialAdoption {
 		owned := instance
 		owned.Identity = worker.Identity
 		proof, err := runtime.unit.stop(ctx, owned)
@@ -347,6 +382,25 @@ func (runtime *ManagedEndpointSystemRuntime) Cancel(ctx context.Context, instanc
 		receipt.Stopped = true
 		receipt.StoppedProof = proof
 	}
+	if !initialAdoption && instance.Registration.Owner.Kind == "docker" {
+		docker, err := newManagedEndpointDocker()
+		if err != nil {
+			return receipt, err
+		}
+		owned := instance
+		if receipt.Identity.Kind == "docker" {
+			owned.Identity = receipt.Identity
+		}
+		proof, err := docker.observeStopped(ctx, owned)
+		if err != nil {
+			return receipt, errors.Join(ErrManagedEndpointOutcomeUnknown, err)
+		}
+		receipt.Identity = proof.Identity
+		receipt.OwnerVerified = true
+		receipt.Stopped = true
+		receipt.StoppedProof = proof
+		return runtime.finalize(ctx, owned, worker, receipt)
+	}
 	return receipt, nil
 }
 
@@ -357,9 +411,13 @@ func (runtime *ManagedEndpointSystemRuntime) Check(ctx context.Context, instance
 	if instance.Identity == (ManagedEndpointRuntimeIdentity{}) {
 		return ErrManagedEndpointOwnershipUnknown
 	}
-	worker, err := runtime.worker(ctx, instance, false, false)
-	if err != nil {
-		return err
+	var worker managedEndpointUnitObservation
+	if instance.Registration.Owner.Kind != "docker" {
+		var err error
+		worker, err = runtime.worker(ctx, instance, false, false)
+		if err != nil {
+			return err
+		}
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

@@ -57,6 +57,13 @@ func readManagedEndpointInstanceTx(ctx context.Context, tx *sql.Tx, clause strin
 	if err := instance.Validate(); err != nil {
 		return instance, fmt.Errorf("%w: %v", compute.ErrManagedEndpointCorruptOwner, err)
 	}
+	if ref := instance.CleanupRef; ref != nil {
+		var handle string
+		var cancelled bool
+		if err := tx.QueryRowContext(ctx, `SELECT claim_handle,cancel_requested FROM compute_managed_endpoint_actions WHERE instance_id=? AND kind=? AND claim_generation=?`, instance.ID, ref.Kind, ref.Generation).Scan(&handle, &cancelled); err != nil || handle != ref.ClaimHandle || !cancelled {
+			return instance, compute.ErrManagedEndpointCorruptOwner
+		}
+	}
 	var initialHandle string
 	if err := tx.QueryRowContext(ctx, `SELECT claim_handle FROM compute_managed_endpoint_actions WHERE instance_id=? AND kind=? AND claim_generation=?`, instance.ID, instance.InitialAction.Kind, instance.StartGeneration).Scan(&initialHandle); err != nil || initialHandle != instance.InitialAction.ClaimHandle {
 		return instance, fmt.Errorf("%w: original action and instance disagree", compute.ErrManagedEndpointCorruptOwner)
@@ -86,6 +93,19 @@ func (s *Store) managedEndpointActionClaimTx(ctx context.Context, tx *sql.Tx, re
 }
 
 func (s *Store) PrepareManagedEndpointAction(ctx context.Context, claim compute.ManagedEndpointClaim, instanceID, runtimeRoot string) (compute.ManagedEndpointOwnerInstance, compute.ManagedEndpointAction, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return compute.ManagedEndpointOwnerInstance{}, compute.ManagedEndpointAction{}, err
+	}
+	defer tx.Rollback()
+	instance, action, err := s.prepareManagedEndpointActionTx(ctx, tx, claim, instanceID, runtimeRoot)
+	if err != nil {
+		return instance, action, err
+	}
+	return instance, action, tx.Commit()
+}
+
+func (s *Store) prepareManagedEndpointActionTx(ctx context.Context, tx *sql.Tx, claim compute.ManagedEndpointClaim, instanceID, runtimeRoot string) (compute.ManagedEndpointOwnerInstance, compute.ManagedEndpointAction, error) {
 	var instance compute.ManagedEndpointOwnerInstance
 	var action compute.ManagedEndpointAction
 	if err := claim.Registration.Owner.Validate(); err != nil {
@@ -95,11 +115,6 @@ func (s *Store) PrepareManagedEndpointAction(ctx context.Context, claim compute.
 	if !ok || name != claim.Name || generation != claim.Generation || claim.UserID == "" || compute.ApprovedManagedEndpointHash(claim.Registration) != strings.TrimPrefix(claim.ApprovedHash, "sha256:") {
 		return instance, action, compute.ErrManagedEndpointStaleAction
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return instance, action, err
-	}
-	defer tx.Rollback()
 	endpoint, err := scanManagedEndpoint(tx.QueryRowContext(ctx, `SELECT `+managedEndpointColumns+` FROM compute_managed_endpoints WHERE name=? AND COALESCE(owner_user_id,'')=? AND stop_claim_token=? AND stop_claim_generation=? AND approved_script_hash=?`, name, claim.UserID, token, generation, claim.ApprovedHash))
 	if err != nil {
 		return instance, action, err
@@ -115,8 +130,14 @@ func (s *Store) PrepareManagedEndpointAction(ctx context.Context, claim compute.
 	}
 	instance, err = readManagedEndpointInstanceTx(ctx, tx, `endpoint_name=? AND owner_user_id=? AND retired_at IS NULL`, name, claim.UserID)
 	if err == nil {
-		if instance.ApprovedHash != claim.ApprovedHash || (kind == "start" && instance.StartGeneration != generation) {
+		if instance.ApprovedHash != claim.ApprovedHash {
 			return instance, action, compute.ErrManagedEndpointOwnershipUnknown
+		}
+		if kind == "start" && instance.StartGeneration != generation {
+			ref := compute.ManagedEndpointActionRef{InstanceID: instance.ID, Kind: kind, Generation: generation, ClaimHandle: claim.Handle}
+			if _, err := readManagedEndpointActionTx(ctx, tx, ref); err != nil {
+				return instance, action, compute.ErrManagedEndpointOwnershipUnknown
+			}
 		}
 	} else if errors.Is(err, sql.ErrNoRows) {
 		if kind == "stop" || claim.Registration.Owner.Kind == "docker" {
@@ -158,7 +179,7 @@ preparedOwner:
 	if err != nil {
 		return instance, action, err
 	}
-	return instance, loaded, tx.Commit()
+	return instance, loaded, nil
 }
 
 func readManagedEndpointActionTx(ctx context.Context, tx *sql.Tx, ref compute.ManagedEndpointActionRef) (compute.ManagedEndpointAction, error) {

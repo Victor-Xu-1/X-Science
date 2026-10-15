@@ -802,3 +802,40 @@ or released memory. It never truncates source bytes or reports partial success.
 This is a conservative decoder admission check, not an OS memory reservation or
 a guarantee against unrelated future allocations. Temporary files and decoder
 reservations are released on success, malformed JSON and cancellation.
+
+### Managed endpoint ownership
+
+Endpoint registration approval, physical owner instance, and operation claim are
+separate identities. A claim and its original durable intent are written in one
+Store transaction. Only the Store's exact ref/hash/owner Accept CAS permits the
+worker to execute approved lifecycle bytes. An unaccepted durable intent may be
+first-dispatched with that same ref; an accepted action is only observed after a
+Web restart, never replayed because its acknowledgement/result was lost.
+
+Native services stay in a systemd user unit/cgroup with a bounded output reader
+independent of the Web process. Docker services bind their actual daemon and
+immutable container identity, approved locator, loopback port binding and
+effective finite logging configuration. The shell's exit does not mean output
+EOF or readiness, and neither a port nor a container name proves ownership.
+
+Cancellation and completion race the same durable claim. Ordinary request
+closure, observation timeout and Web drain do not authorize killing a service.
+An instance's optional cleanup-ref is a physical-side-effect fence: a permitted
+cleanup prevents a newer action entering; a newer admitted action prevents an
+old cancellation acquiring cleanup. No SQLite transaction is held across an OS
+operation, and an unknown fence is not released by elapsed time. Superseded
+cancelled actions can close their own truthful receipt without changing the
+newer endpoint claim or retiring its physical instance.
+
+The reconciler uses bounded keyset pages. Foreign refs and corrupt SQL/JSON keys
+are errors, not ordinary unknown owners or permission to restart. Failed stop
+receipts preserve the original physical identity. Retirement/removal requires
+positive proof for that exact owner; successful script exit alone is not such
+proof. A parked Docker container can reuse the stable physical instance only
+under a fresh claim and Accept, with current ID/daemon/logging checked again.
+
+Historical nil-owner registration bytes and hashes remain unchanged. Explicit
+Docker adoption binds those original facts into a new approval and requires
+current physical evidence. Unprovable native daemons remain visibly unknown.
+The CLI worker opens only the server descriptor's existing compatible workspace:
+it does not migrate a database, start a Web server or create another scheduler.

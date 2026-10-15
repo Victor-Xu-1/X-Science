@@ -35,6 +35,7 @@ func managedEndpointRetiredOwnerTx(ctx context.Context, tx *sql.Tx, name, user, 
 	}
 	if warmStart {
 		instance.WorkerIdentity = compute.ManagedEndpointRuntimeIdentity{}
+		instance.CleanupRef = nil
 	}
 	encoded, err := json.Marshal(instance)
 	if err != nil {

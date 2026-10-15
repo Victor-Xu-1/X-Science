@@ -95,3 +95,56 @@ func (runtime *ManagedEndpointSystemRuntime) stoppedDockerReceipt(ctx context.Co
 	}
 	return receipt, true, nil
 }
+
+// A lost local observer is not permission to repeat a Docker start. A complete
+// original command receipt may be recovered only with fresh physical evidence.
+func (runtime *ManagedEndpointSystemRuntime) recoverDockerReceipt(ctx context.Context, instance ManagedEndpointOwnerInstance, action ManagedEndpointAction, observationErr error) (ManagedEndpointOwnerReceipt, error) {
+	if instance.Registration.Owner.Kind != "docker" || !action.Accepted {
+		return ManagedEndpointOwnerReceipt{}, observationErr
+	}
+	var journal ManagedEndpointAction
+	if err := readManagedEndpointPrivateJSON(filepath.Join(managedEndpointInstanceDirectory(instance), "action.json"), &journal); err != nil {
+		return ManagedEndpointOwnerReceipt{}, errors.Join(ErrManagedEndpointOutcomeUnknown, observationErr, err)
+	}
+	if journal.Ref != action.Ref || !journal.Accepted || journal.CleanupPending || journal.Receipt == nil || journal.Receipt.Ref != action.Ref {
+		return ManagedEndpointOwnerReceipt{}, ErrManagedEndpointOutcomeUnknown
+	}
+	receipt := *journal.Receipt
+	if receipt.Failure != "" {
+		return receipt, ErrManagedEndpointOutcomeUnknown
+	}
+	if err := receipt.ValidateFor(instance, action.Ref); err != nil {
+		return receipt, errors.Join(ErrManagedEndpointOutcomeUnknown, err)
+	}
+	docker, err := newManagedEndpointDocker()
+	if err != nil {
+		return receipt, err
+	}
+	if action.Ref.Kind == "stop" {
+		proof, err := docker.observeStopped(ctx, instance)
+		if err != nil {
+			return receipt, err
+		}
+		if proof.Identity != receipt.Identity {
+			return receipt, ErrManagedEndpointOwnershipUnknown
+		}
+		receipt.StoppedProof = proof
+	} else {
+		identity, err := docker.observeReady(ctx, instance)
+		if err != nil {
+			return receipt, err
+		}
+		if identity != receipt.Identity {
+			return receipt, ErrManagedEndpointOwnershipUnknown
+		}
+		owned := instance
+		owned.Identity = identity
+		probe := ManagedEndpointOwnerReceipt{}
+		(&managedEndpointWorker{}).verifyReady(ctx, owned, &probe)
+		if probe.Failure != "" || probe.Identity != identity || !probe.Readiness {
+			return receipt, errors.Join(ErrManagedEndpointOwnershipUnknown, errors.New(probe.Failure))
+		}
+	}
+	receipt.OutputWarning = "The local output worker was lost. The original command receipt was recovered without replay; current Docker owner and bounded retention were verified."
+	return receipt, nil
+}

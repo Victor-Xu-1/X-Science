@@ -18,6 +18,19 @@ type managedEndpointWorkerGateStore struct {
 	accepts  int
 }
 
+func (store *managedEndpointWorkerGateStore) AcquireManagedEndpointCleanup(context.Context, ManagedEndpointActionRef, *ManagedEndpointOwnerReceipt) (bool, error) {
+	panic("unexpected cleanup admission")
+}
+func (store *managedEndpointWorkerGateStore) SettleSupersededManagedEndpointAction(context.Context, ManagedEndpointActionRef, *ManagedEndpointOwnerReceipt) (bool, error) {
+	panic("unexpected receipt settlement")
+}
+func (store *managedEndpointWorkerGateStore) CurrentManagedEndpointAction(context.Context, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error) {
+	panic("unexpected current action")
+}
+func (store *managedEndpointWorkerGateStore) ReserveManagedEndpointNoOwnerCleanup(context.Context, ManagedEndpointActionRef) (bool, error) {
+	panic("unexpected no-owner cleanup")
+}
+
 func (store *managedEndpointWorkerGateStore) PrepareManagedEndpointAction(context.Context, ManagedEndpointClaim, string, string) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error) {
 	panic("unexpected prepare")
 }

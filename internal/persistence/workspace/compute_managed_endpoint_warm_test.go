@@ -27,7 +27,7 @@ func TestManagedEndpointWarmStartKeepsPhysicalContainerAndUsesFreshAdmission(t *
 	if state, err := fixture.store.FinishManagedEndpointAction(context.Background(), stop.Ref, stopped); err != nil || state != "stopped" {
 		t.Fatalf("stopped=%s err=%v", state, err)
 	}
-	claim, run, err := fixture.store.ClaimManagedEndpointStart(fixture.instance.Endpoint, fixture.instance.UserID)
+	claim, run, err := fixture.store.ClaimManagedEndpointStart(fixture.instance.Endpoint, fixture.instance.UserID, fixture.instance.RuntimeRoot)
 	if err != nil || !run {
 		t.Fatalf("warm claim=%t err=%v", run, err)
 	}

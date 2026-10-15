@@ -98,20 +98,27 @@ func (worker *managedEndpointWorker) execute(parent context.Context, action Mana
 		}
 	}
 	if receipt.Failure != "" && action.Ref.Kind == "start" && docker != nil && !managedEndpointInitialAdoption(instance, action.Ref) {
-		worker.mu.Lock()
-		var journalErr error
-		if worker.action.Ref == action.Ref {
-			worker.action.CleanupPending = true
-			journalErr = writeManagedEndpointPrivateJSON(worker.journalPath, worker.action)
-			if journalErr == nil {
-				worker.cleanupRunning = true
-			}
-		}
-		worker.mu.Unlock()
-		if journalErr == nil {
-			worker.cleanupDocker(instance, &receipt, values)
+		gateCtx, cancelGate := context.WithTimeout(context.Background(), 5*time.Second)
+		won, gateErr := worker.store.AcquireManagedEndpointCleanup(gateCtx, action.Ref, &receipt)
+		cancelGate()
+		if gateErr != nil || !won {
+			receipt.CleanupFailure = "startup cleanup did not acquire its original action fence"
 		} else {
-			receipt.CleanupFailure = "cleanup admission was not persisted: " + journalErr.Error()
+			worker.mu.Lock()
+			var journalErr error
+			if worker.action.Ref == action.Ref {
+				worker.action.CleanupPending = true
+				journalErr = writeManagedEndpointPrivateJSON(worker.journalPath, worker.action)
+				if journalErr == nil {
+					worker.cleanupRunning = true
+				}
+			}
+			worker.mu.Unlock()
+			if journalErr == nil {
+				worker.cleanupDocker(instance, &receipt, values)
+			} else {
+				receipt.CleanupFailure = "cleanup admission was not persisted: " + journalErr.Error()
+			}
 		}
 	}
 	text, sequence, dropped, closed, outputErr := worker.output.snapshot()

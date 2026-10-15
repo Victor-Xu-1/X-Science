@@ -547,7 +547,7 @@ func (s *Store) HasManagedEndpoints() (bool, error) {
 	return exists == 1, nil
 }
 
-func (s *Store) ClaimManagedEndpointStop(name, userID string) (ManagedEndpoint, bool, error) {
+func (s *Store) ClaimManagedEndpointStop(name, userID string, ownerRoots ...string) (ManagedEndpoint, bool, error) {
 	ctx := context.Background()
 	if err := s.ensureComputeWorkbenchSchema(ctx); err != nil {
 		return ManagedEndpoint{}, false, err
@@ -625,13 +625,16 @@ func (s *Store) ClaimManagedEndpointStop(name, userID string) (ManagedEndpoint, 
 	endpoint.ClaimToken = claimToken
 	endpoint.ClaimGeneration++
 	endpoint.ClaimHandle = managedEndpointClaimHandle(endpoint.Name, endpoint.ClaimToken, endpoint.ClaimGeneration)
+	if err := s.prepareClaimedManagedEndpointTx(ctx, tx, endpoint, ownerRoots); err != nil {
+		return ManagedEndpoint{}, false, err
+	}
 	if err := s.enqueueManagedEndpointTx(ctx, tx, "managed_endpoint_update", "stop_claimed", endpoint, ""); err != nil {
 		return ManagedEndpoint{}, false, err
 	}
 	return endpoint, true, tx.Commit()
 }
 
-func (s *Store) ClaimManagedEndpointStart(name, userID string) (ManagedEndpoint, bool, error) {
+func (s *Store) ClaimManagedEndpointStart(name, userID string, ownerRoots ...string) (ManagedEndpoint, bool, error) {
 	ctx := context.Background()
 	if err := s.ensureComputeWorkbenchSchema(ctx); err != nil {
 		return ManagedEndpoint{}, false, err
@@ -676,6 +679,9 @@ func (s *Store) ClaimManagedEndpointStart(name, userID string) (ManagedEndpoint,
 	endpoint.ClaimToken = claimToken
 	endpoint.ClaimGeneration++
 	endpoint.ClaimHandle = managedEndpointClaimHandle(endpoint.Name, endpoint.ClaimToken, endpoint.ClaimGeneration)
+	if err := s.prepareClaimedManagedEndpointTx(ctx, tx, endpoint, ownerRoots); err != nil {
+		return ManagedEndpoint{}, false, err
+	}
 	if err := s.enqueueManagedEndpointTx(ctx, tx, "managed_endpoint_update", "start_claimed", endpoint, ""); err != nil {
 		return ManagedEndpoint{}, false, err
 	}

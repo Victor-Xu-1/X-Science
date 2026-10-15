@@ -68,11 +68,20 @@ func RunManagedEndpointOwnerWorker(ctx context.Context, descriptor string, store
 	if current.ID != instance.ID || current.UserID != instance.UserID || current.ApprovedHash != instance.ApprovedHash || current.RuntimeRoot != instance.RuntimeRoot || current.ServiceDir != instance.ServiceDir || current.WorkspacePath != instance.WorkspacePath || current.InitialAction != instance.InitialAction {
 		return ErrManagedEndpointCorruptOwner
 	}
-	if initial.CancelRequested && !initial.Accepted {
-		return nil
-	}
-	if initial.Receipt != nil && initial.Receipt.NotStarted {
-		return nil
+	if initial.CancelRequested && !initial.Accepted || initial.Receipt != nil && initial.Receipt.NotStarted {
+		stopAuthority, successor, err := store.CurrentManagedEndpointAction(ctx, instance.ID)
+		if errors.Is(err, ErrManagedEndpointStaleAction) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if successor.Ref.Kind != "stop" || successor.Ref == instance.InitialAction || successor.Receipt != nil {
+			return nil
+		}
+		if successor.CancelRequested && (stopAuthority.CleanupRef == nil || *stopAuthority.CleanupRef != instance.InitialAction) {
+			return nil
+		}
 	}
 	instance = current
 	if descriptor != filepath.Join(managedEndpointInstanceDirectory(instance), "owner.json") {
