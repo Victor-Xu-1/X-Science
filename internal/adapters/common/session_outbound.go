@@ -13,6 +13,7 @@ const (
 	defaultSessionOutboundQueueSize     = 512
 	defaultSessionOutboundFlushInterval = 250 * time.Millisecond
 	defaultSessionOutboundEnqueueWait   = time.Second
+	RecoveryNoticeMessageType           = "recovery_notice"
 )
 
 type IMSessionBinding struct {
@@ -37,6 +38,15 @@ type SessionOutboundEvent struct {
 type SessionOutboundSink interface {
 	Bind(IMSessionBinding) error
 	Enqueue(SessionOutboundEvent) bool
+}
+
+// RecoveryNoticeValidator is presentation-only. False suppresses a superseded
+// host notice using its existing receipt; it never grants execution authority.
+type RecoveryNoticeValidator func(context.Context, IMSessionBinding, SessionOutboundEvent) (bool, error)
+
+type SessionRecoveryNoticeSink interface {
+	SessionOutboundSink
+	SetRecoveryNoticeValidator(RecoveryNoticeValidator)
 }
 
 type SessionOutboundUnbinder interface {
@@ -70,14 +80,21 @@ type SessionOutboundDispatcher struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	mu       sync.RWMutex
-	bindings map[string]IMSessionBinding
-	workers  map[string]*sessionOutboundWorker
-	closing  bool
-	active   int
-	done     chan struct{}
-	handlers map[string]SessionOutboundHandler
-	options  SessionOutboundDispatcherOptions
+	mu              sync.RWMutex
+	bindings        map[string]IMSessionBinding
+	workers         map[string]*sessionOutboundWorker
+	closing         bool
+	active          int
+	done            chan struct{}
+	handlers        map[string]SessionOutboundHandler
+	options         SessionOutboundDispatcherOptions
+	noticeValidator RecoveryNoticeValidator
+}
+
+func (d *SessionOutboundDispatcher) SetRecoveryNoticeValidator(validator RecoveryNoticeValidator) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.noticeValidator = validator
 }
 
 type sessionOutboundWorker struct {
@@ -311,6 +328,22 @@ func (d *SessionOutboundDispatcher) deliverNormalized(worker *sessionOutboundWor
 		}
 		var report OutboundReport
 		result, err := worker.delivery.deliverWithHandler(worker.ctx, normalized.Message, func(ctx context.Context, message ServerMessage) error {
+			if normalized.RecoveryEvent != nil {
+				d.mu.RLock()
+				validate := d.noticeValidator
+				d.mu.RUnlock()
+				if validate == nil {
+					return errors.New("host recovery notice requires a current delivery validator")
+				}
+				current, err := validate(ctx, binding, *normalized.RecoveryEvent)
+				if err != nil {
+					return err
+				}
+				if !current {
+					report = OutboundReport{Platform: binding.Platform, DeliverySummary: "superseded recovery notice"}
+					return nil // No transport call; settle this existing no-op receipt.
+				}
+			}
 			var err error
 			report, err = handler(ctx, binding, message)
 			return err
@@ -354,10 +387,11 @@ func (d *SessionOutboundDispatcher) emitResult(binding IMSessionBinding, eventID
 }
 
 type normalizedSessionOutboundMessage struct {
-	EventID      int64
-	ReceiptToken string
-	Message      ServerMessage
-	Receipts     []sessionOutboundReceipt
+	EventID       int64
+	ReceiptToken  string
+	Message       ServerMessage
+	Receipts      []sessionOutboundReceipt
+	RecoveryEvent *SessionOutboundEvent
 }
 
 type sessionOutboundReceipt struct {
@@ -377,6 +411,11 @@ type sessionOutboundNormalizer struct {
 func (n *sessionOutboundNormalizer) Accept(event SessionOutboundEvent) ([]normalizedSessionOutboundMessage, bool, bool) {
 	messageType := strings.TrimSpace(stringValue(event.Message["type"]))
 	switch messageType {
+	case RecoveryNoticeMessageType:
+		messages := n.Flush()
+		messages = append(messages, normalizedSessionOutboundMessage{EventID: event.EventID, ReceiptToken: event.ReceiptToken,
+			RecoveryEvent: &event, Message: withOutboundEventID(ServerMessage{"type": "content_delta", "text": stringValue(event.Message["text"])}, event.EventID)})
+		return messages, false, false
 	case "transcript_noop":
 		return nil, n.buffer.Len() > 0, true
 	case "content_delta":

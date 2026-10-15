@@ -676,6 +676,9 @@ func New(options Options) *Server {
 	}
 	server.speechClientForURL = server.publicSourceHTTPClient
 	server.webImageClientForURL = server.publicSourceHTTPClient
+	if notices, ok := server.imOutbound.(adaptercommon.SessionRecoveryNoticeSink); ok {
+		notices.SetRecoveryNoticeValidator(server.validateIMRecoveryNotice)
+	}
 	if mcpDirectory != nil {
 		mcpDirectory.SetConnectorUsageRecorder(func(ctx context.Context, userID string, connector mcpdirectory.RuntimeConnector, toolName string, callErr error) {
 			server.recordMCPConnectorInvocation(ctx, userID, connector.ID, connector.Source, connector.Name, toolName, callErr)
