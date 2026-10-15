@@ -70,6 +70,35 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    'does not call a configured subscription refusal a missing-model wait in %s',
+    async (language) => {
+      const onResume = vi.fn();
+      const paused = {
+        ...snapshot('paused', {
+          failureReason: 'model_provider_unavailable',
+          statusDescription: 'PRIVATE_PROVIDER_BODY_SENTINEL',
+          modelId: 'saved-model',
+        }),
+        providerFailureKind: 'subscription' as const,
+      };
+      await renderWithI18n(<XScienceTaskStatus {...defaultProps} snapshot={paused} onResume={onResume} />, language);
+      const indicator = screen.getByTestId('x-science-task-status-indicator');
+      expect(indicator).toHaveAttribute('data-state', 'paused');
+      expect(indicator).toHaveTextContent(language === 'en-US' ? 'Model subscription unavailable' : '模型订阅不可用');
+      expect(indicator).not.toHaveTextContent(/waiting for model selection|等待选择模型/i);
+      expect(screen.queryByTestId('x-science-task-status-spinner')).not.toBeInTheDocument();
+      expect(onResume).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+      expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent(
+        language === 'en-US' ? 'subscription or billing' : '订阅或计费'
+      );
+      expect(document.body).not.toHaveTextContent('PRIVATE_PROVIDER_BODY_SENTINEL');
+      fireEvent.click(screen.getByTestId('x-science-task-status-action'));
+      expect(onResume).toHaveBeenCalledOnce();
+    }
+  );
+
   it.each([
     ['paused', 'en-US'],
     ['completed', 'en-US'],
@@ -495,6 +524,7 @@ describe('XScienceTaskStatus', () => {
         snapshot={snapshot('paused', {
           statusDescription: 'no active saved model provider is configured',
           failureReason: 'model_provider_unavailable',
+          providerFailureKind: 'configuration_missing',
         })}
         onResume={vi.fn()}
       />

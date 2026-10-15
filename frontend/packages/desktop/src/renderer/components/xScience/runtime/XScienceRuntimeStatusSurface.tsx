@@ -111,8 +111,10 @@ const XScienceRuntimeStatusSurface = ({
         <XScienceTaskAttentionNotice
           kind='paused'
           reason={snapshot.failureReason}
+          providerFailureKind={snapshot.providerFailureKind}
           busy={resuming}
           onAction={snapshot.canResume ? onResume : undefined}
+          onChooseModel={onChooseModel}
         />
       ) : null}
       {pendingRequest ? (

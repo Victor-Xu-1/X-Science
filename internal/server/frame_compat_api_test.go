@@ -1511,9 +1511,15 @@ func TestFrameCompatibilityProjectsNonResumableProviderInterruptionAsStalled(t *
 		t.Fatalf("model-selection wait became a failure=%#v", projected)
 	}
 	if projected["runtime_interruption_reason"] != "model_provider_unavailable" ||
-		projected["runtime_interruption_detail"] != "provider quota is exhausted; choose another model and continue" ||
-		projected["status_description"] != "provider quota is exhausted; choose another model and continue" {
+		projected["runtime_provider_failure_kind"] != "unavailable" ||
+		projected["runtime_interruption_detail"] != publicRunnerProviderFailureDetail("unavailable", "en") ||
+		projected["status_description"] != projected["runtime_interruption_detail"] {
 		t.Fatalf("interruption detail projection=%#v", projected)
+	}
+	var privatePayload map[string]any
+	if err := json.Unmarshal(interrupted.Event.PayloadJSON, &privatePayload); err != nil ||
+		privatePayload["resume_detail"] != "provider quota is exhausted; choose another model and continue" {
+		t.Fatalf("public sanitization changed private interruption evidence: payload=%#v err=%v", privatePayload, err)
 	}
 	if elapsed, ok := projected["runtime_elapsed_ms"].(float64); !ok || elapsed < 0 {
 		t.Fatalf("stalled elapsed=%#v", projected["runtime_elapsed_ms"])

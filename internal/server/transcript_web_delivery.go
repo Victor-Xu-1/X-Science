@@ -772,19 +772,27 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 		}
 		if waitingForModel || waitingForRecovery {
 			reason := firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))
+			providerKind := runnerProviderFailureKindFromPayload(payload)
 			runtimePayload["phase"] = "paused"
 			runtimePayload["reason_code"] = reason
 			runtimePayload["message"] = runnerRecoveryWaitPublicMessage(sessionRunnerResponseLanguage(frameContext.Frame.Name), reason)
+			if providerKind != "" {
+				runtimePayload["runtime_provider_failure_kind"] = providerKind
+				runtimePayload["message"] = publicRunnerProviderFailureDetail(providerKind, sessionRunnerResponseLanguage(frameContext.Frame.Name))
+			}
 			if waitingForModel {
 				runtimePayload["phase"] = "waiting_input"
-				runtimePayload["message"] = firstNonEmpty(webString(payload["resume_detail"]), "No active model configuration is available. Configure or select a model, then continue this same task.")
 			}
 			if err := s.publishWebFrameEvent(frameContext, baseID+":runtime", "runtime.statusChanged", runtimePayload); err != nil {
 				return err
 			}
-			return s.publishWebFrameEvent(frameContext, baseID+":frame", "frame_update", map[string]any{
+			framePayload := map[string]any{
 				"status": "paused", "runtime_interruption_reason": reason,
-			})
+			}
+			if providerKind != "" {
+				framePayload["runtime_provider_failure_kind"] = providerKind
+			}
+			return s.publishWebFrameEvent(frameContext, baseID+":frame", "frame_update", framePayload)
 		}
 		if attemptStarted {
 			runtimePayload["boundary_kind"] = "attempt"
@@ -813,7 +821,8 @@ func transcriptWebModelSelectionInterruption(payload map[string]any) bool {
 		strings.EqualFold(
 			strings.TrimSpace(firstNonEmpty(webString(payload["reason_code"]), webString(payload["reasonCode"]))),
 			sessionRunnerModelProviderUnavailableReasonCode,
-		) && !compatibilityPlanBool(payload["auto_resume"])
+		) && !compatibilityPlanBool(payload["auto_resume"]) &&
+		runnerProviderFailureKindFromPayload(payload) == "configuration_missing"
 }
 
 func transcriptWebRecoveryWaitInterruption(payload map[string]any) bool {

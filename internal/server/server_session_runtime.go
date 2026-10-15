@@ -238,6 +238,13 @@ func (s *Server) checkpointSessionRunner(input map[string]any) (map[string]any, 
 	} else if present {
 		message[transcriptstore.RunnerInterruptionCauseField] = input[transcriptstore.RunnerInterruptionCauseField]
 	}
+	if value, present := input["provider_failure_kind"]; present {
+		kind, ok := value.(string)
+		if !ok || !transcriptstore.ValidRunnerProviderFailureKind(kind) || stringValue(input["reasonCode"]) != sessionRunnerModelProviderUnavailableReasonCode {
+			return nil, errors.New("runner provider failure category is invalid")
+		}
+		message["provider_failure_kind"] = kind
+	}
 	for _, key := range []string{"toolCallId", "toolName", "toolInput", "toolResult", "toolPhase", "modelToolCalls", "resumeCacheKey", "reasonCode", "resumeDetail", "planModeDenial"} {
 		if value, ok := input[key]; ok && value != nil {
 			message[key] = value

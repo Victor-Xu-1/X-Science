@@ -109,8 +109,8 @@ func TestTranscriptWebDeliveryProjectsModelSelectionInterruptionAsRecoverable(t 
 	}
 	if _, err := repo.InterruptRunner(context.Background(), transcriptstore.InterruptRunnerInput{
 		Claim: claimed.Claim, ClientMessageID: "model-wait-interruption",
-		ReasonCode:   sessionRunnerModelProviderUnavailableReasonCode,
-		ResumeDetail: "Configure or select a model, then continue this same task.",
+		ReasonCode: sessionRunnerModelProviderUnavailableReasonCode, ProviderFailureKind: "configuration_missing",
+		ResumeDetail: sessionRunnerMissingModelConfigurationDetail,
 		Resumable:    true, AutoResume: false, Destinations: []string{transcriptWebDestination},
 	}); err != nil {
 		t.Fatal(err)

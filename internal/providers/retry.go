@@ -85,9 +85,11 @@ func waitProviderRetry(ctx context.Context, attempt int, err error) error {
 	}
 }
 
-// providerHTTPStatusRetryable distinguishes transient throttling from a provider account that has no remaining quota.
+// providerHTTPStatusRetryable distinguishes transient throttling from transport-
+// proven permanent account refusals and the existing exhausted-quota contract.
 func providerHTTPStatusRetryable(status int, body []byte) bool {
-	if status == http.StatusTooManyRequests && providerQuotaExhausted(body) {
+	if status == http.StatusTooManyRequests &&
+		(permanentProviderAccountFailure(providerHTTPFailureKind(status, body)) || providerQuotaExhausted(body)) {
 		return false
 	}
 	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
