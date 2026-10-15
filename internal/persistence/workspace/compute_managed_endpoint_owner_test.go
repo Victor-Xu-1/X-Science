@@ -27,22 +27,8 @@ func newManagedEndpointOwnerFixture(t *testing.T, overrides ...compute.ManagedEn
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = store.Close() })
-	// Exercise the proposed additive contract in a private database while its
-	// migration number remains controller-owned. Once registered, Open supplies
-	// these objects and this branch does not reapply or edit the migration.
-	rows, err := store.db.Query(`SELECT owner_spec_json FROM compute_managed_endpoints LIMIT 0`)
-	if err == nil {
-		_ = rows.Close()
-	} else {
-		if !strings.Contains(err.Error(), "no such column") {
-			t.Fatal(err)
-		}
-		for _, statement := range managedEndpointOwnerSchemaStatements {
-			if _, err := store.db.Exec(statement); err != nil {
-				t.Fatal(err)
-			}
-		}
-	}
+	// Owner tables must come from normal Open and its registered migration;
+	// there is no test-only/request-time missing-schema installation path.
 	registration := compute.ManagedEndpointRegistration{Name: "owner-fixture", URL: "http://127.0.0.1:25001", Port: 25001, SkillName: "using-model-endpoint", StartScript: "printf started", StopScript: "printf stopped", LivePath: "/health", Owner: &compute.ManagedEndpointOwnerSpec{Version: 1, Kind: "native-unit", Output: compute.ManagedEndpointOutputPolicy{SegmentBytes: 4096, Segments: 2}}}
 	if len(overrides) > 0 {
 		registration = overrides[0]

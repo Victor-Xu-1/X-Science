@@ -147,6 +147,41 @@ func TestManagedEndpointOwnerV78UpgradePreservesDataAndJournal(t *testing.T) {
 		assertSchemaJournalVersion(t, retried.db, 78)
 		fixture.assertRetained(t, retried.db)
 	})
+
+	t.Run("preflight_requires_original_source_and_empty_targets", func(t *testing.T) {
+		fixture := newManagedEndpointV77UpgradeFixture(t)
+		if err := runSchemaMigrationPreflight(t.Context(), fixture.db, managedEndpointOwnerV78Migration); err != nil {
+			t.Fatalf("canonical installed77 predecessor was rejected: %v", err)
+		}
+		// Foreign target objects are deliberately incomplete negative fixtures,
+		// never an alternate way to install the actual owner schema.
+		for _, test := range []struct{ name, statement string }{
+			{"missing_source_column", `ALTER TABLE compute_managed_endpoints RENAME COLUMN stop_claim_token TO foreign_claim_token`},
+			{"wrong_source_type", `ALTER TABLE compute_managed_endpoints RENAME COLUMN stop_claim_generation TO original_generation;
+				ALTER TABLE compute_managed_endpoints ADD COLUMN stop_claim_generation TEXT`},
+			{"foreign_instance_table", `CREATE TABLE compute_managed_endpoint_instances(foreign_value TEXT)`},
+			{"foreign_action_table", `CREATE TABLE compute_managed_endpoint_actions(foreign_value TEXT)`},
+			{"foreign_active_index", `CREATE INDEX compute_managed_endpoint_active_owner_idx ON compute_managed_endpoints(port)`},
+			{"foreign_pending_index", `CREATE INDEX compute_managed_endpoint_pending_action_idx ON compute_managed_endpoints(port)`},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				tx, err := fixture.db.BeginTx(t.Context(), nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer tx.Rollback()
+				if _, err := tx.ExecContext(t.Context(), test.statement); err != nil {
+					t.Fatalf("invalid controlled preflight fixture: %v", err)
+				}
+				if err := runSchemaMigrationPreflight(t.Context(), tx, managedEndpointOwnerV78Migration); err == nil {
+					t.Fatal("owner preflight accepted a foreign target or noncanonical source")
+				}
+			})
+		}
+		fixture.assertRetained(t, fixture.db)
+		assertSchemaJournalVersion(t, fixture.db, 77)
+		assertManagedEndpointV78ObjectsAbsent(t, fixture.db)
+	})
 }
 
 func assertManagedEndpointV78ObjectsAbsent(t *testing.T, db *sql.DB) {

@@ -1,8 +1,7 @@
 package workspace
 
-// These statements belong to one additive versioned migration. The controller
-// allocates/registers its version against actual main; do not call these from
-// request-time schema repair or edit any published migration identity.
+// These statements belong only to the additive registered78 migration. Do not
+// call them from request-time repair or edit a published migration identity.
 var managedEndpointOwnerSchemaStatements = []string{
 	`ALTER TABLE compute_managed_endpoints ADD COLUMN owner_spec_json TEXT`,
 	`CREATE TABLE compute_managed_endpoint_instances (
