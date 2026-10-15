@@ -15,7 +15,7 @@ import (
 // Only an empty private DB is reconstructed. Stage plus the original76 writer
 // produces the old source/counter ordering; normal Open then installs77/78.
 // No admission mapping, claim, lease, receipt or source payload is fabricated.
-func historicalIMNoticeFixture(t *testing.T, state string) (*workspace.Store, *transcriptstore.Repository, *sql.DB, transcriptstore.Stream) {
+func historicalIMNoticeFixture(t *testing.T, state string, queuedPayload ...[]byte) (*workspace.Store, *transcriptstore.Repository, *sql.DB, transcriptstore.Stream) {
 	t.Helper()
 	ctx := t.Context()
 	path := filepath.Join(t.TempDir(), "historical.db")
@@ -62,8 +62,12 @@ func historicalIMNoticeFixture(t *testing.T, state string) (*workspace.Store, *t
 	}
 	stage := func(id string) transcriptstore.Event {
 		t.Helper()
+		payload := []byte(`{"text":"Retained task ` + id + `"}`)
+		if id == "queued" && len(queuedPayload) > 0 {
+			payload = queuedPayload[0]
+		}
 		result, err := repo.StageUserEvent(ctx, transcriptstore.AppendUserEventInput{StreamUID: stream.UID,
-			OwnerID: stream.OwnerID, ClientMessageID: id, PayloadJSON: []byte(`{"text":"Retained task ` + id + `"}`)})
+			OwnerID: stream.OwnerID, ClientMessageID: id, PayloadJSON: payload})
 		if err != nil || !result.Created || result.Admitted {
 			t.Fatalf("historical Stage=%+v err=%v", result, err)
 		}
