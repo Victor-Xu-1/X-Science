@@ -24,7 +24,7 @@ func (s *Server) reconcileManagedEndpointPrivateCleanup(ctx context.Context) {
 	defer cancel()
 	events, err := s.workspaceStore.ClaimOutbox(round, workspace.ClaimOutboxInput{
 		WorkerID: "managed-endpoint-private-cleanup-" + uuid.NewString(),
-		Topics: []string{workspace.ManagedEndpointPrivateCleanupTopic}, Limit: 8, Lease: 30 * time.Second,
+		Topics:   []string{workspace.ManagedEndpointPrivateCleanupTopic}, Limit: 8, Lease: 30 * time.Second,
 	})
 	if err != nil {
 		if round.Err() == nil {

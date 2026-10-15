@@ -29,14 +29,16 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 	if err := ctx.Err(); err != nil {
 		return context.Cause(ctx)
 	}
-	root, err := os.OpenRoot(runtimeRoot)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
+	root, parent, err := openManagedEndpointPrivateCleanupRoot(runtimeRoot)
 	if err != nil {
 		return err
 	}
+	if root == nil {
+		// Lstat observed an absent root, so this call changed no directory entry.
+		return nil
+	}
 	defer root.Close()
+	defer parent.Close()
 	trash := ".retired-" + key
 	info, sourceErr := root.Lstat(scope.InstanceID)
 	retired, trashErr := root.Lstat(trash)
@@ -50,10 +52,10 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 		if sourceErr == nil || !retired.IsDir() || retired.Mode()&os.ModeSymlink != 0 {
 			return errors.New("managed endpoint private cleanup trash is ambiguous")
 		}
-		return root.RemoveAll(trash)
+		return removeManagedEndpointPrivateCleanupTrash(root, parent, trash)
 	}
 	if errors.Is(sourceErr, os.ErrNotExist) {
-		return nil
+		return parent.Sync()
 	}
 	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
 		return errors.New("managed endpoint private owner directory is not a direct directory")
@@ -75,7 +77,52 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 	if err != nil || !os.SameFile(info, moved) {
 		return errors.New("managed endpoint private cleanup rename changed its owner")
 	}
-	return root.RemoveAll(trash)
+	return removeManagedEndpointPrivateCleanupTrash(root, parent, trash)
+}
+
+// OpenRoot follows its argument's symlink. Recheck the current configured root
+// itself, then bind both filesystem operations and directory Sync to the same
+// private inode even if its pathname is replaced between observation and open.
+func openManagedEndpointPrivateCleanupRoot(path string) (*os.Root, *os.File, error) {
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm()&0o077 != 0 {
+		return nil, nil, errors.New("managed endpoint cleanup runtime root is not a private direct directory")
+	}
+	root, err := os.OpenRoot(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	parent, err := root.Open(".")
+	if err != nil {
+		_ = root.Close()
+		return nil, nil, err
+	}
+	opened, err := parent.Stat()
+	if err != nil || !opened.IsDir() || opened.Mode().Perm()&0o077 != 0 || !os.SameFile(info, opened) {
+		_ = parent.Close()
+		_ = root.Close()
+		return nil, nil, errors.New("managed endpoint cleanup runtime root changed while opening")
+	}
+	return root, parent, nil
+}
+
+func removeManagedEndpointPrivateCleanupTrash(root *os.Root, parent *os.File, trash string) error {
+	// Sync the rename before removing contents, including when this is a retry
+	// of a prior rename whose Sync failed. The original name cannot reappear
+	// after a crash with its owner.json already partially removed.
+	if err := parent.Sync(); err != nil {
+		return err
+	}
+	removeErr := root.RemoveAll(trash)
+	// Only a synced parent entry permits durable outbox acknowledgement. Even
+	// partial failures stay in their durable scoped trash for generic replay.
+	return errors.Join(removeErr, parent.Sync())
 }
 
 func validateManagedEndpointPrivateCleanupOwner(root *os.Root, runtimeRoot string, scope ManagedEndpointPrivateCleanup) error {
