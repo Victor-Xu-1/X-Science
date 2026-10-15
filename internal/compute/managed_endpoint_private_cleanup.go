@@ -33,6 +33,10 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 	if err != nil {
 		return err
 	}
+	if root == nil {
+		// Lstat observed an absent root, so this call changed no directory entry.
+		return nil
+	}
 	defer root.Close()
 	defer parent.Close()
 	trash := ".retired-" + key
@@ -81,6 +85,9 @@ func CleanupManagedEndpointPrivateFiles(ctx context.Context, runtimeRoot string,
 // private inode even if its pathname is replaced between observation and open.
 func openManagedEndpointPrivateCleanupRoot(path string) (*os.Root, *os.File, error) {
 	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, nil
+	}
 	if err != nil {
 		return nil, nil, err
 	}
