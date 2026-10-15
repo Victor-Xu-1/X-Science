@@ -82,6 +82,71 @@ func TestExplicitKernelBudgetExceedsCurrentHostCapacityWithoutReservation(t *tes
 	}
 }
 
+func TestDefaultKernelMinimumExceedsProvenHostCapacityWithoutWaiting(t *testing.T) {
+	for _, test := range []struct {
+		name, state      string
+		total, available int64
+	}{
+		{"host_below_reserve", "infeasible", 2 << 30, 2 << 30},
+		{"host_below_runtime_floor", "infeasible", executorControlReserveBytes + executorMemoryFloorBytes - 1024, executorControlReserveBytes + executorMemoryFloorBytes - 1024},
+		{"exact_runtime_floor_is_feasible", "reserved", executorControlReserveBytes + executorMemoryFloorBytes, executorControlReserveBytes + executorMemoryFloorBytes},
+		{"temporary_default_pressure_still_waits", "waiting", 12 << 30, 2 << 30},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store, base := startupBackendFixture(t)
+			backend := resourceObservationBackend(t, store, base, 0)
+			launcher := &feasibilityTestLauncher{t: t, SystemdUserExecutorLauncher: SystemdUserExecutorLauncher{
+				meminfoPath: feasibilityMeminfo(t, test.total, test.available),
+			}}
+			budget, err := (&Backend{Store: store, Launcher: launcher}).reserveExecutorResources(t.Context(), backend)
+			reservation, found, readErr := store.KernelResourceReservation(t.Context(), backend.BackendID, backend.BackendGeneration)
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			switch test.state {
+			case "infeasible":
+				var exceeds *ExecutorResourceBudgetExceedsCurrentCapacityError
+				if budget != 0 || !errors.As(err, &exceeds) {
+					t.Errorf("default minimum entered a permanent wait: budget=%d err=%v", budget, err)
+				} else if exceeds.RequestedBytes != 0 || exceeds.MinimumBytes != executorMemoryFloorBytes || exceeds.RequiredBytes() != executorMemoryFloorBytes ||
+					exceeds.HostTotalBytes != test.total || exceeds.ReserveBytes != executorControlReserveBytes || exceeds.MaximumBytes != max(0, test.total-executorControlReserveBytes) {
+					t.Errorf("default upper-bound evidence rewrote its request: %+v", exceeds)
+				}
+				if found {
+					t.Errorf("physically infeasible default created a durable wait: %+v", reservation)
+				}
+			case "reserved":
+				if err != nil || !found || budget != executorMemoryFloorBytes || reservation.State != "reserved" || reservation.RequestedBytes != 0 || reservation.ReservedBytes != executorMemoryFloorBytes {
+					t.Errorf("a viable default was rejected because its preference exceeds the floor: budget=%d reservation=%+v err=%v", budget, reservation, err)
+				}
+			case "waiting":
+				var waiting *ExecutorResourceUnavailableError
+				if budget != 0 || !errors.As(err, &waiting) || !found || reservation.State != "waiting" || reservation.RequestedBytes != 0 || reservation.ReservedBytes != 0 {
+					t.Errorf("temporary pressure lost its original default wait: budget=%d reservation=%+v err=%v", budget, reservation, err)
+				}
+			}
+			current, found, readErr := store.GetKernelExecutionBackend(t.Context(), backend.BackendID)
+			if readErr != nil || !found || current.SessionSpecJSON != backend.SessionSpecJSON || current.SessionSpecSHA256 != backend.SessionSpecSHA256 ||
+				current.BackendGeneration != backend.BackendGeneration || current.State != workspace.KernelExecutionBackendStateStarting || current.ExecutorPID != 0 || launcher.observed != 0 {
+				t.Fatalf("default preflight changed allocation/execution authority: %+v observed=%d err=%v", current, launcher.observed, readErr)
+			}
+		})
+	}
+	t.Run("unknown_zero_maximum_does_not_prove_infeasibility", func(t *testing.T) {
+		store, base := startupBackendFixture(t)
+		backend := resourceObservationBackend(t, store, base, 0)
+		launcher := resourceNotificationLauncher{launch: func(ExecutorLaunchRequest) error {
+			t.Fatal("default feasibility must not launch an executor")
+			return nil
+		}}
+		budget, err := (&Backend{Store: store, Launcher: launcher}).reserveExecutorResources(t.Context(), backend)
+		reservation, found, readErr := store.KernelResourceReservation(t.Context(), backend.BackendID, backend.BackendGeneration)
+		if err != nil || readErr != nil || budget != 1<<30 || !found || reservation.State != "reserved" || reservation.RequestedBytes != 0 {
+			t.Fatalf("unknown generic maximum became a proven zero host limit: budget=%d reservation=%+v err=%v read=%v", budget, reservation, err, readErr)
+		}
+	})
+}
+
 func TestKernelHostFeasibilityPreservesBoundaryTransientWaitAndDefault(t *testing.T) {
 	t.Run("no_host_observation_does_not_prove_infeasibility", func(t *testing.T) {
 		store, base := startupBackendFixture(t)

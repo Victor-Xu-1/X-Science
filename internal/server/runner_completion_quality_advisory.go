@@ -4,7 +4,8 @@ import "strings"
 
 func sessionRunnerQualityFindingIsAdvisory(finding string) bool {
 	return sessionRunnerCompletionAdvisoryCrossArtifactFailure(finding) ||
-		sessionRunnerEvidenceGapCrossArtifactFailure(finding)
+		sessionRunnerEvidenceGapCrossArtifactFailure(finding) ||
+		scientificArtifactAggregateCountFindingIsAdvisory(finding)
 }
 
 // The result retains its observations, including failed checks. This bounded
@@ -50,14 +51,21 @@ func sessionRunnerReferenceCorrectionIsAdvisory(run *sessionRunnerChatRun, corre
 	reference := condition.Reference
 	if reference.UnresolvedArtifacts != 0 || len(reference.UnresolvedArtifactReferences) != 0 ||
 		len(reference.MalformedArtifactReferences) != 0 || len(reference.InvalidReferenceArtifacts) != 0 ||
-		len(reference.InvalidScientificArtifacts) != 0 || len(reference.InvalidResearchArtifacts) != 0 ||
+		len(reference.InvalidResearchArtifacts) != 0 ||
 		len(reference.MissingLocalArtifacts) != 0 || len(reference.MissingRequiredDeliverables) != 0 {
 		return false
+	}
+	findings := append([]string(nil), reference.CrossArtifactFailures...)
+	for _, failure := range reference.InvalidScientificArtifacts {
+		if !scientificArtifactAggregateCountFindingIsAdvisory(failure) {
+			return false
+		}
+		findings = append(findings, failure)
 	}
 	for _, failure := range reference.CrossArtifactFailures {
 		if !sessionRunnerQualityFindingIsAdvisory(failure) {
 			return false
 		}
 	}
-	return sessionRunnerCompletionQualityAdvisory(run, reference.CrossArtifactFailures, reference.UnsupportedCitations) != nil
+	return sessionRunnerCompletionQualityAdvisory(run, findings, reference.UnsupportedCitations) != nil
 }

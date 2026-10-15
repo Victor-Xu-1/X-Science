@@ -93,7 +93,9 @@ func inspectScientificArtifactSelection(ctx context.Context, store *workspace.St
 		}
 		moleculeSetCounts[stem][format] = validation.ParsedCount
 	}
-	failures = append(failures, moleculeSetRecordCountFailures(moleculeSetCounts)...)
+	// Record counts describe each format's records, not distinct molecular
+	// identities: conformers and deduplicated SMILES need not be one-to-one.
+	result.AggregateCountFindings = moleculeSetRecordCountFailures(moleculeSetCounts)
 	sort.Strings(failures)
 	result.Failures = failures
 	return result, nil

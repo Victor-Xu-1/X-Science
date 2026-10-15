@@ -150,10 +150,13 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 	// Only an observed host total proves this upper bound. A zero generic
 	// MaximumBytes can mean unknown; an observed total below the reserve means
 	// genuinely zero capacity. Do not infer executor limits from the web cgroup.
-	if observation.HostTotalBytes > 0 && spec.ResourceMemoryBytes > max(0, observation.HostTotalBytes-observation.ReserveBytes) {
+	// A default zero request still needs the runtime floor, not DefaultBytes.
+	required := max(spec.ResourceMemoryBytes, capacity.MinimumBytes)
+	if observation.HostTotalBytes > 0 && required > max(0, observation.HostTotalBytes-observation.ReserveBytes) {
 		return 0, &ExecutorResourceBudgetExceedsCurrentCapacityError{
 			BackendID: backend.BackendID, Generation: backend.BackendGeneration,
-			RequestedBytes: spec.ResourceMemoryBytes, MaximumBytes: max(0, observation.HostTotalBytes-observation.ReserveBytes),
+			RequestedBytes: spec.ResourceMemoryBytes, MinimumBytes: capacity.MinimumBytes,
+			MaximumBytes:   max(0, observation.HostTotalBytes-observation.ReserveBytes),
 			HostTotalBytes: observation.HostTotalBytes, ReserveBytes: observation.ReserveBytes,
 		}
 	}
