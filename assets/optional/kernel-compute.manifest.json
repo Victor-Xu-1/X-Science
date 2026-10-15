@@ -97,9 +97,14 @@
       "bytes": 186
     },
     {
+      "path": "kernels/test_managed_endpoint_registration.py",
+      "sha256": "726432c7b2f58041920e99f0de71540a857cbb87c053c7fda00afc53841c52e0",
+      "bytes": 2337
+    },
+    {
       "path": "kernels/x_science_host_bridge.py",
-      "sha256": "8246e9320642f6dcd218e662cdc6aec13253244119c68f6093c8acdf40a04a88",
-      "bytes": 110535
+      "sha256": "097a3a2ee8c1901884965c893de0ab8cf6f327420f9194eac4c6910baaf1394b",
+      "bytes": 110767
     },
     {
       "path": "kernels/x_science_runtime/__init__.py",
