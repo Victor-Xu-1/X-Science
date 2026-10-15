@@ -564,12 +564,30 @@ func (s *Store) ClaimManagedEndpointStop(name, userID string, ownerRoots ...stri
 	if err != nil {
 		return ManagedEndpoint{}, false, err
 	}
-	if endpoint.State == "stopped" {
+	if endpoint.State == "stopped" || endpoint.State == "failed" {
 		noOwner, err := managedEndpointStoppedWithoutOwnerTx(ctx, tx, endpoint)
 		if err != nil {
 			return endpoint, false, err
 		}
 		if noOwner {
+			if endpoint.State == "failed" {
+				now := s.now().UTC()
+				result, err := tx.ExecContext(ctx, `UPDATE compute_managed_endpoints SET state='stopped',last_error=NULL,state_changed_at=? WHERE name=? AND owner_user_id=? AND state='failed' AND stop_claim_generation=? AND stop_claim_token='' AND approved_script_hash=?`, now, endpoint.Name, endpoint.RegisteredBy, endpoint.ClaimGeneration, endpoint.ApprovedScriptHash)
+				if err != nil {
+					return endpoint, false, err
+				}
+				if count, err := result.RowsAffected(); err != nil {
+					return endpoint, false, err
+				} else if count != 1 {
+					return endpoint, false, compute.ErrManagedEndpointStaleAction
+				}
+				endpoint.State, endpoint.LastError, endpoint.StateChangedAt = "stopped", nil, &now
+				iso := now.Format(time.RFC3339Nano)
+				endpoint.StateChangedAtISO = &iso
+				if err := s.enqueueManagedEndpointTx(ctx, tx, "managed_endpoint_update", "stopped_without_owner", endpoint, ""); err != nil {
+					return endpoint, false, err
+				}
+			}
 			return endpoint, false, tx.Commit()
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"x-science/internal/compute"
+	kernelruntime "x-science/internal/kernel"
 	"x-science/internal/persistence/workspace"
 )
 
@@ -41,7 +42,7 @@ func (s *Server) managedEndpointCoordinator() (*compute.ManagedEndpointCoordinat
 	return &compute.ManagedEndpointCoordinator{Store: s.workspaceStore, Runtime: runtime, RuntimeRoot: root, Environment: s.managedEndpointEnvironment, CancelAuthorized: func(ctx context.Context) bool { return errors.Is(context.Cause(ctx), ErrGenerationStopped) }}, nil
 }
 
-func (s *Server) managedEndpointEnvironment(ctx context.Context, instance compute.ManagedEndpointOwnerInstance, _ string) (map[string]string, error) {
+func (s *Server) managedEndpointEnvironment(ctx context.Context, instance compute.ManagedEndpointOwnerInstance, kind string) (map[string]string, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, context.Cause(ctx)
 	}
@@ -53,6 +54,14 @@ func (s *Server) managedEndpointEnvironment(ctx context.Context, instance comput
 		}
 		credential, err := s.kernelHostCredentialGet(instance.UserID, name)
 		if err != nil {
+			// With an initialized Store, this typed result is emitted only after
+			// its user-scoped read succeeds without a matching key. Deletion of
+			// a startup key cannot revoke authority to stop the existing owner;
+			// nil/storage failures and every Start remain strict.
+			var missing *kernelruntime.HostCallError
+			if kind == "stop" && s != nil && s.secretStore != nil && errors.As(err, &missing) && missing.Code == "credential_unavailable" {
+				return values, nil
+			}
 			return nil, errors.New("approved managed endpoint credential is unavailable")
 		}
 		for _, key := range []string{"value", "token", "api_key", "key"} {

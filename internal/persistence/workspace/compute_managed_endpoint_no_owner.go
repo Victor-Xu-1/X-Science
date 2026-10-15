@@ -19,7 +19,7 @@ func managedEndpointStoppedWithoutOwnerTx(ctx context.Context, tx *sql.Tx, endpo
 		return false, err
 	}
 	if history == 0 || active != 0 {
-		return history == 0, nil
+		return history == 0 && endpoint.State == "stopped", nil
 	}
 	if endpoint.OwnerSpec == nil {
 		return false, nil
@@ -54,10 +54,21 @@ func managedEndpointStoppedWithoutOwnerTx(ctx context.Context, tx *sql.Tx, endpo
 	if err != nil {
 		return false, err
 	}
-	if !eligible || action.CancelRequested || state != "stopped" || action.Receipt.Failure != "" || validateManagedEndpointNoOwnerReceipt(instance, *action.Receipt) != nil {
+	if !eligible || validateManagedEndpointNoOwnerReceipt(instance, *action.Receipt) != nil {
 		return false, compute.ErrManagedEndpointCorruptOwner
 	}
-	return true, nil
+	if !action.CancelRequested && state == "stopped" && action.Receipt.Failure == "" {
+		return endpoint.State == "stopped", nil
+	}
+	// A cancelled Stop retains its original failed action. Its complete negative
+	// proof can nevertheless settle an explicit RetryStop projection, but only
+	// while it is still this endpoint's exact terminal claim with no successor.
+	if action.CancelRequested && state == "failed" && action.Receipt.Failure != "" &&
+		ref.Generation == endpoint.ClaimGeneration && endpoint.ClaimToken == "" &&
+		(endpoint.State == "failed" || endpoint.State == "stopped") {
+		return true, nil
+	}
+	return false, compute.ErrManagedEndpointCorruptOwner
 }
 
 func managedEndpointNoOwnerCreatedTx(ctx context.Context, tx *sql.Tx, instance compute.ManagedEndpointOwnerInstance, ref compute.ManagedEndpointActionRef, action compute.ManagedEndpointAction) (bool, error) {
