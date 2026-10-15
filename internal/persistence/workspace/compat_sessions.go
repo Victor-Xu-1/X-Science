@@ -751,7 +751,7 @@ func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTra
 	pendingRootInput := false
 	for _, frame := range frames {
 		pendingHistoricalInput := false
-		if frame.ID == rootID && frame.Status == FrameStatusCompleted && input.Command != nil {
+		if frame.ID == rootID && (frame.Status == FrameStatusCompleted || frame.Status == FrameStatusProcessing) && input.Command != nil {
 			// This extension is available only to the existing authenticated,
 			// target-bound command transaction. It does not resurrect cancelled
 			// work, synthesize admission order, or bypass a live claim.

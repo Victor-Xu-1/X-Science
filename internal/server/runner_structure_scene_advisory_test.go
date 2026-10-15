@@ -77,7 +77,7 @@ func TestRecoveredStructureSceneConditionIsAdvisoryButImageIntegrityIsNot(t *tes
 
 func TestRecoveredStructureSceneDoesNotForceAnotherProviderToolCall(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
-	seedAnsweredTaskIntake(t, f.server, f.stream.OwnerID, f.stream.SessionID)
+	claimAnsweredRecoveryFixtureInput(t, f)
 	if _, found, err := f.repo.EnsureActiveFrameTaskIntent(context.Background(), f.stream.UID, f.stream.OwnerID); err != nil || !found {
 		t.Fatalf("task intent: found=%t error=%v", found, err)
 	}

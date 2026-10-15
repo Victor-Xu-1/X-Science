@@ -24,6 +24,8 @@ type Repository struct {
 	inputWakeMu               sync.Mutex
 	inputWake                 chan struct{}
 	recoveryAdmissionVerifier RecoveryAdmissionVerifier
+	candidateMu               sync.Mutex
+	candidateCursor           [2]runnerCandidateCursor
 }
 
 // ImmediateTransaction is the shared SQLite authority used when a workspace

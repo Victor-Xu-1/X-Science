@@ -17,15 +17,16 @@ func (r *Repository) framePendingInputRequiresContinueConn(ctx context.Context, 
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
-	if err != nil || frameStatus != "completed" {
+	if err != nil || (frameStatus != "completed" && frameStatus != "processing") {
 		return false, err
 	}
 	stream, err := getStreamConn(ctx, conn, streamUID, ownerID)
 	if err != nil {
 		return false, err
 	}
-	coverage, err := r.inputCoverageConn(ctx, conn, stream, stream.ConsumedInputRevision)
-	if err != nil || !coverage.Pending() || coverage.Complete {
+	evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
+	coverage := evidence.Coverage
+	if err != nil || !coverage.Pending() || coverage.Complete || frameStatus == "processing" && evidence.Authorized {
 		return false, err
 	}
 	var live bool
@@ -35,7 +36,15 @@ func (r *Repository) framePendingInputRequiresContinueConn(ctx context.Context, 
 		ownerID, stream.RootFrameID, now).Scan(&live); err != nil {
 		return false, err
 	}
-	return !live, nil
+	if live {
+		return false, nil
+	}
+	var dispatched bool
+	if err := conn.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM frame_events WHERE frame_id=? AND event_type='frame_resumed'
+		AND json_extract(payload,'$.dispatch.status') IN ('registered','claimed','blocked'))`, frameID).Scan(&dispatched); err != nil {
+		return false, err
+	}
+	return !dispatched, nil
 }
 
 // FramePendingInputRequiresContinue is a derived disposition, never a second

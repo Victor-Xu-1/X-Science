@@ -30,7 +30,17 @@ func admittedEventKind(ctx context.Context, query transcriptQueryRower, stream S
 			return "", err
 		}
 	}
-	if IsCanonicalFrameUserMessage(event.Type, event.ClientMessageID, payload) {
+	return admittedEventBytesKind(event.Type, event.ClientMessageID, payload)
+}
+
+func admittedEventBytesKind(eventType, clientID string, payload []byte) (string, error) {
+	if eventType == "user_message" {
+		return "message", nil
+	}
+	if eventType != "user_input_response" {
+		return "", ErrEventConflict
+	}
+	if IsCanonicalFrameUserMessage(eventType, clientID, payload) {
 		return "message", nil
 	}
 	return "control", nil

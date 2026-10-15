@@ -11,7 +11,7 @@ import (
 // Reconstruct the reviewed schema76 writer, not a lease/status manipulation:
 // its normal second composer input was user_input_response, incremented U and
 // activated a completed Frame. No prospective admission relation existed yet.
-func appendSchema76QueuedFrameInput(t *testing.T, store *Store, repo *transcriptstore.Repository, stream transcriptstore.Stream) {
+func schema76QueuedFramePayload(t *testing.T) []byte {
 	t.Helper()
 	payload, err := json.Marshal(map[string]any{"messageUuid": "queued", "_uuid": "queued", "clientMessageId": "queued",
 		"role": "user", "messageOrigin": "input_response", "text": "Continue the retained task",
@@ -19,9 +19,14 @@ func appendSchema76QueuedFrameInput(t *testing.T, store *Store, repo *transcript
 	if err != nil {
 		t.Fatal(err)
 	}
+	return payload
+}
+
+func appendSchema76QueuedFrameInput(t *testing.T, store *Store, repo *transcriptstore.Repository, stream transcriptstore.Stream) {
+	t.Helper()
 	staged, err := repo.StageUserEvent(t.Context(), transcriptstore.AppendUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID,
-		ClientMessageID: "queued", PayloadJSON: payload, Destinations: []string{"ws"}})
-	if err != nil || !staged.Created {
+		ClientMessageID: "queued", PayloadJSON: schema76QueuedFramePayload(t), Destinations: []string{"ws"}})
+	if err != nil || staged.Admitted || staged.Event.Type != "user_message_staged" {
 		t.Fatalf("stage historical composer=%+v %v", staged, err)
 	}
 	err = repo.RunImmediate(t.Context(), func(tx *transcriptstore.ImmediateTransaction) error {
@@ -47,7 +52,12 @@ func appendSchema76QueuedFrameInput(t *testing.T, store *Store, repo *transcript
 	}
 }
 
-func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool) (*Store, *transcriptstore.Repository, transcriptstore.Stream) {
+type legacyQueuedFixtureOptions struct {
+	stagedBeforeClaim bool
+	manualWait        bool
+}
+
+func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool, options ...legacyQueuedFixtureOptions) (*Store, *transcriptstore.Repository, transcriptstore.Stream) {
 	t.Helper()
 	db, path := openTargetTwentyTwoProviderDB(t)
 	applyTranscriptMigration(t, db, 76)
@@ -84,6 +94,23 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool) (*Store, *tr
 			t.Fatal(err)
 		}
 	}
+	var option legacyQueuedFixtureOptions
+	if len(options) > 0 {
+		option = options[0]
+	}
+	if option.stagedBeforeClaim {
+		payload := []byte(`{"text":"Continue the retained task"}`)
+		var destinations []string
+		if frame {
+			payload = schema76QueuedFramePayload(t)
+		}
+		if frame {
+			destinations = []string{"ws"}
+		}
+		if staged, err := repo.StageUserEvent(t.Context(), transcriptstore.AppendUserEventInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "queued", PayloadJSON: payload, Destinations: destinations}); err != nil || !staged.Created {
+			t.Fatalf("stage before claim: %+v %v", staged, err)
+		}
+	}
 	ttl := time.Minute
 	if prepared {
 		ttl = 2 * time.Second
@@ -103,8 +130,13 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool) (*Store, *tr
 		appendSchema76QueuedFrameInput(t, oldStore, repo, stream)
 	} else {
 		if _, created, err := appendHistoricalMigrationUserEvent(t, t.Context(), db, repo, transcriptstore.AppendUserEventInput{
-			StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "queued", PayloadJSON: []byte(`{"text":"Continue the retained task"}`)}); err != nil || !created {
+			StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "queued", PayloadJSON: []byte(`{"text":"Continue the retained task"}`)}); err != nil || created == option.stagedBeforeClaim {
 			t.Fatalf("queued input created=%t %v", created, err)
+		}
+	}
+	if option.manualWait {
+		if interrupted, err := repo.InterruptRunner(t.Context(), transcriptstore.InterruptRunnerInput{Claim: claim.Claim, ClientMessageID: "later-manual-wait", ReasonCode: "user_owned_wait", Resumable: true, AutoResume: false}); err != nil || !interrupted.Created {
+			t.Fatalf("later manual wait: %+v %v", interrupted, err)
 		}
 	}
 	if err := db.Close(); err != nil {

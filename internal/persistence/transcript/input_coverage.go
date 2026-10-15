@@ -83,11 +83,9 @@ func (r *Repository) inputCoverageConn(ctx context.Context, conn *sql.Conn, stre
 				!member || (source != string(EventSourcePayload) && source != string(EventSourceFrameRef)) || len(payload) == 0 {
 				return coverage, fmt.Errorf("input admission event differs: %w", ErrEventConflict)
 			}
-			expectedKind := "control"
-			if eventType == "user_message" || eventType == "user_input_response" && IsCanonicalFrameUserMessage(eventType, clientID, payload) {
-				expectedKind = "message"
-			} else if eventType != "user_input_response" {
-				return coverage, ErrEventConflict
+			expectedKind, err := admittedEventBytesKind(eventType, clientID, payload)
+			if err != nil {
+				return coverage, err
 			}
 			if kind != expectedKind {
 				return coverage, fmt.Errorf("input admission classification differs: %w", ErrEventConflict)

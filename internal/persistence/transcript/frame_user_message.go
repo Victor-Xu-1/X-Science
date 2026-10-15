@@ -11,18 +11,19 @@ import (
 // explicitly user_message contract and must not be restricted to this shape.
 func IsCanonicalFrameUserMessage(eventType, clientID string, payload []byte) bool {
 	var message struct {
-		MessageUUID     string `json:"messageUuid"`
-		UUID            string `json:"_uuid"`
-		ClientMessageID string `json:"clientMessageId"`
-		Role            string `json:"role"`
-		Origin          string `json:"messageOrigin"`
-		Text            string `json:"text"`
+		MessageUUID     string          `json:"messageUuid"`
+		UUID            string          `json:"_uuid"`
+		ClientMessageID string          `json:"clientMessageId"`
+		Role            string          `json:"role"`
+		Origin          string          `json:"messageOrigin"`
+		PlanApproval    json.RawMessage `json:"planApprovalId"`
+		Text            string          `json:"text"`
 		Content         []struct {
 			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"content"`
 	}
-	if json.Unmarshal(payload, &message) != nil || message.Role != "user" ||
+	if json.Unmarshal(payload, &message) != nil || len(message.PlanApproval) != 0 || message.Role != "user" ||
 		message.MessageUUID == "" || message.MessageUUID != message.UUID ||
 		message.ClientMessageID != clientID || clientID == "" || strings.TrimSpace(message.Text) == "" {
 		return false
