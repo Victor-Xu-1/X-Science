@@ -24,6 +24,17 @@ func TestCorrectionIdentityBeyondDisplayBudget(t *testing.T) {
 		refs[index] = fmt.Sprintf("source-%02d", index)
 	}
 	visualNames := []string{"a.png", "b.png", "c.png", "d.png", "e.png", "f.png", "g.png", "h.png"}
+	visualFailure := func(last string) *sessionRunnerVisualArtifactValidationRequired {
+		names := append(append([]string(nil), visualNames...), last)
+		targets := make([]transcriptstore.RunnerVisualConditionArtifact, len(names))
+		for index, name := range names {
+			targets[index] = transcriptstore.RunnerVisualConditionArtifact{
+				Name: name, VersionID: fmt.Sprintf("image-version-%d", index),
+				SHA256: strings.Repeat("a", 64), Failure: "invalid_image_integrity",
+			}
+		}
+		return &sessionRunnerVisualArtifactValidationRequired{Artifacts: names, Targets: targets}
+	}
 	for _, test := range []struct {
 		name string
 		a, b sessionRunnerBoundedCorrection
@@ -31,7 +42,7 @@ func TestCorrectionIdentityBeyondDisplayBudget(t *testing.T) {
 		{"identifier suffix", &sessionRunnerReferenceIntegrityError{MissingLocalArtifacts: []string{prefix + "first.dat"}}, &sessionRunnerReferenceIntegrityError{MissingLocalArtifacts: []string{prefix + "second.dat"}}},
 		{"omitted identifier", &sessionRunnerReferenceIntegrityError{MissingLocalArtifacts: append(append([]string(nil), refs...), "zz-first.dat")}, &sessionRunnerReferenceIntegrityError{MissingLocalArtifacts: append(append([]string(nil), refs...), "zz-second.dat")}},
 		{"review suffix", sessionRunnerCompletionReviewCorrection{Issues: []sessionRunnerReviewIssue{{Severity: "major", Claim: strings.Repeat("finding ", 800) + "first"}}}, sessionRunnerCompletionReviewCorrection{Issues: []sessionRunnerReviewIssue{{Severity: "major", Claim: strings.Repeat("finding ", 800) + "second"}}}},
-		{"ninth visual artifact", &sessionRunnerVisualArtifactValidationRequired{Artifacts: append(append([]string(nil), visualNames...), "z-first.png")}, &sessionRunnerVisualArtifactValidationRequired{Artifacts: append(append([]string(nil), visualNames...), "z-second.png")}},
+		{"ninth visual artifact", visualFailure("z-first.png"), visualFailure("z-second.png")},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			a, b := test.a.runnerCorrection(), test.b.runnerCorrection()
@@ -40,6 +51,10 @@ func TestCorrectionIdentityBeyondDisplayBudget(t *testing.T) {
 			}
 			if runnerCorrectionFingerprint(a) == runnerCorrectionFingerprint(b) {
 				t.Fatal("display clipping merged distinct complete conditions")
+			}
+			if a.Condition.Visual != nil && (len(a.Condition.Visual.Artifacts) != 9 ||
+				sessionRunnerVisualCorrectionIsAdvisory(recoveredRunnerCorrection{ReasonCode: a.ReasonCode, Condition: a.Condition})) {
+				t.Fatal("image target identities were lost or converted to an optional scene")
 			}
 		})
 	}
