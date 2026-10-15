@@ -105,11 +105,11 @@ func (r *Repository) LatestRunnerInterruption(
 		return RunnerInterruption{}, false, nil
 	}
 	interruption.ResumeDetail = strings.TrimSpace(stringValueFromAny(payload["resume_detail"]))
-	if value, present := payload["provider_failure_kind"]; present {
-		kind, ok := value.(string)
-		if !ok || kind == "" || validateRunnerProviderFailureKind(interruption.ReasonCode, kind) != nil {
-			return RunnerInterruption{}, false, errors.New("runner provider failure category is invalid")
-		}
+	// An unfamiliar display annotation must not invalidate the original reason,
+	// cause, checkpoint or resume policy. Writers remain closed; old/future
+	// reader data can safely omit this optional presentation category.
+	if kind, ok := payload["provider_failure_kind"].(string); ok &&
+		interruption.ReasonCode == "model_provider_unavailable" && ValidRunnerProviderFailureKind(kind) {
 		interruption.ProviderFailureKind = kind
 	}
 	// Match the scheduler's eligibility contract, including historical records

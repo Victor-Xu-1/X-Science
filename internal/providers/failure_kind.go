@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-// FailureKind is a closed presentation category, never retry or authorization
-// authority. Provider prose is deliberately excluded from its classification.
+// FailureKind classifies observed HTTP status and closed machine-code evidence,
+// never provider prose. Its persisted presentation copy is not retry, resume or
+// authorization authority; transport decisions require the typed HTTP error.
 type FailureKind string
 
 const (
@@ -29,6 +30,22 @@ func HTTPFailureKind(err error) (FailureKind, bool) {
 		return FailureUnavailable, true
 	}
 	return response.failureKind, true
+}
+
+// IsPermanentHTTPAccountFailure requires transport-owned status/code evidence,
+// not arbitrary error text or the optional persisted presentation category.
+func IsPermanentHTTPAccountFailure(err error) bool {
+	kind, found := HTTPFailureKind(err)
+	return found && permanentProviderAccountFailure(kind)
+}
+
+func permanentProviderAccountFailure(kind FailureKind) bool {
+	switch kind {
+	case FailureSubscription, FailureAuthentication, FailureAccessDenied:
+		return true
+	default:
+		return false
+	}
 }
 
 func providerHTTPFailureKind(status int, body []byte) FailureKind {
