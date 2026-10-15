@@ -54,7 +54,7 @@ func TestManagedEndpointWorkerWaitsForIdentifiedControlSocket(t *testing.T) {
 			}
 			finished := make(chan result, 1)
 			go func() {
-				observed, err := runtime.worker(requestCtx, instance, true, false)
+				observed, err := runtime.worker(requestCtx, instance, &instance.InitialAction, false)
 				finished <- result{observed: observed, err: err}
 			}()
 			if scenario == "foreign_socket_identity" {
@@ -112,7 +112,10 @@ func managedEndpointSocketFixture(t *testing.T, fresh, pidDelayed bool) (*Manage
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(rpcRoot) })
 	t.Setenv("XDG_RUNTIME_DIR", rpcRoot)
-	root := t.TempDir()
+	root := filepath.Join(t.TempDir(), "owners")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
 	registration := ManagedEndpointRegistration{Name: "socket-fixture", URL: "http://127.0.0.1:25001", Port: 25001, LivePath: "/health", StartScript: "not executed", StopScript: "not executed", Owner: &ManagedEndpointOwnerSpec{Version: 1, Kind: "native-unit", Output: ManagedEndpointOutputPolicy{SegmentBytes: 4096, Segments: 2}}}
 	instance := ManagedEndpointOwnerInstance{ID: "socket-fixture", UserID: "private-owner", Endpoint: registration.Name, Registration: registration, ApprovedHash: ApprovedManagedEndpointHash(registration), StartGeneration: 1, RuntimeRoot: root, ServiceDir: t.TempDir(), WorkspacePath: filepath.Join(t.TempDir(), "workspace.db"), InitialAction: ManagedEndpointActionRef{InstanceID: "socket-fixture", Kind: "start", ClaimHandle: "original", Generation: 1}}
 	identity := managedEndpointSocketIdentity(t, instance)
@@ -157,6 +160,11 @@ func managedEndpointSocketServer(t *testing.T, instance ManagedEndpointOwnerInst
 	t.Helper()
 	path, err := managedEndpointSocketPath(instance)
 	if err != nil {
+		t.Fatal(err)
+	}
+	// The path resolver is deliberately read-only; this protocol fixture owns
+	// its own listener directory instead of using production publish authority.
+	if err := ensureManagedEndpointPrivateDirectory(filepath.Dir(path)); err != nil {
 		t.Fatal(err)
 	}
 	listener, err := net.Listen("unix", path)

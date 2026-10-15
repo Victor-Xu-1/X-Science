@@ -47,6 +47,8 @@ func managedEndpointInstanceDirectory(instance ManagedEndpointOwnerInstance) str
 	return filepath.Join(instance.RuntimeRoot, instance.ID)
 }
 
+// Resolution is read-only, including before an old launch reaches the CLI.
+// Only the canonical worker publisher may create its parent or unlink a socket.
 func managedEndpointSocketPath(instance ManagedEndpointOwnerInstance) (string, error) {
 	runtimeRoot := os.Getenv("XDG_RUNTIME_DIR")
 	if !filepath.IsAbs(runtimeRoot) {
@@ -54,9 +56,6 @@ func managedEndpointSocketPath(instance ManagedEndpointOwnerInstance) (string, e
 	}
 	sum := sha256.Sum256([]byte(instance.RuntimeRoot))
 	directory := filepath.Join(runtimeRoot, "x-science-endpoints", hex.EncodeToString(sum[:8]))
-	if err := ensureManagedEndpointPrivateDirectory(directory); err != nil {
-		return "", err
-	}
 	path := filepath.Join(directory, instance.ID+".sock")
 	if len(path) >= 108 {
 		return "", errors.New("managed endpoint control socket path exceeds the platform address limit")
@@ -81,30 +80,20 @@ func ensureManagedEndpointPrivateDirectory(path string) error {
 	return nil
 }
 
-func (unit *managedEndpointUnit) launch(ctx context.Context, instance ManagedEndpointOwnerInstance, executable string) error {
-	if err := instance.Validate(); err != nil {
+func (unit *managedEndpointUnit) launch(ctx context.Context, instance ManagedEndpointOwnerInstance, requested ManagedEndpointActionRef, executable string) error {
+	input, err := ManagedEndpointBootstrapFor(instance, requested)
+	if err != nil {
 		return err
 	}
 	if !filepath.IsAbs(executable) {
 		return errors.New("managed endpoint worker executable must be absolute")
 	}
-	dir := managedEndpointInstanceDirectory(instance)
-	if err := ensureManagedEndpointPrivateDirectory(dir); err != nil {
+	encoded, err := input.Encode()
+	if err != nil {
 		return err
 	}
-	descriptor := filepath.Join(dir, "owner.json")
-	var existing ManagedEndpointOwnerInstance
-	if err := readManagedEndpointPrivateJSON(descriptor, &existing); err == nil {
-		if existing.ID != instance.ID || existing.UserID != instance.UserID || existing.Endpoint != instance.Endpoint || existing.ApprovedHash != instance.ApprovedHash || existing.StartGeneration != instance.StartGeneration || existing.RuntimeRoot != instance.RuntimeRoot || existing.ServiceDir != instance.ServiceDir || existing.WorkspacePath != instance.WorkspacePath || existing.InitialAction != instance.InitialAction {
-			return ErrManagedEndpointCorruptOwner
-		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		if err := writeManagedEndpointPrivateJSON(descriptor, instance); err != nil {
-			return err
-		}
-	} else {
-		return err
-	}
+	// Starting an inert CLI grants no metadata or script authority. The child
+	// must obtain the original operation's Store writer fence before publishing.
 	arguments := []string{
 		"--user", "--quiet", "--collect", "--service-type=exec", "--unit=" + ManagedEndpointUnitName(instance.ID),
 		"--property=Restart=no", "--property=KillMode=control-group", "--property=TimeoutStopSec=10s",
@@ -113,8 +102,8 @@ func (unit *managedEndpointUnit) launch(ctx context.Context, instance ManagedEnd
 	for _, value := range managedEndpointBaseEnvironment() {
 		arguments = append(arguments, "--setenv="+value)
 	}
-	arguments = append(arguments, "--", executable, "managed-endpoint-owner", "--descriptor", descriptor)
-	_, err := managedEndpointControlCommand(ctx, unit.run, arguments...)
+	arguments = append(arguments, "--", executable, "managed-endpoint-owner", "--bootstrap", encoded)
+	_, err = managedEndpointControlCommand(ctx, unit.run, arguments...)
 	return err
 }
 

@@ -50,50 +50,10 @@ type managedEndpointWorker struct {
 // RunManagedEndpointOwnerWorker is a private CLI entry. It owns the output
 // descriptors and operation receipts independently of the web process. It never
 // executes a script merely because a previous action journal is incomplete.
-func RunManagedEndpointOwnerWorker(ctx context.Context, descriptor string, store ManagedEndpointOwnerStore) error {
-	var instance ManagedEndpointOwnerInstance
-	if err := readManagedEndpointPrivateJSON(descriptor, &instance); err != nil {
-		return err
-	}
-	if err := instance.Validate(); err != nil {
-		return err
-	}
-	if store == nil {
-		return errors.New("managed endpoint worker has no durable admission authority")
-	}
-	current, initial, err := store.ReadManagedEndpointAction(ctx, instance.InitialAction)
+func RunManagedEndpointOwnerWorker(ctx context.Context, input ManagedEndpointBootstrap, store ManagedEndpointOwnerStore) error {
+	instance, unit, identity, socket, err := bootstrapManagedEndpointWorker(ctx, input, store)
 	if err != nil {
 		return err
-	}
-	if current.ID != instance.ID || current.UserID != instance.UserID || current.ApprovedHash != instance.ApprovedHash || current.RuntimeRoot != instance.RuntimeRoot || current.ServiceDir != instance.ServiceDir || current.WorkspacePath != instance.WorkspacePath || current.InitialAction != instance.InitialAction {
-		return ErrManagedEndpointCorruptOwner
-	}
-	if initial.CancelRequested && !initial.Accepted || initial.Receipt != nil && initial.Receipt.NotStarted {
-		stopAuthority, successor, err := store.CurrentManagedEndpointAction(ctx, instance.ID)
-		if errors.Is(err, ErrManagedEndpointStaleAction) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if successor.Ref.Kind != "stop" || successor.Ref == instance.InitialAction || successor.Receipt != nil {
-			return nil
-		}
-		if successor.CancelRequested && (stopAuthority.CleanupRef == nil || *stopAuthority.CleanupRef != instance.InitialAction) {
-			return nil
-		}
-	}
-	instance = current
-	if descriptor != filepath.Join(managedEndpointInstanceDirectory(instance), "owner.json") {
-		return errors.New("managed endpoint descriptor path does not match its instance")
-	}
-	unit, err := newManagedEndpointUnit()
-	if err != nil {
-		return err
-	}
-	observed, err := unit.observe(ctx, instance)
-	if err != nil || observed.Identity.PID != int64(os.Getpid()) {
-		return errors.New("managed endpoint worker is not the positively identified unit owner")
 	}
 	outputDir := filepath.Join(managedEndpointInstanceDirectory(instance), "output")
 	output, recovered, err := managedEndpointOutputForWorker(outputDir, instance.Registration.Owner.Output)
@@ -105,7 +65,7 @@ func RunManagedEndpointOwnerWorker(ctx context.Context, descriptor string, store
 	if err != nil {
 		return err
 	}
-	worker := &managedEndpointWorker{instance: instance, unit: unit, identity: observed.Identity, output: output, reader: reader, writer: writer, readerDone: make(chan error, 1), journalPath: filepath.Join(managedEndpointInstanceDirectory(instance), "action.json"), recoveredOutput: recovered, store: store}
+	worker := &managedEndpointWorker{instance: instance, unit: unit, identity: identity, output: output, reader: reader, writer: writer, readerDone: make(chan error, 1), journalPath: filepath.Join(managedEndpointInstanceDirectory(instance), "action.json"), recoveredOutput: recovered, store: store}
 	if err := readManagedEndpointPrivateJSON(worker.journalPath, &worker.action); err != nil && !errors.Is(err, os.ErrNotExist) {
 		_ = reader.Close()
 		_ = writer.Close()
@@ -141,10 +101,6 @@ func RunManagedEndpointOwnerWorker(ctx context.Context, descriptor string, store
 	}
 	go func() { _, copyErr := io.Copy(output, reader); worker.readerDone <- copyErr }()
 	defer func() { _ = writer.Close(); _ = reader.Close(); <-worker.readerDone }()
-	socket, err := managedEndpointSocketPath(instance)
-	if err != nil {
-		return err
-	}
 	listener, err := net.Listen("unix", socket)
 	if err != nil {
 		return err
