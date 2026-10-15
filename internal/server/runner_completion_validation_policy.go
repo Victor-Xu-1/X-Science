@@ -267,17 +267,15 @@ func sessionRunnerFatalCrossArtifactFailures(run *sessionRunnerChatRun, failures
 	fatal := make([]string, 0, len(failures))
 	advisory := make([]string, 0)
 	for _, failure := range failures {
-		isAdvisory := sessionRunnerCompletionAdvisoryCrossArtifactFailure(failure)
-		evidenceGap := sessionRunnerEvidenceGapCrossArtifactFailure(failure)
-		if run != nil && (evidenceGap || isAdvisory) {
+		if run != nil && sessionRunnerQualityFindingIsAdvisory(failure) {
 			advisory = append(advisory, failure)
 			continue
 		}
 		fatal = append(fatal, failure)
 	}
 	if len(advisory) > 0 {
-		// Keep the discrepancy visible to operators without creating another
-		// transcript event or exposing internal validation language to users.
+		// Normal completion and completion-only recovery also render a bounded
+		// limitation notice through their existing authoritative final message.
 		log.Printf("runner_completion_advisory_cross_artifact_failures count=%d", len(advisory))
 	}
 	return fatal

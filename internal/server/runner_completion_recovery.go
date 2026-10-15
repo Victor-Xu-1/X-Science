@@ -262,7 +262,7 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	ctx context.Context,
 	session sessionstore.Session,
 	candidate sessionRunnerCompletionRecoveryCandidate,
-) (*sessionRunnerCompletionAdvisory, error) {
+) ([]*sessionRunnerCompletionAdvisory, error) {
 	if candidate.SourceRun == nil || strings.TrimSpace(candidate.Content) == "" {
 		return nil, transcriptstore.ErrEventConflict
 	}
@@ -330,7 +330,12 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
 		len(scientificFailures) == 0 && len(fatalCrossArtifactFailures) == 0 && len(researchValidation.Failures) == 0 && len(missingLocalArtifacts) == 0 &&
 		len(missingRequiredDeliverables) == 0 {
-		return s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
+		visual, err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
+		if err != nil {
+			return nil, err
+		}
+		return []*sessionRunnerCompletionAdvisory{visual,
+			sessionRunnerCompletionQualityAdvisory(candidate.SourceRun, crossArtifactFailures, unsupported)}, nil
 	}
 	return nil, &sessionRunnerReferenceIntegrityError{
 		UnresolvedArtifacts:          unresolved,
@@ -362,7 +367,7 @@ func (s *Server) recoverTranscriptCompletionOnly(
 		return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
 	}
 	if candidate.ReasonCode == "artifact_reference_correction_required" {
-		advisory, validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate)
+		advisories, validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate)
 		if validationErr != nil {
 			var integrityErr *sessionRunnerReferenceIntegrityError
 			if errors.As(validationErr, &integrityErr) && len(integrityErr.MissingRequiredDeliverables) > 0 {
@@ -374,7 +379,7 @@ func (s *Server) recoverTranscriptCompletionOnly(
 			}
 			return "failed", validationErr.Error(), candidate.Segment, true, nil
 		}
-		content := appendSessionRunnerCompletionAdvisories(candidate.Content, candidate.SourceRun.ResponseLanguage, advisory)
+		content := appendSessionRunnerCompletionAdvisories(candidate.Content, candidate.SourceRun.ResponseLanguage, advisories...)
 		if err := s.appendTranscriptAssistantEvent(context.WithoutCancel(ctx), run.Transcript, "completion-recovery-assistant", map[string]any{
 			"text": content, "assistant_segment": transcriptstore.AssistantSegmentPayloadV1(candidate.Segment.Ordinal, ""),
 		}); err != nil {

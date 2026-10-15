@@ -170,7 +170,8 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 			language = run.ResponseLanguage
 		}
 		replaceSessionRunnerFinalMessageContent(&result,
-			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory))
+			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory,
+				sessionRunnerCompletionQualityAdvisory(run, crossArtifactFailures, unsupportedCitationRefs)))
 		return result, nil
 	}
 	return result, &sessionRunnerReferenceIntegrityError{

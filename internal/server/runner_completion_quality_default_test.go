@@ -25,6 +25,7 @@ func TestCompletionQualityIsAdvisoryWithoutDisablingVerification(t *testing.T) {
 		"machine_validation_invalid_root:validation.json",
 		"rank_score_pair_missing:results.csv rank=rank score=score",
 		"rank_score_non_numeric:results.csv key=A columns=score/rank",
+		"rank_score_mismatch:results.csv key=A expected_rank=2",
 		"environment_claim_conflict:package in report.md",
 	}
 	hard := []string{
@@ -53,6 +54,24 @@ func TestCompletionQualityIsAdvisoryWithoutDisablingVerification(t *testing.T) {
 	}
 	if got := sessionRunnerFatalCrossArtifactFailures(nil, quality); !reflect.DeepEqual(got, quality) {
 		t.Fatalf("missing run authority silently relaxed validation: %#v", got)
+	}
+}
+
+func TestQualityAdvisoryBoundsCannotHideLaterIntegrityFailure(t *testing.T) {
+	run := &sessionRunnerChatRun{}
+	findings := make([]string, 100)
+	for index := range findings {
+		findings[index] = "numeric_table_mismatch:report.md<->results.csv key=A"
+	}
+	advisory := sessionRunnerCompletionQualityAdvisory(run, findings, nil)
+	if advisory == nil || len(advisory.Findings) != 32 || len(findings) != 100 {
+		t.Fatalf("unbounded notice or altered input: %#v", advisory)
+	}
+	findings = append(findings, "machine_validation_invalid_json:validation.json")
+	cause := (&sessionRunnerReferenceIntegrityError{CrossArtifactFailures: findings}).runnerCorrection()
+	if sessionRunnerReferenceCorrectionIsAdvisory(run,
+		recoveredRunnerCorrection{ReasonCode: cause.ReasonCode, Detail: cause.Detail, Condition: cause.Condition}) {
+		t.Fatal("a later integrity failure was lost behind the bounded advisory presentation")
 	}
 }
 
