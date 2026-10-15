@@ -452,8 +452,11 @@ func (s *Server) kernelHostRegisterManagedEndpoint(ctx context.Context, access w
 	if listErr != nil {
 		return nil, listErr
 	}
-	if len(existing) == 1 && existing[0].OwnerSpec == nil && registration.Owner != nil && registration.Owner.Adopt != nil {
-		registration.Owner.LegacyApproval = &compute.ManagedEndpointLegacyApproval{Registration: managedEndpointRegistration(existing[0]), Hash: existing[0].ApprovedScriptHash}
+	if len(existing) == 1 {
+		registration, err = restoreManagedEndpointLegacyApproval(registration, existing[0])
+		if err != nil {
+			return nil, err
+		}
 	}
 	hash := compute.ApprovedManagedEndpointHash(registration)
 	changed := true

@@ -168,6 +168,9 @@ func (spec *ManagedEndpointOwnerSpec) Validate() error {
 		if spec.Docker != nil {
 			return errors.New("native endpoint cannot declare a Docker owner")
 		}
+		if spec.Adopt != nil {
+			return errors.New("native endpoint adoption is not supported")
+		}
 	case "docker":
 		if spec.Docker == nil || !validManagedOwnerComponent(spec.Docker.Context) || !validManagedOwnerComponent(spec.Docker.Container) {
 			return errors.New("Docker endpoint requires an explicit context and container locator")

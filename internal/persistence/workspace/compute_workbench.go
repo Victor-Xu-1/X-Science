@@ -565,13 +565,11 @@ func (s *Store) ClaimManagedEndpointStop(name, userID string, ownerRoots ...stri
 		return ManagedEndpoint{}, false, err
 	}
 	if endpoint.State == "stopped" {
-		var history int
-		if endpoint.OwnerSpec != nil {
-			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM compute_managed_endpoint_instances WHERE endpoint_name=? AND owner_user_id=? AND approved_hash=?`, endpoint.Name, endpoint.RegisteredBy, endpoint.ApprovedScriptHash).Scan(&history); err != nil {
-				return endpoint, false, err
-			}
+		noOwner, err := managedEndpointStoppedWithoutOwnerTx(ctx, tx, endpoint)
+		if err != nil {
+			return endpoint, false, err
 		}
-		if history == 0 {
+		if noOwner {
 			return endpoint, false, tx.Commit()
 		}
 	}

@@ -9,6 +9,57 @@ import (
 	"x-science/internal/compute"
 )
 
+// A completed never-admitted Start/Stop has no parked physical owner to stop
+// again. Revalidate its exact committed negative proof, not a JSON boolean or
+// the absence of a port. An active successor always keeps its own authority.
+func managedEndpointStoppedWithoutOwnerTx(ctx context.Context, tx *sql.Tx, endpoint ManagedEndpoint) (bool, error) {
+	var history, active int
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*),COALESCE(SUM(retired_at IS NULL),0)
+		FROM compute_managed_endpoint_instances WHERE endpoint_name=?`, endpoint.Name).Scan(&history, &active); err != nil {
+		return false, err
+	}
+	if history == 0 || active != 0 {
+		return history == 0, nil
+	}
+	if endpoint.OwnerSpec == nil {
+		return false, nil
+	}
+	instance, err := readManagedEndpointInstanceTx(ctx, tx, `endpoint_name=? AND owner_user_id=? AND approved_hash=?
+		AND retired_at IS NOT NULL ORDER BY retired_at DESC,start_generation DESC LIMIT 1`, endpoint.Name, endpoint.RegisteredBy, endpoint.ApprovedScriptHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	ref := compute.ManagedEndpointActionRef{InstanceID: instance.ID}
+	var state string
+	if err := tx.QueryRowContext(ctx, `SELECT kind,claim_generation,claim_handle,result_state FROM compute_managed_endpoint_actions
+		WHERE instance_id=? AND finished_at IS NOT NULL ORDER BY claim_generation DESC LIMIT 1`, instance.ID).
+		Scan(&ref.Kind, &ref.Generation, &ref.ClaimHandle, &state); err != nil {
+		return false, err
+	}
+	name, _, generation, valid := parseManagedEndpointClaimHandle(ref.ClaimHandle)
+	if !valid || name != endpoint.Name || generation != ref.Generation || ref.Validate() != nil {
+		return false, compute.ErrManagedEndpointCorruptOwner
+	}
+	action, err := readManagedEndpointActionTx(ctx, tx, ref)
+	if err != nil {
+		return false, err
+	}
+	if action.Receipt == nil || !action.Receipt.NoOwnerCreated {
+		return false, nil
+	}
+	eligible, err := managedEndpointNoOwnerCreatedTx(ctx, tx, instance, ref, action)
+	if err != nil {
+		return false, err
+	}
+	if !eligible || action.CancelRequested || state != "stopped" || action.Receipt.Failure != "" || validateManagedEndpointNoOwnerReceipt(instance, *action.Receipt) != nil {
+		return false, compute.ErrManagedEndpointCorruptOwner
+	}
+	return true, nil
+}
+
 func managedEndpointNoOwnerCreatedTx(ctx context.Context, tx *sql.Tx, instance compute.ManagedEndpointOwnerInstance, ref compute.ManagedEndpointActionRef, action compute.ManagedEndpointAction) (bool, error) {
 	if ref.Kind != "stop" || action.Accepted || instance.InitialAction.Kind != "start" || ref.Generation <= instance.InitialAction.Generation || instance.Registration.Owner.Adopt != nil || instance.Registration.Owner.LegacyApproval != nil || instance.Identity != (compute.ManagedEndpointRuntimeIdentity{}) || instance.WorkerIdentity != (compute.ManagedEndpointRuntimeIdentity{}) {
 		return false, nil
