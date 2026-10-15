@@ -30,7 +30,7 @@ func TestQualityRecoveryPersistsOneNoticeWithoutReplayingWork(t *testing.T) {
 		t.Fatal(err)
 	}
 	terminal, _ := json.Marshal(map[string]any{"status": "failed",
-		"detail": "runner completion reference integrity failed (cross_artifact_failures=1)",
+		"detail":            "runner completion reference integrity failed (cross_artifact_failures=1)",
 		"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(1, "")})
 	if _, _, _, err := f.repo.FinishRunner(ctx, transcriptstore.FinishRunnerInput{
 		Claim: f.claim, ClientMessageID: "quality-old-finished", Status: "failed", PayloadJSON: terminal,
