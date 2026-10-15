@@ -15,7 +15,7 @@ func TestOptionalSceneStillRejectsCorruptBoundImageOutsideNewSelection(t *testin
 	image := writeSceneTestArtifactBytes(t, f.store, "preview", f.stream.ProjectID, "scene.png", []byte("not an image"), "image/png", f.stream.SessionID)
 	manifest, err := json.Marshal(structureSceneManifest{
 		Schema: structureSceneManifestSchema, SceneID: "comparison",
-		MotherStructure: structureSceneArtifactRef{Name: "base.pdb", VersionID: base.ID},
+		MotherStructure:   structureSceneArtifactRef{Name: "base.pdb", VersionID: base.ID},
 		DerivedStructures: []structureSceneArtifactRef{{Name: "derived.pdb", VersionID: derived.ID}},
 		Layers: []structureSceneLayer{
 			{VersionID: base.ID, Role: "mother", Representation: "cartoon", Visible: true},
