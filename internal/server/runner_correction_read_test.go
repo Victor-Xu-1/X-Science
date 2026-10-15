@@ -262,8 +262,9 @@ func TestCorrectionReadIsNotARepairActionOrArtifactInspection(t *testing.T) {
 				t.Error("diagnostic read replaced actual artifact inspection")
 			}
 			// Classification follows the typed call, never arbitrary result body labels.
+			// Inspection is genuine activity, not publication of a missing artifact.
 			messages[1].ToolCalls[0].Arguments = json.RawMessage(`{"file_path":"actual-result.csv"}`)
-			if sessionRunnerCorrectionStillRequiresAction(run, messages) || !runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
+			if sessionRunnerCorrectionStillRequiresAction(run, messages) != test.requiresAction || !runnerCorrectionCapabilityAttemptedSinceBoundary(messages, tools, "artifact-read") {
 				t.Error("ordinary artifact inspection behavior changed")
 			}
 		})
