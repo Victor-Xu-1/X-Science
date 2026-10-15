@@ -27,6 +27,9 @@ func (s *Server) recoveredCompletionCorrectionIsAdvisory(
 	if sessionRunnerVisualCorrectionIsAdvisory(correction) {
 		return true, nil
 	}
+	if correction.ReasonCode == "artifact_reference_correction_required" && correction.Condition != nil {
+		return sessionRunnerReferenceCorrectionIsAdvisory(run, correction), nil
+	}
 	if correction.ReasonCode != sessionRunnerPlanStepsIncompleteReasonCode {
 		return sessionRunnerRecoveredCorrectionIsAdvisory(correction.ReasonCode, correction.repairDetail()), nil
 	}

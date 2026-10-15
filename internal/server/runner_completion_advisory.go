@@ -2,7 +2,10 @@ package server
 
 import "strings"
 
-const completionAdvisoryStructurePreview = "structure_preview_unverified"
+const (
+	completionAdvisoryStructurePreview = "structure_preview_unverified"
+	completionAdvisoryResultQuality    = "result_quality_unverified"
+)
 
 // Completion advisories are host findings, not another completion obligation.
 // They are rendered into the same final assistant content before persistence;
@@ -39,6 +42,9 @@ func sessionRunnerCompletionAdvisoryText(code string) (english, chinese string) 
 	case completionAdvisoryStructurePreview:
 		return "Structure preview is unverified. Existing results are delivered without a validated combined structure preview. This does not certify scientific correctness or fulfil any missing preview deliverable.",
 			"结构预览尚未验证。现有结果已交付，但不包含经过验证的组合结构预览；这不代表科学结论已验证，也不代表缺少的预览交付项已经完成。"
+	case completionAdvisoryResultQuality:
+		return "Result quality is unverified. Some consistency or evidence checks remain unresolved. Existing outputs are preserved; task completion does not certify their accuracy.",
+			"结果质量尚未验证。部分一致性或证据检查仍存在问题。现有输出已保留；任务完成不代表这些结果的准确性已经得到验证。"
 	default:
 		return "", ""
 	}

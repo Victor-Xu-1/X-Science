@@ -13,20 +13,20 @@ func TestSessionRunnerFatalCrossArtifactFailuresKeepsPresentationMismatchesAdvis
 		"numeric_transposed_table_mismatch:results.csv<->report.md entity=A",
 		"table_row_identity_mismatch:report.md<->results.csv key_column=id",
 		"missing_artifact_reference:missing.csv in report.md",
-		"machine_validation_missing_passing_check:validation.json",
+		"machine_validation_invalid_json:validation.json",
 	}
 	want := []string{
 		"missing_artifact_reference:missing.csv in report.md",
-		"machine_validation_missing_passing_check:validation.json",
+		"machine_validation_invalid_json:validation.json",
 	}
 	if got := sessionRunnerFatalCrossArtifactFailures(run, failures); !reflect.DeepEqual(got, want) {
 		t.Fatalf("fatal failures=%#v want=%#v", got, want)
 	}
 }
 
-func TestSessionRunnerFatalCrossArtifactFailuresKeepsLegacyRunsStrict(t *testing.T) {
+func TestSessionRunnerFatalCrossArtifactFailuresKeepsMissingRunAuthorityStrict(t *testing.T) {
 	failures := []string{"numeric_table_mismatch:report.md<->results.csv key=A"}
-	if got := sessionRunnerFatalCrossArtifactFailures(&sessionRunnerChatRun{}, failures); !reflect.DeepEqual(got, failures) {
+	if got := sessionRunnerFatalCrossArtifactFailures(nil, failures); !reflect.DeepEqual(got, failures) {
 		t.Fatalf("legacy fatal failures=%#v want=%#v", got, failures)
 	}
 }

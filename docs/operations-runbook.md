@@ -206,6 +206,25 @@ source and permanently deleting the source use distinct confirmation dialogs.
 Save rules continue to use relative paths below the data root. No data-layout
 migration or new storage engine is required by this interface.
 
+### Result delivery and quality diagnostics
+
+Completion is not a certification of result accuracy. Numeric/table/row
+comparisons, source-coverage heuristics, inferred rank/score conventions and a
+valid report's own failed or incomplete checks are nonblocking by default.
+They do not require disabling the independent reviewer, changing observed
+values, or resaving a failed-check report as a fabricated PASS. Normal completion
+and completion-only recovery append one localized limitation notice to the
+existing final answer; original output bytes and historical candidates remain
+unchanged. The notice cannot replace an empty model answer.
+
+Continue applies the same policy to valid, typed historical reference
+conditions. A mixed condition still containing a genuinely missing required
+file, broken reference, malformed JSON, invalid structure or unknown integrity
+finding is not discarded. Truncated display text does not override a typed
+condition. Actual process/operation receipts, permissions, ownership, cancellation
+and immutable artifact identity remain authoritative and are not inferred from
+an output report's `true`, `false` or `status` fields.
+
 ### Local scientific software
 
 The Python chemistry runtime supplies RDKit 2D rendering. Interactive 3D
