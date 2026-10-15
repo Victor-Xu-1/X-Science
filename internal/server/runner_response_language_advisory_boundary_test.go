@@ -79,8 +79,11 @@ func TestFinalLanguageAdvisoryKeepsPrimaryCancellationAndPublicationErrorsHard(t
 			primary := languageAdvisoryOriginal
 			chunks := []string{primary}
 			if published {
-				primary = "答：" + primary
-				chunks = []string{"答：", languageAdvisoryOriginal}
+				primary = "答：The measured result remains 12.5 nm and the original file is result.csv."
+				chunks = []string{"答：", primary[len("答："):]}
+				if !sessionRunnerClearlyEnglishNarrative(primary, true) {
+					t.Fatal("fixture must reach the mixed-language notice publication boundary")
+				}
 			}
 			model := &responseLanguageSequenceModel{chunks: [][]string{chunks}, responses: []agentruntime.ModelResponse{{Message: agentruntime.Message{Content: primary}}}}
 			client := &sessionRunnerResponseLanguageModelClient{delegate: model, language: "zh"}
