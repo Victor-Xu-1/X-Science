@@ -24,12 +24,13 @@ type managedEndpointOutput struct {
 	retained   []int64
 	sequence   uint64
 	closed     bool
+	unverified bool
 	writeError error
 	prefix     cappedBuffer
 }
 
 func newManagedEndpointOutput(dir string, policy ManagedEndpointOutputPolicy) (*managedEndpointOutput, error) {
-	if !filepath.IsAbs(dir) || policy.SegmentBytes < 4096 || policy.SegmentBytes > 8<<20 || policy.Segments < 1 || policy.Segments > 8 {
+	if !filepath.IsAbs(dir) || !validManagedEndpointOutputPolicy(policy) {
 		return nil, errors.New("invalid managed endpoint output policy")
 	}
 	if err := os.Mkdir(dir, 0o700); err != nil {
@@ -41,6 +42,14 @@ func newManagedEndpointOutput(dir string, policy ManagedEndpointOutputPolicy) (*
 		return nil, err
 	}
 	output.file = file
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	if err := output.persistCursor(false); err != nil {
+		_ = file.Close()
+		return nil, err
+	}
 	return output, nil
 }
 
@@ -58,7 +67,18 @@ func (output *managedEndpointOutput) Write(value []byte) (int, error) {
 	output.sequence++
 	output.total += uint64(original)
 	_, _ = output.prefix.Write(value)
+	if output.unverified {
+		// Preserve the original private history. Only this reader's newly
+		// observed bytes/calls are counted; the receipt explains that scope.
+		output.dropped += uint64(original)
+		return original, nil
+	}
 	if output.writeError != nil {
+		output.dropped += uint64(original)
+		return original, nil
+	}
+	if err := output.persistCursor(true); err != nil {
+		output.writeError = err
 		output.dropped += uint64(original)
 		return original, nil
 	}
@@ -110,6 +130,13 @@ func (output *managedEndpointOutput) Write(value []byte) (int, error) {
 			output.dropped += uint64(len(value))
 			return original, nil
 		}
+	}
+	if err := output.file.Sync(); err != nil {
+		output.writeError = err
+		return original, nil
+	}
+	if err := output.persistCursor(false); err != nil {
+		output.writeError = err
 	}
 	// Errors are recorded, not swallowed. Continue draining the pipe even if the
 	// disk fails; callers receive a failed receipt instead of breaking SIGPIPE.
