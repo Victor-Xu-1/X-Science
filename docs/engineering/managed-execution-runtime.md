@@ -119,7 +119,9 @@ Only a successful handoff to the execution owner retires that preparation timer;
 a prepared database row alone does not. Foreground observation and long-running
 execution then retain their existing ownership and immutable execution timeout.
 Explicit caller/task cancellation and deadlines remain effective while queued,
-and software-runtime declared timeout policy is unchanged. Cancellation of a
+and software-runtime declared timeout policy is unchanged. Established command
+RPC I/O uses only the caller context's deadline and cancellation authority;
+connection establishment still uses `DialContext`. Cancellation of a
 command RPC closes only its current connection and preserves the caller's cause;
 it neither cancels an unrelated backend nor changes a valid server result.
 
