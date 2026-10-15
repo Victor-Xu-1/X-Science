@@ -341,12 +341,6 @@ type Server struct {
 }
 
 func New(options Options) *Server {
-	// The native IM factory returns *Dispatcher(nil) when adapters are disabled.
-	// Normalize it before storing the interface so every existing absent-sink
-	// guard, including startup recovery, retains its original meaning.
-	if dispatcher, ok := options.IMOutbound.(*adaptercommon.SessionOutboundDispatcher); ok && dispatcher == nil {
-		options.IMOutbound = nil
-	}
 	runtimeMemoryConfig := memoryconfig.Default()
 	if options.MemoryConfig != nil {
 		runtimeMemoryConfig = *options.MemoryConfig
@@ -666,7 +660,7 @@ func New(options Options) *Server {
 		compactSummarizer:                     options.CompactSummarizer,
 		runnerDiagnostics:                     options.RunnerDiagnostics,
 		adapterDiagnostics:                    options.AdapterDiagnostics,
-		imOutbound:                            options.IMOutbound,
+		imOutbound:                            normalizeIMOutboundSink(options.IMOutbound),
 		transcriptIMClaims:                    map[transcriptIMClaimKey]transcriptstore.DeliveryClaim{},
 		transcriptIMRoutes:                    map[string]string{},
 		imInboundLocks:                        map[string]*imInboundSessionLock{},
@@ -682,9 +676,7 @@ func New(options Options) *Server {
 	}
 	server.speechClientForURL = server.publicSourceHTTPClient
 	server.webImageClientForURL = server.publicSourceHTTPClient
-	if notices, ok := server.imOutbound.(adaptercommon.SessionRecoveryNoticeSink); ok {
-		notices.SetRecoveryNoticeValidator(server.validateIMRecoveryNotice)
-	}
+	server.bindIMRecoveryNoticeValidator()
 	if mcpDirectory != nil {
 		mcpDirectory.SetConnectorUsageRecorder(func(ctx context.Context, userID string, connector mcpdirectory.RuntimeConnector, toolName string, callErr error) {
 			server.recordMCPConnectorInvocation(ctx, userID, connector.ID, connector.Source, connector.Name, toolName, callErr)

@@ -9,6 +9,21 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
+func normalizeIMOutboundSink(sink adaptercommon.SessionOutboundSink) adaptercommon.SessionOutboundSink {
+	// The native factory returns *Dispatcher(nil) when adapters are disabled.
+	// Preserve absent-sink guards before storing that value in the interface.
+	if dispatcher, ok := sink.(*adaptercommon.SessionOutboundDispatcher); ok && dispatcher == nil {
+		return nil
+	}
+	return sink
+}
+
+func (s *Server) bindIMRecoveryNoticeValidator() {
+	if notices, ok := s.imOutbound.(adaptercommon.SessionRecoveryNoticeSink); ok {
+		notices.SetRecoveryNoticeValidator(s.validateIMRecoveryNotice)
+	}
+}
+
 func historicalInputNoticeText(userText string) string {
 	if sessionRunnerResponseLanguage(userText) == "zh" {
 		return "输入和现有进度已保留，但无法验证这条历史输入的执行顺序，因此不能自动续跑。请发送一条新指令，从保留的上下文继续。"
