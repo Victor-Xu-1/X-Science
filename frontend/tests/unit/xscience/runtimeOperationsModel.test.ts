@@ -129,6 +129,7 @@ describe('X-Science runtime operations model', () => {
       canResume: true,
       resumeTarget: null,
       pendingInputRequests: [],
+      pendingInputRequiresContinue: false,
       taskPlan: null,
       planApproval: null,
     });
