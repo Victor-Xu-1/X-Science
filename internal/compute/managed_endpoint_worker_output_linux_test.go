@@ -83,8 +83,12 @@ func TestManagedEndpointWorkerOutputUnknownDoesNotBlockAuthorizedStop(t *testing
 			store := &managedEndpointOutputWorkerStore{instance: instance, stop: stop.Ref}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
+			input, err := ManagedEndpointBootstrapFor(instance, stop.Ref)
+			if err != nil {
+				t.Fatal(err)
+			}
 			finished := make(chan error, 1)
-			go func() { finished <- RunManagedEndpointOwnerWorker(ctx, descriptor, store) }()
+			go func() { finished <- RunManagedEndpointOwnerWorker(ctx, input, store) }()
 			if !private {
 				select {
 				case err := <-finished:
@@ -136,6 +140,15 @@ type managedEndpointOutputWorkerStore struct {
 	instance ManagedEndpointOwnerInstance
 	stop     ManagedEndpointActionRef
 	accepts  atomic.Int64
+}
+
+func (store *managedEndpointOutputWorkerStore) WithManagedEndpointBootstrapPublication(_ context.Context, input ManagedEndpointBootstrap, identity ManagedEndpointRuntimeIdentity, publish func(ManagedEndpointOwnerInstance, ManagedEndpointAction) error) error {
+	// This Store projection belongs only to the existing output/protocol test;
+	// the separate real two-Store regression exercises SQLite authorization.
+	if input.RequestedAction != store.stop || !input.Matches(store.instance) || identity != store.instance.WorkerIdentity {
+		return ErrManagedEndpointStaleAction
+	}
+	return publish(store.instance, ManagedEndpointAction{Ref: store.stop, Accepted: store.accepts.Load() != 0})
 }
 
 func (store *managedEndpointOutputWorkerStore) ReadManagedEndpointAction(_ context.Context, ref ManagedEndpointActionRef) (ManagedEndpointOwnerInstance, ManagedEndpointAction, error) {

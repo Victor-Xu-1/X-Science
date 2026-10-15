@@ -254,19 +254,3 @@ func readManagedEndpointPrivateJSON(path string, value any) error {
 	}
 	return nil
 }
-
-// The CLI reads only the private server-created descriptor to locate the
-// original initialized workspace; a script or model cannot select a database.
-func ManagedEndpointOwnerWorkspacePath(descriptor string) (string, error) {
-	var instance ManagedEndpointOwnerInstance
-	if err := readManagedEndpointPrivateJSON(descriptor, &instance); err != nil {
-		return "", err
-	}
-	if err := instance.Validate(); err != nil {
-		return "", err
-	}
-	if descriptor != filepath.Join(instance.RuntimeRoot, instance.ID, "owner.json") {
-		return "", ErrManagedEndpointCorruptOwner
-	}
-	return instance.WorkspacePath, nil
-}

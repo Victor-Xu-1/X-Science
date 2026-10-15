@@ -47,7 +47,7 @@ func (runtime *ManagedEndpointSystemRuntime) validate(instance ManagedEndpointOw
 	return action.Ref.Validate()
 }
 
-func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instance ManagedEndpointOwnerInstance, launch, replacement bool) (managedEndpointUnitObservation, error) {
+func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instance ManagedEndpointOwnerInstance, requested *ManagedEndpointActionRef, replacement bool) (managedEndpointUnitObservation, error) {
 	// One budget covers physical observation, launch acknowledgement and the
 	// nonmutating control handshake, including already/concurrently live units.
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -62,7 +62,7 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 		}
 		return runtime.awaitWorkerControl(ctx, instance, observed)
 	}
-	if !launch {
+	if requested == nil {
 		return observed, ErrManagedEndpointOutcomeUnknown
 	}
 	// Existing native services are never moved or killed just because their
@@ -88,22 +88,7 @@ func (runtime *ManagedEndpointSystemRuntime) worker(ctx context.Context, instanc
 			return observed, err
 		}
 	}
-	socket, err := managedEndpointSocketPath(instance)
-	if err != nil {
-		return observed, err
-	}
-	if info, err := os.Lstat(socket); err == nil {
-		if info.Mode()&os.ModeSocket == 0 {
-			return observed, ErrManagedEndpointCorruptOwner
-		}
-		// Only this positively absent, unpredictable instance's own stale socket.
-		if err := os.Remove(socket); err != nil {
-			return observed, err
-		}
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return observed, err
-	}
-	launchErr := runtime.unit.launch(ctx, instance, runtime.executable)
+	launchErr := runtime.unit.launch(ctx, instance, *requested, runtime.executable)
 	if errors.Is(launchErr, ErrManagedEndpointCorruptOwner) || errors.Is(launchErr, ErrManagedEndpointOwnershipUnknown) || errors.Is(launchErr, os.ErrPermission) {
 		return observed, launchErr
 	}
@@ -220,7 +205,7 @@ func (runtime *ManagedEndpointSystemRuntime) Start(ctx context.Context, instance
 	if action.Accepted {
 		return runtime.Observe(ctx, instance, action)
 	}
-	worker, err := runtime.worker(ctx, instance, true, false)
+	worker, err := runtime.worker(ctx, instance, &action.Ref, false)
 	if err != nil {
 		return ManagedEndpointOwnerReceipt{}, err
 	}
@@ -286,7 +271,7 @@ func (runtime *ManagedEndpointSystemRuntime) Stop(ctx context.Context, instance 
 	if receipt, done, err := runtime.stoppedDockerReceipt(ctx, instance, action); err != nil || done {
 		return receipt, err
 	}
-	worker, err := runtime.worker(ctx, instance, true, instance.Registration.Owner.Kind == "docker")
+	worker, err := runtime.worker(ctx, instance, &action.Ref, instance.Registration.Owner.Kind == "docker")
 	if err != nil {
 		return ManagedEndpointOwnerReceipt{}, err
 	}
@@ -315,7 +300,7 @@ func (runtime *ManagedEndpointSystemRuntime) Observe(ctx context.Context, instan
 	if receipt, done, err := runtime.stoppedDockerReceipt(ctx, instance, action); err != nil || done {
 		return receipt, err
 	}
-	worker, err := runtime.worker(ctx, instance, false, false)
+	worker, err := runtime.worker(ctx, instance, nil, false)
 	if err != nil {
 		return runtime.recoverDockerReceipt(ctx, instance, action, err)
 	}
@@ -379,7 +364,7 @@ func (runtime *ManagedEndpointSystemRuntime) Cancel(ctx context.Context, instanc
 		}
 		return ManagedEndpointOwnerReceipt{Ref: action.Ref, NotStarted: true, Failure: "managed endpoint action cancelled before execution admission"}, nil
 	}
-	worker, err = runtime.worker(ctx, instance, false, false)
+	worker, err = runtime.worker(ctx, instance, nil, false)
 	if err != nil {
 		return ManagedEndpointOwnerReceipt{}, err
 	}
@@ -437,7 +422,7 @@ func (runtime *ManagedEndpointSystemRuntime) Check(ctx context.Context, instance
 	var worker managedEndpointUnitObservation
 	if instance.Registration.Owner.Kind != "docker" {
 		var err error
-		worker, err = runtime.worker(ctx, instance, false, false)
+		worker, err = runtime.worker(ctx, instance, nil, false)
 		if err != nil {
 			return err
 		}

@@ -22,7 +22,7 @@ func (runtime *ManagedEndpointSystemRuntime) noOwnerCreatedReceipt(ctx context.C
 	}
 	// Bootstrap only an idle observer under the current Stop authority. Its
 	// original Start is durably cancelled and is never submitted or accepted.
-	worker, err := runtime.worker(ctx, instance, true, false)
+	worker, err := runtime.worker(ctx, instance, &action.Ref, false)
 	if err != nil {
 		return ManagedEndpointOwnerReceipt{}, false, err
 	}

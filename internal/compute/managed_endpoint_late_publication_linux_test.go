@@ -57,7 +57,7 @@ func TestManagedEndpointCapturedLaunchDoesNotRepublishCleanedPrivateScope(t *tes
 		<-release
 		// /bin/true ignores the private CLI arguments. No actual systemd unit,
 		// worker CLI, Store acceptance, approved Start/Stop script or task runs.
-		launchErr = (&managedEndpointUnit{run: "/bin/true"}).launch(ctx, captured, "/private-cli-not-executed")
+		launchErr = (&managedEndpointUnit{run: "/bin/true"}).launch(ctx, captured, captured.InitialAction, "/private-cli-not-executed")
 	}(instance)
 	t.Cleanup(func() {
 		cancel()
