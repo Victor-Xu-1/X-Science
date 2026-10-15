@@ -95,6 +95,11 @@ func TestCompletionQualityNoticeSharesIdempotentLocalizedPresentation(t *testing
 
 func qualityReportCompletionFixture(t *testing.T) (*agentSaveArtifactsFixture, sessionstore.Session, *sessionRunnerChatRun, string, string) {
 	t.Helper()
+	return qualityArtifactCompletionFixture(t, "validation.json", `{"checks":{"valid":false},"status":"failed","failures":["quality threshold not met"]}`)
+}
+
+func qualityArtifactCompletionFixture(t *testing.T, name, original string) (*agentSaveArtifactsFixture, sessionstore.Session, *sessionRunnerChatRun, string, string) {
+	t.Helper()
 	f := newAgentSaveArtifactsFixture(t)
 	intent, found, err := f.repo.EnsureActiveFrameTaskIntent(context.Background(), f.stream.UID, f.stream.OwnerID)
 	if err != nil || !found {
@@ -105,10 +110,10 @@ func qualityReportCompletionFixture(t *testing.T) (*agentSaveArtifactsFixture, s
 	if err := applySessionRunnerTaskIntent(run, intent.Text, intent.Language, intent.ID, intent.Revision); err != nil {
 		t.Fatal(err)
 	}
-	original := `{"checks":{"valid":false},"status":"failed","failures":["quality threshold not met"]}`
-	write := writeAgentSaveArtifactsFile(t, f.projectPath, "out/validation.json", original)
+	path := "out/" + name
+	write := writeAgentSaveArtifactsFile(t, f.projectPath, path, original)
 	f.saveExecution(t, f.identity.access, f.projectPath, "quality-report-write", 1, write)
-	input := map[string]any{"files": []any{"out/validation.json"}, "language": "text", "human_description": "Save the observed quality report"}
+	input := map[string]any{"files": []any{path}, "language": "text", "human_description": "Save the observed quality report"}
 	saved, err := f.server.executeAgentSaveArtifacts(f.toolContext(t, "quality-report-save", input), f.identity, "quality-report-save", input)
 	if err != nil || saved["errors"] != nil {
 		t.Fatalf("save original report: %#v %v", saved, err)
