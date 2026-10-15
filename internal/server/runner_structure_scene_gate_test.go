@@ -177,14 +177,23 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 		t.Fatalf("validation published the draft early: intermediate=%v found=%v err=%v", intermediate, found, err)
 	}
 	for name, candidate := range map[string]transcriptstore.ArtifactReferenceInput{
-		"unselected":     {},
-		"wrong version":  {ArtifactID: selected.ArtifactID, VersionID: "unselected-version", Relation: selected.Relation},
-		"wrong artifact": {ArtifactID: "another-artifact", VersionID: selected.VersionID, Relation: selected.Relation},
-		"cited only":     {ArtifactID: selected.ArtifactID, VersionID: selected.VersionID, Relation: transcriptstore.ArtifactRelationCited},
+		"unselected": {},
+		"cited only": {ArtifactID: selected.ArtifactID, VersionID: selected.VersionID, Relation: transcriptstore.ArtifactRelationCited},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err != nil || advisory == nil {
 				t.Fatalf("unselected draft was certified or blocked completion: advisory=%#v error=%v", advisory, err)
+			}
+		})
+	}
+	// An optional preview never waives the selected artifact/version authority.
+	for name, candidate := range map[string]transcriptstore.ArtifactReferenceInput{
+		"wrong version":  {ArtifactID: selected.ArtifactID, VersionID: "unselected-version", Relation: selected.Relation},
+		"wrong artifact": {ArtifactID: "another-artifact", VersionID: selected.VersionID, Relation: selected.Relation},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err == nil || advisory != nil {
+				t.Fatalf("invalid artifact selection became an advisory: advisory=%#v error=%v", advisory, err)
 			}
 		})
 	}
