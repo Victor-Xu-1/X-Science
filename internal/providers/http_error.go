@@ -12,6 +12,7 @@ type responseHTTPError struct {
 	status          int
 	message         string
 	maxOutputTokens int
+	failureKind     FailureKind
 }
 
 func (err *responseHTTPError) Error() string { return err.message }
@@ -31,6 +32,7 @@ var providerExpectedMaximumPattern = regexp.MustCompile(`(?i)expected\s+(?:a\s+)
 func newResponseHTTPError(status int, message string, body []byte) *responseHTTPError {
 	return &responseHTTPError{
 		status: status, message: message, maxOutputTokens: providerOutputTokenMaximumFromBody(body),
+		failureKind: providerHTTPFailureKind(status, body),
 	}
 }
 

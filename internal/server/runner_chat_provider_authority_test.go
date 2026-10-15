@@ -503,6 +503,18 @@ func TestSessionRunnerChatOnceInterruptsClaimWhenActiveProviderIsUnavailable(t *
 	if !hasJournalEntry(providerAuthorityEntriesToAny(entries), "runner_checkpoint", "running", "runner interrupted; resumable lease released") {
 		t.Fatalf("journal entries = %#v", entries)
 	}
+	categoryFound := false
+	for _, entry := range entries {
+		if entry.Message["type"] == "runner_checkpoint" && entry.Message["reasonCode"] == sessionRunnerModelProviderUnavailableReasonCode {
+			categoryFound = true
+			if entry.Message["provider_failure_kind"] != "configuration_missing" {
+				t.Fatalf("real pre-request resolution failure lost its category: %#v", entry.Message)
+			}
+		}
+	}
+	if !categoryFound {
+		t.Fatal("missing typed configuration interruption")
+	}
 }
 
 func providerAuthorityEntriesToAny(entries []eventjournal.Entry) []any {

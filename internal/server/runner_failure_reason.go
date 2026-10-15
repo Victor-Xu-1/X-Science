@@ -3,6 +3,8 @@ package server
 import (
 	"errors"
 	"strings"
+
+	"x-science/internal/providers"
 )
 
 // Choose a safe machine identity before redacting the public explanation.
@@ -17,6 +19,9 @@ func sessionRunnerErrorReasonCode(err error) string {
 		if reason := correction.runnerCorrection().ReasonCode; validRunnerFailureReason(reason) {
 			return reason
 		}
+	}
+	if providers.IsPermanentHTTPAccountFailure(err) {
+		return sessionRunnerModelProviderUnavailableReasonCode
 	}
 	if reason := sessionRunnerFailureReasonCode(err.Error()); reason != "" {
 		return reason

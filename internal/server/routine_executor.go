@@ -484,6 +484,11 @@ func (e *routineExecutor) journalMessageText(sessionID string, eventID int64) (s
 	if len(entries) != 1 || entries[0].EventID != eventID {
 		return "", fmt.Errorf("routine journal event %d was not found", eventID)
 	}
+	if stringValue(entries[0].Message["type"]) == "runner_checkpoint" && stringValue(entries[0].Message["role"]) == "system" {
+		if kind := runnerProviderFailureKindFromPayload(entries[0].Message); kind != "" {
+			return publicRunnerProviderFailureDetail(kind, ""), nil
+		}
+	}
 	for _, key := range []string{"resumeDetail", "resume_detail"} {
 		if detail := strings.TrimSpace(stringValue(entries[0].Message[key])); detail != "" {
 			return detail, nil

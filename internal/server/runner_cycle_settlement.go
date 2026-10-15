@@ -10,6 +10,7 @@ import (
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/providers"
 )
 
 func (s *Server) settleSessionRunnerChatOutcome(
@@ -128,9 +129,16 @@ func (s *Server) settleSessionRunnerChatOutcome(
 			autoResume := runnerInterruptionAutoResume(reason) ||
 				(reason == sessionRunnerModelProviderUnavailableReasonCode &&
 					s.sessionRunnerModelSelectionAdvancedSinceFailure(session.ID, chatErr))
-			interruptErr := s.interruptClaimedSessionRunnerLockedWithPolicy(
+			providerFailureKind := ""
+			if reason == sessionRunnerModelProviderUnavailableReasonCode {
+				providerFailureKind = "unavailable"
+				if kind, ok := providers.HTTPFailureKind(chatErr); ok {
+					providerFailureKind = string(kind)
+				}
+			}
+			interruptErr := s.interruptClaimedSessionRunnerLockedWithCause(
 				context.WithoutCancel(ctx), options, result, activeRun, projectionClaim,
-				transcriptAuthority, reason, autoResume, resumeDetail,
+				transcriptAuthority, reason, autoResume, resumeDetail, nil, providerFailureKind,
 			)
 			activeRun.settlement.Unlock()
 			if interruptErr != nil {

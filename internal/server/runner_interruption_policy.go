@@ -146,7 +146,7 @@ func (s *Server) interruptClaimedSessionRunnerWithCause(
 	return withActiveRunSettlementContext(activeRun, 2*time.Second, func(persistCtx context.Context) error {
 		return s.interruptClaimedSessionRunnerLockedWithCause(
 			persistCtx, options, result, activeRun, projectionClaim, transcriptAuthority,
-			reasonCode, runnerInterruptionAutoResume(reasonCode) && !result.AwaitingRecoveryCondition, resumeDetail, cause,
+			reasonCode, runnerInterruptionAutoResume(reasonCode) && !result.AwaitingRecoveryCondition, resumeDetail, cause, "",
 		)
 	})
 }
@@ -213,7 +213,7 @@ func (s *Server) interruptClaimedSessionRunnerLockedWithPolicy(
 	if len(resumeDetails) > 0 {
 		resumeDetail = strings.TrimSpace(resumeDetails[0])
 	}
-	return s.interruptClaimedSessionRunnerLockedWithCause(persistCtx, options, result, activeRun, projectionClaim, transcriptAuthority, reasonCode, autoResume, resumeDetail, nil)
+	return s.interruptClaimedSessionRunnerLockedWithCause(persistCtx, options, result, activeRun, projectionClaim, transcriptAuthority, reasonCode, autoResume, resumeDetail, nil, "")
 }
 
 func (s *Server) interruptClaimedSessionRunnerLockedWithCause(
@@ -227,8 +227,13 @@ func (s *Server) interruptClaimedSessionRunnerLockedWithCause(
 	autoResume bool,
 	resumeDetail string,
 	cause *transcriptstore.RunnerInterruptionCause,
+	providerFailureKind string,
 ) error {
 	resumeDetail = strings.TrimSpace(resumeDetail)
+	if providerFailureKind != "" &&
+		(reasonCode != sessionRunnerModelProviderUnavailableReasonCode || !transcriptstore.ValidRunnerProviderFailureKind(providerFailureKind)) {
+		return errors.New("runner provider failure category is invalid")
+	}
 	var causePayload map[string]any
 	if cause != nil {
 		var err error
@@ -254,6 +259,7 @@ func (s *Server) interruptClaimedSessionRunnerLockedWithCause(
 			ClientMessageID:          transcriptRunnerClientMessageID(transcriptAuthority.Claim, reasonCode),
 			ReasonCode:               reasonCode,
 			ResumeDetail:             resumeDetail,
+			ProviderFailureKind:      providerFailureKind,
 			Cause:                    cause,
 			RecoveryContractRevision: sessionRunnerRecoveryContractRevision,
 			Resumable:                !autoResume && runnerInterruptionMayContinueSameTask(reasonCode),
@@ -280,6 +286,9 @@ func (s *Server) interruptClaimedSessionRunnerLockedWithCause(
 		}
 		if resumeDetail != "" {
 			checkpointPayload["resumeDetail"] = resumeDetail
+		}
+		if providerFailureKind != "" {
+			checkpointPayload["provider_failure_kind"] = providerFailureKind
 		}
 		if cause != nil {
 			checkpointPayload[transcriptstore.RunnerInterruptionCauseField] = causePayload

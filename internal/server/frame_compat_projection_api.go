@@ -375,6 +375,12 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		projection["runtime_paused"] = true
 		projection["runtime_interruption_reason"] = interruption.ReasonCode
 		projection["runtime_interruption_detail"] = interruption.ResumeDetail
+		if kind := runnerProviderFailureKind(interruption); kind != "" {
+			projection["runtime_provider_failure_kind"] = kind
+			// A provider's response body is private diagnostic evidence, not
+			// public conversation/status copy. Only the closed category escapes.
+			projection["runtime_interruption_detail"] = publicRunnerProviderFailureDetail(kind, "en")
+		}
 		if !interruption.CreatedAt.IsZero() {
 			projection["runtime_observed_at"] = interruption.CreatedAt.UTC()
 			projection["runtime_task_observed_at"] = interruption.CreatedAt.UTC()

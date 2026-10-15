@@ -193,6 +193,9 @@ func (r *Repository) InterruptRunner(ctx context.Context, input InterruptRunnerI
 	if input.ClientMessageID == "" || !validReasonCode(input.ReasonCode) {
 		return InterruptRunnerResult{}, errors.New("client message id and interruption reason code are required")
 	}
+	if err := validateRunnerProviderFailureKind(input.ReasonCode, input.ProviderFailureKind); err != nil {
+		return InterruptRunnerResult{}, err
+	}
 	if !utf8.ValidString(input.ResumeDetail) || len(input.ResumeDetail) > maxRunnerInterruptionResumeDetailBytes ||
 		strings.ContainsRune(input.ResumeDetail, '\x00') {
 		return InterruptRunnerResult{}, errors.New("runner interruption resume detail is invalid")
@@ -211,6 +214,9 @@ func (r *Repository) InterruptRunner(ctx context.Context, input InterruptRunnerI
 	}
 	if input.ResumeDetail != "" {
 		payloadValue["resume_detail"] = input.ResumeDetail
+	}
+	if input.ProviderFailureKind != "" {
+		payloadValue["provider_failure_kind"] = input.ProviderFailureKind
 	}
 	if storedCause != nil {
 		cause, err := RunnerInterruptionCausePayload(*storedCause)

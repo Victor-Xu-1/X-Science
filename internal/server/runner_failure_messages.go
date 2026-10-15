@@ -1,6 +1,11 @@
 package server
 
-import "strings"
+import (
+	"net/http"
+	"strings"
+
+	"x-science/internal/providers"
+)
 
 // publicSessionRunnerFailureMessage separates diagnostic failures from the
 // terminal message shown in a conversation. Audit and tool receipts keep the
@@ -26,6 +31,10 @@ func publicSessionRunnerFailureMessage(raw, language string, reasonCodes ...stri
 	normalized := strings.ToLower(message)
 	if !sessionRunnerModelProviderUnavailableFailure(message) {
 		return localizedSessionRunnerFailureMessage(language, "execution")
+	}
+	if status, kind, ok := providers.ParseLegacyHTTPFailure(message); ok &&
+		(status == http.StatusBadRequest || kind != providers.FailureUnavailable) {
+		return publicRunnerProviderFailureDetail(string(kind), language)
 	}
 
 	switch {
@@ -62,6 +71,12 @@ func containsSessionRunnerFailureHint(message string, hints ...string) bool {
 func localizedSessionRunnerFailureMessage(language, kind string) string {
 	if strings.EqualFold(strings.TrimSpace(language), "zh") {
 		switch kind {
+		case "configuration":
+			return "当前模型配置不可用。任务、检查点和已有结果均已保留；请修复当前模型配置或选择已配置的模型后继续。"
+		case "subscription":
+			return "当前模型服务因订阅或计费状态拒绝了请求。任务、检查点和已有结果均已保留；请续订或修正当前服务账号，或选择其他已配置模型后继续。"
+		case "access":
+			return "当前模型服务拒绝了账号访问。任务、检查点和已有结果均已保留；请修正当前服务账号的访问权限或选择其他已配置模型后继续。"
 		case "presentation":
 			return "回复的语言或呈现格式未通过校验。已有文件和执行结果已保留，尚不能视为任务完成；可从保存的位置继续修正回复。"
 		case "finalization":
@@ -88,6 +103,12 @@ func localizedSessionRunnerFailureMessage(language, kind string) string {
 	}
 
 	switch kind {
+	case "configuration":
+		return "The current model configuration is unavailable. The task, checkpoints, and existing results were preserved; repair the current configuration or select a configured model before continuing."
+	case "subscription":
+		return "The current model service rejected this request because of its subscription or billing status. The task, checkpoints, and existing results were preserved; renew or correct the current provider account, or choose another configured model before continuing."
+	case "access":
+		return "The current model service denied account access. The task, checkpoints, and existing results were preserved; correct the current provider account's access or choose another configured model before continuing."
 	case "presentation":
 		return "The response did not pass language or presentation validation. Existing files and execution results were preserved; the task is not complete. Continue from the saved state to correct the response."
 	case "finalization":
