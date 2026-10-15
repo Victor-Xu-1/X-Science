@@ -56,14 +56,14 @@ func schema76QueuedInputUpgrade(t *testing.T, frame, prepared bool) (*Store, *tr
 	input := transcriptstore.CreateStreamInput{UID: "legacy-queued", OwnerID: "owner", ExternalID: "legacy-queued",
 		SessionID: "legacy-queued", Kind: transcriptstore.StreamKindStandalone, Epoch: 1}
 	if frame {
-		if _, err := oldStore.CreateProject(CreateProjectInput{ID: "project", UserID: "owner", Name: "Historical queued input"}); err != nil {
+		if _, err := oldStore.CreateProject(CreateProjectInput{ID: "queued-project", UserID: "owner", Name: "Historical queued input"}); err != nil {
 			t.Fatal(err)
 		}
-		created, err := oldStore.CreateFrame(CreateFrameInput{ID: "frame", ProjectID: "project", AgentName: "OPERON", Status: "processing", ConversationType: "agent"})
+		created, err := oldStore.CreateFrame(CreateFrameInput{ID: "queued-frame", ProjectID: "queued-project", AgentName: "OPERON", Status: "processing", ConversationType: "agent"})
 		if err != nil {
 			t.Fatal(err)
 		}
-		input.UID, input.ExternalID, input.SessionID = "frame:frame", created.ID, created.ID
+		input.UID, input.ExternalID, input.SessionID = "frame:queued-frame", created.ID, created.ID
 		input.Kind, input.ProjectID, input.FrameID, input.RootFrameID = transcriptstore.StreamKindFrameRef, created.ProjectID, created.ID, created.RootFrameID
 	}
 	stream, err := repo.CreateStream(t.Context(), input)
