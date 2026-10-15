@@ -53,7 +53,8 @@ func (r *Repository) historicalInputNoticeStateConn(ctx context.Context, conn *s
 		return state, "", false, ErrEventConflict
 	}
 	evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
-	if err != nil || evidence.Authorized || evidence.Coverage.Complete || !evidence.Coverage.Pending() {
+	if err != nil || evidence.Authorized || evidence.Coverage.Complete || !evidence.Coverage.Pending() ||
+		evidence.Coverage.HasControl || evidence.Coverage.HasRecovery {
 		return state, "", false, err
 	}
 	var status string
@@ -112,7 +113,7 @@ func (r *Repository) historicalInputNoticeStateConn(ctx context.Context, conn *s
 func historicalNoticeUserSourceConn(ctx context.Context, conn *sql.Conn, state *historicalInputNoticeState) (string, error) {
 	rows, err := conn.QueryContext(ctx, `SELECT e.event_id,e.event_type,e.client_message_id,e.source,e.runner_attempt,e.frame_event_id,e.payload_json
 		FROM transcript_events e JOIN transcript_branch_events m ON m.stream_uid=e.stream_uid AND m.event_id=e.event_id AND m.branch_id=?
-		WHERE e.stream_uid=? AND e.event_type IN ('user_message','user_input_response') ORDER BY e.event_id DESC LIMIT 32`, state.Branch, state.Stream)
+		WHERE e.stream_uid=? AND e.event_type IN ('user_message','user_input_response') ORDER BY e.event_id DESC LIMIT 1`, state.Branch, state.Stream)
 	if err != nil {
 		return "", err
 	}
@@ -134,17 +135,19 @@ func historicalNoticeUserSourceConn(ctx context.Context, conn *sql.Conn, state *
 			return "", err
 		}
 		if inputKind != "message" {
-			continue
+			// A newer typed control cannot borrow an older ordinary input. This
+			// is notice eligibility only, never reconstruction of lost admission.
+			return "", nil
 		}
-		var content struct {
-			Text string `json:"text"`
-		}
-		if json.Unmarshal(payload, &content) != nil {
-			return "", ErrEventConflict
-		}
+		// Language is optional presentation metadata. The source/kind proof
+		// above stays strict; unreadable text merely uses the English default.
+		var content map[string]json.RawMessage
+		_ = json.Unmarshal(payload, &content)
+		var text string
+		_ = json.Unmarshal(content["text"], &text)
 		digest := sha256.Sum256(payload)
 		state.UserEvent, state.UserSHA256 = id, hex.EncodeToString(digest[:])
-		return content.Text, nil
+		return text, nil
 	}
 	return "", rows.Err()
 }
