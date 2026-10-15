@@ -241,7 +241,7 @@ func TestRecoveryConditionWaitUsesDurableChangesAndPreservesCancellation(t *test
 			if _, _, err := f.store.RequeueCompatibilityFrameResumeDispatch(workspace.RequeueCompatibilityFrameResumeDispatchInput{
 				ResumeEventID: claim.ResumeEvent.ID, ExpectedAttempt: claim.Attempt, ClaimToken: claim.ClaimToken,
 				ReasonCode: sessionRunnerPlanStepsIncompleteReasonCode, RunnerAttempt: int(f.claim.Attempt),
-				CheckpointEventID: checkpoint.Sequence, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
+				CheckpointEventID: checkpoint.EventID, WaitingFor: workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition,
 				RecoveryContractRevision: revision,
 			}); err != nil {
 				t.Fatal(err)
