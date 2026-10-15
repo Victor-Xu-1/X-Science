@@ -311,16 +311,16 @@ eligible through the existing dispatcher without rewriting old checkpoints;
 user-decision, external-blocker and terminal/cancellation boundaries remain.
 Reader versions must understand the cause/condition contracts before resuming
 their checkpoints; rollback must preserve all original events.
-Response-presentation validation uses this same correction authority. A failed
-inline language conversion distinguishes upstream failures from empty output,
-wrong language, changed protected literals and unexpected tool proposals.
-Provider errors retain their identity; cancellation cannot release an original
-tool call. A validated original action is never replaced by a translator action.
+Response-presentation diagnostics distinguish auxiliary provider failures from
+empty conversion output, wrong language, changed protected literals and
+unexpected tool proposals. Original action validation remains independent;
+cancellation cannot release an original tool call, and a translator action
+never replaces a validated original action.
 Optional progress blocks keep their protocol bounds but are not execution
 prerequisites. Malformed native blocks or embedded envelopes are drained
 without publication; a complete valid action proposal still reaches ordinary
 schema, permission and admission checks. Metadata diagnostics record the
-discard without exposing private reasoning. Cancellation, transport failures,
+discard without exposing private reasoning. Cancellation, primary transport failures,
 total response limits and downstream publication errors cannot be discarded
 as presentation errors. This applies to streaming/nonstreaming and every
 response language; no correction budget is spent on optional narration.
@@ -336,11 +336,23 @@ that rejects a candidate containing protected literals, a single different
 route binds those literals to host-owned slots, validates each slot exactly
 once and restores original bytes. The primary action is never regenerated;
 invented or duplicated protected literals also fail validation. Both
-conversion costs count and presentation calls do not request hidden reasoning.
-An unusable final candidate remains distinct from optional progress. It
-preserves completed receipts through the existing typed correction/backoff
-authority; persistent inability to produce a valid final answer remains an
-explicit correctness blocker, not an endless retry or false completion.
+conversion costs count, including measured usage from rejected conversions.
+Both routes use the auxiliary request scope: neither replaces the main-agent
+context snapshot or its request-budget state. Presentation calls do not request
+hidden reasoning. A failed secondary conversion cannot discard a usable,
+nonempty primary final or restart completed tools. Instead, the original text,
+numbers, links and file identities are preserved with one localized notice and
+a payload-free diagnostic identifying the failure category. Successful
+preferred-language conversion remains unchanged; fallback adds no retries.
+If primary bytes were already published before a language switch, only the
+notice suffix is emitted, never a replacement or replay of that prefix.
+An unusable or empty primary final remains distinct from failed conversion.
+Primary provider failures, parent cancellation, downstream emission and
+persistence failures, and actual action/schema/security violations keep their
+existing authority. Their saved receipts and typed correction/backoff paths
+are not declared complete by a presentation notice. Historical language
+checkpoints without a preserved primary answer retain their existing recovery
+semantics; no old event is rewritten or missing answer fabricated.
 Terminal settlement chooses a safe machine reason before localizing public
 detail. The existing terminal event carries that reason atomically; frame
 details, persisted message history and live notifications project the same

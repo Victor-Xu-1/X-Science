@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 
@@ -139,7 +138,7 @@ func TestResponseLanguageGatePreservesToolCallBoundaryAfterChineseProgress(t *te
 	}
 }
 
-func TestResponseLanguageGateRejectsEnglishBeforeDurableEmission(t *testing.T) {
+func TestResponseLanguageGatePreservesEnglishWithNoticeWhenConversionFails(t *testing.T) {
 	content := "All four figures and their layout manifests exist. Let me validate the layouts now."
 	client := &sessionRunnerResponseLanguageModelClient{
 		delegate: responseLanguageFixtureModel{
@@ -149,12 +148,11 @@ func TestResponseLanguageGateRejectsEnglishBeforeDurableEmission(t *testing.T) {
 		language: "zh",
 	}
 	var emitted strings.Builder
-	_, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+	response, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
 		emitted.WriteString(event.ContentDelta)
 		return nil
 	})
-	var mismatch sessionRunnerResponseLanguageMismatch
-	if !errors.As(err, &mismatch) || emitted.Len() != 0 {
+	if err != nil || response.Message.Content != content+"\n\n> "+finalLanguageNoticeChinese || emitted.String() != response.Message.Content {
 		t.Fatalf("err=%v emitted=%q", err, emitted.String())
 	}
 }
@@ -304,7 +302,7 @@ func TestResponseLanguageGateDefersToRequiredToolProtocol(t *testing.T) {
 	}
 }
 
-func TestResponseLanguageGateStillChecksUnconstrainedResponse(t *testing.T) {
+func TestResponseLanguageGateStillChecksUnconstrainedResponseWithoutDiscardingIt(t *testing.T) {
 	content := "I need to inspect the current evidence before choosing the next action."
 	client := &sessionRunnerResponseLanguageModelClient{
 		delegate: responseLanguageFixtureModel{
@@ -312,10 +310,9 @@ func TestResponseLanguageGateStillChecksUnconstrainedResponse(t *testing.T) {
 		},
 		language: "zh",
 	}
-	_, err := client.Complete(context.Background(), agentruntime.ModelRequest{ToolChoice: "auto"})
-	var mismatch sessionRunnerResponseLanguageMismatch
-	if !errors.As(err, &mismatch) {
-		t.Fatalf("err=%v, want response language mismatch", err)
+	response, err := client.Complete(context.Background(), agentruntime.ModelRequest{ToolChoice: "auto"})
+	if err != nil || response.Message.Content != content+"\n\n> "+finalLanguageNoticeChinese {
+		t.Fatalf("unreliable conversion discarded primary: response=%q err=%v", response.Message.Content, err)
 	}
 }
 
