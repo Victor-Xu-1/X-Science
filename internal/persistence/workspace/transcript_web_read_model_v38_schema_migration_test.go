@@ -512,7 +512,7 @@ func TestTranscriptWebReadModelV38BackfillsAndMaintainsCanonicalBranchHeads(t *t
 		t.Fatal(err)
 	}
 	for _, id := range []string{"head-user-1", "head-user-2"} {
-		if _, created, err := repository.AppendUserEvent(context.Background(), transcriptstore.AppendUserEventInput{
+		if _, created, err := appendHistoricalMigrationUserEvent(t, context.Background(), db, repository, transcriptstore.AppendUserEventInput{
 			StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: id,
 			PayloadJSON: []byte(`{"text":"head"}`), Destinations: []string{"ws"},
 		}); err != nil || !created {
@@ -525,7 +525,7 @@ func TestTranscriptWebReadModelV38BackfillsAndMaintainsCanonicalBranchHeads(t *t
 	}
 	applyTranscriptMigration(t, db, 38)
 	assertTranscriptBranchHead(t, db, stream.UID, branchID, 2, 2, 2)
-	if _, created, err := repository.AppendUserEvent(context.Background(), transcriptstore.AppendUserEventInput{
+	if _, created, err := appendHistoricalMigrationUserEvent(t, context.Background(), db, repository, transcriptstore.AppendUserEventInput{
 		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "head-user-3",
 		PayloadJSON: []byte(`{"text":"head-3"}`), Destinations: []string{"ws"},
 	}); err != nil || !created {
@@ -575,7 +575,7 @@ func TestTranscriptWebReadModelV38RejectsCorruptV37BranchMembership(t *testing.T
 				t.Fatal(err)
 			}
 			for _, id := range []string{"corrupt-user-1", "corrupt-user-2"} {
-				if _, created, err := repository.AppendUserEvent(context.Background(), transcriptstore.AppendUserEventInput{
+				if _, created, err := appendHistoricalMigrationUserEvent(t, context.Background(), db, repository, transcriptstore.AppendUserEventInput{
 					StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: id,
 					PayloadJSON: []byte(`{"text":"corrupt"}`), Destinations: []string{"ws"},
 				}); err != nil || !created {
