@@ -22,8 +22,8 @@ func TestManagedEndpointOwnerV78UpgradePreservesDataAndJournal(t *testing.T) {
 		}
 		defer store.Close()
 		after, err := store.SchemaStatus(t.Context())
-		if err != nil || after.CurrentVersion != 78 || after.TargetVersion != 78 || len(after.Migrations) != 78 {
-			t.Fatalf("normal Open did not migrate installed77 to owner78: %+v %v", after, err)
+		if err != nil || after.CurrentVersion != workspaceSchemaVersion || after.TargetVersion != workspaceSchemaVersion || len(after.Migrations) != workspaceSchemaVersion {
+			t.Fatalf("normal Open did not migrate installed77 through owner78 to the current target: %+v %v", after, err)
 		}
 		fixture.assertRetained(t, store.db)
 		if store.schemaBackupPath == "" {
@@ -144,7 +144,7 @@ func TestManagedEndpointOwnerV78UpgradePreservesDataAndJournal(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer retried.Close()
-		assertSchemaJournalVersion(t, retried.db, 78)
+		assertSchemaJournalVersion(t, retried.db, workspaceSchemaVersion)
 		fixture.assertRetained(t, retried.db)
 	})
 

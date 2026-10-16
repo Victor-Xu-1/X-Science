@@ -37,7 +37,9 @@ func transcriptWebFenceCanCatchUp(fence transcriptstore.TranscriptWebProjectionF
 	// A newly-created conversation has no projection row yet. Treat that
 	// bounded, exact-stream state as catch-up eligible so its first history read
 	// and first realtime claim do not wait behind the global repair queue.
-	return !fence.StateFound || fence.StateStatus == "ready" && !transcriptWebFenceReady(fence)
+	return !fence.StateFound || fence.StateStatus == "ready" && !transcriptWebFenceReady(fence) ||
+		fence.StateStatus == "quarantined" && fence.StateProjectorVersion >= 1 &&
+			fence.StateProjectorVersion < transcriptstore.TranscriptWebProjectorVersion
 }
 
 // catchUpTranscriptWebReadModel collapses concurrent reads for one stale
@@ -86,7 +88,9 @@ func (s *Server) rebuildOneStaleTranscriptWebReadModel(
 	if err != nil || !found {
 		return err
 	}
+	upgrade := work.Reason == "projection_projector_version_stale"
 	eligible := work.Status == transcriptstore.TranscriptWebProjectionWorkMissing ||
+		work.ProjectionStatus == "quarantined" && upgrade ||
 		work.ProjectionStatus == "ready" &&
 			(work.Status == transcriptstore.TranscriptWebProjectionWorkDirty ||
 				work.Status == transcriptstore.TranscriptWebProjectionWorkStale)
@@ -102,6 +106,16 @@ func (s *Server) rebuildOneStaleTranscriptWebReadModel(
 			if fenceErr == nil && transcriptWebFenceReady(fence) {
 				return nil
 			}
+		}
+		if upgrade && !transcriptWebProjectionRepairInterrupted(err) {
+			// Persist a failed version-upgrade attempt through the same quarantine
+			// authority as background repair. Repeated history reads must not retry
+			// unchanged deterministic source failures indefinitely.
+			if quarantineErr := s.quarantineTranscriptWebReadModel(ctx, work, err); quarantineErr != nil {
+				return errors.Join(err, quarantineErr)
+			}
+			s.noteTranscriptWebProjectionRetry(work.StreamUID)
+			return transcriptstore.ErrTranscriptWebProjectionStale // Reload the settled fence.
 		}
 		return err
 	}

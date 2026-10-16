@@ -26,6 +26,10 @@ const (
 	ModelStreamEventPublicProgressBoundary ModelStreamEventKind = "public_progress_boundary"
 	ModelStreamEventPrivateReasoning       ModelStreamEventKind = "private_reasoning"
 	ModelStreamEventToolCallBoundary       ModelStreamEventKind = "tool_call_boundary"
+	// NativePreambleBoundary freezes an identified assistant-visible prefix for
+	// optional progress validation. It is not a completed action or permission
+	// to publish later body/argument fragments.
+	ModelStreamEventNativePreambleBoundary ModelStreamEventKind = "native_preamble_boundary"
 )
 
 type ModelStreamEvent struct {
@@ -33,8 +37,9 @@ type ModelStreamEvent struct {
 	// remains compatible with older model clients and is inferred only from the
 	// two legacy fields below.
 	Kind ModelStreamEventKind
-	// BlockID identifies one explicitly public progress envelope. It is empty
-	// for final-candidate text, private reasoning, and provider tool boundaries.
+	// BlockID identifies one explicitly public progress envelope or the exact
+	// provider-bound native prefix snapshot offered for validation. It is empty
+	// for final-candidate text, private reasoning, and provisional tool markers.
 	BlockID      string
 	ContentDelta string
 	// ReasoningActive reports only that the provider is producing a private

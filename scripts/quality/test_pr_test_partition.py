@@ -76,14 +76,16 @@ func Example() { fmt.Println("example"); /* Output: example */ }
             self.assertEqual(terminal["fixture", "Example"], "pass")
             self.assertEqual(terminal["fixture", "TestSkipped"], "skip")
             self.assertEqual(terminal["fixture", "TestAFailure"], "fail")
-            # Force multiple real processes: later batches still run after failure.
+            # A failure retains the complete plan but must not start later batches.
             plan = execution_plan("pr", 0, False, inventory, inventory, batch_size=64)
-            evidence = root / "failure-continues"
+            evidence = root / "failure-stops"
             self.assertEqual(execute(repo, plan, evidence), 1)
             summary = json.loads((evidence / "summary.json").read_text())
-            self.assertEqual(summary["batch_exit_codes"], [1, 0, 0])
-            self.assertEqual(summary["executed_top_level"], 75)
-            self.assertEqual(summary["missing_tests"], [])
+            self.assertEqual(summary["batch_exit_codes"], [1])
+            self.assertEqual(summary["executed_top_level"], 64)
+            self.assertEqual(summary["missing_tests"], [["fixture", name] for name in test_batches(inventory["fixture"], False, 64)[1]])
+            self.assertEqual(summary["missing_packages"], ["fixture/empty"])
+            self.assertEqual(summary["unstarted_process_batches"], 2)
             for command in plan["commands"]:
                 self.assertIn("-count=1", command)
                 self.assertIn("-timeout=30m", command)

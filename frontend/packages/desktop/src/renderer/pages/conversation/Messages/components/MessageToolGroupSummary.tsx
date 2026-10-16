@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { isActiveToolStatus, normalizeToolMessages } from '@/common/chat/normalizeToolCall';
 import { useConversationDisclosure } from '@/renderer/services/runtime/conversationDisclosureStore';
+import { useMessagePaginationState } from '../hooks';
 import { isPublicToolActivity } from '../toolActivityPresentationRegistry';
 import { collapseNestedConnectorDispatches } from '../toolSummaryGroupingModel';
 import './MessageToolGroupSummary.css';
@@ -29,14 +30,20 @@ const MessageToolGroupSummary: React.FC<{
   messages: ToolMessage[];
 }> = ({ messages }) => {
   const activity = useContext(TranscriptActivityContext);
+  const messageWindow = useMessagePaginationState();
   const { i18n } = useTranslation();
-  const tools = useMemo(
-    () =>
-      collapseNestedConnectorDispatches(
-        normalizeToolMessages(messages).filter((tool) => isPublicToolActivity(tool.name))
-      ),
-    [messages]
-  );
+  const tools = useMemo(() => {
+    const normalized = normalizeToolMessages(messages).filter((tool) => isPublicToolActivity(tool.name));
+    // Normalization creates fresh snapshots, not durable message mutations.
+    // Live increments use only their conversation's already loaded window;
+    // explicit historical tool branches remain authoritative.
+    for (const tool of normalized) {
+      if (!tool.branchId && tool.conversationId === messageWindow.conversationId && messageWindow.branchId) {
+        tool.branchId = messageWindow.branchId;
+      }
+    }
+    return collapseNestedConnectorDispatches(normalized);
+  }, [messages, messageWindow.branchId, messageWindow.conversationId]);
   const groupStatus = useMemo(() => aggregateStatus(tools), [tools]);
   const presentationGroups = useMemo(() => groupRepeatedNonExecutingTools(tools), [tools]);
   const isActive = tools.some((tool) => isActiveToolStatus(tool.status));

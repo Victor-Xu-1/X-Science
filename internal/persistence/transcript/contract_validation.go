@@ -247,7 +247,8 @@ func validateWebReadModelV38Contract(ctx context.Context, tx *sql.Tx) error {
 				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV66ProjectionStateStatement()) ||
 				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV67ProjectionStateStatement()) ||
 				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV70ProjectionStateStatement()) ||
-				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV74ProjectionStateStatement())
+				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV74ProjectionStateStatement()) ||
+				normalizeContractSQL(observed) == normalizeContractSQL(WebReadModelV79ProjectionStateStatement())
 		}
 		if !valid {
 			return fmt.Errorf("validate Transcript Web read-model object %s: %w", name, ErrSchemaUnavailable)
