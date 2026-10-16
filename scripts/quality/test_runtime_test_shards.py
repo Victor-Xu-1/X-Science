@@ -8,6 +8,7 @@ import re
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from scripts.quality import runtime_test_shards as shards
 
@@ -60,9 +61,14 @@ class GoExecutionTests(unittest.TestCase):
             folder = cls.repo / relative
             folder.mkdir(parents=True)
             source = '''package fixture
-import ("testing"; "fmt")
+import ("testing"; "fmt"; "os")
 func TestAlpha(t *testing.T) {}
-func TestNested(t *testing.T) { t.Run("child", func(t *testing.T) {}) }
+func TestNested(t *testing.T) {
+  if marker := os.Getenv("XSCI_SHARD_STARTED_MARKER"); marker != "" {
+    if err := os.WriteFile(marker, []byte("started"), 0600); err != nil { t.Fatal(err) }
+  }
+  t.Run("child", func(t *testing.T) {})
+}
 func TestGamma(t *testing.T) {}
 func TestDelta(t *testing.T) {}
 func TestEpsilon(t *testing.T) {}
@@ -144,7 +150,7 @@ var batchCount int
         self.assertEqual(len(selected), len(set(selected)))
         self.assertCountEqual(core_packages, self.core_packages)
 
-    def test_real_batches_use_new_processes_and_accumulate_failures(self):
+    def test_real_batches_use_new_processes_and_stop_after_failure(self):
         names = [f"TestBatch{index:02d}" for index in range(16)]
         prefix = ["go", "test", "-json", "-count=1", "-timeout=1m", "-run"]
         def command(batch):
@@ -165,9 +171,10 @@ var batchCount int
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 1)
             summary = json.loads(Path(log_dir, "summary.json").read_text())
-            self.assertEqual(summary["batch_exit_codes"], [1, 0])
+            self.assertEqual(summary["batch_exit_codes"], [1])
             self.assertEqual(summary["packages"]["fixture/internal/server"], "fail")
-            self.assertEqual(summary["missing_tests"], [])
+            self.assertEqual(summary["missing_tests"], [["fixture/internal/server", "TestNested"]])
+            self.assertEqual(summary["unstarted_process_batches"], 1)
 
     def test_duplicate_and_equal_names_across_packages_cannot_hide_gaps(self):
         command = ["go", "test", "-json", "-count=1", "-run", "^TestAlpha$", "fixture/internal/server"]
@@ -179,6 +186,28 @@ var batchCount int
             with tempfile.TemporaryDirectory(prefix="x-science-shard-identity-") as log_dir:
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                     self.assertEqual(shards.execute(self.repo, test_plan, Path(log_dir)), 1)
+
+    def test_failed_batch_does_not_start_later_real_process_and_preserves_evidence(self):
+        package = "fixture/internal/server"
+        prefix = ["go", "test", "-json", "-count=1", "-timeout=1m", "-run"]
+        test_plan = dict(self.initial_plan, selected={package: ["TestFailure", "TestNested"]},
+                         commands=[[*prefix, "^TestFailure$", package], [*prefix, "^TestNested$", package]])
+        with tempfile.TemporaryDirectory(prefix="x-science-shard-fail-fast-") as directory:
+            marker = Path(directory, "later-process-started")
+            log_dir = Path(directory, "evidence")
+            with patch.dict("os.environ", {"XSCI_SHARD_STARTED_MARKER": str(marker)}), contextlib.redirect_stdout(io.StringIO()):
+                result = shards.execute(self.repo, test_plan, log_dir)
+            summary = json.loads((log_dir / "summary.json").read_text())
+            self.assertEqual(result, 1)
+            self.assertFalse(marker.exists(), f"failed batch still launched later real process: {summary['batch_exit_codes']}")
+            self.assertEqual(summary["batch_exit_codes"], [1])
+            self.assertEqual(summary["missing_tests"], [[package, "TestNested"]])
+            self.assertEqual(summary["packages"][package], "fail")
+            self.assertEqual(summary["planned_process_batches"], 2)
+            self.assertEqual(summary["unstarted_process_batches"], 1)
+            self.assertEqual(json.loads((log_dir / "plan.json").read_text()), test_plan)
+            self.assertTrue(any(json.loads(line).get("Action") == "fail"
+                                for line in (log_dir / "events.jsonl").read_text().splitlines()))
 
 
 if __name__ == "__main__":

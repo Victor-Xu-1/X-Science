@@ -4,6 +4,8 @@
 The timeout remains per test process. Large packages are split by top-level
 test name; every subtest stays with its parent. Race work uses smaller jobs and
 process batches. No cached result, failure exclusion or shortened assertion is used.
+After a failed process batch, later batches are not started; incomplete coverage
+stays explicitly recorded with the failed result and original complete plan.
 """
 
 from __future__ import annotations
@@ -77,7 +79,13 @@ def execute(repo: Path, test_plan: dict, log_dir: Path) -> int:
                             print(output, end="", flush=True)
                         if name:
                             diagnostics[key].append(output[-4096:])
-                batch_results.append(process.wait())
+                code = process.wait()
+                batch_results.append(code)
+                if code:
+                    print(f"ERROR: process batch {index + 1} failed; "
+                          f"{len(test_plan['commands']) - index - 1} later batches were not started",
+                          file=sys.stderr, flush=True)
+                    break
             finally:
                 process.stdout.close()
                 if process.poll() is None:
@@ -94,6 +102,8 @@ def execute(repo: Path, test_plan: dict, log_dir: Path) -> int:
         print("ERROR: runtime shard did not execute its complete planned inventory", file=sys.stderr)
     summary = {key: test_plan[key] for key in ("group", "index", "race", "inventory_count", "inventory_sha256")}
     summary.update({"exit_code": result, "executed_top_level": len(completed),
+                    "planned_process_batches": len(test_plan["commands"]),
+                    "unstarted_process_batches": len(test_plan["commands"]) - len(batch_results),
                     "batch_exit_codes": batch_results, "duplicate_tests": sorted(duplicates),
                     "missing_tests": missing, "unexpected_tests": unexpected, "missing_packages": missing_packages,
                     "packages": package_results,
