@@ -2,7 +2,7 @@ anyio==4.14.2
 httpx==0.28.1
 jsonschema==4.26.0
 lxml==6.1.0
-mcp==2.1.1
+mcp==2.2.0
 pandas==3.0.2
 Pillow==12.3.0
 requests==2.33.1
