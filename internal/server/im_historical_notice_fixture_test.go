@@ -13,7 +13,7 @@ import (
 )
 
 // Only an empty private DB is reconstructed. Stage plus the original76 writer
-// produces the old source/counter ordering; normal Open then installs77/78.
+// produces the old source/counter ordering; normal Open then installs77 onward.
 // No admission mapping, claim, lease, receipt or source payload is fabricated.
 func historicalIMNoticeFixture(t *testing.T, state string, queuedPayload ...[]byte) (*workspace.Store, *transcriptstore.Repository, *sql.DB, transcriptstore.Stream) {
 	t.Helper()
@@ -39,6 +39,7 @@ func historicalIMNoticeFixture(t *testing.T, state string, queuedPayload ...[]by
 		(SELECT COUNT(*) FROM compute_managed_endpoints WHERE owner_spec_json IS NOT NULL)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical predecessor must be empty: facts=%d err=%v", facts, err)
 	}
+	restoreHistoricalIMV76EmptyProjectionSchema(t, db)
 	for _, statement := range []string{
 		`DROP TABLE compute_managed_endpoint_actions`, `DROP TABLE compute_managed_endpoint_instances`,
 		`ALTER TABLE compute_managed_endpoints DROP COLUMN owner_spec_json`,
