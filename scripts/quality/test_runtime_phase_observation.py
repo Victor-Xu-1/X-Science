@@ -13,7 +13,55 @@ from scripts.quality import pr_fast_scope as scope
 from scripts.quality import runtime_phase_evidence as evidence
 
 
+PHASE_INPUTS = [
+    "scripts/quality/runtime_phase_evidence.py",
+    "scripts/quality/test_runtime_phase_evidence.py",
+    "scripts/quality/test_runtime_phase_observation.py",
+]
+PHASE_CHECK = [
+    "python3", "-B", "-m", "unittest",
+    "scripts.quality.test_runtime_phase_evidence",
+    "scripts.quality.test_runtime_phase_observation",
+]
+
+
 class PhaseObservationBoundaryTests(unittest.TestCase):
+    def test_phase_inputs_have_one_ci_only_owner_and_connected_checks(self):
+        repo = Path(__file__).resolve().parents[2]
+        entries = [{"ImportPath": "fixture/runtime", "Dir": str(repo / "internal/runtime")}]
+        for path in PHASE_INPUTS:
+            with self.subTest(path=path):
+                selected, _ = scope.select_packages(repo, [path], entries)
+                self.assertEqual(selected, [], "CI-only phase input must not broaden Go coverage")
+                groups = scope.verification_scope.matched(repo, [path])
+                self.assertEqual([group["name"] for group in groups], ["full-workflow-shard-contract"])
+                self.assertFalse(groups[0]["frontend"])
+                self.assertNotIn("packages", groups[0])
+                self.assertEqual(scope.verification_scope.checks(groups), [
+                    ["python3", "-B", "-m", "unittest", "scripts.quality.test_runtime_test_shards"],
+                    PHASE_CHECK,
+                ])
+
+    def test_registered_phase_inputs_keep_unknown_mixed_and_embedded_go_ownership(self):
+        repo = Path(__file__).resolve().parents[2]
+        entries = [
+            {"ImportPath": "fixture/root", "Dir": str(repo)},
+            {"ImportPath": "fixture/client", "Dir": str(repo / "client"),
+             "TestImports": ["fixture/root"]},
+            {"ImportPath": "fixture/unrelated", "Dir": str(repo / "unrelated")},
+        ]
+        self.assertEqual(scope.select_packages(repo, PHASE_INPUTS, entries)[0], [])
+        expected = ["fixture/client", "fixture/root"]
+        self.assertEqual(scope.select_packages(repo, PHASE_INPUTS + ["root.go"], entries)[0], expected)
+        all_packages = sorted(entry["ImportPath"] for entry in entries)
+        unknown = PHASE_INPUTS[0] + ".unregistered"
+        self.assertEqual(scope.verification_scope.matched(repo, [unknown]), [])
+        for paths in [[unknown], PHASE_INPUTS + [unknown], PHASE_INPUTS + ["unknown/source.go"]]:
+            with self.subTest(paths=paths):
+                self.assertEqual(scope.select_packages(repo, paths, entries)[0], all_packages)
+        entries[0]["EmbedFiles"] = [PHASE_INPUTS[0]]
+        self.assertEqual(scope.select_packages(repo, PHASE_INPUTS, entries)[0], expected)
+
     def test_elapsed_uses_monotonic_clock_even_when_wall_clock_moves_backwards(self):
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stderr(io.StringIO()):
             logger = evidence.RuntimePhaseEvidence(Path(directory))
