@@ -22,6 +22,7 @@ type ExecutorResourceBudgetExceedsCurrentCapacityError struct {
 	Generation     int64
 	RequestedBytes int64
 	MinimumBytes   int64
+	ReservedBytes  int64
 	MaximumBytes   int64
 	HostTotalBytes int64
 	ReserveBytes   int64
@@ -32,9 +33,10 @@ func (err *ExecutorResourceBudgetExceedsCurrentCapacityError) Error() string {
 }
 
 // Keep the immutable request (including default zero) separate from the
-// observed runtime floor. The default preference is not a mandatory budget.
+// observed runtime floor and an already-admitted allocation. An unreserved
+// default preference is not a mandatory budget; a reserved default cannot shrink.
 func (err *ExecutorResourceBudgetExceedsCurrentCapacityError) RequiredBytes() int64 {
-	return max(err.RequestedBytes, err.MinimumBytes)
+	return max(err.RequestedBytes, err.MinimumBytes, err.ReservedBytes)
 }
 
 // Capacity failure is an unstarted execution unit, not an application result.
