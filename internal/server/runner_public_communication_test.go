@@ -136,6 +136,23 @@ func TestSessionRunnerPublicProgressNarrationRemovesProviderThinkMarkers(t *test
 	}
 }
 
+func TestSessionRunnerPublicNarrationWithholdsIncompleteThinkingWrappers(t *testing.T) {
+	for _, content := range []string{
+		"<think>private fixture",
+		"<thi",
+		"< think_",
+		"<think>outer<thinking>inner</thinking>outer tail</think>",
+	} {
+		if got := sessionRunnerPublicProgressNarration(content); got != "" {
+			t.Fatalf("unfinished/nested private wrapper leaked: %q", got)
+		}
+	}
+	const public = "p < 0.05; I will inspect the records."
+	if got := sessionRunnerPublicProgressNarration("<think>private fixture</think>" + public); got != public {
+		t.Fatalf("valid visible suffix changed: %q", got)
+	}
+}
+
 func TestSessionRunnerPublicProgressNarrationRejectsControlOnlyFragments(t *testing.T) {
 	for _, fragment := range []string{"></", "</", "<", "<|", " \n>\n "} {
 		if got := sessionRunnerPublicProgressNarration(fragment); got != "" {

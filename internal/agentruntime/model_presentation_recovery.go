@@ -52,7 +52,8 @@ func (recovery *modelPresentationRecovery) finish(ctx context.Context, engine En
 	response.Message.Content = ""
 	kept := buffered[:0]
 	for _, event := range buffered {
-		if event.Kind != ModelStreamEventContentDelta && event.Kind != ModelStreamEventPublicProgressDelta && event.Kind != ModelStreamEventPublicProgressBoundary {
+		if event.Kind != ModelStreamEventContentDelta && event.Kind != ModelStreamEventPublicProgressDelta &&
+			event.Kind != ModelStreamEventPublicProgressBoundary && event.Kind != ModelStreamEventNativePreambleBoundary {
 			kept = append(kept, event)
 		}
 	}
