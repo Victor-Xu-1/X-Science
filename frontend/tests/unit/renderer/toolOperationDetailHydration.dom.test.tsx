@@ -6,7 +6,10 @@ import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 import type { ToolMessage } from '@/common/chat/normalizeToolCall';
 import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
 import ToolOperationDetail from '@/renderer/pages/conversation/Messages/components/ToolOperationDetail';
-import { MessagePaginationProvider } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  MessagePaginationProvider,
+  useUpdateMessagePaginationState,
+} from '@/renderer/pages/conversation/Messages/hooks';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
 import { resetXScienceBranchSelection } from '@/renderer/services/xScienceConversationBranches';
 
@@ -66,6 +69,13 @@ function deferredMessage() {
     resolve = accept;
   });
   return { promise, resolve };
+}
+
+function SwitchWindowBranch() {
+  const update = useUpdateMessagePaginationState();
+  return (
+    <button onClick={() => update((current) => ({ ...current, branchId: 'br_aabbccdd' }))}>Switch window branch</button>
+  );
 }
 
 describe('tool operation hydrated result presentation', () => {
@@ -136,28 +146,118 @@ describe('tool operation hydrated result presentation', () => {
     expect(screen.getByTestId('detail-result-output').textContent).toBe(resultOutput(3));
   });
 
-  it.each(['live', 'history'] as const)('hydrates the %s operation in its known message-window branch', async (source) => {
-    const branchId = 'br_deadbeef';
+  it.each(['live', 'history'] as const)(
+    'hydrates the %s operation in its known message-window branch',
+    async (source) => {
+      const branchId = 'br_deadbeef';
+      const response = fullMessage();
+      const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
+      invoke.mockResolvedValue({
+        ...response,
+        content: { ...response.content, xScience: { branchId } },
+      } as never);
+      const compact = {
+        ...response,
+        content: {
+          ...response.content,
+          output: '{"truncated":true}',
+          _compact: { truncated: true },
+          ...(source === 'history' ? { xScience: { branchId } } : {}),
+        },
+      } as unknown as ToolMessage;
+      render(
+        <MessagePaginationProvider
+          value={{
+            conversationId: 'frame',
+            branchId,
+            hasMoreBefore: false,
+            hasMoreAfter: false,
+            isLoadingBefore: false,
+            isLoadingAfter: false,
+            isLoadingAnchor: false,
+          }}
+        >
+          <MessageToolGroupSummary messages={[compact]} />
+        </MessagePaginationProvider>
+      );
+
+      fireEvent.click(screen.getByTestId('tool-chip'));
+      expect(await within(screen.getByTestId('tool-chip')).findByText('2 results')).toBeTruthy();
+      expect(invoke).toHaveBeenCalledExactlyOnceWith({
+        conversation_id: 'frame',
+        message_id: 'message',
+        branch_id: branchId,
+      });
+      expect(screen.getByTestId('detail-result-output').textContent).toBe(resultOutput(2));
+      expect(screen.queryByRole('alert')).toBeNull();
+    }
+  );
+
+  it.each(['foreign window', 'foreign response', 'other branch', 'older revision'] as const)(
+    'retains the detail identity fence for %s',
+    async (mismatch) => {
+      const response = fullMessage();
+      const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
+      invoke.mockResolvedValue({
+        ...response,
+        conversation_id: mismatch === 'foreign response' ? 'other-frame' : 'frame',
+        content: {
+          ...response.content,
+          xScience: { branchId: mismatch === 'other branch' ? 'br_aabbccdd' : 'br_deadbeef' },
+        },
+      } as never);
+      render(
+        <MessagePaginationProvider
+          value={{
+            conversationId: mismatch === 'foreign window' ? 'other-frame' : 'frame',
+            branchId: 'br_deadbeef',
+            hasMoreBefore: false,
+            hasMoreAfter: false,
+            isLoadingBefore: false,
+            isLoadingAfter: false,
+            isLoadingAnchor: false,
+          }}
+        >
+          <MessageToolGroupSummary
+            messages={[
+              {
+                ...response,
+                content: {
+                  ...response.content,
+                  revision: mismatch === 'older revision' ? 2 : 1,
+                  output: '{"truncated":true}',
+                  _compact: { truncated: true },
+                },
+              } as unknown as ToolMessage,
+            ]}
+          />
+        </MessagePaginationProvider>
+      );
+
+      fireEvent.click(screen.getByTestId('tool-chip'));
+      expect(await screen.findByRole('alert')).toBeTruthy();
+      expect(invoke).toHaveBeenCalledExactlyOnceWith({
+        conversation_id: 'frame',
+        message_id: 'message',
+        ...(mismatch === 'foreign window' ? {} : { branch_id: 'br_deadbeef' }),
+      });
+      expect(screen.getByTestId('detail-result-output').textContent).toBe('{"truncated":true}');
+    }
+  );
+
+  it('preserves an explicit historical tool branch instead of replacing it with the window branch', async () => {
     const response = fullMessage();
     const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
-    invoke.mockResolvedValue({
+    const history = {
       ...response,
-      content: { ...response.content, xScience: { branchId } },
-    } as never);
-    const compact = {
-      ...response,
-      content: {
-        ...response.content,
-        output: '{"truncated":true}',
-        _compact: { truncated: true },
-        ...(source === 'history' ? { xScience: { branchId } } : {}),
-      },
-    } as unknown as ToolMessage;
+      content: { ...response.content, xScience: { branchId: 'br_aabbccdd' } },
+    };
+    invoke.mockResolvedValue(history as never);
     render(
       <MessagePaginationProvider
         value={{
           conversationId: 'frame',
-          branchId,
+          branchId: 'br_deadbeef',
           hasMoreBefore: false,
           hasMoreAfter: false,
           isLoadingBefore: false,
@@ -165,7 +265,14 @@ describe('tool operation hydrated result presentation', () => {
           isLoadingAnchor: false,
         }}
       >
-        <MessageToolGroupSummary messages={[compact]} />
+        <MessageToolGroupSummary
+          messages={[
+            {
+              ...history,
+              content: { ...history.content, output: '{"truncated":true}', _compact: { truncated: true } },
+            } as unknown as ToolMessage,
+          ]}
+        />
       </MessagePaginationProvider>
     );
 
@@ -174,9 +281,48 @@ describe('tool operation hydrated result presentation', () => {
     expect(invoke).toHaveBeenCalledExactlyOnceWith({
       conversation_id: 'frame',
       message_id: 'message',
-      branch_id: branchId,
+      branch_id: 'br_aabbccdd',
     });
-    expect(screen.getByTestId('detail-result-output').textContent).toBe(resultOutput(2));
-    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('does not commit delayed live detail after the message-window branch changes', async () => {
+    const response = deferredMessage();
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
+    invoke.mockReturnValue(response.promise as never);
+    const compact = {
+      ...fullMessage(),
+      content: { ...fullMessage().content, output: '{"truncated":true}', _compact: { truncated: true } },
+    } as unknown as ToolMessage;
+    render(
+      <MessagePaginationProvider
+        value={{
+          conversationId: 'frame',
+          branchId: 'br_deadbeef',
+          hasMoreBefore: false,
+          hasMoreAfter: false,
+          isLoadingBefore: false,
+          isLoadingAfter: false,
+          isLoadingAnchor: false,
+        }}
+      >
+        <SwitchWindowBranch />
+        <MessageToolGroupSummary messages={[compact]} />
+      </MessagePaginationProvider>
+    );
+    fireEvent.click(screen.getByTestId('tool-chip'));
+    expect(invoke).toHaveBeenCalledExactlyOnceWith({
+      conversation_id: 'frame',
+      message_id: 'message',
+      branch_id: 'br_deadbeef',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Switch window branch' }));
+    await act(async () => {
+      const message = fullMessage();
+      response.resolve({ ...message, content: { ...message.content, xScience: { branchId: 'br_deadbeef' } } });
+    });
+    expect(screen.getByTestId('tool-chip').getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('detail-result-output')).toBeNull();
+    expect(screen.getByTestId('tool-chip').textContent).toContain('Search details pending');
+    expect(invoke).toHaveBeenCalledTimes(1);
   });
 });
