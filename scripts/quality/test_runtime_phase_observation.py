@@ -34,13 +34,19 @@ class PhaseObservationBoundaryTests(unittest.TestCase):
                 selected, _ = scope.select_packages(repo, [path], entries)
                 self.assertEqual(selected, [], "CI-only phase input must not broaden Go coverage")
                 groups = scope.verification_scope.matched(repo, [path])
-                self.assertEqual([group["name"] for group in groups], ["full-workflow-shard-contract"])
+                self.assertEqual([group["name"] for group in groups], ["runtime-phase-observation"])
+                self.assertEqual(groups[0]["paths"], PHASE_INPUTS)
                 self.assertFalse(groups[0]["frontend"])
                 self.assertNotIn("packages", groups[0])
-                self.assertEqual(scope.verification_scope.checks(groups), [
-                    ["python3", "-B", "-m", "unittest", "scripts.quality.test_runtime_test_shards"],
-                    PHASE_CHECK,
-                ])
+                self.assertEqual(scope.verification_scope.checks(groups), [PHASE_CHECK])
+        original = next(group for group in scope.verification_scope.load(repo)
+                        if group["name"] == "full-workflow-shard-contract")
+        self.assertEqual(original, {
+            "name": "full-workflow-shard-contract",
+            "paths": ["scripts/quality/runtime_test_shards.py", "scripts/quality/test_runtime_test_shards.py"],
+            "frontend": False,
+            "checks": [["python3", "-B", "-m", "unittest", "scripts.quality.test_runtime_test_shards"]],
+        })
 
     def test_registered_phase_inputs_keep_unknown_mixed_and_embedded_go_ownership(self):
         repo = Path(__file__).resolve().parents[2]

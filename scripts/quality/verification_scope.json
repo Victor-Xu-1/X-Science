@@ -93,10 +93,7 @@
       "name": "full-workflow-shard-contract",
       "paths": [
         "scripts/quality/runtime_test_shards.py",
-        "scripts/quality/test_runtime_test_shards.py",
-        "scripts/quality/runtime_phase_evidence.py",
-        "scripts/quality/test_runtime_phase_evidence.py",
-        "scripts/quality/test_runtime_phase_observation.py"
+        "scripts/quality/test_runtime_test_shards.py"
       ],
       "frontend": false,
       "checks": [
@@ -106,7 +103,18 @@
           "-m",
           "unittest",
           "scripts.quality.test_runtime_test_shards"
-        ],
+        ]
+      ]
+    },
+    {
+      "name": "runtime-phase-observation",
+      "paths": [
+        "scripts/quality/runtime_phase_evidence.py",
+        "scripts/quality/test_runtime_phase_evidence.py",
+        "scripts/quality/test_runtime_phase_observation.py"
+      ],
+      "frontend": false,
+      "checks": [
         [
           "python3",
           "-B",
