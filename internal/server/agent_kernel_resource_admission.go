@@ -41,8 +41,14 @@ func kernelResourceAdmissionReceipt(err error) (map[string]any, bool) {
 		if required := exceeds.RequiredBytes(); required > 0 {
 			receipt["required_memory_bytes"] = required
 		}
+		if exceeds.ReservedBytes > 0 {
+			receipt["reserved_memory_bytes"] = exceeds.ReservedBytes
+		}
 		if exceeds.RequestedBytes == 0 {
 			receipt["error"] = "The minimum executor memory requirement exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and the default allocation request remains unchanged."
+			if exceeds.ReservedBytes > 0 && exceeds.ReservedBytes > exceeds.MaximumBytes {
+				receipt["error"] = "The previously reserved executor memory allocation exceeds the observed host total after the controller reserve. Freeing current usage alone cannot fit it under this observation. No computation was started and neither the default allocation request nor the original reservation was changed."
+			}
 		}
 		if exceeds.MinimumBytes > exceeds.MaximumBytes {
 			// No smaller explicit budget can satisfy this observed runtime floor.

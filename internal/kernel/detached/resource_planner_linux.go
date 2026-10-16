@@ -147,18 +147,8 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 			RequestedBytes: spec.ResourceMemoryBytes, MinimumBytes: capacity.MinimumBytes,
 		}
 	}
-	// Only an observed host total proves this upper bound. A zero generic
-	// MaximumBytes can mean unknown; an observed total below the reserve means
-	// genuinely zero capacity. Do not infer executor limits from the web cgroup.
-	// A default zero request still needs the runtime floor, not DefaultBytes.
-	required := max(spec.ResourceMemoryBytes, capacity.MinimumBytes)
-	if observation.HostTotalBytes > 0 && required > max(0, observation.HostTotalBytes-observation.ReserveBytes) {
-		return 0, &ExecutorResourceBudgetExceedsCurrentCapacityError{
-			BackendID: backend.BackendID, Generation: backend.BackendGeneration,
-			RequestedBytes: spec.ResourceMemoryBytes, MinimumBytes: capacity.MinimumBytes,
-			MaximumBytes:   max(0, observation.HostTotalBytes-observation.ReserveBytes),
-			HostTotalBytes: observation.HostTotalBytes, ReserveBytes: observation.ReserveBytes,
-		}
+	if err := checkExecutorHostCapacity(backend, spec.ResourceMemoryBytes, capacity.MinimumBytes, 0, observation); err != nil {
+		return 0, err
 	}
 	reservations, err := b.Store.ListKernelResourceReservations(ctx, backend.MachineBootID)
 	if err != nil {
@@ -198,6 +188,12 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 	}
 	if !admitted {
 		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration}
+	}
+	// Use the exact allocation returned by the serialized admission, including
+	// concurrent replays. Neither an earlier inventory nor the default floor
+	// establishes the bytes already promised to this generation.
+	if err := checkExecutorHostCapacity(backend, reservation.RequestedBytes, capacity.MinimumBytes, reservation.ReservedBytes, observation); err != nil {
+		return 0, err
 	}
 	return reservation.ReservedBytes, nil
 }
