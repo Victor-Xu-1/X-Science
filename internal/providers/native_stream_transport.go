@@ -146,5 +146,5 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 		return agentruntime.ModelResponse{}, retryable, emitted, err
 	}
 	c.emitAudit(record)
-	return c.responseWithUsage(decoded, record), false, emitted, nil
+	return c.responseWithUsage(decoded, record, usage), false, emitted, nil
 }
