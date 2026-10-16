@@ -463,9 +463,9 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 	case <-time.After(2 * time.Second):
 		t.Fatal("provider did not reach its tool-call boundary")
 	}
-	// Only an identified native assistant prefix is independently publishable.
-	// Legacy argument narration and English awaiting Chinese conversion still
-	// wait for the response. Tool execution always waits for complete arguments.
+	// These legacy service-operation proposals are not in the model's advertised
+	// Tool catalog. Their marker remains provisional: neither narration nor tool
+	// execution may escape before the completed response validates its arguments.
 	deadline := time.Now().Add(200 * time.Millisecond)
 	for time.Now().Before(deadline) {
 		entries, readErr := server.eventJournal.ReadAfter(session.ID, 0, 100)
@@ -476,8 +476,7 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 			if stringValue(entry.Message["toolPhase"]) == "start" {
 				t.Fatal("incomplete provider response executed a tool")
 			}
-			if stringValue(entry.Message["type"]) == "content_delta" &&
-				(structured || chinese || stringValue(entry.Message["text"]) != expectedProgress) {
+			if stringValue(entry.Message["type"]) == "content_delta" {
 				t.Fatal("a provisional/argument draft escaped its private boundary")
 			}
 		}
@@ -891,10 +890,10 @@ func TestTranscriptRunnerMalformedToolCallProtocolRecoversWithinExecutionUnit(t 
 			terminals++
 		}
 	}
-	// The positive identified assistant-prefix boundary is independent of later
-	// malformed arguments. Only that safe prefix may survive; no invalid action
-	// executes, and the repaired complete response remains the sole final.
-	if deltaText.String() != "evidence collected" || assistantText.String() != "evidence collected recovered final" || interruptions != 0 || continuations != 0 || terminals != 1 {
+	// This unadvertised legacy operation cannot authorize an early native prefix.
+	// Malformed arguments never release that private draft or execute an action;
+	// the repaired complete response remains the sole authoritative message.
+	if deltaText.Len() != 0 || assistantText.String() != "evidence collected recovered final" || interruptions != 0 || continuations != 0 || terminals != 1 {
 		t.Fatalf("delta=%q assistant=%q interruptions=%d continuations=%d terminals=%d events=%v",
 			deltaText.String(), assistantText.String(), interruptions, continuations, terminals, projectedEventSummaries(events))
 	}

@@ -37,11 +37,14 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 		w.Header().Set("Content-Type", "text/event-stream")
 		switch calls.Add(1) {
 		case 1:
+			if !nativePreambleToolAdvertised(t, request) {
+				return
+			}
 			writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "reasoning_content": private}, "")
 			writePublicationFixtureEvent(w, map[string]any{"content": preamble}, "")
 			writePublicationFixtureEvent(w, map[string]any{"tool_calls": []any{map[string]any{
 				"index": 0, "id": "native-read", "type": "function",
-				"function": map[string]any{"name": "runtime_get", "arguments": `{"namespace":"fixture"`},
+				"function": map[string]any{"name": "search_skills", "arguments": `{"query":"fi`},
 			}}}, "")
 			close(reached)
 			select {
@@ -51,11 +54,11 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 			}
 			writePublicationFixtureEvent(w, map[string]any{"content": "This later native draft is not part of the accepted preamble."}, "")
 			writePublicationFixtureEvent(w, map[string]any{"tool_calls": []any{map[string]any{
-				"index": 0, "function": map[string]any{"arguments": `,"key":"value"}`},
+				"index": 0, "function": map[string]any{"arguments": `xture"}`},
 			}}}, "tool_calls")
 		case 2:
 			messages, ok := request["messages"].([]any)
-			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "runtime_get", 0), "") {
+			if !ok || !hasToolResultMessage(messages, requireProviderToolCallID(t, request, "search_skills", 0), "") {
 				t.Error("original native tool did not reach the ordinary result path")
 			}
 			writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": final}, "stop")
@@ -160,7 +163,7 @@ func newNativePreambleFixture(t *testing.T, endpoint, frame string) (*Server, *t
 	}
 	return server, repo, SessionRunnerChatOptions{
 		SessionID: frame, RunnerID: frame + "-runner", Endpoint: endpoint,
-		Model: "fixture-model", AllowedTools: []string{"runtime_get"}, MaxAttempts: 1, MaxToolRounds: 2,
+		Model: "fixture-model", AllowedTools: []string{"search_skills"}, MaxAttempts: 1, MaxToolRounds: 2,
 		RequestTimeout: 5 * time.Second, LeaseTTL: time.Minute, DisableSkillDiscovery: true, DisableMCPDiscovery: true,
 	}
 }
@@ -168,7 +171,7 @@ func newNativePreambleFixture(t *testing.T, endpoint, frame string) (*Server, *t
 func writeNativePreambleTool(w http.ResponseWriter, arguments, finish string) {
 	writePublicationFixtureEvent(w, map[string]any{"tool_calls": []any{map[string]any{
 		"index": 0, "id": "native-read", "type": "function",
-		"function": map[string]any{"name": "runtime_get", "arguments": arguments},
+		"function": map[string]any{"name": "search_skills", "arguments": arguments},
 	}}}, finish)
 }
 
@@ -196,7 +199,7 @@ func assertNativePreambleActionCounts(t *testing.T, repo *transcriptstore.Reposi
 		if err := json.Unmarshal(event.ResolvedPayloadJSON, &payload); err != nil {
 			t.Fatal(err)
 		}
-		if stringValue(payload["toolName"]) != "runtime_get" {
+		if stringValue(payload["toolName"]) != "search_skills" {
 			continue
 		}
 		switch stringValue(payload["toolPhase"]) {
@@ -209,4 +212,54 @@ func assertNativePreambleActionCounts(t *testing.T, repo *transcriptstore.Reposi
 	if started != wantStarted || completed != wantCompleted {
 		t.Fatalf("tool execution counts started=%d completed=%d; want %d/%d", started, completed, wantStarted, wantCompleted)
 	}
+}
+
+func nativePreambleToolAdvertised(t *testing.T, request map[string]any) bool {
+	t.Helper()
+	tools, _ := request["tools"].([]any)
+	for _, raw := range tools {
+		tool, _ := raw.(map[string]any)
+		function, _ := tool["function"].(map[string]any)
+		if function["name"] == "search_skills" {
+			return true
+		}
+	}
+	t.Error("canonical fixture tool is not in the actual provider advertisement")
+	return false
+}
+
+func TestNativePreambleCanonicalToolFixtureExecutesOrdinaryCompleteAction(t *testing.T) {
+	const preamble = "I will inspect the stored fixture value."
+	const final = "The fixture check is complete."
+	var calls atomic.Int64
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		if calls.Add(1) == 1 {
+			if !nativePreambleToolAdvertised(t, request) {
+				return
+			}
+			writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": preamble}, "")
+			writeNativePreambleTool(w, `{"query":"fixture"}`, "tool_calls")
+		} else {
+			writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": final}, "stop")
+		}
+		fmt.Fprint(w, "data: [DONE]\n\n")
+		w.(http.Flusher).Flush()
+	}))
+	t.Cleanup(provider.Close)
+	server, repo, options := newNativePreambleFixture(t, provider.URL, "complete-preamble-frame")
+	result, err := server.RunSessionRunnerChatOnce(context.Background(), options)
+	if err != nil || result.Status != "completed" || calls.Load() != 2 {
+		t.Fatalf("ordinary advertised fixture action failed: result=%+v calls=%d error=%v", result, calls.Load(), err)
+	}
+	progress, answer := publicationFixtureText(t, repo, options.SessionID)
+	if progress != preamble || answer != final {
+		t.Fatalf("ordinary complete response changed: progress=%q final=%q", progress, answer)
+	}
+	assertNativePreambleActionCounts(t, repo, options.SessionID, 1, 1)
 }

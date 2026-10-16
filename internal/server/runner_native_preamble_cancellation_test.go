@@ -20,12 +20,16 @@ func TestNativePublicPreambleCancellationPreservesOnlyAcceptedPrefix(t *testing.
 			releaseBody := make(chan struct{})
 			var releaseOnce sync.Once
 			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if err := json.NewDecoder(r.Body).Decode(&map[string]any{}); err != nil {
+				var request map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 					t.Error(err)
 					return
 				}
 				if calls.Add(1) != 1 {
 					t.Error("cancelled runner issued another provider request")
+					return
+				}
+				if !nativePreambleToolAdvertised(t, request) {
 					return
 				}
 				w.Header().Set("Content-Type", "text/event-stream")
@@ -36,7 +40,7 @@ func TestNativePublicPreambleCancellationPreservesOnlyAcceptedPrefix(t *testing.
 				case <-r.Context().Done():
 					return
 				}
-				writeNativePreambleTool(w, `{"namespace":"fixture"`, "")
+				writeNativePreambleTool(w, `{"query":"fi`, "")
 				close(proposalSent)
 				<-r.Context().Done() // No full arguments, action or final exists after cancellation.
 			}))

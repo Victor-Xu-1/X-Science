@@ -125,8 +125,11 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 			if publicBlockObserved {
 				return nil // An existing independent block is the sole public source.
 			}
-			publicBlockObserved = true
 			text := nativePrefix.narration()
+			if text == "" {
+				return nil // Observation alone does not accept or erase a public block.
+			}
+			publicBlockObserved = true
 			id := fmt.Sprintf("native-%x", sha256.Sum256([]byte(event.BlockID+"\x00"+text)))
 			return emitPublicBlock(id, text, "native")
 		}

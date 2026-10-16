@@ -61,8 +61,8 @@ func (d *sessionRunnerPublicProgressDeduper) reset() {
 }
 
 var (
-	sessionRunnerPrivateThinkBlockPattern = regexp.MustCompile(`(?is)<\s*think(?:ing|_[a-z0-9][a-z0-9_-]{0,127})?\s*>[\s\S]*?<\s*/\s*think(?:ing|_[a-z0-9][a-z0-9_-]{0,127})?\s*>`)
-	sessionRunnerPrivateThinkTagPattern   = regexp.MustCompile(`(?i)<\s*/?\s*(?:think(?:ing|_[a-z0-9][a-z0-9_-]{0,127})?|think_never_used_[a-z0-9][a-z0-9_-]{0,127})\s*>`)
+	sessionRunnerPrivateThinkTagPattern = regexp.MustCompile(`(?i)<\s*/?\s*(?:think(?:ing|_[a-z0-9][a-z0-9_-]{0,127})?|think_never_used_[a-z0-9][a-z0-9_-]{0,127})\s*>`)
+	sessionRunnerPartialThinkTagPattern = regexp.MustCompile(`(?i)<\s*(?:t|th|thi|thin|think|thinki|thinkin|thinking|think_[a-z0-9_-]{0,128})\s*$`)
 	// A single underscore is common in scientific prose (for example
 	// in_vitro or analysis_report) and must remain visible. Internal runtime
 	// identifiers either use the MCP double-underscore namespace, a canonical
@@ -77,8 +77,28 @@ var (
 // frontend applies the same defensive filter for historical messages, but
 // new durable/public text must already be clean when it leaves the runner.
 func sessionRunnerStripPrivateThinkMarkers(content string) string {
-	content = sessionRunnerPrivateThinkBlockPattern.ReplaceAllString(content, "")
-	return sessionRunnerPrivateThinkTagPattern.ReplaceAllString(content, "")
+	var visible strings.Builder
+	depth, after := 0, 0
+	for _, location := range sessionRunnerPrivateThinkTagPattern.FindAllStringIndex(content, -1) {
+		if depth == 0 {
+			visible.WriteString(content[after:location[0]])
+		}
+		tag := strings.TrimSpace(content[location[0]+1 : location[1]-1])
+		if strings.HasPrefix(tag, "/") {
+			depth = max(0, depth-1)
+		} else {
+			depth++
+		}
+		after = location[1]
+	}
+	if depth == 0 {
+		visible.WriteString(content[after:])
+	}
+	text := visible.String()
+	if partial := sessionRunnerPartialThinkTagPattern.FindStringIndex(text); partial != nil {
+		text = text[:partial[0]]
+	}
+	return text
 }
 
 // sessionRunnerPublicProgressNarration is the single publication boundary for

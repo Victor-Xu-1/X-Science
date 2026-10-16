@@ -26,15 +26,19 @@ func TestNativePublicPreambleIncompletePresentationNeverLeaksOrBlocksValidAction
 		t.Run(test.name, func(t *testing.T) {
 			var calls atomic.Int64
 			provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if err := json.NewDecoder(r.Body).Decode(&map[string]any{}); err != nil {
+				var request map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 					t.Error(err)
 					return
 				}
 				w.Header().Set("Content-Type", "text/event-stream")
 				switch calls.Add(1) {
 				case 1:
+					if !nativePreambleToolAdvertised(t, request) {
+						return
+					}
 					writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": test.body}, "")
-					writeNativePreambleTool(w, `{"namespace":"fixture","key":"value"}`, "tool_calls")
+					writeNativePreambleTool(w, `{"query":"fixture"}`, "tool_calls")
 				case 2:
 					writePublicationFixtureEvent(w, map[string]any{"role": "assistant", "content": final}, "stop")
 				default:

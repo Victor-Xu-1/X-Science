@@ -26,7 +26,7 @@ func (prefix *runnerNativePreamble) narration() string {
 	if prefix.overflow {
 		return ""
 	}
-	text := sessionRunnerPrivateThinkBlockPattern.ReplaceAllString(prefix.text.String(), "")
+	text := prefix.text.String()
 	// Early native publication is optional. Remaining markup or a partial tag
 	// cannot prove a closed visible prefix; never expose its body. Complete
 	// ordinary actions still pass the original tool protocol independently.
