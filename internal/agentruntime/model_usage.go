@@ -101,8 +101,23 @@ func (usage ModelUsage) AddRequestUsage(next ModelUsage) ModelUsage {
 	leftInvalid, rightInvalid := usage.InvalidFields, next.InvalidFields
 	// Preserve each request's incomplete additive-input dependency even when
 	// the combined adapters no longer share additive cache semantics.
-	leftInvalid.Input = leftInvalid.Input || (usage.CacheTokensAdditive && (leftInvalid.CacheRead || leftInvalid.CacheWrite))
-	rightInvalid.Input = rightInvalid.Input || (next.CacheTokensAdditive && (rightInvalid.CacheRead || rightInvalid.CacheWrite))
+	for _, request := range []struct {
+		usage   ModelUsage
+		invalid *ModelUsageFields
+	}{{usage, &leftInvalid}, {next, &rightInvalid}} {
+		if !request.usage.CacheTokensAdditive {
+			continue
+		}
+		request.invalid.Input = request.invalid.Input || request.invalid.CacheRead || request.invalid.CacheWrite
+		input := 0
+		for _, value := range [...]int{request.usage.InputTokens, request.usage.CacheReadTokens, request.usage.CacheWriteTokens} {
+			if value < 0 || value > int(^uint(0)>>1)-input {
+				request.invalid.Input = true
+				break
+			}
+			input += value
+		}
+	}
 	result := ModelUsage{
 		Reported: &ModelUsageFields{
 			Input: left.Input && right.Input, Output: left.Output && right.Output,

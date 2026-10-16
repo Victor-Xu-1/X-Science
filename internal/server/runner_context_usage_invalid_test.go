@@ -73,6 +73,53 @@ func TestRunnerContextUsageCurrentInvalidity(t *testing.T) {
 			t.Fatalf("overflow settlement=(%s,%d,%d)", source, used, output)
 		}
 	})
+	t.Run("aggregate-additive-input-overflow", func(t *testing.T) {
+		for _, side := range []string{"left", "right"} {
+			t.Run(side, func(t *testing.T) {
+				maximum := int(^uint(0) >> 1)
+				request := agentruntime.ModelUsage{
+					InputTokens: maximum, CacheReadTokens: 1, CacheTokensAdditive: true,
+					Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, CacheRead: true, CacheWrite: true},
+				}
+				request.DeriveTotal(true)
+				if request.TotalTokens != 0 || request.Warnings.Empty() || request.InvalidFields != (agentruntime.ModelUsageFields{}) {
+					t.Fatal("fixture must have current valid scalar receipts and an overflowing additive dependency")
+				}
+				zero := agentruntime.ModelUsage{Reported: complete}
+				combine := func(value agentruntime.ModelUsage) agentruntime.ModelUsage {
+					if side == "left" {
+						return addModelUsage(value, zero)
+					}
+					return addModelUsage(zero, value)
+				}
+				check := func(usage agentruntime.ModelUsage, wantSource string, wantUsed int) {
+					t.Helper()
+					source, used, output := settleRunnerContextUsage(runnerContextUsage{InputEstimates: []runnerContextUsageRow{{Tokens: 1000}}}, agentruntime.ModelResponse{Usage: usage})
+					if source != wantSource || used != wantUsed || output != 0 {
+						t.Fatalf("additive dependency settlement=(%s,%d,%d), want=(%s,%d,0)", source, used, output, wantSource, wantUsed)
+					}
+				}
+				combined := combine(request)
+				if combined.CacheTokensAdditive || !combined.InvalidFields.Input || combined.InvalidFields.Total || combined.Warnings != request.Warnings {
+					t.Fatal("mixed aggregation discarded current overflow or changed independent total/warning state")
+				}
+				check(combined, "estimated", 1000)
+				authoritative := request
+				authoritative.TotalTokens, authoritative.Reported = maximum, complete
+				check(combine(authoritative), "provider", maximum)
+				// A new valid snapshot changes current cache, not the historical
+				// warning. The aggregation must recompute, not retain a synthetic bit.
+				healed := request
+				healed.CacheReadTokens = 0
+				healed.DeriveTotal(true)
+				recovered := combine(healed)
+				if recovered.InvalidFields.Input || recovered.Warnings != request.Warnings || request.InvalidFields != (agentruntime.ModelUsageFields{}) {
+					t.Fatal("valid current snapshot was poisoned by historical warning or request mutation")
+				}
+				check(recovered, "provider", maximum)
+			})
+		}
+	})
 }
 
 type usageWarningAuditModel struct{ usage agentruntime.ModelUsage }
