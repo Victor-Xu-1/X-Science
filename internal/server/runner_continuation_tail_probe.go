@@ -12,12 +12,13 @@ import (
 // Successful completion and tool boundaries preserve it verbatim. This is not
 // a general text deduplicator and never edits already published history.
 type continuationTailProbe struct {
-	window         string
-	pending        strings.Builder
-	released       bool
-	toolBoundary   bool
-	nativePreamble *agentruntime.ModelStreamEvent
-	emit           func(agentruntime.ModelStreamEvent) error
+	window               string
+	pending              strings.Builder
+	released             bool
+	toolBoundary         bool
+	nativePreamble       *agentruntime.ModelStreamEvent
+	nativePreambleOffset int
+	emit                 func(agentruntime.ModelStreamEvent) error
 }
 
 func newContinuationTailProbe(prefix string, emit func(agentruntime.ModelStreamEvent) error) *continuationTailProbe {
@@ -45,6 +46,7 @@ func (p *continuationTailProbe) event(event agentruntime.ModelStreamEvent) error
 		// the response; it must not make a truncated replay appear to be progress.
 		copy := event
 		p.nativePreamble = &copy
+		p.nativePreambleOffset = p.pending.Len()
 		return nil
 	}
 	if event.Kind != agentruntime.ModelStreamEventContentDelta && event.Kind != "" {
@@ -70,11 +72,17 @@ func (p *continuationTailProbe) onlyReplayedTail(filteredPrefix bool) bool {
 }
 
 func (p *continuationTailProbe) flush() error {
-	if p.pending.Len() > 0 {
-		text := p.pending.String()
-		p.pending.Reset()
+	text := p.pending.String()
+	p.pending.Reset()
+	prefixEnd := len(text)
+	if p.nativePreamble != nil {
+		// Later content may disambiguate the pending historical tail, but it
+		// cannot become part of the earlier provider-bound prefix snapshot.
+		prefixEnd = p.nativePreambleOffset
+	}
+	if prefixEnd > 0 {
 		p.released = true
-		if err := p.send(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: text}); err != nil {
+		if err := p.send(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: text[:prefixEnd]}); err != nil {
 			return err
 		}
 	}
@@ -88,7 +96,14 @@ func (p *continuationTailProbe) flush() error {
 	if p.nativePreamble != nil {
 		event := *p.nativePreamble
 		p.nativePreamble = nil
-		return p.send(event)
+		p.nativePreambleOffset = 0
+		if err := p.send(event); err != nil {
+			return err
+		}
+	}
+	if prefixEnd < len(text) {
+		p.released = true
+		return p.send(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: text[prefixEnd:]})
 	}
 	return nil
 }
