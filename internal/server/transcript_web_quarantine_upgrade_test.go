@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -13,24 +12,9 @@ func TestTranscriptWebProjectorUpgradeRepairsTerminalQuarantine(t *testing.T) {
 		for _, path := range []string{"public_read", "background"} {
 			t.Run(status+"/"+path, func(t *testing.T) {
 				fixture := newTranscriptWebReadModelServingFixture(t, 3)
-				var checkpointJSON []byte
-				if err := fixture.db.QueryRow(`SELECT projector_state_json FROM transcript_web_projection_state
-					WHERE stream_uid=? AND branch_id=?`, fixture.stream.UID, fixture.fence.BranchID).Scan(&checkpointJSON); err != nil {
-					t.Fatal(err)
-				}
-				var checkpoint transcriptWebProjectorCheckpointV1
-				if err := json.Unmarshal(checkpointJSON, &checkpoint); err != nil {
-					t.Fatal(err)
-				}
-				checkpoint.Version = 13
-				oldCheckpoint, err := json.Marshal(checkpoint)
-				if err != nil {
-					t.Fatal(err)
-				}
 				if _, err := fixture.db.Exec(`UPDATE transcript_web_projection_state SET
-					projector_version=13,status='quarantined',last_error_code='projection_build_failed',
-					projector_state_json=?,projector_state_sha256=? WHERE stream_uid=? AND branch_id=?`,
-					string(oldCheckpoint), transcriptstore.TranscriptWebSHA256(oldCheckpoint), fixture.stream.UID, fixture.fence.BranchID); err != nil {
+					projector_version=13,status='quarantined',last_error_code='projection_build_failed'
+					WHERE stream_uid=? AND branch_id=?`, fixture.stream.UID, fixture.fence.BranchID); err != nil {
 					t.Fatal(err)
 				}
 				if changed, err := fixture.store.TransitionCompatibilityFrameStatus(transcriptWebServingFrameID, "processing", status); err != nil || !changed {
