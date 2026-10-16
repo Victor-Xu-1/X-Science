@@ -179,14 +179,6 @@ type ModelResponse struct {
 	Usage      ModelUsage
 }
 
-type ModelUsage struct {
-	InputTokens      int `json:"input_tokens"`
-	OutputTokens     int `json:"output_tokens"`
-	CacheReadTokens  int `json:"cache_read_tokens,omitempty"`
-	CacheWriteTokens int `json:"cache_write_tokens,omitempty"`
-	TotalTokens      int `json:"total_tokens"`
-}
-
 type ModelClient interface {
 	Complete(context.Context, ModelRequest) (ModelResponse, error)
 }

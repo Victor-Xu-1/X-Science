@@ -189,23 +189,7 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 	if callErr == nil {
 		snapshot.State = "complete"
 		snapshot.Progress = nil
-		usage := response.Usage
-		if usage.InputTokens >= 0 && usage.OutputTokens >= 0 && usage.TotalTokens >= 0 &&
-			(usage.InputTokens > 0 || usage.OutputTokens > 0 || usage.TotalTokens > 0) {
-			snapshot.Source = "provider"
-			snapshot.OutputTokens = usage.OutputTokens
-			// Some providers report cached input separately; their total already
-			// includes it. Never add cache counters to that total a second time.
-			snapshot.UsedTokens = maxInt(usage.TotalTokens, usage.InputTokens+usage.OutputTokens)
-		} else {
-			rows, _, err := estimateRunnerRequestUsage(agentruntime.ModelRequest{Messages: []agentruntime.Message{response.Message}})
-			if err == nil {
-				for _, row := range rows {
-					snapshot.OutputTokens += row.Tokens
-				}
-				snapshot.UsedTokens += snapshot.OutputTokens
-			}
-		}
+		snapshot.Source, snapshot.UsedTokens, snapshot.OutputTokens = settleRunnerContextUsage(*snapshot, response)
 	}
 	// A metrics write must not turn successful model execution into a retry.
 	// On failure the durable request estimate remains explicitly an estimate.

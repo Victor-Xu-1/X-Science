@@ -92,18 +92,12 @@ func classifyDecodedOutputLimit(response agentruntime.ModelResponse, err error) 
 func nativeTerminalUsage(raw []byte) providerTokenUsage {
 	var event struct {
 		Usage         anthropicStreamUsage `json:"usage"`
-		UsageMetadata struct {
-			Prompt int `json:"promptTokenCount"`
-			Output int `json:"candidatesTokenCount"`
-			Total  int `json:"totalTokenCount"`
-		} `json:"usageMetadata"`
+		UsageMetadata geminiTokenUsage     `json:"usageMetadata"`
 	}
 	if json.Unmarshal(raw, &event) != nil {
 		return providerTokenUsage{}
 	}
-	return providerTokenUsage{
-		PromptTokens:     max(event.Usage.InputTokens, event.UsageMetadata.Prompt),
-		CompletionTokens: max(event.Usage.OutputTokens, event.UsageMetadata.Output),
-		TotalTokens:      event.UsageMetadata.Total,
-	}
+	usage := event.Usage.tokenUsage()
+	usage.merge(event.UsageMetadata.tokenUsage())
+	return usage
 }

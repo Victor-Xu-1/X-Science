@@ -12,13 +12,6 @@ import (
 	"x-science/internal/agentruntime"
 )
 
-type anthropicStreamUsage struct {
-	InputTokens              int `json:"input_tokens"`
-	OutputTokens             int `json:"output_tokens"`
-	CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-	CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-}
-
 type anthropicStreamEvent struct {
 	Type    string `json:"type"`
 	Index   int    `json:"index,omitempty"`
@@ -94,10 +87,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 			if role := strings.TrimSpace(event.Message.Role); role != "" {
 				acc.role = role
 			}
-			acc.usage.PromptTokens = event.Message.Usage.InputTokens
-			acc.usage.CompletionTokens = event.Message.Usage.OutputTokens
-			acc.usage.CacheReadTokens = event.Message.Usage.CacheReadInputTokens
-			acc.usage.CacheWriteTokens = event.Message.Usage.CacheCreationInputTokens
+			acc.usage.merge(event.Message.Usage.tokenUsage())
 		case "content_block_start":
 			switch event.ContentBlock.Type {
 			case "text":
@@ -154,9 +144,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 				}
 			}
 		case "message_delta":
-			if event.Usage.OutputTokens != 0 {
-				acc.usage.CompletionTokens = event.Usage.OutputTokens
-			}
+			acc.usage.merge(event.Usage.tokenUsage())
 		case "message_stop":
 			if !acc.stopped {
 				recordProviderStreamProgress(response.Body, 0)
@@ -181,7 +169,7 @@ func readAnthropicStream(client *runtimeModelClient, response http.Response, emi
 }
 
 func (a *anthropicStreamAccumulator) response() (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
-	a.usage.TotalTokens = a.usage.PromptTokens + a.usage.CompletionTokens + a.usage.CacheReadTokens + a.usage.CacheWriteTokens
+	a.usage.deriveTotal(true)
 	if !a.stopped {
 		return agentruntime.ModelResponse{}, a.requestID, a.usage, a.emitted,
 			fmt.Errorf("%w: %w", errProviderResponseTruncated, errProviderStreamIncomplete)

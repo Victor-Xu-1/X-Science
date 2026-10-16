@@ -48,14 +48,6 @@ type AuditRecord struct {
 	Error                   string    `json:"error,omitempty"`
 }
 
-type providerTokenUsage struct {
-	PromptTokens     int
-	CompletionTokens int
-	CacheReadTokens  int
-	CacheWriteTokens int
-	TotalTokens      int
-}
-
 type runtimeModelClient struct {
 	profile    ModelProfile
 	httpClient *http.Client
@@ -394,7 +386,7 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		return agentruntime.ModelResponse{}, false, err
 	}
 	c.emitAudit(record)
-	return c.responseWithUsage(decoded, record), false, nil
+	return c.responseWithUsage(decoded, record, usage), false, nil
 }
 
 func (c *runtimeModelClient) applyHeaders(request *http.Request, headers map[string]string) {
@@ -458,10 +450,8 @@ func (c *runtimeModelClient) openAIResponseDecoder(body []byte, headers http.Hea
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
 	}
-	usage := providerTokenUsage{
-		PromptTokens: decoded.Usage.PromptTokens, CompletionTokens: decoded.Usage.CompletionTokens,
-		CacheReadTokens: decoded.Usage.PromptTokensDetails.CachedTokens, TotalTokens: decoded.Usage.TotalTokens,
-	}
+	usage := decoded.Usage.tokenUsage()
+	usage.deriveTotal(false)
 	if len(decoded.Choices) == 0 {
 		return agentruntime.ModelResponse{}, decoded.ID, usage, errors.New("OpenAI-compatible response has no choices")
 	}
@@ -505,11 +495,8 @@ func (c *runtimeModelClient) geminiResponseDecoder(body []byte, headers http.Hea
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
 	}
-	usage := providerTokenUsage{
-		PromptTokens: decoded.UsageMetadata.PromptTokenCount, CompletionTokens: decoded.UsageMetadata.CandidatesTokenCount,
-		CacheReadTokens: decoded.UsageMetadata.CachedContentTokenCount,
-		TotalTokens:     decoded.UsageMetadata.TotalTokenCount,
-	}
+	usage := decoded.UsageMetadata.tokenUsage()
+	usage.deriveTotal(false)
 	if len(decoded.Candidates) == 0 {
 		return agentruntime.ModelResponse{}, decoded.ResponseID, usage, errors.New("Gemini response has no candidates")
 	}
@@ -677,14 +664,7 @@ type openAIChatResponse struct {
 		Message      openAIMessage `json:"message"`
 		FinishReason string        `json:"finish_reason,omitempty"`
 	} `json:"choices"`
-	Usage struct {
-		PromptTokens        int `json:"prompt_tokens"`
-		CompletionTokens    int `json:"completion_tokens"`
-		TotalTokens         int `json:"total_tokens"`
-		PromptTokensDetails struct {
-			CachedTokens int `json:"cached_tokens"`
-		} `json:"prompt_tokens_details"`
-	} `json:"usage"`
+	Usage openAIChatUsage `json:"usage"`
 }
 
 func openAIMessagesFromRuntime(messages []agentruntime.Message) ([]openAIMessage, error) {
@@ -891,12 +871,7 @@ type geminiGenerateContentResponse struct {
 		Content      geminiContent `json:"content"`
 		FinishReason string        `json:"finishReason,omitempty"`
 	} `json:"candidates"`
-	UsageMetadata struct {
-		PromptTokenCount        int `json:"promptTokenCount"`
-		CandidatesTokenCount    int `json:"candidatesTokenCount"`
-		CachedContentTokenCount int `json:"cachedContentTokenCount"`
-		TotalTokenCount         int `json:"totalTokenCount"`
-	} `json:"usageMetadata"`
+	UsageMetadata geminiTokenUsage `json:"usageMetadata"`
 }
 
 func geminiContentsFromRuntime(messages []agentruntime.Message) (*geminiContent, []geminiContent, error) {
