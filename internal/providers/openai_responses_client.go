@@ -228,6 +228,12 @@ func (c *runtimeModelClient) openAIResponsesResponseDecoder(body []byte, headers
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
 	}
+	return c.openAIResponsesTypedResponse(decoded)
+}
+
+// JSON and SSE completion share this one conversion after their strict envelope
+// and stream-identity validation. No usage state is lost to a JSON round-trip.
+func (c *runtimeModelClient) openAIResponsesTypedResponse(decoded openAIResponsesResponse) (agentruntime.ModelResponse, string, providerTokenUsage, error) {
 	usage := decoded.Usage.tokenUsage()
 	usage.deriveTotal(false)
 	stopReason := decoded.Status

@@ -119,7 +119,7 @@ func TestReadOpenAIResponsesStreamCountsDecodedSemanticsWithoutCompletedSnapshot
 	payload.WriteString("event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"ok\"}\n\n")
 	payload.WriteString("event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"semantic-1\",\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"ok\"}]}]}}\n\n")
 
-	decoder := (&runtimeModelClient{}).openAIResponsesResponseDecoder
+	decoder := (&runtimeModelClient{}).openAIResponsesTypedResponse
 	response, requestID, _, emitted, err := readOpenAIResponsesStream(strings.NewReader(payload.String()), 1024,
 		func(agentruntime.ModelStreamEvent) error { return nil }, decoder)
 	if err != nil {
@@ -132,7 +132,7 @@ func TestReadOpenAIResponsesStreamCountsDecodedSemanticsWithoutCompletedSnapshot
 
 func TestReadOpenAIResponsesStreamRejectsOversizedSingleEvent(t *testing.T) {
 	payload := "data: " + strings.Repeat("x", int(defaultMaxResponseBytes)+1) + "\n\n"
-	decoder := (&runtimeModelClient{}).openAIResponsesResponseDecoder
+	decoder := (&runtimeModelClient{}).openAIResponsesTypedResponse
 	_, _, _, _, err := readOpenAIResponsesStream(strings.NewReader(payload), defaultMaxResponseBytes, nil, decoder)
 	if !errors.Is(err, errProviderResponseTooLarge) || !strings.Contains(err.Error(), "SSE event line exceeded") {
 		t.Fatalf("oversized SSE event error = %v", err)
@@ -141,7 +141,7 @@ func TestReadOpenAIResponsesStreamRejectsOversizedSingleEvent(t *testing.T) {
 
 func TestReadOpenAIResponsesStreamRejectsTruncatedCompletedResponse(t *testing.T) {
 	payload := "event: response.completed\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"truncated-1\",\"status\":\"incomplete\",\"incomplete_details\":{\"reason\":\"max_output_tokens\"},\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"partial\"}]}]}}\n\n"
-	decoder := (&runtimeModelClient{}).openAIResponsesResponseDecoder
+	decoder := (&runtimeModelClient{}).openAIResponsesTypedResponse
 	_, _, _, _, err := readOpenAIResponsesStream(strings.NewReader(payload), defaultMaxResponseBytes, nil, decoder)
 	if !errors.Is(err, errProviderResponseTruncated) {
 		t.Fatalf("truncated Responses stream error = %v", err)
@@ -172,7 +172,7 @@ func TestReadOpenAIResponsesStreamRejectsConflictingCompletedToolCall(t *testing
 				"event: response.function_call_arguments.delta\n" +
 				"data: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_1\",\"delta\":\"{\\\"q\\\":\\\"NEK7\\\"}\"}\n\n" +
 				"event: response.completed\n" + "data: {\"type\":\"response.completed\",\"response\":" + test.completed + "}\n\n"
-			decoder := (&runtimeModelClient{}).openAIResponsesResponseDecoder
+			decoder := (&runtimeModelClient{}).openAIResponsesTypedResponse
 			if _, _, _, _, err := readOpenAIResponsesStream(strings.NewReader(payload), defaultMaxResponseBytes, nil, decoder); err == nil {
 				t.Fatal("conflicting completed tool call unexpectedly succeeded")
 			}
@@ -185,7 +185,7 @@ func TestReadOpenAIResponsesStreamRejectsEventsAfterCompleted(t *testing.T) {
 		"data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp\",\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"done\"}]}]}}\n\n" +
 		"event: response.output_text.delta\n" +
 		"data: {\"type\":\"response.output_text.delta\",\"delta\":\"late\"}\n\n"
-	decoder := (&runtimeModelClient{}).openAIResponsesResponseDecoder
+	decoder := (&runtimeModelClient{}).openAIResponsesTypedResponse
 	if _, _, _, _, err := readOpenAIResponsesStream(strings.NewReader(payload), defaultMaxResponseBytes, nil, decoder); err == nil {
 		t.Fatal("post-completion event unexpectedly succeeded")
 	}

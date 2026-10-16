@@ -37,7 +37,7 @@ func TestProviderResponsesCompletedGrowthCountsOnlyAdmittedDifference(t *testing
 			}
 			fmt.Fprintf(&input, "data: %s\n\n", test.completed)
 			reader := &generationProgressReader{Reader: strings.NewReader(input.String())}
-			_, _, _, _, err := readOpenAIResponsesStream(reader, 4096, nil, (&runtimeModelClient{}).openAIResponsesResponseDecoder)
+			_, _, _, _, err := readOpenAIResponsesStream(reader, 4096, nil, (&runtimeModelClient{}).openAIResponsesTypedResponse)
 			if (err != nil) != test.wantError || reader.bytes != test.wantBytes {
 				t.Fatalf("completed growth=%d want=%d err=%v wantError=%v", reader.bytes, test.wantBytes, err, test.wantError)
 			}

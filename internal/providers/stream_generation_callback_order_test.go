@@ -79,7 +79,7 @@ func TestProviderInvalidStreamShapeCannotPublishCallbackOrGrowth(t *testing.T) {
 }
 
 func readCallbackOrderResponses(client *runtimeModelClient, reader *generationProgressReader, emit func(agentruntime.ModelStreamEvent) error) error {
-	_, _, _, _, err := readOpenAIResponsesStream(reader, 4096, emit, client.openAIResponsesResponseDecoder)
+	_, _, _, _, err := readOpenAIResponsesStream(reader, 4096, emit, client.openAIResponsesTypedResponse)
 	return err
 }
 

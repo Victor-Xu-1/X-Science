@@ -104,7 +104,7 @@ func TestProviderPrivateActivityEventsRetainEveryNonemptyFragment(t *testing.T) 
 				case ProtocolOpenAICompatible:
 					result, _, _, emitted, err = readOpenAIChatStream(reader, 64<<10, emit)
 				case ProtocolOpenAIResponses:
-					result, _, _, emitted, err = readOpenAIResponsesStream(reader, 64<<10, emit, client.openAIResponsesResponseDecoder)
+					result, _, _, emitted, err = readOpenAIResponsesStream(reader, 64<<10, emit, client.openAIResponsesTypedResponse)
 				case ProtocolAnthropic:
 					result, _, _, emitted, err = readAnthropicStream(client, response, emit)
 				case ProtocolGemini:

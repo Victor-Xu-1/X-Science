@@ -19,13 +19,15 @@ func settleRunnerContextUsage(snapshot runnerContextUsage, response agentruntime
 	input, output := inputEstimate, outputEstimate
 	usage := response.Usage
 	fields := usage.ReportedFields()
-	inputKnown := fields.Input && usage.InputTokens >= 0
-	outputKnown := fields.Output && usage.OutputTokens >= 0
+	inputKnown := fields.Input && !usage.InvalidFields.Input && usage.InputTokens >= 0
+	outputKnown := fields.Output && !usage.InvalidFields.Output && usage.OutputTokens >= 0
 	if inputKnown {
 		input = usage.InputTokens
 		if usage.CacheTokensAdditive {
 			var ok bool
-			input, ok = sumContextUsageTokens(input, usage.CacheReadTokens, usage.CacheWriteTokens)
+			if !usage.InvalidFields.CacheRead && !usage.InvalidFields.CacheWrite {
+				input, ok = sumContextUsageTokens(input, usage.CacheReadTokens, usage.CacheWriteTokens)
+			}
 			if !ok {
 				input, inputKnown = inputEstimate, false
 			}
@@ -47,14 +49,14 @@ func settleRunnerContextUsage(snapshot runnerContextUsage, response agentruntime
 			validCounters = false
 		}
 	}
-	if validCounters && fields.Total && usage.TotalTokens >= knownMinimum {
+	if validCounters && fields.Total && !usage.InvalidFields.Total && usage.TotalTokens >= knownMinimum {
 		// The provider total already includes cache. An absent output counter
 		// remains a bounded local estimate, never an invented measured value.
 		return "provider", usage.TotalTokens, min(output, usage.TotalTokens)
 	}
 	used, ok := sumContextUsageTokens(input, output)
 	if ok {
-		if validCounters && inputKnown && outputKnown {
+		if validCounters && inputKnown && outputKnown && !usage.InvalidFields.Total {
 			return "provider", max(used, usage.TotalTokens), output
 		}
 		return "estimated", used, output

@@ -29,7 +29,7 @@ func TestProviderResponsesIdentityGrowthIsUniqueAndBounded(t *testing.T) {
 		t.Run(fixture.name, func(t *testing.T) {
 			reader := &generationProgressReader{Reader: strings.NewReader("data: " + fixture.data + "\n\n")}
 			client := &runtimeModelClient{}
-			response, _, _, _, err := readOpenAIResponsesStream(reader, 4096, nil, client.openAIResponsesResponseDecoder)
+			response, _, _, _, err := readOpenAIResponsesStream(reader, 4096, nil, client.openAIResponsesTypedResponse)
 			wantBytes := int64(0)
 			if fixture.observations > 0 {
 				wantBytes = int64(len("item") + len("call") + len("lookup"))
@@ -44,7 +44,7 @@ func TestProviderResponsesIdentityGrowthIsUniqueAndBounded(t *testing.T) {
 		fmt.Fprintf(&stream, "data: {\"type\":\"response.output_item.added\",\"item\":{\"type\":\"function_call\",\"id\":\"item_%03d\",\"call_id\":\"call_%03d\",\"name\":\"lookup\"}}\n\n", i, i)
 	}
 	reader := &generationProgressReader{Reader: strings.NewReader(stream.String())}
-	response, _, _, _, err := readOpenAIResponsesStream(reader, 512, nil, (&runtimeModelClient{}).openAIResponsesResponseDecoder)
+	response, _, _, _, err := readOpenAIResponsesStream(reader, 512, nil, (&runtimeModelClient{}).openAIResponsesTypedResponse)
 	if !errors.Is(err, errProviderResponseTooLarge) || reader.bytes <= 0 || reader.bytes > 512 || len(response.Message.ToolCalls) != 0 {
 		t.Fatalf("identity metadata escaped semantic cap: err=%v growth=%d calls=%v", err, reader.bytes, response.Message.ToolCalls)
 	}

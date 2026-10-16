@@ -26,26 +26,27 @@ var (
 )
 
 type AuditRecord struct {
-	ProviderID              string    `json:"providerId"`
-	ProviderType            string    `json:"providerType"`
-	Protocol                string    `json:"protocol"`
-	Model                   string    `json:"model"`
-	Endpoint                string    `json:"endpoint"`
-	RequestID               string    `json:"requestId,omitempty"`
-	Attempt                 int       `json:"attempt"`
-	HTTPStatus              int       `json:"httpStatus,omitempty"`
-	PromptTokens            int       `json:"promptTokens,omitempty"`
-	CompletionTokens        int       `json:"completionTokens,omitempty"`
-	RequestedOutputTokens   int       `json:"requestedOutputTokens,omitempty"`
-	ProviderMaxOutputTokens int       `json:"providerMaxOutputTokens,omitempty"`
-	OutputTokenLimited      bool      `json:"outputTokenLimited,omitempty"`
-	CacheReadTokens         int       `json:"cacheReadTokens,omitempty"`
-	CacheWriteTokens        int       `json:"cacheWriteTokens,omitempty"`
-	TotalTokens             int       `json:"totalTokens,omitempty"`
-	StartedAt               time.Time `json:"startedAt"`
-	FinishedAt              time.Time `json:"finishedAt"`
-	DurationMs              int64     `json:"durationMs"`
-	Error                   string    `json:"error,omitempty"`
+	ProviderID              string                          `json:"providerId"`
+	ProviderType            string                          `json:"providerType"`
+	Protocol                string                          `json:"protocol"`
+	Model                   string                          `json:"model"`
+	Endpoint                string                          `json:"endpoint"`
+	RequestID               string                          `json:"requestId,omitempty"`
+	Attempt                 int                             `json:"attempt"`
+	HTTPStatus              int                             `json:"httpStatus,omitempty"`
+	PromptTokens            int                             `json:"promptTokens,omitempty"`
+	CompletionTokens        int                             `json:"completionTokens,omitempty"`
+	RequestedOutputTokens   int                             `json:"requestedOutputTokens,omitempty"`
+	ProviderMaxOutputTokens int                             `json:"providerMaxOutputTokens,omitempty"`
+	OutputTokenLimited      bool                            `json:"outputTokenLimited,omitempty"`
+	CacheReadTokens         int                             `json:"cacheReadTokens,omitempty"`
+	CacheWriteTokens        int                             `json:"cacheWriteTokens,omitempty"`
+	TotalTokens             int                             `json:"totalTokens,omitempty"`
+	UsageWarnings           agentruntime.ModelUsageWarnings `json:"usageWarnings,omitempty,omitzero"`
+	StartedAt               time.Time                       `json:"startedAt"`
+	FinishedAt              time.Time                       `json:"finishedAt"`
+	DurationMs              int64                           `json:"durationMs"`
+	Error                   string                          `json:"error,omitempty"`
 }
 
 type runtimeModelClient struct {
@@ -377,6 +378,7 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 	record.CacheReadTokens = usage.CacheReadTokens
 	record.CacheWriteTokens = usage.CacheWriteTokens
 	record.TotalTokens = usage.TotalTokens
+	record.UsageWarnings = usage.Warnings
 	record.FinishedAt = time.Now().UTC()
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
@@ -442,6 +444,8 @@ func (c *runtimeModelClient) baseAuditRecord(attempt int, endpoint string, start
 func (c *runtimeModelClient) emitAudit(record AuditRecord) {
 	if c.audit != nil {
 		c.audit(record)
+	} else {
+		agentruntime.LogModelUsageWarnings(record.UsageWarnings)
 	}
 }
 

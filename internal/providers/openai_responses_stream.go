@@ -147,7 +147,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 		idleReader.decodedGrowth = planning.ObserveGrowth
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIResponsesStream(
-			idleReader, c.profile.Request.MaxResponseBytes, emit, c.openAIResponsesResponseDecoder,
+			idleReader, c.profile.Request.MaxResponseBytes, emit, c.openAIResponsesTypedResponse,
 		)
 	} else {
 		var body []byte
@@ -173,6 +173,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	record.CacheReadTokens = usage.CacheReadTokens
 	record.CacheWriteTokens = usage.CacheWriteTokens
 	record.TotalTokens = usage.TotalTokens
+	record.UsageWarnings = usage.Warnings
 	record.FinishedAt = time.Now().UTC()
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
@@ -192,7 +193,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	return c.responseWithUsage(decoded, record, usage), false, emitted, nil
 }
 
-func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, decode func([]byte, http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error)) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
+func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, decode func(openAIResponsesResponse) (agentruntime.ModelResponse, string, providerTokenUsage, error)) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
 	if emit == nil {
 		emit = func(agentruntime.ModelStreamEvent) error { return nil }
 	}
@@ -315,11 +316,7 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 			if err := accumulator.validateCompletedToolCalls(event.Response); err != nil {
 				return err
 			}
-			rawResponse, err := json.Marshal(event.Response)
-			if err != nil {
-				return err
-			}
-			response, requestID, usage, err := decode(rawResponse, nil)
+			response, requestID, usage, err := decode(event.Response)
 			if err != nil {
 				return err
 			}
@@ -331,12 +328,13 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 				return err
 			}
 			accumulator.requestID = requestID
-			accumulator.usage = usage
+			accumulator.usage.merge(usage)
+			accumulator.usage.deriveTotal(false)
 			accumulator.completed = &response
 			recordProviderStreamProgress(reader, accumulator.semanticBytes-previousSemanticBytes)
 		case "response.incomplete":
 			accumulator.requestID = event.Response.ID
-			accumulator.usage = event.Response.Usage.tokenUsage()
+			accumulator.usage.merge(event.Response.Usage.tokenUsage())
 			reason := event.Response.IncompleteDetails.Reason
 			if limited := responseOutputLimit(reason, len(accumulator.callIdentity) > 0 || len(accumulator.arguments) > 0); limited != nil {
 				return limited

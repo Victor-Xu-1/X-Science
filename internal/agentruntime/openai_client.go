@@ -135,19 +135,10 @@ func (c OpenAIChatClient) completeAttempt(ctx context.Context, rawRequest []byte
 	if model == "" {
 		model = strings.TrimSpace(c.Model)
 	}
-	usage := ModelUsage{
-		InputTokens:     modelUsageTokenValue(decoded.Usage.PromptTokens),
-		OutputTokens:    modelUsageTokenValue(decoded.Usage.CompletionTokens),
-		CacheReadTokens: modelUsageTokenValue(decoded.Usage.PromptTokensDetails.CachedTokens),
-		TotalTokens:     modelUsageTokenValue(decoded.Usage.TotalTokens),
-		Reported: &ModelUsageFields{
-			Input: decoded.Usage.PromptTokens != nil, Output: decoded.Usage.CompletionTokens != nil,
-			Total: decoded.Usage.TotalTokens != nil, CacheRead: decoded.Usage.PromptTokensDetails.CachedTokens != nil,
-		},
-	}
-	if !usage.Reported.Total && usage.Reported.Input && usage.Reported.Output {
-		usage.TotalTokens = usage.InputTokens + usage.OutputTokens
-	}
+	usage := ModelUsageFromCounters(decoded.Usage.PromptTokens, decoded.Usage.CompletionTokens,
+		decoded.Usage.TotalTokens, decoded.Usage.PromptTokensDetails.CachedTokens, OptionalUsageCounter{})
+	usage.DeriveTotal(false)
+	LogModelUsageWarnings(usage.Warnings)
 	return ModelResponse{
 		Message:    runtimeMessageFromOpenAI(decoded.Choices[0].Message),
 		Model:      model,
@@ -202,11 +193,11 @@ type openAIChatResponse struct {
 		FinishReason string        `json:"finish_reason"`
 	} `json:"choices"`
 	Usage struct {
-		PromptTokens        *int `json:"prompt_tokens"`
-		CompletionTokens    *int `json:"completion_tokens"`
-		TotalTokens         *int `json:"total_tokens"`
+		PromptTokens        OptionalUsageCounter `json:"prompt_tokens"`
+		CompletionTokens    OptionalUsageCounter `json:"completion_tokens"`
+		TotalTokens         OptionalUsageCounter `json:"total_tokens"`
 		PromptTokensDetails struct {
-			CachedTokens *int `json:"cached_tokens"`
+			CachedTokens OptionalUsageCounter `json:"cached_tokens"`
 		} `json:"prompt_tokens_details"`
 	} `json:"usage"`
 }

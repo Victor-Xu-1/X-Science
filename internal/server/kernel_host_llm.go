@@ -655,7 +655,7 @@ func (s *Server) recordKernelHostModelAudit(access workspace.KernelFrameAccess, 
 	if s == nil || s.runtimeStore == nil {
 		return
 	}
-	_, _ = s.runtimeStore.Set(kernelHostLLMAuditNamespace, uuid.NewString(), map[string]any{
+	value := map[string]any{
 		"frameId": access.Frame.ID, "rootFrameId": access.Frame.RootFrameID,
 		"projectId": access.Frame.ProjectID, "userId": access.UserID,
 		"providerId": record.ProviderID, "providerType": record.ProviderType,
@@ -666,7 +666,11 @@ func (s *Server) recordKernelHostModelAudit(access workspace.KernelFrameAccess, 
 		"totalTokens": record.TotalTokens, "durationMs": record.DurationMs, "error": record.Error,
 		"startedAt": record.StartedAt, "finishedAt": record.FinishedAt,
 		"providerAuthority": true, "recordedAt": time.Now().UTC(),
-	})
+	}
+	if !record.UsageWarnings.Empty() {
+		value["usageWarnings"] = record.UsageWarnings
+	}
+	_, _ = s.runtimeStore.Set(kernelHostLLMAuditNamespace, uuid.NewString(), value)
 }
 
 func classifyKernelLLMError(err error) error {

@@ -7,12 +7,6 @@ import "x-science/internal/agentruntime"
 func (c *runtimeModelClient) responseWithUsage(response agentruntime.ModelResponse, record AuditRecord, usage providerTokenUsage) agentruntime.ModelResponse {
 	response.RequestID = record.RequestID
 	response.Model = firstNonEmpty(response.Model, c.profile.Model)
-	response.Usage = agentruntime.ModelUsage{
-		InputTokens: record.PromptTokens, OutputTokens: record.CompletionTokens,
-		CacheReadTokens: record.CacheReadTokens, CacheWriteTokens: record.CacheWriteTokens,
-		TotalTokens:         record.TotalTokens,
-		Reported:            &usage.Reported,
-		CacheTokensAdditive: usage.CacheTokensAdditive,
-	}
+	response.Usage = usage.modelUsage()
 	return response
 }
