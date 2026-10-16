@@ -206,7 +206,8 @@ var batchCount int
             self.assertEqual(summary["planned_process_batches"], 2)
             self.assertEqual(summary["unstarted_process_batches"], 1)
             self.assertEqual(json.loads((log_dir / "plan.json").read_text()), test_plan)
-            self.assertIn('"Action":"fail"', (log_dir / "events.jsonl").read_text())
+            self.assertTrue(any(json.loads(line).get("Action") == "fail"
+                                for line in (log_dir / "events.jsonl").read_text().splitlines()))
 
 
 if __name__ == "__main__":
