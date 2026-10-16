@@ -21,6 +21,7 @@ if __package__:
     from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
+    from .runtime_phase_evidence import RuntimePhaseEvidence
 else:
     import pr_dependency_scope
     import pr_frontend_scope
@@ -32,6 +33,7 @@ else:
     import verification_scope
     from runtime_test_inventory import discover, execution_plan
     from runtime_test_shards import execute
+    from runtime_phase_evidence import RuntimePhaseEvidence
 
 
 def run(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -238,9 +240,17 @@ def main() -> int:
     args = parser.parse_args()
     repo = args.repo.resolve()
     try:
-        paths = changed_paths(repo, args.base, args.head)
-        behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths)
-        groups = verification_scope.matched(repo, behavior_paths)
+        phases = RuntimePhaseEvidence(None)
+        if args.log_dir is not None and not (args.frontend or args.vet or args.matrix):
+            log_dir = args.log_dir.resolve()
+            if log_dir == repo or repo in log_dir.parents:
+                raise ValueError("test evidence must be outside source")
+            log_dir.mkdir(parents=True, exist_ok=True)
+            phases = RuntimePhaseEvidence(log_dir)
+        with phases.measure("change_scope"):
+            paths = changed_paths(repo, args.base, args.head)
+            behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths)
+            groups = verification_scope.matched(repo, behavior_paths)
         pr_test_partition.validate_partition(args.shard_index, args.shard_count)
         if not args.frontend and not args.vet and not args.matrix and args.shard_index == 0:
             for command in verification_scope.checks(groups):
@@ -292,7 +302,8 @@ def main() -> int:
                 if result.returncode:
                     return result.returncode
             return 0
-        selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths)
+        with phases.measure("package_scope"):
+            selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths)
         if args.matrix:
             print(json.dumps(pr_test_partition.job_matrix(selected)))
             return 0
@@ -309,19 +320,18 @@ def main() -> int:
                 return 0
             return run(repo, "go", "vet", "-buildvcs=false", *selected).returncode
         if args.log_dir is not None:
-            log_dir = args.log_dir.resolve()
-            if log_dir == repo or repo in log_dir.parents:
-                raise ValueError("test evidence must be outside source")
-            log_dir.mkdir(parents=True, exist_ok=True)
             (log_dir / "scope.json").write_text(json.dumps(scope, indent=2) + "\n")
         if selected and args.log_dir is None:
             raise ValueError("Go execution requires an external --log-dir")
-        binding, profile = planning_inputs(repo, args.base, args.head)
-        inventory = discover(repo, selected, race=False) if selected else {}
-        test_plan = affected_test_plan(repo, inventory, args.shard_index, args.shard_count, binding, profile)
+        with phases.measure("planning_inputs"):
+            binding, profile = planning_inputs(repo, args.base, args.head)
+        with phases.measure("discovery", package_count=len(selected)):
+            inventory = discover(repo, selected, race=False) if selected else {}
+        with phases.measure("plan"):
+            test_plan = affected_test_plan(repo, inventory, args.shard_index, args.shard_count, binding, profile)
         print(json.dumps({"partition": test_plan["partition"]}, ensure_ascii=False))
         if args.log_dir is not None:
-            return execute(repo, test_plan, args.log_dir)
+            return execute(repo, test_plan, args.log_dir, phases=phases)
         print("No Go package is affected by this change; frontend and policy gates remain active.")
         return 0
     except (OSError, RuntimeError, ValueError) as error:
