@@ -164,6 +164,52 @@ func TestContinuationTailProbePreservesBoundariesAndCancellation(t *testing.T) {
 	}
 }
 
+func TestContinuationNativePreambleBoundaryRetainsItsOriginalContentPosition(t *testing.T) {
+	for _, before := range []string{"tail", ""} {
+		t.Run(fmt.Sprintf("prefix-bytes-%d", len(before)), func(t *testing.T) {
+			var events []agentruntime.ModelStreamEvent
+			probe := newContinuationTailProbe("saved tail", func(event agentruntime.ModelStreamEvent) error {
+				events = append(events, event)
+				return nil
+			})
+			if before != "" {
+				if err := probe.event(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: before}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			tool := agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary}
+			native := agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventNativePreambleBoundary, BlockID: "native-prefix"}
+			for _, event := range []agentruntime.ModelStreamEvent{tool, native} {
+				if err := probe.event(event); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if len(events) != 0 {
+				t.Fatalf("native boundary released an ambiguous historical tail: %+v", events)
+			}
+			later := agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: " followed by new evidence"}
+			if err := probe.event(later); err != nil {
+				t.Fatal(err)
+			}
+			if err := probe.flush(); err != nil {
+				t.Fatal(err)
+			}
+			want := []agentruntime.ModelStreamEvent{tool, native, later}
+			if before != "" {
+				want = append([]agentruntime.ModelStreamEvent{{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: before}}, want...)
+			}
+			if len(events) != len(want) {
+				t.Fatalf("native prefix swallowed later content: events=%+v want=%+v", events, want)
+			}
+			for index := range want {
+				if events[index] != want[index] {
+					t.Fatalf("native prefix boundary moved at %d: events=%+v want=%+v", index, events, want)
+				}
+			}
+		})
+	}
+}
+
 type cancellingContinuationFixture struct{ cancel context.CancelFunc }
 
 func (c cancellingContinuationFixture) Complete(context.Context, agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
