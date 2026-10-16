@@ -463,7 +463,8 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 	case <-time.After(2 * time.Second):
 		t.Fatal("provider did not reach its tool-call boundary")
 	}
-	// The native tool-start marker is provisional. Neither narration nor tool
+	// These legacy service-operation proposals are not in the model's advertised
+	// Tool catalog. Their marker remains provisional: neither narration nor tool
 	// execution may escape before the completed response validates its arguments.
 	deadline := time.Now().Add(200 * time.Millisecond)
 	for time.Now().Before(deadline) {
@@ -472,9 +473,11 @@ func testSessionRunnerChatProgressBeforeTool(t *testing.T, structured, chinese b
 			t.Fatal(readErr)
 		}
 		for _, entry := range entries {
-			if stringValue(entry.Message["type"]) == "content_delta" ||
-				stringValue(entry.Message["toolPhase"]) == "started" {
-				t.Fatal("unvalidated provider response escaped its private boundary")
+			if stringValue(entry.Message["toolPhase"]) == "start" {
+				t.Fatal("incomplete provider response executed a tool")
+			}
+			if stringValue(entry.Message["type"]) == "content_delta" {
+				t.Fatal("a provisional/argument draft escaped its private boundary")
 			}
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -874,6 +877,9 @@ func TestTranscriptRunnerMalformedToolCallProtocolRecoversWithinExecutionUnit(t 
 		case "assistant_message":
 			assistantText.WriteString(stringValue(payload["text"]))
 		case "runner_checkpoint":
+			if payload["toolName"] == "runtime_get" && (payload["toolPhase"] == "start" || payload["toolPhase"] == "completed") {
+				t.Fatal("malformed arguments reached tool execution")
+			}
 			if payload["reason_code"] == sessionRunnerModelProtocolErrorReasonCode {
 				interruptions++
 			}
@@ -884,8 +890,9 @@ func TestTranscriptRunnerMalformedToolCallProtocolRecoversWithinExecutionUnit(t 
 			terminals++
 		}
 	}
-	// Malformed tool arguments never authorize the preceding private draft.
-	// The repaired complete response remains the sole authoritative message.
+	// This unadvertised legacy operation cannot authorize an early native prefix.
+	// Malformed arguments never release that private draft or execute an action;
+	// the repaired complete response remains the sole authoritative message.
 	if deltaText.Len() != 0 || assistantText.String() != "evidence collected recovered final" || interruptions != 0 || continuations != 0 || terminals != 1 {
 		t.Fatalf("delta=%q assistant=%q interruptions=%d continuations=%d terminals=%d events=%v",
 			deltaText.String(), assistantText.String(), interruptions, continuations, terminals, projectedEventSummaries(events))

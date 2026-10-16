@@ -111,24 +111,27 @@ type openAIChatStreamChunk struct {
 type openAIChatStreamToolCall struct {
 	ID                string
 	Name              string
+	FunctionTypeBound bool
 	Arguments         strings.Builder
 	ArgumentParts     []string
 	ArgumentFragments int
 }
 
 type openAIChatStreamAccumulator struct {
-	role             string
-	roleBound        bool
-	content          strings.Builder
-	reasoningContent strings.Builder
-	toolCalls        map[int]*openAIChatStreamToolCall
-	semanticBytes    int64
-	semanticLimit    int64
-	requestID        string
-	finishReason     string
-	usage            providerTokenUsage
-	emitted          bool
-	toolBoundarySent bool
+	role               string
+	roleBound          bool
+	content            strings.Builder
+	reasoningContent   strings.Builder
+	toolCalls          map[int]*openAIChatStreamToolCall
+	semanticBytes      int64
+	semanticLimit      int64
+	requestID          string
+	finishReason       string
+	usage              providerTokenUsage
+	emitted            bool
+	toolBoundarySent   bool
+	nativeBodyUnbound  bool
+	nativePreambleSent bool
 }
 
 func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx context.Context, request agentruntime.ModelRequest, attempt int, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, bool, bool, error) {
@@ -215,7 +218,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		idleReader.decodedGrowth = planning.ObserveGrowth
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIChatStream(
-			idleReader, c.profile.Request.MaxResponseBytes, emit,
+			idleReader, c.profile.Request.MaxResponseBytes, emit, request.Tools,
 		)
 	} else {
 		var body []byte
@@ -350,7 +353,7 @@ func (reader *openAIChatStreamIdleReader) reset() {
 	})
 }
 
-func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
+func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, advertised ...[]agentruntime.ToolSchema) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
 	if limit <= 0 {
 		limit = defaultMaxResponseBytes
 	}
@@ -360,6 +363,7 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 	accumulator := openAIChatStreamAccumulator{
 		role: "assistant", toolCalls: map[int]*openAIChatStreamToolCall{}, semanticLimit: limit,
 	}
+	preambleTools := openAIChatPreambleToolNames(advertised)
 	eventLimit := limit
 	buffered := bufio.NewReader(reader)
 	data := make([]string, 0, 1)
@@ -474,6 +478,9 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 					call = &openAIChatStreamToolCall{}
 					accumulator.toolCalls[callIndex] = call
 				}
+				if strings.EqualFold(strings.TrimSpace(delta.Type), "function") {
+					call.FunctionTypeBound = true
+				}
 				if id := strings.TrimSpace(delta.ID); id != "" {
 					if call.ID != "" && call.ID != id {
 						return false, fmt.Errorf("OpenAI chat stream function call %d changed id", callIndex)
@@ -495,6 +502,9 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 				recordProviderStreamProgress(reader, semanticDeltaBytes)
 			}
 			if choice.Delta.Content != "" {
+				if !accumulator.roleBound || accumulator.role != "assistant" || accumulator.requestID == "" {
+					accumulator.nativeBodyUnbound = true
+				}
 				accumulator.content.WriteString(choice.Delta.Content)
 				accumulator.emitted = true
 				if err := emit(agentruntime.ModelStreamEvent{
@@ -516,6 +526,13 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 					return false, err
 				}
 				accumulator.toolBoundarySent = true
+			}
+			if len(choice.Delta.ToolCalls) > 0 {
+				if event, ready := accumulator.nativePreambleBoundary(preambleTools); ready {
+					if err := emit(event); err != nil {
+						return false, err
+					}
+				}
 			}
 		}
 		return false, nil
