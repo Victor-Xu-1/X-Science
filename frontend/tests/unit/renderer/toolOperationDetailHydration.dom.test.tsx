@@ -3,8 +3,12 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
+import type { ToolMessage } from '@/common/chat/normalizeToolCall';
+import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
 import ToolOperationDetail from '@/renderer/pages/conversation/Messages/components/ToolOperationDetail';
+import { MessagePaginationProvider } from '@/renderer/pages/conversation/Messages/hooks';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
+import { resetXScienceBranchSelection } from '@/renderer/services/xScienceConversationBranches';
 
 const locale = vi.hoisted(() => ({ language: 'en-US' }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: locale }) }));
@@ -68,6 +72,7 @@ describe('tool operation hydrated result presentation', () => {
   beforeEach(() => {
     locale.language = 'en-US';
     conversationDisclosureStore.resetForTests();
+    resetXScienceBranchSelection('frame');
     vi.mocked(ipcBridge.database.getConversationMessage.invoke).mockReset();
   });
   afterEach(cleanup);
@@ -129,5 +134,49 @@ describe('tool operation hydrated result presentation', () => {
     expect(within(screen.getByTestId('tool-chip')).getByText('3 results')).toBeTruthy();
     expect(screen.getByTestId('detail-result-summary').textContent).toBe('3 results');
     expect(screen.getByTestId('detail-result-output').textContent).toBe(resultOutput(3));
+  });
+
+  it.each(['live', 'history'] as const)('hydrates the %s operation in its known message-window branch', async (source) => {
+    const branchId = 'br_deadbeef';
+    const response = fullMessage();
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
+    invoke.mockResolvedValue({
+      ...response,
+      content: { ...response.content, xScience: { branchId } },
+    } as never);
+    const compact = {
+      ...response,
+      content: {
+        ...response.content,
+        output: '{"truncated":true}',
+        _compact: { truncated: true },
+        ...(source === 'history' ? { xScience: { branchId } } : {}),
+      },
+    } as unknown as ToolMessage;
+    render(
+      <MessagePaginationProvider
+        value={{
+          conversationId: 'frame',
+          branchId,
+          hasMoreBefore: false,
+          hasMoreAfter: false,
+          isLoadingBefore: false,
+          isLoadingAfter: false,
+          isLoadingAnchor: false,
+        }}
+      >
+        <MessageToolGroupSummary messages={[compact]} />
+      </MessagePaginationProvider>
+    );
+
+    fireEvent.click(screen.getByTestId('tool-chip'));
+    expect(await within(screen.getByTestId('tool-chip')).findByText('2 results')).toBeTruthy();
+    expect(invoke).toHaveBeenCalledExactlyOnceWith({
+      conversation_id: 'frame',
+      message_id: 'message',
+      branch_id: branchId,
+    });
+    expect(screen.getByTestId('detail-result-output').textContent).toBe(resultOutput(2));
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
