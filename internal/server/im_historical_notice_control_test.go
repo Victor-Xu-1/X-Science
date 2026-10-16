@@ -77,6 +77,7 @@ func historicalIMControlSourceFixture(t *testing.T, retainedOrdinary bool) (*wor
 		(SELECT COUNT(*) FROM compute_managed_endpoints WHERE owner_spec_json IS NOT NULL)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("not an empty prospective fixture: facts=%d err=%v", facts, err)
 	}
+	restoreHistoricalIMV76EmptyProjectionSchema(t, db)
 	for _, statement := range []string{`DROP TABLE compute_managed_endpoint_actions`, `DROP TABLE compute_managed_endpoint_instances`,
 		`ALTER TABLE compute_managed_endpoints DROP COLUMN owner_spec_json`, `DROP TABLE transcript_input_admissions`,
 		`DELETE FROM workspace_schema_migrations WHERE version>=77`} {

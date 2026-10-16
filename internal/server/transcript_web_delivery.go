@@ -935,15 +935,6 @@ func transcriptPayloadObject(raw []byte) (map[string]any, error) {
 	return payload, nil
 }
 
-func transcriptPayloadText(payload map[string]any) string {
-	for _, key := range []string{"text", "content", "detail", "message"} {
-		if value := webString(payload[key]); strings.TrimSpace(value) != "" {
-			return value
-		}
-	}
-	return ""
-}
-
 func transcriptRunnerAttemptStarted(payload map[string]any, attempt int64) bool {
 	return attempt > 0 &&
 		strings.EqualFold(strings.TrimSpace(webString(payload["status"])), "running") &&
