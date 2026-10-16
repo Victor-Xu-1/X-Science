@@ -107,6 +107,25 @@
       ]
     },
     {
+      "name": "runtime-phase-observation",
+      "paths": [
+        "scripts/quality/runtime_phase_evidence.py",
+        "scripts/quality/test_runtime_phase_evidence.py",
+        "scripts/quality/test_runtime_phase_observation.py"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "-m",
+          "unittest",
+          "scripts.quality.test_runtime_phase_evidence",
+          "scripts.quality.test_runtime_phase_observation"
+        ]
+      ]
+    },
+    {
       "name": "clean-clone-command-contract",
       "paths": [
         "scripts/quality/clean_clone_gate.py",

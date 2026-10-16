@@ -21,15 +21,18 @@ import tempfile
 
 if __package__:
     from .runtime_test_inventory import PACKAGE_SHARDS, matrix, partition, plan, test_batches
+    from .runtime_phase_evidence import RuntimePhaseEvidence
 else:
     from runtime_test_inventory import PACKAGE_SHARDS, matrix, partition, plan, test_batches
+    from runtime_phase_evidence import RuntimePhaseEvidence
 
 
-def execute(repo: Path, test_plan: dict, log_dir: Path) -> int:
+def execute(repo: Path, test_plan: dict, log_dir: Path, *, phases: RuntimePhaseEvidence | None = None) -> int:
     log_dir = log_dir.resolve()
     if log_dir == repo or repo in log_dir.parents:
         raise ValueError("test logs must be outside the source repository")
     log_dir.mkdir(parents=True, exist_ok=True)
+    phases = phases if phases is not None else RuntimePhaseEvidence(log_dir)
     (log_dir / "plan.json").write_text(json.dumps(test_plan, indent=2) + "\n")
     print(f"Runtime shard {test_plan['group']}/{test_plan['index']} race={test_plan['race']}: "
           f"{len(test_plan['packages'])} packages, {sum(map(len, test_plan['selected'].values()))} tests, "
@@ -42,55 +45,57 @@ def execute(repo: Path, test_plan: dict, log_dir: Path) -> int:
     batch_results = []
     with (log_dir / "events.jsonl").open("w") as raw_log:
         for index, command in enumerate(test_plan["commands"]):
-            print(f"Process batch {index + 1}/{len(test_plan['commands'])}", flush=True)
-            process = subprocess.Popen(command, cwd=repo, env=env, text=True,
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
-            assert process.stdout is not None
-            try:
-                for line in process.stdout:
-                    raw_log.write(line)
-                    try:
-                        event = json.loads(line)
-                    except json.JSONDecodeError:
-                        print(line, end="", flush=True)
-                        continue
-                    action, name = event.get("Action"), event.get("Test", "")
-                    key = (event.get("Package", ""), name.split("/")[0])
-                    if action in {"pass", "fail", "skip"}:
-                        if name and "/" not in name:
-                            if key in completed:
-                                duplicates.add(key)
-                            completed[key] = event
-                            if action == "fail":
-                                print("".join(diagnostics[key]), end="", flush=True)
-                            diagnostics.pop(key, None)
-                            print(f"{action.upper()} {name} {event.get('Elapsed', 0):.3f}s", flush=True)
-                        elif not name:
-                            if package_results.get(key[0]) != "fail":
-                                package_results[key[0]] = action
-                            if action == "fail":
-                                for pending in list(diagnostics):
-                                    if pending[0] == key[0]:
-                                        print("".join(diagnostics.pop(pending)), end="", flush=True)
-                            print(f"{action.upper()} {key[0]} {event.get('Elapsed', 0):.3f}s", flush=True)
-                    elif action == "output":
-                        output = event.get("Output", "")
-                        if not name or "panic:" in output or "WARNING: DATA RACE" in output:
-                            print(output, end="", flush=True)
-                        if name:
-                            diagnostics[key].append(output[-4096:])
-                code = process.wait()
-                batch_results.append(code)
-                if code:
-                    print(f"ERROR: process batch {index + 1} failed; "
-                          f"{len(test_plan['commands']) - index - 1} later batches were not started",
-                          file=sys.stderr, flush=True)
-                    break
-            finally:
-                process.stdout.close()
-                if process.poll() is None:
-                    process.terminate()
-                    process.wait()
+            with phases.measure("batch", batch_index=index, batch_count=len(test_plan["commands"])) as batch:
+                print(f"Process batch {index + 1}/{len(test_plan['commands'])}", flush=True)
+                process = subprocess.Popen(command, cwd=repo, env=env, text=True,
+                                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+                assert process.stdout is not None
+                try:
+                    for line in process.stdout:
+                        raw_log.write(line)
+                        try:
+                            event = json.loads(line)
+                        except json.JSONDecodeError:
+                            print(line, end="", flush=True)
+                            continue
+                        action, name = event.get("Action"), event.get("Test", "")
+                        key = (event.get("Package", ""), name.split("/")[0])
+                        if action in {"pass", "fail", "skip"}:
+                            if name and "/" not in name:
+                                if key in completed:
+                                    duplicates.add(key)
+                                completed[key] = event
+                                if action == "fail":
+                                    print("".join(diagnostics[key]), end="", flush=True)
+                                diagnostics.pop(key, None)
+                                print(f"{action.upper()} {name} {event.get('Elapsed', 0):.3f}s", flush=True)
+                            elif not name:
+                                if package_results.get(key[0]) != "fail":
+                                    package_results[key[0]] = action
+                                if action == "fail":
+                                    for pending in list(diagnostics):
+                                        if pending[0] == key[0]:
+                                            print("".join(diagnostics.pop(pending)), end="", flush=True)
+                                print(f"{action.upper()} {key[0]} {event.get('Elapsed', 0):.3f}s", flush=True)
+                        elif action == "output":
+                            output = event.get("Output", "")
+                            if not name or "panic:" in output or "WARNING: DATA RACE" in output:
+                                print(output, end="", flush=True)
+                            if name:
+                                diagnostics[key].append(output[-4096:])
+                    code = process.wait()
+                    batch.exit_code = code
+                    batch_results.append(code)
+                    if code:
+                        print(f"ERROR: process batch {index + 1} failed; "
+                              f"{len(test_plan['commands']) - index - 1} later batches were not started",
+                              file=sys.stderr, flush=True)
+                        break
+                finally:
+                    process.stdout.close()
+                    if process.poll() is None:
+                        process.terminate()
+                    batch.exit_code = process.wait()
     result = 1 if any(batch_results) else 0
     expected = {(package, name) for package, names in test_plan["selected"].items() for name in names}
     observed = set(completed)
@@ -104,6 +109,7 @@ def execute(repo: Path, test_plan: dict, log_dir: Path) -> int:
     summary.update({"exit_code": result, "executed_top_level": len(completed),
                     "planned_process_batches": len(test_plan["commands"]),
                     "unstarted_process_batches": len(test_plan["commands"]) - len(batch_results),
+                    "timing_complete": not phases.failed,
                     "batch_exit_codes": batch_results, "duplicate_tests": sorted(duplicates),
                     "missing_tests": missing, "unexpected_tests": unexpected, "missing_packages": missing_packages,
                     "packages": package_results,
