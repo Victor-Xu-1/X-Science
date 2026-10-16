@@ -98,7 +98,7 @@ func (e Engine) completeModelRound(
 		if event.Kind == ModelStreamEventContentDelta {
 			return recovery.retain(decoder.write(event.ContentDelta))
 		}
-		if event.Kind == ModelStreamEventToolCallBoundary {
+		if event.Kind == ModelStreamEventToolCallBoundary || event.Kind == ModelStreamEventNativePreambleBoundary {
 			if err := decoder.boundary(); err != nil {
 				return recovery.retain(err)
 			}
@@ -140,7 +140,7 @@ func normalizeModelStreamEvent(event ModelStreamEvent) (ModelStreamEvent, error)
 		if event.ContentDelta == "" || event.ReasoningActive || !validPublicProgressBlockID(event.BlockID) {
 			return ModelStreamEvent{}, publicProgressPresentationError("agent runtime public progress delta is invalid")
 		}
-	case ModelStreamEventPublicProgressBoundary:
+	case ModelStreamEventPublicProgressBoundary, ModelStreamEventNativePreambleBoundary:
 		if event.ContentDelta != "" || event.ReasoningActive || !validPublicProgressBlockID(event.BlockID) {
 			return ModelStreamEvent{}, publicProgressPresentationError("agent runtime public progress boundary is invalid")
 		}

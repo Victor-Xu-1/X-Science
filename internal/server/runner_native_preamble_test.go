@@ -49,6 +49,7 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 			case <-r.Context().Done():
 				return
 			}
+			writePublicationFixtureEvent(w, map[string]any{"content": "This later native draft is not part of the accepted preamble."}, "")
 			writePublicationFixtureEvent(w, map[string]any{"tool_calls": []any{map[string]any{
 				"index": 0, "function": map[string]any{"arguments": `,"key":"value"}`},
 			}}}, "tool_calls")
@@ -67,16 +68,7 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 		w.(http.Flusher).Flush()
 	}))
 	t.Cleanup(provider.Close)
-	store, repo, _ := newTranscriptWebFixture(t)
-	seedTranscriptWebFrame(t, store, "local", "native-preamble-project", frame)
-	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
-	t.Cleanup(func() { _ = server.Close(context.Background()) })
-	if _, _, err := server.submitFrameMessage(store, frameMessageSubmission{
-		FrameID: frame, MessageUUID: "native-preamble-message", ClientMessageID: "native-preamble-input",
-		Text: "Give a short fixture summary using the available records.",
-	}); err != nil {
-		t.Fatal(err)
-	}
+	server, repo, options := newNativePreambleFixture(t, provider.URL, frame)
 	ctx, cancel := context.WithCancel(context.Background())
 	type outcome struct {
 		result SessionRunnerCycleResult
@@ -96,11 +88,7 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 		}
 	})
 	go func() {
-		result, err := server.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{
-			SessionID: frame, RunnerID: "native-preamble-runner", Endpoint: provider.URL,
-			Model: "fixture-model", AllowedTools: []string{"runtime_get"}, MaxAttempts: 1, MaxToolRounds: 2,
-			RequestTimeout: 5 * time.Second, LeaseTTL: time.Minute, DisableSkillDiscovery: true, DisableMCPDiscovery: true,
-		})
+		result, err := server.RunSessionRunnerChatOnce(ctx, options)
 		finished <- outcome{result, err}
 	}()
 	select {
@@ -156,6 +144,32 @@ func TestNativePublicPreamblePersistsBeforeCompleteToolResponse(t *testing.T) {
 		t.Fatalf("settlement replayed or leaked content: progress=%q final=%q", progress, answer)
 	}
 	assertNativePreambleActionCounts(t, repo, frame, 1, 1)
+}
+
+func newNativePreambleFixture(t *testing.T, endpoint, frame string) (*Server, *transcriptstore.Repository, SessionRunnerChatOptions) {
+	t.Helper()
+	store, repo, _ := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "local", frame+"-project", frame)
+	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = server.Close(context.Background()) })
+	if _, _, err := server.submitFrameMessage(store, frameMessageSubmission{
+		FrameID: frame, MessageUUID: frame + "-message", ClientMessageID: frame + "-input",
+		Text: "Give a short fixture summary using the available records.",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return server, repo, SessionRunnerChatOptions{
+		SessionID: frame, RunnerID: frame + "-runner", Endpoint: endpoint,
+		Model: "fixture-model", AllowedTools: []string{"runtime_get"}, MaxAttempts: 1, MaxToolRounds: 2,
+		RequestTimeout: 5 * time.Second, LeaseTTL: time.Minute, DisableSkillDiscovery: true, DisableMCPDiscovery: true,
+	}
+}
+
+func writeNativePreambleTool(w http.ResponseWriter, arguments, finish string) {
+	writePublicationFixtureEvent(w, map[string]any{"tool_calls": []any{map[string]any{
+		"index": 0, "id": "native-read", "type": "function",
+		"function": map[string]any{"name": "runtime_get", "arguments": arguments},
+	}}}, finish)
 }
 
 func assertNativePreambleActionCounts(t *testing.T, repo *transcriptstore.Repository, frame string, wantStarted, wantCompleted int) {

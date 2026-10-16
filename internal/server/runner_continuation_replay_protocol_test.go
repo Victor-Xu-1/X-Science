@@ -25,6 +25,7 @@ func TestContinuationTruncatedTailReplayUsesRealStream(t *testing.T) {
 		{"unicode", "状态：待", "待", "length", true},
 		{"whole-prefix", "saved text", "saved text", "length", true},
 		{"unfinished-tool", "An observation: echo", "echo", "tool-length", true},
+		{"identified-unfinished-tool", "An observation: echo", "echo", "identified-tool-length", true},
 		{"new-content", "An observation: echo", "echo followed by new evidence", "length", false},
 		{"legitimate-repeat", "An observation: echo", "echo", "stop", false},
 		{"different-short", "An observation: echo", "x", "length", false},
@@ -34,12 +35,16 @@ func TestContinuationTruncatedTailReplayUsesRealStream(t *testing.T) {
 				w.Header().Set("Content-Type", "text/event-stream")
 				for _, char := range tc.text {
 					encoded, _ := json.Marshal(string(char))
-					fmt.Fprintf(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":%s}}]}\n\n", encoded)
+					if tc.finish == "identified-tool-length" {
+						fmt.Fprintf(w, "data: {\"id\":\"native-tail\",\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":%s}}]}\n\n", encoded)
+					} else {
+						fmt.Fprintf(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":%s}}]}\n\n", encoded)
+					}
 					w.(http.Flusher).Flush()
 				}
 				finish := tc.finish
-				if finish == "tool-length" {
-					fmt.Fprint(w, "data: {\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"action-1\",\"type\":\"function\",\"function\":{\"name\":\"inspect\",\"arguments\":\"{\"}}]}}]}\n\n")
+				if finish == "tool-length" || finish == "identified-tool-length" {
+					fmt.Fprint(w, "data: {\"id\":\"native-tail\",\"choices\":[{\"index\":0,\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"action-1\",\"type\":\"function\",\"function\":{\"name\":\"inspect\",\"arguments\":\"{\"}}]}}]}\n\n")
 					finish = "length"
 				}
 				fmt.Fprintf(w, "data: {\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":%q}]}\n\ndata: [DONE]\n\n", finish)
@@ -53,6 +58,7 @@ func TestContinuationTruncatedTailReplayUsesRealStream(t *testing.T) {
 			var visible strings.Builder
 			_, err := client.CompleteStream(context.Background(), agentruntime.ModelRequest{
 				Messages: []agentruntime.Message{{Role: "user", Content: "Continue the saved work."}},
+				Tools:    []agentruntime.ToolSchema{{Name: "inspect"}},
 			}, func(event agentruntime.ModelStreamEvent) error {
 				visible.WriteString(event.ContentDelta)
 				return nil

@@ -71,8 +71,9 @@ func (client *sessionRunnerResponseContractClient) Complete(ctx context.Context,
 }
 
 // Independent, fully decoded public blocks can precede a complete action.
-// Native drafts and legacy tool-field narration still require the complete
-// response; neither a partial tool boundary nor a partial JSON field releases it.
+// A separately identified native assistant prefix may use the same publication
+// path. Ordinary drafts, provisional tool markers and legacy tool-field narration
+// still require the complete response; partial JSON never releases an action.
 func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -84,6 +85,27 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 	publicBlockObserved := false
 	var publicBlocks runnerLanguageProgressBlocks
 	var publicText strings.Builder
+	var nativePrefix runnerNativePreamble
+	emitPublicBlock := func(id, text, source string) error {
+		text = sessionRunnerPublicProgressNarration(text)
+		if text == "" {
+			return nil
+		}
+		publicText.WriteString(text)
+		if client.progressReady != nil {
+			client.progressReady(source)
+		}
+		if emit == nil {
+			return nil
+		}
+		if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: id, ContentDelta: text}); err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		return emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressBoundary, BlockID: id})
+	}
 	collect := func(event agentruntime.ModelStreamEvent) error {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -95,25 +117,21 @@ func (client *sessionRunnerResponseContractClient) CompleteStream(ctx context.Co
 			if event.Kind == agentruntime.ModelStreamEventPublicProgressBoundary {
 				publicBlockObserved = true
 				block := publicBlocks.closed[len(publicBlocks.closed)-1]
-				text := sessionRunnerPublicProgressNarration(block.text)
-				if text == "" {
-					return nil
-				}
-				publicText.WriteString(text)
-				if client.progressReady != nil {
-					client.progressReady("structured")
-				}
-				if emit != nil {
-					if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressDelta, BlockID: block.id, ContentDelta: text}); err != nil {
-						return err
-					}
-					if err := ctx.Err(); err != nil {
-						return err
-					}
-					return emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPublicProgressBoundary, BlockID: block.id})
-				}
+				return emitPublicBlock(block.id, block.text, "structured")
 			}
 			return nil
+		}
+		if event.Kind == agentruntime.ModelStreamEventNativePreambleBoundary {
+			if publicBlockObserved {
+				return nil // An existing independent block is the sole public source.
+			}
+			publicBlockObserved = true
+			text := nativePrefix.narration()
+			id := fmt.Sprintf("native-%x", sha256.Sum256([]byte(event.BlockID+"\x00"+text)))
+			return emitPublicBlock(id, text, "native")
+		}
+		if event.Kind == agentruntime.ModelStreamEventContentDelta && !publicBlockObserved {
+			nativePrefix.append(event.ContentDelta)
 		}
 		// Content remains a private candidate. Forward it incrementally so
 		// persistence, cancellation and progress watchdogs retain their cadence.
