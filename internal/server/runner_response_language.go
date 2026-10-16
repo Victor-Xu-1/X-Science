@@ -372,12 +372,19 @@ func (client *sessionRunnerResponseLanguageModelClient) translateCandidate(
 }
 
 func addModelUsage(left, right agentruntime.ModelUsage) agentruntime.ModelUsage {
+	leftFields, rightFields := left.ReportedFields(), right.ReportedFields()
 	return agentruntime.ModelUsage{
 		InputTokens:      left.InputTokens + right.InputTokens,
 		OutputTokens:     left.OutputTokens + right.OutputTokens,
 		CacheReadTokens:  left.CacheReadTokens + right.CacheReadTokens,
 		CacheWriteTokens: left.CacheWriteTokens + right.CacheWriteTokens,
 		TotalTokens:      left.TotalTokens + right.TotalTokens,
+		Reported: &agentruntime.ModelUsageFields{
+			Input: leftFields.Input && rightFields.Input, Output: leftFields.Output && rightFields.Output,
+			CacheRead: leftFields.CacheRead && rightFields.CacheRead, CacheWrite: leftFields.CacheWrite && rightFields.CacheWrite,
+			Total: leftFields.Total && rightFields.Total,
+		},
+		CacheTokensAdditive: left.CacheTokensAdditive && right.CacheTokensAdditive,
 	}
 }
 

@@ -135,21 +135,25 @@ func (c OpenAIChatClient) completeAttempt(ctx context.Context, rawRequest []byte
 	if model == "" {
 		model = strings.TrimSpace(c.Model)
 	}
-	totalTokens := decoded.Usage.TotalTokens
-	if totalTokens == 0 && (decoded.Usage.PromptTokens != 0 || decoded.Usage.CompletionTokens != 0) {
-		totalTokens = decoded.Usage.PromptTokens + decoded.Usage.CompletionTokens
+	usage := ModelUsage{
+		InputTokens:     modelUsageTokenValue(decoded.Usage.PromptTokens),
+		OutputTokens:    modelUsageTokenValue(decoded.Usage.CompletionTokens),
+		CacheReadTokens: modelUsageTokenValue(decoded.Usage.PromptTokensDetails.CachedTokens),
+		TotalTokens:     modelUsageTokenValue(decoded.Usage.TotalTokens),
+		Reported: &ModelUsageFields{
+			Input: decoded.Usage.PromptTokens != nil, Output: decoded.Usage.CompletionTokens != nil,
+			Total: decoded.Usage.TotalTokens != nil, CacheRead: decoded.Usage.PromptTokensDetails.CachedTokens != nil,
+		},
+	}
+	if !usage.Reported.Total && usage.Reported.Input && usage.Reported.Output {
+		usage.TotalTokens = usage.InputTokens + usage.OutputTokens
 	}
 	return ModelResponse{
 		Message:    runtimeMessageFromOpenAI(decoded.Choices[0].Message),
 		Model:      model,
 		RequestID:  requestID,
 		StopReason: decoded.Choices[0].FinishReason,
-		Usage: ModelUsage{
-			InputTokens:     decoded.Usage.PromptTokens,
-			OutputTokens:    decoded.Usage.CompletionTokens,
-			CacheReadTokens: decoded.Usage.PromptTokensDetails.CachedTokens,
-			TotalTokens:     totalTokens,
-		},
+		Usage:      usage,
 	}, false, nil
 }
 
@@ -198,11 +202,11 @@ type openAIChatResponse struct {
 		FinishReason string        `json:"finish_reason"`
 	} `json:"choices"`
 	Usage struct {
-		PromptTokens        int `json:"prompt_tokens"`
-		CompletionTokens    int `json:"completion_tokens"`
-		TotalTokens         int `json:"total_tokens"`
+		PromptTokens        *int `json:"prompt_tokens"`
+		CompletionTokens    *int `json:"completion_tokens"`
+		TotalTokens         *int `json:"total_tokens"`
 		PromptTokensDetails struct {
-			CachedTokens int `json:"cached_tokens"`
+			CachedTokens *int `json:"cached_tokens"`
 		} `json:"prompt_tokens_details"`
 	} `json:"usage"`
 }

@@ -71,12 +71,7 @@ type anthropicMessageResponse struct {
 	Role       string                  `json:"role"`
 	Content    []anthropicContentBlock `json:"content"`
 	StopReason string                  `json:"stop_reason"`
-	Usage      struct {
-		InputTokens              int `json:"input_tokens"`
-		OutputTokens             int `json:"output_tokens"`
-		CacheReadInputTokens     int `json:"cache_read_input_tokens"`
-		CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
-	} `json:"usage"`
+	Usage      anthropicStreamUsage    `json:"usage"`
 }
 
 func (c *runtimeModelClient) completeAnthropic(ctx context.Context, request agentruntime.ModelRequest, attempt int) (agentruntime.ModelResponse, bool, error) {
@@ -224,11 +219,8 @@ func (c *runtimeModelClient) anthropicResponseDecoder(body []byte, _ http.Header
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
 	}
-	usage := providerTokenUsage{
-		PromptTokens: decoded.Usage.InputTokens, CompletionTokens: decoded.Usage.OutputTokens,
-		CacheReadTokens: decoded.Usage.CacheReadInputTokens, CacheWriteTokens: decoded.Usage.CacheCreationInputTokens,
-	}
-	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens + usage.CacheReadTokens + usage.CacheWriteTokens
+	usage := decoded.Usage.tokenUsage()
+	usage.deriveTotal(true)
 	if role := strings.TrimSpace(decoded.Role); role != "" && role != "assistant" {
 		return agentruntime.ModelResponse{}, decoded.ID, usage, errors.New("Anthropic response role must be assistant")
 	}

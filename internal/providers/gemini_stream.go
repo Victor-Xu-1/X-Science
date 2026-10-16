@@ -82,18 +82,7 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 		if value := strings.TrimSpace(chunk.ResponseID); value != "" {
 			acc.requestID = value
 		}
-		if chunk.UsageMetadata.PromptTokenCount != 0 {
-			acc.usage.PromptTokens = chunk.UsageMetadata.PromptTokenCount
-		}
-		if chunk.UsageMetadata.CandidatesTokenCount != 0 {
-			acc.usage.CompletionTokens = chunk.UsageMetadata.CandidatesTokenCount
-		}
-		if chunk.UsageMetadata.CachedContentTokenCount != 0 {
-			acc.usage.CacheReadTokens = chunk.UsageMetadata.CachedContentTokenCount
-		}
-		if chunk.UsageMetadata.TotalTokenCount != 0 {
-			acc.usage.TotalTokens = chunk.UsageMetadata.TotalTokenCount
-		}
+		acc.usage.merge(chunk.UsageMetadata.tokenUsage())
 		if len(chunk.Candidates) == 0 {
 			return nil
 		}
@@ -177,9 +166,7 @@ func readGeminiStream(client *runtimeModelClient, response http.Response, emit f
 		}
 		return agentruntime.ModelResponse{}, acc.requestID, acc.usage, acc.emitted, err
 	}
-	if acc.usage.TotalTokens == 0 {
-		acc.usage.TotalTokens = acc.usage.PromptTokens + acc.usage.CompletionTokens
-	}
+	acc.usage.deriveTotal(false)
 	if acc.chunks == 0 {
 		return agentruntime.ModelResponse{}, acc.requestID, acc.usage, acc.emitted, errors.New("Gemini stream returned no chunks")
 	}
