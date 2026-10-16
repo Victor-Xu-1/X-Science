@@ -28,6 +28,9 @@ func TestTranscriptWebProjectorUpgradeRepairsTerminalQuarantine(t *testing.T) {
 					if err := fixture.server.runTranscriptWebReadModelBatch(t.Context(), 1); err != nil {
 						t.Fatal(err)
 					}
+					if repaired := requireTranscriptWebReadModelFence(t, fixture.readModel, fixture.stream, fixture.fence.BranchID); !transcriptWebFenceReady(repaired) {
+						t.Fatalf("background repair was not independently ready before the request: %+v", repaired)
+					}
 				}
 				response := p3JSONRequest(t, fixture.server, http.MethodGet,
 					"/api/conversations/"+transcriptWebServingFrameID+"/messages", nil, "")

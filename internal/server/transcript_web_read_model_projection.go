@@ -75,13 +75,15 @@ func (s *Server) runTranscriptWebReadModelBatch(ctx context.Context, limit int) 
 			return err
 		}
 		for _, item := range work {
-			if item.ProjectionStatus == "quarantined" && s.transcriptWebProjectionFrameTerminal(item.SessionID) {
+			if item.ProjectionStatus == "quarantined" && item.Reason != "projection_projector_version_stale" &&
+				s.transcriptWebProjectionFrameTerminal(item.SessionID) {
 				// A cancelled/failed Frame is no longer an active user path. Keep
 				// its durable source and quarantine evidence available, but do not
 				// let an unrecoverable historical projection consume the active
 				// projector on every daemon tick. An explicit Frame resume changes
 				// the status back to an active state and makes the same projection
-				// chain eligible again.
+				// chain eligible again. A new projector version also gets one attempt
+				// to recover retained history without restarting the terminal task.
 				continue
 			}
 			if item.ProjectionStatus == "quarantined" &&
@@ -90,9 +92,7 @@ func (s *Server) runTranscriptWebReadModelBatch(ctx context.Context, limit int) 
 			}
 			attempted++
 			if err := s.rebuildTranscriptWebReadModel(ctx, item); err != nil {
-				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
-					errors.Is(err, transcriptstore.ErrBranchStateStale) ||
-					errors.Is(err, transcriptstore.ErrTranscriptWebProjectionStale) {
+				if transcriptWebProjectionRepairInterrupted(err) {
 					continue
 				}
 				if quarantineErr := s.quarantineTranscriptWebReadModel(ctx, item, err); quarantineErr != nil &&
@@ -108,6 +108,12 @@ func (s *Server) runTranscriptWebReadModelBatch(ctx context.Context, limit int) 
 		}
 	}
 	return nil
+}
+
+func transcriptWebProjectionRepairInterrupted(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
+		errors.Is(err, transcriptstore.ErrBranchStateStale) ||
+		errors.Is(err, transcriptstore.ErrTranscriptWebProjectionStale)
 }
 
 func (s *Server) transcriptWebProjectionFrameTerminal(sessionID string) bool {
@@ -305,24 +311,28 @@ func (s *Server) quarantineTranscriptWebReadModel(
 	if transcriptWebFenceReady(fence) {
 		return transcriptstore.ErrTranscriptWebProjectionStale
 	}
+	// Rows from another projector have not been verified by this implementation.
+	// Never relabel that retained cache as a current verified snapshot after a
+	// failed upgrade. Only derived rows are retired; canonical source is intact.
+	replaceAll := !fence.StateFound || fence.StateBranchGeneration != fence.BranchGeneration ||
+		fence.StateProjectorVersion != transcriptstore.TranscriptWebProjectorVersion
+	messageCount := fence.StateMessageCount
+	visibleCount := fence.VisibleMessageCount
+	artifactCount := fence.StateArtifactReferenceCount
+	if replaceAll {
+		messageCount, visibleCount, artifactCount = 0, 0, 0
+	}
 	code := transcriptWebProjectionErrorCode(cause)
 	stateJSON, err := json.Marshal(transcriptWebProjectorCheckpointV1{
 		Version: transcriptstore.TranscriptWebProjectorVersion, Mode: "quarantined", ErrorCode: code,
 		BranchGeneration:           fence.BranchGeneration,
 		ThroughPublicationSequence: fence.ThroughPublicationSequence,
 		SourceRevision:             fence.SourceRevision,
-		MessageCount:               fence.StateMessageCount,
+		MessageCount:               messageCount,
 		EventChainSHA256:           transcriptstore.TranscriptWebSHA256([]byte("quarantined:" + code)),
 	})
 	if err != nil {
 		return err
-	}
-	replaceAll := !fence.StateFound || fence.StateBranchGeneration != fence.BranchGeneration
-	messageCount := fence.StateMessageCount
-	visibleCount := fence.VisibleMessageCount
-	artifactCount := fence.StateArtifactReferenceCount
-	if replaceAll {
-		messageCount, visibleCount, artifactCount = 0, 0, 0
 	}
 	state := transcriptstore.TranscriptWebProjectionState{
 		StreamUID: work.StreamUID, BranchID: work.BranchID, BranchGeneration: fence.BranchGeneration,
