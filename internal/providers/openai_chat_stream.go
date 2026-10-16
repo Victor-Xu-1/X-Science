@@ -105,14 +105,7 @@ type openAIChatStreamChunk struct {
 			} `json:"tool_calls,omitempty"`
 		} `json:"delta"`
 	} `json:"choices"`
-	Usage struct {
-		PromptTokens        int `json:"prompt_tokens"`
-		CompletionTokens    int `json:"completion_tokens"`
-		TotalTokens         int `json:"total_tokens"`
-		PromptTokensDetails struct {
-			CachedTokens int `json:"cached_tokens"`
-		} `json:"prompt_tokens_details"`
-	} `json:"usage"`
+	Usage openAIChatUsage `json:"usage"`
 }
 
 type openAIChatStreamToolCall struct {
@@ -268,7 +261,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		return agentruntime.ModelResponse{}, retryable, emitted, err
 	}
 	c.emitAudit(record)
-	return c.responseWithUsage(decoded, record), false, emitted, nil
+	return c.responseWithUsage(decoded, record, usage), false, emitted, nil
 }
 
 func openAIChatStreamTimeouts(configured time.Duration) (firstByte, idle time.Duration) {
@@ -399,14 +392,7 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 			}
 			accumulator.requestID = requestID
 		}
-		if chunk.Usage.PromptTokens != 0 || chunk.Usage.CompletionTokens != 0 || chunk.Usage.TotalTokens != 0 {
-			accumulator.usage = providerTokenUsage{
-				PromptTokens:     chunk.Usage.PromptTokens,
-				CompletionTokens: chunk.Usage.CompletionTokens,
-				CacheReadTokens:  chunk.Usage.PromptTokensDetails.CachedTokens,
-				TotalTokens:      chunk.Usage.TotalTokens,
-			}
-		}
+		accumulator.usage.merge(chunk.Usage.tokenUsage())
 		choiceIndexes := make(map[int]struct{}, len(chunk.Choices))
 		for _, choice := range chunk.Choices {
 			choiceIndex := 0
@@ -716,9 +702,7 @@ func (a *openAIChatStreamAccumulator) reserveSemanticBytes(count int64) error {
 }
 
 func (a *openAIChatStreamAccumulator) response() (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
-	if a.usage.TotalTokens == 0 {
-		a.usage.TotalTokens = a.usage.PromptTokens + a.usage.CompletionTokens
-	}
+	a.usage.deriveTotal(false)
 	if isTokenLimitFinishReason(a.finishReason) {
 		if len(a.toolCalls) == 0 {
 			return agentruntime.ModelResponse{}, a.requestID, a.usage, a.emitted,

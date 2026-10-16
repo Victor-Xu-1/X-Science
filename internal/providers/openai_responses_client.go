@@ -96,14 +96,7 @@ type openAIResponsesResponse struct {
 	} `json:"incomplete_details,omitempty"`
 	OutputText string                      `json:"output_text,omitempty"`
 	Output     []openAIResponsesOutputItem `json:"output"`
-	Usage      struct {
-		InputTokens       int `json:"input_tokens"`
-		OutputTokens      int `json:"output_tokens"`
-		TotalTokens       int `json:"total_tokens"`
-		InputTokenDetails struct {
-			CachedTokens int `json:"cached_tokens"`
-		} `json:"input_tokens_details"`
-	} `json:"usage"`
+	Usage      openAIResponsesUsage        `json:"usage"`
 }
 
 type openAIResponsesOutputItem struct {
@@ -235,15 +228,8 @@ func (c *runtimeModelClient) openAIResponsesResponseDecoder(body []byte, headers
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
 	}
-	usage := providerTokenUsage{
-		PromptTokens:     decoded.Usage.InputTokens,
-		CompletionTokens: decoded.Usage.OutputTokens,
-		CacheReadTokens:  decoded.Usage.InputTokenDetails.CachedTokens,
-		TotalTokens:      decoded.Usage.TotalTokens,
-	}
-	if usage.TotalTokens == 0 {
-		usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
-	}
+	usage := decoded.Usage.tokenUsage()
+	usage.deriveTotal(false)
 	stopReason := decoded.Status
 	if decoded.IncompleteDetails.Reason != "" {
 		stopReason = decoded.IncompleteDetails.Reason

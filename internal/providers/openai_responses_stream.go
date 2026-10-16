@@ -189,7 +189,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 		return agentruntime.ModelResponse{}, retryable, emitted, err
 	}
 	c.emitAudit(record)
-	return c.responseWithUsage(decoded, record), false, emitted, nil
+	return c.responseWithUsage(decoded, record, usage), false, emitted, nil
 }
 
 func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, decode func([]byte, http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error)) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
@@ -336,7 +336,7 @@ func readOpenAIResponsesStream(reader io.Reader, limit int64, emit func(agentrun
 			recordProviderStreamProgress(reader, accumulator.semanticBytes-previousSemanticBytes)
 		case "response.incomplete":
 			accumulator.requestID = event.Response.ID
-			accumulator.usage = providerTokenUsage{PromptTokens: event.Response.Usage.InputTokens, CompletionTokens: event.Response.Usage.OutputTokens, TotalTokens: event.Response.Usage.TotalTokens}
+			accumulator.usage = event.Response.Usage.tokenUsage()
 			reason := event.Response.IncompleteDetails.Reason
 			if limited := responseOutputLimit(reason, len(accumulator.callIdentity) > 0 || len(accumulator.arguments) > 0); limited != nil {
 				return limited
