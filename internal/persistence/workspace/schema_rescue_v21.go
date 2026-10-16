@@ -179,6 +179,9 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 	case transcriptWebProjectorV70CallbackID:
 		return identity.PreflightIdentity == transcriptWebProjectorV70PreflightIdentity &&
 			identity.RuleSpec == transcriptWebProjectorV70RuleSpec
+	case transcriptWebProjectorV79CallbackID:
+		return identity.PreflightIdentity == transcriptWebProjectorV79PreflightIdentity &&
+			identity.RuleSpec == transcriptWebProjectorV79RuleSpec
 	default:
 		return false
 	}
@@ -307,6 +310,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightKernelStartupV69(ctx, executor)
 	case transcriptWebProjectorV70PreflightIdentity:
 		return preflightTranscriptWebProjectorV70(ctx, executor)
+	case transcriptWebProjectorV79PreflightIdentity:
+		return preflightTranscriptWebProjectorV79(ctx, executor)
 	default:
 		return errors.New("schema migration preflight is not registered")
 	}
@@ -413,6 +418,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 		return migrateKernelStartupV69(ctx, tx)
 	case transcriptWebProjectorV70CallbackID:
 		return migrateTranscriptWebProjectorV70(ctx, tx)
+	case transcriptWebProjectorV79CallbackID:
+		return migrateTranscriptWebProjectorV79(ctx, tx)
 	default:
 		return errors.New("schema migration callback is not registered")
 	}
