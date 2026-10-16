@@ -186,7 +186,7 @@ func assertNativePreambleActionCounts(t *testing.T, repo *transcriptstore.Reposi
 			continue
 		}
 		switch stringValue(payload["toolPhase"]) {
-		case "started":
+		case "start":
 			started++
 		case "completed":
 			completed++
