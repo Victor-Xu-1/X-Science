@@ -276,7 +276,8 @@ function formatSupplementalOutputValue(value: unknown, key: string, chinese: boo
       install: 'recommendInstall',
       proceed: 'recommendProceed',
     };
-    const labelKey = recommendations[value.trim().toLowerCase()];
+    const recommendation = value.trim().toLowerCase();
+    const labelKey = Object.hasOwn(recommendations, recommendation) ? recommendations[recommendation] : undefined;
     return labelKey ? toolPublicDetailText(chinese, labelKey) : formatPublicRecordValue(value, chinese);
   }
   if (normalizedKey === 'feasible' && typeof value === 'boolean') {
