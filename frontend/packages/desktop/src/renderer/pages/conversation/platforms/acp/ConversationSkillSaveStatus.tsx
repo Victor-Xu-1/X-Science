@@ -12,6 +12,7 @@ type ConversationSkillSaveStatusProps = {
   onRetrySave: () => Promise<void>;
   onRetryRefresh: () => Promise<void>;
   onUseSkill: (name: string) => void;
+  onEnableSkill?: (name: string) => void;
 };
 
 const actionClassName =
@@ -54,6 +55,7 @@ export function ConversationSkillSaveStatus({
   onRetrySave,
   onRetryRefresh,
   onUseSkill,
+  onEnableSkill,
 }: ConversationSkillSaveStatusProps) {
   const { t } = useTranslation();
   if (state.status === 'idle') return null;
@@ -100,18 +102,27 @@ export function ConversationSkillSaveStatus({
             </>
           )}
           {state.refresh === 'ready' && !skillAvailable && (
-            <span>{t('conversation.attachMenu.saveAsSkillUnavailable')}</span>
+            <>
+              <span>{t('conversation.attachMenu.saveAsSkillUnavailable')}</span>
+              {onEnableSkill && (
+                <button type='button' className={actionClassName} onClick={() => onEnableSkill(state.name)}>
+                  {t('conversation.attachMenu.enableSkillAndSelect')}
+                </button>
+              )}
+            </>
           )}
-          <button
-            type='button'
-            className={actionClassName}
-            disabled={state.refresh !== 'ready' || !skillAvailable}
-            onClick={() => {
-              if (state.refresh === 'ready' && skillAvailable) onUseSkill(state.name);
-            }}
-          >
-            {t('conversation.attachMenu.saveAsSkillUse')}
-          </button>
+          {(skillAvailable || !onEnableSkill || state.refresh !== 'ready') && (
+            <button
+              type='button'
+              className={actionClassName}
+              disabled={state.refresh !== 'ready' || !skillAvailable}
+              onClick={() => {
+                if (state.refresh === 'ready' && skillAvailable) onUseSkill(state.name);
+              }}
+            >
+              {t('conversation.attachMenu.saveAsSkillUse')}
+            </button>
+          )}
         </>
       )}
     </div>

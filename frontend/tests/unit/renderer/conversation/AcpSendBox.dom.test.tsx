@@ -10,7 +10,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { TConversationRuntimeSummary } from '@/common/config/storage';
+import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
@@ -69,6 +69,7 @@ const loadComputeProvidersMock = vi.fn();
 const loadSessionComputeProvidersMock = vi.fn();
 const setSessionComputeProviderMock = vi.fn();
 const loadComposerCapabilitiesMock = vi.fn();
+const loadSkillLibraryMock = vi.fn();
 const getSelectedBranchMock = vi.fn();
 const getBranchRevisionMock = vi.fn();
 const loadBranchStateMock = vi.fn();
@@ -134,7 +135,10 @@ const mobileActionSheetEntries = {
     label?: React.ReactNode;
     description?: React.ReactNode;
     onClick?: () => void;
-    submenu?: { onSelect?: (value: string) => void };
+    submenu?: {
+      onSelect?: (value: string) => void;
+      options?: Array<{ key: string; description?: string; active?: boolean }>;
+    };
   }>,
 };
 
@@ -293,7 +297,7 @@ vi.mock('@/renderer/services/xScienceCapabilities', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/services/xScienceCapabilities')>();
   return {
     ...actual,
-    loadXScienceSkills: vi.fn().mockResolvedValue([]),
+    loadXScienceSkills: (...args: unknown[]) => loadSkillLibraryMock(...args),
     loadXScienceMcpServers: vi.fn().mockResolvedValue([]),
   };
 });
@@ -635,6 +639,7 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockImplementation(() => new Promise(() => {}));
     setSessionComputeProviderMock.mockResolvedValue(undefined);
     loadComposerCapabilitiesMock.mockResolvedValue({ skills: [], mcpStatuses: [] });
+    loadSkillLibraryMock.mockResolvedValue([]);
     getSelectedBranchMock.mockReturnValue(null);
     getBranchRevisionMock.mockReturnValue(0);
     loadBranchStateMock.mockResolvedValue(null);
@@ -2043,6 +2048,91 @@ describe('AcpSendBox', () => {
     expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: '重试刷新' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '使用 Skill' })).toBeEnabled();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('SkillActivation exposes an explicit saved-Skill action without admitting or sending automatically', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['existing-workflow'], mcpStatuses: [] });
+    await render(
+      <AcpSendBox
+        conversation_id='conv-skill-explicit-activation'
+        backend='xscience'
+        initialConversation={
+          {
+            id: 'conv-skill-explicit-activation',
+            type: 'acp',
+            extra: { agent_name: 'canonical-expert' },
+          } as TChatConversation
+        }
+        messageState={makeMessageState()}
+      />
+    );
+    expect(fileAttachProps.current?.onEnableSkill).toBeTypeOf('function');
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    expect(screen.queryByRole('button', { name: '使用 Skill' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '启用并选择' })).toBeEnabled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(loadSkillLibraryMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '启用并选择' }));
+    expect(screen.getByRole('dialog', { name: '为当前专家启用 Skill' })).toHaveTextContent('session-skill');
+    expect(loadSkillLibraryMock).not.toHaveBeenCalled();
+    expect(fileAttachProps.current?.selectedSkillNames).toEqual([]);
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('SkillActivation includes enabled library Skills in the mobile picker without bypassing confirmation', async () => {
+    isMobileMock.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['existing-workflow'], mcpStatuses: [] });
+    loadSkillLibraryMock.mockResolvedValue([
+      { name: 'new-workflow', enabled: true },
+      { name: 'disabled-workflow', enabled: false },
+    ]);
+    await render(
+      <AcpSendBox
+        conversation_id='conv-skill-mobile-activation'
+        ownerId='owner-mobile-activation'
+        backend='xscience'
+        initialConversation={
+          {
+            id: 'conv-skill-mobile-activation',
+            type: 'acp',
+            extra: { agent_name: 'canonical-expert' },
+          } as TChatConversation
+        }
+        messageState={makeMessageState()}
+      />
+    );
+    await waitFor(() =>
+      expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'skills')?.submenu?.options).toEqual(
+        expect.arrayContaining([expect.objectContaining({ key: 'new-workflow', description: '启用…' })])
+      )
+    );
+    const entry = mobileActionSheetEntries.current.find((item) => item.key === 'skills');
+    expect(entry?.submenu?.options?.some((item) => item.key === 'disabled-workflow')).toBe(false);
+    expect(entry?.submenu?.options?.some((item) => item.active)).toBe(false);
+    act(() => {
+      entry?.submenu?.onSelect?.('new-workflow');
+    });
+    expect(screen.getByRole('dialog', { name: '为当前专家启用 Skill' })).toHaveTextContent('new-workflow');
+    expect(
+      mobileActionSheetEntries.current
+        .find((item) => item.key === 'skills')
+        ?.submenu?.options?.some((item) => item.active)
+    ).toBe(false);
+    expect(saveConversationAsSkillMock).not.toHaveBeenCalled();
     expect(sendMessageInvokeMock).not.toHaveBeenCalled();
   });
 

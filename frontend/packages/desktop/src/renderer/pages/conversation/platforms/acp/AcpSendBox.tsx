@@ -97,8 +97,9 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
-import { useConversationSkillSave } from './useConversationSkillSave';
+import { useAcpConversationSkills } from './useAcpConversationSkills';
 import { ConversationSkillSaveStatus } from './ConversationSkillSaveStatus';
+import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
 
@@ -735,36 +736,23 @@ const AcpSendBox: React.FC<{
     ]
   );
 
-  const refreshSkillCatalogs = useCallback(
-    async (isCurrent: () => boolean) => {
-      // Start the bound mutation before yielding so SWR captures this conversation's
-      // key. Await both real reads; a failed read is not an empty Skill catalog.
-      const refreshed = await Promise.allSettled([
-        mutateComposerCapabilities(
-          async () => {
-            const capabilities = await loadXScienceComposerCapabilities(conversation_id);
-            if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-            return capabilities;
-          },
-          { revalidate: false }
-        ),
-        messageState.fetchSlashCommands({ fresh: true }),
-      ]);
-      if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
-    },
-    [conversation_id, messageState.fetchSlashCommands, mutateComposerCapabilities]
-  );
-  const skillSave = useConversationSkillSave({
+  const { skillSave, skillActivation, savedSkillAvailable, mobileLibraryNames } = useAcpConversationSkills({
     conversationId: conversation_id,
     ownerId,
     authority: conversationAuthorityRef.current,
     mountedRef,
     disabled: isBusy,
-    refreshCatalogs: refreshSkillCatalogs,
+    isXScience: isXScienceConversation,
+    isMobile,
+    assistantId: conversationContext?.assistantId,
+    // This is server-projected runtime identity, not the localized display prop.
+    runtimeAgentName: (initialConversation?.extra as { agent_name?: string } | undefined)?.agent_name,
+    locale: localeKey,
+    loadedSkills,
+    mutateComposerCapabilities,
+    fetchSlashCommands: messageState.fetchSlashCommands,
+    onSelectSkill: handleSkillSelected,
   });
-  const savedSkillName = skillSave.state.status === 'saved' ? skillSave.state.name : null;
-  const savedSkillAvailable =
-    savedSkillName !== null && loadedSkills.some((name) => name.toLowerCase() === savedSkillName.toLowerCase());
 
   const {
     items: queuedCommands,
@@ -990,10 +978,12 @@ const AcpSendBox: React.FC<{
     handleThoughtLevelSetOption,
     attachEntries,
     loadedSkills,
+    librarySkillNames: mobileLibraryNames,
     loadedMcpStatuses,
     selectedSkillNames,
     selectedMcpServerIds,
     onSelectSkill: handleSkillSelected,
+    onEnableSkill: skillActivation.canActivate ? skillActivation.request : undefined,
     onSelectMcpServer: handleMcpSelected,
     t,
     i18n,
@@ -1152,6 +1142,12 @@ const AcpSendBox: React.FC<{
         onRetrySave={skillSave.save}
         onRetryRefresh={skillSave.retryRefresh}
         onUseSkill={handleSkillSelected}
+        onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
+      />
+      <ConversationSkillActivationDialog
+        state={skillActivation.state}
+        onConfirm={skillActivation.confirm}
+        onCancel={skillActivation.cancel}
       />
 
       <SendBox
@@ -1193,6 +1189,7 @@ const AcpSendBox: React.FC<{
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectSkill={handleSkillSelected}
+                onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
                 onSelectMcpServer={handleMcpSelected}
                 xScienceV11
                 onRequestReview={handleRequestReview}

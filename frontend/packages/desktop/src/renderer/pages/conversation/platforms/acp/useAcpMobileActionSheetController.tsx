@@ -37,10 +37,12 @@ type UseAcpMobileActionSheetControllerArgs = {
   handleThoughtLevelSetOption: (optionId: string, value: string) => Promise<boolean>;
   attachEntries: MobileActionSheetEntry[];
   loadedSkills: string[];
+  librarySkillNames?: string[];
   loadedMcpStatuses: IConversationMcpStatus[];
   selectedSkillNames: string[];
   selectedMcpServerIds: string[];
   onSelectSkill: (name: string) => void;
+  onEnableSkill?: (name: string) => void;
   onSelectMcpServer: (server: IConversationMcpStatus) => void;
   t: TFunction;
   i18n: I18n;
@@ -70,10 +72,12 @@ export const useAcpMobileActionSheetController = ({
   handleThoughtLevelSetOption,
   attachEntries,
   loadedSkills,
+  librarySkillNames = [],
   loadedMcpStatuses,
   selectedSkillNames,
   selectedMcpServerIds,
   onSelectSkill,
+  onEnableSkill,
   onSelectMcpServer,
   t,
   i18n,
@@ -314,11 +318,23 @@ export const useAcpMobileActionSheetController = ({
       });
     });
 
-    if (loadedSkills.length > 0) {
-      const skillOptions: MobileActionSheetOption[] = loadedSkills.map((name) => ({
+    const admittedSkills = new Set(loadedSkills.map((name) => name.toLowerCase()));
+    const allSkills = [...loadedSkills];
+    const seenSkills = new Set(admittedSkills);
+    if (onEnableSkill) {
+      for (const name of librarySkillNames) {
+        if (!seenSkills.has(name.toLowerCase())) {
+          allSkills.push(name);
+          seenSkills.add(name.toLowerCase());
+        }
+      }
+    }
+    if (allSkills.length > 0) {
+      const skillOptions: MobileActionSheetOption[] = allSkills.map((name) => ({
         key: name,
         label: name,
         active: selectedSkillNames.includes(name),
+        description: admittedSkills.has(name.toLowerCase()) ? undefined : t('conversation.attachMenu.enableSkillShort'),
       }));
       entries.push({
         key: 'skills',
@@ -328,7 +344,10 @@ export const useAcpMobileActionSheetController = ({
         submenu: {
           title: t('common.skills'),
           options: skillOptions,
-          onSelect: onSelectSkill,
+          onSelect: (name) => {
+            if (admittedSkills.has(name.toLowerCase())) onSelectSkill(name);
+            else onEnableSkill?.(name);
+          },
         },
       });
     }
@@ -374,6 +393,7 @@ export const useAcpMobileActionSheetController = ({
     isModelListLoading,
     loadedMcpStatuses,
     loadedSkills,
+    librarySkillNames,
     mobileComputeProviders,
     mobileEnabledCompute,
     mobileSpecialists,
@@ -381,6 +401,7 @@ export const useAcpMobileActionSheetController = ({
     modelListError,
     onSelectMcpServer,
     onSelectSkill,
+    onEnableSkill,
     retryModelList,
     runtimeConfig.setStatus.state,
     runtimeMode,

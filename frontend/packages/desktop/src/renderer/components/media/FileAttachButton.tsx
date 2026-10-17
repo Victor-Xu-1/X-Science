@@ -29,6 +29,7 @@ interface FileAttachButtonProps {
   selectedSkillNames?: string[];
   selectedMcpServerIds?: string[];
   onSelectSkill?: (name: string) => void;
+  onEnableSkill?: (name: string) => void;
   onSelectMcpServer?: (server: IConversationMcpStatus) => void;
   xScienceV11?: boolean;
   onViewPlan?: () => void;
@@ -111,6 +112,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   selectedSkillNames = [],
   selectedMcpServerIds = [],
   onSelectSkill,
+  onEnableSkill,
   onSelectMcpServer,
   xScienceV11 = false,
   onViewPlan,
@@ -194,7 +196,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   );
 
   const isDesktop = isElectronDesktop();
-  const hasSkills = skillNames.length > 0;
+  const hasSkills = skillNames.length > 0 || Boolean(onEnableSkill);
   const hasMcpServers = mcpStatuses.length > 0;
   const plusIcon = (
     <Plus theme='outline' size={xScienceV11 ? 17 : 14} strokeWidth={xScienceV11 ? 3.6 : 2} fill={iconColors.primary} />
@@ -244,6 +246,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
             selectedSkillNames={selectedSkillNames}
             selectedMcpServerIds={selectedMcpServerIds}
             onSelectSkill={handleSkillClick}
+            onEnableSkill={onEnableSkill}
             onSelectMcpServer={onSelectMcpServer ? handleMcpClick : undefined}
             onOpenMcpSettings={handleOpenMcpSettings}
             onRequestClose={closeAndRestoreFocus}
@@ -353,6 +356,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
             selectedSkillNames={selectedSkillNames}
             selectedMcpServerIds={selectedMcpServerIds}
             onSelectSkill={handleSkillClick}
+            onEnableSkill={onEnableSkill}
             onSelectMcpServer={onSelectMcpServer ? handleMcpClick : undefined}
             onOpenMcpSettings={handleOpenMcpSettings}
             onRequestClose={closeAndRestoreFocus}
