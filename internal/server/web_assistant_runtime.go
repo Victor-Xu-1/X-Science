@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -598,18 +599,18 @@ func (s *Server) webAssistantConfiguredMCPSelection(
 }
 
 func (s *Server) webAssistantRuntimeMCPSelection(
+	ctx context.Context,
 	userID string,
 	frameID string,
 ) ([]string, bool, error) {
 	configured, constrained, err := s.webAssistantConfiguredMCPSelection(userID, frameID)
-	if err != nil || s.sessionStore == nil {
+	if err != nil {
 		return configured, constrained, err
 	}
-	session, found, err := s.sessionStore.Get(strings.TrimSpace(frameID))
-	if err != nil || !found {
+	inputData, err := s.runtimeComposerInputData(ctx, strings.TrimSpace(frameID))
+	if err != nil {
 		return configured, constrained, err
 	}
-	inputData, _ := session.Orchestration["inputData"].(map[string]any)
 	injected := appendUniqueFolded(nil, webAssistantStringValues(inputData["inject_mcp_server_ids"])...)
 	if len(injected) == 0 {
 		return configured, constrained, nil

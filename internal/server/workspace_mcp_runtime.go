@@ -134,7 +134,7 @@ func (s *Server) workspaceMCPRuntimeContextWithContext(ctx context.Context, sess
 	if err != nil {
 		return workspaceMCPRuntimeContext{}, false, err
 	}
-	selectedMCPIDs, constrained, err := s.webAssistantRuntimeMCPSelection(userID, sessionID)
+	selectedMCPIDs, constrained, err := s.webAssistantRuntimeMCPSelection(ctx, userID, sessionID)
 	if err != nil {
 		return workspaceMCPRuntimeContext{}, false, err
 	}

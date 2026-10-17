@@ -367,7 +367,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			return false
 		}
 		refreshed := s.agentRuntimeWorkspaceMCPToolSchemas(
-			ctx, options.SessionID, nil, runtimeToolUniverse,
+			withTranscriptRunnerChatRun(ctx, run), options.SessionID, nil, runtimeToolUniverse,
 		)
 		if len(refreshed.Schemas) == 0 {
 			return false
