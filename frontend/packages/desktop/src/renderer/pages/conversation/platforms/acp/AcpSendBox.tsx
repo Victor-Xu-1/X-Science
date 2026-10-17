@@ -76,7 +76,6 @@ import {
   toXScienceMessageSessionOptions,
   updateXScienceSessionConfig,
 } from '@/renderer/services/xScienceSessionOptions';
-import { saveXScienceConversationAsSkill } from '@/renderer/services/skills/xScienceSkillLibrary';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -98,6 +97,8 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
+import { useConversationSkillSave } from './useConversationSkillSave';
+import { ConversationSkillSaveStatus } from './ConversationSkillSaveStatus';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
 
@@ -156,7 +157,7 @@ const AcpSendBox: React.FC<{
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
-  const { data: composerCapabilities } = useSWR(
+  const { data: composerCapabilities, mutate: mutateComposerCapabilities } = useSWR(
     conversation_id ? ['x-science-composer-capabilities', conversation_id] : null,
     () => loadXScienceComposerCapabilities(conversation_id),
     { keepPreviousData: false }
@@ -205,7 +206,6 @@ const AcpSendBox: React.FC<{
   const [mobileEnabledCompute, setMobileEnabledCompute] = useState<string[]>([]);
   const [reviewInFlight, setReviewInFlight] = useState(false);
   const [reviewActive, setReviewActive] = useState(false);
-  const [skillSaveInFlight, setSkillSaveInFlight] = useState(false);
   const [goalClearInFlight, setGoalClearInFlight] = useState(false);
   const {
     canSelectProjectFiles,
@@ -264,7 +264,6 @@ const AcpSendBox: React.FC<{
   useEffect(() => {
     setReviewInFlight(false);
     setReviewActive(false);
-    setSkillSaveInFlight(false);
     setGoalClearInFlight(false);
     mobileModeChangeInFlightRef.current = false;
   }, [conversation_id]);
@@ -736,26 +735,36 @@ const AcpSendBox: React.FC<{
     ]
   );
 
-  const handleSaveAsSkill = useCallback(async () => {
-    if (isBusy || skillSaveInFlight) return;
-    const requestAuthority = conversationAuthorityRef.current;
-    setSkillSaveInFlight(true);
-    try {
-      const result = await saveXScienceConversationAsSkill(conversation_id);
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      Message.success(t('conversation.attachMenu.saveAsSkillSuccess', { name: result.name }));
-      emitter.emit('chat.history.refresh');
-    } catch (error) {
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      const detail = safeErrorDiagnostic(error);
-      console.error('[AcpSendBox] Failed to save personal Skill', detail);
-      Message.error(t('conversation.attachMenu.saveAsSkillFailed', { error: detail }));
-    } finally {
-      if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) {
-        setSkillSaveInFlight(false);
-      }
-    }
-  }, [conversation_id, isBusy, skillSaveInFlight, t]);
+  const refreshSkillCatalogs = useCallback(
+    async (isCurrent: () => boolean) => {
+      // Start the bound mutation before yielding so SWR captures this conversation's
+      // key. Await both real reads; a failed read is not an empty Skill catalog.
+      const refreshed = await Promise.allSettled([
+        mutateComposerCapabilities(
+          async () => {
+            const capabilities = await loadXScienceComposerCapabilities(conversation_id);
+            if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+            return capabilities;
+          },
+          { revalidate: false }
+        ),
+        messageState.fetchSlashCommands({ fresh: true }),
+      ]);
+      if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
+    },
+    [conversation_id, messageState.fetchSlashCommands, mutateComposerCapabilities]
+  );
+  const skillSave = useConversationSkillSave({
+    conversationId: conversation_id,
+    ownerId,
+    authority: conversationAuthorityRef.current,
+    mountedRef,
+    disabled: isBusy,
+    refreshCatalogs: refreshSkillCatalogs,
+  });
+  const savedSkillName = skillSave.state.status === 'saved' ? skillSave.state.name : null;
+  const savedSkillAvailable =
+    savedSkillName !== null && loadedSkills.some((name) => name.toLowerCase() === savedSkillName.toLowerCase());
 
   const {
     items: queuedCommands,
@@ -1134,6 +1143,15 @@ const AcpSendBox: React.FC<{
         onResumeInterruptedQueue={resumeCommandQueue}
       />
 
+      <ConversationSkillSaveStatus
+        state={skillSave.state}
+        saveDisabled={skillSave.saveDisabled}
+        skillAvailable={savedSkillAvailable}
+        onRetrySave={skillSave.save}
+        onRetryRefresh={skillSave.retryRefresh}
+        onUseSkill={handleSkillSelected}
+      />
+
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
@@ -1179,8 +1197,8 @@ const AcpSendBox: React.FC<{
                 reviewLabelMode='manual'
                 reviewInFlight={reviewBusy}
                 reviewDisabled={isBusy}
-                onSaveSkill={handleSaveAsSkill}
-                saveAsSkillDisabled={isBusy || skillSaveInFlight}
+                onSaveSkill={skillSave.save}
+                saveAsSkillDisabled={skillSave.saveDisabled}
               />
               <XScienceSessionOptionsMenu
                 rootFrameId={conversation_id}

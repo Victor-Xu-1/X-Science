@@ -176,7 +176,10 @@ type ModelResponse struct {
 	Model      string
 	RequestID  string
 	StopReason string
-	Usage      ModelUsage
+	// Refused preserves an explicit native refusal without rewriting the
+	// provider's stop reason or ordinary response content.
+	Refused bool `json:"refused,omitempty"`
+	Usage   ModelUsage
 }
 
 type ModelClient interface {

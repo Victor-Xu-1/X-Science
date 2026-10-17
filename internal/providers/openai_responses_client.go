@@ -244,6 +244,7 @@ func (c *runtimeModelClient) openAIResponsesTypedResponse(decoded openAIResponse
 	role := "assistant"
 	textParts := make([]string, 0)
 	toolCalls := make([]agentruntime.ToolCall, 0)
+	refused := false
 	for _, item := range decoded.Output {
 		switch strings.ToLower(strings.TrimSpace(item.Type)) {
 		case "message":
@@ -251,6 +252,9 @@ func (c *runtimeModelClient) openAIResponsesTypedResponse(decoded openAIResponse
 				role = value
 			}
 			for _, content := range item.Content {
+				if strings.EqualFold(strings.TrimSpace(content.Type), "refusal") || strings.TrimSpace(content.Refusal) != "" {
+					refused = true
+				}
 				value := strings.TrimSpace(firstNonEmpty(content.Text, content.Refusal))
 				if value != "" {
 					textParts = append(textParts, value)
@@ -291,5 +295,5 @@ func (c *runtimeModelClient) openAIResponsesTypedResponse(decoded openAIResponse
 	}
 	return agentruntime.ModelResponse{Message: agentruntime.Message{
 		Role: role, Content: strings.Join(textParts, "\n\n"), ToolCalls: toolCalls,
-	}, Model: decoded.Model, StopReason: stopReason}, decoded.ID, usage, nil
+	}, Model: decoded.Model, StopReason: stopReason, Refused: refused}, decoded.ID, usage, nil
 }

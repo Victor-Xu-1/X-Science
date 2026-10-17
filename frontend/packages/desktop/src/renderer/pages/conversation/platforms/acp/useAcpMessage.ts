@@ -41,7 +41,7 @@ export type UseAcpMessageReturn = {
   tokenUsage: TokenUsageData | null;
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
-  fetchSlashCommands: () => void;
+  fetchSlashCommands: (options?: { fresh?: boolean }) => Promise<void>;
   /** Last durable message.stream publication accepted for this conversation. */
   getLastStreamActivityAt: () => number;
 };
@@ -158,14 +158,14 @@ function logRequestTrace(
   });
 }
 
-function fetchAcpSlashCommands(conversation_id: string): Promise<SlashCommandItem[]> {
+function fetchAcpSlashCommands(conversation_id: string, fresh = false): Promise<SlashCommandItem[]> {
   const existing = slashCommandsInFlight.get(conversation_id);
-  if (existing) return existing;
+  if (existing && !fresh) return existing;
 
   const promise = ipcBridge.conversation.getSlashCommands
     .invoke({ conversation_id })
     .then((result) => {
-      if (!result || !Array.isArray(result) || result.length === 0) return [];
+      if (!Array.isArray(result)) throw new Error('Slash command catalog response is invalid');
       return mapAcpCommandsToSlashCommands(result);
     })
     .finally(() => {
@@ -199,6 +199,17 @@ export const useAcpMessage = (
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
+  const slashCommandsOwnerRef = useRef({ conversationId: conversation_id, active: true, generation: 0 });
+  if (slashCommandsOwnerRef.current.conversationId !== conversation_id) {
+    slashCommandsOwnerRef.current = { conversationId: conversation_id, active: true, generation: 0 };
+  }
+  const slashCommandsOwner = slashCommandsOwnerRef.current;
+  useEffect(() => {
+    slashCommandsOwner.active = true;
+    return () => {
+      slashCommandsOwner.active = false;
+    };
+  }, [slashCommandsOwner]);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -592,7 +603,15 @@ export const useAcpMessage = (
           break;
         case 'available_commands': {
           const cmdData = message.data as { commands?: AvailableCommand[] };
-          if (cmdData?.commands && Array.isArray(cmdData.commands)) {
+          if (
+            slashCommandsOwner.active &&
+            slashCommandsOwnerRef.current === slashCommandsOwner &&
+            cmdData?.commands &&
+            Array.isArray(cmdData.commands)
+          ) {
+            // A newer accepted catalog publication also fences an older HTTP
+            // warmup/refresh result; it must not overwrite the live directory.
+            slashCommandsOwner.generation += 1;
             setSlashCommands(mapAcpCommandsToSlashCommands(cmdData.commands));
           }
           break;
@@ -662,6 +681,7 @@ export const useAcpMessage = (
       setRunning,
       setAiProcessing,
       setAcpStatus,
+      slashCommandsOwner,
     ]
   );
 
@@ -766,27 +786,29 @@ export const useAcpMessage = (
     };
   }, [applyToolStdoutSnapshot, clearRequestTrace, clearThought, conversation_id, options?.initialConversation]);
 
+  const fetchSlashCommands = useCallback(
+    async (refreshOptions?: { fresh?: boolean }) => {
+      if (!slashCommandsOwner.active || slashCommandsOwnerRef.current !== slashCommandsOwner) return;
+      const generation = ++slashCommandsOwner.generation;
+      const isCurrent = () =>
+        slashCommandsOwner.active &&
+        slashCommandsOwnerRef.current === slashCommandsOwner &&
+        slashCommandsOwner.generation === generation;
+      await ensureConversationRuntime(conversation_id);
+      if (!isCurrent()) return;
+      const commands = await fetchAcpSlashCommands(conversation_id, refreshOptions?.fresh);
+      if (isCurrent()) setSlashCommands(commands);
+    },
+    [conversation_id, slashCommandsOwner]
+  );
+
   // Fetch slash commands via HTTP after runtime ensure completes.
   // WebSocket push of available_commands arrives during warmup when no
   // StreamRelay is listening, so the initial load must come from HTTP.
   useEffect(() => {
     if (options?.skipWarmup) return;
-    let cancelled = false;
-    void ensureConversationRuntime(conversation_id)
-      .then(() => {
-        if (cancelled) return;
-        return fetchAcpSlashCommands(conversation_id);
-      })
-      .then((commands) => {
-        if (cancelled) return;
-        if (!commands?.length) return;
-        setSlashCommands(commands);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [conversation_id, options?.skipWarmup]);
+    void fetchSlashCommands().catch(() => {});
+  }, [fetchSlashCommands, options?.skipWarmup]);
 
   const resetState = useCallback(() => {
     clearRequestTrace();
@@ -803,16 +825,6 @@ export const useAcpMessage = (
     setHasThinkingMessage(false);
     applyToolStdoutSnapshot([]);
   }, [applyToolStdoutSnapshot, clearRequestTrace, clearThought]);
-
-  const fetchSlashCommands = useCallback(() => {
-    void ensureConversationRuntime(conversation_id)
-      .then(() => fetchAcpSlashCommands(conversation_id))
-      .then((commands) => {
-        if (!commands.length) return;
-        setSlashCommands(commands);
-      })
-      .catch(() => {});
-  }, [conversation_id]);
 
   const getLastStreamActivityAt = useCallback(() => lastStreamActivityAtRef.current, []);
 
