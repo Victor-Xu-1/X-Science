@@ -82,7 +82,7 @@ func toolPlanningStreamContext(
 	}
 	if len(request.Tools) == 0 {
 		return ctx, cancel, emit, providerStreamPlanningDeadline{
-			Stop: func() {}, HeadersReceived: func() {}, ObserveGrowth: func(int64) {},
+			Stop: func() {}, HeadersReceived: func() {},
 			NoCompletedAction: func(err error) error { return err },
 		}
 	}
