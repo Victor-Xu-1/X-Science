@@ -52,13 +52,30 @@ export type XScienceSkillImportResult = {
   sha: string | null;
 };
 
+const conversationSkillFailureCodes = [
+  'skill_authoring_timeout',
+  'skill_authoring_cancelled',
+  'skill_authoring_output_limit',
+  'skill_authoring_refused',
+  'skill_authoring_invalid_draft',
+  'skill_authoring_provider_auth',
+  'skill_authoring_rate_limited',
+  'skill_authoring_provider_unavailable',
+  'skill_authoring_configuration',
+  'skill_authoring_source_unavailable',
+] as const;
+
+export type XScienceSkillSaveFailureCode = (typeof conversationSkillFailureCodes)[number];
+
 export class XScienceSkillLibraryError extends Error {
   readonly status: number;
+  readonly code?: XScienceSkillSaveFailureCode;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: unknown) {
     super(message);
     this.name = 'XScienceSkillLibraryError';
     this.status = status;
+    this.code = conversationSkillFailureCodes.find((value) => value === code);
   }
 }
 
@@ -334,7 +351,8 @@ async function requestJson(
     const row = asRecord(payload);
     throw new XScienceSkillLibraryError(
       response.status,
-      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`
+      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`,
+      row?.code
     );
   }
   return payload;

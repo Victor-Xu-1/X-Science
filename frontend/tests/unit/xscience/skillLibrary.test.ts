@@ -9,6 +9,7 @@ import {
   loadXScienceSkillSources,
   previewXScienceSkillRepository,
   saveXScienceSkillDraftFile,
+  saveXScienceConversationAsSkill,
 } from '@/renderer/services/skills/xScienceSkillLibrary';
 
 describe('X-Science skill library service', () => {
@@ -145,6 +146,21 @@ describe('X-Science skill library service', () => {
         body: JSON.stringify({ path: 'SKILL.md', old_string: '# Original', new_string: '# Updated' }),
       })
     );
+  });
+
+  it('retains only allowlisted Save-as-Skill failure codes', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ code: 'skill_authoring_output_limit', message: 'safe error' }, 502))
+      .mockResolvedValueOnce(json({ code: 'synthetic-private-code', message: 'safe error' }, 502));
+    await expect(saveXScienceConversationAsSkill('fixture', { fetchImpl })).rejects.toMatchObject({
+      status: 502,
+      code: 'skill_authoring_output_limit',
+    });
+    await expect(saveXScienceConversationAsSkill('fixture', { fetchImpl })).rejects.toMatchObject({
+      status: 502,
+      code: undefined,
+    });
   });
 
   it('returns typed, non-leaking HTTP failures', async () => {

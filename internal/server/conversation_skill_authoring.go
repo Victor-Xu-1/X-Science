@@ -16,7 +16,6 @@ import (
 
 const (
 	conversationSkillModelTimeout         = 5 * time.Minute
-	conversationSkillModelMaxTokens       = 8192
 	conversationSkillAuthoringMaxResponse = 2 << 20
 	conversationSkillDraftReturnTool      = "return_conversation_skill"
 	conversationSkillAuthoringAttempts    = 2
@@ -34,29 +33,34 @@ func (s *Server) authorConversationSkill(
 ) (conversationSkillDraft, error) {
 	messages, err := s.loadConversationSkillMessages(ctx, userID, sessionID)
 	if err != nil {
-		return conversationSkillDraft{}, fmt.Errorf("load conversation transcript: %w", err)
+		return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringSourceUnavailable)
 	}
 	transcript := conversationSkillTranscript(messages)
 	if strings.TrimSpace(transcript) == "" {
-		return conversationSkillDraft{}, errors.New("conversation has no user or assistant content to distill")
+		return conversationSkillDraft{}, conversationSkillFailure(errors.New("empty conversation"), skillAuthoringSourceUnavailable)
 	}
 	selection, err := s.webConversationRootModelSelection(rootFrameID)
 	if err != nil {
-		return conversationSkillDraft{}, fmt.Errorf("resolve conversation model: %w", err)
+		return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringConfiguration)
 	}
 	profile, err := s.resolveUserModelSelectionProfileWithContext(ctx, userID, selection, providers.ResolutionInput{
 		Context: ctx, ProjectID: projectID, RequestTimeout: conversationSkillModelTimeout,
 		MaxAttempts: 1, MaxResponseBytes: conversationSkillAuthoringMaxResponse,
 	})
 	if err != nil {
-		return conversationSkillDraft{}, err
+		return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringConfiguration)
 	}
-	client, err := providers.NewRuntimeModelClient(profile, s.httpClient, nil)
+	client, err := providers.NewRuntimeModelClient(profile, s.httpClient, func(record providers.AuditRecord) {
+		agentruntime.LogModelUsageWarnings(record.UsageWarnings)
+		logConversationSkillDiagnostic(ctx, conversationSkillModelDiagnostic(record))
+	})
 	if err != nil {
-		return conversationSkillDraft{}, err
+		return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringConfiguration)
 	}
-	maxTokens := conversationSkillModelMaxTokens
-	if profile.MaxTokens != nil && *profile.MaxTokens > 0 && *profile.MaxTokens < maxTokens {
+	// Reuse the selected model's explicit limit or provider-default policy.
+	// Authoring must not silently impose a competing fixed output budget.
+	maxTokens := 0
+	if profile.MaxTokens != nil && *profile.MaxTokens > 0 {
 		maxTokens = *profile.MaxTokens
 	}
 	request := agentruntime.ModelRequest{
@@ -66,36 +70,40 @@ func (s *Server) authorConversationSkill(
 		},
 		Tools:      []agentruntime.ToolSchema{conversationSkillDraftToolSchema()},
 		ToolChoice: map[string]any{"type": "tool", "name": conversationSkillDraftReturnTool},
-		MaxTokens:  maxTokens, Temperature: profile.Temperature,
+		MaxTokens:  maxTokens, UseProviderDefaultOutputBudget: maxTokens == 0,
+		Temperature: profile.Temperature,
 	}
 	for attempt := 0; attempt < conversationSkillAuthoringAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
-			return conversationSkillDraft{}, err
+			return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringCancelled)
 		}
 		response, err := client.Complete(ctx, request)
 		if err != nil {
 			// Transport, authorization, cancellation, and provider failures are
 			// not draft-format errors and never enter the correction path.
-			return conversationSkillDraft{}, err
+			return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringProviderUnavailable)
 		}
 		if err := ctx.Err(); err != nil {
-			return conversationSkillDraft{}, err
+			return conversationSkillDraft{}, conversationSkillFailure(err, skillAuthoringCancelled)
 		}
 		if response.Refused || !conversationSkillAuthoringCompleted(response.StopReason) {
-			return conversationSkillDraft{}, errors.New("model stopped or refused Skill authoring")
+			return conversationSkillDraft{}, conversationSkillFailure(errors.New("model stopped or refused Skill authoring"), skillAuthoringRefused)
 		}
 		draft, formatErr := conversationSkillDraftFromResponse(response, requestedName)
 		if formatErr == nil {
 			return draft, nil
 		}
+		logConversationSkillDiagnostic(ctx, conversationSkillDiagnostic{
+			Stage: "draft_validation", Code: skillAuthoringInvalidDraft, Attempt: attempt + 1,
+		})
 		if attempt+1 == conversationSkillAuthoringAttempts {
-			return conversationSkillDraft{}, fmt.Errorf("invalid Skill draft after one format correction: %w", formatErr)
+			return conversationSkillDraft{}, conversationSkillFailure(formatErr, skillAuthoringInvalidDraft)
 		}
 		// Reuse the original deadline and schema. Never replay an arbitrary
 		// returned tool or echo a damaged draft into the next request.
 		request.Messages[1].Content += "\n\n" + conversationSkillFormatCorrection
 	}
-	return conversationSkillDraft{}, errors.New("Skill authoring did not return a valid draft")
+	return conversationSkillDraft{}, conversationSkillFailure(errors.New("Skill authoring did not return a valid draft"), skillAuthoringInvalidDraft)
 }
 
 func conversationSkillDraftToolSchema() agentruntime.ToolSchema {
