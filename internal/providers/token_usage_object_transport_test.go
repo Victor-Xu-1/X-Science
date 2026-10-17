@@ -199,6 +199,11 @@ func TestProviderUsageObjectsPreservePrimaryAcrossJSONAndSSE(t *testing.T) {
 					wantID := "call-usage"
 					if protocol == ProtocolGemini {
 						wantID = "gemini_call_1"
+						if !stream {
+							// JSON uses the original part index; the preceding text
+							// occupies part zero. SSE numbers only tool calls.
+							wantID = "gemini_call_2"
+						}
 					}
 					call := response.Message.ToolCalls[0]
 					if call.ID != wantID || call.Name != "lookup" || string(call.Arguments) != usageObjectArguments {
