@@ -67,7 +67,7 @@ func TestContextProgressPressureUsesExistingGuardAndSkipsCancellation(t *testing
 		t.Cleanup(func() { _ = store.Close() })
 		recorder := &sessionContextUsageRecorder{store: store, sessionID: "pressure", attempt: 1, limit: 1000, limitSource: "configured"}
 		client := &sessionRunnerDynamicModelClient{contextUsage: recorder, initialReady: true,
-			contextBudget: &sessionRunnerRequestContextBudget{threshold: 800, armed: true}}
+			contextBudget: newRequestContextBudgetFixture(nil, 800, true)}
 		request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "assistant", Content: strings.Repeat("a", (800-7)*4)}}}
 		call := func(ctx context.Context) error {
 			if streaming {
@@ -114,7 +114,7 @@ func TestContextCompactionPolicySharesEightyPercentBoundary(t *testing.T) {
 	policy, _ := srv.contextCompactionPolicy(1000)
 	for _, tokens := range []int{799, 800} {
 		request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "assistant", Content: strings.Repeat("a", (tokens-7)*4)}}}
-		budget := &sessionRunnerRequestContextBudget{threshold: policy.ThresholdTokens, armed: true}
+		budget := newRequestContextBudgetFixture(nil, policy.ThresholdTokens, true)
 		err := budget.beforeCall(context.Background(), request)
 		if (err != nil) != (tokens == 800) {
 			t.Fatalf("at %d tokens: %v", tokens, err)

@@ -135,14 +135,19 @@ func (s *Server) loadTranscriptRunnerReplay(
 		default:
 			return nil, fmt.Errorf("unsupported transcript replay event type %q", projectedEvent.Event.Type)
 		}
+		var runtimeProjection any
+		if projectedEvent.ToolOutcome != nil {
+			runtimeProjection = *projectedEvent.ToolOutcome
+		}
 		entries = append(entries, eventjournal.Entry{
-			SessionID:       authority.Stream.SessionID,
-			EventID:         projectedEvent.Event.EventID,
-			CreatedAt:       projectedEvent.Event.CreatedAt.UTC().Format(time.RFC3339Nano),
-			RunID:           strings.TrimSpace(authority.Claim.RunnerID),
-			ClientMessageID: projectedEvent.Event.ClientMessageID,
-			Message:         message,
-			SourceEventType: projectedEvent.Event.Type,
+			SessionID:         authority.Stream.SessionID,
+			EventID:           projectedEvent.Event.EventID,
+			CreatedAt:         projectedEvent.Event.CreatedAt.UTC().Format(time.RFC3339Nano),
+			RunID:             strings.TrimSpace(authority.Claim.RunnerID),
+			ClientMessageID:   projectedEvent.Event.ClientMessageID,
+			Message:           message,
+			SourceEventType:   projectedEvent.Event.Type,
+			RuntimeProjection: runtimeProjection,
 		})
 	}
 	taskEvidenceReceipt, hasTaskEvidence, err := s.trustedScientificTaskReplayReceipt(ctx, authority)

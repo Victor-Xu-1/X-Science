@@ -432,12 +432,25 @@ type sessionRunnerAutoCompactResult struct {
 	Threshold       int
 	ContextWindow   int
 	ContextPercent  int
+	episode         *runnerCompactionEpisode
 }
 
 // Automatic compaction protects the provider context boundary, not an
 // arbitrary task-size budget. Keep headroom for one large tool result and the
 // next model output, but scale with the provider-declared context window.
 const defaultRunnerAutoCompactContextPercent = 80
+
+func runnerPreparationCompactionModel(options SessionRunnerChatOptions) runnerCompactionModel {
+	model := runnerCompactionModel{
+		selectionKind: runnerCompactionSelectionKind(options.modelSelection), selectionRevision: options.modelSelectionRevision,
+		modelID: options.Model, capacity: contextCapacityForModel(options.ModelProfile, options),
+	}
+	if options.ModelProfile != nil {
+		model.providerID = options.ModelProfile.Provider.ID
+		model.modelID = options.ModelProfile.Model
+	}
+	return model
+}
 
 func (s *Server) autoCompactSessionForRunner(ctx context.Context, options SessionRunnerChatOptions, session sessionstore.Session, entries []eventjournal.Entry, run *sessionRunnerChatRun) ([]eventjournal.Entry, sessionRunnerAutoCompactResult, error) {
 	result := sessionRunnerAutoCompactResult{}
@@ -455,6 +468,12 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 	if !s.autoCompactEnabled() {
 		return entries, result, nil
 	}
+	if ctx.Value(auxiliaryContextUsageKey{}) == true {
+		return entries, result, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return entries, result, err
+	}
 	estimated, err := sessionRunnerProviderContextTokenEstimate(options.SystemPrompt, entries)
 	if err != nil {
 		return entries, result, err
@@ -463,13 +482,17 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 	threshold := s.autoCompactTokenThreshold(contextWindow)
 	pressureReason := runnerContextPressureRequiringCompaction(entries)
 	forceAfterProviderPressure := pressureReason != ""
+	if transcriptBacked {
+		binding := runnerPreparationCompactionModel(options).binding(threshold)
+		result.episode = restoreRunnerCompactionEpisode(binding, entries)
+	}
 	result.EstimatedTokens = estimated
 	result.Threshold = threshold
 	result.ContextWindow = contextWindow
 	if contextWindow > 0 {
 		result.ContextPercent = threshold * 100 / contextWindow
 	}
-	if !forceAfterProviderPressure && (threshold <= 0 || estimated < threshold) {
+	if !forceAfterProviderPressure && (threshold <= 0 || estimated < threshold || result.episode != nil && !result.episode.armed) {
 		return entries, result, nil
 	}
 	result.TriggerReason = "estimated_context_threshold"
@@ -500,6 +523,10 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		result.Message += " context_capacity=unknown"
 	}
 	if transcriptBacked {
+		episodeValue, episodeErr := result.episode.binding.checkpointValue()
+		if episodeErr != nil {
+			return entries, result, episodeErr
+		}
 		summary, summaryErr := buildCompactModelContextSummary(session, entries, instructions, "auto")
 		if summaryErr != nil {
 			return entries, result, summaryErr
@@ -523,16 +550,17 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 			return entries, result, continuityErr
 		}
 		compactDetails := map[string]any{
-			"summary":                 summary,
-			"summaryStatus":           summaryStatus,
-			"modelSummary":            modelSummary,
-			"trigger":                 "auto",
-			"compactedThroughEventId": compactedThroughEventID,
-			"estimatedTokens":         estimated,
-			"threshold":               threshold,
-			"contextWindow":           contextWindow,
-			"contextPercent":          contextPercent,
-			"reason":                  result.TriggerReason,
+			runnerSoftCompactionEpisodeField: episodeValue,
+			"summary":                        summary,
+			"summaryStatus":                  summaryStatus,
+			"modelSummary":                   modelSummary,
+			"trigger":                        "auto",
+			"compactedThroughEventId":        compactedThroughEventID,
+			"estimatedTokens":                estimated,
+			"threshold":                      threshold,
+			"contextWindow":                  contextWindow,
+			"contextPercent":                 contextPercent,
+			"reason":                         result.TriggerReason,
 		}
 		if len(toolContinuity) > 0 {
 			compactDetails[sessionRunnerToolContinuityField] = toolContinuity
@@ -556,6 +584,7 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 			return entries, result, fmt.Errorf("persist transcript compaction archive: %w", err)
 		}
 		result.Triggered = true
+		result.episode.armed = false
 		return updated, result, nil
 	}
 	_, err = s.executeCompactTool(ctx, map[string]any{

@@ -732,11 +732,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 		initialReady = true
 	}
+	contextBudget := newSessionRunnerRequestContextBudget(s, options, entries, run, autoCompactResult.episode)
 	engine.Model = &sessionRunnerDynamicModelClient{
 		server: s, sessionID: session.ID, session: session, fallback: engine.Model,
 		fallbackModel: options.Model, role: "agent", audit: options.ModelAudit,
 		contextUsage:   newSessionContextUsageRecorder(s, session.ID, sessionRunnerAttempt(run), options),
-		contextBudget:  newSessionRunnerRequestContextBudget(s, options, entries, run, autoCompactResult.Triggered),
+		contextBudget:  contextBudget,
 		contextOptions: options,
 		initial:        initialModel, initialReady: initialReady,
 		initialSelection: options.modelSelection, initialRevision: options.modelSelectionRevision,
@@ -942,7 +943,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 				run.beginNextAssistantSegment()
 				progressDeduper.reset()
 			}
-			if err := s.checkpointSessionRunnerToolEvent(evidenceContext, options, run, event); err != nil {
+			if err := s.checkpointSessionRunnerToolEvent(evidenceContext, options, run, event, func() {
+				contextBudget.noteDurableProgress(evidenceContext)
+			}); err != nil {
 				if sessionRunnerToolProgressPersistenceBestEffort(event, err) == nil {
 					return nil
 				}

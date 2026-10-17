@@ -544,7 +544,12 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 	options SessionRunnerChatOptions,
 	run *sessionRunnerChatRun,
 	event agentruntime.Event,
+	onNewTerminal ...func(),
 ) error {
+	var terminalObserver func()
+	if len(onNewTerminal) > 0 {
+		terminalObserver = onNewTerminal[0]
+	}
 	if event.Type == agentruntime.EventToolFailed && !event.RejectedBeforeExecution {
 		result, _ := decodeToolEventJSON(event.Result).(map[string]any)
 		settled, handled, err := s.settleKernelAdmissionFailure(run, event.ToolCallID, result)
@@ -622,7 +627,7 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		if phase == "completed" && !event.RejectedBeforeExecution {
 			run.activateToolCapability(event.ToolName, stringArrayValue(details["toolCapabilities"])...)
 		}
-		if err := s.checkpointChatTool(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, details); err != nil {
+		if err := s.checkpointChatToolWithTerminalObserver(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, terminalObserver, details); err != nil {
 			return err
 		}
 		observed := run.observeExecutionEvidence(event.ToolName, toolResult)
@@ -660,7 +665,7 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		// terminal result failed. It does not qualify the failed result as
 		// evidence; it only lets durable process recovery retain the attempt.
 		attachWorkspaceMCPSourceEvidenceCheckpoint(ctx, details, event.ToolCallID)
-		return s.checkpointChatTool(options, run, "failed", message, event.ToolCallID, phase, details)
+		return s.checkpointChatToolWithTerminalObserver(options, run, "failed", message, event.ToolCallID, phase, terminalObserver, details)
 	case agentruntime.EventToolPaused:
 		message := event.Message
 		if message == "" {

@@ -38,7 +38,7 @@ func TestContextCapacitySelectedProfileEditInvalidatesPreparedClient(t *testing.
 	client := newDynamicModelTestClient(srv, project, frame)
 	client.initial = sessionRunnerResolvedModelClient{client: prepared, model: "model-a", contextProfile: &profile}
 	client.initialReady, client.initialSelection, client.initialRevision = true, selection.Selection, selection.Revision
-	client.contextBudget = &sessionRunnerRequestContextBudget{server: srv, armed: true}
+	client.contextBudget = newRequestContextBudgetFixture(srv, 0, true)
 	client.contextUsage = newSessionContextUsageRecorder(srv, frame, 1, SessionRunnerChatOptions{})
 	_, err = client.Complete(context.Background(), agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "continue"}, {Role: "assistant", Content: strings.Repeat("a", 4000)}}})
 	var pressure *sessionRunnerRequestContextPressureError

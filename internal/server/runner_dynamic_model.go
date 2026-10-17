@@ -279,6 +279,17 @@ func (client *sessionRunnerDynamicModelClient) resolveHandoff(
 	return next, true, nil
 }
 
+func (resolved sessionRunnerResolvedModelClient) compactionModel(capacity runnerContextCapacity) runnerCompactionModel {
+	model := runnerCompactionModel{
+		selectionKind: runnerCompactionSelectionKind(resolved.selection), selectionRevision: resolved.selectionRevision,
+		modelID: resolved.model, capacity: capacity,
+	}
+	if resolved.contextProfile != nil {
+		model.providerID = resolved.contextProfile.Provider.ID
+	}
+	return model
+}
+
 func (client *sessionRunnerDynamicModelClient) Complete(
 	ctx context.Context,
 	request agentruntime.ModelRequest,
@@ -292,7 +303,7 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 	}
 	for {
 		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
-		if err := client.contextBudget.beforeCall(ctx, request, capacity); err != nil {
+		if err := client.contextBudget.beforeCall(ctx, request, resolved.compactionModel(capacity)); err != nil {
 			client.recordContextPressure(ctx, request, err, resolved)
 			return agentruntime.ModelResponse{}, err
 		}
@@ -356,7 +367,7 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 	}
 	for {
 		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
-		if err := client.contextBudget.beforeCall(ctx, request, capacity); err != nil {
+		if err := client.contextBudget.beforeCall(ctx, request, resolved.compactionModel(capacity)); err != nil {
 			client.recordContextPressure(ctx, request, err, resolved)
 			return agentruntime.ModelResponse{}, err
 		}

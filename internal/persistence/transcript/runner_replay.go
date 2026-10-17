@@ -155,6 +155,23 @@ selected(event_id) AS (
 	WHERE item.waiting_event_id IS NOT NULL
 )`
 
+// Group all active item relations for an already selected terminal, rather
+// than inferring its origin from a reusable tool call ID. Ambiguous ownership
+// supplies no provenance and can never multiply the bounded replay rows.
+const runnerReplayToolOutcomeCTE = `,
+canonical_tool_outcomes(stream_uid,terminal_event_id,batch_id,source_event_id,ordinal,tool_call_id) AS (
+	SELECT item.stream_uid,item.terminal_event_id,
+		MIN(batch.batch_id),MIN(batch.source_event_id),MIN(item.ordinal),MIN(item.tool_call_id)
+	FROM active_batches batch
+	JOIN transcript_tool_call_items item ON item.batch_id=batch.batch_id
+	JOIN selected ON selected.event_id=item.terminal_event_id
+	JOIN transcript_branch_events terminal ON terminal.stream_uid=item.stream_uid
+		AND terminal.branch_id=batch.branch_id AND terminal.event_id=item.terminal_event_id
+	WHERE item.terminal_event_id IS NOT NULL
+	GROUP BY item.stream_uid,item.terminal_event_id
+	HAVING COUNT(*)=1
+)`
+
 // ListRunnerReplay projects messages and checkpoints with independent seed
 // limits. If the v40 tool-batch authority is present, any batch touched by the
 // seed expands atomically to its assistant root and every terminal tool result.
@@ -239,26 +256,37 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 			expandedEvents, input.MaxExpandedEvents, expandedBytes, input.MaxExpandedBytes)
 	}
 
+	projectionCTE := selectionCTE
+	outcomeColumns := "NULL,NULL,NULL,NULL,NULL"
+	outcomeJoin := ""
+	if hasBatchAuthority {
+		projectionCTE += runnerReplayToolOutcomeCTE
+		outcomeColumns = "outcome.batch_id,outcome.source_event_id,outcome.ordinal,outcome.tool_call_id,outcome.terminal_event_id"
+		outcomeJoin = `LEFT JOIN canonical_tool_outcomes outcome
+			ON outcome.stream_uid=event.stream_uid AND outcome.terminal_event_id=event.event_id`
+	}
 	queryArgs := append(append([]any(nil), selectionArgs...), input.StreamUID)
-	rows, err := tx.QueryContext(ctx, selectionCTE+`
+	rows, err := tx.QueryContext(ctx, projectionCTE+`
 		SELECT event.stream_uid,event.event_id,event.publication_seq,event.client_message_id,event.event_type,event.source,
 			event.runner_attempt,event.payload_json,event.frame_event_id,event.created_at,
-			frame.frame_id,frame.event_type,frame.payload
+			frame.frame_id,frame.event_type,frame.payload,`+outcomeColumns+`
 		FROM transcript_events event
 		JOIN selected ON selected.event_id=event.event_id
 		LEFT JOIN frame_events frame ON event.source='frame_ref' AND frame.id=event.frame_event_id
+		`+outcomeJoin+`
 		WHERE event.stream_uid=? ORDER BY event.publication_seq`, queryArgs...)
 	if err != nil {
 		return nil, schemaError(err)
 	}
 	result := []RunnerReplayEvent{}
 	for rows.Next() {
-		event, payload, err := scanProjectedEvent(rows, StreamKind(kind), frameID)
+		scanner := &runnerReplayEventScanner{row: rows}
+		event, payload, err := scanProjectedEvent(scanner, StreamKind(kind), frameID)
 		if err != nil {
 			_ = rows.Close()
 			return nil, schemaError(err)
 		}
-		result = append(result, RunnerReplayEvent{Event: event, ResolvedPayloadJSON: payload})
+		result = append(result, RunnerReplayEvent{Event: event, ResolvedPayloadJSON: payload, ToolOutcome: scanner.outcome})
 	}
 	if err := rows.Close(); err != nil {
 		return nil, schemaError(err)
@@ -270,6 +298,32 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 		return nil, schemaError(err)
 	}
 	return result, nil
+}
+
+// Keep the shared event materialization/validation path unchanged while
+// scanning optional, non-payload provenance from the same read transaction.
+type runnerReplayEventScanner struct {
+	row     rowScanner
+	outcome *RunnerReplayToolOutcome
+}
+
+func (scanner *runnerReplayEventScanner) Scan(destinations ...any) error {
+	var batchID, toolCallID sql.NullString
+	var sourceEventID, ordinal, terminalEventID sql.NullInt64
+	if err := scanner.row.Scan(append(destinations,
+		&batchID, &sourceEventID, &ordinal, &toolCallID, &terminalEventID,
+	)...); err != nil {
+		return err
+	}
+	if batchID.Valid && batchID.String != "" && toolCallID.Valid && toolCallID.String != "" &&
+		sourceEventID.Valid && sourceEventID.Int64 > 0 && ordinal.Valid && ordinal.Int64 >= 0 &&
+		terminalEventID.Valid && terminalEventID.Int64 > sourceEventID.Int64 {
+		scanner.outcome = &RunnerReplayToolOutcome{
+			BatchID: batchID.String, SourceEventID: sourceEventID.Int64, Ordinal: ordinal.Int64,
+			ToolCallID: toolCallID.String, TerminalEventID: terminalEventID.Int64,
+		}
+	}
+	return nil
 }
 
 func normalizeRunnerReplayInput(input *ListRunnerReplayInput) error {
