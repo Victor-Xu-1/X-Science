@@ -185,17 +185,31 @@ class VerificationOwnershipTests(unittest.TestCase):
                     for target in targets:
                         self.assertTrue((repo / target).is_file(), target)
 
-    def test_frontend_dependency_watcher_keeps_host_checks_and_consumers(self):
-        repo = Path(__file__).resolve().parents[2]
-        paths = ["scripts/dev/frontend-dependency-watch.mjs", "scripts/dev/testdata/gated-node.sh"]
-        entries = [
-            {"ImportPath": "x-science/cmd/x-science", "Dir": str(repo / "cmd/x-science")},
+    @staticmethod
+    def source_host_entries(repo):
+        return [
+            {"ImportPath": "x-science/cmd/x-science", "Dir": str(repo / "cmd/x-science"),
+             "Imports": ["x-science/internal/config"]},
             {"ImportPath": "x-science/internal/config", "Dir": str(repo / "internal/config")},
-            {"ImportPath": "x-science/internal/client", "Dir": str(repo / "internal/client"),
+            {"ImportPath": "x-science/internal/server", "Dir": str(repo / "internal/server"),
              "TestImports": ["x-science/internal/config"]},
+            {"ImportPath": "x-science/internal/outbox", "Dir": str(repo / "internal/outbox"),
+             "XTestImports": ["x-science/internal/server"]},
             {"ImportPath": "x-science/internal/unrelated", "Dir": str(repo / "internal/unrelated")},
         ]
-        expected = sorted(entry["ImportPath"] for entry in entries[:3])
+
+    def test_frontend_dependency_watcher_keeps_host_checks_and_consumers(self):
+        repo = Path(__file__).resolve().parents[2]
+        paths = [
+            "scripts/dev/frontend-dependency-watch.mjs",
+            "scripts/dev/source-frontend-host-test.sh",
+            "scripts/dev/source-frontend-host.sh",
+            "scripts/dev/source-quickstart-test.sh",
+            "scripts/dev/source-quickstart.sh",
+            "scripts/dev/testdata/gated-node.sh",
+        ]
+        entries = self.source_host_entries(repo)
+        expected = sorted(entry["ImportPath"] for entry in entries[:4])
         for path in paths:
             with self.subTest(path=path):
                 groups = contract.matched(repo, [path])
@@ -209,6 +223,10 @@ class VerificationOwnershipTests(unittest.TestCase):
                 self.assertEqual(contract.matched(repo, [unknown]), [])
                 self.assertEqual(scope.select_packages(repo, [unknown], entries)[0],
                                  sorted(entry["ImportPath"] for entry in entries))
+        self.assertEqual(contract.checks(contract.matched(repo, paths)), [
+            ["bash", "scripts/dev/source-frontend-host-test.sh"],
+            ["bash", "scripts/dev/source-quickstart-test.sh"],
+        ])
 
     def test_source_keeper_registers_lifetime_checks_and_related_consumers(self):
         repo = Path(__file__).resolve().parents[2]
@@ -221,26 +239,57 @@ class VerificationOwnershipTests(unittest.TestCase):
             'scripts/dev/source-wsl-keepalive-test.py',
             'scripts/dev/source-wsl-keepalive.sh',
         ]
-        command = ['python3', '-B', 'scripts/dev/source-wsl-keepalive-test.py']
-        entries = [
-            {'ImportPath': 'x-science/cmd/x-science', 'Dir': str(repo / 'cmd/x-science')},
-            {'ImportPath': 'x-science/internal/config', 'Dir': str(repo / 'internal/config')},
-            {'ImportPath': 'x-science/internal/client', 'Dir': str(repo / 'internal/client'),
-             'TestImports': ['x-science/internal/config']},
-            {'ImportPath': 'x-science/internal/unrelated', 'Dir': str(repo / 'internal/unrelated')},
+        commands = [
+            ['bash', '-n', 'scripts/dev/source-wsl-keepalive.sh'],
+            ['python3', '-B', 'scripts/dev/source-wsl-keepalive-test.py'],
         ]
+        entries = self.source_host_entries(repo)
         for path in paths:
             with self.subTest(path=path):
                 groups = contract.matched(repo, [path])
-                self.assertEqual([group['name'] for group in groups], ['source-supervisor-and-local-hosts'])
-                self.assertIn(command, contract.checks(groups))
+                self.assertEqual(scope.select_packages(repo, [path], entries)[0], [],
+                                 'keeper-only changes inherited unrelated host Go owners')
+                self.assertEqual([group['name'] for group in groups], ['source-keeper-lifetime'])
+                self.assertEqual(groups[0]['paths'], paths)
+                self.assertNotIn('packages', groups[0])
+                self.assertEqual(contract.checks(groups + groups), commands)
                 self.assertFalse(groups[0]['frontend'])
-                self.assertEqual(scope.select_packages(repo, [path], entries)[0],
-                                 sorted(entry['ImportPath'] for entry in entries[:3]))
                 self.assertEqual(contract.matched(repo, [path + '.unregistered']), [])
                 self.assertEqual(scope.select_packages(repo, [path + '.unregistered'], entries)[0],
                                  sorted(entry['ImportPath'] for entry in entries))
-        self.assertEqual(contract.checks(contract.matched(repo, paths)).count(command), 1)
+        self.assertEqual(contract.checks(contract.matched(repo, paths)), commands)
+
+    def test_source_keeper_mixed_go_and_embed_inputs_keep_real_consumers(self):
+        repo = Path(__file__).resolve().parents[2]
+        path = 'scripts/dev/source-wsl-keepalive.sh'
+        entries = self.source_host_entries(repo)
+        expected = sorted(entry['ImportPath'] for entry in entries[:4])
+        self.assertEqual(scope.select_packages(repo, [path, 'internal/config/config.go'], entries)[0], expected)
+        for field in ('EmbedFiles', 'TestEmbedFiles', 'XTestEmbedFiles'):
+            with self.subTest(field=field):
+                entries = self.source_host_entries(repo)
+                entries[-1]['Dir'] = str(repo)
+                entries[-1][field] = [path]
+                entries.append({'ImportPath': 'x-science/internal/embed-client',
+                                'Dir': str(repo / 'internal/embed-client'),
+                                'TestImports': [entries[-1]['ImportPath']]})
+                expected = sorted(entry['ImportPath'] for entry in entries[-2:])
+                self.assertEqual(scope.select_packages(repo, [path], entries)[0], expected)
+
+    def test_source_keeper_checker_failure_blocks_go_discovery(self):
+        repo = Path(__file__).resolve().parents[2]
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40]
+        with patch.object(sys, 'argv', argv), patch.object(
+            scope, 'changed_paths', return_value=['scripts/dev/source-wsl-keepalive.sh'],
+        ), patch.object(scope, 'run', side_effect=lambda _repo, *command: subprocess.CompletedProcess(
+            command, 17 if command[0] == 'python3' else 0,
+        )) as invoke, patch.object(scope, 'resolve_packages') as discover:
+            self.assertEqual(scope.main(), 17)
+        discover.assert_not_called()
+        self.assertEqual([call.args for call in invoke.call_args_list], [
+            (repo, 'bash', '-n', 'scripts/dev/source-wsl-keepalive.sh'),
+            (repo, 'python3', '-B', 'scripts/dev/source-wsl-keepalive-test.py'),
+        ])
 
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
