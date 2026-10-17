@@ -21,7 +21,7 @@ func sessionEntriesToProviderMessages(
 ) ([]chatCompletionMessage, error) {
 	messages := []chatCompletionMessage{{Role: "system", Content: systemPrompt}}
 	compactSummary, compactEventID, hasCompact := latestCompactModelContext(entries)
-	if hasCompact {
+	if hasCompact && compactSummary != "" {
 		messages = append(messages, chatCompletionMessage{Role: "system", Content: "X-Science compact handoff context:\n" + compactSummary, ContextUsageSource: agentruntime.ContextUsageMessages})
 	}
 	if correctionContext := recoveredRunnerCorrectionContext(entries); correctionContext != "" {

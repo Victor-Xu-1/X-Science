@@ -617,7 +617,7 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 		}
 		// Summaries may replace observations, but original user requirements
 		// remain exact user-role messages, once each and in original order.
-		if len(nonSystem) != 2 || nonSystem[0] != "old investigation step" || nonSystem[1] != "continue after compact" ||
+		if len(nonSystem) != 2 || nonSystem[0] != "old investigation step" || nonSystem[1] != "continue" ||
 			nonSystemRoles[0] != "user" || nonSystemRoles[1] != "user" {
 			t.Fatalf("compaction lost, duplicated or changed user authority: %#v", request.Messages)
 		}
@@ -655,7 +655,7 @@ func TestSessionRunnerChatUsesCompactSummaryForResumeContext(t *testing.T) {
 	postToolInput(t, httpServer.URL, "session_append", map[string]any{
 		"sessionId":       sessionID,
 		"role":            "user",
-		"message":         map[string]any{"type": "message", "text": "continue after compact"},
+		"message":         map[string]any{"type": "message", "text": "continue"},
 		"clientMessageId": "compact-runner-new-user",
 	})
 	session, ok, err := srv.sessionStore.Get(sessionID)

@@ -69,18 +69,31 @@ func compactJSONForRuntimeContext(value any) string {
 func latestCompactModelContext(entries []eventjournal.Entry) (string, int64, bool) {
 	var summary string
 	var eventID int64
+	var found bool
+	root := compactPublicTaskRoot(entries)
 	for _, entry := range entries {
 		if !isCompactJournalEntry(entry) {
 			continue
 		}
 		candidate := compactSummaryFromMessage(entry.Message)
+		if _, present := compactPublicHandoffValue(entry.Message); present {
+			// A new-format boundary remains a crop even when its public context
+			// is unknown, malformed or belongs to another task. Do not revive an
+			// older summary or pre-compact provider tool transactions.
+			summary, eventID, found = "", entry.EventID, true
+			if _, usable := compactPublicHandoffForTask(entry, root); usable {
+				summary = strings.TrimSpace(candidate)
+			}
+			continue
+		}
 		if strings.TrimSpace(candidate) == "" {
 			continue
 		}
 		summary = strings.TrimSpace(candidate)
 		eventID = entry.EventID
+		found = true
 	}
-	return summary, eventID, summary != ""
+	return summary, eventID, found
 }
 
 func isCompactJournalEntry(entry eventjournal.Entry) bool {
@@ -88,9 +101,10 @@ func isCompactJournalEntry(entry eventjournal.Entry) bool {
 	if eventType == "session_compact" || eventType == "Compact" || eventType == "compact" {
 		return true
 	}
+	_, hasPublicHandoff := compactPublicHandoffValue(entry.Message)
 	return eventType == "runner_checkpoint" &&
 		strings.EqualFold(strings.TrimSpace(stringValue(entry.Message["toolPhase"])), "auto_compact") &&
-		strings.TrimSpace(compactSummaryFromMessage(entry.Message)) != ""
+		(strings.TrimSpace(compactSummaryFromMessage(entry.Message)) != "" || hasPublicHandoff)
 }
 
 func compactSummaryFromMessage(message eventjournal.Message) string {
