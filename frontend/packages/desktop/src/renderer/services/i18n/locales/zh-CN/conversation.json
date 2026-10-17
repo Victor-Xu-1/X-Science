@@ -1468,6 +1468,8 @@
     "saveAsSkillRetryRefresh": "重试刷新",
     "saveAsSkillUse": "使用 Skill",
     "saveAsSkillUnavailable": "当前助手未启用此 Skill。",
+    "saveAsSkillConflict": "已有同名 Skill，未覆盖现有内容，本次未保存为新 Skill。可为下一条消息选择已有 Skill。",
+    "saveAsSkillChooseExisting": "选择已有 Skill",
     "searchSkills": "搜索技能",
     "searchConnectors": "搜索连接器",
     "addLocalSkill": "从本地添加技能",

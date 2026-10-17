@@ -1468,6 +1468,8 @@
     "saveAsSkillRetryRefresh": "Retry refresh",
     "saveAsSkillUse": "Use Skill",
     "saveAsSkillUnavailable": "This Skill is not enabled for the current assistant.",
+    "saveAsSkillConflict": "A Skill with this name already exists. Nothing was overwritten; this conversation was not saved as a new Skill. You can choose an existing Skill for the next message.",
+    "saveAsSkillChooseExisting": "Choose existing Skill",
     "searchSkills": "Search skills",
     "searchConnectors": "Search connectors",
     "addLocalSkill": "Add skill from local",

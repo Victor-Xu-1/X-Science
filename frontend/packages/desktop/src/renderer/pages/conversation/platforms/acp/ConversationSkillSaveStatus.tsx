@@ -1,11 +1,14 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ConversationSkillSaveState } from './useConversationSkillSave';
+import { ConversationSkillConflictRecovery } from './ConversationSkillConflictRecovery';
 
 type ConversationSkillSaveStatusProps = {
   state: ConversationSkillSaveState;
   saveDisabled: boolean;
   skillAvailable: boolean;
+  availableSkillNames: string[];
+  selectedSkillNames: string[];
   onRetrySave: () => Promise<void>;
   onRetryRefresh: () => Promise<void>;
   onUseSkill: (name: string) => void;
@@ -18,6 +21,8 @@ export function ConversationSkillSaveStatus({
   state,
   saveDisabled,
   skillAvailable,
+  availableSkillNames,
+  selectedSkillNames,
   onRetrySave,
   onRetryRefresh,
   onUseSkill,
@@ -27,7 +32,7 @@ export function ConversationSkillSaveStatus({
 
   return (
     <div
-      role={state.status === 'error' ? 'alert' : 'status'}
+      role={state.status === 'error' || state.status === 'conflict' ? 'alert' : 'status'}
       aria-label={t('conversation.attachMenu.saveAsSkill')}
       aria-atomic='true'
       className='mb-8px flex flex-wrap items-center gap-8px rounded-8px border border-border-base bg-fill-1 px-12px py-8px text-12px text-t-secondary'
@@ -39,6 +44,17 @@ export function ConversationSkillSaveStatus({
           <button type='button' className={actionClassName} disabled={saveDisabled} onClick={() => void onRetrySave()}>
             {t('conversation.attachMenu.saveAsSkillRetry')}
           </button>
+        </>
+      )}
+      {state.status === 'conflict' && (
+        <>
+          <span>{t('conversation.attachMenu.saveAsSkillConflict')}</span>
+          <ConversationSkillConflictRecovery
+            skillNames={availableSkillNames}
+            selectedSkillNames={selectedSkillNames}
+            onSelectSkill={onUseSkill}
+            actionClassName={actionClassName}
+          />
         </>
       )}
       {state.status === 'saved' && (

@@ -1147,6 +1147,8 @@ const AcpSendBox: React.FC<{
         state={skillSave.state}
         saveDisabled={skillSave.saveDisabled}
         skillAvailable={savedSkillAvailable}
+        availableSkillNames={loadedSkills}
+        selectedSkillNames={selectedSkillNames}
         onRetrySave={skillSave.save}
         onRetryRefresh={skillSave.retryRefresh}
         onUseSkill={handleSkillSelected}

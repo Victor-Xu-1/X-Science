@@ -14,6 +14,7 @@ import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
+import { XScienceSkillLibraryError } from '@/renderer/services/skills/xScienceSkillLibrary';
 import { renderWithI18n } from '../../i18nTestUtils';
 
 let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
@@ -154,6 +155,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@/renderer/components/chat/SendBox', () => ({
   default: ({
+    value,
     onSend,
     onChange,
     rightTools,
@@ -166,6 +168,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     disabled,
     allowSendWhileLoading,
   }: {
+    value?: string;
     onSend: (message: string) => Promise<void>;
     onStop?: () => Promise<void>;
     onChange?: (value: string) => void;
@@ -182,6 +185,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
       {tools}
       {rightTools}
       {prefix}
+      <output data-testid='sendbox-draft'>{value}</output>
       <output data-testid='sendbox-placeholder'>{placeholder}</output>
       <output data-testid='sendbox-bottom-hint'>{bottomHint ?? ''}</output>
       <button type='button' onClick={() => onChange?.('hello')}>
@@ -278,9 +282,21 @@ vi.mock('@/renderer/services/xScienceRuntimeOperations', () => ({
   notifyXScienceRuntimeInvalidation: (...args: unknown[]) => notifyRuntimeInvalidationMock(...args),
   resumeXScienceFrame: (...args: unknown[]) => resumeFrameMock(...args),
 }));
-vi.mock('@/renderer/services/skills/xScienceSkillLibrary', () => ({
-  saveXScienceConversationAsSkill: (...args: unknown[]) => saveConversationAsSkillMock(...args),
-}));
+vi.mock('@/renderer/services/skills/xScienceSkillLibrary', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/skills/xScienceSkillLibrary')>();
+  return {
+    ...actual,
+    saveXScienceConversationAsSkill: (...args: unknown[]) => saveConversationAsSkillMock(...args),
+  };
+});
+vi.mock('@/renderer/services/xScienceCapabilities', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/xScienceCapabilities')>();
+  return {
+    ...actual,
+    loadXScienceSkills: vi.fn().mockResolvedValue([]),
+    loadXScienceMcpServers: vi.fn().mockResolvedValue([]),
+  };
+});
 vi.mock('@/renderer/services/xScienceAnnotations', () => ({
   requestXScienceFrameAudit: (...args: unknown[]) => requestFrameAuditMock(...args),
 }));
@@ -478,6 +494,31 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () =
   useAcpInitialMessage: vi.fn(),
 }));
 vi.mock('@arco-design/web-react', () => ({
+  Input: ({
+    value,
+    onChange,
+    placeholder,
+  }: {
+    value?: string;
+    onChange?: (value: string) => void;
+    placeholder?: string;
+  }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
+  Trigger: ({
+    children,
+    popup,
+    popupVisible,
+    onVisibleChange,
+  }: {
+    children?: React.ReactNode;
+    popup?: React.ReactNode | (() => React.ReactNode);
+    popupVisible?: boolean;
+    onVisibleChange?: (visible: boolean) => void;
+  }) => (
+    <div onMouseEnter={() => onVisibleChange?.(true)} onMouseLeave={() => onVisibleChange?.(false)}>
+      {children}
+      {popupVisible ? (typeof popup === 'function' ? popup() : popup) : null}
+    </div>
+  ),
   Spin: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
   Popover: ({
     children,
@@ -1811,6 +1852,97 @@ describe('AcpSendBox', () => {
       expect(screen.getByRole('status', { name: '保存为 Skill' })).toHaveTextContent('session-skill')
     );
     expect(screen.queryByRole('alert', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('recovers a Save-as-Skill name conflict through explicit existing-Skill selection without resaving or changing the draft', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    sendBoxDraftSeed.current = 'Keep this unsent draft unchanged.';
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['available-workflow'], mcpStatuses: [] });
+    saveConversationAsSkillMock.mockRejectedValue(
+      new XScienceSkillLibraryError(409, 'synthetic-conflict-detail-not-for-display')
+    );
+    const messageState = makeMessageState();
+    const view = await render(
+      <AcpSendBox conversation_id='conv-skill-name-conflict' backend='xscience' messageState={messageState} />
+    );
+    await waitFor(() => expect(fileAttachProps.current?.loadedSkills).toEqual(['available-workflow']));
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+
+    const conflict = screen.getByRole('alert', { name: '保存为 Skill' });
+    expect(conflict).toHaveTextContent('已有同名 Skill');
+    expect(conflict).toHaveTextContent('本次未保存');
+    expect(conflict).not.toHaveTextContent('synthetic-conflict-detail-not-for-display');
+    expect(screen.queryByRole('button', { name: '重试保存' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(fileAttachProps.current?.selectedSkillNames).toEqual([]);
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'available-workflow' })).not.toBeInTheDocument();
+
+    await act(async () => {
+      await view.i18n.changeLanguage('en-US');
+    });
+    expect(screen.getByRole('alert', { name: 'Save as Skill' })).toHaveTextContent(
+      'A Skill with this name already exists'
+    );
+    expect(screen.getByRole('button', { name: 'Choose existing Skill' })).toBeEnabled();
+    await act(async () => {
+      await view.i18n.changeLanguage('zh-CN');
+    });
+    fireEvent.click(screen.getByRole('button', { name: '选择已有 Skill' }));
+    const skillsEntry = await screen.findByRole('menuitem', { name: /技能.*1/ });
+    fireEvent.mouseEnter(skillsEntry);
+    const existing = await screen.findByRole('menuitemcheckbox', { name: 'available-workflow' });
+    expect(existing).toHaveAttribute('aria-checked', 'false');
+    expect(fileAttachProps.current?.selectedSkillNames).toEqual([]);
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(existing);
+    await waitFor(() => expect(fileAttachProps.current?.selectedSkillNames).toEqual(['available-workflow']));
+    expect(screen.getByTestId('composer-context-chips')).toHaveTextContent('available-workflow');
+    expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep this unsent draft unchanged.');
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'available-workflow' })).not.toBeInTheDocument();
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    expect(messageState.fetchSlashCommands).not.toHaveBeenCalled();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    expect(messageSuccessMock).not.toHaveBeenCalled();
+
+    view.rerender(
+      <AcpSendBox conversation_id='conv-after-skill-conflict' backend='xscience' messageState={makeMessageState()} />
+    );
+    expect(screen.queryByRole('alert', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'available-workflow' })).not.toBeInTheDocument();
+  });
+
+  it('keeps non-conflict Save-as-Skill failures retryable without offering existing-Skill recovery', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    saveConversationAsSkillMock.mockRejectedValueOnce(
+      new XScienceSkillLibraryError(503, 'synthetic temporary failure')
+    );
+    await render(
+      <AcpSendBox conversation_id='conv-skill-non-conflict' backend='xscience' messageState={makeMessageState()} />
+    );
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    expect(screen.getByRole('alert', { name: '保存为 Skill' })).toHaveTextContent('保存个人 Skill 失败');
+    expect(screen.queryByRole('button', { name: '选择已有 Skill' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '重试保存' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '重试保存' }));
+    await waitFor(() => expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: '保存为 Skill' })).toHaveTextContent('session-skill')
+    );
     expect(sendMessageInvokeMock).not.toHaveBeenCalled();
   });
 
