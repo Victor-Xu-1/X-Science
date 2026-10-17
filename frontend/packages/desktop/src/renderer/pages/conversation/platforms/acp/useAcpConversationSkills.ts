@@ -84,7 +84,9 @@ export function useAcpConversationSkills(options: Options) {
   const mobileLibraryNames = useMemo(
     () =>
       skillActivation.canActivate
-        ? (mobileSkillLibrary ?? []).filter((skill) => skill.enabled).map((skill) => skill.name)
+        ? (mobileSkillLibrary ?? [])
+            .filter((skill) => skill.enabled && skill.source === 'personal')
+            .map((skill) => skill.name)
         : [],
     [mobileSkillLibrary, skillActivation.canActivate]
   );

@@ -167,7 +167,7 @@ const SearchHeader: React.FC<{
   </div>
 );
 
-type CatalogEntry = { label: string; description: string; enabled?: boolean };
+type CatalogEntry = { label: string; description: string; enabled?: boolean; source?: string };
 
 function catalogMap(
   entries: Array<{
@@ -177,6 +177,7 @@ function catalogMap(
     description: string;
     description_i18n?: Record<string, string>;
     enabled?: boolean;
+    source?: string;
   }>,
   localeKey: 'zh-CN' | 'en-US',
   zhFor?: (name: string) => string | undefined
@@ -187,6 +188,7 @@ function catalogMap(
       {
         label: resolveSkillDisplayName(entry.name, entry.displayName, localeKey, entry.name_i18n),
         enabled: entry.enabled,
+        source: entry.source,
         description:
           zhFor?.(entry.name) ||
           (entry.description_i18n &&
@@ -250,7 +252,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
     const seen = new Set(names.map((name) => name.toLowerCase()));
     if (onEnableSkill) {
       for (const [name, entry] of skillCatalog ?? []) {
-        if (entry.enabled === true && !seen.has(name.toLowerCase())) {
+        if (entry.enabled === true && entry.source === 'personal' && !seen.has(name.toLowerCase())) {
           names.push(name);
           seen.add(name.toLowerCase());
         }

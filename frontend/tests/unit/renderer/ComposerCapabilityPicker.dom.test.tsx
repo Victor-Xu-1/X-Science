@@ -101,12 +101,14 @@ describe('ComposerCapabilityPicker', () => {
         name: 'new-library-workflow',
         displayName: 'New library workflow',
         description: 'Read existing files.',
+        source: 'personal',
         enabled: true,
       },
       {
         name: 'disabled-library-workflow',
         displayName: 'Disabled library workflow',
         description: 'Excluded.',
+        source: 'personal',
         enabled: false,
       },
     ]);
@@ -158,5 +160,32 @@ describe('ComposerCapabilityPicker', () => {
     );
     await screen.findByRole('menuitemcheckbox', { name: 'existing-workflow' });
     expect(screen.queryByRole('menuitemcheckbox', { name: 'New library workflow' })).not.toBeInTheDocument();
+  });
+
+  it('does not offer an unsigned builtin as a personal activation action', async () => {
+    capabilityMocks.loadSkills.mockResolvedValue([
+      {
+        name: 'outside-builtin',
+        displayName: 'Outside builtin',
+        description: 'Not admitted.',
+        source: 'x_science_llm',
+        enabled: true,
+      },
+    ]);
+    await renderWithI18n(
+      <ComposerCapabilityPicker
+        skillNames={['existing-workflow']}
+        mcpStatuses={[]}
+        selectedSkillNames={[]}
+        selectedMcpServerIds={[]}
+        onSelectSkill={vi.fn()}
+        onEnableSkill={vi.fn()}
+        onOpenMcpSettings={vi.fn()}
+      />,
+      'en-US',
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
+    );
+    await screen.findByRole('menuitemcheckbox', { name: 'existing-workflow' });
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'Outside builtin' })).not.toBeInTheDocument();
   });
 });
