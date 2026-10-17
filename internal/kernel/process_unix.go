@@ -3,12 +3,19 @@
 package kernel
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
 	"syscall"
 )
+
+func newPlatformWorkerCommand(_ context.Context, executable string, arguments ...string) *exec.Cmd {
+	// The one-shot owner, not os/exec's context watcher, requests lifetime EOF.
+	// An exec-owned timer must never SIGKILL the reaper before settlement.
+	return exec.Command(executable, arguments...)
+}
 
 func configureWorkerProcess(command *exec.Cmd) {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL}
@@ -17,20 +24,44 @@ func configureWorkerProcess(command *exec.Cmd) {
 type workerProcess struct {
 	command    *exec.Cmd
 	startTicks uint64
+	oneShot    *oneShotProcess
 }
 
-func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProcess, error) {
+func startWorkerProcess[C workerProcessCommand](input C, directories ...string) (*workerProcess, error) {
+	command, oneShot := unwrapWorkerCommand(input)
 	configureWorkerProcess(command)
+	process := &workerProcess{command: command}
+	var err error
+	if oneShot != nil {
+		if err := oneShot.context.Err(); err != nil {
+			return nil, err
+		}
+		process.oneShot, err = prepareOneShotProcess(oneShot)
+		if err != nil {
+			return nil, err
+		}
+		command = process.oneShot.helper
+		process.command = command
+	}
 	release, err := configureWorkerResourceDomain(command, directories)
 	if err != nil {
+		if process.oneShot != nil {
+			process.oneShot.started(err)
+		}
 		return nil, err
 	}
 	defer release()
-	process := &workerProcess{command: command}
 	publish := bindWorkerProcessCancellation(command, process.kill)
 	defer publish()
-	if err := command.Start(); err != nil {
+	err = command.Start()
+	if process.oneShot != nil {
+		process.oneShot.started(err)
+	}
+	if err != nil {
 		return nil, err
+	}
+	if process.oneShot != nil {
+		return process, nil
 	}
 	if runtime.GOOS == "linux" {
 		start, err := linuxProcessStartTicks(command.Process.Pid)
@@ -45,18 +76,21 @@ func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProces
 	return process, nil
 }
 
-func runWorkerProcess(command *exec.Cmd) error {
+func runWorkerProcess[C workerProcessCommand](command C) error {
 	process, err := startWorkerProcess(command)
 	if err != nil {
 		return err
 	}
 	defer process.close()
-	return command.Wait()
+	return waitWorkerCommand(command)
 }
 
 func (process *workerProcess) signal(signal os.Signal) error {
 	if process == nil || process.command == nil || process.command.Process == nil {
 		return nil
+	}
+	if process.oneShot != nil {
+		return process.oneShot.stop()
 	}
 	value, ok := signal.(syscall.Signal)
 	if !ok {
@@ -81,7 +115,11 @@ func killWorkerProcess(command *exec.Cmd) error {
 	return (&workerProcess{command: command}).kill()
 }
 
-func (*workerProcess) close() {}
+func (process *workerProcess) close() {
+	if process != nil && process.oneShot != nil {
+		process.oneShot.close()
+	}
+}
 
 func unexpectedKernelStopReason(command *exec.Cmd, waitErr error) string {
 	if command != nil && command.ProcessState != nil {

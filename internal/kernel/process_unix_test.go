@@ -33,8 +33,8 @@ func TestWorkerProcessCommandContextKillsRootAndDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
+	done := make(chan struct{})
+	go func() { _ = command.Wait(); close(done) }()
 	t.Cleanup(func() {
 		_ = process.kill()
 		select {
@@ -112,8 +112,8 @@ func TestWorkerProcessSignalIncludesRootAndDescendants(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	done := make(chan error, 1)
-	go func() { done <- command.Wait() }()
+	done := make(chan struct{})
+	go func() { _ = command.Wait(); close(done) }()
 	t.Cleanup(func() {
 		_ = process.kill()
 		select {

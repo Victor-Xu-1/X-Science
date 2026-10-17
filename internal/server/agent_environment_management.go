@@ -1288,6 +1288,8 @@ func managedEnvironmentJSONMap(value any) map[string]any {
 
 func managedEnvironmentFailureRecovery(category string) string {
 	switch strings.TrimSpace(category) {
+	case "process_cleanup_unknown":
+		return "Preserve the existing operation and its files. Physical cleanup is not confirmed; do not start a competing installer or replay this mutation. Resume only after the original execution authority proves settlement or the affected execution provider is safely reconciled."
 	case "package_source_transport_failed":
 		return "Keep the selected implementation and immutable environment history. Retry the exact official package source through manage_packages after checking the observed TLS/proxy/redirect path; preserve package-cache and partial-transfer evidence. If the official host remains unreachable, use only an officially linked mirror or an explicit source-build route with its build prerequisites. Do not treat a fallback source archive's later compiler/import error as the original cause."
 	case "build_isolation_missing_dependency":
@@ -1326,6 +1328,18 @@ func classifyManagedEnvironmentFailure(err error) (category, cause string, detai
 		message = strings.TrimSpace(err.Error())
 	}
 	details = map[string]any{}
+	var cleanup *kernelruntime.WorkerProcessCleanupError
+	if errors.As(err, &cleanup) {
+		state := "cleanup_unknown"
+		if cleanup.State == "cleanup_incomplete" {
+			state = cleanup.State
+		}
+		details["failure_stage"] = "process_cleanup"
+		details["cleanup_state"] = state
+		details["physical_settlement_confirmed"] = false
+		details["automatic_replay_safe"] = false
+		return "process_cleanup_unknown", "The operation observer failed before physical cleanup could be confirmed; its original resource reservation must not be treated as completed.", details
+	}
 	var restore *kernelruntime.ManagedPipRestorationError
 	if errors.As(err, &restore) {
 		details["operation_stage"] = "restore_previous_pip_packages"

@@ -3,11 +3,19 @@
 package kernel
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
 )
+
+func newPlatformWorkerCommand(ctx context.Context, executable string, arguments ...string) *exec.Cmd {
+	command := exec.CommandContext(ctx, executable, arguments...)
+	command.Cancel = func() error { return killWorkerProcess(command) }
+	command.WaitDelay = workerProcessWaitDelay
+	return command
+}
 
 func configureWorkerProcess(command *exec.Cmd) {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -17,7 +25,8 @@ type workerProcess struct {
 	command *exec.Cmd
 }
 
-func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProcess, error) {
+func startWorkerProcess[C workerProcessCommand](input C, directories ...string) (*workerProcess, error) {
+	command, _ := unwrapWorkerCommand(input)
 	configureWorkerProcess(command)
 	release, err := configureWorkerResourceDomain(command, directories)
 	if err != nil {
@@ -33,13 +42,13 @@ func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProces
 	return process, nil
 }
 
-func runWorkerProcess(command *exec.Cmd) error {
+func runWorkerProcess[C workerProcessCommand](command C) error {
 	process, err := startWorkerProcess(command)
 	if err != nil {
 		return err
 	}
 	defer process.close()
-	return command.Wait()
+	return waitWorkerCommand(command)
 }
 
 // A process-group signal does not contain descendants that deliberately start
