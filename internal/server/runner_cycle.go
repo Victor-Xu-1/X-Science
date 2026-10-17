@@ -389,6 +389,13 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		return result, err
 	}
+	session, err = s.projectClaimedRunnerInputData(ctx, session, transcriptAuthority)
+	if err != nil {
+		if handled, settleErr := settlePreChatError(err); handled {
+			return result, settleErr
+		}
+		return result, err
+	}
 	resolvedAgentOptions, _, agentErr := s.applySessionRunnerAgentModelAuthority(session, options)
 	if agentErr != nil {
 		if handled, settleErr := settlePreChatError(agentErr); handled {
@@ -532,7 +539,7 @@ func (s *Server) runSessionRunnerChatOnce(
 	// the same complete task-scoped authority here so a restart does not reduce
 	// host.mcp (or another host bridge) to the compact model-facing tool set.
 	if transcriptAuthority != nil {
-		toolAuthority, authorityErr := s.bindSessionRunnerToolAuthority(ctx, session, options)
+		toolAuthority, authorityErr := s.bindSessionRunnerToolAuthority(withTranscriptRunnerChatRun(ctx, chatRun), session, options)
 		if authorityErr != nil {
 			if handled, settleErr := settlePreChatError(authorityErr); handled {
 				return result, settleErr
