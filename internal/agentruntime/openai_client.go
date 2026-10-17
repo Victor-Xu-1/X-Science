@@ -192,14 +192,31 @@ type openAIChatResponse struct {
 		Message      openAIMessage `json:"message"`
 		FinishReason string        `json:"finish_reason"`
 	} `json:"choices"`
-	Usage struct {
-		PromptTokens        OptionalUsageCounter `json:"prompt_tokens"`
-		CompletionTokens    OptionalUsageCounter `json:"completion_tokens"`
-		TotalTokens         OptionalUsageCounter `json:"total_tokens"`
-		PromptTokensDetails struct {
-			CachedTokens OptionalUsageCounter `json:"cached_tokens"`
-		} `json:"prompt_tokens_details"`
-	} `json:"usage"`
+	Usage openAIChatUsage `json:"usage"`
+}
+
+type openAIChatUsage struct {
+	PromptTokens        OptionalUsageCounter `json:"prompt_tokens"`
+	CompletionTokens    OptionalUsageCounter `json:"completion_tokens"`
+	TotalTokens         OptionalUsageCounter `json:"total_tokens"`
+	PromptTokensDetails openAIUsageDetails   `json:"prompt_tokens_details"`
+}
+
+func (wire *openAIChatUsage) UnmarshalJSON(raw []byte) error {
+	*wire = openAIChatUsage{}
+	type decoded openAIChatUsage
+	return UnmarshalOptionalUsageObject(raw, (*decoded)(wire),
+		&wire.PromptTokens, &wire.CompletionTokens, &wire.TotalTokens, &wire.PromptTokensDetails.CachedTokens)
+}
+
+type openAIUsageDetails struct {
+	CachedTokens OptionalUsageCounter `json:"cached_tokens"`
+}
+
+func (wire *openAIUsageDetails) UnmarshalJSON(raw []byte) error {
+	*wire = openAIUsageDetails{}
+	type decoded openAIUsageDetails
+	return UnmarshalOptionalUsageObject(raw, (*decoded)(wire), &wire.CachedTokens)
 }
 
 func openAIMessagesFromRuntime(messages []Message) []openAIMessage {

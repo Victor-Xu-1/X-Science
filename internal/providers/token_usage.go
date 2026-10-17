@@ -74,9 +74,14 @@ type openAIChatUsage struct {
 	PromptTokens        agentruntime.OptionalUsageCounter `json:"prompt_tokens"`
 	CompletionTokens    agentruntime.OptionalUsageCounter `json:"completion_tokens"`
 	TotalTokens         agentruntime.OptionalUsageCounter `json:"total_tokens"`
-	PromptTokensDetails struct {
-		CachedTokens agentruntime.OptionalUsageCounter `json:"cached_tokens"`
-	} `json:"prompt_tokens_details"`
+	PromptTokensDetails providerUsageDetails              `json:"prompt_tokens_details"`
+}
+
+func (wire *openAIChatUsage) UnmarshalJSON(raw []byte) error {
+	*wire = openAIChatUsage{}
+	type decoded openAIChatUsage
+	return agentruntime.UnmarshalOptionalUsageObject(raw, (*decoded)(wire),
+		&wire.PromptTokens, &wire.CompletionTokens, &wire.TotalTokens, &wire.PromptTokensDetails.CachedTokens)
 }
 
 func (wire openAIChatUsage) tokenUsage() providerTokenUsage {
@@ -88,9 +93,14 @@ type openAIResponsesUsage struct {
 	InputTokens       agentruntime.OptionalUsageCounter `json:"input_tokens"`
 	OutputTokens      agentruntime.OptionalUsageCounter `json:"output_tokens"`
 	TotalTokens       agentruntime.OptionalUsageCounter `json:"total_tokens"`
-	InputTokenDetails struct {
-		CachedTokens agentruntime.OptionalUsageCounter `json:"cached_tokens"`
-	} `json:"input_tokens_details"`
+	InputTokenDetails providerUsageDetails              `json:"input_tokens_details"`
+}
+
+func (wire *openAIResponsesUsage) UnmarshalJSON(raw []byte) error {
+	*wire = openAIResponsesUsage{}
+	type decoded openAIResponsesUsage
+	return agentruntime.UnmarshalOptionalUsageObject(raw, (*decoded)(wire),
+		&wire.InputTokens, &wire.OutputTokens, &wire.TotalTokens, &wire.InputTokenDetails.CachedTokens)
 }
 
 func (wire openAIResponsesUsage) tokenUsage() providerTokenUsage {
@@ -98,11 +108,28 @@ func (wire openAIResponsesUsage) tokenUsage() providerTokenUsage {
 		wire.InputTokenDetails.CachedTokens, agentruntime.OptionalUsageCounter{})
 }
 
+type providerUsageDetails struct {
+	CachedTokens agentruntime.OptionalUsageCounter `json:"cached_tokens"`
+}
+
+func (wire *providerUsageDetails) UnmarshalJSON(raw []byte) error {
+	*wire = providerUsageDetails{}
+	type decoded providerUsageDetails
+	return agentruntime.UnmarshalOptionalUsageObject(raw, (*decoded)(wire), &wire.CachedTokens)
+}
+
 type anthropicStreamUsage struct {
 	InputTokens              agentruntime.OptionalUsageCounter `json:"input_tokens"`
 	OutputTokens             agentruntime.OptionalUsageCounter `json:"output_tokens"`
 	CacheReadInputTokens     agentruntime.OptionalUsageCounter `json:"cache_read_input_tokens"`
 	CacheCreationInputTokens agentruntime.OptionalUsageCounter `json:"cache_creation_input_tokens"`
+}
+
+func (wire *anthropicStreamUsage) UnmarshalJSON(raw []byte) error {
+	*wire = anthropicStreamUsage{}
+	type decoded anthropicStreamUsage
+	return agentruntime.UnmarshalOptionalUsageObject(raw, (*decoded)(wire),
+		&wire.InputTokens, &wire.OutputTokens, &wire.CacheReadInputTokens, &wire.CacheCreationInputTokens)
 }
 
 func (wire anthropicStreamUsage) tokenUsage() providerTokenUsage {
@@ -115,6 +142,13 @@ type geminiTokenUsage struct {
 	CandidatesTokenCount    agentruntime.OptionalUsageCounter `json:"candidatesTokenCount"`
 	CachedContentTokenCount agentruntime.OptionalUsageCounter `json:"cachedContentTokenCount"`
 	TotalTokenCount         agentruntime.OptionalUsageCounter `json:"totalTokenCount"`
+}
+
+func (wire *geminiTokenUsage) UnmarshalJSON(raw []byte) error {
+	*wire = geminiTokenUsage{}
+	type decoded geminiTokenUsage
+	return agentruntime.UnmarshalOptionalUsageObject(raw, (*decoded)(wire),
+		&wire.PromptTokenCount, &wire.CandidatesTokenCount, &wire.TotalTokenCount, &wire.CachedContentTokenCount)
 }
 
 func (wire geminiTokenUsage) tokenUsage() providerTokenUsage {
