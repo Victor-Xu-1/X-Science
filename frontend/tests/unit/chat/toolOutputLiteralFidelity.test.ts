@@ -36,18 +36,17 @@ describe.each(['en-US', 'zh-CN'])('public output literal fidelity in %s', (langu
 });
 
 describe('unsupported Python literal escapes', () => {
-  it.each([
-    String.raw`{'name': '\u03b1'}`,
-    String.raw`{'name': '\x41'}`,
-    String.raw`{'name': '\q'}`,
-  ])('retains %s as raw output rather than silently changing its value', (stdout) => {
-    expect(parseTaskStructuredText(stdout)).toBeNull();
-    const detail = project(stdout);
-    expect(detail.resultRows.map((row) => row.value)).not.toContain('u03b1');
-    expect(detail.resultRows.map((row) => row.value)).not.toContain('x41');
-    expect(detail.resultRows.map((row) => row.value)).not.toContain('q');
-    expect(detail.outputBlocks).toContainEqual(expect.objectContaining({ label: 'STDOUT', content: stdout }));
-  });
+  it.each([String.raw`{'name': '\u03b1'}`, String.raw`{'name': '\x41'}`, String.raw`{'name': '\q'}`])(
+    'retains %s as raw output rather than silently changing its value',
+    (stdout) => {
+      expect(parseTaskStructuredText(stdout)).toBeNull();
+      const detail = project(stdout);
+      expect(detail.resultRows.map((row) => row.value)).not.toContain('u03b1');
+      expect(detail.resultRows.map((row) => row.value)).not.toContain('x41');
+      expect(detail.resultRows.map((row) => row.value)).not.toContain('q');
+      expect(detail.outputBlocks).toContainEqual(expect.objectContaining({ label: 'STDOUT', content: stdout }));
+    }
+  );
 
   it.each([
     [String.raw`{"name":"\u03b1"}`, { name: 'α' }],

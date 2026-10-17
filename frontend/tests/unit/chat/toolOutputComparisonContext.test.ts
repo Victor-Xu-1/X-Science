@@ -105,10 +105,13 @@ describe('public measurement labels without weakening private-field policy', () 
     );
   });
 
-  it.each(['cLogP', 'c_log_p', 'clogp'])('treats the exact %s chemistry field as metadata, not a log channel', (key) => {
-    expect(isPublicDetailField(key, 'summary')).toBe(true);
-    expect(publicDetailFieldLabel(key)).toBe('cLogP');
-  });
+  it.each(['cLogP', 'c_log_p', 'clogp'])(
+    'treats the exact %s chemistry field as metadata, not a log channel',
+    (key) => {
+      expect(isPublicDetailField(key, 'summary')).toBe(true);
+      expect(publicDetailFieldLabel(key)).toBe('cLogP');
+    }
+  );
 
   it.each(['log', 'logs', 'request_log', 'runtime_logs', 'transport_log', 'debug_log'])(
     'keeps %s out of summary measurements',

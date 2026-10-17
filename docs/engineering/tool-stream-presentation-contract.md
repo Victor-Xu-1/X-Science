@@ -79,6 +79,16 @@ backend names, reuse flags and raw exit envelopes are never public scientific
 evidence. Domain fields such as dataset/accession, PDB ID, ligand, score,
 sample/result counts and deliverable filenames remain available.
 
+Only a complete, bounded JSON or supported Python-literal output document may
+contribute derived fields or record collections. A prefix, adjacent documents,
+trailing text, incomplete nesting or an unsupported escape keeps the output in
+its raw disclosure; the renderer must not extract a fragment and lose a record
+identity, comparison baseline or delta qualifier. Raw stdout/stderr and the
+actual execution state remain available regardless of derived-field eligibility.
+Public label and enum registries accept only their own registered keys. Domain
+labels such as MW, cLogP and TPSA remain stable, while shared private-field and
+log-channel filters continue to apply before labels are selected.
+
 Retrieval receipts are translated into task language rather than exposing HTTP
 plumbing: for example, full-text availability, DOI, public source, canonical
 source link and a readable unavailability reason may be shown, while status

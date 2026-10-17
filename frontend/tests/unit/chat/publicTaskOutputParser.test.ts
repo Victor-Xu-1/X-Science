@@ -10,7 +10,7 @@ const ambiguousDocuments = [
   ['multiple prefixed Python objects', "sample_alpha delta: {'MW': 2.5}\nsample_beta delta: {'MW': -4.25}"],
   ['multiple prefixed JSON objects', 'sample_alpha delta: {"MW": 2.5}\nsample_beta delta: {"MW": -4.25}'],
   ['adjacent JSON documents', '{"MW": 2.5}\n{"MW": -4.25}'],
-  ['mixed literal documents', "{'MW': 2.5}\n{\"MW\": -4.25}"],
+  ['mixed literal documents', '{\'MW\': 2.5}\n{"MW": -4.25}'],
   ['Python object with trailing text', "{'MW': 2.5} comparison incomplete"],
   ['JSON object with trailing text', '{"MW": 2.5} comparison incomplete'],
   ['incomplete outer context', "{'delta_vs_reference': {'MW': 2.5}"],
