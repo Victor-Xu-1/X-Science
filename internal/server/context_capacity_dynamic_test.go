@@ -36,7 +36,7 @@ func TestContextCapacityDynamicSelectionBindsAdmissionAndTelemetryPerCall(t *tes
 	t.Cleanup(func() { _ = srv.Close(context.Background()) })
 	client := newDynamicModelTestClient(srv, projectID, frameID)
 	client.contextUsage = newSessionContextUsageRecorder(srv, frameID, 1, SessionRunnerChatOptions{})
-	client.contextBudget = &sessionRunnerRequestContextBudget{server: srv, armed: true}
+	client.contextBudget = newRequestContextBudgetFixture(srv, 0, true)
 	request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "continue"}, {Role: "assistant", Content: strings.Repeat("a", 4000)}}}
 	if _, err := client.Complete(context.Background(), request); err != nil {
 		t.Fatal(err)
@@ -92,7 +92,7 @@ func TestContextCapacityPreOutputHandoffRebindsBeforeBothTransports(t *testing.T
 			}
 			client := newDynamicModelTestClient(srv, projectID, frameID)
 			client.contextUsage = newSessionContextUsageRecorder(srv, frameID, 1, SessionRunnerChatOptions{})
-			client.contextBudget = &sessionRunnerRequestContextBudget{server: srv, armed: true}
+			client.contextBudget = newRequestContextBudgetFixture(srv, 0, true)
 			request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "continue"}, {Role: "assistant", Content: strings.Repeat("a", 4000)}}}
 			var err error
 			if streaming {

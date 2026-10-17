@@ -715,6 +715,18 @@ type ListRunnerReplayInput struct {
 type RunnerReplayEvent struct {
 	Event               Event
 	ResolvedPayloadJSON []byte
+	ToolOutcome         *RunnerReplayToolOutcome `json:"-"`
+}
+
+// RunnerReplayToolOutcome is read-side provenance for an original canonical
+// batch terminal. It is derived from existing batch/item relations, never from
+// event payload fields, and is not part of the stored or provider protocol.
+type RunnerReplayToolOutcome struct {
+	BatchID         string
+	SourceEventID   int64
+	Ordinal         int64
+	ToolCallID      string
+	TerminalEventID int64
 }
 
 type ArtifactReference struct {

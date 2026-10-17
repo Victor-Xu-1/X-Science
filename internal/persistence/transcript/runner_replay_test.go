@@ -44,6 +44,9 @@ func TestRunnerReplaySeparatesSemanticMessagesFromCheckpointVolume(t *testing.T)
 	}
 	messages, checkpoints := 0, 0
 	for _, event := range events {
+		if event.ToolOutcome != nil {
+			t.Fatal("legacy replay invented canonical tool outcome provenance")
+		}
 		switch event.Event.Type {
 		case "user_message", "assistant_message":
 			messages++
@@ -73,6 +76,10 @@ func TestRunnerReplayRequiredCheckpointRetainsClosureAndFences(t *testing.T) {
 	events, err := repo.ListRunnerReplay(ctx, input)
 	if err != nil || !runnerReplayContainsEvent(events, root.EventID) || !runnerReplayContainsEvent(events, terminals[0].EventID) {
 		t.Fatalf("required receipt did not retain protocol closure: events=%d error=%v", len(events), err)
+	}
+	want := RunnerReplayToolOutcome{BatchID: "required-batch", SourceEventID: root.EventID, Ordinal: 0, ToolCallID: "call-0", TerminalEventID: terminals[0].EventID}
+	if outcome := runnerReplayToolOutcomeForEvent(events, terminals[0].EventID); outcome == nil || *outcome != want {
+		t.Fatalf("required closure lost canonical terminal provenance: got=%+v want=%+v", outcome, want)
 	}
 	for _, test := range []struct {
 		name   string
@@ -234,6 +241,77 @@ func TestRunnerReplayClosesToolBatchAcrossSeedBoundary(t *testing.T) {
 	}
 	if !runnerReplayContainsEvent(events, root.EventID) || !runnerReplayContainsEvent(events, terminals[0].EventID) {
 		t.Fatalf("replay did not close batch root=%d terminal=%d events=%#v", root.EventID, terminals[0].EventID, events)
+	}
+	want := RunnerReplayToolOutcome{BatchID: "batch-boundary", SourceEventID: root.EventID, Ordinal: 0, ToolCallID: "call-0", TerminalEventID: terminals[0].EventID}
+	if outcome := runnerReplayToolOutcomeForEvent(events, terminals[0].EventID); outcome == nil || *outcome != want {
+		t.Fatalf("bounded closure lost canonical terminal provenance: got=%+v want=%+v", outcome, want)
+	}
+}
+
+func TestRunnerReplayToolOutcomeProjectionRequiresUniqueCanonicalRelation(t *testing.T) {
+	repo, db, _ := newTranscriptRepository(t)
+	claim := seedArtifactProjectionClaim(t, repo, db, "stream-replay-outcome-origin", "owner-a")
+	forged := appendRunnerReplayCheckpoint(t, repo, claim, "payload-origin-lookalike",
+		`{"status":"completed","toolCallId":"call-0","toolPhase":"completed","toolResult":{"ok":true},"ToolOutcome":{"BatchID":"forged","SourceEventID":1,"Ordinal":0,"ToolCallID":"call-0","TerminalEventID":3},"RuntimeProjection":{"BatchID":"forged"},"toolOriginAttempt":1}`)
+	input := ListRunnerReplayInput{StreamUID: claim.StreamUID, OwnerID: claim.OwnerID, MessageLimit: 10, CheckpointLimit: 10}
+	legacy, err := repo.ListRunnerReplay(context.Background(), input)
+	if err != nil || !runnerReplayContainsEvent(legacy, forged.EventID) || runnerReplayToolOutcomeForEvent(legacy, forged.EventID) != nil {
+		t.Fatalf("legacy payload lookalike acquired provenance or was lost: events=%#v err=%v", legacy, err)
+	}
+
+	installRunnerReplayToolBatchTables(t, db)
+	root, terminals := seedRunnerReplayToolBatch(t, repo, db, claim, "unique-outcome-batch", "settled", 1)
+	events, err := repo.ListRunnerReplay(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := RunnerReplayToolOutcome{BatchID: "unique-outcome-batch", SourceEventID: root.EventID, Ordinal: 0, ToolCallID: "call-0", TerminalEventID: terminals[0].EventID}
+	if outcome := runnerReplayToolOutcomeForEvent(events, terminals[0].EventID); outcome == nil || *outcome != want ||
+		runnerReplayToolOutcomeForEvent(events, forged.EventID) != nil {
+		t.Fatalf("SQL provenance did not distinguish original terminal from payload lookalike: events=%#v", events)
+	}
+	for _, event := range events {
+		if event.Event.EventID == terminals[0].EventID &&
+			(string(event.Event.PayloadJSON) != string(terminals[0].PayloadJSON) ||
+				string(event.ResolvedPayloadJSON) != string(terminals[0].PayloadJSON)) {
+			t.Fatal("read-side provenance changed the immutable terminal payload")
+		}
+	}
+	encoded, err := json.Marshal(RunnerReplayEvent{ToolOutcome: &want})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var serialized map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &serialized); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"ToolOutcome", "BatchID", "SourceEventID", "Ordinal", "ToolCallID", "TerminalEventID"} {
+		if _, leaked := serialized[field]; leaked {
+			t.Fatalf("read-side provenance was serialized: %s", encoded)
+		}
+	}
+
+	// The production schema prevents this duplicate terminal association. The
+	// deliberately minimal fixture allows it to exercise conservative reads:
+	// ambiguity is unknown, not two replay rows or arbitrarily chosen origin.
+	shadow := appendRunnerReplayToolBatchRoot(t, repo, claim, "ambiguous-outcome-batch", "settled", []runnerReplayTestCall{{
+		ID: "call-0", Name: "read_file", Arguments: map[string]any{"path": "different-notes.txt"},
+	}})
+	setRunnerReplayToolBatchTerminals(t, db, "ambiguous-outcome-batch", terminals)
+	input.MaxExpandedEvents = len(events) + 1
+	ambiguous, err := repo.ListRunnerReplay(context.Background(), input)
+	if err != nil || len(ambiguous) != input.MaxExpandedEvents || !runnerReplayContainsEvent(ambiguous, shadow.EventID) {
+		t.Fatalf("outcome join changed bounded replay cardinality: events=%d want=%d err=%v", len(ambiguous), input.MaxExpandedEvents, err)
+	}
+	seen := make(map[int64]bool, len(ambiguous))
+	for _, event := range ambiguous {
+		if seen[event.Event.EventID] {
+			t.Fatalf("outcome join duplicated replay event %d", event.Event.EventID)
+		}
+		seen[event.Event.EventID] = true
+		if event.ToolOutcome != nil {
+			t.Fatalf("ambiguous relation supplied canonical provenance: %+v", event.ToolOutcome)
+		}
 	}
 }
 
@@ -533,4 +611,13 @@ func runnerReplayContainsEvent(events []RunnerReplayEvent, eventID int64) bool {
 		}
 	}
 	return false
+}
+
+func runnerReplayToolOutcomeForEvent(events []RunnerReplayEvent, eventID int64) *RunnerReplayToolOutcome {
+	for _, event := range events {
+		if event.Event.EventID == eventID {
+			return event.ToolOutcome
+		}
+	}
+	return nil
 }

@@ -452,6 +452,10 @@ func runnerToolSourcePhase(phase string) bool {
 }
 
 func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessionRunnerChatRun, status string, message string, toolCallID string, phase string, details ...map[string]any) error {
+	return s.checkpointChatToolWithTerminalObserver(options, run, status, message, toolCallID, phase, nil, details...)
+}
+
+func (s *Server) checkpointChatToolWithTerminalObserver(options SessionRunnerChatOptions, run *sessionRunnerChatRun, status string, message string, toolCallID string, phase string, onNewTerminal func(), details ...map[string]any) error {
 	if run == nil {
 		return nil
 	}
@@ -527,6 +531,7 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 	if kernelAdmission != nil && batchMutation == nil {
 		return workspace.ErrToolCallBatchConflict
 	}
+	batchMutationSucceeded := false
 	if batchMutation != nil || kernelTerminal || kernelAdmission != nil {
 		if s.workspaceStore == nil {
 			return errors.New("workspace store is required for durable tool settlement")
@@ -542,6 +547,8 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 					} else {
 						return transcriptstore.RunnerCheckpointCommitReceipt{}, fmt.Errorf("commit tool batch result: %w", err)
 					}
+				} else {
+					batchMutationSucceeded = true
 				}
 			}
 			if kernelAdmission != nil {
@@ -565,6 +572,22 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 				return transcriptstore.RunnerCheckpointCommitReceipt{}, err
 			}
 			return transcriptstore.RunnerCheckpointCommitReceipt{}, nil
+		}
+	}
+	createdTerminal := false
+	if onNewTerminal != nil && run.Transcript != nil && batchMutation != nil && runnerCompactionToolOutcome(payload) {
+		priorHook := commitHook
+		commitHook = func(ctx context.Context, tx *transcriptstore.ImmediateTransaction, event transcriptstore.Event, created bool) (transcriptstore.RunnerCheckpointCommitReceipt, error) {
+			receipt := transcriptstore.RunnerCheckpointCommitReceipt{}
+			if priorHook != nil {
+				var err error
+				receipt, err = priorHook(ctx, tx, event, created)
+				if err != nil {
+					return transcriptstore.RunnerCheckpointCommitReceipt{}, err
+				}
+			}
+			createdTerminal = created && batchMutationSucceeded
+			return receipt, nil
 		}
 	}
 	transcriptEvent, err := s.checkpointTranscriptRunnerEventWithDestinationsAndHook(
@@ -606,6 +629,11 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 		run.ToolSourceEventIDs[toolCallID] = transcriptEvent.EventID
 	}
 	if run.Transcript != nil {
+		// created is supplied by the existing checkpoint transaction. Observers
+		// run only after its commit, never for a replay, conflict or rollback.
+		if createdTerminal {
+			onNewTerminal()
+		}
 		return nil
 	}
 	checkpoint, err := s.checkpointSessionRunner(checkpointInput)

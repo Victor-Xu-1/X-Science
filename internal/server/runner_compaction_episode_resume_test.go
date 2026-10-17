@@ -157,7 +157,7 @@ func TestRunnerPreparationFreshCompactionEpisodeSurvivesResume(t *testing.T) {
 	client := &sessionRunnerDynamicModelClient{
 		initialReady: true, initial: sessionRunnerResolvedModelClient{client: delegate, model: options.Model},
 		contextOptions: options,
-		contextBudget:  newSessionRunnerRequestContextBudget(server, options, entries, run, second.Triggered),
+		contextBudget:  newSessionRunnerRequestContextBudget(server, options, entries, run, second.episode),
 	}
 	response, err := client.Complete(ctx, agentruntime.ModelRequest{Messages: agentRuntimeMessagesFromChat(messages)})
 	if err != nil || delegate.calls.Load() != 1 || response.Message.Content != "pre-resolved" {

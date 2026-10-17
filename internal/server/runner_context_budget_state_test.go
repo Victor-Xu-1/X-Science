@@ -9,6 +9,7 @@ import (
 
 	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func requestBudgetFixture() (agentruntime.ModelRequest, agentruntime.ModelRequest) {
@@ -22,13 +23,20 @@ func requestBudgetFixture() (agentruntime.ModelRequest, agentruntime.ModelReques
 	return small, large
 }
 
+func newRequestContextBudgetFixture(server *Server, threshold int, armed bool) *sessionRunnerRequestContextBudget {
+	model := runnerCompactionModel{selectionKind: "default", capacity: runnerContextCapacity{Source: "unknown"}}
+	return &sessionRunnerRequestContextBudget{
+		server: server, episode: &runnerCompactionEpisode{binding: model.binding(threshold), armed: armed},
+	}
+}
+
 func TestRequestContextBudgetIncludesRuntimeSourcesAndToolExpansion(t *testing.T) {
 	small, _ := requestBudgetFixture()
 	for _, source := range []agentruntime.ContextUsageSource{
 		agentruntime.ContextUsageSystemPrompt, agentruntime.ContextUsageSkills, agentruntime.ContextUsageMCP,
 	} {
 		t.Run(string(source), func(t *testing.T) {
-			budget := &sessionRunnerRequestContextBudget{threshold: 1000, armed: true}
+			budget := newRequestContextBudgetFixture(nil, 1000, true)
 			if err := budget.beforeCall(context.Background(), small); err != nil {
 				t.Fatal(err)
 			}
@@ -43,7 +51,7 @@ func TestRequestContextBudgetIncludesRuntimeSourcesAndToolExpansion(t *testing.T
 		})
 	}
 	_, large := requestBudgetFixture()
-	budget := &sessionRunnerRequestContextBudget{threshold: 1000, armed: true}
+	budget := newRequestContextBudgetFixture(nil, 1000, true)
 	err := budget.beforeCall(context.Background(), large)
 	if err == nil || sessionRunnerErrorReasonCode(err) != sessionRunnerRequestContextPressureReasonCode ||
 		!runnerInterruptionAutoResume(sessionRunnerRequestContextPressureReasonCode) ||
@@ -55,7 +63,7 @@ func TestRequestContextBudgetIncludesRuntimeSourcesAndToolExpansion(t *testing.T
 
 func TestRequestContextBudgetDoesNotLoopAfterIrreducibleCompaction(t *testing.T) {
 	small, large := requestBudgetFixture()
-	budget := &sessionRunnerRequestContextBudget{threshold: 1000, armed: false}
+	budget := newRequestContextBudgetFixture(nil, 1000, false)
 	for index := 0; index < 10; index++ {
 		if err := budget.beforeCall(context.Background(), large); err != nil {
 			t.Fatalf("already-compacted pressure retriggered at request %d: %v", index, err)
@@ -69,7 +77,7 @@ func TestRequestContextBudgetDoesNotLoopAfterIrreducibleCompaction(t *testing.T)
 	}
 	fixed := large
 	fixed.Messages = append([]agentruntime.Message(nil), small.Messages[:2]...)
-	budget = &sessionRunnerRequestContextBudget{threshold: 1000, armed: true}
+	budget = newRequestContextBudgetFixture(nil, 1000, true)
 	if err := budget.beforeCall(context.Background(), fixed); err != nil {
 		t.Fatalf("required input/schema without archiveable history was blocked: %v", err)
 	}
@@ -77,13 +85,13 @@ func TestRequestContextBudgetDoesNotLoopAfterIrreducibleCompaction(t *testing.T)
 
 func TestRequestContextBudgetPreservesAuxiliaryCancellationAndDisabledPolicy(t *testing.T) {
 	_, large := requestBudgetFixture()
-	budget := &sessionRunnerRequestContextBudget{threshold: 1000, armed: true}
-	if err := budget.beforeCall(withAuxiliaryContextUsage(context.Background()), large); err != nil || !budget.armed {
+	budget := newRequestContextBudgetFixture(nil, 1000, true)
+	if err := budget.beforeCall(withAuxiliaryContextUsage(context.Background()), large); err != nil || !budget.episode.armed {
 		t.Fatalf("presentation request consumed main-agent budget: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if err := budget.beforeCall(ctx, large); !errors.Is(err, context.Canceled) || !budget.armed {
+	if err := budget.beforeCall(ctx, large); !errors.Is(err, context.Canceled) || !budget.episode.armed {
 		t.Fatalf("task cancellation was replaced by compaction: %v", err)
 	}
 	server := New(Options{FileRoot: t.TempDir()})
@@ -96,7 +104,7 @@ func TestRequestContextBudgetPreservesAuxiliaryCancellationAndDisabledPolicy(t *
 		t.Fatal(err)
 	}
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{}}
-	if budget := newSessionRunnerRequestContextBudget(server, SessionRunnerChatOptions{}, nil, run, false); budget != nil {
+	if budget := newSessionRunnerRequestContextBudget(server, SessionRunnerChatOptions{}, nil, run, nil); budget != nil {
 		t.Fatal("explicitly disabled compaction was reenabled")
 	}
 }
@@ -116,7 +124,11 @@ func TestRequestContextBudgetFreshReplaySurvivesRestartWithoutNewProgress(t *tes
 		t.Fatal("preparation-only restart lost compact boundary")
 	}
 	entries = append(entries, eventjournal.Entry{EventID: 5, Message: eventjournal.Message{
+		"type": "runner_checkpoint", "modelToolCalls": []any{map[string]any{"id": "inspection", "name": "inspect"}},
+	}}, eventjournal.Entry{EventID: 6, Message: eventjournal.Message{
 		"type": "runner_checkpoint", "toolCallId": "inspection", "toolPhase": "completed",
+	}, RuntimeProjection: transcriptstore.RunnerReplayToolOutcome{
+		BatchID: "inspection-batch", SourceEventID: 5, Ordinal: 0, ToolCallID: "inspection", TerminalEventID: 6,
 	}})
 	if runnerReplayFreshlyCompacted(entries) {
 		t.Fatal("new durable tool result was mistaken for unchanged compact replay")
@@ -136,7 +148,7 @@ func TestRequestContextBudgetPreemptsBothProviderTransports(t *testing.T) {
 		provider := &requestBudgetForbiddenModel{}
 		client := &sessionRunnerDynamicModelClient{
 			initialReady: true, initial: sessionRunnerResolvedModelClient{client: provider, model: "test-model"},
-			contextBudget: &sessionRunnerRequestContextBudget{threshold: 1000, armed: true},
+			contextBudget: newRequestContextBudgetFixture(nil, 1000, true),
 		}
 		var err error
 		if streaming {

@@ -14,10 +14,9 @@ import (
 // results added after initial replay. It only requests the existing durable
 // compaction transition; it never prunes messages or replays a provider call.
 type sessionRunnerRequestContextBudget struct {
-	mu        sync.Mutex
-	threshold int
-	armed     bool
-	server    *Server
+	mu      sync.Mutex
+	episode *runnerCompactionEpisode
+	server  *Server
 }
 
 type sessionRunnerRequestContextPressureError struct {
@@ -53,48 +52,37 @@ func providerContextPressureFailure(message string) bool {
 
 func newSessionRunnerRequestContextBudget(
 	s *Server, options SessionRunnerChatOptions, entries []eventjournal.Entry,
-	run *sessionRunnerChatRun, compacted bool,
+	run *sessionRunnerChatRun, episode *runnerCompactionEpisode,
 ) *sessionRunnerRequestContextBudget {
 	if s == nil || s.settingsStore == nil || run == nil || run.Transcript == nil || !s.autoCompactEnabled() {
 		return nil
 	}
-	return &sessionRunnerRequestContextBudget{
-		server:    s,
-		threshold: s.autoCompactTokenThreshold(runnerContextWindow(options)),
-		armed:     !compacted && !runnerReplayFreshlyCompacted(entries),
+	if episode == nil {
+		binding := runnerPreparationCompactionModel(options).binding(s.autoCompactTokenThreshold(runnerContextWindow(options)))
+		episode = restoreRunnerCompactionEpisode(binding, entries)
 	}
+	return &sessionRunnerRequestContextBudget{server: s, episode: episode}
 }
 
-// A restart without new model/tool input must not repeat the same soft-budget
-// compaction. Preparation checkpoints themselves do not constitute progress.
-func runnerReplayFreshlyCompacted(entries []eventjournal.Entry) bool {
-	for index := len(entries) - 1; index >= 0; index-- {
-		entry := entries[index]
-		if isCompactJournalEntry(entry) {
-			return true
-		}
-		message := entry.Message
-		switch strings.TrimSpace(stringValue(message["type"])) {
-		case "message":
-			role := strings.TrimSpace(stringValue(message["role"]))
-			if role == "user" || role == "assistant" {
-				return false
-			}
-		case "runner_checkpoint":
-			if stringValue(message["toolCallId"]) != "" && sessionRunnerToolContinuityTerminalPhase(stringValue(message["toolPhase"])) {
-				return false
-			}
-		}
+func (budget *sessionRunnerRequestContextBudget) noteDurableProgress(ctx context.Context) {
+	if budget == nil || ctx.Err() != nil || ctx.Value(auxiliaryContextUsageKey{}) == true ||
+		budget.server != nil && !budget.server.autoCompactEnabled() {
+		return
 	}
-	return false
+	budget.mu.Lock()
+	defer budget.mu.Unlock()
+	budget.episode.armed = true
 }
 
-func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) error {
+func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context, request agentruntime.ModelRequest, models ...runnerCompactionModel) error {
 	if budget == nil || ctx.Value(auxiliaryContextUsageKey{}) == true {
 		return nil
 	}
 	if err := ctx.Err(); err != nil {
 		return err
+	}
+	if budget.server != nil && !budget.server.autoCompactEnabled() {
+		return nil
 	}
 	rows, _, err := estimateRunnerRequestUsage(request)
 	if err != nil {
@@ -106,29 +94,35 @@ func (budget *sessionRunnerRequestContextBudget) beforeCall(ctx context.Context,
 	}
 	budget.mu.Lock()
 	defer budget.mu.Unlock()
-	if len(capacities) > 0 && budget.server != nil {
+	if len(models) > 0 {
 		// Bind and evaluate under the same lock. Auxiliary calls skip this
 		// entirely; no concurrent call can substitute another model's threshold.
-		budget.threshold = budget.server.autoCompactTokenThreshold(capacities[0].Tokens)
+		threshold := budget.episode.binding.ThresholdTokens
+		if budget.server != nil {
+			threshold = budget.server.autoCompactTokenThreshold(models[0].capacity.Tokens)
+		}
+		budget.episode.bind(models[0].binding(threshold))
 	}
-	if budget.threshold <= 0 {
+	threshold := budget.episode.binding.ThresholdTokens
+	if threshold <= 0 {
 		return nil
 	}
-	if estimated < budget.threshold {
-		budget.armed = true
+	if estimated < threshold {
+		budget.episode.armed = true
 		return nil
 	}
-	if !budget.armed {
+	if !budget.episode.armed {
 		// Compaction cannot shrink a required prompt, schema, current input or
 		// already-bounded handoff indefinitely. Allow the rebuilt request to
-		// run; only a later below-to-above transition rearms this soft budget.
+		// run until a new binding, durable outcome or below-to-above transition
+		// rearms this soft budget.
 		// An actual provider rejection retains its separate recovery path.
 		return nil
 	}
 	for _, message := range request.Messages {
 		if message.Role == "assistant" || message.Role == "tool" {
-			budget.armed = false
-			return &sessionRunnerRequestContextPressureError{estimated: estimated, threshold: budget.threshold}
+			budget.episode.armed = false
+			return &sessionRunnerRequestContextPressureError{estimated: estimated, threshold: threshold}
 		}
 	}
 	return nil
