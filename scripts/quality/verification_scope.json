@@ -162,12 +162,15 @@
       "paths": [
         "scripts/dev/frontend-dependency-watch.mjs",
         "scripts/dev/install-source-dev-supervisor.ps1",
+        "scripts/dev/source-dev-owned-stdin.ps1",
+        "scripts/dev/source-dev-supervisor-owner-exit-test.ps1",
         "scripts/dev/source-dev-supervisor-test.ps1",
         "scripts/dev/source-dev-supervisor.ps1",
         "scripts/dev/source-frontend-host-test.sh",
         "scripts/dev/source-frontend-host.sh",
         "scripts/dev/source-quickstart-test.sh",
         "scripts/dev/source-quickstart.sh",
+        "scripts/dev/source-wsl-keepalive-test.py",
         "scripts/dev/source-wsl-keepalive.sh",
         "scripts/dev/testdata/gated-node.sh"
       ],
@@ -189,6 +192,11 @@
           "bash",
           "-n",
           "scripts/dev/source-wsl-keepalive.sh"
+        ],
+        [
+          "python3",
+          "-B",
+          "scripts/dev/source-wsl-keepalive-test.py"
         ]
       ]
     },

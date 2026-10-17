@@ -50,7 +50,9 @@ source_dev_keepalive_main() {
   # environment authority. No bootstrap command can consume the owner's stdin.
   local bootstrap_program bootstrap_status=0
   bootstrap_program="$(declare -f source_dev_keepalive_bootstrap)"
-  bootstrap_program+=$'\nsource_dev_keepalive_bootstrap'
+  # Keep the monitored shell alive until timeout's KILL, even if a child ignores
+  # TERM. Catching rather than ignoring TERM preserves exec children's defaults.
+  bootstrap_program+=$'\ntrap \'while :; do sleep 1; done\' TERM\nsource_dev_keepalive_bootstrap'
   # GNU timeout's default process-group mode bounds initialization and its
   # children. Do not use --foreground, which would leave child-group gaps.
   timeout --signal=TERM --kill-after=5s 30s \

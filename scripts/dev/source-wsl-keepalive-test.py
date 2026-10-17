@@ -118,6 +118,10 @@ class KeeperStdinLifetimeTests(unittest.TestCase):
             fields = Path(f"/proc/{receipt['pid']}/stat").read_text().split(") ", 1)[1].split()
             identity_matches = receipt["start_ticks"] == int(fields[19])
             self.assertTrue(identity_matches, "fixture child creation identity changed")
+            self.assertFalse(
+                receipt["inherited_term_ignored"],
+                "bootstrap descendants inherited an ignored TERM disposition",
+            )
             yield descriptor
         finally:
             if identity_matches and not select.select([descriptor], [], [], 0)[0]:
@@ -182,16 +186,16 @@ class KeeperStdinLifetimeTests(unittest.TestCase):
         child.write_text(
             "import json,os,signal,sys\n"
             "from pathlib import Path\n"
+            "inherited_term_ignored=signal.getsignal(signal.SIGTERM)==signal.SIG_IGN\n"
             "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
             'fields=Path("/proc/self/stat").read_text().split(") ",1)[1].split()\n'
             'path=Path(sys.argv[1]); pending=path.with_suffix(".tmp")\n'
-            'pending.write_text(json.dumps({"pid":os.getpid(),"start_ticks":int(fields[19])}))\n'
+            'pending.write_text(json.dumps({"pid":os.getpid(),"start_ticks":int(fields[19]),"inherited_term_ignored":inherited_term_ignored}))\n'
             'pending.replace(path)\n'
             "while True: signal.pause()\n",
             encoding="utf-8",
         )
         blocked_bootstrap = r"""
-trap '' TERM
 python3 "$KEEPALIVE_FIXTURE_ROOT/deadline-child.py" "$KEEPALIVE_FIXTURE_ROOT/deadline-child.json" &
 wait
 """
@@ -204,7 +208,7 @@ wait
                     self.wait_holding(healthy)
                     holding_started = time.monotonic()
                     # The real production budget is 30s + at most 5s KILL grace.
-                    # Neither shell nor its child accepts TERM in this fixture.
+                    # Only the child ignores TERM; the wrapper uses production signals.
                     code = blocked.wait(timeout=40)
                     elapsed = time.monotonic() - started
                     self.assertIn(code, (124, 137))

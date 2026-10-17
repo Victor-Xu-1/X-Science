@@ -210,6 +210,38 @@ class VerificationOwnershipTests(unittest.TestCase):
                 self.assertEqual(scope.select_packages(repo, [unknown], entries)[0],
                                  sorted(entry["ImportPath"] for entry in entries))
 
+    def test_source_keeper_registers_lifetime_checks_and_related_consumers(self):
+        repo = Path(__file__).resolve().parents[2]
+        paths = [
+            'scripts/dev/install-source-dev-supervisor.ps1',
+            'scripts/dev/source-dev-owned-stdin.ps1',
+            'scripts/dev/source-dev-supervisor-owner-exit-test.ps1',
+            'scripts/dev/source-dev-supervisor-test.ps1',
+            'scripts/dev/source-dev-supervisor.ps1',
+            'scripts/dev/source-wsl-keepalive-test.py',
+            'scripts/dev/source-wsl-keepalive.sh',
+        ]
+        command = ['python3', '-B', 'scripts/dev/source-wsl-keepalive-test.py']
+        entries = [
+            {'ImportPath': 'x-science/cmd/x-science', 'Dir': str(repo / 'cmd/x-science')},
+            {'ImportPath': 'x-science/internal/config', 'Dir': str(repo / 'internal/config')},
+            {'ImportPath': 'x-science/internal/client', 'Dir': str(repo / 'internal/client'),
+             'TestImports': ['x-science/internal/config']},
+            {'ImportPath': 'x-science/internal/unrelated', 'Dir': str(repo / 'internal/unrelated')},
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                groups = contract.matched(repo, [path])
+                self.assertEqual([group['name'] for group in groups], ['source-supervisor-and-local-hosts'])
+                self.assertIn(command, contract.checks(groups))
+                self.assertFalse(groups[0]['frontend'])
+                self.assertEqual(scope.select_packages(repo, [path], entries)[0],
+                                 sorted(entry['ImportPath'] for entry in entries[:3]))
+                self.assertEqual(contract.matched(repo, [path + '.unregistered']), [])
+                self.assertEqual(scope.select_packages(repo, [path + '.unregistered'], entries)[0],
+                                 sorted(entry['ImportPath'] for entry in entries))
+        self.assertEqual(contract.checks(contract.matched(repo, paths)).count(command), 1)
+
     def test_version_counter_has_exact_verification_ownership(self):
         repo = Path(__file__).resolve().parents[2]
         groups = contract.matched(repo, ["scripts/quality/product_version.py"])
