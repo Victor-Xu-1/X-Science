@@ -10,7 +10,6 @@ import (
 
 	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
-	"x-science/internal/providers"
 	"x-science/internal/sessionrunner"
 )
 
@@ -120,14 +119,9 @@ func (s *Server) checkpointGenerationRecovery(ctx context.Context, run *sessionR
 	next, park := sessionrunner.AdvanceRecovery(sessionrunner.RecoveryProgress{
 		SemanticBytes: run.ProviderAttemptSemanticBytes, Consecutive: state.Consecutive,
 	})
-	// A typed initial activity deadline has exhausted its no-growth window.
-	// Only the empty native response variant qualifies: accepted public content
-	// or a tool boundary must keep its existing exact-prefix recovery semantics.
-	// Admitted private growth reaching its idle/byte boundary is not this case;
-	// it consumes the existing finite recovery streak instead of transport retries.
-	if run.ProviderAttemptSemanticBytes == 0 && providers.IsProviderPlanningNoNativeProgress(cause) {
-		park = true
-	}
+	// An initial-activity deadline bounds one generation, not the logical task.
+	// Use the same durable finite streak for a transient quiet response; only
+	// meaningful progress or a changed route can reset its existing policy.
 	state.Consecutive = min(next, sessionrunner.MaxRecoveryStreak)
 	state.NotBefore = time.Time{}
 	if state.Consecutive > 0 && !park {

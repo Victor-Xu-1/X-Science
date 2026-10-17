@@ -72,7 +72,8 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, readErr := readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest)
+		planning.Stop()
+		body, readErr := readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, nil)
 		record := c.baseAuditRecord(attempt, endpoint, startedAt)
 		record.HTTPStatus = response.StatusCode
 		record.RequestID = firstNonEmpty(requestIDFromHeaders(response.Header), outboundRequestID)
@@ -101,14 +102,13 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	var usage providerTokenUsage
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
-		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest)
-		idleReader.decodedGrowth = planning.ObserveGrowth
+		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		defer idleReader.Stop()
 		response.Body = &providerStreamIdleReadCloser{reader: idleReader, closer: response.Body}
 		decoded, requestID, usage, emitted, err = readStream(c.runtimeModelClient, *response, emit)
 	} else {
 		var body []byte
-		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest)
+		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		if err == nil {
 			decoded, requestID, usage, err = decode(body, response.Header)
 			err = classifyDecodedOutputLimit(decoded, err)
