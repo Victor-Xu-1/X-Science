@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'source-dev-owned-stdin.ps1')
 
 function Get-WslKeepaliveArguments {
   param([string]$Distro, [string]$User, [string]$KeepalivePath)
@@ -42,6 +43,16 @@ function Enter-SupervisorMutex {
   }
 }
 
+function Start-WslKeepalive {
+  $arguments = Get-WslKeepaliveArguments -Distro $WslDistro -User $WslUser -KeepalivePath $WslKeepalivePath
+  return Start-OwnedStdinProcess -FilePath (Join-Path $env:SystemRoot 'System32\wsl.exe') -ArgumentList $arguments
+}
+
+function Stop-WslKeepalive {
+  param($Process)
+  Stop-OwnedStdinProcess $Process
+}
+
 if ($TestMode) { return }
 
 # Retain installed paths and singleton identity. Linux systemd is the only
@@ -63,21 +74,6 @@ function Write-SupervisorLog {
   $timestamp = (Get-Date).ToUniversalTime().ToString('o')
   $suffix = if ($Detail) { " $Detail" } else { '' }
   Add-Content -LiteralPath $logPath -Value "$timestamp $Code$suffix"
-}
-
-function Start-WslKeepalive {
-  $arguments = Get-WslKeepaliveArguments -Distro $WslDistro -User $WslUser -KeepalivePath $WslKeepalivePath
-  return Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\wsl.exe') `
-    -ArgumentList $arguments -WindowStyle Hidden -PassThru
-}
-
-function Stop-WslKeepalive {
-  param($Process)
-  if ($null -eq $Process -or $Process.HasExited) { return }
-  $Process.Kill()
-  if (-not $Process.WaitForExit(5000)) {
-    throw 'Owned keepalive did not exit within the cleanup budget.'
-  }
 }
 
 $mutex = New-Object System.Threading.Mutex($false, 'Local\XScienceSourceDevWatchdog')
@@ -108,8 +104,8 @@ try {
   Write-SupervisorLog "wsl_keepalive_${stage}_failed" $_.Exception.GetType().Name
   [Console]::Error.WriteLine('X-Science keepalive failed; inspect its stage/exit log before explicitly starting it again.')
 } finally {
-  # Best-effort normal unwind only; abrupt parent termination requires its own
-  # owned-child settlement contract and is not solved by this finally block.
+  # Normal unwind sends EOF and joins. Abrupt parent death closes the sole OS
+  # pipe writer even when finally cannot run; the Linux holder owns its exit.
   try { Stop-WslKeepalive $keepaliveProcess } finally {
     if ($null -ne $keepaliveProcess) { $keepaliveProcess.Dispose() }
     $mutex.ReleaseMutex()
