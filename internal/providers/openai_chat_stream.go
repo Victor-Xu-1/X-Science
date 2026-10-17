@@ -185,7 +185,8 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		body, readErr := readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest)
+		planning.Stop()
+		body, readErr := readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, nil)
 		record := c.baseAuditRecord(attempt, c.profile.Provider.Endpoint, startedAt)
 		record.HTTPStatus = response.StatusCode
 		record.RequestID = firstNonEmpty(requestIDFromHeaders(response.Header), outboundRequestID)
@@ -214,15 +215,14 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	var usage providerTokenUsage
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
-		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest)
-		idleReader.decodedGrowth = planning.ObserveGrowth
+		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIChatStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit, request.Tools,
 		)
 	} else {
 		var body []byte
-		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest)
+		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		if err == nil {
 			decoded, requestID, usage, err = c.openAIResponseDecoder(body, response.Header)
 			if IsContinuationSafeResponseTruncation(err) && strings.TrimSpace(decoded.Message.Content) != "" {
@@ -296,6 +296,7 @@ type openAIChatStreamIdleReader struct {
 	reader           io.Reader
 	semanticProgress bool
 	decodedGrowth    func(int64)
+	awaitingGrowth   bool
 	timeout          time.Duration
 	cancel           context.CancelCauseFunc
 	mu               sync.Mutex
@@ -304,9 +305,15 @@ type openAIChatStreamIdleReader struct {
 	stopped          bool
 }
 
-func newOpenAIChatStreamIdleReader(reader io.Reader, timeout time.Duration, cancel context.CancelCauseFunc) *openAIChatStreamIdleReader {
-	idleReader := &openAIChatStreamIdleReader{reader: reader, timeout: timeout, cancel: cancel, semanticProgress: true}
-	idleReader.reset()
+func newOpenAIChatStreamIdleReader(reader io.Reader, timeout time.Duration, cancel context.CancelCauseFunc, initialGrowth func(int64)) *openAIChatStreamIdleReader {
+	idleReader := &openAIChatStreamIdleReader{reader: reader, timeout: timeout, cancel: cancel, semanticProgress: true,
+		decodedGrowth: initialGrowth, awaitingGrowth: initialGrowth != nil}
+	// The initial-generation observer owns cancellation until decoder-confirmed
+	// growth. Starting a second equal idle timer makes the error class depend on
+	// scheduler order and can turn a recoverable no-action response into failure.
+	if initialGrowth == nil {
+		idleReader.reset()
+	}
 	return idleReader
 }
 
