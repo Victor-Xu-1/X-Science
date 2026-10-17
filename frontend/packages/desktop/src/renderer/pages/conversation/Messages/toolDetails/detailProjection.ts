@@ -139,7 +139,7 @@ function buildPlanAssessment(input: Record<string, unknown>, chinese: boolean): 
     medium: 'confidenceMedium',
     low: 'confidenceLow',
   };
-  const labelKey = labels[confidence];
+  const labelKey = Object.hasOwn(labels, confidence) ? labels[confidence] : undefined;
   if (!labelKey) return null;
   const rationale =
     typeof feasibility.rationale === 'string' ? sanitizePublicTaskText(feasibility.rationale.trim()) : null;
