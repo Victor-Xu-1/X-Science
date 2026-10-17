@@ -2,8 +2,9 @@
 param()
 $ErrorActionPreference = 'Stop'
 $source = Join-Path $PSScriptRoot 'source-dev-supervisor.ps1'
+. (Join-Path $PSScriptRoot 'source-dev-owned-stdin.ps1')
 $tempParent = (Resolve-Path -LiteralPath ([IO.Path]::GetTempPath())).ProviderPath.TrimEnd('\')
-$fixture = New-Item -ItemType Directory -Path (Join-Path $tempParent ('x-science-owner-' + [guid]::NewGuid()))
+$fixture = New-Item -ItemType Directory -Path (Join-Path $tempParent ('x-science-owner fixture-' + [guid]::NewGuid()))
 $fixturePath = $fixture.FullName
 $createdAt = $fixture.CreationTimeUtc.Ticks
 $token = [guid]::NewGuid().ToString('N')
@@ -21,7 +22,8 @@ param([string]$Marker, [string]$Token)
 $ErrorActionPreference = 'Stop'
 $self = [Diagnostics.Process]::GetCurrentProcess()
 $record = @{ pid=$PID; ticks=$self.StartTime.ToUniversalTime().Ticks; token=$Token }
-[IO.File]::WriteAllText($Marker, ($record | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText(($Marker + '.tmp'), ($record | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+[IO.File]::Move(($Marker + '.tmp'), $Marker)
 $start = [Console]::ReadLine()
 if ($start -ceq 'XSCIENCE_KEEPALIVE_V1_START') {
   while ($null -ne [Console]::ReadLine()) {}
@@ -49,17 +51,19 @@ function Join-Path {
 }
 $process = Start-WslKeepalive
 $null = $process.Handle
-[IO.File]::WriteAllText(($Marker + '.owner'), $Token)
+[IO.File]::WriteAllText(($Marker + '.owner.tmp'), $Token)
+[IO.File]::Move(($Marker + '.owner.tmp'), ($Marker + '.owner'))
 $process.WaitForExit()
 '@
 [IO.File]::WriteAllText($childPath, $childScript, [Text.UTF8Encoding]::new($false))
 [IO.File]::WriteAllText($ownerPath, $ownerScript, [Text.UTF8Encoding]::new($false))
 
 try {
+  $ownerArguments = ConvertTo-OwnedProcessArguments @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+    '-File', $ownerPath, '-Source', $source, '-ChildPath', $childPath,
+    '-Marker', $markerPath, '-Token', $token)
   $owner = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -WindowStyle Hidden -PassThru `
-    -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-      '-File', $ownerPath, '-Source', $source, '-ChildPath', $childPath,
-      '-Marker', $markerPath, '-Token', $token)
+    -ArgumentList $ownerArguments
   $null = $owner.Handle
   $deadline = [DateTime]::UtcNow.AddSeconds(10)
   while (-not ((Test-Path -LiteralPath $markerPath) -and (Test-Path -LiteralPath ($markerPath + '.owner')))) {

@@ -1094,9 +1094,35 @@ existing `XScience/source-dev/watchdog.log` and returns failure, without an
 automatic launcher or Scheduled Task retry loop. Inspect that failure before an
 explicit start; logon and the installer's optional `-Start` entry remain. The
 installed `watchdog.ps1` filename and singleton mutex are retained for compatibility.
-Normal unwind attempts to stop its owned client; abrupt parent termination is
-not a guarantee of child settlement. Installing this revision is an explicit
-operator action and does not itself reconcile historical orphaned helpers.
+The supervisor and its shared `source-dev-owned-stdin.ps1` helper are installed
+and hash-checked together. One redirected input writer belongs to the launcher;
+it sends an exact UTF-8/no-BOM LF start line only after retaining the child
+handle. The Linux helper validates that line before administration, isolates
+initialization from the input channel, and bounds bootstrap plus its children
+to 30 seconds with a 5-second termination grace. These are startup-control
+budgets, not execution or inactivity limits on research tasks.
+
+After readiness the helper drains the lifetime pipe without a total-duration
+limit. Normal close and abrupt launcher death both close the parent writer;
+EOF ends only the holding helper, without stopping systemd services. Normal
+cleanup joins for up to 40 seconds to cover bootstrap and forwarding. If that
+fails, only the retained Windows client may be terminated, and the failure
+explicitly leaves Linux settlement unverified. A Windows client exit alone
+never proves physical Linux helper exit. There is no PID-name cleanup loop.
+
+Installing this revision is an explicit operator action. Existing custom
+Scheduled Task settings require their own reviewed delivery, and updating the
+source does not update an independently installed launcher. This protocol
+prevents new unowned holders; it does not identify or reconcile historical
+sleep-only helpers that never acquired the channel.
+
+Focused source checks are `source-dev-supervisor-test.ps1`,
+`source-dev-supervisor-owner-exit-test.ps1` (native Windows), and
+`python3 scripts/dev/source-wsl-keepalive-test.py` (Linux). The shell tests replace
+only initialization, exercise real timeout/holding/EOF, and do not operate
+formal services. Actual installed Windows-to-WSL lifetime still requires its
+separate controlled end-to-end verification; these tests do not establish
+24-hour endurance or immunity to external host failure.
 
 After a Windows reboot, assume the product is stopped: confirm port 8765 is
 free, re-run the manual start procedure, and repeat the live health check. Do
