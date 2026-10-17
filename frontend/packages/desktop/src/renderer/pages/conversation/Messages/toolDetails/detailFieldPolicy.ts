@@ -1,4 +1,14 @@
 import { toolPublicDetailText, type ToolPublicDetailTextKey } from '@/renderer/services/i18n/toolPublicDetailLocale';
+
+const CHEMISTRY_FIELD_LABELS = new Map<string, string>([
+  ['mw', 'MW'],
+  ['c_log_p', 'cLogP'],
+  ['clogp', 'cLogP'],
+  ['tpsa', 'TPSA'],
+  ['hbd', 'HBD'],
+  ['hba', 'HBA'],
+]);
+
 // Shared public-field policy for summary rows and recursively expanded data.
 const PRIVATE_DETAIL_KEY =
   /(?:^|_)(?:api[_-]?key|authorization|artifact[_-]?id|backend|branch[_-]?id|call[_-]?id|cell[_-]?index|claim[_-]?token|client[_-]?message[_-]?id|content[_-]?url|cookie|credentials?|debug|details[_-]?rev|env|environment[_-]?variables|(?:environment|kernel|runtime)[_-]?generation|exec(?:ution)?[_-]?id|exit[_-]?status|frame[_-]?id|headers|http[_-]?(?:backends?|error)|human[_-]?description|input[_-]?path|job[_-]?id|journal[_-]?event[_-]?id|kernel[_-]?(?:id|kind)|mem[_-]?id|message[_-]?id|ok|omitted|operation[_-]?id|owner[_-]?id|password|private[_-]?key|project[_-]?id|publication[_-]?(?:sequence|boundary[_-]?id)|raw|remote[_-]?path|request[_-]?id|reused|root[_-]?frame[_-]?id|run[_-]?id|runner(?:[_-]?(?:attempt|id))?|script[_-]?exists|secret|session[_-]?id|source[_-]?(?:event[_-]?id|publication[_-]?sequence)|stack|status[_-]?code|storage[_-]?path|stream[_-]?uid|token|tool[_-]?use[_-]?id|trace[_-]?id|transport[_-]?error|user[_-]?id|version[_-]?id)(?:_|$)/iu;
@@ -16,17 +26,20 @@ export function isPublicDetailField(key: string, level: 'summary' | 'tree'): boo
   const normalized = normalizePublicDetailKey(key);
   if (!normalized || normalized.startsWith('_') || PRIVATE_DETAIL_KEY.test(normalized)) return false;
   // Summary rows omit transport-heavy evidence; expanded data retains its
-  // existing public record identity rules in the value projector.
+  // existing public record identity rules. The exact cLogP property is not a log channel.
   return (
     level !== 'summary' ||
     (normalized !== 'id' &&
       !/^(?:body_hash_scope|body_sha256|etag|last_modified|response_date|retrieved_at)$/u.test(normalized) &&
-      !/(?:^|_)(?:checksum|logs?|trace|transport|uri)(?:_|$)/iu.test(normalized))
+      (CHEMISTRY_FIELD_LABELS.get(normalized) === 'cLogP' ||
+        !/(?:^|_)(?:checksum|logs?|trace|transport|uri)(?:_|$)/iu.test(normalized)))
   );
 }
 
 export function publicDetailFieldLabel(key: string, chinese = false): string {
   const normalizedKey = normalizePublicDetailKey(key);
+  const chemistryLabel = CHEMISTRY_FIELD_LABELS.get(normalizedKey);
+  if (chemistryLabel) return chemistryLabel;
   const labels: Record<string, ToolPublicDetailTextKey> = {
     limit: 'limit',
     bytes_read: 'bytesRead',

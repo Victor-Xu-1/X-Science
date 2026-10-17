@@ -24,29 +24,31 @@ export function collectEmbeddedTaskStructures(value: Record<string, unknown>): R
 }
 
 export function parseTaskStructuredText(value: string): unknown | null {
-  const source = value.trim().slice(0, MAX_SOURCE_CHARACTERS);
+  if (value.length > MAX_SOURCE_CHARACTERS) return null;
+  const source = value.trim();
   if (!source) return null;
-  for (const start of candidateStarts(source)) {
-    const candidate = source.slice(start);
+  // Prefixes and trailing text can carry comparison context; keep those outputs raw.
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
     try {
-      return JSON.parse(candidate);
+      parsed = new PythonLiteralParser(source).parse();
     } catch {
-      try {
-        return new PythonLiteralParser(candidate).parse();
-      } catch {
-        // Try the next balanced-looking structure in the task output.
-      }
+      return null;
     }
   }
-  return null;
+  return isBoundedTaskValue(parsed) ? parsed : null;
 }
 
-function candidateStarts(value: string): number[] {
-  const starts = [0];
-  for (let index = 0; index < value.length && starts.length < 16; index += 1) {
-    if ((value[index] === '{' || value[index] === '[') && index !== 0) starts.push(index);
+function isBoundedTaskValue(value: unknown, depth = 0): boolean {
+  if (depth > MAX_DEPTH) return false;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every((item) => isBoundedTaskValue(item, depth + 1));
+  if (isRecord(value)) {
+    return Object.values(value).every((item) => isBoundedTaskValue(item, depth + 1));
   }
-  return [...new Set(starts)];
+  return true;
 }
 
 class PythonLiteralParser {
@@ -56,6 +58,8 @@ class PythonLiteralParser {
 
   parse(): unknown {
     const value = this.parseValue(0);
+    this.skipWhitespace();
+    if (this.position !== this.source.length) throw new Error('unexpected trailing task output');
     return value;
   }
 
@@ -80,7 +84,13 @@ class PythonLiteralParser {
       if (!key) throw new Error('unsupported task output key');
       this.skipWhitespace();
       this.expect(':');
-      result[key] = this.parseValue(depth);
+      // Match JSON dictionary semantics even for special property names.
+      Object.defineProperty(result, key, {
+        value: this.parseValue(depth),
+        enumerable: true,
+        writable: true,
+        configurable: true,
+      });
       this.skipWhitespace();
       if (this.source[this.position] === ',') {
         this.position += 1;
@@ -136,7 +146,9 @@ class PythonLiteralParser {
     const match = this.source.slice(this.position).match(/^-?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/u);
     if (!match) throw new Error('invalid task output number');
     this.position += match[0].length;
-    return Number(match[0]);
+    const value = Number(match[0]);
+    if (!Number.isFinite(value)) throw new Error('non-finite task output number');
+    return value;
   }
 
   private parseIdentifier(): unknown {
