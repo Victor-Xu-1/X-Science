@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "0c1a27a901f7ebd4fbf52d1465139a861e11171bbdb9272f72b9bd0dea11f91b",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "1d2f07b9886288f855a9b4f7a8e087b6764cd65ee3978915b9afa6ab2e818383",
+  "additionFingerprintSHA256": "d1f551687021baa1cba2d50d657c5e33198908d5f4e062673f6f487aa033c354",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 786,
     "removedSourceFiles": 293,
-    "addedFiles": 955
+    "addedFiles": 956
   },
   "adaptations": [
     {
@@ -8550,8 +8550,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailProjection.ts",
-      "sha256": "560d4a170357978b7886c66c0dbf274d7db1a1c6ecc78bde8c7550c0fd74b4b3",
-      "bytes": 9414,
+      "sha256": "af9188b282386d600261887585de2e8a949b02a6e7c5593bade2f5e4f55b4991",
+      "bytes": 9462,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11030,6 +11030,12 @@
       "path": "tests/unit/chat/toolOutputLiteralFidelity.test.ts",
       "sha256": "5a461440f2b9b845d589d99a8f29992eea482f7cb96dff32fb49c5a80ab3b380",
       "bytes": 2941,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/chat/toolPlanConfidenceOwnKeys.test.ts",
+      "sha256": "85bc035e735f9e26a37b0187f26c684c3cce7eb9a6bbcb64016a591f432ffa88",
+      "bytes": 4594,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
