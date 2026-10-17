@@ -1021,6 +1021,151 @@ describe('useAcpMessage', () => {
     });
   });
 
+  it('awaits a real slash-command refresh and clears a confirmed empty catalog', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const refresh = deferred<Array<{ command: string; description: string }>>();
+    getSlashCommandsInvokeMock.mockReturnValue(refresh.promise);
+    const { result } = renderHook(() => useAcpMessage('conv-slash-refresh-empty', { skipWarmup: true }));
+    await waitFor(() => expect(result.current.hasHydratedRunningState).toBe(true));
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'available_commands',
+        data: { commands: [{ name: 'previous-skill', description: 'Previously available' }] },
+        msg_id: 'slash-before-empty',
+        conversation_id: 'conv-slash-refresh-empty',
+      });
+    });
+    expect(result.current.slashCommands.map((command) => command.name)).toEqual(['previous-skill']);
+
+    let completion: unknown;
+    act(() => {
+      completion = result.current.fetchSlashCommands();
+    });
+    const settled = Promise.resolve(completion);
+    try {
+      await waitFor(() => expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1));
+      expect(completion).toBeInstanceOf(Promise);
+      let completed = false;
+      void settled.then(() => {
+        completed = true;
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(completed).toBe(false);
+      expect(result.current.slashCommands.map((command) => command.name)).toEqual(['previous-skill']);
+      await act(async () => {
+        refresh.resolve([]);
+        await settled;
+      });
+      expect(result.current.slashCommands).toEqual([]);
+    } finally {
+      await act(async () => {
+        refresh.resolve([]);
+        await settled;
+      });
+    }
+  });
+
+  it('rejects a failed slash-command refresh without treating it as an empty catalog', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const refresh = deferred<Array<{ command: string; description: string }>>();
+    getSlashCommandsInvokeMock.mockReturnValue(refresh.promise);
+    const { result } = renderHook(() => useAcpMessage('conv-slash-refresh-failed', { skipWarmup: true }));
+    await waitFor(() => expect(result.current.hasHydratedRunningState).toBe(true));
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'available_commands',
+        data: { commands: [{ name: 'retained-skill', description: 'Still known' }] },
+        msg_id: 'slash-before-failure',
+        conversation_id: 'conv-slash-refresh-failed',
+      });
+    });
+
+    let completion: unknown;
+    act(() => {
+      completion = result.current.fetchSlashCommands();
+    });
+    const outcome = Promise.resolve(completion).then(
+      () => ({ error: undefined }),
+      (error: unknown) => ({ error })
+    );
+    const failure = new Error('controlled slash-command refresh failure');
+    await waitFor(() => expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      refresh.reject(failure);
+      await outcome;
+    });
+    expect(await outcome).toEqual({ error: failure });
+    expect(result.current.slashCommands.map((command) => command.name)).toEqual(['retained-skill']);
+  });
+
+  it('fences a late slash-command refresh across conversation A to B and back to A', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const refresh = deferred<Array<{ command: string; description: string }>>();
+    getSlashCommandsInvokeMock.mockReturnValue(refresh.promise);
+    const { result, rerender } = renderHook(({ id }) => useAcpMessage(id, { skipWarmup: true }), {
+      initialProps: { id: 'conv-slash-refresh-a' },
+    });
+    await waitFor(() => expect(result.current.hasHydratedRunningState).toBe(true));
+    let completion: unknown;
+    act(() => {
+      completion = result.current.fetchSlashCommands();
+    });
+    await waitFor(() => expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1));
+    rerender({ id: 'conv-slash-refresh-b' });
+    rerender({ id: 'conv-slash-refresh-a' });
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'available_commands',
+        data: { commands: [{ name: 'current-skill', description: 'Current owner' }] },
+        msg_id: 'slash-current-owner',
+        conversation_id: 'conv-slash-refresh-a',
+      });
+    });
+    await act(async () => {
+      refresh.resolve([{ command: 'stale-skill', description: 'Previous owner' }]);
+      await refresh.promise;
+      await completion;
+    });
+    expect(result.current.slashCommands.map((command) => command.name)).toEqual(['current-skill']);
+  });
+
+  it('starts a fresh post-save slash-command read without waiting for an older request or accepting its late result', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const previous = deferred<Array<{ command: string; description: string }>>();
+    const fresh = deferred<Array<{ command: string; description: string }>>();
+    getSlashCommandsInvokeMock.mockReturnValueOnce(previous.promise).mockReturnValueOnce(fresh.promise);
+    const { result } = renderHook(() => useAcpMessage('conv-slash-post-save-fresh'));
+    await waitFor(() => expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(1));
+
+    let completion: unknown;
+    act(() => {
+      // Invoke the actual method with its requested refresh policy while this
+      // regression remains compilable against the previous zero-argument API.
+      completion = Reflect.apply(result.current.fetchSlashCommands, undefined, [{ fresh: true }]);
+    });
+    try {
+      await waitFor(() => expect(getSlashCommandsInvokeMock).toHaveBeenCalledTimes(2));
+      await act(async () => {
+        fresh.resolve([{ command: 'saved-skill', description: 'Created before the fresh read' }]);
+        await completion;
+      });
+      expect(result.current.slashCommands.map((command) => command.name)).toEqual(['saved-skill']);
+      await act(async () => {
+        previous.resolve([{ command: 'pre-save-skill', description: 'Old catalog' }]);
+        await previous.promise;
+      });
+      expect(result.current.slashCommands.map((command) => command.name)).toEqual(['saved-skill']);
+    } finally {
+      await act(async () => {
+        fresh.resolve([]);
+        previous.resolve([]);
+        await Promise.all([fresh.promise, previous.promise, completion]);
+      });
+    }
+  });
+
   it('ignores unknown unsupported runtime events', async () => {
     vi.mocked(getConversationOrNull).mockResolvedValue(null);
 

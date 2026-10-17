@@ -157,6 +157,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onSend,
     onChange,
     rightTools,
+    prefix,
     placeholder,
     bottomHint,
     onStop,
@@ -169,6 +170,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     onStop?: () => Promise<void>;
     onChange?: (value: string) => void;
     rightTools?: React.ReactNode;
+    prefix?: React.ReactNode;
     placeholder?: string;
     bottomHint?: React.ReactNode;
     onMobilePlusClick?: () => void;
@@ -179,6 +181,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     <div data-allow-send-while-loading={allowSendWhileLoading ? 'true' : 'false'}>
       {tools}
       {rightTools}
+      {prefix}
       <output data-testid='sendbox-placeholder'>{placeholder}</output>
       <output data-testid='sendbox-bottom-hint'>{bottomHint ?? ''}</output>
       <button type='button' onClick={() => onChange?.('hello')}>
@@ -333,18 +336,20 @@ vi.mock('@/renderer/hooks/xScience/runtime/useAcpConfigOptions', () => ({
 const sendBoxDraftSeed = { current: '' };
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: () => () => {
-    const [content, setContentState] = React.useState(sendBoxDraftSeed.current);
+    const [draft, setDraft] = React.useState({
+      content: sendBoxDraftSeed.current,
+      contextItems: draftContextItemsMock.current,
+    });
     return {
       data: {
         atPath: [],
         uploadFile: [],
-        content,
-        contextItems: draftContextItemsMock.current,
+        ...draft,
       },
-      mutate: (updater: (current: { content: string }) => { content: string } | undefined) => {
-        setContentState((current) => {
-          const next = updater({ content: current });
-          return next === undefined ? current : next.content;
+      mutate: (updater: (current: typeof draft) => typeof draft | undefined) => {
+        setDraft((current) => {
+          const next = updater(current);
+          return next === undefined ? current : next;
         });
       },
     };
@@ -1721,19 +1726,235 @@ describe('AcpSendBox', () => {
     runtimeViewMock.canSendMessage = true;
     runtimeViewMock.state = 'idle';
     runtimeViewMock.view.taskStatus = 'finished';
-    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
+    const messageState = makeMessageState();
+    await render(<AcpSendBox conversation_id='conv-skill-success' backend='xscience' messageState={messageState} />);
+    await waitFor(() => expect(loadComposerCapabilitiesMock).toHaveBeenCalledWith('conv-skill-success'));
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['session-skill'], mcpStatuses: [] });
     expect(fileAttachProps.current?.saveAsSkillDisabled).toBe(false);
     const saveAsSkill = fileAttachProps.current?.onSaveSkill;
     if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
 
     await act(async () => {
-      saveAsSkill();
-      await Promise.resolve();
+      await saveAsSkill();
     });
 
-    await waitFor(() => expect(saveConversationAsSkillMock).toHaveBeenCalledWith('conv-1'));
+    expect(saveConversationAsSkillMock).toHaveBeenCalledWith('conv-skill-success');
+    await waitFor(() => expect(fileAttachProps.current?.loadedSkills).toEqual(['session-skill']));
+    expect(loadComposerCapabilitiesMock).toHaveBeenCalledTimes(2);
+    expect(messageState.fetchSlashCommands).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('status', { name: '保存为 Skill' })).toHaveTextContent('已保存个人 Skill：session-skill');
+    expect(fileAttachProps.current?.selectedSkillNames).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: '使用 Skill' }));
+    await waitFor(() => expect(fileAttachProps.current?.selectedSkillNames).toEqual(['session-skill']));
+    expect(screen.getByTestId('composer-context-chips')).toHaveTextContent('session-skill');
     expect(sendMessageInvokeMock).not.toHaveBeenCalled();
   });
+
+  it('keeps Save-as-Skill pending visible and synchronously rejects duplicate saves', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const pendingSave = createDeferred<{ name: string; scope: 'personal' }>();
+    saveConversationAsSkillMock.mockReturnValue(pendingSave.promise);
+    const view = await render(
+      <AcpSendBox conversation_id='conv-skill-pending' backend='xscience' messageState={makeMessageState()} />
+    );
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    let first!: Promise<void>;
+    let duplicate!: Promise<void>;
+    await act(async () => {
+      first = saveAsSkill() as Promise<void>;
+      duplicate = saveAsSkill() as Promise<void>;
+      await Promise.resolve();
+    });
+    try {
+      expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+      expect(fileAttachProps.current?.saveAsSkillDisabled).toBe(true);
+      expect(screen.getByRole('status', { name: '保存为 Skill' })).toHaveTextContent('正在保存个人 Skill');
+      await act(async () => {
+        await view.i18n.changeLanguage('en-US');
+      });
+      expect(screen.getByRole('status', { name: 'Save as Skill' })).toHaveTextContent('Saving personal Skill');
+      expect(screen.queryByRole('button', { name: 'Use Skill' })).not.toBeInTheDocument();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => {
+        pendingSave.resolve({ name: 'session-skill', scope: 'personal' });
+        await Promise.all([first, duplicate]);
+      });
+    }
+  });
+
+  it('keeps a failed Save-as-Skill visible and provides an explicit save retry', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    saveConversationAsSkillMock.mockRejectedValueOnce(new Error('draft generation failed'));
+    const messageState = makeMessageState();
+    await render(<AcpSendBox conversation_id='conv-skill-failure' backend='xscience' messageState={messageState} />);
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    expect(screen.getByRole('alert', { name: '保存为 Skill' })).toHaveTextContent('保存个人 Skill 失败');
+    expect(fileAttachProps.current?.saveAsSkillDisabled).toBe(false);
+    expect(messageState.fetchSlashCommands).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '重试保存' }));
+    });
+    await waitFor(() => expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: '保存为 Skill' })).toHaveTextContent('session-skill')
+    );
+    expect(screen.queryByRole('alert', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps a saved Skill after list failure and retries only the Save-as-Skill refresh', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const messageState = makeMessageState();
+    const fetchSlashCommands = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('slash list unavailable'))
+      .mockResolvedValue(undefined);
+    messageState.fetchSlashCommands = fetchSlashCommands;
+    await render(<AcpSendBox conversation_id='conv-skill-refresh' backend='xscience' messageState={messageState} />);
+    await waitFor(() => expect(loadComposerCapabilitiesMock).toHaveBeenCalledWith('conv-skill-refresh'));
+    loadComposerCapabilitiesMock.mockRejectedValue(new Error('capability list unavailable'));
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    const status = screen.getByRole('status', { name: '保存为 Skill' });
+    expect(status).toHaveTextContent('已保存个人 Skill：session-skill');
+    expect(status).toHaveTextContent('列表刷新失败');
+    expect(screen.queryByRole('alert', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(fetchSlashCommands).toHaveBeenCalledTimes(1);
+    expect(fileAttachProps.current?.saveAsSkillDisabled).toBe(true);
+    const saveWhileRefreshFailed = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveWhileRefreshFailed !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveWhileRefreshFailed();
+    });
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['session-skill'], mcpStatuses: [] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '重试刷新' }));
+    });
+    await waitFor(() => expect(fileAttachProps.current?.loadedSkills).toEqual(['session-skill']));
+    expect(loadComposerCapabilitiesMock).toHaveBeenCalledTimes(3);
+    expect(fetchSlashCommands).toHaveBeenCalledTimes(2);
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: '重试刷新' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '使用 Skill' })).toBeEnabled();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps Save-as-Skill success separate from current-assistant permission', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['existing-skill'], mcpStatuses: [] });
+    const messageState = makeMessageState();
+    messageState.fetchSlashCommands = vi.fn().mockResolvedValue(undefined);
+    const view = await render(
+      <AcpSendBox conversation_id='conv-skill-restricted-assistant' backend='xscience' messageState={messageState} />
+    );
+    await waitFor(() => expect(fileAttachProps.current?.loadedSkills).toEqual(['existing-skill']));
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+
+    expect(loadComposerCapabilitiesMock).toHaveBeenCalledTimes(2);
+    expect(messageState.fetchSlashCommands).toHaveBeenCalledTimes(1);
+    expect(messageState.fetchSlashCommands).toHaveBeenCalledWith({ fresh: true });
+    const status = screen.getByRole('status', { name: '保存为 Skill' });
+    expect(status).toHaveTextContent('已保存个人 Skill：session-skill');
+    expect(status).toHaveTextContent('当前助手未启用此 Skill');
+    expect(screen.getByRole('button', { name: '使用 Skill' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '使用 Skill' }));
+    expect(fileAttachProps.current?.loadedSkills).toEqual(['existing-skill']);
+    expect(fileAttachProps.current?.selectedSkillNames).toEqual([]);
+    expect(screen.queryByRole('button', { name: '重试保存' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '重试刷新' })).not.toBeInTheDocument();
+
+    await act(async () => {
+      await view.i18n.changeLanguage('en-US');
+    });
+    expect(screen.getByRole('status', { name: 'Save as Skill' })).toHaveTextContent(
+      'This Skill is not enabled for the current assistant'
+    );
+    expect(screen.getByRole('button', { name: 'Use Skill' })).toBeDisabled();
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['conversation-switch', 'unmount'] as const)(
+    'isolates late Save-as-Skill completion after %s',
+    async (transition) => {
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      runtimeViewMock.state = 'idle';
+      runtimeViewMock.view.taskStatus = 'finished';
+      const pendingSave = createDeferred<{ name: string; scope: 'personal' }>();
+      saveConversationAsSkillMock.mockReturnValueOnce(pendingSave.promise);
+      const conversationId = `conv-skill-late-${transition}`;
+      const originalState = makeMessageState();
+      const replacementState = makeMessageState();
+      const view = await render(
+        <AcpSendBox conversation_id={conversationId} backend='xscience' messageState={originalState} />
+      );
+      const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+      if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+      let saving!: Promise<void>;
+      await act(async () => {
+        saving = saveAsSkill() as Promise<void>;
+        await Promise.resolve();
+      });
+      if (transition === 'unmount') {
+        view.unmount();
+      } else {
+        await act(async () => {
+          view.rerender(
+            <AcpSendBox conversation_id='conv-skill-replacement' backend='xscience' messageState={replacementState} />
+          );
+        });
+        await act(async () => {
+          view.rerender(
+            <AcpSendBox conversation_id={conversationId} backend='xscience' messageState={replacementState} />
+          );
+        });
+      }
+      const capabilityReads = loadComposerCapabilitiesMock.mock.calls.length;
+      messageSuccessMock.mockClear();
+      messageErrorMock.mockClear();
+      emitterEmitMock.mockClear();
+      await act(async () => {
+        pendingSave.resolve({ name: 'late-session-skill', scope: 'personal' });
+        await saving;
+      });
+      expect(loadComposerCapabilitiesMock).toHaveBeenCalledTimes(capabilityReads);
+      expect(originalState.fetchSlashCommands).not.toHaveBeenCalled();
+      expect(replacementState.fetchSlashCommands).not.toHaveBeenCalled();
+      expect(screen.queryByRole('status', { name: '保存为 Skill' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert', { name: '保存为 Skill' })).not.toBeInTheDocument();
+      expect(messageSuccessMock).not.toHaveBeenCalled();
+      expect(messageErrorMock).not.toHaveBeenCalled();
+      expect(emitterEmitMock).not.toHaveBeenCalledWith('chat.history.refresh');
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    }
+  );
 
   it('does not expose a completed review request after switching conversations', async () => {
     runtimeViewMock.isProcessing = false;

@@ -468,6 +468,7 @@ func (c *runtimeModelClient) openAIResponseDecoder(body []byte, headers http.Hea
 	if err != nil {
 		return agentruntime.ModelResponse{}, decoded.ID, usage, err
 	}
+	refused := strings.TrimSpace(decoded.Choices[0].Message.Refusal) != ""
 	if isTokenLimitFinishReason(decoded.Choices[0].FinishReason) {
 		if len(message.ToolCalls) != 0 {
 			return agentruntime.ModelResponse{}, decoded.ID, usage,
@@ -481,12 +482,14 @@ func (c *runtimeModelClient) openAIResponseDecoder(body []byte, headers http.Hea
 		return agentruntime.ModelResponse{
 				Message: message, Model: decoded.Model,
 				StopReason: decoded.Choices[0].FinishReason,
+				Refused:    refused,
 			}, firstNonEmpty(decoded.ID, decoded.RequestID), usage,
 			newProviderContentResponseTruncation(decoded.Choices[0].FinishReason)
 	}
 	return agentruntime.ModelResponse{
 		Message: message, Model: decoded.Model,
 		StopReason: decoded.Choices[0].FinishReason,
+		Refused:    refused,
 	}, firstNonEmpty(decoded.ID, decoded.RequestID), usage, nil
 }
 
@@ -611,6 +614,7 @@ func openAIThinkingForProfile(profile ModelProfile, mode agentruntime.ReasoningM
 type openAIMessage struct {
 	Role             string           `json:"role"`
 	Content          any              `json:"content,omitempty"`
+	Refusal          string           `json:"refusal,omitempty"`
 	ReasoningContent string           `json:"reasoning_content,omitempty"`
 	ToolCallID       string           `json:"tool_call_id,omitempty"`
 	ToolCalls        []openAIToolCall `json:"tool_calls,omitempty"`
