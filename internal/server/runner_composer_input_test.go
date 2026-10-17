@@ -3,8 +3,12 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -121,5 +125,47 @@ func TestRunnerCanonicalComposerContextBindingIsIdempotent(t *testing.T) {
 	first := appendWebComposerRuntimeContext("base", data)
 	if got := appendWebComposerRuntimeContext(first, data); got != first {
 		t.Fatal("repeated model/tool authority binding duplicated turn-scoped context")
+	}
+}
+
+// Discovery refresh must retain the same claim as initial authority and tool
+// execution. An unclaimed catalog view intentionally cannot infer this turn.
+func TestRunnerCanonicalComposerMCPRefreshKeepsClaimedContext(t *testing.T) {
+	raw, err := os.ReadFile("runner_execution.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), "runner_execution.go", raw, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || selector.Sel.Name != "agentRuntimeWorkspaceMCPToolSchemas" {
+			return true
+		}
+		calls++
+		if len(call.Args) == 0 {
+			t.Error("MCP contract refresh has no context")
+			return true
+		}
+		bound, ok := call.Args[0].(*ast.CallExpr)
+		if !ok {
+			t.Error("MCP contract refresh lost the claimed runner context")
+			return true
+		}
+		name, ok := bound.Fun.(*ast.Ident)
+		if !ok || name.Name != "withTranscriptRunnerChatRun" || len(bound.Args) != 2 {
+			t.Error("MCP contract refresh does not bind the current runner")
+		}
+		return true
+	})
+	if calls != 1 {
+		t.Fatalf("inspect all MCP contract refresh callsites: got %d", calls)
 	}
 }
