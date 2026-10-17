@@ -78,7 +78,8 @@ export function publicModeLabel(value: string, chinese: boolean): string | null 
     ro: 'modeReadOnly',
     rw: 'modeReadWrite',
   };
-  const label = labels[value.toLowerCase()];
+  const normalized = value.toLowerCase();
+  const label = Object.hasOwn(labels, normalized) ? labels[normalized] : undefined;
   return label ? toolPublicDetailText(chinese, label) : null;
 }
 
@@ -251,7 +252,8 @@ export function publicEnvironmentOutputLabel(value: string, chinese: boolean): s
     install: 'environmentInstall',
     reuse: 'environmentReuse',
   };
-  const key = labels[value.trim().toLowerCase()];
+  const normalized = value.trim().toLowerCase();
+  const key = Object.hasOwn(labels, normalized) ? labels[normalized] : undefined;
   return key ? toolPublicDetailText(chinese, key) : formatPublicRecordValue(value, chinese);
 }
 
@@ -264,7 +266,8 @@ export function formatEnvironmentBlocker(value: unknown, chinese: boolean): stri
     unsupported_python: 'blockerPython',
     unsupported_r: 'blockerR',
   };
-  const key = labels[value.trim().toLowerCase()];
+  const normalized = value.trim().toLowerCase();
+  const key = Object.hasOwn(labels, normalized) ? labels[normalized] : undefined;
   return key ? toolPublicDetailText(chinese, key) : formatPublicRecordValue(value, chinese);
 }
 
