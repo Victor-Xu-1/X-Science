@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cb6e139395b858984b1ce3b74baa5779bd232ee222217bf512559bba223799a7",
+  "adaptationFingerprintSHA256": "c3c1749e21a773070b4c025b68136f5f81cac68a02236d49d3290b035532b97b",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "cad4b255344cb307c292dc5f43a8e82fa88101912317e1a5bd385f1b4a172e93",
+  "additionFingerprintSHA256": "9e097468e5c6c624c997e3b6d9a7e7a254f9f6133b74501fa9ae3d6a28fe11ca",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 786,
     "removedSourceFiles": 293,
-    "addedFiles": 963
+    "addedFiles": 964
   },
   "adaptations": [
     {
@@ -2176,8 +2176,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "8dc296abb12ec6ec259d6bd63e0738b39cfe70d637823ccdc44c22767a3dc1cf",
-      "bytes": 55992,
+      "targetSHA256": "5158f9982c41d496f22550fa08d96184407ca27940e6a5a125fa4bf30752873b",
+      "bytes": 53942,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -9140,6 +9140,12 @@
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection.ts",
       "sha256": "c8fc2be65c030ca0a2292846f10eda550d96f3b8064a722659c42cb5a5a4e42e",
       "bytes": 5470,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkills.ts",
+      "sha256": "83ed6476551870014b91577b8b2fc505f066ce28c4810b771803e5945aa3bcf0",
+      "bytes": 3677,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
