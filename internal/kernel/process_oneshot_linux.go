@@ -15,10 +15,11 @@ import (
 )
 
 type oneShotRequest struct {
-	Path        string
-	Args        []string
-	Environment []string
-	ExtraFiles  int
+	Path              string
+	Args              []string
+	Environment       []string
+	ExtraFiles        int
+	ExtraFilePresence []byte
 }
 
 // This is a per-command transport owner, not a scheduler or retry authority.
@@ -93,11 +94,18 @@ func prepareOneShotProcess(command *workerCommand) (*oneShotProcess, error) {
 		_ = receiptWrite.Close()
 		return nil, err
 	}
+	presence := make([]byte, len(command.ExtraFiles))
+	for index, file := range command.ExtraFiles {
+		if file != nil {
+			presence[index] = 1
+		}
+	}
 	process := &oneShotProcess{
 		command: command, helper: helper, output: output,
 		request: oneShotRequest{
 			Path: command.Path, Args: append([]string(nil), command.Args...),
 			Environment: command.Environ(), ExtraFiles: len(command.ExtraFiles),
+			ExtraFilePresence: presence,
 		},
 		controlRead: controlRead, controlWrite: controlWrite,
 		receiptRead: receiptRead, receiptWrite: receiptWrite,

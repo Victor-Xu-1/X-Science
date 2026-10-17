@@ -5,6 +5,7 @@ package kernel
 import (
 	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -88,27 +89,106 @@ func TestManagedOneShotStartFailuresReturn(t *testing.T) {
 }
 
 func TestManagedOneShotPreservesEmptyExtraFileSlots(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	read, write, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = read.Close(); _ = write.Close() })
-	if _, err := write.WriteString("retained-extra-file\n"); err != nil {
-		t.Fatal(err)
-	}
-	_ = write.Close()
-	command := newWorkerProcessCommand(ctx, "/bin/sh", "-c", `
+	for _, occupyHelperSlot := range []bool{false, true} {
+		t.Run(fmt.Sprintf("occupied_helper_slot=%t", occupyHelperSlot), func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			read, write, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = read.Close(); _ = write.Close() })
+			if _, err := write.WriteString("retained-extra-file\n"); err != nil {
+				t.Fatal(err)
+			}
+			_ = write.Close()
+			command := newWorkerProcessCommand(ctx, "/bin/sh", "-c", `
 if [ -e /proc/self/fd/3 ]; then printf 'empty slot was inherited'; exit 9; fi
 IFS= read -r value <&4
 printf '%s' "$value"
 `)
-	command.ExtraFiles = []*os.File{nil, read}
-	var output bytes.Buffer
-	command.Stdout = &output
-	if err := command.Run(); err != nil || output.String() != "retained-extra-file" {
-		t.Fatalf("extra-file slot identity changed: error=%v output=%q", err, output.String())
+			command.ExtraFiles = []*os.File{nil, read}
+			var output bytes.Buffer
+			command.Stdout = &output
+			if occupyHelperSlot {
+				occupant, openErr := os.Open(os.DevNull)
+				if openErr != nil {
+					t.Fatal(openErr)
+				}
+				t.Cleanup(func() { _ = occupant.Close() })
+				configureWorkerProcess(command.Cmd)
+				process, prepareErr := prepareOneShotProcess(command)
+				if prepareErr != nil {
+					t.Fatal(prepareErr)
+				}
+				// Force a valid helper FD into the logical nil slot. This models
+				// runtime reuse without closing or replacing a runtime-owned FD.
+				// The original command/request still declares slot zero empty.
+				process.helper.ExtraFiles[0] = occupant
+				err = process.helper.Start()
+				process.started(err)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer process.close()
+				err = process.wait()
+			} else {
+				err = command.Run()
+			}
+			if err != nil || output.String() != "retained-extra-file" {
+				t.Fatalf("extra-file slot identity changed: error=%v output=%q", err, output.String())
+			}
+		})
+	}
+}
+
+func TestManagedOneShotRejectsInvalidExtraFilePresence(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		presence []byte
+	}{
+		{"short", []byte{0}},
+		{"long", []byte{0, 1, 0}},
+		{"nonbinary", []byte{0, 2}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			controlRead, controlWrite, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = controlRead.Close(); _ = controlWrite.Close() })
+			receiptRead, receiptWrite, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = receiptRead.Close(); _ = receiptWrite.Close() })
+			helper := exec.CommandContext(ctx, os.Args[0], oneShotHelperArgument, "2")
+			helper.Env = []string{}
+			helper.ExtraFiles = []*os.File{nil, nil, controlRead, receiptWrite}
+			if err := helper.Start(); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = controlWrite.Close(); _ = helper.Process.Kill(); _ = helper.Wait() })
+			_ = controlRead.Close()
+			_ = receiptWrite.Close()
+			// An anonymous wire struct also compiles against the old decoder;
+			// ignoring this field must fail behaviorally by returning Ready.
+			request := struct {
+				Path              string
+				Args              []string
+				ExtraFiles        int
+				ExtraFilePresence []byte
+			}{"/bin/sh", []string{"sh", "-c", "exit 0"}, 2, test.presence}
+			if err := gob.NewEncoder(controlWrite).Encode(request); err != nil {
+				t.Fatal(err)
+			}
+			receipt, err := readOneShotReceipt(receiptRead)
+			if err != nil || receipt.kind != oneShotComplete || receipt.failure != oneShotSetupFailure || receipt.root {
+				t.Fatalf("invalid extra-file presence was not rejected before grant: receipt=%+v error=%v", receipt, err)
+			}
+		})
 	}
 }
 

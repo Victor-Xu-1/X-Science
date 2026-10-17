@@ -74,9 +74,15 @@ func runOneShotHelper(arguments []string) int {
 	}
 	decoder := gob.NewDecoder(control)
 	var request oneShotRequest
-	if err := decoder.Decode(&request); err != nil || request.Path == "" || request.ExtraFiles != extraFiles {
+	if err := decoder.Decode(&request); err != nil || request.Path == "" || request.ExtraFiles != extraFiles || len(request.ExtraFilePresence) != extraFiles {
 		_ = writeOneShotReceipt(receiptFile, result)
 		return 125
+	}
+	for _, present := range request.ExtraFilePresence {
+		if present > 1 {
+			_ = writeOneShotReceipt(receiptFile, result)
+			return 125
+		}
 	}
 	if err := writeOneShotReceipt(receiptFile, oneShotReceipt{kind: oneShotReady}); err != nil {
 		return 125
@@ -112,15 +118,18 @@ func runOneShotHelper(arguments []string) int {
 		Stdin: os.Stdin, Stdout: os.Stdout, Stderr: os.Stderr,
 		SysProcAttr: &syscall.SysProcAttr{Setpgid: true, Pdeathsig: syscall.SIGKILL},
 	}
-	for index := 0; index < extraFiles; index++ {
+	for index, present := range request.ExtraFilePresence {
 		fd := 3 + index
 		var file *os.File
-		if _, err := unix.FcntlInt(uintptr(fd), unix.F_GETFD, 0); err == nil {
+		// A logical empty slot may now hold a helper runtime FD. Do not touch
+		// it here: a nil ExtraFiles entry closes only the target's slot.
+		if present == 1 {
+			if _, err := unix.FcntlInt(uintptr(fd), unix.F_GETFD, 0); err != nil {
+				result.errno = oneShotErrno(err)
+				_ = writeOneShotReceipt(receiptFile, result)
+				return 125
+			}
 			file = os.NewFile(uintptr(fd), "one-shot-target-extra")
-		} else if !errors.Is(err, syscall.EBADF) {
-			result.errno = oneShotErrno(err)
-			_ = writeOneShotReceipt(receiptFile, result)
-			return 125
 		}
 		target.ExtraFiles = append(target.ExtraFiles, file)
 	}
