@@ -2097,8 +2097,9 @@ describe('AcpSendBox', () => {
     runtimeViewMock.view.taskStatus = 'finished';
     loadComposerCapabilitiesMock.mockResolvedValue({ skills: ['existing-workflow'], mcpStatuses: [] });
     loadSkillLibraryMock.mockResolvedValue([
-      { name: 'new-workflow', enabled: true },
-      { name: 'disabled-workflow', enabled: false },
+      { name: 'new-workflow', enabled: true, source: 'personal' },
+      { name: 'disabled-workflow', enabled: false, source: 'personal' },
+      { name: 'outside-builtin', enabled: true, source: 'x_science_llm' },
     ]);
     await render(
       <AcpSendBox
@@ -2122,6 +2123,7 @@ describe('AcpSendBox', () => {
     );
     const entry = mobileActionSheetEntries.current.find((item) => item.key === 'skills');
     expect(entry?.submenu?.options?.some((item) => item.key === 'disabled-workflow')).toBe(false);
+    expect(entry?.submenu?.options?.some((item) => item.key === 'outside-builtin')).toBe(false);
     expect(entry?.submenu?.options?.some((item) => item.active)).toBe(false);
     act(() => {
       entry?.submenu?.onSelect?.('new-workflow');

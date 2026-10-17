@@ -410,7 +410,7 @@ func (s *Server) webAssistantRecords(userID string) ([]webAssistantRecord, error
 			// OPERON's bundled catalog is the skill authority. The owner-scoped
 			// row stores customization and tombstones; it must not freeze a copy
 			// of its signed discovery allowlist or load every skill each turn.
-			profile.SkillNames = append([]string(nil), bundled.SkillNames...)
+			profile.SkillNames = s.signedDiscoveryWithPersonalBindings(bundled.SkillNames, profile.SkillNames)
 		} else {
 			profile.SkillNames = s.effectiveBundledAgentSkillNames(bundled.Name, profile.SkillNames, profile.SkillTombstones)
 		}

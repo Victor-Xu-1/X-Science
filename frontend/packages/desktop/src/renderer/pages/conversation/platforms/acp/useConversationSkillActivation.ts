@@ -75,7 +75,9 @@ export function useConversationSkillActivation(options: Options) {
       if (!active.attached) {
         const library = await loadXScienceSkills();
         if (!current(active)) return;
-        const skill = library.find((item) => item.name.toLowerCase() === active.name.toLowerCase() && item.enabled);
+        const skill = library.find(
+          (item) => item.name.toLowerCase() === active.name.toLowerCase() && item.enabled && item.source === 'personal'
+        );
         if (!skill) throw new Error('Skill is not enabled in the current library');
         let canonicalAgent = runtimeAgentName?.trim() ?? '';
         if (assistantId) {

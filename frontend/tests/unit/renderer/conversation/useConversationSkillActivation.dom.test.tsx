@@ -38,7 +38,7 @@ describe('SkillActivation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.detail.mockResolvedValue(detail);
-    mocks.library.mockResolvedValue([{ name: 'new-workflow', enabled: true }]);
+    mocks.library.mockResolvedValue([{ name: 'new-workflow', enabled: true, source: 'personal' }]);
     mocks.profiles.mockResolvedValue([profile]);
     mocks.attach.mockResolvedValue({ ...profile, skillNames: [...profile.skillNames, 'new-workflow'] });
   });
@@ -62,7 +62,7 @@ describe('SkillActivation', () => {
   });
 
   it('deduplicates same-tick confirmation while the request is pending', async () => {
-    const pending = deferred<Array<{ name: string; enabled: boolean }>>();
+    const pending = deferred<Array<{ name: string; enabled: boolean; source: string }>>();
     mocks.library.mockReturnValue(pending.promise);
     const options = makeOptions();
     const { result } = renderHook(() => useConversationSkillActivation(options));
@@ -78,7 +78,7 @@ describe('SkillActivation', () => {
     act(() => result.current.cancel());
     expect(result.current.state).not.toBeNull();
     await act(async () => {
-      pending.resolve([{ name: 'new-workflow', enabled: true }]);
+      pending.resolve([{ name: 'new-workflow', enabled: true, source: 'personal' }]);
       await Promise.all([first, duplicate]);
     });
     expect(mocks.attach).toHaveBeenCalledTimes(1);
@@ -160,10 +160,12 @@ describe('SkillActivation', () => {
     expect(result.current.state).toBeNull();
   });
 
-  it.each(['disabled-library', 'wrong-assistant', 'unknown-expert', 'disabled-expert'] as const)(
+  it.each(['disabled-library', 'builtin-library', 'wrong-assistant', 'unknown-expert', 'disabled-expert'] as const)(
     'rejects %s without binding or selection',
     async (failure) => {
       if (failure === 'disabled-library') mocks.library.mockResolvedValue([{ name: 'new-workflow', enabled: false }]);
+      if (failure === 'builtin-library')
+        mocks.library.mockResolvedValue([{ name: 'new-workflow', enabled: true, source: 'x_science_llm' }]);
       if (failure === 'wrong-assistant') mocks.detail.mockResolvedValue({ ...detail, id: 'another-assistant' });
       if (failure === 'unknown-expert') mocks.profiles.mockResolvedValue([{ ...profile, name: 'unrelated-expert' }]);
       if (failure === 'disabled-expert') mocks.profiles.mockResolvedValue([{ ...profile, enabled: false }]);

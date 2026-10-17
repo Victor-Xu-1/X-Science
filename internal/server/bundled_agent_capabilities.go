@@ -12,6 +12,26 @@ type bundledAgentCapabilities struct {
 	Connectors []string
 }
 
+// The current signed discovery list stays authoritative for bundled Skills.
+// Explicit owner bindings may extend it with installed personal procedures;
+// a legacy frozen profile must not resurrect removed builtins or missing names.
+func (s *Server) signedDiscoveryWithPersonalBindings(signed, bound []string) []string {
+	result := append([]string(nil), signed...)
+	if s.skillCatalog == nil || len(bound) == 0 {
+		return result
+	}
+	selected := normalizedSkillNameSet(bound)
+	for _, skill := range s.skillCatalog.Skills() {
+		if _, found := selected[strings.ToLower(strings.TrimSpace(skill.Name))]; !found {
+			continue
+		}
+		if compatibilitySkillSource(skill) == "personal" {
+			result = appendUniqueFolded(result, skill.Name)
+		}
+	}
+	return result
+}
+
 func capabilitiesFromAgent(agent agentruntime.AgentDefinition) (bundledAgentCapabilities, bool) {
 	if strings.EqualFold(strings.TrimSpace(agent.Name), "OPERON") ||
 		(len(agent.SkillNames) == 0 && len(agent.ConnectorIDs) == 0) {
