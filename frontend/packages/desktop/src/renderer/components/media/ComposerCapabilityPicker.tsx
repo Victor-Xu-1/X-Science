@@ -26,6 +26,7 @@ type ComposerCapabilityPickerProps = {
   selectedSkillNames: string[];
   selectedMcpServerIds: string[];
   onSelectSkill: (name: string) => void;
+  onEnableSkill?: (name: string) => void;
   onSelectMcpServer?: (server: IConversationMcpStatus) => void;
   onOpenMcpSettings: () => void;
   onRequestClose?: () => void;
@@ -166,7 +167,7 @@ const SearchHeader: React.FC<{
   </div>
 );
 
-type CatalogEntry = { label: string; description: string };
+type CatalogEntry = { label: string; description: string; enabled?: boolean };
 
 function catalogMap(
   entries: Array<{
@@ -175,6 +176,7 @@ function catalogMap(
     name_i18n?: Record<string, string>;
     description: string;
     description_i18n?: Record<string, string>;
+    enabled?: boolean;
   }>,
   localeKey: 'zh-CN' | 'en-US',
   zhFor?: (name: string) => string | undefined
@@ -184,6 +186,7 @@ function catalogMap(
       entry.name,
       {
         label: resolveSkillDisplayName(entry.name, entry.displayName, localeKey, entry.name_i18n),
+        enabled: entry.enabled,
         description:
           zhFor?.(entry.name) ||
           (entry.description_i18n &&
@@ -200,6 +203,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
   selectedSkillNames,
   selectedMcpServerIds,
   onSelectSkill,
+  onEnableSkill,
   onSelectMcpServer,
   onOpenMcpSettings,
   onRequestClose,
@@ -241,15 +245,30 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
     };
   }, [i18n, localeKey]);
 
+  const availableNames = useMemo(() => {
+    const names = [...skillNames];
+    const seen = new Set(names.map((name) => name.toLowerCase()));
+    if (onEnableSkill) {
+      for (const [name, entry] of skillCatalog ?? []) {
+        if (entry.enabled === true && !seen.has(name.toLowerCase())) {
+          names.push(name);
+          seen.add(name.toLowerCase());
+        }
+      }
+    }
+    return names;
+  }, [onEnableSkill, skillCatalog, skillNames]);
+  const admitted = useMemo(() => new Set(skillNames.map((name) => name.toLowerCase())), [skillNames]);
+  const skillMenuLabel = t(onEnableSkill ? 'conversation.attachMenu.skillLibrary' : 'conversation.skills.loaded');
   const filteredSkills = useMemo(
     () =>
-      skillNames
+      availableNames
         .map((name) => {
           const catalog = skillCatalog?.get(name);
           return { name, label: catalog?.label ?? name, description: catalog?.description ?? '' };
         })
         .filter((skill) => searchMatches(skillQuery, skill.name, skill.label, skill.description)),
-    [skillCatalog, skillNames, skillQuery]
+    [skillCatalog, availableNames, skillQuery]
   );
 
   const filteredServers = useMemo(
@@ -263,14 +282,14 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
     [mcpCatalog, mcpQuery, mcpStatuses]
   );
 
-  if (skillNames.length === 0 && mcpStatuses.length === 0) return null;
+  if (availableNames.length === 0 && mcpStatuses.length === 0) return null;
 
   const skillPanel = (
     <div
       className='app-overlay-menu composer-control-submenu flex flex-col'
       style={{ width: 'min(360px, calc(100vw - 96px))', maxHeight: 'min(400px, calc(100vh - 220px))' }}
       role='menu'
-      aria-label={t('conversation.skills.loaded')}
+      aria-label={skillMenuLabel}
     >
       <SearchHeader
         value={skillQuery}
@@ -287,7 +306,18 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
               name={skill.label}
               description={skill.description}
               checked={selectedSkillNames.includes(skill.name)}
-              onClick={() => onSelectSkill(skill.name)}
+              statusSuffix={
+                !admitted.has(skill.name.toLowerCase()) ? (
+                  <span className='text-11px text-t-secondary'>{t('conversation.attachMenu.enableSkillShort')}</span>
+                ) : undefined
+              }
+              onClick={() => {
+                if (admitted.has(skill.name.toLowerCase())) onSelectSkill(skill.name);
+                else {
+                  onRequestClose?.();
+                  onEnableSkill?.(skill.name);
+                }
+              }}
             />
           ))
         )}
@@ -368,7 +398,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
 
   return (
     <div className='px-6px'>
-      {skillNames.length > 0 ? (
+      {availableNames.length > 0 ? (
         <Trigger
           popup={(): React.ReactNode => skillPanel}
           trigger='hover'
@@ -381,7 +411,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
           <div>
             <SubmenuTriggerRow
               icon={<Lightning theme='outline' size={15} fill={iconColors.primary} />}
-              label={`${t('conversation.skills.loaded')} · ${skillNames.length}`}
+              label={`${skillMenuLabel} · ${availableNames.length}`}
             />
           </div>
         </Trigger>

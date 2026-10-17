@@ -25,6 +25,7 @@ import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import GuidProjectFilesModal from '@/renderer/pages/guid/components/GuidProjectFilesModal';
 import { loadXScienceComposerCapabilities } from '@/renderer/services/xScienceGateway';
+import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAcpConfigOptions } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
@@ -99,6 +100,8 @@ import { useAcpComposerContextSelection } from './useAcpComposerContextSelection
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import { useConversationSkillSave } from './useConversationSkillSave';
 import { ConversationSkillSaveStatus } from './ConversationSkillSaveStatus';
+import { useConversationSkillActivation } from './useConversationSkillActivation';
+import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
 
@@ -751,6 +754,9 @@ const AcpSendBox: React.FC<{
         messageState.fetchSlashCommands({ fresh: true }),
       ]);
       if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
+      const capabilities = refreshed[0];
+      if (capabilities.status !== 'fulfilled' || !capabilities.value) throw new Error('Skill capabilities unavailable');
+      return capabilities.value.skills;
     },
     [conversation_id, messageState.fetchSlashCommands, mutateComposerCapabilities]
   );
@@ -765,6 +771,30 @@ const AcpSendBox: React.FC<{
   const savedSkillName = skillSave.state.status === 'saved' ? skillSave.state.name : null;
   const savedSkillAvailable =
     savedSkillName !== null && loadedSkills.some((name) => name.toLowerCase() === savedSkillName.toLowerCase());
+  const skillActivation = useConversationSkillActivation({
+    authority: conversationAuthorityRef.current,
+    ownerId,
+    assistantId: conversationContext?.assistantId,
+    // This is server-projected runtime identity, not the localized display prop.
+    runtimeAgentName: (initialConversation?.extra as { agent_name?: string } | undefined)?.agent_name,
+    locale: localeKey,
+    mountedRef,
+    disabled: isBusy || !isXScienceConversation,
+    refreshCatalogs: refreshSkillCatalogs,
+    onSelectSkill: handleSkillSelected,
+  });
+  const { data: mobileSkillLibrary } = useSWR(
+    isMobile && skillActivation.canActivate ? ['x-science-mobile-skill-library', ownerId, conversation_id] : null,
+    () => loadXScienceSkills(),
+    { keepPreviousData: false }
+  );
+  const mobileLibraryNames = useMemo(
+    () =>
+      skillActivation.canActivate
+        ? (mobileSkillLibrary ?? []).filter((skill) => skill.enabled).map((skill) => skill.name)
+        : [],
+    [mobileSkillLibrary, skillActivation.canActivate]
+  );
 
   const {
     items: queuedCommands,
@@ -990,10 +1020,12 @@ const AcpSendBox: React.FC<{
     handleThoughtLevelSetOption,
     attachEntries,
     loadedSkills,
+    librarySkillNames: mobileLibraryNames,
     loadedMcpStatuses,
     selectedSkillNames,
     selectedMcpServerIds,
     onSelectSkill: handleSkillSelected,
+    onEnableSkill: skillActivation.canActivate ? skillActivation.request : undefined,
     onSelectMcpServer: handleMcpSelected,
     t,
     i18n,
@@ -1152,6 +1184,12 @@ const AcpSendBox: React.FC<{
         onRetrySave={skillSave.save}
         onRetryRefresh={skillSave.retryRefresh}
         onUseSkill={handleSkillSelected}
+        onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
+      />
+      <ConversationSkillActivationDialog
+        state={skillActivation.state}
+        onConfirm={skillActivation.confirm}
+        onCancel={skillActivation.cancel}
       />
 
       <SendBox
@@ -1193,6 +1231,7 @@ const AcpSendBox: React.FC<{
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectSkill={handleSkillSelected}
+                onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
                 onSelectMcpServer={handleMcpSelected}
                 xScienceV11
                 onRequestReview={handleRequestReview}

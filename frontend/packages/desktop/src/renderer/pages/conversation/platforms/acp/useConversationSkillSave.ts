@@ -25,7 +25,7 @@ type ConversationSkillSaveOptions = {
   authority: object;
   mountedRef: RefObject<boolean>;
   disabled: boolean;
-  refreshCatalogs: (isCurrent: () => boolean) => Promise<void>;
+  refreshCatalogs: (isCurrent: () => boolean) => Promise<unknown>;
 };
 
 // The scope follows the composer's existing conversation authority. In-flight
