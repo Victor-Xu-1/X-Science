@@ -310,12 +310,8 @@ func (s *Server) isDraining() bool {
 }
 
 func (s *Server) sessionRunActivity() (active int, draining bool) {
-	if s == nil {
-		return 0, false
-	}
-	s.sessionRunsMu.Lock()
-	defer s.sessionRunsMu.Unlock()
-	return len(s.sessionRuns), s.sessionRunsDraining || s.sessionRunsDrainEvaluating
+	active, _, draining = s.runtimeActivity()
+	return active, draining
 }
 
 func (s *Server) activeKernelExecutionCount() int {
@@ -389,7 +385,7 @@ func (s *Server) TryDrainIdle() bool {
 		s.sessionRunsMu.Unlock()
 		return false
 	}
-	if len(s.sessionRuns) != 0 {
+	if s.hasActiveRuntimeOwnersLocked() {
 		s.sessionRunsMu.Unlock()
 		return false
 	}
@@ -420,7 +416,7 @@ func (s *Server) TryDrainIdle() bool {
 		s.sessionRunsMu.Unlock()
 		return true
 	}
-	if len(s.sessionRuns) != 0 {
+	if s.hasActiveRuntimeOwnersLocked() {
 		s.sessionRunsDrainEvaluating = false
 		s.sessionRunsMu.Unlock()
 		return false
@@ -440,7 +436,7 @@ func (s *Server) TryDrainIdle() bool {
 		s.sessionRunsMu.Unlock()
 		return true
 	}
-	if len(s.sessionRuns) != 0 {
+	if s.hasActiveRuntimeOwnersLocked() {
 		s.sessionRunsDrainEvaluating = false
 		s.sessionRunsMu.Unlock()
 		return false

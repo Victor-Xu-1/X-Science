@@ -134,7 +134,7 @@ func TestConversationSkillAuthoringCarrierDiagnosticIsMetadataOnly(t *testing.T)
 func TestConversationSkillAuthoringCarrierValidationReasons(t *testing.T) {
 	valid := conversationSkillDraftArgumentsForTest(t, nil)
 	invalidManifest := conversationSkillDraftArgumentsForTest(t, func(fields map[string]any) {
-		fields["skill_markdown"] = "---\nname: [unterminated\n---\nFixture body."
+		fields["skill_markdown"] = "---\nname: ignored\n---\n"
 	})
 	cases := []struct {
 		name    string
