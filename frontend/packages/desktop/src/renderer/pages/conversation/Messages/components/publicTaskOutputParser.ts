@@ -137,7 +137,9 @@ class PythonLiteralParser {
       const escaped = this.source[this.position];
       this.position += 1;
       const escapes: Record<string, string> = { n: '\n', r: '\r', t: '\t', '\\': '\\', "'": "'", '"': '"' };
-      result += escapes[escaped] ?? escaped;
+      // Unsupported escapes must stay in the raw output, not lose their slash.
+      if (!Object.hasOwn(escapes, escaped)) throw new Error('unsupported task output escape');
+      result += escapes[escaped];
     }
     throw new Error('unterminated task output string');
   }

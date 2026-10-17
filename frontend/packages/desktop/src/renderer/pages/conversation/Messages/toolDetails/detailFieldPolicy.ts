@@ -111,7 +111,7 @@ export function publicDetailFieldLabel(key: string, chinese = false): string {
     recommendation: 'recordRecommendation',
     mutation_blockers: 'recordEnvironmentLimits',
   };
-  const label = labels[normalizedKey];
+  const label = Object.hasOwn(labels, normalizedKey) ? labels[normalizedKey] : undefined;
   if (label) return toolPublicDetailText(chinese, label);
   if (normalizedKey === 'doi') return 'DOI';
   if (normalizedKey === 'smiles') return 'SMILES';
