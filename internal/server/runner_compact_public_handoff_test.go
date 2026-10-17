@@ -390,6 +390,10 @@ func TestCompactPublicHandoffScopesSummaryWithoutLosingCropOrTypedState(t *testi
 			if err != nil || len(ledger) != 1 {
 				t.Fatalf("typed fixture ledger=%+v err=%v", ledger, err)
 			}
+			ledgerJSON, err := json.Marshal(ledger)
+			if err != nil {
+				t.Fatal(err)
+			}
 			handoff := buildCompactPublicHandoff(before)
 			handoff.Version = test.version
 			boundary := compactPublicTestBoundary(t, 5, handoff)
@@ -430,8 +434,17 @@ func TestCompactPublicHandoffScopesSummaryWithoutLosingCropOrTypedState(t *testi
 				t.Fatal("task fence rewrote or removed original user authority")
 			}
 			actual, err := sessionRunnerToolContinuityRecords(entries)
-			if err != nil || !reflect.DeepEqual(actual, ledger) || runtimeProviderCacheMarkersFromEntries(entries).CompactedThroughEventID != 5 {
-				t.Fatal("task fence changed the independent typed ledger or compact marker")
+			if err != nil {
+				t.Fatalf("read persisted typed ledger: %v", err)
+			}
+			actualJSON, err := json.Marshal(actual)
+			// The durable ledger omits empty optional slices; compare its full
+			// wire representation rather than nil versus allocated empty slices.
+			if err != nil || string(actualJSON) != string(ledgerJSON) {
+				t.Fatalf("task fence changed typed ledger: got=%s want=%s err=%v", actualJSON, ledgerJSON, err)
+			}
+			if marker := runtimeProviderCacheMarkersFromEntries(entries).CompactedThroughEventID; marker != 5 {
+				t.Fatalf("task fence changed compact marker: got=%d want=5", marker)
 			}
 			if test.newTask {
 				for _, note := range buildCompactPublicHandoff(entries).Entries {

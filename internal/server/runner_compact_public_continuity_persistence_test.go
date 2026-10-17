@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -61,6 +60,10 @@ func TestRunnerCompactPublicHandoffSurvivesCheckpointResumeAndSecondCompaction(t
 	if err != nil || len(expectedLedger) != 1 || expectedLedger[0].ToolCallID != "public-handoff-receipt" ||
 		!expectedLedger[0].Successful {
 		t.Fatalf("canonical typed receipt ledger=%+v err=%v", expectedLedger, err)
+	}
+	expectedLedgerJSON, err := json.Marshal(expectedLedger)
+	if err != nil {
+		t.Fatal(err)
 	}
 	var rootID int64
 	var rootText string
@@ -135,8 +138,14 @@ func TestRunnerCompactPublicHandoffSurvivesCheckpointResumeAndSecondCompaction(t
 	after := loadReplay()
 	requirePruned(after, priorPublicID, currentPublicID, firstID)
 	actualLedger, err := sessionRunnerToolContinuityRecords(after)
-	if err != nil || !reflect.DeepEqual(actualLedger, expectedLedger) {
-		t.Fatalf("public continuity changed independent typed receipts: got=%+v want=%+v err=%v", actualLedger, expectedLedger, err)
+	if err != nil {
+		t.Fatalf("read persisted typed receipts: %v", err)
+	}
+	actualLedgerJSON, err := json.Marshal(actualLedger)
+	// Persisted optional empty slices use omitempty. All serialized receipt
+	// fields and their order must survive both compacts byte-for-byte.
+	if err != nil || string(actualLedgerJSON) != string(expectedLedgerJSON) {
+		t.Fatalf("public continuity changed typed receipts: got=%s want=%s err=%v", actualLedgerJSON, expectedLedgerJSON, err)
 	}
 	var retainedReceipt string
 	if err := fixture.db.QueryRowContext(ctx, `SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_id=?`,
