@@ -549,9 +549,12 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		if continuityErr != nil {
 			return entries, result, continuityErr
 		}
+		modelContext := map[string]any{"summary": summary}
+		addCompactPublicHandoff(modelContext, entries)
 		compactDetails := map[string]any{
 			runnerSoftCompactionEpisodeField: episodeValue,
 			"summary":                        summary,
+			"modelContext":                   modelContext,
 			"summaryStatus":                  summaryStatus,
 			"modelSummary":                   modelSummary,
 			"trigger":                        "auto",

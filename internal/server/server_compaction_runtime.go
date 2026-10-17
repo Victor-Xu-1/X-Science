@@ -153,6 +153,7 @@ func (s *Server) executeCompactTool(ctx context.Context, input map[string]any) (
 		"instructions":            mergedInstructions,
 		"retainedPolicy":          "runner_model_context_uses_summary_plus_events_after_compact",
 	}
+	addCompactPublicHandoff(modelContext, entries)
 	checkpoint := map[string]any{
 		"sessionId":               sessionID,
 		"instructions":            mergedInstructions,
@@ -336,17 +337,12 @@ func buildCompactModelPrompt(session sessionstore.Session, entries []eventjourna
 		lines = append(lines, "", "## Root Task Intent", rootTask)
 	}
 	lines = append(lines, "", "## Conversation Transcript")
-	visible := compactVisibleConversationEntries(entries, maxCompactModelTranscriptEntries)
+	visible := compactPublicConversation(entries, maxCompactModelTranscriptEntries, maxCompactModelTranscriptLineRunes)
 	if len(visible) == 0 {
 		lines = append(lines, "No visible user or assistant messages are available.")
 	} else {
 		for _, entry := range visible {
-			role := strings.TrimSpace(stringValue(entry.Message["role"]))
-			text := compactText(runnerMessageText(entry.Message), maxCompactModelTranscriptLineRunes)
-			if text == "" {
-				continue
-			}
-			lines = append(lines, fmt.Sprintf("### Event %d %s", entry.EventID, role), text)
+			lines = append(lines, fmt.Sprintf("### Event %d %s", entry.SourceEventID, compactPublicExcerptRole(entry)), entry.Text)
 		}
 	}
 	durable, err := compactDurableRuntimeContextLines(entries)
@@ -376,18 +372,13 @@ func buildCompactModelContextSummary(session sessionstore.Session, entries []eve
 	if rootTask := compactRootTaskIntent(entries); rootTask != "" {
 		lines = append(lines, "Root task intent: "+rootTask)
 	}
-	recent := compactVisibleConversationEntries(entries, maxCompactSummaryConversationEntries)
+	recent := compactPublicConversation(entries, maxCompactSummaryConversationEntries, maxCompactSummaryLineRunes)
 	if len(recent) == 0 {
 		lines = append(lines, "Recent conversation: no visible user or assistant messages were present before compaction.")
 	} else {
 		lines = append(lines, "Recent conversation:")
 		for _, entry := range recent {
-			role := strings.TrimSpace(stringValue(entry.Message["role"]))
-			text := compactText(runnerMessageText(entry.Message), maxCompactSummaryLineRunes)
-			if text == "" {
-				continue
-			}
-			lines = append(lines, fmt.Sprintf("- #%d %s: %s", entry.EventID, role, text))
+			lines = append(lines, fmt.Sprintf("- #%d %s: %s", entry.SourceEventID, compactPublicExcerptRole(entry), entry.Text))
 		}
 	}
 	durable, err := compactDurableRuntimeContextLines(entries)
@@ -412,27 +403,6 @@ func compactRootTaskIntent(entries []eventjournal.Entry) string {
 		}
 	}
 	return ""
-}
-
-func compactVisibleConversationEntries(entries []eventjournal.Entry, limit int) []eventjournal.Entry {
-	if limit <= 0 || len(entries) == 0 {
-		return nil
-	}
-	visible := make([]eventjournal.Entry, 0, len(entries))
-	for _, entry := range entries {
-		role := strings.TrimSpace(stringValue(entry.Message["role"]))
-		if role != "user" && role != "assistant" {
-			continue
-		}
-		if runnerMessageText(entry.Message) == "" {
-			continue
-		}
-		visible = append(visible, entry)
-	}
-	if len(visible) <= limit {
-		return visible
-	}
-	return visible[len(visible)-limit:]
 }
 
 func compactMergedInstructions(base string, results []agentRuntimeCommandHookResult) string {
