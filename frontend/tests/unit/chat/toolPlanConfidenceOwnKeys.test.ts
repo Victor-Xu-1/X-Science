@@ -73,8 +73,7 @@ describe.each(locales)('public plan confidence in $language', (locale) => {
     it('keeps public rationale while redacting existing private fragments and host paths', () => {
       const feasibility = {
         confidence: 'high',
-        rationale:
-          'Public observations remain provisional; runtime policy detail; /home/fixture/private/notes.txt',
+        rationale: 'Public observations remain provisional; runtime policy detail; /home/fixture/private/notes.txt',
       };
       const input = {
         task_summary: 'Compare public observations',
