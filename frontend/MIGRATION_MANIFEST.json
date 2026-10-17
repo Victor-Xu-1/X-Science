@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ccc695fd2cf00468162fa870e11f65937875c576d7ff2b267c0fbff5203af5b7",
+  "adaptationFingerprintSHA256": "f26bb9cdab98c48af068ed4b0c9c86302f68dfd16dfe0d81364e6e4ef0b8331f",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "23749393b0e31832fd82c23a681f60df8725d102f1348200aea121a6abccf345",
+  "additionFingerprintSHA256": "ad472f9a1eb4dd12926edef64024cd4e43a32a7656d09340c40d5886d4848a07",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "e4a22ec57191f3dec30ae65bf87ed9c2f1c3d41539955202c37f079b3f2d113b",
-      "bytes": 258137,
+      "targetSHA256": "e003c57f9f5f9ac410e38c443d0b609263980e65e86897367ca22211ba5360c4",
+      "bytes": 258703,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "8bc18b112fe1585567aa7a39822bf21a9f50ae975d79ffff6add69b551f54ac3",
-      "bytes": 84233,
+      "targetSHA256": "f0f35e004f8a1ccd391a450c88d8a0a88f70d3a5cac0c4837a14ad61f3c2af64",
+      "bytes": 85251,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2959,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "ee9b8e6b6049df2a4b2e5df55f9df6c1a4a56e21ca0ec9dfc0b0a144c23b6ae0",
-      "bytes": 79361,
+      "targetSHA256": "39b9fa108b9ac06636406ee0bd5f58521a14735a40a6553aa86b98258d3b3f6a",
+      "bytes": 80350,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4597,8 +4597,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "bd9fd7592d019b6ce03a1f3c35f16f552c2e378d40c70c7e5dece018090b06b6",
-      "bytes": 99454,
+      "targetSHA256": "9180b5d5d27540f5d38ef3fab69a1ca6019dff79fbbb6c748d6c01487aba1dd0",
+      "bytes": 102227,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5461,8 +5461,8 @@
       "path": "tests/unit/xscience/skillLibrary.test.ts",
       "originalPath": "tests/unit/synonbiomed/skillLibrary.test.ts",
       "sourceSHA256": "9b21e72b1a699f283a4af3a0b87db42b4780c676c78a54704f1d3d46486087a0",
-      "targetSHA256": "fafead48c907807054e1debcca544b515ccb3ead302f53fdba8b8b98773e32b0",
-      "bytes": 6155,
+      "targetSHA256": "627d2684944d88e795b03a296c10ed88a6b81d24f1b58fb6ab45f369563e9598",
+      "bytes": 6849,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -9102,8 +9102,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/ConversationSkillSaveStatus.tsx",
-      "sha256": "bc412583f7ac1b34d36b462719daa517d187f97fd805bfc01707e57dfcc586f1",
-      "bytes": 3467,
+      "sha256": "68eac2d759067021a5541da9ebd4c5d3cf5398ae02ceecd7d742e31e34b49761",
+      "bytes": 4768,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9156,8 +9156,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillSave.ts",
-      "sha256": "613efe26eda43c78a2c4f091d2694d26050499d18ca94839fbdc9870ed5803b2",
-      "bytes": 4140,
+      "sha256": "e07a04e3a85129a929c08d4a50a547bbc8265d7f14c58eccca2e345d84c6abda",
+      "bytes": 4336,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9996,8 +9996,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/skills/xScienceSkillLibrary.ts",
-      "sha256": "219ff25bea34dc38c99c611a10be5e7c8d36f26c2c94873eb87444c2f572f33d",
-      "bytes": 11890,
+      "sha256": "34b0d0534f345abaa70a0ec05e5a339f4c9f69a97c61021d6c8f37c462e23bdb",
+      "bytes": 12539,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
