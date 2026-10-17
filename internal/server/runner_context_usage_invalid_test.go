@@ -27,6 +27,10 @@ func TestRunnerContextUsageCurrentInvalidity(t *testing.T) {
 		{"invalid-explicit-total", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, Reported: components, InvalidFields: agentruntime.ModelUsageFields{Total: true}}, "estimated", 110, 10},
 		{"invalid-additive-cache", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, Reported: components, CacheTokensAdditive: true, InvalidFields: agentruntime.ModelUsageFields{CacheRead: true}, Warnings: warnings}, "estimated", 1010, 10},
 		{"independent-explicit-total", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 110, Reported: complete, CacheTokensAdditive: true, InvalidFields: agentruntime.ModelUsageFields{CacheRead: true}, Warnings: warnings}, "provider", 110, 10},
+		{"contradictory-total-incomplete-cache", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 50, Reported: complete, CacheTokensAdditive: true, InvalidFields: agentruntime.ModelUsageFields{CacheRead: true}}, "estimated", 1010, 10},
+		{"contradictory-total-complete-components", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 50, Reported: complete}, "estimated", 110, 10},
+		{"valid-cache-sibling-bounds-total", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, CacheReadTokens: 20, TotalTokens: 110, Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true}, CacheTokensAdditive: true, InvalidFields: agentruntime.ModelUsageFields{CacheWrite: true}}, "estimated", 1010, 10},
+		{"unrepresentable-known-minimum", agentruntime.ModelUsage{InputTokens: int(^uint(0) >> 1), CacheReadTokens: 1, TotalTokens: int(^uint(0) >> 1), Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true}, CacheTokensAdditive: true}, "estimated", 1000, 0},
 		{"healed-current-cache-history-remains", agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 110, Reported: complete, CacheTokensAdditive: true, Warnings: warnings}, "provider", 110, 10},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -105,8 +109,8 @@ func TestRunnerContextUsageCurrentInvalidity(t *testing.T) {
 				}
 				check(combined, "estimated", 1000)
 				authoritative := request
-				authoritative.TotalTokens, authoritative.Reported = maximum, complete
-				check(combine(authoritative), "provider", maximum)
+				authoritative.TotalTokens, authoritative.Reported = maximum, &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true, CacheWrite: true}
+				check(combine(authoritative), "estimated", 1000)
 				// A new valid snapshot changes current cache, not the historical
 				// warning. The aggregation must recompute, not retain a synthetic bit.
 				healed := request

@@ -105,6 +105,13 @@ func (usage ModelUsage) AddRequestUsage(next ModelUsage) ModelUsage {
 		usage   ModelUsage
 		invalid *ModelUsageFields
 	}{{usage, &leftInvalid}, {next, &rightInvalid}} {
+		// Check each receipt before dependency synthesis or AND presence can
+		// discard valid siblings. Another request's larger total cannot repair
+		// a contradictory total from this request.
+		if request.usage.ReportedFields().Total {
+			minimum, ok := request.usage.KnownMinimumTokens()
+			request.invalid.Total = request.invalid.Total || !ok || request.usage.TotalTokens < minimum
+		}
 		if !request.usage.CacheTokensAdditive {
 			continue
 		}
