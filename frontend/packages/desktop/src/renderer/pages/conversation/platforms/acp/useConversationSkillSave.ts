@@ -1,10 +1,14 @@
 import { useCallback, useRef, useState, type RefObject } from 'react';
-import { saveXScienceConversationAsSkill } from '@/renderer/services/skills/xScienceSkillLibrary';
+import {
+  saveXScienceConversationAsSkill,
+  XScienceSkillLibraryError,
+} from '@/renderer/services/skills/xScienceSkillLibrary';
 
 export type ConversationSkillSaveState =
   | { status: 'idle' }
   | { status: 'saving' }
   | { status: 'error' }
+  | { status: 'conflict' }
   | { status: 'saved'; name: string; refresh: 'pending' | 'ready' | 'error' };
 
 type SaveScope = {
@@ -76,9 +80,13 @@ export function useConversationSkillSave({
     try {
       const result = await saveXScienceConversationAsSkill(conversationId);
       name = result.name;
-    } catch {
+    } catch (error) {
       scope.inFlight = false;
-      if (isCurrent(scope)) publish(scope, { status: 'error' });
+      if (isCurrent(scope)) {
+        publish(scope, {
+          status: error instanceof XScienceSkillLibraryError && error.status === 409 ? 'conflict' : 'error',
+        });
+      }
       return;
     }
     if (!isCurrent(scope)) {

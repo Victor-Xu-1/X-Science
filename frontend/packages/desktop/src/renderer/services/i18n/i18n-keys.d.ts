@@ -468,6 +468,8 @@ export type I18nKey =
   | 'conversation.attachMenu.reviewingDescription'
   | 'conversation.attachMenu.saveAsSkill'
   | 'conversation.attachMenu.saveAsSkillBusyDescription'
+  | 'conversation.attachMenu.saveAsSkillChooseExisting'
+  | 'conversation.attachMenu.saveAsSkillConflict'
   | 'conversation.attachMenu.saveAsSkillDescription'
   | 'conversation.attachMenu.saveAsSkillError'
   | 'conversation.attachMenu.saveAsSkillFailed'
