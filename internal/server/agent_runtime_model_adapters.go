@@ -135,6 +135,7 @@ func (client sessionRunnerAuditedStaticModelClient) Complete(
 		record.CacheReadTokens = response.Usage.CacheReadTokens
 		record.CacheWriteTokens = response.Usage.CacheWriteTokens
 		record.TotalTokens = response.Usage.TotalTokens
+		record.UsageWarnings = response.Usage.Warnings
 	}
 	if client.audit != nil {
 		client.audit(record)

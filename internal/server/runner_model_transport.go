@@ -333,6 +333,9 @@ func (s *Server) recordSessionRunnerModelAuditRole(sessionID string, attempt int
 		"providerAuthority":       true,
 		"runtimeRole":             strings.TrimSpace(role),
 	}
+	if !record.UsageWarnings.Empty() {
+		value["usageWarnings"] = record.UsageWarnings
+	}
 	_, _ = s.runtimeStore.Set(sessionRunnerModelAuditRuntimeNamespace, key, value)
 }
 

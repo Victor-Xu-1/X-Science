@@ -130,6 +130,7 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	record.CacheReadTokens = usage.CacheReadTokens
 	record.CacheWriteTokens = usage.CacheWriteTokens
 	record.TotalTokens = usage.TotalTokens
+	record.UsageWarnings = usage.Warnings
 	record.FinishedAt = time.Now().UTC()
 	record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 	if err != nil {
