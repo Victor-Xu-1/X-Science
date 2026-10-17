@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "56640b79d2ddc711e4ce6fb364f2f3e210096f3622e904d43423315dbfa98301",
+  "adaptationFingerprintSHA256": "23663385823980f7e2cc93a81eae0cc577c7fb409ea6a8b7f9ed052a37019d2e",
   "removalFingerprintSHA256": "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff",
-  "additionFingerprintSHA256": "41bf60b31395b89e7ef99a892a9de7b2219099b94a0442ebc07bee73d430e663",
+  "additionFingerprintSHA256": "afe0c232b193151253862d41b1936e3237a937b12ec06d8fc2c392f9db31c882",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 786,
     "removedSourceFiles": 293,
-    "addedFiles": 958
+    "addedFiles": 959
   },
   "adaptations": [
     {
@@ -2176,8 +2176,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "3ff8b18a2e961797f925cb7847ee00e8c177e2f6aa062acb2f52fd52e507deb8",
-      "bytes": 53940,
+      "targetSHA256": "e7224eabf7db141348b17a9e434bfc0a6985f0804f5c11eee814c2ff64429970",
+      "bytes": 54031,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2833,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "f57fe32fdad26080247b3dce38086f1cdebb84a8b0b482a3a49204fcf8a3193b",
-      "bytes": 258031,
+      "targetSHA256": "e4a22ec57191f3dec30ae65bf87ed9c2f1c3d41539955202c37f079b3f2d113b",
+      "bytes": 258137,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "fab94f583b351e8d0a240eb01b971f191e2241ba4373fd4f48f8673e295ebbfc",
-      "bytes": 83978,
+      "targetSHA256": "8bc18b112fe1585567aa7a39822bf21a9f50ae975d79ffff6add69b551f54ac3",
+      "bytes": 84233,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2959,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "c97af8df221304f067a8c6f019fc6d71d6b2060c642bae1e3d2e26bf79f58c74",
-      "bytes": 79158,
+      "targetSHA256": "ee9b8e6b6049df2a4b2e5df55f9df6c1a4a56e21ca0ec9dfc0b0a144c23b6ae0",
+      "bytes": 79361,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4597,8 +4597,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "9e47c0923c485658a037cf0ece4900fa6eb8d58aefec0fcf956536249bdd8b29",
-      "bytes": 92864,
+      "targetSHA256": "bd9fd7592d019b6ce03a1f3c35f16f552c2e378d40c70c7e5dece018090b06b6",
+      "bytes": 99454,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -9095,9 +9095,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/ConversationSkillConflictRecovery.tsx",
+      "sha256": "68e2b6197d26badda04624f5d2fafc1617b7d6ffe30927a9a07552e2b38354b8",
+      "bytes": 2451,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/ConversationSkillSaveStatus.tsx",
-      "sha256": "5c20347845ff46ea04749ee53f2150af2d22e3d578127189b4c06a23c6e4e152",
-      "bytes": 2851,
+      "sha256": "bc412583f7ac1b34d36b462719daa517d187f97fd805bfc01707e57dfcc586f1",
+      "bytes": 3467,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9150,8 +9156,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillSave.ts",
-      "sha256": "7060cd4f529e1ca653fe5ed57d47090f0586a9b00cd9de2a590223f3dde37d6e",
-      "bytes": 3954,
+      "sha256": "613efe26eda43c78a2c4f091d2694d26050499d18ca94839fbdc9870ed5803b2",
+      "bytes": 4140,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
