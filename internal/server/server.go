@@ -273,6 +273,7 @@ type Server struct {
 	sessionSockets                        *sessionWebSocketHub
 	sessionRunsMu                         sync.Mutex
 	sessionRuns                           map[string]*activeSessionRun
+	activeRuntimeOperations               int
 	sessionRunsDraining                   bool
 	sessionRunsDrainEvaluating            bool
 	tryDrainIdleDurableWait               func()
@@ -843,7 +844,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/preferences/import-bundle", s.handleSkillBundleImport)
 	mux.HandleFunc("/api/skills", s.handleWebSkills)
 	mux.HandleFunc("/api/skills/import", s.handleSkillBundleImport)
-	mux.HandleFunc("/api/skills/from-conversation", s.handleSkillFromConversation)
+	mux.HandleFunc("/api/skills/from-conversation", s.withRuntimeOperation(s.handleSkillFromConversation))
 	mux.HandleFunc("/api/skills/materialize-for-agent", s.handleWebSkillMaterialize)
 	mux.HandleFunc("/api/skills/info", s.handleWebSkillInfo)
 	mux.HandleFunc("/api/skills/scan", s.handleWebSkillScan)

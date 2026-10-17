@@ -121,7 +121,7 @@ func TestConversationSkillAuthoringCorrectsFormatOnlyOnce(t *testing.T) {
 		{"duplicate_field", conversationSkillToolReplyForTest("{\"name\":\"duplicate-name\"," + strings.TrimPrefix(valid, "{"))},
 		{"invalid_name", conversationSkillToolReplyForTest(changed(func(fields map[string]any) { fields["name"] = "../escape" }))},
 		{"invalid_manifest", conversationSkillToolReplyForTest(changed(func(fields map[string]any) {
-			fields["skill_markdown"] = "---\nname: [unterminated\n---\nFixture body."
+			fields["skill_markdown"] = "---\nname: ignored\n---\n"
 		}))},
 	}
 	for _, test := range cases {

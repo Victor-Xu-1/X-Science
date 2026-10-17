@@ -14,8 +14,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"gopkg.in/yaml.v3"
-
 	eventjournal "x-science/internal/persistence/journal"
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -307,71 +305,6 @@ func conversationSkillDraftBundle(draft conversationSkillDraft) ([]byte, []strin
 		names = append(names, file.Name)
 	}
 	return bundle, names, nil
-}
-
-func normalizeConversationSkillManifest(raw, name, description string) (string, error) {
-	text := strings.ReplaceAll(strings.TrimSpace(raw), "\r\n", "\n")
-	if !strings.HasPrefix(text, "---\n") {
-		metadata := map[string]string{"name": name}
-		if description != "" {
-			metadata["description"] = description
-		}
-		encoded, err := yaml.Marshal(metadata)
-		if err != nil {
-			return "", err
-		}
-		return "---\n" + strings.TrimSpace(string(encoded)) + "\n---\n\n" + text + "\n", nil
-	}
-	closing := strings.Index(text[4:], "\n---")
-	if closing < 0 {
-		return "", errors.New("skill_markdown frontmatter is unterminated")
-	}
-	closing += 4
-	var document yaml.Node
-	if err := yaml.Unmarshal([]byte(text[4:closing]), &document); err != nil {
-		return "", fmt.Errorf("parse skill_markdown frontmatter: %w", err)
-	}
-	if len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
-		return "", errors.New("skill_markdown frontmatter must be a mapping")
-	}
-	root := document.Content[0]
-	nameSet, descriptionSet := false, false
-	seenKeys := make(map[string]struct{}, len(root.Content)/2)
-	for index := 0; index+1 < len(root.Content); index += 2 {
-		key := strings.ToLower(strings.TrimSpace(root.Content[index].Value))
-		if _, duplicate := seenKeys[key]; duplicate {
-			return "", errors.New("skill_markdown frontmatter contains duplicate fields")
-		}
-		seenKeys[key] = struct{}{}
-		switch key {
-		case "name":
-			root.Content[index+1] = &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: name}
-			nameSet = true
-		case "description":
-			if description != "" {
-				root.Content[index+1] = &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: description}
-			}
-			descriptionSet = true
-		}
-	}
-	if !nameSet {
-		root.Content = append(root.Content,
-			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "name"},
-			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: name},
-		)
-	}
-	if description != "" && !descriptionSet {
-		root.Content = append(root.Content,
-			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "description"},
-			&yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: description},
-		)
-	}
-	encoded, err := yaml.Marshal(&document)
-	if err != nil {
-		return "", err
-	}
-	body := strings.TrimPrefix(text[closing+len("\n---"):], "\n")
-	return "---\n" + strings.TrimSpace(string(encoded)) + "\n---\n" + body + "\n", nil
 }
 
 func zipConversationSkillFiles(files []conversationSkillFile) ([]byte, error) {

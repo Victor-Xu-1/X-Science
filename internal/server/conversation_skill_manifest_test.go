@@ -6,41 +6,24 @@ import (
 	"testing"
 )
 
-func TestConversationSkillAuthoringRejectsDuplicateFrontmatter(t *testing.T) {
+func TestConversationSkillAuthoringIgnoresRedundantModelMetadata(t *testing.T) {
 	for _, field := range []string{"name", "description"} {
-		for _, corrected := range []bool{true, false} {
-			name := field + "_repeated"
-			if corrected {
-				name = field + "_corrected"
-			}
-			t.Run(name, func(t *testing.T) {
-				duplicate := conversationSkillDraftArgumentsForTest(t, func(fields map[string]any) {
-					fields["skill_markdown"] = "---\nname: typed-fixture-workflow\ndescription: Fixture workflow.\n" +
-						field + ": Duplicate value.\n---\nValidate the provided inputs."
-				})
-				replies := []conversationSkillAuthoringReply{
-					conversationSkillToolReplyForTest(duplicate),
-					conversationSkillToolReplyForTest(duplicate),
-				}
-				wantStatus := http.StatusBadGateway
-				if corrected {
-					replies[1] = conversationSkillToolReplyForTest(conversationSkillDraftArgumentsForTest(t, nil))
-					wantStatus = http.StatusCreated
-				}
-				fixture := newConversationSkillAuthoringFixture(t, replies)
-				response := fixture.save(context.Background())
-				if response.Code != wantStatus || len(fixture.capturedRequests()) != 2 {
-					t.Fatalf("duplicate frontmatter save status=%d want=%d requests=%d body=%s",
-						response.Code, wantStatus, len(fixture.capturedRequests()), response.Body.String())
-				}
-				if !corrected {
-					fixture.assertNoInstallation(t)
-					return
-				}
-				if _, found := findCatalogSkill(fixture.server.skillCatalog, "typed-fixture-workflow"); !found {
-					t.Fatal("corrected manifest was not installed")
-				}
+		t.Run(field, func(t *testing.T) {
+			duplicate := conversationSkillDraftArgumentsForTest(t, func(fields map[string]any) {
+				fields["skill_markdown"] = "---\nname: ignored\ndescription: Ignored metadata.\n" +
+					field + ": Duplicate value.\n---\nValidate the provided inputs."
 			})
-		}
+			fixture := newConversationSkillAuthoringFixture(t, []conversationSkillAuthoringReply{
+				conversationSkillToolReplyForTest(duplicate),
+			})
+			response := fixture.save(context.Background())
+			if response.Code != http.StatusCreated || len(fixture.capturedRequests()) != 1 {
+				t.Fatalf("redundant metadata save status=%d requests=%d", response.Code, len(fixture.capturedRequests()))
+			}
+			skill, found := findCatalogSkill(fixture.server.skillCatalog, "typed-fixture-workflow")
+			if !found || skill.Description != "A reusable fixture workflow." {
+				t.Fatal("structured metadata was not the sole installed authority")
+			}
+		})
 	}
 }
