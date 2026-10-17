@@ -66,3 +66,27 @@ func (counter OptionalUsageCounter) Reason() UsageCounterReason { return counter
 func (counter OptionalUsageCounter) Value() (int, bool) {
 	return counter.value, counter.state == UsageCounterValid
 }
+
+// UnmarshalOptionalUsageObject is only for declared optional usage containers.
+// The typed caller resets its receiver and passes its schema-supported leaves.
+// Valid objects retain normal typed decoding; malformed JSON remains an error.
+// A valid non-object invalidates those leaves without retaining provider data.
+func UnmarshalOptionalUsageObject(raw []byte, target any, counters ...*OptionalUsageCounter) error {
+	raw = bytes.TrimSpace(raw)
+	if !json.Valid(raw) {
+		var value json.RawMessage
+		return json.Unmarshal(raw, &value)
+	}
+	if bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+	if raw[0] == '{' {
+		return json.Unmarshal(raw, target)
+	}
+	for _, counter := range counters {
+		if counter != nil {
+			*counter = OptionalUsageCounter{state: UsageCounterInvalid, reason: UsageCounterType}
+		}
+	}
+	return nil
+}
