@@ -3,6 +3,7 @@
 package kernel
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,13 @@ import (
 
 	"x-science/internal/processsupervisor"
 )
+
+func newPlatformWorkerCommand(ctx context.Context, executable string, arguments ...string) *exec.Cmd {
+	command := exec.CommandContext(ctx, executable, arguments...)
+	command.Cancel = func() error { return killWorkerProcess(command) }
+	command.WaitDelay = workerProcessWaitDelay
+	return command
+}
 
 func configureWorkerProcess(_ *exec.Cmd) {}
 
@@ -20,7 +28,8 @@ type workerProcess struct {
 	cleanupErr  error
 }
 
-func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProcess, error) {
+func startWorkerProcess[C workerProcessCommand](input C, directories ...string) (*workerProcess, error) {
+	command, _ := unwrapWorkerCommand(input)
 	release, err := configureWorkerResourceDomain(command, directories)
 	if err != nil {
 		return nil, err
@@ -50,13 +59,13 @@ func startWorkerProcess(command *exec.Cmd, directories ...string) (*workerProces
 	return process, nil
 }
 
-func runWorkerProcess(command *exec.Cmd) error {
+func runWorkerProcess[C workerProcessCommand](command C) error {
 	process, err := startWorkerProcess(command)
 	if err != nil {
 		return err
 	}
 	defer process.close()
-	return command.Wait()
+	return waitWorkerCommand(command)
 }
 
 func killWorkerProcess(command *exec.Cmd) error {

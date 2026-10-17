@@ -21,6 +21,11 @@ type managedEnvironmentOperation struct {
 	result  ManagedEnvironment
 	err     error
 
+	// An observer may fail before physical cleanup can be proved. This channel
+	// never releases the operation slot, publication locks, or staging owner.
+	cleanupObserved chan struct{}
+	cleanupErr      error
+
 	progressMu          sync.Mutex
 	progressSubscribers map[int]toolprogress.Reporter
 	nextProgressID      int
@@ -386,6 +391,16 @@ func (m *Manager) runManagedEnvironmentOperation(
 	// A cancelled owner retains the slot until its side effects and cleanup
 	// have finished. New waiters must not join an already-cancelled operation.
 	for {
+		// Mutation requests can use new idempotency keys while still conflicting
+		// with the same host installer/publication reservation. Do not let a new
+		// key turn known uncertainty into an indefinite wait on that file lock.
+		for _, owner := range m.managedEnvironmentOperations {
+			if owner.cleanupErr != nil {
+				err := owner.cleanupErr
+				m.managedEnvironmentMu.Unlock()
+				return ManagedEnvironment{}, err
+			}
+		}
 		previous := m.managedEnvironmentOperations[key]
 		if previous == nil || previous.context.Err() == nil {
 			break
@@ -393,8 +408,13 @@ func (m *Manager) runManagedEnvironmentOperation(
 		m.managedEnvironmentMu.Unlock()
 		select {
 		case <-waitCtx.Done():
-			return ManagedEnvironment{}, waitCtx.Err()
+			return ManagedEnvironment{}, m.managedEnvironmentWaiterError(previous, waitCtx.Err())
 		case <-previous.done:
+		case <-previous.cleanupObserved:
+			m.managedEnvironmentMu.Lock()
+			err := previous.cleanupErr
+			m.managedEnvironmentMu.Unlock()
+			return ManagedEnvironment{}, err
 		}
 		m.managedEnvironmentMu.Lock()
 	}
@@ -420,14 +440,23 @@ func (m *Manager) runManagedEnvironmentOperation(
 		}
 		operation = &managedEnvironmentOperation{
 			done: make(chan struct{}), cancel: cancelOperation, context: operationContext,
+			cleanupObserved:     make(chan struct{}),
 			progressSubscribers: map[int]toolprogress.Reporter{},
 		}
 		operationContext = toolprogress.WithReporter(operationContext, operation.publishProgress)
+		active := operation
+		operationContext = withWorkerCleanupReporter(operationContext, func(err error) {
+			m.observeManagedEnvironmentCleanup(key, active, err)
+		})
 		m.managedEnvironmentOperations[key] = operation
 		go func(active *managedEnvironmentOperation, operationContext context.Context) {
 			defer active.cancel()
 			result, err := run(operationContext)
 			m.managedEnvironmentMu.Lock()
+			if active.cleanupErr != nil {
+				result = ManagedEnvironment{}
+				err = errors.Join(err, active.cleanupErr)
+			}
 			active.result = result
 			active.err = err
 			close(active.done)
@@ -450,9 +479,12 @@ func (m *Manager) runManagedEnvironmentOperation(
 		if m.releaseManagedEnvironmentOperationWaiter(key, operation, true) {
 			// The last owner cannot advertise terminal cancellation while the
 			// installer is still draining or holds the publication lock.
-			<-operation.done
+			select {
+			case <-operation.done:
+			case <-operation.cleanupObserved:
+			}
 		}
-		return ManagedEnvironment{}, waitCtx.Err()
+		return ManagedEnvironment{}, m.managedEnvironmentWaiterError(operation, waitCtx.Err())
 	case <-operation.done:
 		operation.unsubscribeProgress(progressSubscription)
 		m.releaseManagedEnvironmentOperationWaiter(key, operation, false)
@@ -460,7 +492,38 @@ func (m *Manager) runManagedEnvironmentOperation(
 		result, err := operation.result, operation.err
 		m.managedEnvironmentMu.Unlock()
 		return result, err
+	case <-operation.cleanupObserved:
+		operation.unsubscribeProgress(progressSubscription)
+		m.releaseManagedEnvironmentOperationWaiter(key, operation, false)
+		m.managedEnvironmentMu.Lock()
+		err := operation.cleanupErr
+		m.managedEnvironmentMu.Unlock()
+		return ManagedEnvironment{}, err
 	}
+}
+
+// The existing operation remains the sole physical owner. Reporting failure
+// cancels further work and wakes observers, but does not unwind run(), remove
+// its map slot, release its locks, or authorize a replay. A late real settlement
+// can release resources; its result cannot become a successful publication.
+func (m *Manager) observeManagedEnvironmentCleanup(key string, operation *managedEnvironmentOperation, err error) {
+	if m == nil || operation == nil || err == nil {
+		return
+	}
+	var cleanup *WorkerProcessCleanupError
+	if !errors.As(err, &cleanup) {
+		err = &WorkerProcessCleanupError{State: "cleanup_unknown", Cause: err}
+	}
+	m.managedEnvironmentMu.Lock()
+	if m.managedEnvironmentOperations[key] != operation || operation.cleanupErr != nil {
+		m.managedEnvironmentMu.Unlock()
+		return
+	}
+	operation.cleanupErr = err
+	close(operation.cleanupObserved)
+	m.managedEnvironmentMu.Unlock()
+	operation.cancel()
+	m.notifyRuntimeChange()
 }
 
 func (m *Manager) releaseManagedEnvironmentOperationWaiter(
