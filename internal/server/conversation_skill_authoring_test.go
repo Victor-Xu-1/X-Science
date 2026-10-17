@@ -109,7 +109,7 @@ func TestConversationSkillAuthoringCorrectsFormatOnlyOnce(t *testing.T) {
 		name  string
 		reply conversationSkillAuthoringReply
 	}{
-		{"free_text_json", noCall(changed(func(fields map[string]any) { fields["name"] = "must-not-install" }))},
+		{"prose_json", noCall("Here is the draft:\n" + changed(func(fields map[string]any) { fields["name"] = "must-not-install" }))},
 		{"no_call", noCall("The draft response is not structured.")},
 		{"missing_field", conversationSkillToolReplyForTest(changed(func(fields map[string]any) { delete(fields, "kernel_py") }))},
 		{"nonstring_field", conversationSkillToolReplyForTest(changed(func(fields map[string]any) { fields["description"] = 17 }))},
@@ -168,7 +168,7 @@ func TestConversationSkillAuthoringStopsAfterOneFormatCorrection(t *testing.T) {
 
 func TestConversationSkillAuthoringNeverInstallsFreeTextDraft(t *testing.T) {
 	reply := conversationSkillAuthoringReply{message: map[string]any{
-		"role": "assistant", "content": conversationSkillDraftArgumentsForTest(t, nil),
+		"role": "assistant", "content": "```json\n" + conversationSkillDraftArgumentsForTest(t, nil) + "\n```",
 	}}
 	fixture := newConversationSkillAuthoringFixture(t, []conversationSkillAuthoringReply{reply, reply})
 	response := fixture.save(context.Background())

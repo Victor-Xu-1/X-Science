@@ -103,6 +103,11 @@ type conversationSkillDiagnostic struct {
 	DurationMS            int64                        `json:"duration_ms,omitempty"`
 	RequestedOutputTokens int                          `json:"requested_output_tokens,omitempty"`
 	CompletionTokens      int                          `json:"completion_tokens,omitempty"`
+	ValidationReason      conversationSkillDraftReason `json:"validation_reason,omitempty"`
+	ReturnCarrier         string                       `json:"return_carrier,omitempty"`
+	ToolCallCount         int                          `json:"tool_call_count,omitempty"`
+	ContentBytes          int                          `json:"content_bytes,omitempty"`
+	ArgumentBytes         int                          `json:"argument_bytes,omitempty"`
 	At                    time.Time                    `json:"at"`
 }
 
