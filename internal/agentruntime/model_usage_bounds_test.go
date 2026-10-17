@@ -16,6 +16,7 @@ func TestModelUsageAggregationRejectsContradictoryTotals(t *testing.T) {
 		{"complete-counter-contradiction", ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 50, Reported: complete}, true},
 		{"additive-bound-overflow", ModelUsage{InputTokens: maximum, CacheReadTokens: 1, TotalTokens: maximum, Reported: &ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true}, CacheTokensAdditive: true}, true},
 		{"independent-total", ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 110, Reported: complete, CacheTokensAdditive: true, InvalidFields: ModelUsageFields{CacheRead: true}}, false},
+		{"overlapping-cache-not-double-counted", ModelUsage{InputTokens: 100, OutputTokens: 10, CacheReadTokens: 500, TotalTokens: 110, Reported: &ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true}}, false},
 		{"healed-current-cache-with-history", ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 110, Reported: complete, CacheTokensAdditive: true, Warnings: history}, false},
 	} {
 		for _, side := range []string{"left", "right"} {

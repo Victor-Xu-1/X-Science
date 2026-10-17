@@ -65,6 +65,17 @@ func TestRunnerContextUsageCurrentInvalidity(t *testing.T) {
 			}
 		})
 	}
+	t.Run("aggregate-mixed-complete-derived-cache", func(t *testing.T) {
+		left := agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, CacheReadTokens: 20, Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, CacheRead: true}}
+		left.DeriveTotal(true)
+		right := agentruntime.ModelUsage{InputTokens: 50, OutputTokens: 5, Reported: components}
+		right.DeriveTotal(false)
+		combined := addModelUsage(left, right)
+		source, used, output := settleRunnerContextUsage(runnerContextUsage{}, agentruntime.ModelResponse{Usage: combined})
+		if combined.ReportedFields().Total || combined.CacheTokensAdditive || source != "provider" || used != 185 || output != 15 {
+			t.Fatalf("mixed complete-cache settlement=(%s,%d,%d), usage=%+v", source, used, output, combined)
+		}
+	})
 	t.Run("aggregate-overflow", func(t *testing.T) {
 		left := agentruntime.ModelUsage{InputTokens: int(^uint(0) >> 1), TotalTokens: int(^uint(0) >> 1), Reported: complete}
 		right := agentruntime.ModelUsage{InputTokens: 1, TotalTokens: 1, Reported: complete}

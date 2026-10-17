@@ -47,7 +47,9 @@ func settleRunnerContextUsage(snapshot runnerContextUsage, response agentruntime
 	used, ok := sumContextUsageTokens(input, output)
 	if ok {
 		if validCounters && inputKnown && outputKnown && !fields.Total && !usage.InvalidFields.Total {
-			return "provider", used, output
+			// Distinct-request aggregation can retain a valid derived total
+			// including additive cache even when adapters have mixed semantics.
+			return "provider", max(used, usage.TotalTokens), output
 		}
 		return "estimated", used, output
 	}
