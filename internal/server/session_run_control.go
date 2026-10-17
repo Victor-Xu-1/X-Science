@@ -356,17 +356,21 @@ func (s *Server) activeDurableRunnerAttemptCount() int {
 }
 
 func (s *Server) activeKernelOperationCount() int {
-	if s == nil || s.workspaceStore == nil {
+	if s == nil {
 		return 0
+	}
+	physical := s.kernelManager.ActiveManagedEnvironmentOperationCount()
+	if s.workspaceStore == nil {
+		return physical
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	count, err := s.workspaceStore.CountActiveKernelLocalOperations(ctx)
 	if err != nil {
 		// Preserve the running backend when durable work cannot be classified.
-		return 1
+		return max(1, physical)
 	}
-	return count
+	return max(count, physical)
 }
 
 // TryDrainIdle atomically enters draining mode only when no runner is active.

@@ -120,6 +120,12 @@ func (s *Server) runManagedOperation(ctx context.Context, owner, tool string, re
 		return nil, errors.New("unknown managed operation kind")
 	}
 	if err != nil {
+		var cleanup *kernelruntime.WorkerProcessCleanupError
+		if errors.As(err, &cleanup) {
+			// Cancellation of an observer is not proof of physical settlement.
+			// Keep the structured uncertainty instead of reducing it to cancelled.
+			return managedEnvironmentFailureReceipt(tool, err, request.Metadata), nil
+		}
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, err
 		}

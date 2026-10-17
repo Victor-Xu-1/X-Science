@@ -186,6 +186,28 @@ go test ./internal/server -run 'TestRunnerLeaseRenewal|TestTranscriptRunnerHeart
 go test ./internal/server -run 'TestServerClose.*BackgroundShell|TestBackgroundShell' -count=1
 ```
 
+### One-shot process settlement · 单次进程收尾
+
+Linux 的安装、解析和环境见证共用同一单次进程边界。专属子进程回收器在目标
+启动前接管后代归属，原进程的退出状态与后代的物理收尾分开；同组、独立会话、
+无输出或持有输出管道的后代都不能仅靠主进程退出或管道超时被当成已结束。
+长期受限解释器仍使用原有中断与关闭路径，不被单次操作的回收逻辑替换。
+
+`cleanup_unknown`／`cleanup_incomplete` 是可观察的失败，不是物理完成证明。
+现有环境操作向当前、取消中和后续冲突的等待者返回同一 typed 状态，同时保留
+原操作、发布锁和暂存目录；迟到的真实收尾只允许释放资源，不能转为后台成功发布。
+健康与空闲部署检测继续计入这些物理 owner，不能因观察者已返回失败而重启后端。
+错误回执明确标记未确认收尾、不可自动重放，不建议再开启竞争安装。
+
+该边界不根据研究目标、任务名、分子或文件名选择流程，也不为健康任务增加总时长
+上限。服务进程被强制终止后的持久资源隔离仍须依赖独立的恢复合同；内存中的
+operation 和服务持有的文件锁不是跨进程崩溃的完成证明。
+
+```sh
+go test ./internal/kernel -run 'TestManagedOneShot|TestManagedCleanupObservation|TestWorkerProcess' -count=1
+go test ./internal/server -run 'TestManagedCleanupFailure|TestTryDrainIdleRefusesUnsettledManaged' -count=1
+```
+
 ### Provider generation recovery · 模型生成恢复
 
 环境默认模型和已保存模型使用同一任务隔离的输出预算恢复逻辑。保存的单次输出额度
