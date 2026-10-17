@@ -17,6 +17,34 @@ type ConversationSkillSaveStatusProps = {
 const actionClassName =
   'shrink-0 rounded-6px border border-border-base bg-transparent px-8px py-2px text-12px text-t-primary hover:bg-fill-2 disabled:cursor-not-allowed disabled:opacity-50';
 
+// Never use an untrusted error/message as text or a translation resource key.
+function failureTranslationKey(code: unknown): string {
+  switch (code) {
+    case 'skill_authoring_timeout':
+      return 'conversation.attachMenu.saveAsSkillErrorTimeout';
+    case 'skill_authoring_cancelled':
+      return 'conversation.attachMenu.saveAsSkillErrorCancelled';
+    case 'skill_authoring_output_limit':
+      return 'conversation.attachMenu.saveAsSkillErrorOutputLimit';
+    case 'skill_authoring_refused':
+      return 'conversation.attachMenu.saveAsSkillErrorRefused';
+    case 'skill_authoring_invalid_draft':
+      return 'conversation.attachMenu.saveAsSkillErrorInvalidDraft';
+    case 'skill_authoring_provider_auth':
+      return 'conversation.attachMenu.saveAsSkillErrorProviderAuth';
+    case 'skill_authoring_rate_limited':
+      return 'conversation.attachMenu.saveAsSkillErrorRateLimited';
+    case 'skill_authoring_provider_unavailable':
+      return 'conversation.attachMenu.saveAsSkillErrorProvider';
+    case 'skill_authoring_configuration':
+      return 'conversation.attachMenu.saveAsSkillErrorConfiguration';
+    case 'skill_authoring_source_unavailable':
+      return 'conversation.attachMenu.saveAsSkillErrorSource';
+    default:
+      return 'conversation.attachMenu.saveAsSkillError';
+  }
+}
+
 export function ConversationSkillSaveStatus({
   state,
   saveDisabled,
@@ -40,7 +68,7 @@ export function ConversationSkillSaveStatus({
       {state.status === 'saving' && <span>{t('conversation.attachMenu.saveAsSkillSaving')}</span>}
       {state.status === 'error' && (
         <>
-          <span>{t('conversation.attachMenu.saveAsSkillError')}</span>
+          <span>{t(failureTranslationKey(state.code))}</span>
           <button type='button' className={actionClassName} disabled={saveDisabled} onClick={() => void onRetrySave()}>
             {t('conversation.attachMenu.saveAsSkillRetry')}
           </button>

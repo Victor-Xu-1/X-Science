@@ -87,14 +87,18 @@ func (s *Server) handleSkillFromConversation(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if !found {
+		ctx = withConversationSkillOperation(ctx, r.Header.Get("X-Science-Request-ID"))
 		draft, authorErr := s.authorConversationSkill(ctx, userID, project.ID, frame.ID, rootFrameID, requestedName)
 		if authorErr != nil {
-			writeWorkspaceJSON(w, http.StatusBadGateway, map[string]any{"message": "server-side Skill authoring failed: " + authorErr.Error()})
+			code := conversationSkillErrorCode(authorErr)
+			logConversationSkillDiagnostic(ctx, conversationSkillDiagnostic{Stage: "failed", Code: code})
+			writeWorkspaceJSON(w, http.StatusBadGateway, map[string]any{"message": "server-side Skill authoring failed", "code": code})
 			return
 		}
 		bundle, files, err = conversationSkillDraftBundle(draft)
 		if err != nil {
-			writeWorkspaceJSON(w, http.StatusBadGateway, map[string]any{"message": "server-side Skill authoring returned invalid content: " + err.Error()})
+			logConversationSkillDiagnostic(ctx, conversationSkillDiagnostic{Stage: "bundle_validation", Code: skillAuthoringInvalidDraft})
+			writeWorkspaceJSON(w, http.StatusBadGateway, map[string]any{"message": "server-side Skill authoring returned invalid content", "code": skillAuthoringInvalidDraft})
 			return
 		}
 		source = "server-authoring"

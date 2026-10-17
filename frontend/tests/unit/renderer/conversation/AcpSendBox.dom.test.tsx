@@ -1946,6 +1946,62 @@ describe('AcpSendBox', () => {
     expect(sendMessageInvokeMock).not.toHaveBeenCalled();
   });
 
+  it('shows a safe Save-as-Skill failure reason in both languages without exposing the raw error or retrying', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    saveConversationAsSkillMock.mockRejectedValueOnce(
+      Object.assign(new XScienceSkillLibraryError(502, 'synthetic-private-error-not-for-display'), {
+        code: 'skill_authoring_output_limit',
+      })
+    );
+    const messageState = makeMessageState();
+    const view = await render(
+      <AcpSendBox conversation_id='conv-skill-safe-reason' backend='xscience' messageState={messageState} />
+    );
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    const alert = screen.getByRole('alert', { name: '保存为 Skill' });
+    expect(alert).toHaveTextContent('模型输出被截断');
+    expect(alert).not.toHaveTextContent('synthetic-private-error-not-for-display');
+    expect(screen.getByRole('button', { name: '重试保存' })).toBeEnabled();
+    await act(async () => {
+      await view.i18n.changeLanguage('en-US');
+    });
+    expect(screen.getByRole('alert', { name: 'Save as Skill' })).toHaveTextContent('Model output was truncated');
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+    expect(messageState.fetchSlashCommands).not.toHaveBeenCalled();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unknown Save-as-Skill reason generic instead of displaying arbitrary server text', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    saveConversationAsSkillMock.mockRejectedValueOnce(
+      Object.assign(new XScienceSkillLibraryError(502, 'synthetic-private-error-not-for-display'), {
+        code: 'synthetic-private-code-not-for-display',
+      })
+    );
+    await render(
+      <AcpSendBox conversation_id='conv-skill-unknown-reason' backend='xscience' messageState={makeMessageState()} />
+    );
+    const saveAsSkill = fileAttachProps.current?.onSaveSkill;
+    if (typeof saveAsSkill !== 'function') throw new Error('Expected a save-as-skill handler');
+    await act(async () => {
+      await saveAsSkill();
+    });
+    const alert = screen.getByRole('alert', { name: '保存为 Skill' });
+    expect(alert).toHaveTextContent('保存个人 Skill 失败');
+    expect(alert).not.toHaveTextContent('synthetic-private');
+    expect(saveConversationAsSkillMock).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a saved Skill after list failure and retries only the Save-as-Skill refresh', async () => {
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
