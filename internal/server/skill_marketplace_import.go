@@ -75,7 +75,7 @@ func (s *Server) importMarketplaceSkills(
 	if err != nil || !strings.EqualFold(resolved, input.SHA) {
 		return result, marketplaceImportFailure(http.StatusConflict, errors.New("the selected Git commit could not be verified"))
 	}
-	verifiedLicense, licenseErr := s.resolveGitHubSkillLicense(ctx, repository)
+	verifiedLicense, licenseErr := s.resolveGitHubSkillLicense(ctx, repository, input.SHA)
 	if licenseErr != nil {
 		verifiedLicense = nil
 	}
@@ -147,10 +147,16 @@ func (s *Server) importMarketplaceSkills(
 		}
 		sort.Strings(result.imported)
 		if len(result.imported) > 0 {
+			importedAt := time.Now().UTC().Format(time.RFC3339Nano)
+			revisions := make(map[string]webSkillMarketplaceSkillRevision)
+			for _, name := range result.imported {
+				revisions[name] = webSkillMarketplaceSkillRevision{SHA: input.SHA,
+					License: normalizeMarketplaceLicense(verifiedLicense), LicenseRef: input.SHA, ImportedAt: importedAt}
+			}
 			result.source = &webSkillMarketplaceSource{
 				Slug: repository.Slug(), Repo: repository.Canonical(), SHA: input.SHA,
 				License: normalizeMarketplaceLicense(verifiedLicense), Skills: result.imported,
-				ImportedAt: time.Now().UTC().Format(time.RFC3339Nano), Removable: true, Hashes: hashes,
+				ImportedAt: importedAt, Removable: true, Hashes: hashes, SkillRevisions: revisions,
 			}
 		}
 		return s.recordSkillImports(userID, result.source, history)
