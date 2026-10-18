@@ -12,6 +12,7 @@ import type { ActiveComposerReferenceQuery, ComposerReferenceItem } from './comp
 type Props = {
   activeReferenceQuery: ActiveComposerReferenceQuery | null;
   btwCommand: ReturnType<typeof useBtwCommand>;
+  showBtwOverlay: boolean;
   conversationExport: ReturnType<typeof useConversationExport>;
   insertSelectedReference: (item: ComposerReferenceItem) => void;
   isCommandMenuOpen: boolean;
@@ -26,13 +27,12 @@ type Props = {
   slashMenuItems: SlashCommandMenuItem[];
   t: TFunction;
   visibleReferenceItems: ComposerReferenceItem[];
-  anchorEl: HTMLDivElement | null;
 };
 
 const SendBoxComposerOverlays = ({
   activeReferenceQuery,
-  anchorEl,
   btwCommand,
+  showBtwOverlay,
   conversationExport,
   insertSelectedReference,
   isCommandMenuOpen,
@@ -49,15 +49,7 @@ const SendBoxComposerOverlays = ({
   visibleReferenceItems,
 }: Props) => (
   <>
-    <BtwOverlay
-      answer={btwCommand.answer}
-      anchorEl={anchorEl}
-      isLoading={btwCommand.isLoading}
-      isOpen={btwCommand.isOpen}
-      onDismiss={btwCommand.dismiss}
-      parentTaskRunning={Boolean(loading || isLoading)}
-      question={btwCommand.question}
-    />
+    {showBtwOverlay ? <BtwOverlay controller={btwCommand} parentTaskRunning={Boolean(loading || isLoading)} /> : null}
     {isReferenceMenuOpen && activeReferenceQuery && (
       <div className='absolute left-12px right-12px bottom-[calc(100%+8px)] z-70'>
         <ComposerReferenceMenu

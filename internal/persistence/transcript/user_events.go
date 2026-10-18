@@ -327,9 +327,24 @@ func appendFrameUserEventConn(
 		if stream.Kind != StreamKindFrameRef {
 			return ErrEventConflict
 		}
+		if input.MessageIntent != nil && input.MessageIntent.OwnerID != stream.OwnerID {
+			return ErrOwnerMismatch
+		}
+		if err := CheckFrameMessageIntentAdmission(ctx, conn, stream.FrameID, input.ClientMessageID, input.MessageIntent); err != nil {
+			return err
+		}
 		existing, existingFound, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
 		if err != nil {
 			return err
+		}
+		if input.RequireCompletedFrame && !existingFound {
+			var status string
+			if err := conn.QueryRowContext(ctx, `SELECT status FROM frames WHERE id=?`, stream.FrameID).Scan(&status); err != nil {
+				return err
+			}
+			if status != "completed" {
+				return ErrFrameMessageStateStale
+			}
 		}
 		eventType := "user_message"
 		messageOrigin := "task_intent"
@@ -386,6 +401,15 @@ func appendFrameUserEventConn(
 			"messageUuid": input.MessageUUID, "clientMessageId": input.ClientMessageID,
 			"text": input.Text, "role": "user", "_uuid": input.MessageUUID, "messageOrigin": messageOrigin,
 			"content": []any{map[string]any{"type": "text", "text": input.Text}},
+		}
+		if input.MessageIntent != nil {
+			// Do not manufacture proof for a historical input during replay.
+			var old struct {
+				Intent *FrameMessageIntent `json:"messageIntent"`
+			}
+			if !existingFound || json.Unmarshal(existing.PayloadJSON, &old) == nil && old.Intent != nil {
+				messagePayload["messageIntent"] = input.MessageIntent
+			}
 		}
 		if len(input.InputData) > 0 {
 			messagePayload["inputData"] = input.InputData

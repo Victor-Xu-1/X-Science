@@ -42,6 +42,7 @@ type webConversationSendInput struct {
 	ArtifactRefs       []webConversationArtifactReferenceInput `json:"artifact_refs"`
 	MessageContext     string                                  `json:"message_context"`
 	LoadingID          string                                  `json:"loading_id"`
+	TurnIntent         string                                  `json:"turn_intent,omitempty"`
 	InjectSkills       []string                                `json:"inject_skills"`
 	InjectMCPServerIDs []string                                `json:"inject_mcp_server_ids"`
 	SessionOptions     map[string]any                          `json:"session_options"`
@@ -85,6 +86,8 @@ func (s *Server) handleWebConversation(w http.ResponseWriter, r *http.Request) {
 		s.handleWebConversationLineage(w, r, frame)
 	case len(segments) >= 2 && segments[1] == "messages":
 		s.handleWebConversationMessages(w, r, frame, segments)
+	case len(segments) == 3 && segments[1] == "message-intents":
+		s.handleWebMessageIntentCancellation(w, r, frame, segments[2])
 	case len(segments) == 2 && segments[1] == "artifacts":
 		s.handleWebConversationArtifacts(w, r, frame)
 	case len(segments) >= 2 && segments[1] == "workspace":

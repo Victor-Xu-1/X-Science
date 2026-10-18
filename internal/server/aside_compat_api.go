@@ -12,16 +12,19 @@ import (
 
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
 var compatibilityIntentUUIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type compatibilityAsideRequest struct {
-	Request   string  `json:"request"`
-	Model     *string `json:"model"`
-	IntentID  *string `json:"intent_id"`
-	AsSession bool    `json:"as_session"`
+	Request            string  `json:"request"`
+	Model              *string `json:"model"`
+	IntentID           *string `json:"intent_id"`
+	AsSession          bool    `json:"as_session"`
+	SourceBranchID     string  `json:"source_branch_id"`
+	ExpectedGeneration int64   `json:"expected_generation"`
 }
 
 type compatibilityAsideError struct {
@@ -52,6 +55,14 @@ func newCompatibilityAsideError(status int, detail string, cause error) error {
 }
 
 func (s *Server) handleCompatibilityCreateAside(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {
+	if r.Method == http.MethodDelete {
+		s.handleCompatibilityCancelAsideIntent(w, r, frame)
+		return
+	}
+	if r.Method == http.MethodGet {
+		s.handleCompatibilityAsideAcceptance(w, r, frame)
+		return
+	}
 	if r.Method != http.MethodPost {
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
@@ -63,17 +74,16 @@ func (s *Server) handleCompatibilityCreateAside(w http.ResponseWriter, r *http.R
 	}
 	result, err := s.createCompatibilityAside(r, frame, input)
 	if err != nil {
-		var requestErr *compatibilityAsideError
-		if errors.As(err, &requestErr) {
-			writeV11Detail(w, requestErr.Status, requestErr.Detail)
-			return
-		}
-		writeV11StoreError(w, err)
+		writeCompatibilityAsideError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"frame_id": result.Frame.ID, "prefix_len": result.PrefixLen,
-	})
+	response := compatibilityAsideAcceptanceResponse(result)
+	if result.Cancellation != nil {
+		response["code"] = "ASIDE_INTENT_CANCELLED"
+		writeJSON(w, http.StatusConflict, response)
+		return
+	}
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (s *Server) createCompatibilityAside(
@@ -98,15 +108,13 @@ func (s *Server) createCompatibilityAside(
 		}
 		return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(http.StatusBadRequest, detail, nil)
 	}
-	agentName := frame.AgentName
-	found, err := s.validateCompatibilityTargetAgent(r, &agentName)
-	if err != nil {
-		return workspace.CompatibilityAsideResult{}, err
+	input.SourceBranchID = strings.TrimSpace(input.SourceBranchID)
+	if (input.SourceBranchID == "") != (input.ExpectedGeneration == 0) || input.ExpectedGeneration < 0 ||
+		input.SourceBranchID != "" && !validWebTranscriptBranchID(input.SourceBranchID) {
+		return workspace.CompatibilityAsideResult{}, transcriptstore.ErrBranchRequestInvalid
 	}
-	if !found {
-		return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(
-			http.StatusNotFound, "Agent "+frame.AgentName+" not found in registry", nil,
-		)
+	if input.SourceBranchID != "" && s.transcriptStore == nil {
+		return workspace.CompatibilityAsideResult{}, workspace.ErrCompatibilityAsideParentTranscriptMissing
 	}
 	intentID := ""
 	if input.IntentID != nil {
@@ -119,16 +127,33 @@ func (s *Server) createCompatibilityAside(
 			)
 		}
 	}
+	asideInput := workspace.CompatibilityAsideInput{
+		ID: uuid.NewString(), ParentRootFrameID: frame.ID,
+		Request: input.Request, Model: input.Model, IntentID: intentID, AsSession: input.AsSession,
+		SourceBranchID: input.SourceBranchID, ExpectedGeneration: input.ExpectedGeneration,
+	}
+	// Resolve a durable acceptance before checking current model/agent/branch
+	// settings; none of those may rebind an already admitted operation.
+	if s.transcriptStore != nil && intentID != "" {
+		if replay, found, err := s.workspaceStore.ResolveCompatibilityAsideIntent(r.Context(), compatAgentUserID(r), asideInput); err != nil {
+			return workspace.CompatibilityAsideResult{}, err
+		} else if found {
+			return replay, nil
+		}
+	}
+	agentName := frame.AgentName
+	found, err := s.validateCompatibilityTargetAgent(r, &agentName)
+	if err != nil {
+		return workspace.CompatibilityAsideResult{}, err
+	}
+	if !found {
+		return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(http.StatusNotFound, "Agent "+frame.AgentName+" not found in registry", nil)
+	}
 
 	s.compatRequestMu.Lock()
 	messageID := intentID
 	if messageID == "" {
 		messageID = uuid.NewString()
-	}
-	asideInput := workspace.CompatibilityAsideInput{
-		ID: uuid.NewString(), ParentRootFrameID: frame.ID,
-		Request: input.Request, Model: input.Model, IntentID: intentID,
-		AsSession: input.AsSession,
 	}
 	var result workspace.CompatibilityAsideResult
 	if s.transcriptStore != nil {
@@ -153,6 +178,9 @@ func (s *Server) createCompatibilityAside(
 			return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(http.StatusBadRequest, detail, err)
 		}
 		return workspace.CompatibilityAsideResult{}, err
+	}
+	if result.Replayed {
+		return result, nil
 	}
 	cleanupLegacy := func() {
 		if s.transcriptStore != nil {

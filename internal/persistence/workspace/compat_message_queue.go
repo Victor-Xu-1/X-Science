@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const CompatibilityMessageQueueLimit = 64
@@ -109,6 +110,13 @@ func (s *Store) QueueCompatibilityMessage(
 	}
 	defer tx.Rollback()
 
+	intent, err := transcriptstore.DecodeFrameMessageIntent(deliveryPayload["messageIntent"])
+	if err != nil {
+		return CompatibilityMessageIntent{}, FrameEvent{}, false, err
+	}
+	if err := transcriptstore.CheckFrameMessageIntentAdmission(ctx, tx, frameID, intentID, intent); err != nil {
+		return CompatibilityMessageIntent{}, FrameEvent{}, false, err
+	}
 	existing, err := scanCompatibilityMessageIntent(tx.QueryRowContext(ctx, compatibilityIntentSelect+` WHERE intent_id = ?`, intentID))
 	if err == nil {
 		if err := validateCompatibilityIntent(existing, frameID, rawDedupe); err != nil {
@@ -369,6 +377,37 @@ func (s *Store) retractCompatibilityQueuedMessage(frameID, messageUUID string) (
 	}
 	if record.State != "queued" {
 		return FrameEvent{}, fmt.Errorf("queued message %q does not exist", messageUUID)
+	}
+	// Preserve the same typed cancellation fence when the existing queue
+	// retraction endpoint is used. Ordinary legacy queue retention is unchanged.
+	intent, err := transcriptstore.DecodeFrameMessageIntent(record.DeliveryPayload["messageIntent"])
+	if err != nil {
+		return FrameEvent{}, err
+	}
+	if intent != nil {
+		if intent.FrameID != frameID || intent.InputMessageID != messageUUID {
+			return FrameEvent{}, transcriptstore.ErrMessageIntentConflict
+		}
+		if err := transcriptstore.ValidateFrameMessageIntentScope(ctx, tx, *intent); err != nil {
+			return FrameEvent{}, err
+		}
+		accepted, err := transcriptstore.ReadAcceptedFrameMessageIntent(ctx, tx, *intent)
+		if err != nil {
+			return FrameEvent{}, err
+		}
+		if accepted {
+			return FrameEvent{}, ErrCompatibilityQueuedMessageTooLate
+		}
+		record.DeliveryPayload["message_intent_cancellation"] = transcriptstore.FrameMessageIntentCancellation{
+			Intent: *intent, Cancelled: true, CancellationStatus: "cancelled_before_acceptance",
+		}
+		raw, err := marshalCompatibilityQueueEnvelope(record.DedupePayload, record.DeliveryPayload, record.QueuedEventID)
+		if err != nil {
+			return FrameEvent{}, err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE queued_user_messages SET payload=? WHERE intent_id=? AND frame_id=? AND state='queued'`, raw, messageUUID, frameID); err != nil {
+			return FrameEvent{}, err
+		}
 	}
 	now := s.now().UTC()
 	event, err := appendFrameLifecycleEvent(ctx, tx, frameID, "message_retracted", map[string]any{

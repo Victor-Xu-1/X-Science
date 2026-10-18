@@ -486,6 +486,20 @@ func (s *Server) stopActiveSessionRun(sessionID, reason string) (bool, string) {
 }
 
 func (s *Server) commitSessionRunCancellation(sessionIDs []string, commit func(map[string]*transcriptRunnerAuthority) error) error {
+	if commit == nil {
+		return errors.New("session cancellation commit is required")
+	}
+	return s.commitScopedSessionRunCancellation(sessionIDs, func(authorities map[string]*transcriptRunnerAuthority) ([]string, error) {
+		if err := commit(authorities); err != nil {
+			return nil, err
+		}
+		return sessionIDs, nil
+	})
+}
+
+// A preaccept cancellation can commit a tombstone without cancelling any run.
+// Signal only IDs actually cancelled by the committed durable transaction.
+func (s *Server) commitScopedSessionRunCancellation(sessionIDs []string, commit func(map[string]*transcriptRunnerAuthority) ([]string, error)) error {
 	if s == nil || commit == nil {
 		return errors.New("session cancellation commit is required")
 	}
@@ -502,10 +516,10 @@ func (s *Server) commitSessionRunCancellation(sessionIDs []string, commit func(m
 	for sessionID, run := range runs {
 		authorities[sessionID] = run.transcript
 	}
-	err := commit(authorities)
+	cancelledIDs, err := commit(authorities)
 	if err == nil {
-		for _, run := range runs {
-			if !run.settled {
+		for _, id := range normalizedSessionRunIDs(cancelledIDs) {
+			if run := runs[id]; run != nil && !run.settled {
 				run.cancel(fmt.Errorf("%w: cancelled by durable frame authority", ErrGenerationStopped))
 			}
 		}

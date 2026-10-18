@@ -19,6 +19,7 @@ type CloneAsideHistoryInput struct {
 	OwnerID           string
 	IncludeForkNotice bool
 	StripThinking     bool
+	Selection         AsideHistorySelection
 }
 
 type asideHistorySeed struct {
@@ -32,6 +33,7 @@ func (tx *ImmediateTransaction) CountAsideHistory(
 	ctx context.Context,
 	streamUID, ownerID string,
 	stripThinking bool,
+	selections ...AsideHistorySelection,
 ) (int, error) {
 	if tx == nil || tx.repository == nil || tx.conn == nil {
 		return 0, errors.New("transcript transaction is required")
@@ -47,7 +49,14 @@ func (tx *ImmediateTransaction) CountAsideHistory(
 	if err := validateAsideHistorySourceConn(ctx, tx, stream); err != nil {
 		return 0, schemaError(err)
 	}
-	seeds, err := loadAsideHistorySeedsConn(ctx, tx, stream)
+	selection := AsideHistorySelection{}
+	if len(selections) > 1 {
+		return 0, ErrBranchRequestInvalid
+	}
+	if len(selections) == 1 {
+		selection = selections[0]
+	}
+	seeds, err := loadAsideHistorySeedsConn(ctx, tx, stream, selection)
 	if err != nil {
 		return 0, schemaError(err)
 	}
@@ -106,7 +115,7 @@ func (tx *ImmediateTransaction) CloneAsideHistory(
 	if err := validateEmptyCloneTargetConn(ctx, tx.conn, target); err != nil {
 		return nil, schemaError(err)
 	}
-	seeds, err := loadAsideHistorySeedsConn(ctx, tx, source)
+	seeds, err := loadAsideHistorySeedsConn(ctx, tx, source, input.Selection)
 	if err != nil {
 		return nil, schemaError(err)
 	}
@@ -186,19 +195,28 @@ func loadAsideHistorySeedsConn(
 	ctx context.Context,
 	tx *ImmediateTransaction,
 	stream Stream,
+	selection AsideHistorySelection,
 ) ([]asideHistorySeed, error) {
+	resolved, err := tx.ResolveAsideHistorySelection(ctx, stream.UID, stream.OwnerID, selection.BranchID, selection.Generation)
+	if err != nil {
+		return nil, err
+	}
+	if selection.ThroughPublication > 0 {
+		if selection.ThroughPublication > resolved.ThroughPublication {
+			return nil, ErrEventConflict
+		}
+		resolved.ThroughPublication = selection.ThroughPublication
+	}
 	rows, err := tx.conn.QueryContext(ctx, `
 		SELECT event.event_id,event.event_type,event.source,event.payload_json,event.created_at
-		FROM transcript_branch_state state
-		JOIN transcript_branch_events membership
-			ON membership.stream_uid=state.stream_uid AND membership.branch_id=state.active_branch_id
+		FROM transcript_branch_events membership
 		JOIN transcript_events event
 			ON event.stream_uid=membership.stream_uid AND event.event_id=membership.event_id
-		WHERE state.stream_uid=? AND event.event_type IN (
+		WHERE membership.stream_uid=? AND membership.branch_id=? AND event.publication_seq<=? AND event.event_type IN (
 			'user_message','user_input_response','assistant_message',
 			'history_user_message','history_assistant_message','history_system_message'
 		)
-		ORDER BY membership.ordinal`, stream.UID)
+		ORDER BY membership.ordinal`, stream.UID, resolved.BranchID, resolved.ThroughPublication)
 	if err != nil {
 		return nil, err
 	}

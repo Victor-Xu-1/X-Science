@@ -10,6 +10,7 @@ import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   type ConversationCommandQueueRuntimeGate,
+  type ConversationCommandQueueItem,
   useConversationCommandQueue,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
@@ -67,11 +68,13 @@ const renderQueue = ({
   runtimeGate,
   isBusy = false,
   onExecute = vi.fn().mockResolvedValue(undefined),
+  isItemBlocked,
 }: {
   conversation_id: string;
   runtimeGate: ConversationCommandQueueRuntimeGate;
   isBusy?: boolean;
   onExecute?: (item: Parameters<Parameters<typeof useConversationCommandQueue>[0]['onExecute']>[0]) => Promise<void>;
+  isItemBlocked?: (item: ConversationCommandQueueItem) => boolean;
 }) =>
   renderHook(
     ({ gate, busy }) =>
@@ -81,6 +84,7 @@ const renderQueue = ({
         isBusy: busy,
         runtimeGate: gate,
         onExecute,
+        isItemBlocked,
       }),
     {
       initialProps: { gate: runtimeGate, busy: isBusy },
@@ -165,5 +169,126 @@ describe('useConversationCommandQueue drain', () => {
       vi.unstubAllGlobals();
       clearConversationReadCaches();
     }
+  });
+
+  it('keeps an unresolved Aside head in order and drains it after the exact reservation is released', async () => {
+    const execute = vi.fn().mockResolvedValue(undefined);
+    const queue = renderHook(
+      ({ blocked, gate }) =>
+        useConversationCommandQueue({
+          conversation_id: 'aside-head',
+          isBusy: false,
+          runtimeGate: gate,
+          onExecute: execute,
+          isItemBlocked: (item) => blocked && item.input === 'Transferred question',
+        }),
+      { initialProps: { blocked: true, gate: processingGate }, wrapper: createSwrWrapper() }
+    );
+    act(() => {
+      queue.result.current.enqueue({ input: 'Transferred question', files: [] });
+      queue.result.current.enqueue({ input: 'Next normal question', files: [] });
+    });
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(2));
+    queue.rerender({ blocked: true, gate: idleGate });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(queue.result.current.items.map((item) => item.input)).toEqual([
+      'Transferred question',
+      'Next normal question',
+    ]);
+    queue.rerender({ blocked: false, gate: idleGate });
+    await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({ input: 'Transferred question' }));
+  });
+
+  it('blocks sendNow and retry only for the matching pending item, not every explicit queue action', async () => {
+    const execute = vi.fn().mockResolvedValue(undefined);
+    const queue = renderQueue({
+      conversation_id: 'aside-explicit',
+      runtimeGate: processingGate,
+      onExecute: execute,
+      isItemBlocked: (item) => item.input === 'Transferred question',
+    });
+    act(() => {
+      queue.result.current.enqueue({ input: 'Transferred question', files: [] });
+      queue.result.current.enqueue({ input: 'Other question', files: [] });
+    });
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(2));
+    const [pending, other] = queue.result.current.items;
+    await act(async () => {
+      expect(await queue.result.current.sendNow(pending.id)).toBe(false);
+      expect(await queue.result.current.retry(pending.id)).toBe(false);
+      expect(await queue.result.current.sendNow(other.id)).toBe(true);
+    });
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith(expect.objectContaining({ id: other.id }));
+    expect(queue.result.current.getQueuedItem(pending.id)).toEqual(pending);
+  });
+
+  it('uses the current reservation for an older sendNow callback after reordering or rerender', async () => {
+    const execute = vi.fn().mockResolvedValue(undefined);
+    const queue = renderHook(
+      ({ blocked }) =>
+        useConversationCommandQueue({
+          conversation_id: 'aside-current-ref',
+          isBusy: true,
+          runtimeGate: processingGate,
+          onExecute: execute,
+          isItemBlocked: (item) => blocked && item.input === 'Transferred question',
+        }),
+      { initialProps: { blocked: false }, wrapper: createSwrWrapper() }
+    );
+    act(() => {
+      queue.result.current.enqueue({ input: 'Transferred question', files: [] });
+      queue.result.current.enqueue({ input: 'Other question', files: [] });
+    });
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(2));
+    const [pending, other] = queue.result.current.items;
+    const oldSendNow = queue.result.current.sendNow;
+    act(() => queue.result.current.reorder(pending.id, other.id));
+    queue.rerender({ blocked: true });
+    await act(async () => {
+      expect(await oldSendNow(pending.id)).toBe(false);
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(queue.result.current.getQueuedItem(pending.id)?.input).toBe('Transferred question');
+  });
+
+  it('restores the original position without a fake send_failed flag when reservation appears at dispatch', async () => {
+    const execute = vi.fn().mockResolvedValue(undefined);
+    let checks = 0;
+    const queue = renderQueue({
+      conversation_id: 'aside-dispatch',
+      runtimeGate: processingGate,
+      onExecute: execute,
+      isItemBlocked: () => ++checks >= 2,
+    });
+    act(() => {
+      queue.result.current.enqueue({ input: 'First normal question', files: [] });
+      queue.result.current.enqueue({ input: 'Transferred question', files: [] });
+    });
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(2));
+    const original = queue.result.current.items;
+    await act(async () => {
+      expect(await queue.result.current.sendNow(original[1].id)).toBe(false);
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(queue.result.current.items).toEqual(original);
+    expect(queue.result.current.items[1].pausedReason).toBeUndefined();
+  });
+
+  it('removes accepted transfers from both current and durable queue before releasing a reservation', async () => {
+    setRendererAccountOwner('owner-1');
+    const queue = renderQueue({ conversation_id: 'aside-consume', runtimeGate: processingGate });
+    act(() => queue.result.current.enqueue({ input: 'Transferred question', files: [] }));
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(1));
+    const item = queue.result.current.items[0];
+    act(() => {
+      expect(queue.result.current.remove(item.id)).toBe(true);
+      expect(queue.result.current.getQueuedItem(item.id)).toBeNull();
+      expect(localStorage.getItem('conversation-command-queue/v2/owner-1/aside-consume')).toBeNull();
+    });
   });
 });
