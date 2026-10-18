@@ -155,6 +155,7 @@ type kernelLocalToolCallV1 struct {
 }
 
 type ResolveKernelLocalOperationApprovalInput struct {
+	GrantProof           *ApprovalPolicyGrantProof
 	OwnerUserID          string
 	OperationID          string
 	ExpectedStateVersion int64
