@@ -82,7 +82,7 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
   const [pos, setPos] = useState<ReplyPos | null>(null);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
-  const buttonRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     // Disable on mobile — conflicts with native text selection menu
@@ -91,14 +91,14 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
     let mounted = true;
     let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const onMouseUp = (e: MouseEvent) => {
+    const showSelection = (target: EventTarget | null) => {
       // Skip if mouseup is on the reply button itself
-      if (buttonRef.current?.contains(e.target as Node)) return;
+      if (target instanceof Node && buttonRef.current?.contains(target)) return;
 
       window.setTimeout(() => {
         if (!mounted) return;
 
-        const sel = getEffectiveSelection(e.target);
+        const sel = getEffectiveSelection(target);
         if (!sel || sel.isCollapsed) return;
         const text = sel.toString().trim();
         if (!text) return;
@@ -124,6 +124,17 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         });
       }, 20);
     };
+    const onMouseUp = (e: MouseEvent) => showSelection(e.target);
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPos(null);
+      } else if (
+        e.key === 'Shift' ||
+        (e.shiftKey && /^(ArrowLeft|ArrowRight|ArrowUp|ArrowDown|Home|End)$/.test(e.key))
+      ) {
+        showSelection(e.target);
+      }
+    };
 
     const onMouseDown = (e: MouseEvent) => {
       if (buttonRef.current?.contains(e.target as Node)) return;
@@ -138,21 +149,24 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
     };
 
     document.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('keyup', onKeyUp);
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('scroll', onScroll, true);
     return () => {
       mounted = false;
       if (scrollTimer) clearTimeout(scrollTimer);
       document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('keyup', onKeyUp);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('scroll', onScroll, true);
     };
   }, [isMobile]);
 
-  if (!pos) return null;
+  if (!pos || isMobile) return null;
 
   return (
-    <div
+    <button
+      type='button'
       ref={buttonRef}
       className='fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none'
       style={{
@@ -163,9 +177,17 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         border: '1px solid var(--brand-hover)',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
         color: 'var(--brand)',
+        font: 'inherit',
+        appearance: 'none',
       }}
       onMouseDown={(e) => {
         e.preventDefault();
+      }}
+      onClick={() => {
+        if (!messagesRef.current.some((message) => message.id === pos.msgId)) {
+          setPos(null);
+          return;
+        }
         emitter.emit('sendbox.reply', {
           messageId: pos.msgId,
           content: pos.text,
@@ -177,7 +199,7 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
     >
       <Quote theme='outline' size='14' fill='currentColor' />
       <span className='text-12px font-medium whitespace-nowrap'>{t('common.reply')}</span>
-    </div>
+    </button>
   );
 };
 
