@@ -186,7 +186,7 @@ func cloneConversationRuntimeMetadata(source Frame) (FrameRuntimeMetadata, error
 		}
 	}
 	return FrameRuntimeMetadata{
-		DelegateName: source.DelegateName, ContextData: contextData,
+		DelegateName: source.DelegateName, ContextData: cloneConversationPresentationContext(contextData),
 		TaskSummary: source.TaskSummary,
 	}, nil
 }
@@ -220,11 +220,11 @@ func validateExistingConversationCloneTarget(
 		target.DelegateName != wantMetadata.DelegateName || target.TaskSummary != wantMetadata.TaskSummary {
 		return fmt.Errorf("target conversation already identifies a different clone: %w", transcriptstore.ErrEventConflict)
 	}
-	wantContext, err := json.Marshal(wantMetadata.ContextData)
+	wantContext, err := json.Marshal(conversationCloneComparableContext(wantMetadata.ContextData))
 	if err != nil {
 		return err
 	}
-	gotContext, err := json.Marshal(target.ContextData)
+	gotContext, err := json.Marshal(conversationCloneComparableContext(target.ContextData))
 	if err != nil {
 		return err
 	}

@@ -80,6 +80,14 @@ describe('conversation list refresh controller', () => {
         action: 'updated',
         known: true,
         active: true,
+        presentationChanged: true,
+      })
+    ).toBe(true);
+    expect(
+      shouldRefreshConversationListAfterChange({
+        action: 'updated',
+        known: true,
+        active: true,
       })
     ).toBe(false);
     expect(

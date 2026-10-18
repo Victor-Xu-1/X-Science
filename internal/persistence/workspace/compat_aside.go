@@ -157,7 +157,7 @@ func (s *Store) createCompatibilityAsideInTransaction(
 		pending := compatibilityAsidePendingToolIDs(parentContext)
 		trimmed = trimCompatibilityAsideMessages(parentMessages, pending)
 	}
-	asideContext := cloneCompatibilityMap(parentContext)
+	asideContext := cloneConversationPresentationContext(cloneCompatibilityMap(parentContext))
 	for _, key := range compatibilityAsideScrubKeys {
 		delete(asideContext, key)
 	}

@@ -201,6 +201,7 @@ export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact
 export type IConversationTurnCompletedEvent = ConversationTurnCompletedEvent;
 
 export interface IConversationListChangedEvent {
+  presentation_changed?: true;
   conversation_id: string;
   action: 'created' | 'updated' | 'deleted';
   source?: string;
