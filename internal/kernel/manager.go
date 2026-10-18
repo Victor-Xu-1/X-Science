@@ -189,6 +189,7 @@ type Worker struct {
 	command      *exec.Cmd
 	process      *workerProcess
 	stdin        io.WriteCloser
+	output       *workerOutput
 	responses    chan Response
 	done         chan struct{}
 	diagnostics  *tailBuffer
@@ -397,7 +398,7 @@ func (m *Manager) startWorkerWithRuntime(
 	defer m.mu.Unlock()
 	if existing := m.workers[id]; existing != nil {
 		select {
-		case <-existing.done:
+		case <-existing.physicalExit():
 			delete(m.workers, id)
 		default:
 			for _, file := range auxiliary {
@@ -424,23 +425,21 @@ func (m *Manager) startWorkerWithRuntime(
 	if err != nil {
 		return nil, fmt.Errorf("open kernel stdin: %w", err)
 	}
-	stdout, err := command.StdoutPipe()
+	output, err := prepareWorkerOutput(command)
 	if err != nil {
 		_ = stdin.Close()
-		return nil, fmt.Errorf("open kernel stdout: %w", err)
-	}
-	stderr, err := command.StderrPipe()
-	if err != nil {
-		_ = stdin.Close()
-		return nil, fmt.Errorf("open kernel stderr: %w", err)
+		return nil, err
 	}
 	process, err := startWorkerProcess(command, m.config.WorkerResourceDirectory)
 	if err != nil {
 		_ = stdin.Close()
+		output.abortStart()
 		return nil, fmt.Errorf("start kernel worker: %w", err)
 	}
+	output.closeChildEnds()
 	worker := &Worker{
 		id: id, workspaceDir: resolvedWorkspace, manager: m, command: command, process: process, stdin: stdin,
+		output:    output,
 		responses: make(chan Response, 8), done: make(chan struct{}), diagnostics: newTailBuffer(maxDiagnosticBytes),
 		startWait: make(map[string]chan struct{}), restartKey: restartKey, restartLanguage: restartLanguage,
 		egressProxy: egressProxy,
@@ -449,8 +448,7 @@ func (m *Manager) startWorkerWithRuntime(
 	for _, register := range registration {
 		register(worker)
 	}
-	go worker.readProtocol(stdout)
-	go func() { _, _ = io.Copy(worker.diagnostics, stderr) }()
+	output.start(worker)
 	go worker.wait()
 	return worker, nil
 }
@@ -739,7 +737,7 @@ func (w *Worker) Execute(ctx context.Context, code, origin string) (Response, er
 		return Response{}, err
 	}
 	select {
-	case <-w.done:
+	case <-w.physicalExit():
 		return Response{}, w.stoppedError()
 	default:
 	}
@@ -753,15 +751,24 @@ func (w *Worker) Execute(ctx context.Context, code, origin string) (Response, er
 			var sent request
 			_ = json.Unmarshal(payload, &sent)
 			if response.ID == sent.ID {
-				if state := lifecycleWorkerState(w); state != nil {
-					state.mu.Lock()
-					response = consumeRKernelRestartNotice(state, state.generation, response)
-					state.mu.Unlock()
+				if w.hasExited() {
+					<-w.done
+					response, err = w.responseAfterExit(sent.ID, &response)
+					if ctx.Err() != nil {
+						err = ctx.Err()
+					}
+					return w.withRestartNotice(response), err
 				}
-				return response, nil
+				return w.withRestartNotice(response), nil
 			}
 		case <-w.done:
-			return Response{}, w.stoppedError()
+			var sent request
+			_ = json.Unmarshal(payload, &sent)
+			response, err := w.responseAfterExit(sent.ID)
+			if ctx.Err() != nil {
+				err = ctx.Err()
+			}
+			return w.withRestartNotice(response), err
 		case <-ctx.Done():
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 				w.setStopReason("was shut down after a cell timeout")
@@ -779,7 +786,7 @@ func (w *Worker) Close(ctx context.Context) error {
 		ctx = context.Background()
 	}
 	w.setStopReason("was shut down")
-	w.closeOnce.Do(func() { _ = w.stdin.Close() })
+	w.closeInput()
 	select {
 	case <-w.done:
 		return nil
@@ -798,18 +805,23 @@ func (w *Worker) readProtocol(stdout io.Reader) {
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 64*1024), maxProtocolLineBytes)
 	for scanner.Scan() {
+		select {
+		case <-w.drainStop():
+			return
+		default:
+		}
 		line := scanner.Bytes()
 		var message protocolMessage
 		if err := json.Unmarshal(line, &message); err != nil {
 			_, _ = w.diagnostics.Write(append(append([]byte("invalid protocol line: "), line...), '\n'))
-			_ = w.process.kill()
+			w.killWhileLive()
 			return
 		}
 		if message.Type == "host_call" {
 			call, err := decodeHostCall(line)
 			if err != nil {
 				_, _ = w.diagnostics.Write([]byte(err.Error() + "\n"))
-				_ = w.process.kill()
+				w.killWhileLive()
 				return
 			}
 			w.routeHostCall(call)
@@ -829,18 +841,18 @@ func (w *Worker) readProtocol(stdout io.Reader) {
 		var response Response
 		if err := json.Unmarshal(line, &response); err != nil {
 			_, _ = w.diagnostics.Write([]byte(err.Error() + "\n"))
-			_ = w.process.kill()
+			w.killWhileLive()
 			return
 		}
 		select {
 		case w.responses <- response:
-		case <-w.done:
+		case <-w.drainStop():
 			return
 		}
 	}
 	if err := scanner.Err(); err != nil {
 		_, _ = w.diagnostics.Write([]byte(err.Error() + "\n"))
-		_ = w.process.kill()
+		w.killWhileLive()
 	}
 }
 
@@ -912,8 +924,14 @@ func (w *Worker) writeProtocol(payload []byte) error {
 	if len(payload) == 0 || len(payload) > maxProtocolLineBytes {
 		return errors.New("kernel protocol payload is empty or too large")
 	}
+	if w.hasExited() {
+		return w.stoppedError()
+	}
 	w.writeMu.Lock()
 	defer w.writeMu.Unlock()
+	if w.hasExited() {
+		return w.stoppedError()
+	}
 	_, err := w.stdin.Write(append(append([]byte(nil), payload...), '\n'))
 	return err
 }
@@ -937,9 +955,12 @@ func (w *Worker) unbindHostCalls(cellID string) {
 }
 
 func (w *Worker) routeHostCall(call HostCall) {
+	if w.hasExited() {
+		return
+	}
 	if err := w.writeHostAck(call.ID); err != nil {
 		_, _ = w.diagnostics.Write([]byte("write host ack: " + err.Error() + "\n"))
-		_ = w.process.kill()
+		w.killWhileLive()
 		return
 	}
 	w.hostMu.Lock()
@@ -951,7 +972,8 @@ func (w *Worker) routeHostCall(call HostCall) {
 	}
 	select {
 	case calls <- call:
-	case <-w.done:
+	case <-w.physicalExit():
+	case <-w.drainStop():
 	}
 }
 
@@ -977,19 +999,26 @@ func (w *Worker) wait() {
 	// "was shut down" reason. Explicit cancellation sets its reason first and
 	// remains authoritative because setStopReason never overwrites it.
 	w.setStopReason(unexpectedKernelStopReason(w.command, err))
-	if w.process != nil {
-		w.process.close()
-	}
-	if w.egressProxy != nil {
-		w.egressProxy.Close()
-	}
 	w.waitMu.Lock()
 	w.waitErr = err
 	w.waitMu.Unlock()
 	if w.restartLanguage == "r" && w.restartKey != "" {
 		w.manager.recordKernelRestart(w.restartKey, w.restartReason(err))
 	}
+	if w.output != nil {
+		close(w.output.exited)
+		w.closeInput()
+	}
 	w.manager.remove(w.id, w)
+	if w.output != nil {
+		w.output.afterExit()
+	}
+	if w.process != nil {
+		w.process.close()
+	}
+	if w.egressProxy != nil {
+		w.egressProxy.Close()
+	}
 	close(w.done)
 }
 

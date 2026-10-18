@@ -108,10 +108,8 @@ func (w *Worker) writeHostResultStream(ctx context.Context, call HostCall, reade
 	// wakes a blocked writer, and the existing worker owner reaps this process.
 	stopped := make(chan struct{})
 	stop := context.AfterFunc(ctx, func() {
-		_ = w.stdin.Close()
-		if w.process != nil {
-			_ = w.process.kill()
-		}
+		w.closeInput()
+		w.killWhileLive()
 		close(stopped)
 	})
 	defer func() {
