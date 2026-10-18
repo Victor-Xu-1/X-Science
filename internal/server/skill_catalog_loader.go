@@ -11,6 +11,7 @@ import (
 
 func loadSkillCatalog(provided *skills.Catalog, configured []string, fileRoot string) (*skills.Catalog, []string, []skills.LoadError) {
 	if provided != nil {
+		provided = withoutManagedSkillDrafts(provided, fileRoot)
 		provided = withBuiltinRuntimeSkill(provided)
 		return provided, configured, provided.LoadErrors()
 	}
@@ -35,7 +36,7 @@ func loadSkillCatalog(provided *skills.Catalog, configured []string, fileRoot st
 		// personal rather than silently dropping them.
 		absolute = append(absolute, existingSkillDirectories([]string{personalSkillDirectory(fileRoot)})...)
 		absolute = uniqueSkillDirectories(absolute)
-		loaded := skills.Load(absolute, runtimeSkillLoadOptions())
+		loaded := withoutManagedSkillDrafts(skills.Load(absolute, runtimeSkillLoadOptions()), fileRoot)
 		for _, skill := range loaded.Skills() {
 			catalog.AddSkill(skill)
 		}
@@ -51,7 +52,7 @@ func loadSkillCatalog(provided *skills.Catalog, configured []string, fileRoot st
 		catalog := skills.BuiltinRuntimeCatalog()
 		return catalog, []string{"builtin:x-science-runtime"}, catalog.LoadErrors()
 	}
-	catalog := skills.Load(directories, runtimeSkillLoadOptions())
+	catalog := withoutManagedSkillDrafts(skills.Load(directories, runtimeSkillLoadOptions()), fileRoot)
 	catalog = withBuiltinRuntimeSkill(catalog)
 	return catalog, directories, catalog.LoadErrors()
 }

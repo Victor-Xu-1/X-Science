@@ -56,6 +56,7 @@ export interface IResponseMessage {
   data: unknown;
   msg_id: string;
   turn_id?: string;
+  turn_intent?: 'save-as-skill';
   conversation_id: string;
   created_at?: number;
   hidden?: boolean;
@@ -237,6 +238,7 @@ function decodeMessagePayload(raw: unknown): IResponseMessage | undefined {
     !isExactIdentifier(raw.msg_id) ||
     !isExactIdentifier(raw.conversation_id) ||
     (raw.turn_id !== undefined && !isExactIdentifier(raw.turn_id)) ||
+    (raw.turn_intent !== undefined && raw.turn_intent !== 'save-as-skill') ||
     (raw.created_at !== undefined && (!Number.isSafeInteger(raw.created_at) || (raw.created_at as number) < 0)) ||
     !isOptionalEnum(raw.position, POSITIONS) ||
     !isOptionalEnum(raw.status, STATUSES) ||
@@ -267,6 +269,7 @@ function decodeMessagePayload(raw: unknown): IResponseMessage | undefined {
     msg_id: raw.msg_id,
     conversation_id: raw.conversation_id,
     ...(raw.turn_id !== undefined ? { turn_id: raw.turn_id as string } : {}),
+    ...(raw.turn_intent === 'save-as-skill' ? { turn_intent: raw.turn_intent } : {}),
     ...(raw.created_at !== undefined ? { created_at: raw.created_at as number } : {}),
     ...(raw.hidden !== undefined ? { hidden: raw.hidden } : {}),
     ...(raw.position !== undefined ? { position: raw.position as IResponseMessage['position'] } : {}),

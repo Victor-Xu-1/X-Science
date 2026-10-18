@@ -156,6 +156,11 @@ host.skills.publish(name, overwrite=False)
 # publish takes NO content args — write SKILL.md via .edit() first.
 # → {"status": "published", "skill_id", "name", "note"}
 
+host.skills.validate(name)
+# → {"valid", "name", "origin", "errors", "warnings"}
+# Checks the package structure without executing its helper code. Repair
+# errors in the draft before publishing; validation alone is not publication.
+
 host.skills.delete(name)
 # draft → removes local dir; org/personal → unpublishes + removes local
 # cache; x_science_llm bundled → protected.
@@ -348,10 +353,26 @@ host.skills.edit("my-skill", "kernel.py", "def helper(x): ...\n")
 
 # inspect / iterate
 print(host.skills.read("my-skill")["content"])
+print(host.skills.validate("my-skill"))
 
 # publish to the live skill set
 host.skills.publish("my-skill")
+print(host.skills.read("my-skill")["content"])
 ```
+
+New drafts are author-visible but excluded from normal discovery and invocation.
+Editing a published personal Skill creates a separate draft; it does not alter
+the live package until explicit publication. A same-name live package requires
+an explicit overwrite decision. Do not modify an unrelated Skill to avoid a
+conflict. Preserve scripts, references and assets when they belong to the
+reusable procedure; a package is not limited to SKILL.md and kernel.py.
+
+When saving the current conversation, inspect its actual goal, execution,
+corrections and observed results first. An unsettled or insufficient procedure
+can be explained without creating a package. Do not rerun scientific workloads
+or make optional evaluations a prerequisite for simply saving a procedure.
+Report a saved Skill only after actual publication and read-back; draft creation,
+structural validation and a finished model response are not save receipts.
 
 Once published, the skill is in the live catalog — every unrestricted profile
 (including the main agent and any profile created with the default) sees it

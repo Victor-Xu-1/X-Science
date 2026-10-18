@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "547773978577d352fb4fbf16121a5b8ec573069cd885795b26a3b36d830759ad",
+  "lockfileSHA256": "3ed07f5d21109082596537d82b80afe6d08ac3887b0720db7cd6d4c001f3293c",
   "summary": {
-    "records": 1130,
+    "records": 1131,
     "workspaceLinkRecords": 1,
-    "directRuntimeBuildDependencies": 62,
+    "directRuntimeBuildDependencies": 63,
     "directDevelopmentDependencies": 26,
     "licenseCounts": {
       "(MIT AND Zlib)": 1,
@@ -19,7 +19,7 @@
       "BlueOak-1.0.0": 2,
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
-      "ISC": 53,
+      "ISC": 54,
       "MIT": 1007,
       "MIT-0": 2,
       "Python-2.0": 1,
@@ -5416,9 +5416,9 @@
     },
     {
       "name": "lucide-react",
-      "version": "0.542.0",
+      "version": "1.25.0",
       "license": "ISC",
-      "directKind": null,
+      "directKind": "runtime-build",
       "basis": "package-lock metadata"
     },
     {
@@ -7088,6 +7088,13 @@
       "basis": "package-lock metadata"
     },
     {
+      "name": "lucide-react",
+      "version": "0.542.0",
+      "license": "ISC",
+      "directKind": "runtime-build",
+      "basis": "package-lock metadata"
+    },
+    {
       "name": "remark-cjk-friendly",
       "version": "1.2.3",
       "license": "MIT",
@@ -7945,7 +7952,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.2.45",
+      "version": "0.2.46",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

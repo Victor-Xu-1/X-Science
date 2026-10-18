@@ -1599,6 +1599,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
             position: payload.position,
             status: payload.status,
             hidden: payload.hidden,
+            ...(payload.turn_intent === 'save-as-skill' ? { turn_intent: payload.turn_intent } : {}),
             created_at: payload.created_at,
             content: {
               content: payload.content,

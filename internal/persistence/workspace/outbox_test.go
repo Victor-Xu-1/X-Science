@@ -316,7 +316,10 @@ func TestOutboxRetryUsesDBAvailabilityAndDeadLettersAtMaximum(t *testing.T) {
 		t.Fatalf("enqueue: %v", err)
 	}
 	claimed := claimOneOutbox(t, store, "worker-a", time.Second)
-	dead, err := store.RetryOutbox(ctx, event.ID, claimed.ClaimToken, "first failure", 80*time.Millisecond)
+	// Backoff must outlive this bounded test, even on a slow CI filesystem.
+	// Eligibility below is advanced in this isolated fixture, not by sleeping
+	// and assuming that two real database commits finish within 80 ms.
+	dead, err := store.RetryOutbox(ctx, event.ID, claimed.ClaimToken, "first failure", time.Hour)
 	if err != nil || dead {
 		t.Fatalf("first retry = dead %v, err %v; want pending", dead, err)
 	}
@@ -324,7 +327,10 @@ func TestOutboxRetryUsesDBAvailabilityAndDeadLettersAtMaximum(t *testing.T) {
 	if err != nil || len(ready) != 0 {
 		t.Fatalf("claim during DB backoff = %d, %v; want none", len(ready), err)
 	}
-	time.Sleep(100 * time.Millisecond)
+	if _, err := store.db.ExecContext(ctx, `UPDATE workspace_outbox
+		SET available_at_ms=`+sqliteNowMillis+` WHERE event_id=? AND status='pending'`, event.ID); err != nil {
+		t.Fatalf("advance fixture availability: %v", err)
+	}
 	claimed = claimOneOutbox(t, store, "worker-b", time.Second)
 	dead, err = store.RetryOutbox(ctx, event.ID, claimed.ClaimToken, "second failure", time.Second)
 	if err != nil || !dead {

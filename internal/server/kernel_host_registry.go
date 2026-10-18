@@ -19,12 +19,12 @@ import (
 
 	kernelruntime "x-science/internal/kernel"
 	workspace "x-science/internal/persistence/workspace"
-	"x-science/internal/skills"
 )
 
 var kernelHostRegistryMethods = []string{
 	"host.skills.list",
 	"host.skills.read",
+	"host.skills.validate",
 	"host.skills.edit",
 	"host.skills.install",
 	"host.skills.publish",
@@ -79,6 +79,7 @@ func (s *Server) handleKernelSkillHostCall(
 	method string,
 	args []any,
 	kwargs map[string]any,
+	execution ...kernelHostExecutionIdentity,
 ) (any, error) {
 	if s == nil || s.skillCatalog == nil || strings.TrimSpace(s.fileRoot) == "" {
 		return nil, kernelruntime.NewHostCallError("unavailable", "personal Skill registry is not configured")
@@ -88,13 +89,16 @@ func (s *Server) handleKernelSkillHostCall(
 		if err := kernelHostExpectNoArguments(args, kwargs, method); err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
-		return s.kernelHostListSkills(), nil
+		return s.kernelHostListSkills()
 	case "host.skills.read":
 		name, path, err := kernelHostSkillReadInput(args, kwargs)
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
-		skill, found := findCatalogSkill(s.skillCatalog, name)
+		skill, found, resolveErr := s.compatibilityAuthorSkill(name)
+		if resolveErr != nil {
+			return nil, kernelHostRegistryError(resolveErr)
+		}
 		if !found {
 			return nil, kernelruntime.NewHostCallError("not_found", fmt.Sprintf("skill %q was not found", name))
 		}
@@ -103,6 +107,13 @@ func (s *Server) handleKernelSkillHostCall(
 			return nil, kernelHostRegistryError(err)
 		}
 		return map[string]any{"name": skill.Name, "path": path, "content": content}, nil
+	case "host.skills.validate":
+		name, err := kernelHostSingleNameInput(args, kwargs, method)
+		if err != nil {
+			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
+		}
+		result, err := s.kernelHostValidateSkill(name)
+		return result, kernelHostRegistryError(err)
 	case "host.skills.edit":
 		name, path, content, oldString, err := kernelHostSkillEditInput(args, kwargs)
 		if err != nil {
@@ -110,11 +121,26 @@ func (s *Server) handleKernelSkillHostCall(
 		}
 		s.skillMutationMu.Lock()
 		defer s.skillMutationMu.Unlock()
-		action, relativePath, err := s.kernelHostEditSkill(ctx, name, path, oldString, content)
+		if len(execution) != 1 {
+			return nil, kernelruntime.NewHostCallError("permission_denied", "Skill mutation execution authority is unavailable")
+		}
+		commit, err := s.kernelSkillMutationCommit(ctx, execution[0], access)
+		if err != nil {
+			return nil, err
+		}
+		action, relativePath, err := s.kernelHostEditSkill(ctx, name, path, oldString, content, commit)
 		if err != nil {
 			return nil, kernelHostRegistryError(err)
 		}
-		return map[string]any{"action": action, "path": relativePath, "draft_path": "skills/" + name}, nil
+		draft, found, err := s.findCompatibilitySkillDraft(name)
+		if err != nil || !found {
+			return nil, kernelruntime.NewHostCallError("storage_error", "Edited Skill draft is unavailable")
+		}
+		draftPath, err := filepath.Rel(s.fileRoot, filepath.Dir(draft.Path))
+		if err != nil || !filepath.IsLocal(draftPath) {
+			return nil, kernelruntime.NewHostCallError("storage_error", "Edited Skill draft path is unavailable")
+		}
+		return map[string]any{"action": action, "path": relativePath, "draft_path": filepath.ToSlash(draftPath)}, nil
 	case "host.skills.install":
 		repo, selected, sha, err := kernelHostSkillInstallInput(args, kwargs)
 		if err != nil {
@@ -128,7 +154,14 @@ func (s *Server) handleKernelSkillHostCall(
 		}
 		s.skillMutationMu.Lock()
 		defer s.skillMutationMu.Unlock()
-		skill, err := s.publishCompatibilitySkillDraft(name, overwrite)
+		if len(execution) != 1 {
+			return nil, kernelruntime.NewHostCallError("permission_denied", "Skill mutation execution authority is unavailable")
+		}
+		commit, err := s.kernelSkillMutationCommit(ctx, execution[0], access)
+		if err != nil {
+			return nil, err
+		}
+		skill, err := s.publishCompatibilitySkillDraftWithCommit(name, overwrite, commit)
 		if err != nil {
 			return nil, kernelHostRegistryError(err)
 		}
@@ -143,10 +176,21 @@ func (s *Server) handleKernelSkillHostCall(
 		}
 		s.skillMutationMu.Lock()
 		defer s.skillMutationMu.Unlock()
-		if err := s.deleteCompatibilitySkill(access.UserID, name, false); err != nil {
+		if len(execution) != 1 {
+			return nil, kernelruntime.NewHostCallError("permission_denied", "Skill mutation execution authority is unavailable")
+		}
+		commit, err := s.kernelSkillMutationCommit(ctx, execution[0], access)
+		if err != nil {
+			return nil, err
+		}
+		_, draftOnly, err := s.findCompatibilitySkillDraft(name)
+		if err != nil {
 			return nil, kernelHostRegistryError(err)
 		}
-		return map[string]any{"deleted": name, "unpublished": true}, nil
+		if err := s.deleteCompatibilitySkillWithCommit(access.UserID, name, draftOnly, commit); err != nil {
+			return nil, kernelHostRegistryError(err)
+		}
+		return map[string]any{"deleted": name, "unpublished": !draftOnly}, nil
 	default:
 		return nil, kernelruntime.NewHostCallError("method_not_allowed", "host Skill method is not allowed")
 	}
@@ -248,92 +292,51 @@ func (s *Server) kernelHostMarketplaceRequest(ctx context.Context, userID, path 
 	return result, nil
 }
 
-func (s *Server) kernelHostListSkills() []map[string]any {
+func (s *Server) kernelHostListSkills() ([]map[string]any, error) {
 	items := make([]map[string]any, 0, len(s.skillCatalog.Skills()))
 	for _, skill := range s.skillCatalog.Skills() {
-		origin := compatibilitySkillSource(skill)
-		if origin == "personal" && !strings.HasPrefix(skill.Path, "builtin:") &&
-			regularDraftFile(filepath.Join(filepath.Dir(skill.Path), compatibilitySkillDraftMarker)) {
-			origin = "draft"
+		if !strings.HasPrefix(skill.Path, "builtin:") && managedSkillDraftPath(skill.Path, s.fileRoot) {
+			continue
 		}
+		origin := compatibilitySkillSource(skill)
 		items = append(items, map[string]any{
 			"name": skill.Name, "origin": origin, "description": skill.Description,
 		})
 	}
+	drafts, err := s.compatibilitySkillDraftNames()
+	if err != nil {
+		return nil, kernelHostRegistryError(err)
+	}
+	for _, name := range drafts {
+		items = append(items, map[string]any{"name": name, "origin": "draft", "description": ""})
+	}
 	sort.SliceStable(items, func(i, j int) bool { return stringValue(items[i]["name"]) < stringValue(items[j]["name"]) })
-	return items
+	return items, nil
 }
 
-func (s *Server) kernelHostEditSkill(ctx context.Context, name, relativePath, oldString, content string) (string, string, error) {
+func (s *Server) kernelHostEditSkill(ctx context.Context, name, relativePath, oldString, content string, commit skillDraftCommit) (string, string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", "", err
 	}
-	skill, found := findCatalogSkill(s.skillCatalog, name)
+	_, found, err := s.compatibilityAuthorSkill(name)
+	if err != nil {
+		return "", "", err
+	}
 	if found {
-		action, absolute, err := s.editCompatibilitySkillFile(name, relativePath, oldString, content)
+		action, _, err := s.editCompatibilitySkillFileWithCommit(name, relativePath, oldString, content, commit)
 		if err != nil {
 			return "", "", err
 		}
-		return action, relativeSkillPath(absolute, filepath.Dir(skill.Path)), nil
+		return action, filepath.ToSlash(filepath.Clean(relativePath)), nil
 	}
-	if relativePath != "SKILL.md" || oldString != "" {
-		return "", "", errors.New("new Skills can only create SKILL.md with an empty old_string")
+	if oldString != "" {
+		return "", "", errors.New("new Skill resources require an empty old_string")
 	}
-	return s.createKernelSkillDraft(name, content)
-}
-
-func (s *Server) createKernelSkillDraft(name, content string) (string, string, error) {
-	if !importedSkillNamePattern.MatchString(name) || name == "." || name == ".." {
-		return "", "", fmt.Errorf("invalid Skill name %q", name)
-	}
-	installRoot := filepath.Join(s.fileRoot, "skills")
-	if err := ensurePrivateDirectoryForImport(installRoot); err != nil {
-		return "", "", fmt.Errorf("prepare personal Skill directory: %w", err)
-	}
-	if _, existing, err := findCaseInsensitiveSkillDestination(installRoot, name); err != nil {
-		return "", "", err
-	} else if existing {
-		return "", "", fmt.Errorf("%w: skill %q already exists", os.ErrExist, name)
-	}
-	staging := filepath.Join(installRoot, ".skill-host-draft-"+uuid.NewString())
-	if err := os.Mkdir(staging, 0o700); err != nil {
+	_, err = s.createCompatibilitySkillDraft(name, relativePath, content, nil, commit)
+	if err != nil {
 		return "", "", err
 	}
-	defer os.RemoveAll(staging)
-	if err := os.WriteFile(filepath.Join(staging, compatibilitySkillDraftMarker), []byte("draft\n"), 0o600); err != nil {
-		return "", "", err
-	}
-	if err := os.WriteFile(filepath.Join(staging, "SKILL.md"), []byte(content), 0o600); err != nil {
-		return "", "", err
-	}
-	loaded := skills.Load([]string{staging}, runtimeSkillLoadOptions())
-	if failures := loaded.LoadErrors(); len(failures) > 0 {
-		return "", "", fmt.Errorf("new Skill failed validation: %s", failures[0].Err)
-	}
-	items := loaded.Skills()
-	if len(items) != 1 || !strings.EqualFold(items[0].Name, name) {
-		return "", "", fmt.Errorf("new Skill must contain frontmatter name %q", name)
-	}
-	destination := filepath.Join(installRoot, name)
-	if err := os.Rename(staging, destination); err != nil {
-		return "", "", fmt.Errorf("publish Skill draft directory: %w", err)
-	}
-	defer func() { _ = os.RemoveAll(staging) }()
-	reloaded := skills.Load([]string{destination}, runtimeSkillLoadOptions())
-	if failures := reloaded.LoadErrors(); len(failures) > 0 || len(reloaded.Skills()) != 1 {
-		_ = os.RemoveAll(destination)
-		return "", "", errors.New("new Skill failed reload validation")
-	}
-	s.skillCatalog.UpsertSkill(reloaded.Skills()[0])
-	return "created", "SKILL.md", nil
-}
-
-func relativeSkillPath(path, root string) string {
-	relative, err := filepath.Rel(root, path)
-	if err != nil || relative == "." || strings.HasPrefix(relative, "..") {
-		return filepath.Base(path)
-	}
-	return filepath.ToSlash(relative)
+	return "created", filepath.ToSlash(filepath.Clean(relativePath)), nil
 }
 
 func (s *Server) handleKernelAgentHostCall(

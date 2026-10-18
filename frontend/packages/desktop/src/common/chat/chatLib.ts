@@ -123,6 +123,8 @@ interface IMessage<T extends TMessageType, Content> {
    * Hidden from UI display but persisted to DB and sent to agent.
    */
   hidden?: boolean;
+  /** Typed control presentation; the canonical message itself remains persisted. */
+  turn_intent?: 'save-as-skill';
   /** Canonical artifact/version identities attached to this persisted message. */
   artifact_refs?: ArtifactReferenceWire[];
 }
@@ -857,6 +859,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
           ...(structuredError ? { error: structuredError } : {}),
         },
         ...(message.hidden && { hidden: true }),
+        ...(message.turn_intent === 'save-as-skill' ? { turn_intent: message.turn_intent } : {}),
       };
     }
     case 'text':
@@ -892,6 +895,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
           ? { round_summary: decodeRoundSummary(message.round_summary) }
           : {}),
         ...(message.hidden && { hidden: true }),
+        ...(message.turn_intent === 'save-as-skill' ? { turn_intent: message.turn_intent } : {}),
       };
     }
     case 'tool_call': {

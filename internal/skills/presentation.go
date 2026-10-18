@@ -165,6 +165,20 @@ func readPresentationCatalog(root *os.Root, dir string) (*presentationCatalog, e
 	return &catalog, nil
 }
 
+// ValidatePresentationSidecar reuses the catalog parser without requiring a
+// currently parseable SKILL.md. Draft authors may repair Skill metadata while
+// adjacent presentation bytes remain subject to the normal schema checks.
+func ValidatePresentationSidecar(root *os.Root, relative string) error {
+	if root == nil || !filepath.IsLocal(relative) {
+		return errors.New("presentation path escaped its root")
+	}
+	if filepath.Base(relative) != presentationFilename {
+		return nil
+	}
+	_, err := readPresentationCatalog(root, filepath.Dir(relative))
+	return err
+}
+
 // encoding/json accepts duplicate object keys. Reject them so reviewable
 // metadata cannot silently overwrite an earlier declaration.
 func validatePresentationJSONKeys(decoder *json.Decoder, depth int) error {

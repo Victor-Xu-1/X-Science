@@ -6,7 +6,8 @@
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { Button, Message, Tooltip, Trigger } from '@arco-design/web-react';
-import { Check, FolderOpen, Lightning, ListCheckbox, Paperclip, Plus, Shield } from '@icon-park/react';
+import { Check, FolderOpen, ListCheckbox, Paperclip, Plus, Shield } from '@icon-park/react';
+import { BookMarked, Loader2, Plus as ControlPlus } from 'lucide-react';
 import ComposerCapabilityPicker from './ComposerCapabilityPicker';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
@@ -17,6 +18,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import './conversationControlMenu.css';
 
 interface FileAttachButtonProps {
   openFileSelector: () => void;
@@ -39,6 +41,7 @@ interface FileAttachButtonProps {
   reviewInFlight?: boolean;
   reviewDisabled?: boolean;
   saveAsSkillDisabled?: boolean;
+  saveAsSkillInFlight?: boolean;
   reviewLabelMode?: 'findings' | 'manual';
   triggerTestId?: string;
   showUnavailableConversationActions?: boolean;
@@ -52,15 +55,29 @@ const MenuItem: React.FC<{
   onClick?: () => void;
   checked?: boolean;
   disabled?: boolean;
-}> = ({ icon, label, description, suffix, onClick, checked, disabled = false }) => {
+  busy?: boolean;
+  keepDisabledFocusable?: boolean;
+}> = ({
+  icon,
+  label,
+  description,
+  suffix,
+  onClick,
+  checked,
+  disabled = false,
+  busy,
+  keepDisabledFocusable = false,
+}) => {
   const menuItem = (
     <button
       type='button'
       role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
       aria-label={typeof label === 'string' ? label : undefined}
       aria-checked={checked}
-      tabIndex={!disabled && onClick ? 0 : -1}
-      disabled={disabled}
+      aria-disabled={disabled || undefined}
+      aria-busy={busy || undefined}
+      tabIndex={onClick && (!disabled || keepDisabledFocusable) ? 0 : -1}
+      disabled={disabled && !keepDisabledFocusable}
       className={`composer-control-menu__row box-border flex w-full items-center gap-10px border-0 bg-transparent px-12px py-9px text-left rounded-8px transition-colors text-14px select-none ${disabled ? 'cursor-not-allowed text-t-secondary' : 'cursor-pointer text-t-primary hover:bg-fill-2'}`}
       onClick={disabled ? undefined : onClick}
     >
@@ -122,6 +139,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   reviewInFlight = false,
   reviewDisabled = false,
   saveAsSkillDisabled = false,
+  saveAsSkillInFlight = false,
   reviewLabelMode = 'findings',
   triggerTestId = 'conversation-attach-folder-btn',
   showUnavailableConversationActions = false,
@@ -198,8 +216,10 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const isDesktop = isElectronDesktop();
   const hasSkills = skillNames.length > 0 || Boolean(onEnableSkill);
   const hasMcpServers = mcpStatuses.length > 0;
-  const plusIcon = (
-    <Plus theme='outline' size={xScienceV11 ? 17 : 14} strokeWidth={xScienceV11 ? 3.6 : 2} fill={iconColors.primary} />
+  const plusIcon = xScienceV11 ? (
+    <ControlPlus size={16} strokeWidth={2} aria-hidden='true' />
+  ) : (
+    <Plus theme='outline' size={14} strokeWidth={2} fill={iconColors.primary} />
   );
 
   if (!xScienceV11 && isDesktop && !hasSkills && !hasMcpServers) {
@@ -226,8 +246,8 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
 
   const v11Menu = (
     <div
-      className='app-overlay-menu composer-control-menu'
-      style={{ ...cardStyle, minWidth: 210, width: 'min(210px, calc(100vw - 24px))' }}
+      className='app-overlay-menu composer-control-menu conversation-control-menu'
+      style={{ ...cardStyle, minWidth: 'min(224px, calc(100vw - 24px))', width: 'min(224px, calc(100vw - 24px))' }}
       role='menu'
       aria-label={t('conversation.attachMenu.addToMessage')}
       onClick={(event) => event.stopPropagation()}
@@ -323,15 +343,34 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           <div className='mx-12px my-4px h-1px bg-[var(--color-border-1)]' />
           <div className='px-6px'>
             <MenuItem
-              icon={<Lightning theme='outline' size={15} />}
-              label={t('conversation.attachMenu.saveAsSkill')}
+              icon={
+                saveAsSkillInFlight ? (
+                  <Loader2
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden='true'
+                    className='conversation-control-menu__spinner'
+                  />
+                ) : (
+                  <BookMarked size={16} strokeWidth={2} aria-hidden='true' />
+                )
+              }
+              label={t(
+                saveAsSkillInFlight
+                  ? 'conversation.attachMenu.saveAsSkillTaskLabel'
+                  : 'conversation.attachMenu.saveAsSkill'
+              )}
               description={t(
-                saveAsSkillDisabled
-                  ? 'conversation.attachMenu.saveAsSkillBusyDescription'
-                  : 'conversation.attachMenu.saveAsSkillDescription'
+                saveAsSkillInFlight
+                  ? 'conversation.attachMenu.saveAsSkillTaskRunning'
+                  : saveAsSkillDisabled
+                    ? 'conversation.attachMenu.saveAsSkillBusyDescription'
+                    : 'conversation.attachMenu.saveAsSkillDescription'
               )}
               onClick={() => closeAndRun(onSaveSkill)}
               disabled={!onSaveSkill || saveAsSkillDisabled}
+              busy={saveAsSkillInFlight}
+              keepDisabledFocusable
             />
           </div>
         </>
@@ -404,7 +443,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           ref={triggerButtonRef}
           type='secondary'
           shape='circle'
-          className={xScienceV11 ? 'composer-icon-control' : undefined}
+          className={xScienceV11 ? 'composer-icon-control conversation-control-trigger' : undefined}
           icon={plusIcon}
           loading={uploading}
           disabled={uploading}

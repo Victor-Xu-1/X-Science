@@ -89,11 +89,18 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 		len(archived) != 2 {
 		t.Fatalf("archive = %#v", archived)
 	}
+	// The download boundary above excludes the unsafe published link. Author a
+	// valid copy, then exercise the same link rejection in its isolated draft.
+	if err := os.Remove(filepath.Join(skillRoot, "references", "escape.md")); err != nil {
+		t.Fatal(err)
+	}
+	draftRoot := filepath.Join(installedRoot, compatibilitySkillDraftDirectory, "editable")
+	draftGuidePath := filepath.Join(draftRoot, "references", "guide.md")
 
 	edited := compatJSONRequest(t, app, http.MethodPost, "/api/skills/editable/edit", "user-1", map[string]any{
 		"path": "references/guide.md", "old_string": "unique old", "new_string": "unique new",
 	}, http.StatusOK)
-	if edited["action"] != "edited" || edited["absolute_path"] != guidePath {
+	if edited["action"] != "edited" || edited["absolute_path"] != draftGuidePath {
 		t.Fatalf("edited response = %#v", edited)
 	}
 	created := compatJSONRequest(t, app, http.MethodPost, "/api/skills/editable/edit", "user-1", map[string]any{
@@ -111,9 +118,15 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 	compatJSONRequest(t, app, http.MethodPost, "/api/skills/editable/edit", "user-1", map[string]any{
 		"path": "../outside.txt", "old_string": "outside", "new_string": "leaked",
 	}, http.StatusBadRequest)
+	if err := os.Symlink(outside, filepath.Join(draftRoot, "references", "escape.md")); err != nil {
+		t.Fatal(err)
+	}
 	compatJSONRequest(t, app, http.MethodPost, "/api/skills/editable/edit", "user-1", map[string]any{
 		"path": "references/escape.md", "old_string": "outside", "new_string": "leaked",
 	}, http.StatusBadRequest)
+	if err := os.Remove(filepath.Join(draftRoot, "references", "escape.md")); err != nil {
+		t.Fatal(err)
+	}
 	compatJSONRequest(t, app, http.MethodPost, "/api/skills/readonly/edit", "user-1", map[string]any{
 		"path": "SKILL.md", "old_string": "No edits.", "new_string": "Changed.",
 	}, http.StatusForbidden)
@@ -148,9 +161,13 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 	if successes != 1 || conflicts != 1 {
 		t.Fatalf("concurrent edit statuses: success=%d conflict=%d", successes, conflicts)
 	}
-	rawGuide, err := os.ReadFile(guidePath)
+	rawGuide, err := os.ReadFile(draftGuidePath)
 	if err != nil || !strings.Contains(string(rawGuide), "winner-") || strings.Contains(string(rawGuide), "unique new") {
 		t.Fatalf("final guide = %q, err=%v", rawGuide, err)
+	}
+	liveGuide, err := os.ReadFile(guidePath)
+	if err != nil || string(liveGuide) != "unique old\nrepeat repeat" {
+		t.Fatalf("draft edit changed published guide=%q err=%v", liveGuide, err)
 	}
 	rawOutside, err := os.ReadFile(outside)
 	if err != nil || string(rawOutside) != "outside secret" {
@@ -163,5 +180,21 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 		"/api/skills/catalog/editable/content?path=references%2Fnew.md", "user-1", nil, http.StatusOK)
 	if restartedContent["content"] != "new reference" {
 		t.Fatalf("restarted content = %#v", restartedContent)
+	}
+	if _, err := os.Stat(filepath.Join(skillRoot, "references", "new.md")); !os.IsNotExist(err) {
+		t.Fatalf("unpublished draft reached live package, stat=%v", err)
+	}
+	compatJSONRequest(t, restarted.Handler(), http.MethodPost, "/api/skills/editable/publish", "user-1", map[string]any{"overwrite": true}, http.StatusOK)
+	publishedCatalog, _, failures := loadSkillCatalog(nil, []string{filepath.Dir(externalRoot)}, root)
+	if len(failures) != 0 {
+		t.Fatalf("published restart failures=%#v", failures)
+	}
+	published, found := findCatalogSkill(publishedCatalog, "editable")
+	if !found || !sameCleanPath(published.Path, filepath.Join(skillRoot, "SKILL.md")) {
+		t.Fatalf("published restart Skill=%#v found=%t", published, found)
+	}
+	finalReference, err := os.ReadFile(filepath.Join(skillRoot, "references", "new.md"))
+	if err != nil || string(finalReference) != "new reference" {
+		t.Fatalf("published resource=%q err=%v", finalReference, err)
 	}
 }

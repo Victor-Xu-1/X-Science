@@ -37,6 +37,7 @@ type webConversationCreateInput struct {
 }
 
 type webConversationSendInput struct {
+	TurnIntent         string                                  `json:"turn_intent"`
 	Content            string                                  `json:"content"`
 	Files              []string                                `json:"files"`
 	ArtifactRefs       []webConversationArtifactReferenceInput `json:"artifact_refs"`

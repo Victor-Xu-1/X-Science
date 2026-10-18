@@ -41,9 +41,9 @@ type UseConversationRuntimeViewReturn = {
   isProcessing: boolean;
   canSendMessage: boolean;
   activeTurnId: string | null;
-  markSendStarted: () => void;
+  markSendStarted: () => object;
   markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
-  markSendFailed: (reason: string) => void;
+  markSendFailed: (reason: string, ticket?: object) => void;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
   resetLocalGate: (reason: string) => void;
@@ -305,7 +305,9 @@ export const useConversationRuntimeView = (
   }, [conversation_id, reconcileTerminalFromAuthority]);
 
   const markSendStarted = useCallback(() => {
-    flushRuntimeViewLogs(localSendStarted(conversation_id));
+    const ticket = {};
+    flushRuntimeViewLogs(localSendStarted(conversation_id, ticket));
+    return ticket;
   }, [conversation_id]);
 
   const markSendAccepted = useCallback(
@@ -316,8 +318,8 @@ export const useConversationRuntimeView = (
   );
 
   const markSendFailed = useCallback(
-    (reason: string) => {
-      flushRuntimeViewLogs(localSendFailed(conversation_id, normalizeReason(reason)));
+    (reason: string, ticket?: object) => {
+      flushRuntimeViewLogs(localSendFailed(conversation_id, normalizeReason(reason), ticket));
     },
     [conversation_id]
   );

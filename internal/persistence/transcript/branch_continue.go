@@ -16,6 +16,9 @@ type AppendFrameUserEventToBranchInput struct {
 	ExpectedActiveBranchID string
 	ExpectedGeneration     int64
 	ClientMutationID       string
+	// Read-only continuation actions must not cancel a runner or supersede
+	// input accepted while their caller was preparing the selected branch.
+	RequireIdle bool
 }
 
 type AppendFrameUserEventToBranchResult struct {
@@ -129,6 +132,18 @@ func (r *Repository) AppendFrameUserEventToBranch(
 		if activeBranchID == input.TargetBranchID &&
 			(frameStatus == "awaiting_user_response" || frameStatus == "awaiting_plan_approval") {
 			return ErrBranchStateStale
+		}
+		if input.RequireIdle {
+			var running bool
+			if err := conn.QueryRowContext(ctx, `SELECT EXISTS(
+				SELECT 1 FROM transcript_runner_attempts WHERE stream_uid=? AND status='running'
+				AND attempt=(SELECT MAX(attempt) FROM transcript_runner_attempts WHERE stream_uid=?))`, stream.UID, stream.UID).Scan(&running); err != nil {
+				return err
+			}
+			if running || stream.InputRevision > stream.ConsumedInputRevision ||
+				frameStatus == "awaiting_user_response" || frameStatus == "awaiting_plan_approval" {
+				return ErrBranchStateStale
+			}
 		}
 		cancellation, err := cancelRunningRunnerForBranchConn(ctx, conn, stream, input.ClientMutationID, now)
 		if err != nil {
