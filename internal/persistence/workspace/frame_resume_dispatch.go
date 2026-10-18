@@ -302,7 +302,9 @@ func (s *Store) claimNextCompatibilityFrameResumeDispatch(owner string, ttl time
 	for index := range candidates {
 		candidate := &candidates[index]
 		if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, candidate.dispatch.FrameID); err != nil {
-			if errors.Is(err, transcriptstore.ErrConversationArchived) {
+			if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+				// Unavailable presentation blocks this candidate, not unrelated
+				// roots behind it. Direct admission remains strictly rejected.
 				continue
 			}
 			return CompatibilityFrameResumeDispatch{}, false, false, err
