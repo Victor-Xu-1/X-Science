@@ -51,6 +51,9 @@ func writeV11Detail(w http.ResponseWriter, status int, detail string) {
 }
 
 func writeV11StoreError(w http.ResponseWriter, err error) {
+	if writeConversationAvailabilityError(w, err) {
+		return
+	}
 	status := http.StatusInternalServerError
 	message := "Internal workspace error"
 	var requestError *webConversationRequestError

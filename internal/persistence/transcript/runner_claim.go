@@ -94,6 +94,14 @@ func (r *Repository) automaticFrameResumeRequestConn(
 	stream Stream,
 	now time.Time,
 ) (ResumeSource, int64, bool, error) {
+	if stream.Kind == StreamKindFrameRef {
+		if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
+			if errors.Is(err, ErrConversationArchived) {
+				return "", 0, false, nil
+			}
+			return "", 0, false, err
+		}
+	}
 	var attempt int64
 	var status string
 	var expiresAt time.Time
@@ -261,6 +269,11 @@ func (r *Repository) claimRunnerConn(
 	now time.Time,
 ) (ClaimRunnerResult, error) {
 	var result ClaimRunnerResult
+	if stream.Kind == StreamKindFrameRef {
+		if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
+			return result, err
+		}
+	}
 	blocked, err := frameTerminalBlocksRunnerClaimConn(ctx, conn, stream)
 	if err != nil || blocked {
 		return result, err

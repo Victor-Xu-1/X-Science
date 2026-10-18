@@ -36,7 +36,16 @@ const libraryPageSource = read('LibrarySettingsPage.tsx');
 const i18nKeys = readFileSync(path.join(settingsDir, '../../services/i18n/i18n-keys.d.ts'), 'utf8');
 
 const LIBRARY_ROUTES = ['experts', 'skills', 'tools', 'environments'] as const;
-const UNCHANGED_ROUTES = ['models', 'compute', 'governance', 'network', 'credentials', 'storage', 'general'] as const;
+const UNCHANGED_ROUTES = [
+  'models',
+  'compute',
+  'governance',
+  'network',
+  'credentials',
+  'storage',
+  'archived',
+  'general',
+] as const;
 
 const countOccurrences = (source: string, marker: string): number => source.split(marker).length - 1;
 

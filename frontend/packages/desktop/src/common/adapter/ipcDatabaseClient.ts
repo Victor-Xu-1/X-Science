@@ -124,7 +124,7 @@ export const database = {
   getUserConversations: withResponseMap(
     httpGet<
       PaginatedResult<import('@/common/config/storage').TChatConversation>,
-      { cursor?: string; limit?: number; section?: 'pinned' | 'recent' }
+      { cursor?: string; limit?: number; section?: 'pinned' | 'recent' | 'archived' }
     >((p) => {
       const params = new URLSearchParams();
       if (p.cursor) params.set('cursor', p.cursor);

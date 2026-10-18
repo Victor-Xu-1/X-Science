@@ -177,6 +177,10 @@ export type TChatConversation =
           sortOrder?: number;
           presentation_revision?: number;
           frame_incarnation_id?: string;
+          /** Server-owned archive visibility; absent means active. */
+          archived_at?: number;
+          /** Read-only projection: opaque presentation is unavailable, not active. */
+          presentation_unavailable?: boolean;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
           acp_session_id?: string;
           /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */

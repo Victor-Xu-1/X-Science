@@ -115,6 +115,9 @@ func (r *Repository) AppendFrameUserEventToBranch(
 			}
 			return nil
 		}
+		if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
+			return err
+		}
 		var activeBranchID string
 		var generation int64
 		if err := conn.QueryRowContext(ctx, `

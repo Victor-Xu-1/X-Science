@@ -2,6 +2,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
+import { Archive } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import {
@@ -34,6 +35,7 @@ export const BUILTIN_TAB_IDS = [
   'network',
   'credentials',
   'storage',
+  'archived',
   'general',
 ] as const;
 
@@ -113,6 +115,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.general'),
         icon: <SettingsGeneratedNavIcon id='general' />,
         path: 'general',
+      },
+      archived: {
+        id: 'archived',
+        label: t('conversation.history.archivedSection'),
+        icon: <Archive size={16} strokeWidth={1.8} />,
+        path: 'archived',
       },
     };
 
