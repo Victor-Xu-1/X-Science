@@ -31,6 +31,21 @@ type FrameMessageIntent struct {
 	RequestSHA256      string `json:"request_sha256"`
 }
 
+// JSONValue keeps fresh queue dedupe and persisted map readback byte-identical.
+// Do not change the struct's JSON encoding: existing transcript payloads retain
+// their original representation for exact event replay.
+func (intent FrameMessageIntent) JSONValue() map[string]any {
+	value := map[string]any{
+		"version": intent.Version, "owner_id": intent.OwnerID, "frame_id": intent.FrameID,
+		"frame_incarnation_id": intent.FrameIncarnationID, "loading_id": intent.LoadingID,
+		"input_message_id": intent.InputMessageID, "request_sha256": intent.RequestSHA256,
+	}
+	if intent.TargetBranchID != "" {
+		value["target_branch_id"] = intent.TargetBranchID
+	}
+	return value
+}
+
 type FrameMessageIntentCancellation struct {
 	Intent             FrameMessageIntent `json:"intent"`
 	Accepted           bool               `json:"accepted"`

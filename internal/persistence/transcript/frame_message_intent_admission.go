@@ -100,3 +100,31 @@ func CheckFrameMessageIntentAdmission(ctx context.Context, db MessageIntentQuery
 	}
 	return err
 }
+
+// Preserve an already accepted proof when an older repository caller replays
+// the same event without the newer transport field. The complete event still
+// has to match; historical events without proof must never acquire one here.
+func replayFrameUserMessageIntent(ctx context.Context, db MessageIntentQuery, frameID, clientID string, supplied *FrameMessageIntent, existing Event, found bool) (*FrameMessageIntent, error) {
+	if !found {
+		return supplied, nil
+	}
+	if existing.Source != EventSourcePayload {
+		return nil, nil
+	}
+	var persisted struct {
+		Intent *FrameMessageIntent `json:"messageIntent"`
+	}
+	if err := json.Unmarshal(existing.PayloadJSON, &persisted); err != nil {
+		return nil, ErrMessageIntentUnavailable
+	}
+	if persisted.Intent == nil {
+		return nil, nil
+	}
+	if supplied != nil {
+		return supplied, nil // The caller has already checked typed admission.
+	}
+	if err := CheckFrameMessageIntentAdmission(ctx, db, frameID, clientID, persisted.Intent); err != nil {
+		return nil, err
+	}
+	return persisted.Intent, nil
+}

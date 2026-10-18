@@ -662,7 +662,7 @@ func compatibilityFrameMessageDeliveryPayload(
 		payload["messageContext"] = messageContext
 	}
 	if len(intents) > 0 && intents[0] != nil {
-		payload["messageIntent"] = intents[0]
+		payload["messageIntent"] = intents[0].JSONValue()
 	}
 	return payload
 }

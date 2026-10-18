@@ -402,14 +402,12 @@ func appendFrameUserEventConn(
 			"text": input.Text, "role": "user", "_uuid": input.MessageUUID, "messageOrigin": messageOrigin,
 			"content": []any{map[string]any{"type": "text", "text": input.Text}},
 		}
-		if input.MessageIntent != nil {
-			// Do not manufacture proof for a historical input during replay.
-			var old struct {
-				Intent *FrameMessageIntent `json:"messageIntent"`
-			}
-			if !existingFound || json.Unmarshal(existing.PayloadJSON, &old) == nil && old.Intent != nil {
-				messagePayload["messageIntent"] = input.MessageIntent
-			}
+		messageIntent, err := replayFrameUserMessageIntent(ctx, conn, stream.FrameID, input.ClientMessageID, input.MessageIntent, existing, existingFound)
+		if err != nil {
+			return err
+		}
+		if messageIntent != nil {
+			messagePayload["messageIntent"] = messageIntent
 		}
 		if len(input.InputData) > 0 {
 			messagePayload["inputData"] = input.InputData
