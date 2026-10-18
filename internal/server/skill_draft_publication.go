@@ -17,20 +17,25 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 	if !found {
 		return skills.Skill{}, fmt.Errorf("%w: Skill draft was not found", os.ErrNotExist)
 	}
+	filesystem, err := openSkillImportFilesystem(s.fileRoot, false)
+	if err != nil {
+		return skills.Skill{}, err
+	}
+	defer filesystem.close()
 	root := filepath.Dir(draft.Path)
+	authorIdentity, err := filesystem.lstat(root)
+	if err != nil {
+		return skills.Skill{}, err
+	}
 	validated, err := validateCompatibilitySkillPackage(root, draft.Name)
 	if err != nil {
 		return skills.Skill{}, err
 	}
-	installRoot := filepath.Join(s.fileRoot, "skills")
-	destinationName, existing, err := findCaseInsensitiveSkillDestination(installRoot, draft.Name)
+	destination, existing, err := filesystem.destination(draft.Name)
 	if err != nil {
 		return skills.Skill{}, err
 	}
-	if !existing {
-		destinationName = draft.Name
-	}
-	destination := filepath.Join(installRoot, destinationName)
+	destinationName := filepath.Base(destination)
 	if published, found := findCatalogSkill(s.skillCatalog, draft.Name); found && !sameCleanPath(filepath.Dir(published.Path), root) {
 		if _, err := s.compatibilityEditableSkillRoot(published); err != nil {
 			return skills.Skill{}, err
@@ -41,7 +46,7 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 	}
 	if sameCleanPath(root, destination) {
 		// A legacy marker directory already occupies its publication location.
-		if err := commit(func() error { return os.Remove(filepath.Join(root, compatibilitySkillDraftMarker)) }); err != nil {
+		if err := commit(func() error { return filesystem.remove(filepath.Join(root, compatibilitySkillDraftMarker), false) }); err != nil {
 			return skills.Skill{}, err
 		}
 		s.skillCatalog.UpsertSkill(validated)
@@ -54,16 +59,26 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 	if err != nil {
 		return skills.Skill{}, err
 	}
-	staging, err := os.MkdirTemp(s.compatibilitySkillDraftDirectory(), ".publish-")
+	staging, stagingOwner, err := filesystem.createPrivateDirectory()
 	if err != nil {
 		return skills.Skill{}, err
 	}
-	defer os.RemoveAll(staging)
-	if err := extractSkillArchive(staging, archive); err != nil {
+	defer func() {
+		if current, err := filesystem.lstat(staging); err == nil && os.SameFile(current, stagingOwner) {
+			_ = filesystem.remove(staging, true)
+		}
+	}()
+	directory, err := filesystem.openDirectory(staging)
+	if err != nil {
 		return skills.Skill{}, err
 	}
+	extractErr := extractSkillArchive(directory, archive)
+	_ = directory.Close()
+	if extractErr != nil {
+		return skills.Skill{}, extractErr
+	}
 	sourceRoot := filepath.Join(staging, validated.Name)
-	if err := os.Remove(filepath.Join(sourceRoot, compatibilitySkillDraftMarker)); err != nil {
+	if err := filesystem.remove(filepath.Join(sourceRoot, compatibilitySkillDraftMarker), false); err != nil {
 		return skills.Skill{}, err
 	}
 	installed, err := validateCompatibilitySkillPackage(sourceRoot, draft.Name)
@@ -71,12 +86,15 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 		return skills.Skill{}, err
 	}
 	if err := commit(func() error {
-		if err := installSkillDirectoryAtomic(sourceRoot, destination, existing); err != nil {
+		if err := installSkillDirectoryAtomic(filesystem, sourceRoot, destination, existing); err != nil {
 			return err
 		}
 		// Filesystem promotion has succeeded. Failed cleanup preserves the
 		// author copy; it must not invite repeating an already-published write.
-		if err := os.RemoveAll(root); err != nil {
+		current, inspectErr := filesystem.lstat(root)
+		if inspectErr != nil || !os.SameFile(current, authorIdentity) {
+			log.Printf("Skill publication retained an author draft whose identity changed")
+		} else if err := filesystem.remove(root, true); err != nil {
 			log.Printf("Skill publication retained its author draft after cleanup failure")
 		}
 		return nil
