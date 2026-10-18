@@ -317,7 +317,11 @@ describe('delegated Stop actual entry contract', () => {
         complete = resolve;
       });
     const view = await renderDock();
-    fireEvent.click(await screen.findByRole('button', { name: 'Stop subagents' }));
+    // Lineage replaces the provisional recovery surface. Establish the current
+    // enabled entry before testing the later account/acknowledgement boundary.
+    await screen.findByRole('button', { name: '2 subagents, open list' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Stop subagents' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Stop subagents' }));
     await waitFor(() => expect(requests).toHaveLength(1));
     act(() => {
       setRendererAccountOwner('account-b');

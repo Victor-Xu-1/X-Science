@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "fc17f3be14be6594a26f5a0e8c1d1f7a40aaa030de4d6a77bea0351f851bf7d7",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6b680de689afd81fb653f95d28fa5e269352fd67c0c6234c12759589463152ef",
+  "additionFingerprintSHA256": "765a814c440cf8a8f0b9f07713ad195f7bb5bf963474656ca3b1e66cc5fb7b62",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -11631,8 +11631,8 @@
     },
     {
       "path": "tests/unit/chat/XScienceDelegatedStop.dom.test.tsx",
-      "sha256": "a66eb9f090980f10fa130f10dfec5d384b4f853d1dd9a148b86f1fdb7ad9b6da",
-      "bytes": 13914,
+      "sha256": "a869306db07a9f5a9cda3e047a4e78fbca00fceac625633b8c8d9a7d7ce8e3d2",
+      "bytes": 14245,
       "reason": "Exercises actual Dock/Drawer branch entry, added single-child Stop, lost ACK, keyboard close/focus and account switching."
     },
     {
