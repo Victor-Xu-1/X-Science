@@ -11,6 +11,7 @@ import type { IMessageText } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import MessageText, { parseFileMarker } from '@/renderer/pages/conversation/Messages/components/MessageText';
+import { pdfContext } from '../renderer/conversation/pdfReadingFixtures';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
@@ -50,6 +51,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  useOptionalPreviewContext: () => ({ openPreview: previewMocks.openPreview }),
   usePreviewContext: () => ({
     openPreview: previewMocks.openPreview,
   }),
@@ -176,6 +178,40 @@ const fileMetadata = (path: string) => ({
 });
 
 describe('MessageText attachment paths', () => {
+  it('C12 opens the historical immutable PDF version and original page without changing live bindings', () => {
+    const message: IMessageText = {
+      id: 'pdf-history',
+      msg_id: 'pdf-history',
+      conversation_id: 'frame',
+      type: 'text',
+      position: 'right',
+      status: 'finish',
+      content: { content: 'Explain this page' },
+      pdf_reading_context: {
+        ...pdfContext(),
+        schema: 'x-science.pdf-reading-snapshot.v1',
+        active_binding_id: 'binding-1',
+        page_number: 4,
+      },
+    };
+    const view = render(<MessageText message={message} />);
+    const action = view.container.querySelector('[data-slot="message-pdf-reading-context"]');
+    expect(action).not.toBeNull();
+    fireEvent.click(action!);
+    expect(previewMocks.openPreview).toHaveBeenCalledWith(
+      '/api/artifacts/versions/version-1',
+      'pdf',
+      expect.objectContaining({
+        artifactId: 'artifact-1',
+        versionId: 'version-1',
+        targetPdfPage: 4,
+        editable: false,
+      }),
+      { presentation: 'single' }
+    );
+    expect(message.pdf_reading_context?.revision).toBe(1);
+  });
+
   it.each(['[[X_SCIENCE_FILES]]', '[[SYNON_AI_FILES]]'])(
     'reads the exact published file marker %s without rewriting message bytes',
     (marker) => {

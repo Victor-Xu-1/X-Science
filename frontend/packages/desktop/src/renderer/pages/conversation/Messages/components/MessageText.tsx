@@ -31,6 +31,7 @@ import { areMessageTextPropsEqual } from '../messageItemMemoModel';
 import { splitDeliveryListPresentation } from './deliveryListPresentation';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import MessageRoundFooter from './MessageRoundFooter';
+import { MessagePdfReadingContext } from './MessagePdfReadingContext';
 import MessageReplyBranchButton from './MessageReplyBranchButton';
 import actionStyles from './MessageRoundFooter.module.css';
 
@@ -230,6 +231,12 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
           />
         )}
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
+        {isUserMessage && (message.pdf_reading_context || message.pdf_reading_context_unavailable) && (
+          <MessagePdfReadingContext
+            snapshot={message.pdf_reading_context}
+            unavailable={message.pdf_reading_context_unavailable}
+          />
+        )}
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {resolvedFiles.length === 1 ? (

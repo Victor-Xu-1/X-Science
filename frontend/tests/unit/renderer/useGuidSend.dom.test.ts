@@ -135,6 +135,53 @@ const createDeps = (): GuidSendDeps => ({
 });
 
 describe('useGuidSend', () => {
+  it('C12 hands off the actual completed PDF upload once with owner and stable initial identity', async () => {
+    const deps = createDeps();
+    deps.pdfReadingEnabled = true;
+    deps.dir = 'x-science://project/project-reading';
+    deps.localFiles = [
+      { id: 'upload-reading', file: new File(['%PDF-data'], 'reading.pdf', { type: 'application/pdf' }) },
+    ];
+    uploadXScienceProjectAttachmentMock.mockResolvedValue({
+      artifactId: 'uploaded-artifact',
+      versionId: 'immutable-upload-v1',
+      filename: 'reading.pdf',
+      sizeBytes: 100,
+      checksum: 'a'.repeat(64),
+    });
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await expect(result.current.sendMessageHandler()).resolves.toBe(true);
+    });
+    expect(createConversationInvokeMock).toHaveBeenCalledTimes(1);
+    expect(uploadXScienceProjectAttachmentMock).toHaveBeenCalledTimes(1);
+    const pending = JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1')!);
+    expect(pending).toMatchObject({
+      loading_id: expect.any(String),
+      pdf_reading_owner_id: deps.ownerId,
+      pdf_reading_sources: [{ artifact_id: 'uploaded-artifact', version_id: 'immutable-upload-v1' }],
+      artifact_refs: [{ artifact_id: 'uploaded-artifact', version_id: 'immutable-upload-v1' }],
+    });
+    expect(sendInitialMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('C12 keeps an opted-out PDF as an ordinary immutable attachment', async () => {
+    const deps = createDeps();
+    deps.pdfReadingEnabled = false;
+    deps.contextItems = [
+      { kind: 'artifact', artifactId: 'artifact-1', versionId: 'version-1', projectId: 'project', label: 'paper.pdf' },
+    ];
+    const { result } = renderHook(() => useGuidSend(deps));
+    await act(async () => {
+      await result.current.sendMessageHandler();
+    });
+    const pending = JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1')!);
+    expect(pending).not.toHaveProperty('pdf_reading_sources');
+    expect(pending.artifact_refs).toEqual([
+      expect.objectContaining({ artifact_id: 'artifact-1', version_id: 'version-1' }),
+    ]);
+  });
+
   beforeEach(() => {
     sessionStorage.clear();
     createConversationInvokeMock.mockReset();

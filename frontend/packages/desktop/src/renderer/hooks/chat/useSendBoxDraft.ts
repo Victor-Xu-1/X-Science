@@ -81,7 +81,11 @@ function sameDraftSnapshot(left: Draft, right: Draft): boolean {
     JSON.stringify(left.uploadFile) === JSON.stringify(right.uploadFile) &&
     JSON.stringify(left.contextItems) === JSON.stringify(right.contextItems) &&
     left.planMode === right.planMode &&
-    JSON.stringify(left.stagedSessionOptions) === JSON.stringify(right.stagedSessionOptions)
+    JSON.stringify(left.stagedSessionOptions) === JSON.stringify(right.stagedSessionOptions) &&
+    JSON.stringify(left.pdfReadingMutation) === JSON.stringify(right.pdfReadingMutation) &&
+    left.pdfReadingAttachmentsDisabled === right.pdfReadingAttachmentsDisabled &&
+    left.pdfReadingQueuedInvalid === right.pdfReadingQueuedInvalid &&
+    JSON.stringify(left.pdfReadingQueuedSelection) === JSON.stringify(right.pdfReadingQueuedSelection)
   );
 }
 

@@ -34,10 +34,13 @@ import {
   type OnboardingUploadedArtifact,
 } from '@/renderer/services/onboardingService';
 import type { GuidLocalFile } from './useGuidInput';
+import { suggestPdfReading, type PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
+import { useComposerLifetime } from '@/renderer/hooks/chat/useComposerLifetime';
 import {
   buildComposerCapabilityPayload,
   normalizeComposerContextItems,
   type ComposerContextItem,
+  type ComposerArtifactContext,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 
 export type GuidSendDeps = {
@@ -49,6 +52,8 @@ export type GuidSendDeps = {
   localFiles: GuidLocalFile[];
   setLocalFiles: React.Dispatch<React.SetStateAction<GuidLocalFile[]>>;
   contextItems: ComposerContextItem[];
+  pdfReadingEnabled?: boolean;
+  pdfReadingPosition?: PdfReadingSourcePosition;
   setContextItems: React.Dispatch<React.SetStateAction<ComposerContextItem[]>>;
   dir: string;
   setDir: React.Dispatch<React.SetStateAction<string>>;
@@ -246,10 +251,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     localeKey,
   } = deps;
   const sendingRef = useRef(false);
+  const captureLifetime = useComposerLifetime(ownerId);
   const uploadedAttachmentCacheRef = useRef(new WeakMap<File, OnboardingArtifactCacheEntry>());
   const pendingAttachmentUploadsRef = useRef(new WeakMap<File, OnboardingPendingUpload>());
 
   const handleSend = useCallback(async () => {
+    const isCurrent = captureLifetime();
+    const ensureCurrent = () => {
+      if (!isCurrent()) throw new Error('Conversation draft owner changed');
+    };
     if (!selectedAssistantId) {
       Message.warning(t('conversation.welcome.assistantUnavailable'));
       return false;
@@ -262,6 +272,19 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const messageInput = input.trim() || t('conversation.sendbox.contextOnlyPrompt');
     const capabilityPayload = buildComposerCapabilityPayload(contextItems);
+    const selectedReading = contextItems.filter(
+      (item): item is ComposerArtifactContext => item.kind === 'artifact' && item.readingSelected === true
+    );
+    const wantsReading =
+      deps.pdfReadingEnabled === true &&
+      (selectedReading.length > 0 ||
+        (files.length === 0 &&
+          suggestPdfReading([
+            ...localFiles.map(({ file }) => ({ name: file.name, size: file.size, contentType: file.type })),
+            ...contextItems
+              .filter((item) => item.kind === 'artifact')
+              .map((item) => ({ name: item.label, size: item.sizeBytes, contentType: item.contentType })),
+          ])));
 
     const xScienceProjectWorkspace = parseXScienceProjectWorkspace(dir);
     const isCustomWorkspace = !!dir && !xScienceProjectWorkspace;
@@ -273,6 +296,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     );
     const attachmentProjectWorkspace =
       localFiles.length > 0 ? await resolveGuidAttachmentProject(selectedProjectWorkspace, isCustomWorkspace) : null;
+    ensureCurrent();
     const conversationProjectWorkspace = attachmentProjectWorkspace ?? selectedProjectWorkspace;
     const finalWorkspace = conversationProjectWorkspace?.workspace ?? (dir || '');
 
@@ -352,6 +376,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             onInitialized: (next) => pendingAttachmentUploadsRef.current.set(localFile.file, next),
             onAbandoned: () => pendingAttachmentUploadsRef.current.delete(localFile.file),
           });
+          ensureCurrent();
           uploadedAttachmentCacheRef.current.set(localFile.file, { projectId, artifact });
           pendingAttachmentUploadsRef.current.delete(localFile.file);
         }
@@ -393,6 +418,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             : {}),
         },
       });
+      ensureCurrent();
       if (!conversation || !conversation.id) {
         Message.error(t('conversation.createFailed'));
         return false;
@@ -420,6 +446,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         loading_id: uuid(),
         files: files.length > 0 ? files : undefined,
         artifact_refs: combinedArtifactReferences.length > 0 ? combinedArtifactReferences : undefined,
+        ...(wantsReading
+          ? {
+              pdf_reading_sources:
+                selectedReading.length > 0
+                  ? selectedReading.map((item) => ({ artifact_id: item.artifactId, version_id: item.versionId }))
+                  : combinedArtifactReferences.map(({ artifact_id, version_id }) => ({ artifact_id, version_id })),
+              pdf_reading_owner_id: ownerId,
+              ...(deps.pdfReadingPosition ? { pdf_reading_position: deps.pdfReadingPosition } : {}),
+            }
+          : {}),
         inject_skills: capabilityPayload.injectSkills.length > 0 ? capabilityPayload.injectSkills : undefined,
         inject_mcp_server_ids:
           capabilityPayload.injectMcpServerIds.length > 0 ? capabilityPayload.injectMcpServerIds : undefined,
@@ -440,7 +476,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       // instead of showing a second welcome/loading surface while re-fetching it.
       rememberConversationRouteSnapshot(ownerId, conversation, 'detail');
       await conversationRouteReady;
+      ensureCurrent();
       await navigate(`/conversation/${conversation.id}`);
+      if (!isCurrent()) return true;
 
       // The new conversation is already authoritative once create returns.
       // Cache revalidation and sidebar refresh must not sit on the critical
@@ -465,6 +503,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     files,
     localFiles,
     contextItems,
+    deps.pdfReadingEnabled,
+    deps.pdfReadingPosition,
+    captureLifetime,
     dir,
     selectedAssistantId,
     selectedAssistantBackend,
@@ -492,11 +533,13 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   const sendMessageHandler = useCallback(async (): Promise<boolean> => {
     if (loading || sendingRef.current) return false;
+    const isCurrent = captureLifetime();
     sendingRef.current = true;
     setLoading(true);
     try {
       const sent = await handleSend();
       if (!sent) return false;
+      if (!isCurrent()) return sent;
       setInput('');
       setMentionOpen(false);
       setMentionQuery(null);
@@ -508,16 +551,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       setDir('');
       return true;
     } catch (error) {
+      if (!isCurrent()) return false;
       console.error('Failed to send message:', error);
       Message.error(getConversationCreateErrorMessage(error, t));
       return false;
     } finally {
       sendingRef.current = false;
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   }, [
     loading,
     handleSend,
+    captureLifetime,
     setLoading,
     setInput,
     setMentionOpen,

@@ -78,6 +78,22 @@ class TestResizeObserver {
 }
 
 describe('X-Science PDF artifact viewer', () => {
+  it('C12 reports the actual parsed PDF page and explicit navigation to its composer owner', async () => {
+    parser.pages = 500;
+    const onReadingPositionChange = vi.fn();
+    await renderWithI18n(
+      <XSciencePdfArtifactViewer
+        filename='reading.pdf'
+        contentUrl='/api/artifacts/reading-version'
+        {...{ onReadingPositionChange }}
+      />,
+      'en-US'
+    );
+    await waitFor(() => expect(onReadingPositionChange).toHaveBeenCalledWith({ pageNumber: 1, pageCount: 500 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Go to appendix' }));
+    await waitFor(() => expect(onReadingPositionChange).toHaveBeenLastCalledWith({ pageNumber: 400, pageCount: 500 }));
+  });
+
   beforeEach(() => {
     parser.failure = false;
     parser.pageFailure = false;

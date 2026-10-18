@@ -15,6 +15,7 @@ import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
+import { pdfContext } from './pdfReadingFixtures';
 
 let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
@@ -515,7 +516,7 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
   buildDisplayMessage: (input: string) => input,
 }));
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
-  useAcpInitialMessage: vi.fn(),
+  useAcpInitialMessage: vi.fn(() => ({ failed: false, retry: vi.fn() })),
 }));
 vi.mock('@arco-design/web-react', () => ({
   Input: ({
@@ -630,6 +631,120 @@ const acceptSkillTaskSend = async () => {
 };
 
 describe('AcpSendBox', () => {
+  it('C12 sends reading selection on ordinary input but never attaches it to Save-as-Skill control', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const context = pdfContext();
+    context.scope.frame_id = 'conv-c12-intents';
+    context.scope.root_frame_id = context.scope.frame_id;
+    context.scope.root_frame_incarnation_id = context.scope.frame_incarnation_id;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      const pathname = new URL(address, 'http://localhost').pathname;
+      const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET');
+      const readingPath = `/api/conversations/${context.scope.frame_id}/reading-context`;
+      const usagePath = `/api/conversations/${context.scope.frame_id}/context-usage`;
+      if (method !== 'GET' || (pathname !== readingPath && pathname !== usagePath)) {
+        throw new Error(`Unexpected C12 fixture request: ${method} ${pathname}`);
+      }
+      const body = pathname === readingPath ? context : { status: 'unavailable' };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    sendMessageInvokeMock.mockResolvedValue({
+      turn_id: 'conv-c12-intents',
+      msg_id: 'canonical-input',
+      runtime: { state: 'idle', is_processing: false },
+    });
+    try {
+      await render(
+        <AcpSendBox
+          conversation_id='conv-c12-intents'
+          ownerId='owner'
+          backend='xscience'
+          messageState={makeMessageState()}
+        />
+      );
+      await screen.findByTestId('pdf-context-bar');
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+        reading_context: {
+          schema: 'x-science.pdf-reading-selection.v1',
+          expected_revision: 1,
+          binding_ids: ['binding-1'],
+        },
+      });
+      const action = fileAttachProps.current?.onSaveSkill;
+      if (typeof action !== 'function') throw new Error('Missing Save-as-Skill entry');
+      await act(async () => {
+        await action();
+      });
+      expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2);
+      expect(sendMessageInvokeMock.mock.calls[1][0]).toMatchObject({ turn_intent: 'save-as-skill' });
+      expect(sendMessageInvokeMock.mock.calls[1][0]).not.toHaveProperty('reading_context');
+      expect(saveConversationAsSkillMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('C12 restores the canonical linked PDF bar without sending a message', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    const scope = {
+      frame_id: 'conv-reading',
+      frame_incarnation_id: 'frame-reading',
+      root_frame_id: 'conv-reading',
+      root_frame_incarnation_id: 'frame-reading',
+      project_id: 'project-reading',
+    };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schema: 'x-science.pdf-reading-context.v1',
+            scope,
+            revision: 1,
+            changed: false,
+            bindings: [
+              {
+                binding_id: 'binding-reading',
+                source_kind: 'artifact-version',
+                artifact_id: 'artifact-reading',
+                version_id: 'version-reading',
+                name: 'reading.pdf',
+                mime_type: 'application/pdf',
+                size_bytes: 100,
+                checksum: 'a'.repeat(64),
+                page_count: 2,
+                linked_at: '2026-10-18T00:00:00Z',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+    );
+    try {
+      await render(
+        <AcpSendBox
+          conversation_id='conv-reading'
+          ownerId='owner-reading'
+          backend='xscience'
+          messageState={makeMessageState()}
+        />
+      );
+      expect(await screen.findByTestId('pdf-context-bar')).toHaveTextContent('reading.pdf');
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     queuedCommandSequence = 0;

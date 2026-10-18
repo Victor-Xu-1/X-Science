@@ -5,7 +5,10 @@
  */
 
 import { XSciencePdfArtifactViewer } from '@/renderer/pages/artifact/XSciencePdfArtifactViewer';
-import React from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import type { PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
+import { useOptionalPreviewContext } from '../../context/PreviewContext';
+import { PdfReadingPreviewAction } from './PdfReadingPreviewAction';
 import { useTranslation } from 'react-i18next';
 import { buildPdfSrc } from '../../previewUrls';
 
@@ -16,10 +19,36 @@ interface PDFPreviewProps {
   /** Authenticated content URL, data URL, or blob URL. */
   content?: string;
   hideToolbar?: boolean;
+  artifactId?: string;
+  versionId?: string;
+  projectId?: string;
+  targetPage?: number;
 }
 
-const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, fileName, content, hideToolbar = false }) => {
+const PDFPreview: React.FC<PDFPreviewProps> = ({
+  file_path,
+  fileName,
+  content,
+  hideToolbar = false,
+  artifactId,
+  versionId,
+  projectId,
+  targetPage,
+}) => {
   const { t } = useTranslation();
+  const owner = useOptionalPreviewContext()?.pdfReadingOwner;
+  const identity = useMemo(
+    () => (artifactId && versionId ? { artifact_id: artifactId, version_id: versionId } : undefined),
+    [artifactId, versionId]
+  );
+  const [observed, setObserved] = useState<{ version?: string; position: PdfReadingPosition }>();
+  const report = useCallback(
+    (position: PdfReadingPosition) => {
+      setObserved({ version: versionId, position });
+      if (identity && projectId === owner?.projectId) owner?.reportPosition(identity, position);
+    },
+    [identity, owner, projectId, versionId]
+  );
   const source = buildPdfSrc(file_path, content);
   const filename = fileName || file_path?.replace(/\\/g, '/').split('/').at(-1) || t('preview.pdf.title');
 
@@ -38,7 +67,26 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, fileName, content, h
 
   // The same parser, worker and paged canvas serve both the workbench and
   // artifact detail. A native iframe load event cannot establish PDF rendering.
-  return <XSciencePdfArtifactViewer filename={filename} contentUrl={source} hideToolbar={hideToolbar} />;
+  return (
+    <div className='size-full min-h-0 flex flex-col'>
+      <PdfReadingPreviewAction
+        key={versionId ?? source}
+        source={identity}
+        projectId={projectId}
+        name={filename}
+        position={observed?.version === versionId ? observed?.position : undefined}
+      />
+      <div className='min-h-0 flex-1'>
+        <XSciencePdfArtifactViewer
+          filename={filename}
+          contentUrl={source}
+          hideToolbar={hideToolbar}
+          onReadingPositionChange={report}
+          targetPage={targetPage}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default PDFPreview;

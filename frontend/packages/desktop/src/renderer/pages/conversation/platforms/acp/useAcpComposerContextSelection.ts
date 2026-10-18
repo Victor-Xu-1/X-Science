@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import {
   addComposerContextItem,
@@ -17,11 +18,26 @@ import {
 export function useAcpComposerContextSelection(
   projectId: string | undefined,
   contextItems: ComposerContextItem[],
-  setContextItems: Dispatch<SetStateAction<ComposerContextItem[]>>
+  setContextItems: Dispatch<SetStateAction<ComposerContextItem[]>>,
+  ownerScope = ''
 ) {
   const [projectFilesOpen, setProjectFilesOpen] = useState(false);
   const uploadedAttachmentsRef = useRef(new WeakMap<File, OnboardingArtifactCacheEntry>());
   const pendingUploadsRef = useRef(new WeakMap<File, OnboardingPendingUpload>());
+  const currentScope = `${ownerScope}:${projectId ?? ''}:${getRendererAccountScopeToken()}`;
+  const scopeRef = useRef({ key: currentScope });
+  if (scopeRef.current.key !== currentScope) {
+    scopeRef.current = { key: currentScope };
+    uploadedAttachmentsRef.current = new WeakMap();
+    pendingUploadsRef.current = new WeakMap();
+  }
+  useEffect(() => {
+    const token = { key: currentScope };
+    scopeRef.current = token;
+    return () => {
+      if (scopeRef.current === token) scopeRef.current = { key: '' };
+    };
+  }, [currentScope]);
   const canSelectProjectFiles = Boolean(projectId?.trim());
   const openProjectFiles = useCallback(() => setProjectFilesOpen(true), []);
   const handleProjectArtifactsSelected = useCallback(
@@ -41,7 +57,7 @@ export function useAcpComposerContextSelection(
       );
       setProjectFilesOpen(false);
     },
-    [setContextItems]
+    [projectId, setContextItems]
   );
   const handleArtifactReferenceSelected = useCallback(
     (reference: ArtifactComposerReference) => {
@@ -58,9 +74,16 @@ export function useAcpComposerContextSelection(
   );
   const handleLocalFilesSelected = useCallback(
     async (files: File[]) => {
+      const scope = scopeRef.current;
+      const account = getRendererAccountScopeToken();
+      const ensureCurrent = () => {
+        if (scopeRef.current !== scope || getRendererAccountScopeToken() !== account)
+          throw new Error('Attachment composer changed');
+      };
       const targetProjectId = projectId?.trim();
       if (!targetProjectId) throw new Error('A X-Science project is required for browser attachments');
       for (const file of files) {
+        ensureCurrent();
         const cached = uploadedAttachmentsRef.current.get(file);
         if (cached && cached.projectId !== targetProjectId) uploadedAttachmentsRef.current.delete(file);
         const pending = pendingUploadsRef.current.get(file);
@@ -72,9 +95,14 @@ export function useAcpComposerContextSelection(
           // eslint-disable-next-line no-await-in-loop
           artifact = await uploadXScienceProjectAttachment(targetProjectId, file, {
             pending: pending?.projectId === targetProjectId ? pending : undefined,
-            onInitialized: (next) => pendingUploadsRef.current.set(file, next),
-            onAbandoned: () => pendingUploadsRef.current.delete(file),
+            onInitialized: (next) => {
+              if (scopeRef.current === scope) pendingUploadsRef.current.set(file, next);
+            },
+            onAbandoned: () => {
+              if (scopeRef.current === scope) pendingUploadsRef.current.delete(file);
+            },
           });
+          ensureCurrent();
           uploadedAttachmentsRef.current.set(file, { projectId: targetProjectId, artifact });
           pendingUploadsRef.current.delete(file);
         }
@@ -84,11 +112,12 @@ export function useAcpComposerContextSelection(
           projectId: targetProjectId,
           label: artifact.filename,
           sizeBytes: artifact.sizeBytes,
+          contentType: file.type,
         });
         if (context) setContextItems((current) => addComposerContextItem(current, context));
       }
     },
-    [projectId, setContextItems]
+    [projectId, setContextItems, currentScope]
   );
   const handleSkillSelected = useCallback(
     (name: string) => {

@@ -14,6 +14,7 @@ import {
   useConversationCommandQueue,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { pdfSelection } from '../../renderer/conversation/pdfReadingFixtures';
 import {
   clearConversationReadCaches,
   getConversationOrNullShared,
@@ -93,6 +94,23 @@ const renderQueue = ({
   );
 
 describe('useConversationCommandQueue drain', () => {
+  it('C12 freezes reading selection in the existing local queue and retains it on real admission conflict', async () => {
+    setRendererAccountOwner('pdf-owner');
+    const original = pdfSelection();
+    const onExecute = vi.fn().mockRejectedValue(new Error('PDF_READING_REVISION_STALE'));
+    const { result, rerender } = renderQueue({ conversation_id: 'pdf-queued', runtimeGate: processingGate, onExecute });
+    act(() => result.current.enqueue({ input: 'read page four', files: [], readingContext: original }));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    original.expected_revision = 99;
+    original.page_number = 8;
+    rerender({ gate: idleGate, busy: false });
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    expect(onExecute.mock.calls[0][0].readingContext).toEqual(pdfSelection());
+    await waitFor(() => expect(result.current.items[0]?.pausedReason).toBe('send_failed'));
+    expect(result.current.items[0].readingContext).toEqual(pdfSelection());
+    expect(result.current.items).toHaveLength(1);
+  });
+
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();

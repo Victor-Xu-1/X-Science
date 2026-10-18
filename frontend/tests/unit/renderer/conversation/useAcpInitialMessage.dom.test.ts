@@ -39,6 +39,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 import { useAcpInitialMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage';
+import { pdfSelection } from './pdfReadingFixtures';
 
 const createDeferred = <T>() => {
   let resolve!: (value: T) => void;
@@ -65,6 +66,130 @@ const createParams = (conversationId: string, streamReady = true) => ({
 });
 
 describe('useAcpInitialMessage', () => {
+  it('C12 prepares the original uploaded versions before first send and retries lost ACK with identical selection', async () => {
+    const conversationId = 'initial-pdf-reading';
+    const storageKey = `acp_initial_message_${conversationId}`;
+    const sources = [{ artifact_id: 'artifact-1', version_id: 'version-1' }];
+    sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        input: 'read this page',
+        loading_id: 'original-reading-input',
+        pdf_reading_owner_id: 'owner',
+        pdf_reading_sources: sources,
+      })
+    );
+    const preparation = createDeferred<ReturnType<typeof pdfSelection>>();
+    const prepareReadingSources = vi.fn(() => preparation.promise);
+    sendMessageInvokeMock
+      .mockRejectedValueOnce(new Error('lost response'))
+      .mockResolvedValue({ turn_id: conversationId, msg_id: 'canonical', runtime: {} });
+    const params = { ...createParams(conversationId), ownerId: 'owner', prepareReadingSources };
+    const { result } = renderHook(() => useAcpInitialMessage(params));
+    await vi.waitFor(() => expect(prepareReadingSources).toHaveBeenCalledWith(sources, undefined));
+    expect(params.markSendStarted).toHaveBeenCalledTimes(1);
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    await act(async () => {
+      preparation.resolve(pdfSelection());
+      await preparation.promise;
+    });
+    await vi.waitFor(() => expect(result.current.failed).toBe(true));
+    const submitted = structuredClone(sendMessageInvokeMock.mock.calls[0][0]);
+    expect(result.current.canKeepPdfAttachments).toBe(false);
+    expect(submitted).toMatchObject({ loading_id: 'original-reading-input', reading_context: pdfSelection() });
+    expect(JSON.parse(sessionStorage.getItem(storageKey)!)).toMatchObject({
+      reading_context: pdfSelection(),
+      pdf_reading_prepared: true,
+    });
+    await act(async () => {
+      result.current.retry();
+    });
+    await vi.waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+    expect(sendMessageInvokeMock.mock.calls[1][0]).toEqual(submitted);
+    expect(prepareReadingSources).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(sessionStorage.getItem(storageKey)).toBeNull());
+  });
+
+  it('C12 cannot send a PDF handoff belonging to another owner', async () => {
+    const conversationId = 'initial-foreign-pdf';
+    const key = `acp_initial_message_${conversationId}`;
+    const original = JSON.stringify({
+      input: 'private original',
+      loading_id: 'private-input',
+      pdf_reading_owner_id: 'original-owner',
+      pdf_reading_sources: [{ artifact_id: 'artifact-1', version_id: 'version-1' }],
+    });
+    sessionStorage.setItem(key, original);
+    const prepareReadingSources = vi.fn();
+    const { result } = renderHook(() =>
+      useAcpInitialMessage({ ...createParams(conversationId), ownerId: 'other-owner', prepareReadingSources })
+    );
+    await vi.waitFor(() => expect(result.current.failed).toBe(true));
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    expect(prepareReadingSources).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(key)).toBe(original);
+  });
+
+  it('C12 allows explicit ordinary-attachment fallback only before the first message submission', async () => {
+    const conversationId = 'initial-unavailable-pdf';
+    const key = `acp_initial_message_${conversationId}`;
+    sessionStorage.setItem(
+      key,
+      JSON.stringify({
+        input: 'use this attachment',
+        loading_id: 'original-unsent-input',
+        pdf_reading_owner_id: 'owner',
+        pdf_reading_sources: [{ artifact_id: 'a', version_id: 'v' }],
+        artifact_refs: [{ artifact_id: 'a', version_id: 'v', relation: 'attached' }],
+      })
+    );
+    const prepareReadingSources = vi.fn().mockRejectedValue(new Error('inspection unavailable'));
+    sendMessageInvokeMock.mockResolvedValue({ turn_id: conversationId, msg_id: 'accepted', runtime: {} });
+    const { result } = renderHook(() =>
+      useAcpInitialMessage({
+        ...createParams(conversationId),
+        ownerId: 'owner',
+        prepareReadingSources,
+        canDiscardReadingPreparation: () => true,
+      })
+    );
+    await vi.waitFor(() => expect(result.current.canKeepPdfAttachments).toBe(true));
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    await act(async () => {
+      result.current.keepPdfAttachments();
+    });
+    await vi.waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+    expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+      loading_id: 'original-unsent-input',
+      artifact_refs: [{ artifact_id: 'a', version_id: 'v', relation: 'attached' }],
+    });
+    expect(sendMessageInvokeMock.mock.calls[0][0]).not.toHaveProperty('reading_context');
+    expect(prepareReadingSources).toHaveBeenCalledTimes(1);
+  });
+  it('C12 never rewrites the original handoff while a link mutation acknowledgement remains unknown', async () => {
+    const conversationId = 'initial-unknown-pdf-link';
+    const key = `acp_initial_message_${conversationId}`;
+    const original = JSON.stringify({
+      input: 'original',
+      loading_id: 'unknown-link-input',
+      pdf_reading_owner_id: 'owner',
+      pdf_reading_sources: [{ artifact_id: 'a', version_id: 'v' }],
+    });
+    sessionStorage.setItem(key, original);
+    const { result } = renderHook(() =>
+      useAcpInitialMessage({
+        ...createParams(conversationId),
+        ownerId: 'owner',
+        prepareReadingSources: vi.fn().mockRejectedValue(new Error('link response lost')),
+        canDiscardReadingPreparation: () => false,
+      })
+    );
+    await vi.waitFor(() => expect(result.current.failed).toBe(true));
+    act(() => result.current.keepPdfAttachments());
+    expect(sessionStorage.getItem(key)).toBe(original);
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     sessionStorage.clear();
     sendMessageInvokeMock.mockReset();

@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { getSendBoxDraftHook } from '@/renderer/hooks/chat/useSendBoxDraft';
+import { pdfSelection } from './conversation/pdfReadingFixtures';
 import {
   clearSendBoxDraft,
   loadSendBoxDraft,
@@ -17,6 +18,38 @@ const initialDraft = {
 };
 
 describe('useSendBoxDraft', () => {
+  it('C12 persists pending exact mutation and edited queued selection only for their original owner', () => {
+    const pending = {
+      ownerId: 'owner-pdf',
+      frameId: 'draft-pdf',
+      request: {
+        schema: 'x-science.pdf-reading-unlink.v1' as const,
+        operation_id: '00000000-0000-4000-8000-000000000001',
+        expected_frame_incarnation_id: 'frame-inc',
+        expected_root_frame_id: 'root',
+        expected_root_frame_incarnation_id: 'root-inc',
+        expected_revision: 1,
+        binding_id: 'binding-1',
+      },
+    };
+    expect(
+      saveSendBoxDraft('owner-pdf', 'draft-pdf', {
+        ...initialDraft,
+        content: 'keep this message',
+        pdfReadingMutation: pending,
+        pdfReadingQueuedSelection: pdfSelection(),
+        pdfReadingAttachmentsDisabled: true,
+      })
+    ).toBe(true);
+    expect(loadSendBoxDraft('owner-pdf', 'draft-pdf')).toMatchObject({
+      content: 'keep this message',
+      pdfReadingMutation: pending,
+      pdfReadingQueuedSelection: pdfSelection(),
+      pdfReadingAttachmentsDisabled: true,
+    });
+    expect(loadSendBoxDraft('other-owner', 'draft-pdf')).toBeUndefined();
+  });
+
   beforeEach(() => window.localStorage.clear());
 
   it('restores a durable owner-scoped draft after remount and removes it when cleared', async () => {

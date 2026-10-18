@@ -14,6 +14,7 @@
  */
 
 import type { ISessionMcpServer } from '../config/storage';
+import type { PdfReadingSelection } from './pdfReadingContext';
 import type { ArtifactReferenceWire } from './messageStreamProtocol';
 import type { ConversationSendAccepted, ConversationTurnCompletedEvent } from './conversationRuntimeProtocol';
 
@@ -22,6 +23,7 @@ import type { ConversationSendAccepted, ConversationTurnCompletedEvent } from '.
 // ---------------------------------------------------------------------------
 
 export interface ISendMessageParams {
+  reading_context?: PdfReadingSelection;
   input: string;
   conversation_id: string;
   files?: string[];
@@ -201,6 +203,10 @@ export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact
 export type IConversationTurnCompletedEvent = ConversationTurnCompletedEvent;
 
 export interface IConversationListChangedEvent {
+  reading_context_changed?: true;
+  reading_context_revision?: number;
+  frame_incarnation_id?: string;
+  root_frame_incarnation_id?: string;
   presentation_changed?: true;
   conversation_id: string;
   action: 'created' | 'updated' | 'deleted';

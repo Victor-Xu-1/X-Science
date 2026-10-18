@@ -1,4 +1,5 @@
 import { uuid } from '@/common/utils';
+import { decodePdfReadingSelection, type PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -16,6 +17,8 @@ import {
 } from '@/renderer/services/rendererAccountScope';
 
 export type ConversationCommandQueueItem = {
+  readingContext?: PdfReadingSelection;
+  readingContextInvalid?: true;
   id: string;
   input: string;
   files: string[];
@@ -124,6 +127,18 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     ...(candidate.pausedReason === 'send_failed' ? { pausedReason: 'send_failed' as const } : {}),
     created_at: candidate.created_at,
   };
+  if (candidate.readingContext !== undefined) {
+    try {
+      normalizedItem.readingContext = decodePdfReadingSelection(candidate.readingContext);
+    } catch {
+      normalizedItem.readingContextInvalid = true;
+      normalizedItem.pausedReason = 'send_failed';
+    }
+  }
+  if (candidate.readingContextInvalid === true) {
+    normalizedItem.readingContextInvalid = true;
+    normalizedItem.pausedReason = 'send_failed';
+  }
 
   if (
     isCommandEmpty(normalizedItem) ||
@@ -178,7 +193,8 @@ export const createQueuedCommandItem = ({
   files,
   contextItems = [],
   planMode,
-}: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode'> & {
+  readingContext,
+}: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode' | 'readingContext'> & {
   contextItems?: ComposerContextItem[];
 }): ConversationCommandQueueItem => ({
   id: uuid(),
@@ -186,6 +202,7 @@ export const createQueuedCommandItem = ({
   files: uniqueFiles(files),
   contextItems: normalizeComposerContextItems(contextItems),
   ...(planMode === true ? { planMode: true } : {}),
+  ...(readingContext ? { readingContext: decodePdfReadingSelection(readingContext) } : {}),
   created_at: Date.now(),
 });
 
@@ -432,7 +449,7 @@ type UseConversationCommandQueueOptions = {
   isItemBlocked?: (item: ConversationCommandQueueItem) => boolean;
 };
 
-type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode'> & {
+type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode' | 'readingContext'> & {
   contextItems?: ComposerContextItem[];
 };
 
@@ -598,13 +615,13 @@ export const useConversationCommandQueue = ({
   );
 
   const enqueue = useCallback(
-    ({ input, files, contextItems = [], planMode }: EnqueueCommandInput) => {
+    ({ input, files, contextItems = [], planMode, readingContext }: EnqueueCommandInput) => {
       if (!enabled) {
         return null;
       }
 
       const currentState = normalizeQueueState(stateRef.current);
-      const item = createQueuedCommandItem({ input, files, contextItems, planMode });
+      const item = createQueuedCommandItem({ input, files, contextItems, planMode, readingContext });
       const validation = validateQueuedCommandItem(item, currentState);
 
       if (isQueueValidationFailure(validation)) {

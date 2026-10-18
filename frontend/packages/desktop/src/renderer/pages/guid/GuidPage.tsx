@@ -25,6 +25,7 @@ import XScienceDraftModelSelector from '@/renderer/components/xScience/runtime/X
 import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { parseXScienceProjectWorkspace, useGuidSend } from './hooks/useGuidSend';
+import { useGuidPdfReading } from './hooks/useGuidPdfReading';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
@@ -141,6 +142,15 @@ const GuidPage: React.FC = () => {
     onFilesSelected: appendSelectedFiles,
   });
   const projectWorkspace = useMemo(() => parseXScienceProjectWorkspace(guidInput.dir), [guidInput.dir]);
+  const readingDraftPosition = useGuidPdfReading(
+    user?.id ?? '',
+    projectWorkspace?.projectId,
+    guidInput.contextItems,
+    guidInput.setContextItems,
+    guidInput.loading,
+    guidInput.setPdfReadingEnabled,
+    !guidInput.dir || Boolean(projectWorkspace)
+  );
   const [projectFilesOpen, setProjectFilesOpen] = useState(false);
   const openProjectFiles = useCallback(() => setProjectFilesOpen(true), []);
   const handleProjectArtifactsSelected = useCallback(
@@ -294,6 +304,8 @@ const GuidPage: React.FC = () => {
     files: guidInput.files,
     setFiles: guidInput.setFiles,
     localFiles: guidInput.localFiles,
+    pdfReadingEnabled: guidInput.pdfReadingEnabled,
+    pdfReadingPosition: readingDraftPosition.position,
     setLocalFiles: guidInput.setLocalFiles,
     contextItems: guidInput.contextItems,
     setContextItems: guidInput.setContextItems,
@@ -767,6 +779,15 @@ const GuidPage: React.FC = () => {
             </div>
           ) : null}
           <GuidInputCard
+            pdfReadingEnabled={guidInput.pdfReadingEnabled}
+            onKeepAttachments={() => {
+              guidInput.setPdfReadingEnabled(false);
+              guidInput.setContextItems((items) =>
+                items.map((item): ComposerContextItem =>
+                  item.kind === 'artifact' ? { ...item, readingSelected: undefined, readingPosition: undefined } : item
+                )
+              );
+            }}
             input={guidInput.input}
             onInputChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
@@ -785,6 +806,7 @@ const GuidPage: React.FC = () => {
             files={guidInput.files}
             localFiles={guidInput.localFiles}
             contextItems={guidInput.contextItems}
+            onOpenArtifact={readingDraftPosition.openArtifact}
             onRemoveFile={guidInput.handleRemoveFile}
             onRemoveLocalFile={guidInput.handleRemoveLocalFile}
             onRemoveContextItem={(key) =>

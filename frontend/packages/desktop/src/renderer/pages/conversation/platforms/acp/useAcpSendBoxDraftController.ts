@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { PdfReadingPendingMutation, PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
 import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -45,7 +46,11 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
       mutate((previous) => {
         const current = normalizeComposerContextItems(previous.contextItems);
         const next = typeof nextItems === 'function' ? nextItems(current) : nextItems;
-        return { ...previous, contextItems: normalizeComposerContextItems(next) };
+        return {
+          ...previous,
+          contextItems: normalizeComposerContextItems(next),
+          ...(next.length === 0 ? { pdfReadingAttachmentsDisabled: undefined } : {}),
+        };
       });
     },
     [data, mutate]
@@ -65,6 +70,25 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     },
     [data, mutate]
   );
+  const setPdfReadingMutation = useCallback(
+    (pending: PdfReadingPendingMutation | undefined) => {
+      mutate((previous) => ({ ...previous, pdfReadingMutation: pending }));
+    },
+    [mutate]
+  );
+  const keepPdfAttachments = useCallback(() => {
+    mutate((previous) => ({ ...previous, pdfReadingAttachmentsDisabled: true }));
+  }, [mutate]);
+  const setQueuedPdfSelection = useCallback(
+    (selection?: PdfReadingSelection, invalid = false) => {
+      mutate((previous) => ({
+        ...previous,
+        pdfReadingQueuedSelection: selection ? structuredClone(selection) : undefined,
+        pdfReadingQueuedInvalid: invalid ? true : undefined,
+      }));
+    },
+    [mutate]
+  );
 
   return {
     atPath,
@@ -80,5 +104,12 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     setStagedPlanMode,
     stagedSessionOptions: data?.stagedSessionOptions ?? null,
     setStagedSessionOptions,
+    pdfReadingMutation: data?.pdfReadingMutation,
+    setPdfReadingMutation,
+    pdfReadingAttachmentsDisabled: data?.pdfReadingAttachmentsDisabled === true,
+    keepPdfAttachments,
+    queuedPdfSelection: data?.pdfReadingQueuedSelection,
+    queuedPdfInvalid: data?.pdfReadingQueuedInvalid === true,
+    setQueuedPdfSelection,
   };
 };

@@ -3,6 +3,12 @@ import {
   type ComposerContextItem,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import {
+  decodePdfReadingPending,
+  decodePdfReadingSelection,
+  type PdfReadingPendingMutation,
+  type PdfReadingSelection,
+} from '@/common/adapter/pdfReadingContext';
 
 const DRAFT_VERSION = 1;
 const DRAFT_STORAGE_PREFIX = 'xscience.composer.draft.v1';
@@ -22,6 +28,10 @@ export type StagedSessionOptions = {
 };
 
 export type AcpSendBoxDraft = {
+  pdfReadingMutation?: PdfReadingPendingMutation;
+  pdfReadingAttachmentsDisabled?: true;
+  pdfReadingQueuedSelection?: PdfReadingSelection;
+  pdfReadingQueuedInvalid?: true;
   _type: 'acp';
   content: string;
   atPath: Array<string | FileOrFolderItem>;
@@ -118,7 +128,10 @@ function isEmptyDraft(draft: AcpSendBoxDraft): boolean {
     draft.content.length === 0 &&
     draft.atPath.length === 0 &&
     draft.uploadFile.length === 0 &&
-    draft.contextItems.length === 0
+    draft.contextItems.length === 0 &&
+    draft.pdfReadingMutation === undefined &&
+    draft.pdfReadingQueuedSelection === undefined &&
+    draft.pdfReadingQueuedInvalid !== true
   );
 }
 
@@ -146,8 +159,25 @@ function normalizeAcpSendBoxDraft(value: unknown): AcpSendBoxDraft | null {
     uploadFile,
     contextItems: normalizeComposerContextItems(value.contextItems),
     ...(value.planMode === true ? { planMode: true as const } : {}),
+    ...(value.pdfReadingAttachmentsDisabled === true ? { pdfReadingAttachmentsDisabled: true as const } : {}),
+    ...normalizeFrozenPdfDraft(value),
     ...normalizeStagedSessionOptions(value.stagedSessionOptions),
+    ...(decodePdfReadingPending(value.pdfReadingMutation)
+      ? { pdfReadingMutation: decodePdfReadingPending(value.pdfReadingMutation) }
+      : {}),
   };
+}
+
+function normalizeFrozenPdfDraft(
+  value: Record<string, unknown>
+): Pick<AcpSendBoxDraft, 'pdfReadingQueuedSelection' | 'pdfReadingQueuedInvalid'> {
+  if (value.pdfReadingQueuedInvalid === true) return { pdfReadingQueuedInvalid: true };
+  if (value.pdfReadingQueuedSelection === undefined) return {};
+  try {
+    return { pdfReadingQueuedSelection: decodePdfReadingSelection(value.pdfReadingQueuedSelection) };
+  } catch {
+    return { pdfReadingQueuedInvalid: true };
+  }
 }
 
 function normalizeStagedSessionOptions(value: unknown): { stagedSessionOptions?: StagedSessionOptions } {
