@@ -18,7 +18,7 @@ func preservePDFReadingMetadata(ctx context.Context, tx workspaceTransaction, fr
 		result[key] = value
 	}
 	var raw []byte
-	err := tx.QueryRowContext(ctx, `SELECT context_data FROM frame_runtime_metadata WHERE frame_id=?`, frame).Scan(&raw)
+	err := tx.QueryRowContext(ctx, `SELECT COALESCE(context_data,'{}') FROM frame_runtime_metadata WHERE frame_id=?`, frame).Scan(&raw)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}

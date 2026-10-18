@@ -18,7 +18,7 @@ func ReadPDFReadingContext(ctx context.Context, query MessageIntentQuery, owner,
 	}
 	result.Scope = scope
 	var raw []byte
-	err = query.QueryRowContext(ctx, `SELECT context_data FROM frame_runtime_metadata WHERE frame_id=?`, frameID).Scan(&raw)
+	err = query.QueryRowContext(ctx, `SELECT COALESCE(context_data,'{}') FROM frame_runtime_metadata WHERE frame_id=?`, frameID).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, nil
 	}
