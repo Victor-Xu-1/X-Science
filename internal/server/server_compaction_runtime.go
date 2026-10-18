@@ -59,7 +59,8 @@ func (s *Server) executeRuntimeTool(toolName string, input map[string]any) (any,
 }
 
 func runtimeToolNamespaceReserved(namespace string) bool {
-	return strings.EqualFold(strings.TrimSpace(namespace), agentRuntimeApprovalNamespace)
+	normalized := strings.ToLower(strings.TrimSpace(namespace))
+	return normalized == strings.ToLower(agentRuntimeApprovalNamespace) || strings.HasPrefix(normalized, notificationInboxNamespacePrefix)
 }
 
 func (s *Server) executeCompactTool(ctx context.Context, input map[string]any) (any, error) {

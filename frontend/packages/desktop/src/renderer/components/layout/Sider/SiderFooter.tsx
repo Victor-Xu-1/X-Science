@@ -11,6 +11,7 @@ import { ArrowCircleLeft, CloseOne, Down, SettingTwo, UpdateRotation, Wallet } f
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { checkXScienceRuntimeUpdate } from '@renderer/services/xScienceRuntimeUpdate';
+import NotificationBell from '@/renderer/components/notifications/NotificationBell';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -25,6 +26,7 @@ interface SiderFooterProps {
   onSettingsIntent?: () => void;
   showLogout?: boolean;
   onLogoutClick?: () => void;
+  onNotificationNavigate?: (path: string) => void | Promise<void>;
 }
 
 const formatUsername = (username: string | undefined, fallback: string) => {
@@ -46,6 +48,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   onSettingsIntent,
   showLogout = false,
   onLogoutClick,
+  onNotificationNavigate,
 }) => {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -200,40 +203,48 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
         </div>
       )}
 
-      <Tooltip {...siderTooltipProps} content={displayName} position='right'>
-        <button
-          type='button'
-          aria-label={t('settings.xScienceOpenAccount')}
-          aria-haspopup='menu'
-          aria-expanded={menuOpen}
-          className={classNames(
-            'w-full min-w-0 border-none bg-transparent flex items-center rd-8px cursor-pointer text-t-primary transition-colors hover:bg-fill-3 active:bg-fill-4',
-            collapsed ? 'h-40px justify-center px-0' : 'h-48px gap-10px px-8px',
-            isMobile && 'sider-footer-btn-mobile'
-          )}
-          onClick={toggleMenu}
-        >
-          <span className='size-30px flex items-center justify-center shrink-0 rd-full bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))] text-13px font-[600]'>
-            {avatarDataUrl ? (
-              <img src={avatarDataUrl} alt='' className='size-full rd-full object-cover' />
-            ) : (
-              avatarLetter
+      <div className='flex min-w-0 items-center gap-4px'>
+        <Tooltip {...siderTooltipProps} content={displayName} position='right'>
+          <button
+            type='button'
+            aria-label={t('settings.xScienceOpenAccount')}
+            aria-haspopup='menu'
+            aria-expanded={menuOpen}
+            className={classNames(
+              'w-full min-w-0 border-none bg-transparent flex items-center rd-8px cursor-pointer text-t-primary transition-colors hover:bg-fill-3 active:bg-fill-4',
+              collapsed ? 'h-40px justify-center px-0' : 'h-48px gap-10px px-8px',
+              isMobile && 'sider-footer-btn-mobile'
             )}
-          </span>
-          {!collapsed && (
-            <>
-              <span className='min-w-0 flex-1 text-left'>
-                <span className='block text-14px leading-20px font-[500] truncate'>{displayName}</span>
-              </span>
-              <Down
-                theme='outline'
-                size={13}
-                className={classNames('shrink-0 text-t-tertiary transition-transform', menuOpen && 'rotate-180')}
-              />
-            </>
-          )}
-        </button>
-      </Tooltip>
+            onClick={toggleMenu}
+          >
+            <span className='size-30px flex items-center justify-center shrink-0 rd-full bg-[rgba(var(--primary-6),0.12)] text-[rgb(var(--primary-6))] text-13px font-[600]'>
+              {avatarDataUrl ? (
+                <img src={avatarDataUrl} alt='' className='size-full rd-full object-cover' />
+              ) : (
+                avatarLetter
+              )}
+            </span>
+            {!collapsed && (
+              <>
+                <span className='min-w-0 flex-1 text-left'>
+                  <span className='block text-14px leading-20px font-[500] truncate'>{displayName}</span>
+                </span>
+                <Down
+                  theme='outline'
+                  size={13}
+                  className={classNames('shrink-0 text-t-tertiary transition-transform', menuOpen && 'rotate-180')}
+                />
+              </>
+            )}
+          </button>
+        </Tooltip>
+        <NotificationBell
+          mobile={isMobile}
+          side='top'
+          onNavigate={onNotificationNavigate}
+          onOpen={() => setMenuOpen(false)}
+        />
+      </div>
     </div>
   );
 };
