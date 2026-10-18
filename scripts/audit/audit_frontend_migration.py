@@ -340,6 +340,7 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "packages/desktop/src/renderer/hooks/file/useWorkspaceSelector.ts": "Retire the unconsumed legacy native workspace selector after all conversation file intake uses the existing browser/project picker or explicit host-grant controls; preserve original import history.",
     "packages/desktop/src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx": "Retire the competing synchronous Skill author/install button; preserve historical suggestions as read-only content and use the sole typed conversation action.",
     "public/pwa/icon-180.png": "Retire the superseded product artwork after the original approved touch icon became the only current browser reference.",
     "public/pwa/icon-192.png": "Retire the superseded product artwork after all renderer and service-worker references use the approved original orange mark.",
@@ -557,9 +558,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "22c3d8c90b847dc432f0737b2737435776f6c9fd84b53e257e9a418686164daf"
-APPROVED_REMOVAL_FINGERPRINT = "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac"
-APPROVED_ADDITION_FINGERPRINT = "9913fb489e576a176e17be801b4a96c5e5e2a8b036bb9fa91763771645c726dd"
+APPROVED_ADAPTATION_FINGERPRINT = "616de2b463eb6b88722d0b925189b27c1a7b0602e4c626a3fe42409aff7fa6cf"
+APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
+APPROVED_ADDITION_FINGERPRINT = "c9472f9c92fab78fef655295163f946f0fcd1a155292a1f5f8a895f235a67f2a"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

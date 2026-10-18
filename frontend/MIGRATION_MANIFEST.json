@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "22c3d8c90b847dc432f0737b2737435776f6c9fd84b53e257e9a418686164daf",
-  "removalFingerprintSHA256": "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac",
-  "additionFingerprintSHA256": "9913fb489e576a176e17be801b4a96c5e5e2a8b036bb9fa91763771645c726dd",
+  "adaptationFingerprintSHA256": "616de2b463eb6b88722d0b925189b27c1a7b0602e4c626a3fe42409aff7fa6cf",
+  "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
+  "additionFingerprintSHA256": "c9472f9c92fab78fef655295163f946f0fcd1a155292a1f5f8a895f235a67f2a",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 275,
-    "adaptedSourceFiles": 785,
-    "removedSourceFiles": 294,
-    "addedFiles": 977
+    "unchangedSourceFiles": 272,
+    "adaptedSourceFiles": 787,
+    "removedSourceFiles": 295,
+    "addedFiles": 984
   },
   "adaptations": [
     {
@@ -150,8 +150,8 @@
     {
       "path": "packages/desktop/src/common/config/storage.ts",
       "sourceSHA256": "b06e6ccfdceb7b060fb97790d79558c5bf43f9396cf3343aeeca2843ca16a8e3",
-      "targetSHA256": "56dd488da73a1439dc719c93b4262d3e7cda6138596b48f89729cea783ec489c",
-      "bytes": 14737,
+      "targetSHA256": "e5808791bde72abf36bd627fbbf6cca2a6d0ccec87180ac02e2a0d2d1ba44346",
+      "bytes": 14850,
       "reason": "Keep the browser runtime status model aligned with canonical completed, failed, and cancelled Transcript terminal states."
     },
     {
@@ -1023,15 +1023,15 @@
     {
       "path": "packages/desktop/src/renderer/hooks/system/notification/browserNotificationCore.ts",
       "sourceSHA256": "a0bd1327e70c2572f37c1db5f8be172f9b829cd6518f616db894ed876365b6df",
-      "targetSHA256": "531b8235f37a4b56d4f88fe6184f24e029def397be89fb14864483da50f60b0b",
-      "bytes": 2593,
+      "targetSHA256": "611f40c12af81f6370004c28e129a1572d2c1cdb5fe95743a12082af937b9bc1",
+      "bytes": 3206,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
       "path": "packages/desktop/src/renderer/hooks/system/notification/useBrowserNotification.ts",
       "sourceSHA256": "4c2fc374e6ad8c9696d8ab0f6e8d4bb188b643aba15dcfa911d739ef7ab8cfd1",
-      "targetSHA256": "47ac9a615f84d01e3f01caae13f1ac1ae45a7253e41a3de0a9bd294b137495ad",
-      "bytes": 2821,
+      "targetSHA256": "ef4e65c3c6d461003d4df26c6c17f9e84e0048109f88a6e1a18bb75d843e2664",
+      "bytes": 3952,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
@@ -1221,8 +1221,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx",
       "sourceSHA256": "2acf7cd13e664fca0fd642fe0d213d9a7fd1475aee6cc63d5d87487a29b304fd",
-      "targetSHA256": "3b4bc996105134f0ff125f23d3c323c084b71c8348a0c1edde273ba7e9493e1c",
-      "bytes": 18810,
+      "targetSHA256": "389c7908e3aab78b1ded638ba10458956dd60cb1a3123e9ac1d49ce9660addc8",
+      "bytes": 19937,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1298,15 +1298,22 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync.ts",
       "sourceSHA256": "ae661c5b2e1144401afa6938a217a1309695176a93b9cb866547cd874225b04b",
-      "targetSHA256": "3ab90cfb2e372146894d954937ec5d237dfcb4881cf8281aa499d83eaaaa78fb",
-      "bytes": 17868,
+      "targetSHA256": "1db311799e81a1c0a47b53aed877514e3288343a5fd1534e80e03f28e7465d59",
+      "bytes": 20345,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversations.ts",
       "sourceSHA256": "602e44af453a7783deb76bdf5335fa365bf5ef5b92ed05d901d7cdc170b6e7c4",
-      "targetSHA256": "697753552d6ffc40ff7aab5d3845b2940c230adbd53dc49e7edf43048809edb6",
-      "bytes": 7553,
+      "targetSHA256": "843c9a8025e5a0b31e30d4f36d821d1941508ca7f2a709c4a71b2879ecd5281f",
+      "bytes": 7849,
+      "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useDragAndDrop.ts",
+      "sourceSHA256": "c5e4e77ae989fa67ccdb3a6789bd68b0ea83dbbf7b90083fd19e963b164a3cb7",
+      "targetSHA256": "428c97a26a3cc03799cd9fd4f1310c7331573fead23622f774dc7a44bcd0b133",
+      "bytes": 4200,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1319,8 +1326,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx",
       "sourceSHA256": "3ea1400c80e1d877f49270803b1aa590aa6c248205b365792947cc912f3a55fa",
-      "targetSHA256": "e182cd00b34d1e42d3b2ca0de89642c9e77853610697f5a788f2b9a78f629454",
-      "bytes": 20710,
+      "targetSHA256": "904cafc0885752600c60f74364793b8bd3ec4c24ec7cc2cf903932572d9a2deb",
+      "bytes": 22715,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1333,8 +1340,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/types.ts",
       "sourceSHA256": "3ba23c76155770beca9333ca4be098c3e7ef8051186af489efefef07e84e18e3",
-      "targetSHA256": "dcc00e80c3c8a23778dc7215275f2222b30522eab0b84e770320e372f108a337",
-      "bytes": 2542,
+      "targetSHA256": "fa741627fb4767ab08ccfb1956f365df719bd0cb06c6d12692245e851cb4ead2",
+      "bytes": 2625,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2826,8 +2833,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "7b251035aea84f2bfabafd8b0128a28bb124dfa1b82f5ff9e864c2acab02065c",
-      "bytes": 261054,
+      "targetSHA256": "94c1bb96a6597fa242a390c570b2ef7c2b5fc13682be73eea9016c399daed510",
+      "bytes": 261182,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2861,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "193867e578ea70950f191de5321bf067722740d157190a695ae0e9a633c30e74",
-      "bytes": 88586,
+      "targetSHA256": "7973a44624c797ec202a40adfc553c51894a2619ff931c7d59df2525258d9fbc",
+      "bytes": 88823,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2952,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "113b0f53898c9f72bc7f9fe05457c76d6f129e82869491ad2cd4427b447a35ea",
-      "bytes": 83563,
+      "targetSHA256": "613a2fba3e850782df83e5fd0e3397a9a2ac1658530732e7d8265c172df39eee",
+      "bytes": 83760,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4345,8 +4352,8 @@
     {
       "path": "tests/unit/renderer/ConversationRow.dom.test.tsx",
       "sourceSHA256": "eb30626f28615700d83b499454f1229889b8bff270fd1263e74edc574650de9f",
-      "targetSHA256": "75ace9cb46a85a31810683012b5f780653ec7263ff60e5d9a53b843add1d8625",
-      "bytes": 16171,
+      "targetSHA256": "cd54e4b0f24226dbee2f02ad1da3c559011685010481e1271e2ef29ccf11195e",
+      "bytes": 17909,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4579,6 +4586,13 @@
       "targetSHA256": "5a91a919fcc669f1a849885b00390336c8913f368d1ac6438e34b07c9a79f2fa",
       "bytes": 17791,
       "reason": "Verify authentication refresh and same-origin unsafe-request CSRF decoration in a real DOM fetch boundary."
+    },
+    {
+      "path": "tests/unit/renderer/browserNotificationCore.test.ts",
+      "sourceSHA256": "2027d1187df643251b352f270f6ec8356d1afbf928984beed62ebe2e5d097041",
+      "targetSHA256": "f4d02e48749d22bbba6884f5416ffd11c9f78d7dba60a21e5da6854b22fedd35",
+      "bytes": 5995,
+      "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
       "path": "tests/unit/renderer/buildSendFailureError.test.ts",
@@ -4842,8 +4856,8 @@
     {
       "path": "tests/unit/renderer/useBrowserNotification.dom.test.tsx",
       "sourceSHA256": "5d154ba39dcffb980cf644de4ae0bb333c9b993010384d221c6943faaec0be27",
-      "targetSHA256": "4b1f72e6f6a85c260a38070e76b9fe20f3798239dcd3e8c9edbff09e67733909",
-      "bytes": 3313,
+      "targetSHA256": "d2181762e1e9c827fb8a72822270ea3dfe3bbe3e9b655ffd85b21f2b97ef1d38",
+      "bytes": 7237,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5847,6 +5861,12 @@
       "sourceSHA256": "4530ae423aeb44f656504117921452eb1e000d3f964a92a7f49d594ed651a339",
       "sourceBytes": 5020,
       "reason": "Retire the unused desktop Office watcher after canonical Artifact references and the unified preview panel became the user-visible file authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/hooks/file/useWorkspaceSelector.ts",
+      "sourceSHA256": "57362e064f7a1ed51c0ff8c15045ffa07c060ae081dd80797adcebe883e3349a",
+      "sourceBytes": 2336,
+      "reason": "Retire the unconsumed legacy native workspace selector after all conversation file intake uses the existing browser/project picker or explicit host-grant controls; preserve original import history."
     },
     {
       "path": "packages/desktop/src/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled.ts",
@@ -7541,8 +7561,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/ipcBridgeTypes.ts",
-      "sha256": "12088992359fa3928863584ce5be06f9e2481c5421fbd75b448274ddd6e3656e",
-      "bytes": 6658,
+      "sha256": "ca5cf7f170177db54a1152ba413985b1ac8fa76e684759480cc94f631cd95106",
+      "bytes": 6689,
       "reason": "Define shared typed IPC facade contracts without creating a second transport authority."
     },
     {
@@ -7565,8 +7585,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/ipcDatabaseClient.ts",
-      "sha256": "fd18ba1d99c1383148f754f4509ae07d755cc47d707f01b729650474d723abdb",
-      "bytes": 4975,
+      "sha256": "17f96eda91f5cbe1033abebe48c7966f6a1ef003c926b83061f741e721adfbbb",
+      "bytes": 5055,
       "reason": "Own database inspection IPC bindings as one domain client."
     },
     {
@@ -8281,6 +8301,18 @@
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/conversationTaskIndicatorModel.ts",
       "sha256": "cecd10cbdee9fd28465124955e1aecdd975571a2a9c54d56b1f9dc1dfd803cd1",
       "bytes": 14307,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/conversationListPagination.ts",
+      "sha256": "cfe015b4bdf9544f5ce1f098beb80889de0c26b4a55b84c53da0445082985482",
+      "bytes": 1544,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationPin.ts",
+      "sha256": "376ca5b7120c7a9ae7f4dadf84c1ef278942a5ea93dbb24aec9dc965ba05234a",
+      "bytes": 1842,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10000,6 +10032,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/conversationPresentation.ts",
+      "sha256": "360f474898b5beadfd73ecf65c95da639a611126082766a784b53da78d051adb",
+      "bytes": 2685,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/conversationStreamPublicationFence.ts",
       "sha256": "e881c4ca2282ef4eb90b36c3bbba28744b5793e78b4740c44c009a45ed1c24ab",
       "bytes": 940,
@@ -11213,8 +11251,14 @@
     },
     {
       "path": "tests/unit/conversation/runtime/conversationListRefreshController.test.ts",
-      "sha256": "676ac45afcf882152f16ab501254a74fa04c4c0dfe6e3e8f12a0e6bf6cf28a40",
-      "bytes": 3635,
+      "sha256": "37838e55cf66802e168fad95022cf519b9d77965d84bb45fd445f44abee1194e",
+      "bytes": 3828,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/conversation/runtime/conversationPresentation.test.ts",
+      "sha256": "f2e7adefad34e470b409af3e86553c8f5ee3db86a55dea7c4812d7f10fd51245",
+      "bytes": 5056,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12022,6 +12066,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversationListPagination.dom.test.tsx",
+      "sha256": "a7ad5a990e28fab0c55d948d762780277788e3ee41554f999a14fb6763c8d122",
+      "bytes": 4167,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/conversationRoutePerformance.test.ts",
       "sha256": "2dfd368e9b4a391fb172caa103daaeee3cd6d92b37b1e0a4c54afa9d2ab6d36b",
       "bytes": 3676,
@@ -12352,6 +12402,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/useConversationPin.dom.test.tsx",
+      "sha256": "b4862dcb358d06d96e56203df94f8bf9e235b1fbc7912629190cbf4e1bcace75",
+      "bytes": 3257,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/useConversationScrollController.dom.test.tsx",
       "sha256": "0643713231c86a15da9778337afaf8919b7d1f35437d51ac037f8955a135de65",
       "bytes": 11463,
@@ -12361,6 +12417,12 @@
       "path": "tests/unit/renderer/useDirectorySelection.dom.test.tsx",
       "sha256": "7df6c470059597588bbf2fd4830c09e536eb23ece09807ddd92b71203834b746",
       "bytes": 2134,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/useDragAndDrop.dom.test.tsx",
+      "sha256": "2ed9cb171b2fb8ae9ff1b59a6566d76528c577bd5af83e6ee81026a4ef0e4b1e",
+      "bytes": 3329,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
