@@ -48,7 +48,100 @@ afterEach(() => {
 // these import-bound assertions extra headroom so they don't flake.
 const IMPORT_TIMEOUT_MS = 30000;
 
+const actionProbe = vi.hoisted(() => ({ nextId: 0, mounted: vi.fn(), disposed: vi.fn() }));
+vi.mock('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewArtifactActions', () => ({
+  default: ({ artifactId, versionId }: { artifactId: string; versionId?: string }) => {
+    const [openingId] = React.useState(() => ++actionProbe.nextId);
+    React.useEffect(() => {
+      actionProbe.mounted(openingId);
+      return () => actionProbe.disposed(openingId);
+    }, [openingId]);
+    return (
+      <output data-testid='preview-action-opening' data-opening={openingId}>
+        {artifactId}:{versionId}
+      </output>
+    );
+  },
+}));
+
 describe('PreviewPanel', () => {
+  it(
+    'binds actions to the actual opening and selected resource even when browsing reuses a tab id',
+    async () => {
+      const { default: PreviewPanel } =
+        await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+      const { PreviewProvider, usePreviewContext } =
+        await import('@/renderer/pages/conversation/Preview/context/PreviewContext');
+      const { ThemeProvider } = await import('@/renderer/hooks/context/ThemeContext');
+      const i18n = await createTestI18n('en-US');
+      function Controls() {
+        const { openPreview, closePreview, activeTabId } = usePreviewContext();
+        const open = (artifactId: string, versionId: string) =>
+          openPreview(
+            'immutable preview',
+            'markdown',
+            {
+              title: `${artifactId}.md`,
+              file_path: `/project/${artifactId}.md`,
+              artifactId,
+              versionId,
+              editable: false,
+            },
+            { replace: true, presentation: 'single' }
+          );
+        return (
+          <>
+            <button onClick={() => open('artifact-a', 'version-a1')}>Open A1</button>
+            <button onClick={() => open('artifact-a', 'version-a2')}>Open A2</button>
+            <button onClick={() => open('artifact-b', 'version-b1')}>Open B</button>
+            <button onClick={closePreview}>Close opening</button>
+            <output data-testid='preview-action-tab-id'>{activeTabId}</output>
+            <PreviewPanel />
+          </>
+        );
+      }
+      render(
+        <I18nextProvider i18n={i18n}>
+          <ThemeProvider>
+            <PreviewProvider>
+              <Controls />
+            </PreviewProvider>
+          </ThemeProvider>
+        </I18nextProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Close opening' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Open A1' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('preview-action-opening')).toHaveTextContent('artifact-a:version-a1')
+      );
+      const firstOpening = screen.getByTestId('preview-action-opening').dataset.opening;
+      const firstTabId = screen.getByTestId('preview-action-tab-id').textContent;
+      fireEvent.click(screen.getByRole('button', { name: 'Open A2' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('preview-action-opening')).toHaveTextContent('artifact-a:version-a2')
+      );
+      expect(screen.getByTestId('preview-action-tab-id')).toHaveTextContent(firstTabId!);
+      const versionOpening = screen.getByTestId('preview-action-opening').dataset.opening;
+      expect(versionOpening).not.toBe(firstOpening);
+      expect(actionProbe.disposed).toHaveBeenCalledWith(Number(firstOpening));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open B' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('preview-action-opening')).toHaveTextContent('artifact-b:version-b1')
+      );
+      expect(screen.getByTestId('preview-action-tab-id')).toHaveTextContent(firstTabId!);
+      expect(screen.getByTestId('preview-action-opening').dataset.opening).not.toBe(versionOpening);
+      fireEvent.click(screen.getByRole('button', { name: 'Close opening' }));
+      expect(screen.queryByTestId('preview-action-opening')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Open A1' }));
+      await waitFor(() =>
+        expect(screen.getByTestId('preview-action-opening')).toHaveTextContent('artifact-a:version-a1')
+      );
+      expect(screen.getByTestId('preview-action-opening').dataset.opening).not.toBe(firstOpening);
+    },
+    IMPORT_TIMEOUT_MS
+  );
+
   it(
     'opens, closes and reopens a single preview without changing hook order',
     async () => {

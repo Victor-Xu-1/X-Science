@@ -92,8 +92,14 @@ func (s *Server) advanceCompatibilityFrameAfterRunner(frameID, terminalStatus st
 				return index, err
 			}
 		}
+		messageIntent, err := transcriptstore.DecodeFrameMessageIntent(record.DeliveryPayload["messageIntent"])
+		if err != nil {
+			_ = s.releaseCompatibilityQueueClaims(records[index:])
+			return index, err
+		}
 		if _, _, err := s.submitFrameMessage(s.workspaceStore, frameMessageSubmission{
-			FrameID: frame.ID, MessageUUID: record.IntentID,
+			MessageIntent: messageIntent,
+			FrameID:       frame.ID, MessageUUID: record.IntentID,
 			ClientMessageID: record.IntentID, Text: text, RuntimeConfig: runtimeConfig,
 			InputData:          copyMapAny(inputData),
 			ArtifactReferences: artifactReferences, MessageContext: messageContext,

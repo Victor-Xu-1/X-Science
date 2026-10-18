@@ -645,6 +645,13 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
                 {toolbarExtras?.right}
                 {metadata?.artifactId ? (
                   <PreviewArtifactActions
+                    key={JSON.stringify([
+                      conversationId ?? null,
+                      activeTab.id,
+                      metadata.artifactId,
+                      metadata.versionId ?? null,
+                    ])}
+                    openingId={activeTab.id}
                     artifactId={metadata.artifactId}
                     versionId={metadata.versionId}
                     fileName={metadata.file_name || activeTab.title}

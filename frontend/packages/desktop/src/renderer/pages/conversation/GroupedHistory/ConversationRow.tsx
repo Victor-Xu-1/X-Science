@@ -8,6 +8,7 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Copy, DeleteOne, Download, EditOne, MoreOne, MoveOne } from '@icon-park/react';
+import { BookOpen, Download as ExportIcon } from 'lucide-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,7 @@ import { copyText } from '@/renderer/utils/ui/clipboard';
 
 import type { ConversationRowProps } from './types';
 import { resolveConversationTaskIndicatorState } from './conversationTaskIndicatorModel';
+import { isSessionExportDisabled } from './sessionExportAvailability';
 
 export {
   resolveConversationTaskIndicatorState,
@@ -48,6 +50,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMove,
     onDelete,
     onDownloadArtifacts,
+    onExport,
+    onViewNotebook,
   } = props;
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -71,11 +75,15 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
   const taskIndicatorState = resolveConversationTaskIndicatorState(conversation, isGenerating);
   const isRunning = taskIndicatorState === 'running';
+  const exportDisabled = isSessionExportDisabled(conversation, isGenerating);
   const menuId = `conversation-menu-${conversation.id}`;
 
   const focusFirstMenuItem = useCallback(() => {
     requestAnimationFrame(() => {
-      document.getElementById(menuId)?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus();
+      document
+        .getElementById(menuId)
+        ?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled):not([aria-disabled="true"])')
+        ?.focus();
     });
   }, [menuId]);
 
@@ -97,7 +105,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const handleMenuKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       const items = Array.from(
-        event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')
+        event.currentTarget.querySelectorAll<HTMLButtonElement>(
+          '[role="menuitem"]:not(:disabled):not([aria-disabled="true"])'
+        )
       );
       const currentIndex = items.indexOf(document.activeElement as HTMLButtonElement);
 
@@ -309,6 +319,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                         onDownloadArtifacts(conversation);
                         return;
                       }
+                      if (key === 'view-notebook') {
+                        onViewNotebook(conversation);
+                        return;
+                      }
+                      if (key === 'export') {
+                        if (!exportDisabled) onExport(conversation);
+                        return;
+                      }
                       if (key === 'delete') {
                         onDelete(conversation.id);
                       }
@@ -336,6 +354,23 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <div className='flex items-center gap-8px'>
                         <Download theme='outline' size='14' />
                         <span>{t('conversation.history.downloadArtifacts')}</span>
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item key='view-notebook' className='min-h-32px !px-8px !py-6px'>
+                      <div className='flex items-center gap-8px text-13px font-500 leading-20px'>
+                        <BookOpen size={16} strokeWidth={2} aria-hidden='true' />
+                        <span>{t('conversation.history.viewNotebook')}</span>
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item
+                      key='export'
+                      disabled={exportDisabled}
+                      aria-disabled={exportDisabled}
+                      className='min-h-32px !px-8px !py-6px'
+                    >
+                      <div className='flex items-center gap-8px text-13px font-500 leading-20px'>
+                        <ExportIcon size={16} strokeWidth={2} aria-hidden='true' />
+                        <span>{t('conversation.history.export')}</span>
                       </div>
                     </Menu.Item>
                     <Menu.Item key='delete'>

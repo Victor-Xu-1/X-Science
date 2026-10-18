@@ -279,8 +279,7 @@ const readPersistedQueueState = (conversation_id: string): ConversationCommandQu
   }
 };
 
-const removePersistedQueueState = (conversation_id: string): void => {
-  queueStore.delete(queueMemoryKey(conversation_id));
+const removePersistedQueueState = (conversation_id: string): boolean => {
   if (typeof window !== 'undefined') {
     try {
       const storageKey = getStorageKey(conversation_id);
@@ -290,27 +289,31 @@ const removePersistedQueueState = (conversation_id: string): void => {
       }
     } catch (error) {
       console.warn('[conversation-command-queue] Failed to remove persisted queue state:', error);
+      return false;
     }
   }
+  queueStore.delete(queueMemoryKey(conversation_id));
+  return true;
 };
 
-const persistQueueState = (conversation_id: string, state: ConversationCommandQueueState): void => {
+const persistQueueState = (conversation_id: string, state: ConversationCommandQueueState): boolean => {
   const normalized = normalizeQueueState(state);
 
   if (normalized.items.length === 0 && !normalized.isPaused) {
-    removePersistedQueueState(conversation_id);
-    return;
+    return removePersistedQueueState(conversation_id);
   }
 
-  queueStore.set(queueMemoryKey(conversation_id), normalized);
   if (typeof window !== 'undefined') {
     try {
       const storageKey = getStorageKey(conversation_id);
       if (storageKey) window.localStorage.setItem(storageKey, JSON.stringify(normalized));
     } catch (error) {
       console.warn('[conversation-command-queue] Failed to persist queue state:', error);
+      return false;
     }
   }
+  queueStore.set(queueMemoryKey(conversation_id), normalized);
+  return true;
 };
 
 const readQueueingEnabled = (): boolean => {
@@ -425,6 +428,8 @@ type UseConversationCommandQueueOptions = {
   isHydrated?: boolean;
   runtimeGate?: ConversationCommandQueueRuntimeGate;
   onExecute: (item: ConversationCommandQueueItem) => Promise<void>;
+  /** UI transfer reservation only; it never grants task execution permission. */
+  isItemBlocked?: (item: ConversationCommandQueueItem) => boolean;
 };
 
 type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode'> & {
@@ -456,6 +461,7 @@ export const useConversationCommandQueue = ({
   isHydrated = true,
   runtimeGate,
   onExecute,
+  isItemBlocked,
 }: UseConversationCommandQueueOptions) => {
   const { t } = useTranslation();
   const executionGate = getCommandQueueExecutionGate({ isBusy, isHydrated, runtimeGate });
@@ -465,6 +471,8 @@ export const useConversationCommandQueue = ({
   );
 
   const stateRef = useRef(data);
+  const itemBlockerRef = useRef(isItemBlocked);
+  itemBlockerRef.current = isItemBlocked;
   const pausedRef = useRef(data.isPaused);
   const waitingForTurnStartRef = useRef(false);
   const waitingForTurnCompletionRef = useRef(false);
@@ -628,22 +636,31 @@ export const useConversationCommandQueue = ({
   const remove = useCallback(
     (commandId: string) => {
       if (!enabled) {
-        return;
+        return false;
       }
 
       logCommandQueue(conversation_id, 'removed', {
         commandId,
       });
-      void updateState((state) => {
-        const nextItems = removeQueuedCommand(state.items, commandId);
-        return {
-          items: nextItems,
-          isPaused: nextItems.length > 0 ? state.isPaused : false,
-          ...(nextItems.length > 0 && state.pauseReason ? { pauseReason: state.pauseReason } : {}),
-        };
-      });
+      const currentState = stateRef.current;
+      const nextItems = removeQueuedCommand(currentState.items, commandId);
+      const nextState: ConversationCommandQueueState = {
+        items: nextItems,
+        isPaused: nextItems.length > 0 ? currentState.isPaused : false,
+        ...(nextItems.length > 0 && currentState.pauseReason ? { pauseReason: currentState.pauseReason } : {}),
+      };
+      if (!persistQueueState(conversation_id, nextState)) {
+        Message.warning(t('conversation.sideQuestion.persistenceFailed'));
+        return false;
+      }
+      // A transferred item is acknowledged synchronously before its Aside
+      // reservation is released; SWR persistence must not reopen Main dispatch.
+      stateRef.current = nextState;
+      pausedRef.current = nextState.isPaused;
+      void updateState(() => nextState);
+      return true;
     },
-    [conversation_id, enabled, updateState]
+    [conversation_id, enabled, t, updateState]
   );
 
   const reorder = useCallback(
@@ -756,6 +773,7 @@ export const useConversationCommandQueue = ({
       const currentState = normalizeQueueState(stateRef.current);
       const command = currentState.items.find((item) => item.id === commandId);
       if (!command) return false;
+      if (itemBlockerRef.current?.(command)) return false;
 
       const nextState: ConversationCommandQueueState = {
         items: removeQueuedCommand(currentState.items, commandId),
@@ -769,6 +787,19 @@ export const useConversationCommandQueue = ({
         remainingItemCount: nextState.items.length,
       });
       await updateState(() => nextState);
+
+      // A menu/transfer may start while persistence is awaited. Check the live
+      // consumer again at the actual dispatch boundary and preserve the item.
+      if (itemBlockerRef.current?.(command)) {
+        waitingForTurnStartRef.current = false;
+        const items = removeQueuedCommand(stateRef.current.items, command.id);
+        const originalIndex = currentState.items.findIndex((item) => item.id === command.id);
+        items.splice(Math.min(originalIndex, items.length), 0, command);
+        const restoredState = { ...stateRef.current, items };
+        stateRef.current = restoredState;
+        await updateState(() => restoredState);
+        return false;
+      }
 
       try {
         await onExecute({ ...command, pausedReason: undefined });
@@ -820,6 +851,8 @@ export const useConversationCommandQueue = ({
       return;
     }
 
+    if (itemBlockerRef.current?.(data.items[0])) return;
+
     void executeQueuedCommand(data.items[0].id, 'automatic');
   }, [
     conversation_id,
@@ -830,6 +863,7 @@ export const useConversationCommandQueue = ({
     executionGate.hydrated,
     executionGate.isProcessing,
     executeQueuedCommand,
+    isItemBlocked,
   ]);
 
   return {
@@ -849,5 +883,6 @@ export const useConversationCommandQueue = ({
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
+    getQueuedItem: (id: string) => stateRef.current.items.find((item) => item.id === id) ?? null,
   };
 };

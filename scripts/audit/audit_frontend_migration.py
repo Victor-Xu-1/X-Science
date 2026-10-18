@@ -130,6 +130,13 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/usePreviewArtifactActionScope.ts": "Fence immutable preview actions by the selected tab, artifact version, account and opening identity.",
+    "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useSessionNotebook.ts": "Read the existing execution log with account/opening fencing and exact-cursor pagination and retry, without owning a kernel.",
+    "packages/desktop/src/renderer/pages/conversation/GroupedHistory/sessionExportAvailability.ts": "Share the canonical runtime and local submission availability contract between session export actions and their menu entry.",
+    "packages/desktop/src/renderer/services/runtime/asideOperation.ts": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs.",
+    "packages/desktop/src/renderer/services/runtime/asidePresentation.ts": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority.",
+    "packages/desktop/src/renderer/components/chat/BtwOverlay/useAsideRuntimeView.ts": "Observe canonical child messages and runtime progress without polling only final output or imposing an execution deadline.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity.",
     "packages/desktop/src/renderer/components/media/conversationControlMenu.css": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillTask.ts": "Admit a typed ordinary-agent Skill continuation, fence duplicate and stale frontend actions and refresh only actual catalogs.",
@@ -550,9 +557,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "6fa793660c9f0628c449ac686651b2523cc2292b1ba2f39f590de5e4f3732d7f"
+APPROVED_ADAPTATION_FINGERPRINT = "22c3d8c90b847dc432f0737b2737435776f6c9fd84b53e257e9a418686164daf"
 APPROVED_REMOVAL_FINGERPRINT = "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac"
-APPROVED_ADDITION_FINGERPRINT = "923e470566faa9057638f316a0d254abc0f45fc506612ef2be9accb0e868b2e5"
+APPROVED_ADDITION_FINGERPRINT = "9913fb489e576a176e17be801b4a96c5e5e2a8b036bb9fa91763771645c726dd"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

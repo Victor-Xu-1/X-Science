@@ -18,26 +18,33 @@ var (
 )
 
 type CompatibilityAsideInput struct {
-	ID                 string
-	ParentRootFrameID  string
-	Request            string
-	Model              *string
-	IntentID           string
-	AsSession          bool
-	RuntimeConfig      map[string]any
-	canonicalSeed      bool
-	canonicalSeedCount int
+	ID                  string
+	ParentRootFrameID   string
+	Request             string
+	Model               *string
+	IntentID            string
+	AsSession           bool
+	SourceBranchID      string
+	ExpectedGeneration  int64
+	RuntimeConfig       map[string]any
+	canonicalSeed       bool
+	canonicalSeedCount  int
+	canonicalAcceptance *CompatibilityAsideAcceptance
 }
 
 type CompatibilityAsideResult struct {
-	Frame        Frame
-	SeedMessages []map[string]any
-	PrefixLen    int
-	InputData    map[string]any
-	ContextData  map[string]any
-	Model        any
-	Effort       any
-	Event        FrameEvent
+	Frame                   Frame
+	SeedMessages            []map[string]any
+	PrefixLen               int
+	InputData               map[string]any
+	ContextData             map[string]any
+	Model                   any
+	Effort                  any
+	Event                   FrameEvent
+	Acceptance              *CompatibilityAsideAcceptance
+	Replayed                bool
+	Cancellation            *CompatibilityAsideCancellation
+	CancelledInputMessageID string
 }
 
 var compatibilityAsideScrubKeys = append([]string{
@@ -77,6 +84,9 @@ func (s *Store) CreateCompatibilityAside(input CompatibilityAsideInput) (Compati
 	if err != nil {
 		return CompatibilityAsideResult{}, err
 	}
+	if input.SourceBranchID != "" {
+		return CompatibilityAsideResult{}, ErrCompatibilityAsideParentTranscriptMissing
+	}
 
 	s.branchMu.Lock()
 	defer s.branchMu.Unlock()
@@ -100,11 +110,15 @@ func normalizeCompatibilityAsideInput(input CompatibilityAsideInput) (Compatibil
 	input.ID = strings.TrimSpace(input.ID)
 	input.ParentRootFrameID = strings.TrimSpace(input.ParentRootFrameID)
 	input.IntentID = strings.TrimSpace(input.IntentID)
+	input.SourceBranchID = strings.TrimSpace(input.SourceBranchID)
 	if input.ID == "" || input.ParentRootFrameID == "" {
 		return CompatibilityAsideInput{}, errors.New("aside frame id and parent root frame id are required")
 	}
 	if input.Request == "" {
 		return CompatibilityAsideInput{}, errors.New("aside request is required")
+	}
+	if (input.SourceBranchID == "") != (input.ExpectedGeneration == 0) || input.ExpectedGeneration < 0 {
+		return CompatibilityAsideInput{}, errors.New("source branch and positive expected generation must be supplied together")
 	}
 	return input, nil
 }
@@ -286,9 +300,15 @@ func (s *Store) createCompatibilityAsideInTransaction(
 		dedupe := map[string]any{
 			"request": input.Request, "model": asideModel, "as_session": input.AsSession,
 		}
-		rawEnvelope, err := marshalCompatibilityQueueEnvelope(dedupe, map[string]any{
+		delivery := map[string]any{
 			"frame_id": frame.ID, "request": input.Request,
-		}, "")
+		}
+		if input.canonicalAcceptance != nil {
+			input.canonicalAcceptance.PrefixLen = prefixLen
+			dedupe = compatibilityAsideIntentPayload(input, input.canonicalAcceptance.OwnerID)
+			delivery["aside_acceptance"] = input.canonicalAcceptance
+		}
+		rawEnvelope, err := marshalCompatibilityQueueEnvelope(dedupe, delivery, "")
 		if err != nil {
 			return CompatibilityAsideResult{}, err
 		}
@@ -308,6 +328,7 @@ func (s *Store) createCompatibilityAsideInTransaction(
 		Frame: frame, SeedMessages: seedMessages, PrefixLen: prefixLen,
 		InputData: inputData, ContextData: asideContext,
 		Model: asideModel, Effort: asideEffort, Event: event,
+		Acceptance: input.canonicalAcceptance,
 	}, nil
 }
 

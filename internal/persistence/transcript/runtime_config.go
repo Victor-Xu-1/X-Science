@@ -16,12 +16,15 @@ func (r *Repository) LatestFrameRuntimeConfig(
 	if err != nil {
 		return nil, false, err
 	}
-	return latestFrameRuntimeConfig(ctx, r.db, stream)
+	return latestFrameRuntimeConfig(ctx, r.db, stream, nil)
 }
 
+// An optional selection reads the same validated branch/publication snapshot
+// used for Aside history copying, without switching the active branch.
 func (tx *ImmediateTransaction) LatestFrameRuntimeConfig(
 	ctx context.Context,
 	streamUID, ownerID string,
+	selections ...AsideHistorySelection,
 ) (map[string]any, bool, error) {
 	if tx == nil || tx.repository == nil || tx.conn == nil {
 		return nil, false, ErrSchemaUnavailable
@@ -30,13 +33,31 @@ func (tx *ImmediateTransaction) LatestFrameRuntimeConfig(
 	if err != nil {
 		return nil, false, schemaError(err)
 	}
-	return latestFrameRuntimeConfig(ctx, tx.conn, stream)
+	if len(selections) > 1 {
+		return nil, false, ErrBranchRequestInvalid
+	}
+	var selection *AsideHistorySelection
+	if len(selections) == 1 {
+		selection = &selections[0]
+		if !validTranscriptBranchID(selection.BranchID) || selection.Generation <= 0 || selection.ThroughPublication < 0 {
+			return nil, false, ErrBranchRequestInvalid
+		}
+		current, err := tx.ResolveAsideHistorySelection(ctx, streamUID, ownerID, selection.BranchID, selection.Generation)
+		if err != nil {
+			return nil, false, err
+		}
+		if selection.ThroughPublication > current.ThroughPublication {
+			return nil, false, ErrEventConflict
+		}
+	}
+	return latestFrameRuntimeConfig(ctx, tx.conn, stream, selection)
 }
 
 func latestFrameRuntimeConfig(
 	ctx context.Context,
 	queryer transcriptQueryer,
 	stream Stream,
+	selection *AsideHistorySelection,
 ) (map[string]any, bool, error) {
 	if stream.Kind != StreamKindFrameRef {
 		return nil, false, ErrEventConflict
@@ -55,21 +76,28 @@ func latestFrameRuntimeConfig(
 			AND event.event_type IN ('user_message','user_input_response')
 			AND json_type(frame_event.payload, '$.runtimeConfig') IS NOT NULL
 		ORDER BY event.event_id`
+	args := []any{stream.UID}
 	if readAuthority == "transcript_payload_v1" && writeAuthority == "transcript_payload_v1" {
+		var branchID, throughPublication any
+		if selection != nil {
+			branchID, throughPublication = selection.BranchID, selection.ThroughPublication
+		}
 		query = `SELECT CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END
 			FROM transcript_events event
 			JOIN transcript_branch_state state ON state.stream_uid=event.stream_uid
 			JOIN transcript_branch_events member ON member.stream_uid=event.stream_uid
-				AND member.branch_id=state.active_branch_id AND member.event_id=event.event_id
+				AND member.branch_id=COALESCE(?,state.active_branch_id) AND member.event_id=event.event_id
 			LEFT JOIN frame_events frame_event ON event.source='frame_ref' AND frame_event.id=event.frame_event_id
 			WHERE event.stream_uid=? AND event.event_type IN ('user_message','user_input_response')
+				AND (? IS NULL OR event.publication_seq<=?)
 				AND json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,
 					'$.runtimeConfig') IS NOT NULL
 			ORDER BY member.ordinal`
-	} else if readAuthority != "legacy_mixed_v1" || writeAuthority != "legacy_frame_ref_v1" {
+		args = []any{branchID, stream.UID, throughPublication, throughPublication}
+	} else if selection != nil || readAuthority != "legacy_mixed_v1" || writeAuthority != "legacy_frame_ref_v1" {
 		return nil, false, ErrEventConflict
 	}
-	rows, err := queryer.QueryContext(ctx, query, stream.UID)
+	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, false, schemaError(err)
 	}

@@ -342,14 +342,14 @@ func (s *Store) GetFrameRealtimeContextWithContext(ctx context.Context, id strin
 	err := db.QueryRowContext(ctx, `
 		SELECT p.user_id, f.id, f.project_id, COALESCE(f.parent_frame_id, ''),
 			f.root_frame_id, f.root_sequence, f.agent_name, f.status,
-			f.conversation_type, f.name, f.created_at, f.updated_at
+			f.conversation_type, f.name, f.created_at, f.updated_at, f.incarnation_id
 		FROM frames f JOIN projects p ON p.id = f.project_id
 		WHERE f.id = ?`, id).Scan(
 		&result.UserID, &result.Frame.ID, &result.Frame.ProjectID,
 		&result.Frame.ParentFrameID, &result.Frame.RootFrameID,
 		&result.Frame.RootSequence, &result.Frame.AgentName, &result.Frame.Status,
 		&result.Frame.ConversationType, &result.Frame.Name,
-		&result.Frame.CreatedAt, &result.Frame.UpdatedAt,
+		&result.Frame.CreatedAt, &result.Frame.UpdatedAt, &result.Frame.IncarnationID,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return FrameRealtimeContext{}, false, nil

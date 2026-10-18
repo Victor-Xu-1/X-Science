@@ -89,6 +89,8 @@ const SendBox: React.FC<{
   hasPendingAttachments?: boolean;
   hasPendingContext?: boolean;
   enableBtw?: boolean;
+  /** ACP supplies its single Aside owner; generic SendBox retains a local owner. */
+  btwController?: ReturnType<typeof useBtwCommand>;
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
@@ -126,6 +128,7 @@ const SendBox: React.FC<{
   hasPendingAttachments = false,
   hasPendingContext = false,
   enableBtw = false,
+  btwController,
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
@@ -296,7 +299,22 @@ const SendBox: React.FC<{
     t,
     messageApi: message,
   });
-  const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
+  const localBtwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw && !btwController);
+  const btwCommand = btwController ?? localBtwCommand;
+  useLayoutEffect(() => {
+    if (btwController) return;
+    const consumer = btwCommand.getAcceptedConsumer();
+    if (!consumer || consumer.kind !== 'draft' || consumer.id !== conversationContext?.conversation_id) return;
+    if (latestInputRef.current === consumer.content) setInputRef.current('');
+    btwCommand.acknowledgeConsumer();
+  }, [
+    btwController,
+    btwCommand.acceptedConsumer,
+    btwCommand.receipt,
+    btwCommand.getAcceptedConsumer,
+    btwCommand.acknowledgeConsumer,
+    conversationContext?.conversation_id,
+  ]);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
   const activeReferenceQuery = useMemo(() => {
     if (conversationContext?.projectId) {
@@ -732,8 +750,11 @@ const SendBox: React.FC<{
         return;
       }
       clearHistoryNavigation(false);
-      setInput('');
-      void btwCommand.ask(normalizedQuestion);
+      void btwCommand.ask(normalizedQuestion, {
+        kind: 'draft',
+        id: conversationContext?.conversation_id ?? '',
+        content: input,
+      });
       return;
     }
 
@@ -982,8 +1003,8 @@ const SendBox: React.FC<{
       >
         <SendBoxComposerOverlays
           activeReferenceQuery={activeReferenceQuery}
-          anchorEl={containerRef.current}
           btwCommand={btwCommand}
+          showBtwOverlay={!btwController}
           conversationExport={conversationExport}
           insertSelectedReference={insertSelectedReference}
           isCommandMenuOpen={isCommandMenuOpen}

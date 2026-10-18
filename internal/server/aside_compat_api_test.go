@@ -268,9 +268,12 @@ func TestTranscriptCompatibilityCreateAsideFailsClosedWithoutParentStream(t *tes
 		defer cancel()
 		_ = server.Close(ctx)
 	})
-	compatJSONRequest(t, server.Handler(), http.MethodPost, "/api/frames/parent-aside-missing/aside", "local", map[string]any{
+	response := compatJSONRequest(t, server.Handler(), http.MethodPost, "/api/frames/parent-aside-missing/aside", "local", map[string]any{
 		"request": "Must not use legacy metadata.",
-	}, http.StatusInternalServerError)
+	}, http.StatusConflict)
+	if response["code"] != "ASIDE_SOURCE_UNAVAILABLE" {
+		t.Fatalf("missing source response = %#v", response)
+	}
 	var frames int
 	if err := db.QueryRow(`SELECT COUNT(*) FROM frames WHERE project_id='project-aside-missing'`).Scan(&frames); err != nil {
 		t.Fatal(err)

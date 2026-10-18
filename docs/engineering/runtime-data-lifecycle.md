@@ -19,7 +19,7 @@ then once every 24 hours. It logs a compact receipt only when rows were removed.
 | Unreferenced content snapshots | 1 hour | Hashes referenced by artifact provenance remain |
 | Terminal realtime replay rows | 1 hour | Active roots and history activation fences remain |
 | Ephemeral artifacts | 1 day | Active roots and all non-ephemeral/final artifacts remain |
-| Resolved queued input | 7 days | Queued or delivering input remains |
+| Resolved queued input | 7 days | Queued/delivering input and typed lifecycle receipts remain |
 | Delivered transport receipts | 1 hour | Undelivered rows and referenced compute submissions remain |
 | Dead letters and operational audits | 7 days | Pending/inflight transport and active state remain |
 | Completed compute usage and usage audits | 30 days | Running compute remains |
@@ -38,6 +38,41 @@ The lifecycle never applies a fixed age limit to active tasks. It does not
 delete conversation messages, execution logs attached to a retained frame,
 final artifacts, user uploads, active memory, unresolved approvals, pending
 outbox events, credentials, settings, or account data.
+
+## Conversation operation receipts
+
+An Aside creation freezes its parent, owner, parent incarnation, request,
+selected source branch/generation, model and intent ID. Its accepted child,
+canonical input and copied publication cutoff are committed with the child
+history. Repeating the same intent returns that receipt; changed input is a
+conflict. Reading an absent receipt does not prove cancellation. The Aside
+DELETE endpoint either records cancellation before creation or cancels the
+confirmed exact child input. Closing the panel preserves the permanent task
+history; it does not delete the child or cancel an unrelated later input.
+
+Normal message acceptance has one authority: typed `messageIntent` metadata
+on the canonical user event. The complete normalized request body is bound by
+a SHA-256 digest. The existing queue stores a retracted typed receipt for
+`DELETE /api/conversations/{id}/message-intents/{loading_id}`, using the same
+frozen body as the original POST. This distinguishes
+`cancelled_before_acceptance`, `cancelled`, and `already_terminal`; only the
+first two confirm a cancellation. The accepted canonical input ID need not be
+the loading ID. A client must not derive the ID or substitute the latest input.
+
+Final append, branch append, queued delivery and message-triggered resume all
+check the same receipt within their write transaction. A delayed POST or resume
+cannot revive that cancelled mutation. A preaccept cancellation does not stop
+another running input. Historical records lacking typed proof remain readable
+and use their existing replay contract, but exact intent cancellation reports
+unavailable rather than inventing proof. These contracts add no schema or
+separate scheduler.
+
+Validated Aside lifecycle and message-cancellation receipts remain for the
+owning frame lifetime, not the ordinary seven-day transport retention. A bare
+marker does not qualify. Sweep classification reads outside the write lock,
+then deletion rechecks the exact row identity, payload, state and cutoff.
+Explicit frame/project deletion retains its existing scoped foreign-key and
+data-removal semantics; deployment never uses it to make a paused task vanish.
 
 ## Snapshot reference query indexes
 

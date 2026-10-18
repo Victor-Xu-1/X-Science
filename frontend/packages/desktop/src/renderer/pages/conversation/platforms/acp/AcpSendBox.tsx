@@ -13,7 +13,6 @@ import OptimizePromptAction from '@/renderer/components/xScience/runtime/Optimiz
 import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
-import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import MobileActionSheet, { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
 import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
@@ -59,7 +58,6 @@ import {
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
-import { createXScienceBranchSession } from '@/renderer/services/xScienceAside';
 import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import {
   getSelectedXScienceBranch,
@@ -98,6 +96,7 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
+import { useAcpAsideController, type AsideQueueBridge } from './useAcpAsideController';
 import { useAcpConversationSkillController } from './useAcpConversationSkillController';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
@@ -235,7 +234,6 @@ const AcpSendBox: React.FC<{
     terminalFailureRollbackRef.current = [];
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
-  const sideQuestion = useBtwCommand(conversation_id, sideQuestionSupported);
   const mobileModeChangeInFlightRef = useRef(false);
   const prepareRuntimeConfig = useCallback(async () => {}, []);
   const runtimeConfig = useAcpConfigOptions({
@@ -436,6 +434,21 @@ const AcpSendBox: React.FC<{
     !runtimeUnavailable &&
     (isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage);
   const reviewBusy = reviewInFlight || reviewActive;
+  const viewPlan = useCallback(() => {
+    if (conversationAuthorityRef.current.conversationId === conversation_id) {
+      emitter.emit('xscience.runtime.plan.open', conversation_id);
+    }
+  }, [conversation_id]);
+  const asideQueueRef = useRef<AsideQueueBridge | null>(null);
+  const aside = useAcpAsideController({
+    conversationId: conversation_id,
+    ownerId,
+    enabled: sideQuestionSupported,
+    modelId: model_info?.current_model_id ?? null,
+    queue: asideQueueRef,
+    clearDraftIfUnchanged: (text) => replaceContentIfUnchanged(text, ''),
+    navigate,
+  });
 
   const handleRequestReview = useCallback(async () => {
     if (isBusy || reviewInFlight || reviewActive) return;
@@ -791,13 +804,16 @@ const AcpSendBox: React.FC<{
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
+    getQueuedItem,
   } = useConversationCommandQueue({
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
     onExecute: executeCommand,
+    isItemBlocked: aside.isQueueItemBlocked,
   });
+  asideQueueRef.current = { items: queuedCommands, remove, getQueuedItem };
 
   const onSendHandler = async (message: string) => {
     if (skillSave.isBlocking()) return;
@@ -893,44 +909,18 @@ const AcpSendBox: React.FC<{
       }
 
       if (intent === 'side_chat') {
-        setContent('');
-        emitter.emit('acp.selected.file.clear');
-        void sideQuestion.ask(draft);
+        void aside.sideDraft(draft);
         return;
       }
 
-      // branch_new_session: create a real branched session and send there.
-      const requestAuthority = conversationAuthorityRef.current;
-      setAiProcessing(true);
-      void createXScienceBranchSession(conversation_id, draft, {
-        model: model_info?.current_model_id ?? null,
-      })
-        .then(({ frameId }) => {
-          if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-          setContent('');
-          emitter.emit('acp.selected.file.clear');
-          void navigate(`/conversation/${encodeURIComponent(frameId)}`);
-        })
-        .catch((error: unknown) => {
-          if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-          console.error('[AcpSendBox] Failed to create branched session:', safeErrorDiagnostic(error));
-          Message.error(t('conversation.xscienceRuntime.sendBox.branchNewSessionFailed'));
-        })
-        .finally(() => {
-          if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) {
-            setAiProcessing(false);
-          }
-        });
+      void aside.branchDraft(draft);
     },
     [
       atPath.length,
       contextItems.length,
-      conversation_id,
-      model_info,
-      navigate,
+      aside.sideDraft,
+      aside.branchDraft,
       onSendHandler,
-      setContent,
-      sideQuestion,
       skillSave.isBlocking,
       t,
       uploadFile.length,
@@ -957,10 +947,9 @@ const AcpSendBox: React.FC<{
         Message.warning(t('conversation.commandQueue.sideChatAttachmentsUnsupported'));
         return;
       }
-      remove(item.id);
-      void sideQuestion.ask(item.input);
+      void aside.openQueued(item);
     },
-    [remove, sideQuestion, t]
+    [aside.openQueued, t]
   );
 
   const appendSelectedFiles = useCallback(
@@ -1001,7 +990,16 @@ const AcpSendBox: React.FC<{
     handleSessionComputeChange,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
-    attachEntries,
+    attachEntries: isXScienceConversation
+      ? [
+          ...attachEntries,
+          {
+            key: 'view-plan',
+            label: t('conversation.attachMenu.viewPlan'),
+            onClick: viewPlan,
+          },
+        ]
+      : attachEntries,
     ...mobileSkillProps,
     loadedMcpStatuses,
     selectedSkillNames,
@@ -1098,15 +1096,8 @@ const AcpSendBox: React.FC<{
       ref={sendBoxAnchorRef}
       className={`${sendBoxWidthClass} conversation-composer w-full min-w-0 max-w-full box-border flex flex-col mt-auto mb-16px`}
     >
-      <BtwOverlay
-        answer={sideQuestion.answer}
-        anchorEl={sendBoxAnchorRef.current}
-        isLoading={sideQuestion.isLoading}
-        isOpen={sideQuestion.isOpen}
-        onDismiss={sideQuestion.dismiss}
-        parentTaskRunning={isBusy}
-        question={sideQuestion.question}
-      />
+      <BtwOverlay controller={aside.sideQuestion} parentTaskRunning={isBusy} />
+      {aside.branchStatus}
       <XScienceRuntimeOperations
         conversationId={conversation_id}
         runtimeState={runtimeView.state}
@@ -1180,6 +1171,7 @@ const AcpSendBox: React.FC<{
         onSelectSkillCommand={handleSkillSelected}
         onSelectArtifactReference={handleArtifactReferenceSelected}
         enableBtw={sideQuestionSupported}
+        btwController={aside.sideQuestion}
         supportedExts={allSupportedExts}
         defaultMultiLine={!isMobile}
         lockMultiLine={!isMobile}
@@ -1198,6 +1190,7 @@ const AcpSendBox: React.FC<{
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectMcpServer={handleMcpSelected}
                 xScienceV11
+                onViewPlan={isXScienceConversation ? viewPlan : undefined}
                 onRequestReview={handleRequestReview}
                 reviewLabelMode='manual'
                 reviewInFlight={reviewBusy}

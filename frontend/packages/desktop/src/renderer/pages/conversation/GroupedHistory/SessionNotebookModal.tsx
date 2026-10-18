@@ -1,6 +1,6 @@
 import type { TChatConversation } from '@/common/config/storage';
 import type { XScienceExecutionRecord } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
-import { Alert, Empty, Spin } from '@arco-design/web-react';
+import { Alert, Button, Empty, Spin } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,9 @@ type SessionNotebookModalProps = {
   records: XScienceExecutionRecord[];
   loading: boolean;
   error: string | null;
+  hasOlder: boolean;
+  onRetry: () => void;
+  onLoadOlder: () => void;
   onClose: () => void;
 };
 
@@ -18,6 +21,9 @@ const SessionNotebookModal: React.FC<SessionNotebookModalProps> = ({
   records,
   loading,
   error,
+  hasOlder,
+  onRetry,
+  onLoadOlder,
   onClose,
 }) => {
   const { t } = useTranslation();
@@ -33,13 +39,19 @@ const SessionNotebookModal: React.FC<SessionNotebookModalProps> = ({
       getPopupContainer={() => document.body}
     >
       <div className='max-h-[70vh] overflow-y-auto'>
-        {loading ? (
-          <div className='h-120px flex-center'>
-            <Spin />
+        {error && (
+          <div className='mb-12px flex flex-col items-start gap-8px' role='alert'>
+            <Alert type='error' content={error} />
+            <Button size='small' disabled={loading} onClick={onRetry}>
+              {t('common.retry')}
+            </Button>
           </div>
-        ) : error ? (
-          <Alert type='error' content={error} />
-        ) : records.length === 0 ? (
+        )}
+        {loading && records.length === 0 ? (
+          <div className='h-120px flex-center'>
+            <Spin tip={t('common.loading')} />
+          </div>
+        ) : records.length === 0 && !error && !hasOlder ? (
           <Empty description={t('conversation.history.sessionNotebook.empty')} />
         ) : (
           <div className='flex flex-col gap-12px'>
@@ -73,6 +85,13 @@ const SessionNotebookModal: React.FC<SessionNotebookModalProps> = ({
                 </div>
               )
             )}
+          </div>
+        )}
+        {!error && (hasOlder || (loading && records.length > 0)) && (
+          <div className='mt-12px flex justify-center'>
+            <Button size='small' disabled={loading} loading={loading} onClick={onLoadOlder}>
+              {t(loading ? 'conversation.history.loadingMore' : 'conversation.history.sessionNotebook.loadOlder')}
+            </Button>
           </div>
         )}
       </div>

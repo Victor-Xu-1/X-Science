@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import type { TChatConversation } from '@/common/config/storage';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import React from 'react';
@@ -131,6 +131,9 @@ describe('v1.1 session action modals', () => {
         loading={false}
         error={null}
         onClose={vi.fn()}
+        hasOlder={false}
+        onRetry={vi.fn()}
+        onLoadOlder={vi.fn()}
       />,
       'en-US'
     );
@@ -138,6 +141,50 @@ describe('v1.1 session action modals', () => {
     expect(await screen.findByRole('dialog', { name: 'Task notebook' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Execution cell 1' })).toHaveTextContent('print("STAT6")');
     expect(screen.getByText('STAT6')).toBeInTheDocument();
+  });
+
+  it('shows read-only retry and older-page states without discarding loaded records', async () => {
+    const onRetry = vi.fn();
+    const onLoadOlder = vi.fn();
+    const props: React.ComponentProps<typeof SessionNotebookModal> = {
+      conversation,
+      records: [{ kind: 'save', id: 'record', label: 'Saved evidence', actor: null, detail: null, at: null }],
+      loading: false,
+      error: null,
+      hasOlder: true,
+      onRetry,
+      onLoadOlder,
+      onClose: vi.fn(),
+    };
+    const { rerender, i18n } = await renderWithI18n(<SessionNotebookModal {...props} />, 'en-US');
+    await screen.findByRole('dialog', { name: 'Task notebook' });
+    fireEvent.click(screen.getByRole('button', { name: 'Load older records' }));
+    expect(onLoadOlder).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: /execute|run cell/i })).not.toBeInTheDocument();
+
+    rerender(<SessionNotebookModal {...props} loading />);
+    expect(screen.getByText(/Saved evidence/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Loading/ })).toBeDisabled();
+    rerender(<SessionNotebookModal {...props} error='Read failed' />);
+    expect(screen.getByText(/Saved evidence/)).toBeInTheDocument();
+    expect(screen.getByText('Read failed')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button', { name: 'Load older records' })).not.toBeInTheDocument();
+
+    rerender(<SessionNotebookModal {...props} records={[]} loading hasOlder={false} />);
+    expect(screen.getByText(i18n.t('common.loading'))).toBeInTheDocument();
+    expect(screen.queryByText('This task has no execution records')).not.toBeInTheDocument();
+    rerender(<SessionNotebookModal {...props} records={[]} hasOlder={false} />);
+    expect(screen.getByText('This task has no execution records')).toBeInTheDocument();
+    rerender(<SessionNotebookModal {...props} records={[]} error='Initial read failed' hasOlder={false} />);
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+
+    await act(async () => {
+      await i18n.changeLanguage('zh-CN');
+    });
+    rerender(<SessionNotebookModal {...props} />);
+    expect(screen.getByRole('button', { name: '加载更早记录' })).toBeInTheDocument();
   });
 
   it.each(['cancel', 'close', 'escape'] as const)(
