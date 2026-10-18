@@ -1,0 +1,104 @@
+.panel {
+  color: var(--text-primary);
+}
+.panel button {
+  cursor: pointer;
+}
+.panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.note {
+  color: var(--text-secondary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 8px 0;
+}
+.roots {
+  max-height: min(44vh, 360px);
+  overflow: auto;
+  margin-top: 10px;
+}
+.root {
+  border-top: 1px solid var(--border-base);
+  padding: 8px 0;
+}
+.accessRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  font-size: 12px;
+}
+.accessRow button {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 4px;
+}
+.badge {
+  color: var(--text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.folder,
+.file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+}
+.folder:hover,
+.file:not(:disabled):hover {
+  background: var(--color-fill-2);
+}
+.folder:focus-visible,
+.file:focus-visible,
+.accessRow button:focus-visible {
+  outline: 2px solid var(--color-primary-6);
+  outline-offset: 2px;
+}
+.folder svg,
+.file svg {
+  flex-shrink: 0;
+}
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.children {
+  padding-inline-start: 14px;
+}
+.access {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-base);
+}
+.access h3 {
+  font-size: 14px;
+  margin: 4px 0 8px;
+}
+.warning {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0;
+  font-size: 12px;
+}

@@ -6,6 +6,7 @@
 
 import type { IMessageText } from '@/common/chat/chatLib';
 import { X_SCIENCE_FILES_MARKER } from '@/common/config/constants';
+import { decodeHostGrantFileReference, isHostGrantFileReference } from '@/common/adapter/hostGrantFileReference';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLocalFilePreview } from '@/renderer/pages/conversation/Preview/hooks/useLocalFilePreview';
@@ -40,7 +41,7 @@ export const parseFileMarker = (content: string) => {
   const marker = [X_SCIENCE_FILES_MARKER, '[[SYNON_AI_FILES]]']
     .map((value) => ({ value, index: content.indexOf(value) }))
     .filter((item) => item.index >= 0)
-    .sort((left, right) => left.index - right.index)[0];
+    .toSorted((left, right) => left.index - right.index)[0];
   const markerIndex = marker?.index ?? -1;
   if (!marker) {
     return { text: content, files: [] as string[] };
@@ -60,7 +61,7 @@ const isAbsoluteMessageFilePath = (file_path: string): boolean =>
   file_path.startsWith('/') || /^[A-Za-z]:/.test(file_path);
 
 export const resolveMessageFilePath = (file_path: string, workspace?: string): string => {
-  if (!file_path || isAbsoluteMessageFilePath(file_path) || !workspace) {
+  if (!file_path || isHostGrantFileReference(file_path) || isAbsoluteMessageFilePath(file_path) || !workspace) {
     return file_path;
   }
 
@@ -167,7 +168,9 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
   const handleCopy = () => {
     const baseText =
       shouldRenderPlainText || deliveryView.appendix ? text : json ? JSON.stringify(data, null, 2) : text;
-    const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
+    const fileList = files.length
+      ? `Files:\n${files.map((path) => `- ${isHostGrantFileReference(path) ? (decodeHostGrantFileReference(path)?.name ?? t('conversation.hostFiles.invalidReference')) : path}`).join('\n')}\n\n`
+      : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
       .then(() => {

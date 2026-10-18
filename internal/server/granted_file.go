@@ -31,25 +31,15 @@ func openGrantedRegularFile(path string, grants []hostGrant) (*os.File, error) {
 			failure = err
 			continue
 		}
-		relative, err := filepath.Rel(grant.Path, absolute)
-		if err != nil || !filepath.IsLocal(relative) {
-			_ = root.Close()
-			failure = errors.New("file path escaped its granted root")
-			continue
-		}
-		// NONBLOCK prevents a regular-file-to-FIFO swap from hanging before the
-		// descriptor type check. It is ignored by the Windows regular opener.
-		file, err := root.OpenFile(relative, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+		file, err := openGrantedRegularFileInRoot(root, grant, absolute)
 		closeErr := root.Close()
 		if err != nil {
 			failure = errors.Join(err, closeErr)
 			continue
 		}
-		info, statErr := file.Stat()
-		final, finalErr := fsidentity.FinalPath(file)
-		if closeErr != nil || statErr != nil || finalErr != nil || !info.Mode().IsRegular() || !hostPathWithin(grant.Path, final) {
+		if closeErr != nil {
 			_ = file.Close()
-			failure = errors.New("opened file is not a regular file inside its granted root")
+			failure = closeErr
 			continue
 		}
 		return file, nil
@@ -58,4 +48,26 @@ func openGrantedRegularFile(path string, grants []hostGrant) (*os.File, error) {
 		return nil, failure
 	}
 	return nil, errors.New("file path is outside granted host directories")
+}
+
+// The caller verifies and owns this opened grant root. Keeping it open lets a
+// snapshot admission compare the same directory identity at publication time.
+func openGrantedRegularFileInRoot(root *os.Root, grant hostGrant, absolute string) (*os.File, error) {
+	relative, err := filepath.Rel(grant.Path, absolute)
+	if err != nil || !filepath.IsLocal(relative) {
+		return nil, errors.New("file path escaped its granted root")
+	}
+	// NONBLOCK prevents a regular-file-to-FIFO swap from hanging before the
+	// descriptor type check. It is ignored by the Windows regular opener.
+	file, err := root.OpenFile(relative, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, err
+	}
+	info, statErr := file.Stat()
+	final, finalErr := fsidentity.FinalPath(file)
+	if statErr != nil || finalErr != nil || !info.Mode().IsRegular() || !hostPathWithin(grant.Path, final) {
+		_ = file.Close()
+		return nil, errors.New("opened file is not a regular file inside its granted root")
+	}
+	return file, nil
 }
