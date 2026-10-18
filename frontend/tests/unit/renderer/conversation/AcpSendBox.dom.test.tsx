@@ -9,12 +9,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
+import * as httpBridge from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import {
+  sessionGrantIdentity,
+  sessionGrantRevokeBody,
+  sessionGrantRevokeResponse,
+  sessionGrantsSnapshot,
+} from '../../xscience/sessionPermissionGrantsFixtures';
 
 let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
@@ -101,6 +109,7 @@ const runtimeOperationsProps = {
   } | null,
 };
 const mobileActionSheetOpen = { current: false };
+const realMobileActionSheet = { current: false };
 const runtimeViewMock = {
   activeTurnId: 'turn-1' as string | null,
   markStopRequested: vi.fn(),
@@ -150,10 +159,12 @@ vi.mock('@/common', () => ({
       },
     },
     conversation: {
+      listChanged: { on: () => () => {} },
       stop: {
         invoke: (...args: unknown[]) => stopInvokeMock(...args),
       },
     },
+    realtime: { reconnected: { on: () => () => {} } },
   },
 }));
 
@@ -321,24 +332,39 @@ vi.mock('@/renderer/services/xScienceAnnotations', () => ({
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({
   default: () => null,
 }));
-vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
-  default: ({
-    entries,
-    open,
-  }: {
-    entries?: Array<{
-      key: string;
-      submenu?: {
-        onSelect?: (value: string) => void;
-      };
-    }>;
-  }) => {
-    mobileActionSheetEntries.current = entries ?? [];
-    mobileActionSheetOpen.current = open ?? false;
-    return null;
-  },
-  useAttachEntry: () => ({ entries: [], hiddenFileInput: null }),
-}));
+vi.mock('@/renderer/components/chat/MobileActionSheet', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/components/chat/MobileActionSheet')>();
+  return {
+    default: ({
+      entries,
+      open,
+      onClose,
+    }: {
+      open?: boolean;
+      onClose?: () => void;
+      entries?: Array<{
+        key: string;
+        submenu?: {
+          onSelect?: (value: string) => void;
+        };
+      }>;
+    }) => {
+      mobileActionSheetEntries.current = entries ?? [];
+      mobileActionSheetOpen.current = open ?? false;
+      if (realMobileActionSheet.current) {
+        return (
+          <actual.default
+            entries={(entries ?? []) as React.ComponentProps<typeof actual.default>['entries']}
+            open={open ?? false}
+            onClose={onClose ?? (() => undefined)}
+          />
+        );
+      }
+      return null;
+    },
+    useAttachEntry: () => ({ entries: [], hiddenFileInput: null }),
+  };
+});
 vi.mock('@/renderer/components/chat/ThoughtDisplay', () => ({
   default: () => null,
 }));
@@ -638,6 +664,7 @@ describe('AcpSendBox', () => {
     isMobileMock.current = false;
     mobileActionSheetEntries.current = [];
     mobileActionSheetOpen.current = false;
+    realMobileActionSheet.current = false;
     fileAttachProps.current = null;
     draftContextItemsMock.current = [];
     sessionOptionsProps.current = null;
@@ -730,6 +757,85 @@ describe('AcpSendBox', () => {
       retryModelList: vi.fn().mockResolvedValue(undefined),
       selectModel: vi.fn(),
     });
+  });
+
+  it.each([false, true])('C6 scoped grants stay revocable from the running composer, mobile=%s', async (mobile) => {
+    isMobileMock.current = mobile;
+    realMobileActionSheet.current = mobile;
+    setRendererAccountOwner(sessionGrantIdentity.ownerId);
+    const modeSetter = vi.fn();
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: {
+        id: 'mode',
+        category: 'mode',
+        currentValue: 'default',
+        options: [{ value: 'default', label: 'Default', description: null }],
+      },
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: modeSetter,
+    });
+    const transport = vi.spyOn(httpBridge, 'httpRequest').mockImplementation(async (method, path) => {
+      if (!path.startsWith('/api/conversations/grant-child/permission-grants')) {
+        throw new Error(`Unexpected C6 request: ${method} ${path}`);
+      }
+      return (method === 'GET' ? sessionGrantsSnapshot() : sessionGrantRevokeResponse()) as never;
+    });
+    try {
+      await render(
+        <AcpSendBox
+          conversation_id={sessionGrantIdentity.frameId}
+          ownerId={sessionGrantIdentity.ownerId}
+          backend='xscience'
+          messageState={makeMessageState()}
+          initialConversation={
+            {
+              id: sessionGrantIdentity.frameId,
+              type: 'acp',
+              name: 'Grant child',
+              extra: {
+                backend: 'xscience',
+                root_frame_id: sessionGrantIdentity.rootFrameId,
+                frame_incarnation_id: sessionGrantIdentity.frameIncarnationId,
+              },
+            } as TChatConversation
+          }
+        />
+      );
+      if (mobile) {
+        await waitFor(() => expect(transport.mock.calls.filter(([method]) => method === 'GET')).toHaveLength(1));
+        fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+        const permissionEntry = await screen.findByTestId('mobile-action-sheet-send-mode');
+        expect(permissionEntry).toHaveTextContent('本会话已授权 1 项');
+        fireEvent.click(permissionEntry);
+      } else {
+        expect(await screen.findByLabelText('本会话已授权 1 项')).toHaveTextContent('1');
+        fireEvent.click(screen.getByTestId('x-science-permission-selector'));
+      }
+      expect(transport.mock.calls.filter(([method]) => method === 'GET')).toHaveLength(1);
+      fireEvent.click(await screen.findByRole('button', { name: '撤销本会话对 Python execution 的授权' }));
+      await waitFor(() =>
+        expect(transport).toHaveBeenCalledWith(
+          'POST',
+          '/api/conversations/grant-child/permission-grants/revoke',
+          sessionGrantRevokeBody()
+        )
+      );
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(modeSetter).not.toHaveBeenCalled();
+      if (mobile) {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      } else {
+        expect(screen.getByTestId('x-science-permission-menu')).toBeInTheDocument();
+      }
+    } finally {
+      transport.mockRestore();
+      setRendererAccountOwner(null);
+      realMobileActionSheet.current = false;
+    }
   });
 
   it('blocks sending and delegates runtime recovery to the permanent status center', async () => {

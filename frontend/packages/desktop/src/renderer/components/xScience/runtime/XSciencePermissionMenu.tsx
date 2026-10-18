@@ -1,10 +1,17 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { Dropdown, Message, Tooltip } from '@arco-design/web-react';
 import { Check } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import XSciencePermissionIcon, { isWarningPermissionMode } from './XSciencePermissionIcon';
+import SessionPermissionGrants from './SessionPermissionGrants';
+import {
+  useSessionPermissionGrantsController,
+  useSessionPermissionGrantsView,
+} from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
+import type { SessionGrantIdentity } from '@/renderer/services/runtime/sessionPermissionGrants';
+import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
 
 type XSciencePermissionMenuProps = {
   option: AcpDerivedOption | null;
@@ -14,6 +21,8 @@ type XSciencePermissionMenuProps = {
    * conversations must render only modes advertised by the live runtime. */
   includeStandardModes?: boolean;
   disabled?: boolean;
+  sessionIdentity?: SessionGrantIdentity;
+  grantsController?: SessionPermissionGrantsController | null;
 };
 
 const STANDARD_PERMISSION_MODES: Array<{ value: string; label: string; description: string | null }> = [
@@ -31,11 +40,27 @@ const XSciencePermissionMenu: React.FC<XSciencePermissionMenuProps> = ({
   setConfigOption,
   includeStandardModes = false,
   disabled = false,
+  sessionIdentity,
+  grantsController,
 }) => {
   const { i18n, t } = useTranslation();
   const [popupVisible, setPopupVisible] = useState(false);
+  const localController = useSessionPermissionGrantsController(grantsController ? null : sessionIdentity);
+  const controller = grantsController ?? localController;
+  const grants = useSessionPermissionGrantsView(controller);
   const currentValue = option?.currentValue ?? 'default';
-  const [selectedValue, setSelectedValue] = useState(currentValue);
+  const optionId = option?.id ?? 'mode';
+  const contextKey = controller?.presentationKey ?? 'permission-mode';
+  const completionContext = useRef({ contextKey, optionId, setConfigOption });
+  const mounted = useRef(false);
+  const mountGeneration = useRef(0);
+  if (
+    completionContext.current.contextKey !== contextKey ||
+    completionContext.current.optionId !== optionId ||
+    completionContext.current.setConfigOption !== setConfigOption
+  ) {
+    completionContext.current = { contextKey, optionId, setConfigOption };
+  }
   const isSetting = setStatus.state === 'setting';
   const options = useMemo(() => {
     const merged = [...(includeStandardModes ? STANDARD_PERMISSION_MODES : []), ...(option?.options ?? [])];
@@ -54,22 +79,40 @@ const XSciencePermissionMenu: React.FC<XSciencePermissionMenuProps> = ({
   }, [i18n, includeStandardModes, option?.options, t]);
 
   useEffect(() => {
-    setSelectedValue(currentValue);
-  }, [currentValue]);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      mountGeneration.current += 1;
+    };
+  }, []);
+  useEffect(() => {
+    setPopupVisible(false);
+  }, [controller]);
+  useEffect(() => {
+    if (controller && !controller.isCurrent()) setPopupVisible(false);
+  }, [controller, grants]);
 
-  const optionId = option?.id ?? 'mode';
-  if (options.length === 0) return null;
+  if (options.length === 0 && !controller) return null;
 
-  const selectedOption = options.find((item) => item.value === selectedValue) ?? options[0];
+  const selectedOption = options.find((item) => item.value === currentValue) ?? options[0];
   const isUnavailable = disabled || isSetting;
+  const triggerUnavailable = isUnavailable && !controller?.isCurrent();
   const selectPermission = async (value: string) => {
     setPopupVisible(false);
-    if (value === selectedValue || isUnavailable) return;
+    if (value === currentValue || isUnavailable) return;
+    const requestContext = completionContext.current;
+    const requestGeneration = mountGeneration.current;
+    const canReportCompletion = () =>
+      mounted.current &&
+      mountGeneration.current === requestGeneration &&
+      completionContext.current === requestContext &&
+      (!controller || controller.isCurrent());
     try {
       await setConfigOption(optionId, value);
-      setSelectedValue(value);
+      if (!canReportCompletion()) return;
       Message.success(t('agentMode.switchSuccess'));
     } catch (error) {
+      if (!canReportCompletion()) return;
       console.error(`[${PRODUCT_NAME} PermissionMenu] Failed to set permission mode`, error);
       Message.error(t('agentMode.switchFailed'));
     }
@@ -89,7 +132,7 @@ const XSciencePermissionMenu: React.FC<XSciencePermissionMenuProps> = ({
       }}
     >
       {options.map((item) => {
-        const selected = item.value === selectedValue;
+        const selected = item.value === currentValue;
         const warning = isWarningPermissionMode(item.value);
         return (
           <Tooltip key={item.value} content={item.description} position='left'>
@@ -120,28 +163,40 @@ const XSciencePermissionMenu: React.FC<XSciencePermissionMenuProps> = ({
           </Tooltip>
         );
       })}
+      {controller ? <SessionPermissionGrants controller={controller} open={popupVisible} /> : null}
     </div>
   );
 
   return (
     <Dropdown
+      key={controller?.presentationKey ?? 'permission-mode'}
       trigger='click'
       position='tl'
       popupVisible={popupVisible}
-      onVisibleChange={(visible) => !isUnavailable && setPopupVisible(visible)}
+      onVisibleChange={(visible) => !triggerUnavailable && setPopupVisible(visible)}
       droplist={menu}
     >
       <button
         type='button'
         data-testid='x-science-permission-selector'
-        data-current-permission={selectedOption.value}
-        aria-label={`${t('agentMode.permission')} · ${selectedOption.label}`}
-        title={`${selectedOption.label}: ${selectedOption.description}`}
-        disabled={isUnavailable}
+        data-current-permission={selectedOption?.value}
+        aria-label={
+          selectedOption ? `${t('agentMode.permission')} · ${selectedOption.label}` : t('agentMode.permission')
+        }
+        title={selectedOption ? `${selectedOption.label}: ${selectedOption.description}` : undefined}
+        disabled={triggerUnavailable}
         onClick={() => setPopupVisible((visible) => !visible)}
         className='composer-icon-control relative'
       >
-        <XSciencePermissionIcon mode={selectedOption.value} size={17} />
+        <XSciencePermissionIcon mode={selectedOption?.value ?? 'default'} size={17} />
+        {controller?.isCurrent() && grants.available && Boolean(grants.snapshot?.grants.length) ? (
+          <span
+            className='absolute -right-4px -top-4px rounded-full bg-fill-3 px-3px text-10px leading-14px'
+            aria-label={t('agentMode.sessionGrants.count', { count: grants.snapshot!.grants.length })}
+          >
+            {grants.snapshot!.grants.length}
+          </span>
+        ) : null}
       </button>
     </Dropdown>
   );

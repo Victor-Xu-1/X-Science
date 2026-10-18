@@ -11,6 +11,7 @@ export interface MobileActionSheetOption {
   label: ReactNode;
   description?: ReactNode;
   active?: boolean;
+  disabled?: boolean;
 }
 
 export interface MobileActionSheetSubMenu {
@@ -20,6 +21,8 @@ export interface MobileActionSheetSubMenu {
   emptyText?: ReactNode;
   /** When false, options behave as plain action rows (no radio). Default: true. */
   selectable?: boolean;
+  /** Scoped auxiliary controls share this submenu without becoming selectable mode rows. */
+  footer?: (active: boolean) => ReactNode;
 }
 
 export interface MobileActionSheetEntry {

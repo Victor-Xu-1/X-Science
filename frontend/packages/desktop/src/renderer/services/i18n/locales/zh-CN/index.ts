@@ -23,6 +23,10 @@ import agent from './agent.json';
 import pet from './pet.json';
 
 export default {
+  'Allow this session': agentMode.sessionGrants.allow,
+  'Allow once': agentMode.sessionGrants.allowOnce,
+  'Always allow': agentMode.sessionGrants.alwaysAllow,
+  Deny: agentMode.sessionGrants.deny,
   common,
   agentMode,
   update,
