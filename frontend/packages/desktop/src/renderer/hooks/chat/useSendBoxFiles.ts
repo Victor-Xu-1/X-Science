@@ -62,10 +62,10 @@ export const formatFilesForMessage = (files: string[]): string => {
 export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }: UseSendBoxFilesProps) => {
   // 处理拖拽或粘贴的文件
   const handleFilesAdded = useCallback(
-    (files: FileMetadata[]) => {
+    (files: Pick<FileMetadata, 'path'>[]) => {
       const file_paths = files.map((file) => file.path);
       // 使用函数式更新，基于最新状态而不是闭包中的状态
-      setUploadFile((prevUploadFile) => [...prevUploadFile, ...file_paths]);
+      setUploadFile((prevUploadFile) => Array.from(new Set([...prevUploadFile, ...file_paths])));
     },
     [setUploadFile]
   );

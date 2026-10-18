@@ -5,6 +5,7 @@
  */
 
 import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { decodeHostGrantFileReference, isHostGrantFileReference } from '@/common/adapter/hostGrantFileReference';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 import { applyCsrfHeaderToSameOriginXHR } from './csrf';
 
@@ -220,6 +221,7 @@ export function cleanXScienceTimestamp(file_name: string): string {
 
 // 从文件路径获取清理后的文件名（用于UI显示）
 export function getCleanFileName(file_path: string): string {
+  if (isHostGrantFileReference(file_path)) return decodeHostGrantFileReference(file_path)?.name ?? '';
   const file_name = file_path.split(/[\\/]/).pop() || '';
   return cleanXScienceTimestamp(file_name);
 }

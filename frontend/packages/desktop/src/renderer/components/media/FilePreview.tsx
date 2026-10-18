@@ -12,6 +12,7 @@ import { Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
 import { useTranslation } from 'react-i18next';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { decodeHostGrantFileReference, isHostGrantFileReference } from '@/common/adapter/hostGrantFileReference';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
 
@@ -60,12 +61,16 @@ interface FilePreviewProps {
 
 const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = false }) => {
   const { t } = useTranslation();
-  const isImage = isImageFile(path);
-  const localFileBridgeAvailable = isElectronDesktop();
+  const isGrantedReference = isHostGrantFileReference(path);
+  const grantedReference = decodeHostGrantFileReference(path);
+  const isImage = !isGrantedReference && isImageFile(path);
+  const localFileBridgeAvailable = !isGrantedReference && isElectronDesktop();
   // 直接从路径中提取文件名，不清理时间戳后缀
   // Extract filename directly from path without cleaning timestamp suffix
-  const file_name = path.split(/[\\/]/).pop() || '';
-  const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
+  const file_name = isGrantedReference
+    ? (grantedReference?.name ?? t('conversation.hostFiles.invalidReference'))
+    : path.split(/[\\/]/).pop() || '';
+  const fileExt = getFileExtension(file_name).toUpperCase().replace('.', '');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
   const [metadataUnavailable, setMetadataUnavailable] = useState(false);
@@ -181,13 +186,15 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           <span className='text-14px text-t-primary max-w-150px truncate'>{file_name}</span>
           <span className='text-12px text-t-secondary'>
             {fileExt}
-            {metadataUnavailable
-              ? `: ${t('guid.xScienceStatus.unavailable')}`
-              : fileSize
-                ? `: ${fileSize}`
-                : localFileBridgeAvailable
-                  ? ': ...'
-                  : ''}
+            {isGrantedReference
+              ? ` · ${t('conversation.hostFiles.snapshotOnSend')}`
+              : metadataUnavailable
+                ? `: ${t('guid.xScienceStatus.unavailable')}`
+                : fileSize
+                  ? `: ${fileSize}`
+                  : localFileBridgeAvailable
+                    ? ': ...'
+                    : ''}
           </span>
         </div>
       </div>

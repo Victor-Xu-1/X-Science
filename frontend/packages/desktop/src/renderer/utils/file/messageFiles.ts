@@ -1,5 +1,6 @@
 import { X_SCIENCE_FILES_MARKER, X_SCIENCE_TIMESTAMP_REGEX } from '@/common/config/constants';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { isHostGrantFileReference } from '@/common/adapter/hostGrantFileReference';
 
 export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): string[] => {
   const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path)).filter(Boolean);
@@ -10,6 +11,7 @@ export const buildDisplayMessage = (input: string, files: string[], workspacePat
   if (!files.length) return input;
   const normalizedWorkspace = workspacePath?.replace(/[\\/]+$/, '');
   const displayPaths = files.map((file_path) => {
+    if (isHostGrantFileReference(file_path)) return file_path;
     const sanitizedPath = file_path.replace(X_SCIENCE_TIMESTAMP_REGEX, '$1');
     if (!normalizedWorkspace) {
       return sanitizedPath;

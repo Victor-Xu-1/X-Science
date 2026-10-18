@@ -47,7 +47,7 @@ describe('v1.1 add-to-message menu', () => {
     expect(screen.queryByText('保存为 Skill')).not.toBeInTheDocument();
   });
 
-  it('routes Your files to the project artifact selector instead of the native file picker', async () => {
+  it('keeps Project files routed to the project artifact selector instead of the native file picker', async () => {
     const openFileSelector = vi.fn();
     const onSelectProjectFiles = vi.fn();
     await renderWithI18n(
@@ -62,7 +62,7 @@ describe('v1.1 add-to-message menu', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Add to message' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Your files' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Project files' }));
 
     expect(onSelectProjectFiles).toHaveBeenCalledTimes(1);
     expect(openFileSelector).not.toHaveBeenCalled();

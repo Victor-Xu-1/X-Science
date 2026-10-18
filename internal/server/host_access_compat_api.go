@@ -63,6 +63,9 @@ func (s *Server) handleCompatibilityHostGrants(w http.ResponseWriter, r *http.Re
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"grants": projected})
 	case http.MethodPost:
+		if !s.requireHostOperator(w, r) {
+			return
+		}
 		input, ok := decodeCompatibilityHostGrantInput(w, r)
 		if !ok {
 			return
@@ -86,6 +89,9 @@ func (s *Server) handleCompatibilityHostGrants(w http.ResponseWriter, r *http.Re
 		}
 		writeJSON(w, http.StatusOK, projectCompatibilityHostGrant(grant))
 	case http.MethodPatch:
+		if !s.requireHostOperator(w, r) {
+			return
+		}
 		input, ok := decodeCompatibilityHostGrantInput(w, r)
 		if !ok {
 			return
@@ -179,6 +185,9 @@ func (s *Server) handleCompatibilityHostBrowse(w http.ResponseWriter, r *http.Re
 func (s *Server) handleCompatibilityHostGrantPicker(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	if !s.requireHostOperator(w, r) {
 		return
 	}
 	if s.settingsStore == nil {
