@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -82,10 +83,18 @@ type kernelChildRunKey struct {
 	frameID string
 }
 
+// Private lifetime identity, never a frame-ID lookup or a persisted authority.
+type kernelChildOwnerContextKey struct{}
+
 type kernelChildRun struct {
-	cancel context.CancelFunc
-	done   chan struct{}
-	wake   chan struct{}
+	targetMu        sync.Mutex
+	target          *workspace.DelegatedStopTarget
+	canonicalStop   *workspace.DelegatedStopTarget
+	completionClaim transcriptstore.RunnerClaim
+	stop            context.CancelFunc
+	cancel          context.CancelFunc
+	done            chan struct{}
+	wake            chan struct{}
 }
 
 func (r *kernelChildRun) signal() {
@@ -133,7 +142,19 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		if len(validRequests) == 0 {
 			return results, nil
 		}
+		var admission *workspace.KernelDelegationAdmission
+		if !bound.fresh && bound.transcriptExecution.stream.UID != "" {
+			identity, err := s.validateKernelTranscriptExecution(ctx, bound, access)
+			if err != nil {
+				return nil, err
+			}
+			admission, err = s.workspaceStore.CaptureKernelDelegationAdmission(ctx, access.Frame.ID, access.UserID, callID, identity.OuterToolUseID, identity.RunnerClaim, validRequests)
+			if err != nil {
+				return nil, classifyKernelHostError(err)
+			}
+		}
 		children, err := s.workspaceStore.CreateKernelSupervisedChildren(ctx, workspace.CreateKernelDelegatesInput{
+			Admission:     admission,
 			ParentFrameID: access.Frame.ID, OwnerUserID: access.UserID, ToolUseID: callID,
 			Requests: validRequests, SpawnCap: spawnCap,
 			MaxDepth: s.kernelDelegationMaxDepth(),
@@ -214,7 +235,7 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		}
 		results := make([]any, len(frameIDs))
 		for index, frameID := range frameIDs {
-			results[index] = s.stopKernelChild(ctx, access, frameID, reason)
+			results[index] = s.stopKernelChild(ctx, access, frameID, reason, callID)
 		}
 		if single {
 			return results[0], nil

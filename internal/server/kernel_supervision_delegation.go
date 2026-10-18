@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -127,7 +128,10 @@ func (s *Server) executeKernelDelegateSubmitOutput(sessionID string, input map[s
 	if !found {
 		return nil, errors.New("delegated session is unavailable")
 	}
-	schema, found := kernelDelegateOutputSchemaFromSession(session)
+	schema, found, err := s.kernelDelegateOutputSchema(context.Background(), session)
+	if err != nil {
+		return nil, err
+	}
 	if !found {
 		return nil, errors.New("submit_output is unavailable for this session")
 	}

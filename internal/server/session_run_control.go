@@ -24,6 +24,7 @@ var (
 )
 
 type activeSessionRun struct {
+	delegatedOwner    *kernelChildRun
 	runnerID          string
 	cancel            context.CancelCauseFunc
 	done              chan struct{}
@@ -79,6 +80,7 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 	}
 	ctx, cancel := context.WithCancelCause(parent)
 	run := &activeSessionRun{runnerID: runnerID, cancel: cancel, done: make(chan struct{})}
+	run.delegatedOwner, _ = parent.Value(kernelChildOwnerContextKey{}).(*kernelChildRun)
 	ctx = context.WithValue(ctx, activeSessionRunContextKey{}, run)
 	ctx = context.WithValue(ctx, sessionRunLifetimeContextKey{}, ctx)
 	s.sessionRunsMu.Lock()

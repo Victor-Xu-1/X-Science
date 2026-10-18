@@ -171,7 +171,7 @@ func (s *Server) sendKernelChildMessage(ctx context.Context, access workspace.Ke
 		if queued.Queued == nil {
 			return nil, errors.New("child message was not durably queued")
 		}
-		if err := s.materializeKernelChildMessages(queued.Child, []workspace.KernelChildQueuedMessage{*queued.Queued}); err != nil {
+		if err := s.materializeKernelChildMessages(ctx, queued.Child, []workspace.KernelChildQueuedMessage{*queued.Queued}); err != nil {
 			return nil, err
 		}
 		s.startKernelChildRun(queued.Child)

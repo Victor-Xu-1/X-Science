@@ -138,6 +138,9 @@ const AcpChat: React.FC<{
             <XScienceDelegateDock
               conversationId={conversation_id}
               polling={messageState.aiProcessing || messageState.running || runtimeView.isProcessing}
+              ownerId={user?.id ?? ''}
+              frameIncarnationId={conversation.type === 'acp' ? conversation.extra.frame_incarnation_id : undefined}
+              rootTurnBusy={messageState.aiProcessing || messageState.running || runtimeView.isProcessing}
             />
           )}
           {!hideSendBox && syncIssue?.kind !== 'missing' && (

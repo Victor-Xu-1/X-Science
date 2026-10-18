@@ -1,6 +1,6 @@
 import { Down, Left, Right } from '@icon-park/react';
 import XScienceAvatar from '@/renderer/components/xScience/XScienceAvatar';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import {
@@ -14,6 +14,8 @@ import {
 import './XScienceDelegateDock.css';
 import XScienceLineageMessagesDrawer from './XScienceLineageMessagesDrawer';
 import { subscribeXScienceConversationWake } from '@/renderer/services/xScienceConversationWake';
+import { useDelegatedStop, type DelegatedStopPresentation } from './useDelegatedStop';
+import DelegatedStopActions from './DelegatedStopActions';
 
 const EVENT_COALESCE_MS = 250;
 const LINEAGE_RETRY_DELAYS_MS = [2_000, 5_000, 15_000] as const;
@@ -30,7 +32,7 @@ const DelegateStatus: React.FC<{ status: XScienceDelegateStatus }> = ({ status }
 
 const DelegateRow: React.FC<{
   child: XScienceDelegateFrame;
-  onOpen: () => void;
+  onOpen: (trigger: HTMLButtonElement) => void;
   compact?: boolean;
 }> = ({ child, onOpen, compact = false }) => {
   const { t } = useTranslation();
@@ -39,7 +41,7 @@ const DelegateRow: React.FC<{
       type='button'
       className={compact ? 'delegate-dock__row delegate-dock__row--compact' : 'delegate-dock__row'}
       aria-label={t('conversation.delegateDock.openChild', { index: child.ordinal, label: child.label })}
-      onClick={onOpen}
+      onClick={(event) => onOpen(event.currentTarget)}
     >
       <XScienceAvatar size={15} className='delegate-dock__agent-icon' />
       <span className='delegate-dock__row-main'>
@@ -66,11 +68,17 @@ const DelegateRow: React.FC<{
   );
 };
 
-export const XScienceDelegateDockView: React.FC<{ lineage: XScienceDelegateLineage }> = ({ lineage }) => {
+export const XScienceDelegateDockView: React.FC<{
+  lineage: XScienceDelegateLineage;
+  stop?: DelegatedStopPresentation;
+  rootTurnBusy?: boolean;
+}> = ({ lineage, stop, rootTurnBusy = false }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [selectedChild, setSelectedChild] = useState<XScienceDelegateFrame | null>(null);
+  const returnFocus = useRef<HTMLButtonElement | null>(null);
+  const summaryTrigger = useRef<HTMLButtonElement | null>(null);
   const orderedChildren = useMemo(() => orderXScienceDelegates(lineage.directChildren), [lineage.directChildren]);
   const totals = useMemo(() => summarizeXScienceDelegates(orderedChildren), [orderedChildren]);
   const parent = lineage.ancestors.at(-1);
@@ -79,6 +87,33 @@ export const XScienceDelegateDockView: React.FC<{ lineage: XScienceDelegateLinea
   useEffect(() => {
     if (orderedChildren.length < 2) setOpen(false);
   }, [orderedChildren.length]);
+
+  const closePreview = () => {
+    setSelectedChild(null);
+    const trigger = returnFocus.current?.isConnected ? returnFocus.current : summaryTrigger.current;
+    trigger?.focus();
+  };
+  useEffect(() => {
+    if (!open && !selectedChild) return;
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (selectedChild) {
+        setSelectedChild(null);
+        const trigger = returnFocus.current?.isConnected ? returnFocus.current : summaryTrigger.current;
+        trigger?.focus();
+      } else {
+        setOpen(false);
+        summaryTrigger.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', escape);
+    return () => document.removeEventListener('keydown', escape);
+  }, [open, selectedChild]);
+
+  const openPreview = (child: XScienceDelegateFrame, trigger: HTMLButtonElement) => {
+    returnFocus.current = trigger;
+    setSelectedChild(child);
+  };
 
   return (
     <div className='delegate-dock' data-testid='xscience-delegate-dock'>
@@ -115,13 +150,18 @@ export const XScienceDelegateDockView: React.FC<{ lineage: XScienceDelegateLinea
 
       {orderedChildren.length === 1 && (
         <div className='delegate-dock__single'>
-          <DelegateRow child={orderedChildren[0]} compact onOpen={() => setSelectedChild(orderedChildren[0])} />
+          <DelegateRow
+            child={orderedChildren[0]}
+            compact
+            onOpen={(trigger) => openPreview(orderedChildren[0], trigger)}
+          />
         </div>
       )}
 
       {orderedChildren.length > 1 && (
         <div className='delegate-dock__summary-wrap'>
           <button
+            ref={summaryTrigger}
             type='button'
             className='delegate-dock__summary'
             aria-label={t('conversation.delegateDock.openList', { count: orderedChildren.length })}
@@ -154,16 +194,18 @@ export const XScienceDelegateDockView: React.FC<{ lineage: XScienceDelegateLinea
               </div>
               <div className='delegate-dock__list' role='list' aria-label={t('conversation.delegateDock.subagents')}>
                 {orderedChildren.slice(0, 8).map((child) => (
-                  <DelegateRow key={child.frameId} child={child} onOpen={() => setSelectedChild(child)} />
+                  <DelegateRow key={child.frameId} child={child} onOpen={(trigger) => openPreview(child, trigger)} />
                 ))}
               </div>
             </div>
           )}
         </div>
       )}
+      {stop && <DelegatedStopActions stop={stop} rootTurnBusy={rootTurnBusy} />}
       <XScienceLineageMessagesDrawer
         child={selectedChild}
-        onClose={() => setSelectedChild(null)}
+        stop={stop}
+        onClose={closePreview}
         onOpenFull={(frameId) => {
           setSelectedChild(null);
           navigate(`/conversation/${frameId}`);
@@ -173,15 +215,21 @@ export const XScienceDelegateDockView: React.FC<{ lineage: XScienceDelegateLinea
   );
 };
 
-export const XScienceDelegateDock: React.FC<{ conversationId: string; polling: boolean }> = ({
-  conversationId,
-  polling,
-}) => {
-  const [lineage, setLineage] = useState<XScienceDelegateLineage | null>(null);
+export const XScienceDelegateDock: React.FC<{
+  conversationId: string;
+  polling: boolean;
+  ownerId?: string;
+  frameIncarnationId?: string;
+  rootTurnBusy?: boolean;
+}> = ({ conversationId, polling, ownerId = '', frameIncarnationId = '', rootTurnBusy = false }) => {
+  const [ownedLineage, setLineage] = useState<{ ownerKey: string; value: XScienceDelegateLineage } | null>(null);
+  const stop = useDelegatedStop(ownerId, conversationId, frameIncarnationId);
+  const ownerKey = stop.scopeKey;
+  const lineage = ownedLineage?.ownerKey === ownerKey ? ownedLineage.value : null;
 
   useEffect(() => {
     setLineage(null);
-  }, [conversationId]);
+  }, [ownerKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -204,7 +252,7 @@ export const XScienceDelegateDock: React.FC<{ conversationId: string; polling: b
       loading = true;
       try {
         const next = await loadXScienceDelegateLineage(conversationId, { signal: controller.signal });
-        setLineage(next);
+        if (!controller.signal.aborted) setLineage({ ownerKey, value: next });
         retryAttempt = 0;
       } catch {
         if (!controller.signal.aborted) {
@@ -238,11 +286,15 @@ export const XScienceDelegateDock: React.FC<{ conversationId: string; polling: b
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [conversationId, polling]);
+  }, [conversationId, ownerKey, polling]);
 
   const hasVisibleLineage = Boolean(lineage && (lineage.ancestors.length > 0 || lineage.directChildren.length > 0));
-  if (!hasVisibleLineage || !lineage) return null;
-  return <XScienceDelegateDockView lineage={lineage} />;
+  if (!hasVisibleLineage || !lineage) {
+    return stop.view.operation || stop.view.snapshot?.can_stop_branch ? (
+      <DelegatedStopActions stop={stop} rootTurnBusy={rootTurnBusy} />
+    ) : null;
+  }
+  return <XScienceDelegateDockView key={ownerKey} lineage={lineage} stop={stop} rootTurnBusy={rootTurnBusy} />;
 };
 
 export default React.memo(XScienceDelegateDock);

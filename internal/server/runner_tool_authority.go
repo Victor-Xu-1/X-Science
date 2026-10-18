@@ -61,7 +61,9 @@ func (s *Server) bindSessionRunnerToolAuthority(
 		mcpDiscovery := s.agentRuntimeWorkspaceMCPToolSchemas(ctx, options.SessionID, nil, schemas)
 		schemas = append(schemas, mcpDiscovery.Schemas...)
 	}
-	if outputSchema, found := kernelDelegateOutputSchemaFromSession(session); found {
+	if outputSchema, found, err := s.kernelDelegateOutputSchema(ctx, session); err != nil {
+		return sessionRunnerToolAuthority{}, err
+	} else if found {
 		schemas = append(schemas, kernelDelegateSubmitOutputToolSchema(outputSchema))
 	}
 	canonicalSchemas, err := canonicalAgentRuntimeToolAuthority(schemas)

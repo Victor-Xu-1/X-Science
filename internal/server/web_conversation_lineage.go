@@ -177,6 +177,10 @@ func buildWebConversationLineage(frameID string, snapshot workspace.FrameTraceSn
 }
 
 func webConversationDelegateStatus(frame workspace.Frame) string {
+	// A retained historical question is not live after canonical cancellation.
+	if frame.Status == "cancelled" || frame.Status == "canceled" || frame.Status == "stopped" {
+		return "stopped"
+	}
 	if pending, ok := frame.OutputData["pending_input_requests"].([]any); ok && len(pending) > 0 {
 		return "needs-input"
 	}
