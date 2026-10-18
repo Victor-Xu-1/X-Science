@@ -31,7 +31,7 @@ func freezeQueuedPDFReadingContext(ctx context.Context, tx workspaceTransaction,
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]any, len(delivery)+1)
+	result := make(map[string]any)
 	for key, value := range delivery {
 		result[key] = value
 	}

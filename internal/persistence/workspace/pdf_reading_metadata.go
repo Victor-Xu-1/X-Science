@@ -13,7 +13,7 @@ import (
 // replace its authority. A stale runtime snapshot preserves the newer binding
 // state instead of creating a new failure gate for unrelated running work.
 func preservePDFReadingMetadata(ctx context.Context, tx workspaceTransaction, frame string, incoming map[string]any) (map[string]any, error) {
-	result := make(map[string]any, len(incoming)+1)
+	result := make(map[string]any)
 	for key, value := range incoming {
 		result[key] = value
 	}

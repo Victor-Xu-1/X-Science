@@ -29,7 +29,7 @@ func readingSnapshotValue(snapshot PDFReadingSnapshot) map[string]any {
 }
 
 func readingInputWithSnapshot(data map[string]any, snapshot PDFReadingSnapshot) map[string]any {
-	result := make(map[string]any, len(data)+1)
+	result := make(map[string]any)
 	for key, value := range data {
 		result[key] = value
 	}
