@@ -252,7 +252,7 @@ export async function sendXScienceAsideFollowup(
     },
     options
   );
-  const accepted = decodeConversationSendAccepted(value);
+  const accepted = decodeConversationSendAccepted(value, frameId);
   // A branch continuation can return a canonical message ID different from
   // loading_id. Only the server's accepted tuple is cancellation authority.
   return accepted;

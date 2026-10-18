@@ -28,23 +28,46 @@ type stagedWorkspaceFile struct {
 	digest string
 }
 
+type workspaceFileCommit func(func() error) error
+
 func stageWorkspaceFile(ctx context.Context, root *os.Root, source io.Reader, maxBytes int64) (*stagedWorkspaceFile, error) {
+	return stageWorkspaceFileWithCommit(ctx, root, source, maxBytes, nil)
+}
+
+func stageWorkspaceFileWithCommit(ctx context.Context, root *os.Root, source io.Reader, maxBytes int64, commit workspaceFileCommit) (*stagedWorkspaceFile, error) {
 	if root == nil || maxBytes < 0 || maxBytes == math.MaxInt64 {
 		return nil, errWorkspaceFileTooLarge
 	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
+	if err := context.Cause(ctx); err != nil {
+		return nil, errors.Join(ctx.Err(), err)
 	}
 	name := ".x-science-incoming-" + uuid.NewString() + ".tmp"
-	file, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	var file *os.File
+	open := func() error {
+		var err error
+		file, err = root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		return err
+	}
+	var err error
+	if commit != nil {
+		err = commit(open)
+	} else {
+		err = open()
+	}
 	if err != nil {
+		if file != nil {
+			err = errors.Join(err, file.Close(), root.Remove(name))
+		}
 		return nil, err
+	}
+	if file == nil {
+		return nil, errors.New("workspace file stage was not opened")
 	}
 	hash := sha256.New()
 	size, copyErr := io.Copy(io.MultiWriter(file, hash), io.LimitReader(&contextReader{ctx: ctx, reader: source}, maxBytes+1))
 	syncErr := file.Sync()
 	closeErr := file.Close()
-	err = errors.Join(copyErr, syncErr, closeErr, ctx.Err())
+	err = errors.Join(copyErr, syncErr, closeErr, ctx.Err(), context.Cause(ctx))
 	if size > maxBytes {
 		err = errors.Join(err, errWorkspaceFileTooLarge)
 	}
@@ -57,32 +80,69 @@ func stageWorkspaceFile(ctx context.Context, root *os.Root, source io.Reader, ma
 func (stage *stagedWorkspaceFile) close() error { return stage.root.Remove(stage.name) }
 
 func (stage *stagedWorkspaceFile) publish(ctx context.Context, destination string) error {
-	if err := ctx.Err(); err != nil {
-		return err
+	return stage.publishWithCommit(ctx, destination, nil)
+}
+
+// Only namespace publication and the final identity check run inside commit.
+// Copying and hashing retain their bounded descriptor reads outside that guard.
+func (stage *stagedWorkspaceFile) publishWithCommit(ctx context.Context, destination string, commit workspaceFileCommit) error {
+	apply := func(action func() error) error {
+		if err := context.Cause(ctx); err != nil {
+			return errors.Join(ctx.Err(), err)
+		}
+		if commit != nil {
+			return commit(action)
+		}
+		return action()
 	}
 	// Linking is atomic and never replaces another writer's directory entry.
 	// Both paths remain relative to the same held root, including nested upload
 	// directories. A symlink replacement cannot redirect the operation outside.
-	if err := stage.root.Link(stage.name, destination); err == nil {
-		return nil
-	} else if !errors.Is(err, os.ErrExist) {
+	var linkErr error
+	if err := apply(func() error {
+		linkErr = stage.root.Link(stage.name, destination)
+		if errors.Is(linkErr, os.ErrExist) {
+			return nil
+		}
+		return linkErr
+	}); err != nil {
 		return err
 	}
-	info, err := stage.root.Lstat(destination)
-	if err != nil || !info.Mode().IsRegular() || info.Size() != stage.size {
+	if linkErr == nil {
+		return nil
+	}
+	file, err := openRegularWorkspaceRootFile(stage.root, destination)
+	if err != nil {
 		return errWorkspaceFileConflict
 	}
-	size, digest, err := hashWorkspaceRootFile(ctx, stage.root, destination, stage.size)
+	defer file.Close()
+	before, err := file.Stat()
+	if err != nil || before.Size() != stage.size {
+		return errWorkspaceFileConflict
+	}
+	size, digest, err := hashOpenedWorkspaceFile(ctx, file, stage.size)
 	if err != nil {
-		if ctx.Err() != nil {
-			return ctx.Err()
+		if cause := context.Cause(ctx); cause != nil {
+			return errors.Join(ctx.Err(), cause)
 		}
 		return errWorkspaceFileConflict
 	}
 	if size != stage.size || digest != stage.digest {
 		return errWorkspaceFileConflict
 	}
-	return nil
+	return apply(func() error {
+		current, pathErr := stage.root.Lstat(destination)
+		after, statErr := file.Stat()
+		if pathErr != nil || statErr != nil || !sameWorkspaceFileSnapshot(before, current) || !sameWorkspaceFileSnapshot(before, after) {
+			return errWorkspaceFileConflict
+		}
+		return nil
+	})
+}
+
+func sameWorkspaceFileSnapshot(before, after os.FileInfo) bool {
+	return before != nil && after != nil && after.Mode().IsRegular() && os.SameFile(before, after) &&
+		before.Size() == after.Size() && before.ModTime().Equal(after.ModTime())
 }
 
 func hashWorkspaceRootFile(ctx context.Context, root *os.Root, name string, maxBytes int64) (int64, string, error) {
@@ -94,6 +154,10 @@ func hashWorkspaceRootFile(ctx context.Context, root *os.Root, name string, maxB
 		return 0, "", err
 	}
 	defer file.Close()
+	return hashOpenedWorkspaceFile(ctx, file, maxBytes)
+}
+
+func hashOpenedWorkspaceFile(ctx context.Context, file *os.File, maxBytes int64) (int64, string, error) {
 	info, err := file.Stat()
 	if err != nil || !info.Mode().IsRegular() || info.Size() > maxBytes {
 		return 0, "", errWorkspaceFileConflict

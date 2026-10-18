@@ -317,6 +317,14 @@ describe('ipcBridge conversation adapter', () => {
     await expect(
       conversation.sendMessage.invoke({ conversation_id: 'conversation-1', input: 'run analysis' })
     ).rejects.toThrow('conversation_send_response_invalid');
+    httpBridgeMocks.responses.set(path, {
+      ...accepted,
+      turn_id: 'conversation-2',
+      runtime: { ...accepted.runtime, turn_id: 'conversation-2' },
+    });
+    await expect(
+      conversation.sendMessage.invoke({ conversation_id: 'conversation-1', input: 'run analysis' })
+    ).rejects.toThrow('conversation_send_response_invalid');
   });
 
   it('sends exact artifact version pairs and the onboarding model context', async () => {

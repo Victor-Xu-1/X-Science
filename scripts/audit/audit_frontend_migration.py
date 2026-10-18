@@ -130,6 +130,8 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/conversationInputReceipt.ts": "Decode explicit durable input receipts separately from current runtime and bind them to the receiving conversation.",
+    "packages/desktop/src/common/adapter/hostGrantFileReference.ts": "Encode and validate explicit host-grant file references before guarded task-owned snapshot materialization.",
     "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/usePreviewArtifactActionScope.ts": "Fence immutable preview actions by the selected tab, artifact version, account and opening identity.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useSessionNotebook.ts": "Read the existing execution log with account/opening fencing and exact-cursor pagination and retry, without owning a kernel.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/sessionExportAvailability.ts": "Share the canonical runtime and local submission availability contract between session export actions and their menu entry.",
@@ -558,9 +560,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "65decc38fde9b25bda727b84b652d516f33e458b7a1eded1e244ff1397637fcd"
+APPROVED_ADAPTATION_FINGERPRINT = "6295c518c9ff9e15df9d6e280286bfce3fb8a1fff67c521f0b21eb51461aabd0"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "be8683da35c3e993d5baf501ebc3b7405e5f035f45351d74fc7d19a7cf6480e0"
+APPROVED_ADDITION_FINGERPRINT = "0b8d0bda3c1bb2cd2408a332c489f9d90716746176bac6ba28348a48d7423a4c"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

@@ -217,6 +217,24 @@ export async function requestConversationWorkspacePage(
   return fromBackendWorkspaceArtifactPage(raw, params.workspace, rel);
 }
 
+const sendConversationMessage = httpPost<unknown, ISendMessageParams>(
+  (p) => `/api/conversations/${p.conversation_id}/messages`,
+  (p) => ({
+    content: p.input,
+    files: p.files,
+    artifact_refs: p.artifact_refs?.map((reference) => ({
+      artifact_id: reference.artifact_id,
+      version_id: reference.version_id,
+    })),
+    message_context: p.message_context,
+    loading_id: p.loading_id,
+    ...(p.turn_intent ? { turn_intent: p.turn_intent } : {}),
+    inject_skills: p.inject_skills,
+    inject_mcp_server_ids: p.inject_mcp_server_ids,
+    session_options: p.session_options,
+  })
+);
+
 export const conversation = {
   create: withResponseMap(
     httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => buildCreateConversationBody(p)),
@@ -280,26 +298,11 @@ export const conversation = {
     },
   },
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
-  sendMessage: withResponseMap(
-    httpPost<unknown, ISendMessageParams>(
-      (p) => `/api/conversations/${p.conversation_id}/messages`,
-      (p) => ({
-        content: p.input,
-        files: p.files,
-        artifact_refs: p.artifact_refs?.map((reference) => ({
-          artifact_id: reference.artifact_id,
-          version_id: reference.version_id,
-        })),
-        message_context: p.message_context,
-        loading_id: p.loading_id,
-        ...(p.turn_intent ? { turn_intent: p.turn_intent } : {}),
-        inject_skills: p.inject_skills,
-        inject_mcp_server_ids: p.inject_mcp_server_ids,
-        session_options: p.session_options,
-      })
-    ),
-    decodeConversationSendAccepted
-  ),
+  sendMessage: {
+    ...sendConversationMessage,
+    invoke: async (params: ISendMessageParams) =>
+      decodeConversationSendAccepted(await sendConversationMessage.invoke(params), params.conversation_id),
+  },
   getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),

@@ -527,9 +527,13 @@ func (s *Server) resumeTerminalRootCompatibilityFrameForMessage(
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
 		return errors.New("transcript root frame recovery runtime is unavailable")
 	}
-	result, err := s.workspaceStore.ResumeCompatibilityFrameConversation(frame.ID, workspace.ResumeCompatibilityFrameInput{
-		Model: input.Model, MessageIntent: input.MessageIntent,
-	})
+	var result workspace.ResumeCompatibilityFrameResult
+	var err error
+	if input.MessageIntent != nil {
+		result, err = s.workspaceStore.ResumeUnclaimedFrameMessageIntent(context.Background(), *input.MessageIntent)
+	} else {
+		result, err = s.workspaceStore.ResumeCompatibilityFrameConversation(frame.ID, workspace.ResumeCompatibilityFrameInput{Model: input.Model})
+	}
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import type {
   TConversationRuntimeSummary,
 } from '../config/storage';
 import type { AcpConfigOptionDto } from '../types/platform/acpTypes';
+import { decodeConversationInputReceipt, type ConversationInputReceipt } from './conversationInputReceipt';
 
 export type ConversationTurnCompletedEvent = {
   session_id: string;
@@ -42,6 +43,7 @@ export type ConversationSendAccepted = {
   msg_id: string;
   turn_id: string;
   runtime: TConversationRuntimeSummary;
+  input_receipt?: ConversationInputReceipt;
 };
 
 export type ConversationRuntimeEnsure = {
@@ -137,20 +139,31 @@ export function decodeConversationRuntimeSummary(raw: unknown): TConversationRun
   };
 }
 
-export function decodeConversationSendAccepted(raw: unknown): ConversationSendAccepted {
+export function decodeConversationSendAccepted(raw: unknown, expectedFrameId?: string): ConversationSendAccepted {
   const value = recordValue(raw);
-  if (!value || !exactIdentifier(value.msg_id) || !exactIdentifier(value.turn_id)) {
-    throw new Error('conversation_send_response_invalid');
-  }
-  const runtime = decodeConversationRuntimeSummary(value.runtime);
   if (
-    runtime.turn_id !== value.turn_id ||
-    (runtime.state !== 'starting' && runtime.state !== 'running') ||
-    runtime.can_send_message
+    !value ||
+    !exactIdentifier(value.msg_id) ||
+    !exactIdentifier(value.turn_id) ||
+    (expectedFrameId !== undefined && value.turn_id !== expectedFrameId)
   ) {
     throw new Error('conversation_send_response_invalid');
   }
-  return { msg_id: value.msg_id, turn_id: value.turn_id, runtime };
+  const runtime = decodeConversationRuntimeSummary(value.runtime);
+  const receipt =
+    value.input_receipt === undefined
+      ? undefined
+      : decodeConversationInputReceipt(value.input_receipt, value.turn_id, value.msg_id);
+  const invalidCurrentScope = runtime.has_task && runtime.turn_id !== value.turn_id;
+  const invalidLegacy =
+    !receipt &&
+    (runtime.turn_id !== value.turn_id ||
+      (runtime.state !== 'starting' && runtime.state !== 'running') ||
+      runtime.can_send_message);
+  if (invalidCurrentScope || invalidLegacy) {
+    throw new Error('conversation_send_response_invalid');
+  }
+  return { msg_id: value.msg_id, turn_id: value.turn_id, runtime, ...(receipt ? { input_receipt: receipt } : {}) };
 }
 
 export function decodeConversationRuntimeEnsure(raw: unknown): ConversationRuntimeEnsure {

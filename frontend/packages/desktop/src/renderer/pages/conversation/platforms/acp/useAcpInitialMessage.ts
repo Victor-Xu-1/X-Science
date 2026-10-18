@@ -11,11 +11,16 @@ import { decodeArtifactReferences, type ArtifactReferenceWire } from '@/common/a
 import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
 import { buildSendFailureError } from './buildSendFailureError';
 import { setXScienceSessionComputeProvider } from '@/renderer/services/xScienceCompute';
+import { getRendererAccountScopeToken, rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import type {
+  ConversationRuntimeView,
+  ConversationSendAcceptanceOptions,
+} from '../../runtime/conversationRuntimeViewStore';
 
 type DraftStagedSessionOptions = {
   delegation: boolean;
@@ -45,9 +50,14 @@ type UseAcpInitialMessageParams = {
   streamReady: boolean;
   setAiProcessing: (value: boolean) => void;
   resetState: () => void;
-  markSendStarted?: () => void;
-  markSendAccepted?: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
-  markSendFailed?: (reason: string) => void;
+  markSendStarted?: () => object | void;
+  markSendAccepted?: (
+    turn_id: string,
+    runtime: TConversationRuntimeSummary,
+    msg_id?: string,
+    options?: ConversationSendAcceptanceOptions
+  ) => Pick<ConversationRuntimeView, 'isProcessing' | 'state'> | null | void;
+  markSendFailed?: (reason: string, ticket?: object) => ConversationRuntimeView | null | void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
   onDraftPrefill?: (payload: DraftPrefillPayload) => void;
@@ -90,16 +100,29 @@ export const useAcpInitialMessage = ({
   onDraftRestoreIssue,
 }: UseAcpInitialMessageParams): void => {
   const { t } = useTranslation();
+  const accountScope = getRendererAccountScopeToken();
+  const authorityRef = useRef<object | null>(null);
+  useLayoutEffect(() => {
+    const authority = {};
+    authorityRef.current = authority;
+    return () => {
+      if (authorityRef.current === authority) authorityRef.current = null;
+    };
+  }, [conversation_id, accountScope]);
 
   useEffect(() => {
     if (!streamReady) return;
 
     const storageKey = `acp_initial_message_${conversation_id}`;
+    const submissionKey = rendererAccountScopedKey(storageKey);
+    const authority = authorityRef.current;
+    const isCurrent = () =>
+      authority !== null && authorityRef.current === authority && getRendererAccountScopeToken() === accountScope;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
-    if (initialMessageSendsInFlight.has(storageKey) || initialMessageFailures.has(storageKey)) return;
-    initialMessageSendsInFlight.add(storageKey);
+    if (initialMessageSendsInFlight.has(submissionKey) || initialMessageFailures.has(submissionKey)) return;
+    initialMessageSendsInFlight.add(submissionKey);
 
     let parsed: Record<string, unknown> = {};
     try {
@@ -109,7 +132,7 @@ export const useAcpInitialMessage = ({
       }
     } catch (error) {
       console.error('[useAcpInitialMessage] Invalid stored initial message:', error);
-      initialMessageSendsInFlight.delete(storageKey);
+      initialMessageSendsInFlight.delete(submissionKey);
       return;
     }
 
@@ -165,7 +188,7 @@ export const useAcpInitialMessage = ({
 
       if (computeProviders.length === 0) {
         sessionStorage.removeItem(storageKey);
-        initialMessageSendsInFlight.delete(storageKey);
+        initialMessageSendsInFlight.delete(submissionKey);
         return;
       }
 
@@ -180,14 +203,14 @@ export const useAcpInitialMessage = ({
               setXScienceSessionComputeProvider(conversation_id, provider, true)
             )
           );
-          initialMessageSendsInFlight.delete(storageKey);
-          if (cancelled) return;
+          initialMessageSendsInFlight.delete(submissionKey);
+          if (cancelled || !isCurrent()) return;
           if (sessionStorage.getItem(storageKey) === storedMessage) {
             sessionStorage.removeItem(storageKey);
           }
         } catch (error) {
-          initialMessageSendsInFlight.delete(storageKey);
-          if (cancelled) return;
+          initialMessageSendsInFlight.delete(submissionKey);
+          if (cancelled || !isCurrent()) return;
           console.error('[useAcpInitialMessage] Failed to restore compute providers for the staged draft:', error);
           // The staged task itself is already in the composer; keep the queued
           // payload so the next mount retries the provider restore, and tell
@@ -202,6 +225,7 @@ export const useAcpInitialMessage = ({
     }
 
     const sendInitialMessage = async () => {
+      let submissionTicket: object | undefined;
       try {
         const initialMessage = parsed;
         const input = typeof initialMessage.input === 'string' ? initialMessage.input : '';
@@ -256,12 +280,13 @@ export const useAcpInitialMessage = ({
             ? initialMessage.loading_id.trim()
             : undefined;
 
-        markSendStarted?.();
+        submissionTicket = markSendStarted?.() || undefined;
         setAiProcessing(true);
 
         await Promise.all(
           computeProviders.map((provider: string) => setXScienceSessionComputeProvider(conversation_id, provider, true))
         );
+        if (!isCurrent()) return;
 
         void checkAndUpdateTitle(conversation_id, input);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
@@ -274,7 +299,12 @@ export const useAcpInitialMessage = ({
           ...(inject_mcp_server_ids ? { inject_mcp_server_ids } : {}),
           session_options: sessionOptions,
         });
-        markSendAccepted?.(result.turn_id, result.runtime, result.msg_id);
+        if (!isCurrent()) return;
+        const accepted = markSendAccepted?.(result.turn_id, result.runtime, result.msg_id, {
+          ticket: submissionTicket,
+          receipt: result.input_receipt,
+        });
+        if (accepted) setAiProcessing(accepted.isProcessing && accepted.state !== 'waiting_confirmation');
 
         // Remove only the payload accepted by the runtime. A newer draft may
         // already have replaced the same key while this request was pending.
@@ -285,10 +315,11 @@ export const useAcpInitialMessage = ({
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        initialMessageFailures.add(storageKey);
+        if (!isCurrent()) return;
+        initialMessageFailures.add(submissionKey);
         const errorMessageText =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
-        markSendFailed?.(errorMessageText);
+        if (markSendFailed?.(errorMessageText, submissionTicket) === null) return;
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
         console.error('[useAcpInitialMessage] Error details:', {
           name: (error as Error)?.name,
@@ -313,7 +344,7 @@ export const useAcpInitialMessage = ({
         resetState();
         setAiProcessing(false); // Keep the prop-setter in sync with the hook reset
       } finally {
-        initialMessageSendsInFlight.delete(storageKey);
+        initialMessageSendsInFlight.delete(submissionKey);
       }
     };
 
@@ -321,6 +352,7 @@ export const useAcpInitialMessage = ({
       console.error('Failed to send initial message:', error);
     });
   }, [
+    accountScope,
     addOrUpdateMessage,
     backend,
     checkAndUpdateTitle,

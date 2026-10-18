@@ -68,7 +68,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const handleLocalFilesAdded = useCallback(
-    (addedFiles: FileMetadata[]) => {
+    (addedFiles: Pick<FileMetadata, 'path'>[]) => {
       const paths = addedFiles.map((file) => file.path);
       if (paths.length > 0) onFilesUploaded(paths);
     },
