@@ -75,6 +75,43 @@ func (s *Store) Update(key string, update func(current any, found bool) (any, er
 	}
 	return setting, nil
 }
+
+// UpdateBatch applies pure per-key transformations under one lock and publishes
+// them with one settings-file rename. A callback or save failure exposes none
+// of the transformed keys.
+func (s *Store) UpdateBatch(updates map[string]func(any, bool) (any, error)) error {
+	keys := make([]string, 0, len(updates))
+	for key, update := range updates {
+		if err := validateKey(key); err != nil {
+			return err
+		}
+		if update == nil {
+			return errors.New("settings batch update function is required")
+		}
+		keys = append(keys, key)
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	sort.Strings(keys)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, err := s.loadLocked()
+	if err != nil {
+		return err
+	}
+	now := s.now().UTC()
+	for _, key := range keys {
+		current, found := data.Settings[key]
+		value, err := updates[key](current.Value, found)
+		if err != nil {
+			return err
+		}
+		data.Settings[key] = Setting{Key: key, Value: value, UpdatedAt: now}
+	}
+	return s.saveLocked(data)
+}
+
 func (s *Store) Get(key string) (Setting, bool, error) {
 	if err := validateKey(key); err != nil {
 		return Setting{}, false, err
