@@ -61,6 +61,8 @@ export type ConversationRowProps = {
   onExport: (conversation: TChatConversation) => void;
   onDownloadArtifacts: (conversation: TChatConversation) => void;
   onViewNotebook: (conversation: TChatConversation) => void;
+  onTogglePin?: (conversation: TChatConversation) => void;
+  pinPending?: boolean;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
 };

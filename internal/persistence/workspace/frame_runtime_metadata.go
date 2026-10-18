@@ -184,7 +184,9 @@ func (s *Store) setFrameRuntimeMetadataTransaction(
 		VALUES (?, ?, ?, ?)
 		ON CONFLICT(frame_id) DO UPDATE SET
 			delegate_name = excluded.delegate_name,
-			context_data = excluded.context_data,
+			context_data = CASE WHEN json_type(frame_runtime_metadata.context_data,'$.web_extra')='object'
+				THEN json_set(excluded.context_data,'$.web_extra',json_extract(frame_runtime_metadata.context_data,'$.web_extra'))
+				ELSE excluded.context_data END,
 			task_summary = excluded.task_summary`,
 		frameID, nullableString(delegateName), string(rawContext), nullableString(taskSummary)); err != nil {
 		return FrameRuntimeMetadata{}, fmt.Errorf("upsert frame runtime metadata: %w", err)
