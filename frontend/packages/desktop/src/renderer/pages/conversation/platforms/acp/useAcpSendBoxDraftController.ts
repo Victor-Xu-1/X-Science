@@ -1,5 +1,9 @@
 import { useCallback } from 'react';
-import type { PdfReadingPendingMutation, PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
+import type {
+  PdfReadingPendingAccess,
+  PdfReadingPendingResult,
+} from '@/renderer/services/runtime/pdfReadingPendingState';
+import { samePdfReadingPending, type PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
 import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -21,7 +25,10 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 const EMPTY_CONTEXT_ITEMS: ComposerContextItem[] = [];
 
 export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: string) => {
-  const { data, mutate, replaceContentIfUnchanged } = useAcpSendBoxDraft(conversationId, ownerId);
+  const { data, mutate, mutatePersistedIf, replaceContentIfUnchanged, saveFailed, retrySave } = useAcpSendBoxDraft(
+    conversationId,
+    ownerId
+  );
   const atPath = data?.atPath ?? EMPTY_AT_PATH;
   const uploadFile = data?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = data?.content ?? '';
@@ -70,11 +77,28 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     },
     [data, mutate]
   );
-  const setPdfReadingMutation = useCallback(
-    (pending: PdfReadingPendingMutation | undefined) => {
-      mutate((previous) => ({ ...previous, pdfReadingMutation: pending }));
+  const setPdfReadingMutation = useCallback<PdfReadingPendingAccess>(
+    (pending, expected): PdfReadingPendingResult => {
+      let status: 'current' | 'applied' | 'conflict' = 'current';
+      const result = mutatePersistedIf((previous) => {
+        const current = previous.pdfReadingMutation;
+        const supplied = pending ?? expected;
+        if (supplied && (supplied.ownerId !== ownerId || supplied.frameId !== conversationId)) {
+          status = 'conflict';
+          return undefined;
+        }
+        if (!supplied) return undefined;
+        if (current && !samePdfReadingPending(current, expected ?? pending)) {
+          status = 'conflict';
+          return undefined;
+        }
+        status = 'applied';
+        if ((!pending && !current) || samePdfReadingPending(current, pending)) return undefined;
+        return { ...previous, pdfReadingMutation: pending };
+      });
+      return result.available ? { status, pending: result.draft.pdfReadingMutation } : { status: 'unavailable' };
     },
-    [mutate]
+    [conversationId, ownerId, mutatePersistedIf]
   );
   const keepPdfAttachments = useCallback(() => {
     mutate((previous) => ({ ...previous, pdfReadingAttachmentsDisabled: true }));
@@ -98,6 +122,8 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     content,
     setContent,
     replaceContentIfUnchanged,
+    draftSaveFailed: saveFailed,
+    retryDraftSave: retrySave,
     contextItems,
     setContextItems,
     stagedPlanMode,

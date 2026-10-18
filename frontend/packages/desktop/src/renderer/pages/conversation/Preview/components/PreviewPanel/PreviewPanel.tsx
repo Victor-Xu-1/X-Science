@@ -413,6 +413,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
           versionId={metadata?.versionId}
           projectId={metadata?.projectId}
           targetPage={metadata?.targetPdfPage}
+          revealId={metadata?.pdfRevealId}
         />
       );
     } else if (content_type === 'ppt') {

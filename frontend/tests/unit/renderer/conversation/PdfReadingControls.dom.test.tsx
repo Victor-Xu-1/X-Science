@@ -6,7 +6,7 @@ import { PdfReadingBar } from '@/renderer/components/chat/SendBox/reading/PdfRea
 import { ReadingContextPicker } from '@/renderer/components/chat/SendBox/reading/ReadingContextPicker';
 import { PdfReadingPreviewAction } from '@/renderer/pages/conversation/Preview/components/viewers/PdfReadingPreviewAction';
 import { renderWithI18n } from '../../i18nTestUtils';
-import { pdfBinding, pdfContext, deferredPdf } from './pdfReadingFixtures';
+import { pdfBinding, pdfContext, deferredPdf, pdfPendingMemory } from './pdfReadingFixtures';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import type { PdfReadingPreviewOwner } from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PdfReadingContext } from '@/common/adapter/pdfReadingContext';
@@ -35,18 +35,16 @@ describe('C12 PDF reading controls', () => {
     cleanup();
   });
   it('retries a Project candidate read, searches, then links one immutable version through the composer owner', async () => {
-    mocks.options
-      .mockRejectedValueOnce(new Error('temporary'))
-      .mockResolvedValue({
-        options: [{ source: { artifact_id: 'artifact-2', version_id: 'version-2' }, name: 'second.pdf', pageCount: 9 }],
-        unavailable: 0,
-      });
+    mocks.options.mockRejectedValueOnce(new Error('temporary')).mockResolvedValue({
+      options: [{ source: { artifact_id: 'artifact-2', version_id: 'version-2' }, name: 'second.pdf', pageCount: 9 }],
+      unavailable: 0,
+    });
     const mutation = deferredPdf<PdfReadingContext>();
     const mutate = vi.fn().mockReturnValue(mutation.promise);
     const controller = new PdfReadingController({
       ownerId: 'owner',
       frameId: 'frame',
-      persistPending: vi.fn(),
+      persistPending: pdfPendingMemory().access,
       load: vi.fn().mockResolvedValue(pdfContext()),
       mutate,
     });
@@ -78,7 +76,7 @@ describe('C12 PDF reading controls', () => {
     const controller = new PdfReadingController({
       ownerId: 'owner',
       frameId: 'frame',
-      persistPending: vi.fn(),
+      persistPending: pdfPendingMemory().access,
       load: vi.fn().mockResolvedValue(pdfContext()),
       mutate,
     });

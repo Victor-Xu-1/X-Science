@@ -10,6 +10,7 @@ export function PdfReadingComposerPrefix({
   initialSend,
   suggestion,
   frozenQueue,
+  draftPersistence,
   children,
 }: {
   enabled: boolean;
@@ -23,11 +24,20 @@ export function PdfReadingComposerPrefix({
   };
   suggestion: { visible: boolean; keepAttachments: () => void };
   frozenQueue: { present: boolean; useCurrent: () => void };
+  draftPersistence?: { failed: boolean; retry: () => void };
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
     <>
+      {draftPersistence?.failed && (
+        <div className='pdf-reading-notice' role='alert'>
+          {t('conversation.sendbox.draftSaveFailed')}
+          <button type='button' onClick={draftPersistence.retry}>
+            {t('conversation.sendbox.retryDraftSave')}
+          </button>
+        </div>
+      )}
       {initialSend.failed && (
         <div className='pdf-reading-notice' role='alert'>
           {t(

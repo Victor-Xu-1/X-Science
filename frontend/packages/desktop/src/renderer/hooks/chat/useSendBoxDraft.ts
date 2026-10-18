@@ -1,171 +1,174 @@
 import { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 import {
-  clearSendBoxDraft,
   loadSendBoxDraft,
+  readSendBoxDraftForMutation,
   saveSendBoxDraft,
   sendBoxDraftStorageKey,
   type AcpSendBoxDraft,
 } from './sendBoxDraftPersistence';
+import {
+  changedOrdinaryDraftFields,
+  ordinaryDraftValues,
+  sameDraftSnapshot,
+  type OrdinaryDraftEdits,
+} from './sendBoxDraftEdits';
 export type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 type Draft = AcpSendBoxDraft;
-
-/**
- * 当前支持的对话类型以及对应的草稿对象
- */
 type DraftConversationType = Draft['_type'];
-type SendBoxDraftStore = {
-  [K in DraftConversationType]: Map<string, Extract<Draft, { _type: K }>>;
+type DraftRecord = {
+  draft: Draft;
+  // Unsaved ordinary edits belong to this existing owner. They are overlaid
+  // for display, never passed off as a durable pending-mutation receipt.
+  unsaved?: OrdinaryDraftEdits;
+  saveFailed?: boolean;
 };
-
-const store: SendBoxDraftStore = {
-  acp: new Map(),
-};
-
-function assertNever(value: never): never {
-  throw new Error(`Unsupported draft conversation type: ${String(value)}`);
-}
+const store: Record<DraftConversationType, Map<string, DraftRecord>> = { acp: new Map() };
 
 const draftIdentity = (ownerId: string, conversationId: string): string =>
   sendBoxDraftStorageKey(ownerId, conversationId) ?? `${ownerId.trim() || 'local'}:${conversationId}`;
 
-const setDraft = (type: DraftConversationType, ownerId: string, conversationId: string, draft: Draft | undefined) => {
+function getRecord(type: DraftConversationType, ownerId: string, conversationId: string): DraftRecord | undefined {
   const identity = draftIdentity(ownerId, conversationId);
-  switch (type) {
-    case 'acp':
-      if (draft) {
-        store.acp.set(identity, draft);
-        saveSendBoxDraft(ownerId, conversationId, draft);
-      } else {
-        store.acp.delete(identity);
-        clearSendBoxDraft(ownerId, conversationId);
-      }
-      return;
-    default:
-      assertNever(type);
-  }
-};
-
-const evictDraft = (type: DraftConversationType, ownerId: string, conversationId: string): void => {
-  const identity = draftIdentity(ownerId, conversationId);
-  switch (type) {
-    case 'acp':
-      store.acp.delete(identity);
-      return;
-    default:
-      assertNever(type);
-  }
-};
-
-const getDraft = (type: DraftConversationType, ownerId: string, conversationId: string): Draft | undefined => {
-  const identity = draftIdentity(ownerId, conversationId);
-  switch (type) {
-    case 'acp': {
-      const current = store.acp.get(identity);
-      if (current) return current;
-      const persisted = loadSendBoxDraft(ownerId, conversationId);
-      if (persisted) store.acp.set(identity, persisted);
-      return persisted;
-    }
-    default:
-      return assertNever(type);
-  }
-};
-
-function sameDraftSnapshot(left: Draft, right: Draft): boolean {
-  return (
-    left._type === right._type &&
-    left.content === right.content &&
-    JSON.stringify(left.atPath) === JSON.stringify(right.atPath) &&
-    JSON.stringify(left.uploadFile) === JSON.stringify(right.uploadFile) &&
-    JSON.stringify(left.contextItems) === JSON.stringify(right.contextItems) &&
-    left.planMode === right.planMode &&
-    JSON.stringify(left.stagedSessionOptions) === JSON.stringify(right.stagedSessionOptions) &&
-    JSON.stringify(left.pdfReadingMutation) === JSON.stringify(right.pdfReadingMutation) &&
-    left.pdfReadingAttachmentsDisabled === right.pdfReadingAttachmentsDisabled &&
-    left.pdfReadingQueuedInvalid === right.pdfReadingQueuedInvalid &&
-    JSON.stringify(left.pdfReadingQueuedSelection) === JSON.stringify(right.pdfReadingQueuedSelection)
-  );
+  const cached = store[type].get(identity);
+  if (cached) return cached;
+  const draft = loadSendBoxDraft(ownerId, conversationId);
+  const record = draft ? { draft } : undefined;
+  if (record) store[type].set(identity, record);
+  return record;
 }
 
-/**
- * 获得一种类型下的会话草稿操作的 React Hook
- */
+/** One owner for ordinary edits and typed conditional pending-mutation writes. */
 export const getSendBoxDraftHook = <K extends DraftConversationType>(
   type: K,
   initialValue: Extract<Draft, { _type: K }>
 ) => {
+  type TypedDraft = Extract<Draft, { _type: K }>;
   function useDraft(conversation_id: string, ownerId = 'local') {
+    const identity = draftIdentity(ownerId, conversation_id);
     const storageKey = sendBoxDraftStorageKey(ownerId, conversation_id);
-    const swrRet = useSWR([`/send-box/${type}/draft`, ownerId, conversation_id], ([_, owner, id]) => {
-      return (getDraft(type, owner, id) as Extract<Draft, { _type: K }> | undefined) ?? null;
-    });
+    const swrRet = useSWR(
+      [`/send-box/${type}/draft`, ownerId, conversation_id],
+      ([_, owner, id]) => getRecord(type, owner, id) ?? null
+    );
+    const publish = useCallback(
+      (record: DraftRecord | undefined) => {
+        if (record) store[type].set(identity, record);
+        else store[type].delete(identity);
+        void swrRet.mutate(record ?? null, { revalidate: false }).catch((error) => {
+          console.error('Failed to update draft view:', error);
+        });
+      },
+      [identity, swrRet, type]
+    );
 
     useEffect(() => {
       if (!storageKey || typeof window === 'undefined') return;
       const handleStorage = (event: StorageEvent) => {
         if (event.key !== storageKey) return;
-        evictDraft(type, ownerId, conversation_id);
-        const next = getDraft(type, ownerId, conversation_id) as Extract<Draft, { _type: K }> | undefined;
-        void swrRet.mutate(next ?? null, { revalidate: false });
+        const cached = store[type].get(identity);
+        if (cached?.unsaved) {
+          const read = readSendBoxDraftForMutation(ownerId, conversation_id);
+          if (!read.available) return;
+          publish({ ...cached, draft: { ...(read.draft ?? initialValue), ...cached.unsaved } });
+        } else {
+          store[type].delete(identity);
+          publish(getRecord(type, ownerId, conversation_id));
+        }
       };
       window.addEventListener('storage', handleStorage);
       return () => window.removeEventListener('storage', handleStorage);
-    }, [conversation_id, ownerId, storageKey, swrRet, type]);
+    }, [conversation_id, ownerId, storageKey, identity, publish, type]);
 
     const mutateDraft = useCallback(
-      (draft: (k: Extract<Draft, { _type: K }>) => typeof k | undefined): void => {
-        const currentDraft =
-          (getDraft(type, ownerId, conversation_id) as Extract<Draft, { _type: K }> | undefined) ??
-          swrRet.data ??
-          initialValue;
-        const newDraft = draft(currentDraft);
-        setDraft(type, ownerId, conversation_id, newDraft);
-
-        swrRet.mutate(newDraft ?? null, { revalidate: false }).catch((error) => {
-          console.error('Failed to mutate draft:', error);
-        });
+      (update: (draft: TypedDraft) => TypedDraft | undefined): void => {
+        // Storage events can arrive late. Every ordinary write, including clear,
+        // reads the latest owner and cannot replace or resurrect its reserved hint.
+        const cached = store[type].get(identity);
+        const read = readSendBoxDraftForMutation(ownerId, conversation_id);
+        const fallback = cached?.draft ?? initialValue;
+        const durable = read.available ? (read.draft ?? { ...fallback, pdfReadingMutation: undefined }) : fallback;
+        const reservedPending = durable.pdfReadingMutation ? structuredClone(durable.pdfReadingMutation) : undefined;
+        const current = { ...durable, ...cached?.unsaved } as TypedDraft;
+        const proposed = update(current);
+        const next = { ...(proposed ?? initialValue), pdfReadingMutation: reservedPending } as TypedDraft;
+        if (read.available && saveSendBoxDraft(ownerId, conversation_id, next)) {
+          publish(!proposed && !next.pdfReadingMutation ? undefined : { draft: next });
+        } else {
+          // Editing remains available, but unknown storage is never overwritten.
+          // Remember only changed ordinary fields so a later typed ACK cannot
+          // erase this tab's unsaved edit or copy stale unrelated fields to disk.
+          publish({
+            draft: next,
+            unsaved: {
+              ...cached?.unsaved,
+              ...(proposed ? changedOrdinaryDraftFields(current, next) : ordinaryDraftValues(initialValue)),
+            },
+            saveFailed: true,
+          });
+        }
       },
-      [conversation_id, initialValue, ownerId, swrRet, type]
+      [conversation_id, ownerId, identity, publish, type]
+    );
+
+    const mutatePersistedIf = useCallback(
+      (
+        update: (draft: TypedDraft) => TypedDraft | undefined
+      ): { available: true; draft: TypedDraft } | { available: false } => {
+        // This conditional read/write is local, not a cross-process transaction.
+        const read = readSendBoxDraftForMutation(ownerId, conversation_id);
+        if (!read.available) return { available: false };
+        const cached = store[type].get(identity);
+        const persisted = (read.draft ?? {
+          ...(cached?.unsaved ? initialValue : (cached?.draft ?? initialValue)),
+          pdfReadingMutation: undefined,
+        }) as TypedDraft;
+        const next = update(persisted);
+        if (next && !saveSendBoxDraft(ownerId, conversation_id, next)) return { available: false };
+        const current = next ?? persisted;
+        const displayed = { ...current, ...cached?.unsaved };
+        if (!cached || !sameDraftSnapshot(cached.draft, displayed)) {
+          publish({ draft: displayed, unsaved: cached?.unsaved, saveFailed: cached?.saveFailed });
+        }
+        return { available: true, draft: current };
+      },
+      [conversation_id, ownerId, identity, publish, type]
     );
 
     const replaceContentIfUnchanged = useCallback(
       (expected: string, replacement: string): boolean => {
-        // An optimizer response must not race a send, a later edit, or a
-        // storage event from another tab. Re-read persistence synchronously
-        // before writing, and fail closed if the in-memory and durable drafts
-        // have diverged in any field (including attachments).
-        const current = getDraft(type, ownerId, conversation_id);
-        const persisted = loadSendBoxDraft(ownerId, conversation_id);
+        const cached = store[type].get(identity);
+        const read = readSendBoxDraftForMutation(ownerId, conversation_id);
+        const persisted = read.available ? read.draft : undefined;
         if (
-          !current ||
+          !cached ||
+          cached.saveFailed ||
           !persisted ||
-          current.content !== expected ||
+          cached.draft.content !== expected ||
           persisted.content !== expected ||
-          !sameDraftSnapshot(current, persisted)
-        ) {
+          !sameDraftSnapshot(cached.draft, persisted)
+        )
           return false;
-        }
         const updated = { ...persisted, content: replacement };
         if (!saveSendBoxDraft(ownerId, conversation_id, updated)) return false;
-        store.acp.set(draftIdentity(ownerId, conversation_id), updated);
-        void swrRet.mutate(updated as Extract<Draft, { _type: K }>, { revalidate: false }).catch((error) => {
-          console.error('Failed to update draft after replacement:', error);
-        });
+        publish({ draft: updated });
         return true;
       },
-      [conversation_id, ownerId, swrRet, type]
+      [conversation_id, ownerId, identity, publish, type]
     );
 
+    const retrySave = useCallback(() => mutateDraft((draft) => draft), [mutateDraft]);
     return {
       get data() {
-        return swrRet.data ?? undefined;
+        return swrRet.data?.draft as TypedDraft | undefined;
       },
+      saveFailed: swrRet.data?.saveFailed === true,
+      retrySave,
       mutate: mutateDraft,
+      mutatePersistedIf,
       replaceContentIfUnchanged,
     };
   }
-
   return useDraft;
 };

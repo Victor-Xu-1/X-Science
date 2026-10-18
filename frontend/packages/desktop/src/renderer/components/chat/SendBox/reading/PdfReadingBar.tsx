@@ -16,6 +16,7 @@ export function PdfReadingBar({
 }) {
   const { t } = useTranslation();
   const context = view.context;
+  const blocked = Boolean(view.pending) || view.blocked;
   const retry = () => {
     void (view.error === 'uncertain' ? controller.retry() : controller.refresh()).catch((): undefined => undefined);
   };
@@ -25,7 +26,7 @@ export function PdfReadingBar({
         <div className='pdf-reading-bar' data-testid='pdf-context-bar'>
           <ReadingContextPicker
             context={context}
-            pending={Boolean(view.pending)}
+            pending={blocked}
             onSelect={async (source) => {
               await controller.link([source]);
             }}
@@ -33,7 +34,7 @@ export function PdfReadingBar({
             <button
               type='button'
               className='pdf-reading-bar__label'
-              disabled={Boolean(view.pending)}
+              disabled={blocked}
               aria-label={t('conversation.reading.choose')}
             >
               <Link2 size={16} strokeWidth={2} aria-hidden='true' />
@@ -59,7 +60,7 @@ export function PdfReadingBar({
                 <button
                   type='button'
                   className='pdf-reading-chip__remove'
-                  disabled={Boolean(view.pending)}
+                  disabled={blocked}
                   aria-label={t('conversation.reading.removeNamed', { name: binding.name })}
                   onClick={() => void controller.unlink(binding.binding_id).catch((): undefined => undefined)}
                 >

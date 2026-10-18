@@ -34,6 +34,7 @@ export interface DomSnippet {
 
 export interface PreviewMetadata {
   targetPdfPage?: number;
+  pdfRevealId?: string;
   notebookSession?: NotebookSessionNavigation;
   language?: string;
   title?: string;
@@ -425,6 +426,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
+      // A repeated reveal is an action even if the version and page are equal.
+      if (type === 'pdf' && meta?.targetPdfPage !== undefined) meta = { ...meta, pdfRevealId: crypto.randomUUID() };
       const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const activateTab = (tabId: string) => {
         rememberPreviewOpener(tabId, opener);

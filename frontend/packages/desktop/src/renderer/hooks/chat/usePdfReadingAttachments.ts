@@ -1,5 +1,6 @@
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { PdfReadingController } from '@/renderer/services/runtime/PdfReadingController';
+import type { PdfReadingSendSnapshot } from '@/renderer/services/runtime/pdfReadingSendSnapshot';
 import { suggestPdfReading } from '@/renderer/services/runtime/pdfReadingHandoff';
 import { useEffect, useRef, useState } from 'react';
 
@@ -31,17 +32,19 @@ export function usePdfReadingAttachments(
       artifacts.map((item) => ({ name: item.label, size: item.sizeBytes, contentType: item.contentType })),
       3 - (context?.bindings.length ?? 0)
     );
-  const prepare = async () => {
-    if (!suggested) return;
+  const prepare = async (snapshot: PdfReadingSendSnapshot) => {
+    if (!suggested) return controller.prepareSend(snapshot, []);
     if (active.current) throw new Error('PDF reading preparation is already pending');
     const token = lifetime.current;
     active.current = true;
     setPreparing(true);
     try {
-      await controller.prepareSources(
+      const selection = await controller.prepareSend(
+        snapshot,
         artifacts.map((item) => ({ artifact_id: item.artifactId, version_id: item.versionId }))
       );
       if (lifetime.current !== token) throw new Error('PDF reading composer changed');
+      return selection;
     } finally {
       if (lifetime.current === token) {
         active.current = false;

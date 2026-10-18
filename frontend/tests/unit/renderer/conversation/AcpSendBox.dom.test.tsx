@@ -15,7 +15,8 @@ import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
-import { pdfContext } from './pdfReadingFixtures';
+import { pdfBinding, pdfContext } from './pdfReadingFixtures';
+import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 
 let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
@@ -375,17 +376,31 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
       content: sendBoxDraftSeed.current,
       contextItems: draftContextItemsMock.current,
     });
+    const draftRef = React.useRef(draft);
+    draftRef.current = draft;
     return {
+      saveFailed: false,
+      retrySave: vi.fn(),
       data: {
         atPath: [],
         uploadFile: [],
         ...draft,
       },
       mutate: (updater: (current: typeof draft) => typeof draft | undefined) => {
-        setDraft((current) => {
-          const next = updater(current);
-          return next === undefined ? current : next;
-        });
+        const next = updater(draftRef.current);
+        if (next !== undefined) {
+          draftRef.current = next;
+          setDraft(next);
+        }
+      },
+      mutatePersistedIf: (updater: (current: typeof draft) => typeof draft | undefined) => {
+        const current = draftRef.current;
+        const next = updater(current) ?? current;
+        if (next !== current) {
+          draftRef.current = next;
+          setDraft(next);
+        }
+        return { available: true, draft: next };
       },
       replaceContentIfUnchanged: (expected: string, replacement: string) => {
         if (draft.content !== expected) return false;
@@ -460,11 +475,13 @@ vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
   useConversationRuntimeView: () => runtimeViewMock,
 }));
-vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({
-    setSendBoxHandler: setSendBoxHandlerMock,
-  }),
-}));
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
+  return {
+    ...actual,
+    usePreviewContext: () => actual.useOptionalPreviewContext() ?? { setSendBoxHandler: setSendBoxHandlerMock },
+  };
+});
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
 }));
@@ -506,6 +523,8 @@ vi.mock('@/renderer/services/xScienceCompute', () => ({
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
     emit: (...args: unknown[]) => emitterEmitMock(...args),
+    on: vi.fn(),
+    off: vi.fn(),
   },
   useAddEventListener: vi.fn(),
 }));
@@ -631,6 +650,121 @@ const acceptSkillTaskSend = async () => {
 };
 
 describe('AcpSendBox', () => {
+  it('C12 freezes the clicked reading page while its own new PDF link is preparing', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const context = pdfContext();
+    context.scope.frame_id = 'conv-c12-preparing';
+    context.scope.root_frame_id = context.scope.frame_id;
+    context.scope.root_frame_incarnation_id = context.scope.frame_incarnation_id;
+    const source = { artifact_id: 'artifact-2', version_id: 'version-2' };
+    draftContextItemsMock.current = [
+      {
+        kind: 'artifact',
+        artifactId: source.artifact_id,
+        versionId: source.version_id,
+        label: 'paper-2.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 512,
+      },
+    ];
+    const inspection = createDeferred<Response>();
+    const readingPath = `/api/conversations/${context.scope.frame_id}/reading-context`;
+    const linkRequests: unknown[] = [];
+    const response = (body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      const pathname = new URL(address, 'http://localhost').pathname;
+      const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET');
+      if (method === 'GET' && pathname === readingPath) return response(context);
+      if (method === 'GET' && pathname.endsWith('/context-usage')) return response({ status: 'unavailable' });
+      if (method === 'POST' && pathname === `${readingPath}/candidates`) return inspection.promise;
+      if (method === 'POST' && pathname === `${readingPath}/link`) {
+        linkRequests.push(JSON.parse(String(init?.body)));
+        return response({ ...context, revision: 2, changed: true, bindings: [...context.bindings, pdfBinding('2')] });
+      }
+      throw new Error(`Unexpected reading preparation request: ${method} ${pathname}`);
+    });
+    function PreviewObservation() {
+      const { pdfReadingOwner } = usePreviewContext();
+      return (
+        <>
+          <output data-testid='reading-owner'>{pdfReadingOwner?.context?.revision}</output>
+          {[4, 9].map((pageNumber) => (
+            <button
+              key={pageNumber}
+              onClick={() =>
+                pdfReadingOwner?.reportPosition(
+                  { artifact_id: 'artifact-1', version_id: 'version-1' },
+                  { pageNumber, pageCount: 9 }
+                )
+              }
+            >
+              observe page {pageNumber}
+            </button>
+          ))}
+        </>
+      );
+    }
+    sendMessageInvokeMock.mockResolvedValue({
+      turn_id: context.scope.frame_id,
+      msg_id: 'canonical-prepared-input',
+      runtime: { state: 'idle', is_processing: false },
+    });
+    let view: Awaited<ReturnType<typeof render>> | undefined;
+    try {
+      view = await render(
+        <PreviewProvider>
+          <PreviewObservation />
+          <AcpSendBox
+            conversation_id={context.scope.frame_id}
+            ownerId='owner'
+            backend='xscience'
+            messageState={makeMessageState()}
+          />
+        </PreviewProvider>
+      );
+      await waitFor(() => expect(screen.getByTestId('reading-owner')).toHaveTextContent('1'));
+      fireEvent.click(screen.getByRole('button', { name: 'observe page 4' }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/candidates'))).toBe(true)
+      );
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'observe page 9' }));
+      await act(async () => {
+        inspection.resolve(
+          response({
+            schema: 'x-science.pdf-reading-candidates.v1',
+            scope: context.scope,
+            revision: 1,
+            candidates: [{ source, eligible: true, page_count: 9, size_bytes: 512, checksum: 'a'.repeat(64) }],
+          })
+        );
+        await inspection.promise;
+      });
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(linkRequests).toEqual([expect.objectContaining({ expected_revision: 1, sources: [source] })]);
+      expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+        reading_context: {
+          expected_revision: 2,
+          binding_ids: ['binding-1', 'binding-2'],
+          active_binding_id: 'binding-1',
+          page_number: 4,
+        },
+      });
+    } finally {
+      view?.unmount();
+      fetchMock.mockRestore();
+    }
+  });
+
   it('C12 sends reading selection on ordinary input but never attaches it to Save-as-Skill control', async () => {
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;

@@ -12,6 +12,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context
 import { composerPdfPreview } from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
 import type { ComposerArtifactContext } from '@/renderer/components/chat/SendBox/composerCompositionModel';
+import type { PdfReadingPendingAccess } from '@/renderer/services/runtime/pdfReadingPendingState';
 
 export function usePdfReadingComposer(options: {
   enabled: boolean;
@@ -19,7 +20,7 @@ export function usePdfReadingComposer(options: {
   conversationId: string;
   frameIncarnationId?: string;
   pending?: PdfReadingPendingMutation;
-  persistPending: (pending: PdfReadingPendingMutation | undefined) => void;
+  persistPending: PdfReadingPendingAccess;
 }) {
   const preview = usePreviewContext();
   const key = useId();
@@ -32,7 +33,7 @@ export function usePdfReadingComposer(options: {
         ownerId: options.ownerId,
         frameId: options.conversationId,
         frameIncarnationId: options.frameIncarnationId,
-        persistPending: (value) => persist.current(value),
+        persistPending: (value, expected) => persist.current(value, expected),
       }),
     [account, options.ownerId, options.conversationId, options.frameIncarnationId]
   );
@@ -74,7 +75,7 @@ export function usePdfReadingComposer(options: {
       frameId: options.conversationId,
       projectId: view.context?.scope.project_id,
       context: view.context,
-      pending: Boolean(view.pending),
+      pending: Boolean(view.pending) || view.blocked,
       link: async (source: PdfReadingSource) => {
         await controller.link([source]);
       },
@@ -83,7 +84,7 @@ export function usePdfReadingComposer(options: {
       },
       reportPosition: controller.reportPosition,
     }),
-    [controller, options.ownerId, options.conversationId, view.context, view.pending]
+    [controller, options.ownerId, options.conversationId, view.context, view.pending, view.blocked]
   );
   useEffect(() => {
     if (options.enabled && options.ownerId) return preview.registerPdfReadingOwner?.(port);
@@ -114,6 +115,7 @@ export function usePdfReadingComposer(options: {
     if (target) preview.openPreview(target.content, 'pdf', target.metadata, { presentation: 'single' });
   };
   const capture = () => controller.capture(preview.activeTab?.metadata?.versionId);
+  const captureSend = () => controller.captureSend(preview.activeTab?.metadata?.versionId);
   const prepareInitialSources = async (
     sources: PdfReadingSource[],
     position?: PdfReadingSourcePosition
@@ -128,6 +130,7 @@ export function usePdfReadingComposer(options: {
     open,
     openArtifact,
     capture,
+    captureSend,
     prepareInitialSources,
     port,
   };

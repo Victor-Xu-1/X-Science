@@ -8,7 +8,8 @@ export function usePdfReadingPosition(
   pageCount: number,
   pages: RefObject<VirtuosoHandle | null>,
   onChange?: (position: PdfReadingPosition) => void,
-  targetPage?: number
+  targetPage?: number,
+  revealId?: string
 ) {
   const [currentPage, setCurrentPage] = useState(1);
   const viewport = useRef<HTMLElement | null>(null);
@@ -40,7 +41,7 @@ export function usePdfReadingPosition(
   }, [source]);
   useEffect(() => {
     if (pageCount > 0) navigate(targetPage && targetPage <= pageCount ? targetPage : 1);
-  }, [source, pageCount, targetPage, navigate]);
+  }, [source, pageCount, targetPage, revealId, navigate]);
   useEffect(() => {
     const scroller = viewport.current;
     if (!scroller || !pageCount) return;

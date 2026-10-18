@@ -23,6 +23,7 @@ interface PDFPreviewProps {
   versionId?: string;
   projectId?: string;
   targetPage?: number;
+  revealId?: string;
 }
 
 const PDFPreview: React.FC<PDFPreviewProps> = ({
@@ -34,6 +35,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({
   versionId,
   projectId,
   targetPage,
+  revealId,
 }) => {
   const { t } = useTranslation();
   const owner = useOptionalPreviewContext()?.pdfReadingOwner;
@@ -83,6 +85,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({
           hideToolbar={hideToolbar}
           onReadingPositionChange={report}
           targetPage={targetPage}
+          revealId={revealId}
         />
       </div>
     </div>

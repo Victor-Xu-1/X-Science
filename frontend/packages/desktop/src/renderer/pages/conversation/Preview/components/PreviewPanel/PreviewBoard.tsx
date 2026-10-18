@@ -419,6 +419,7 @@ const PreviewBoardTileContent: React.FC<{
         versionId={metadata?.versionId}
         projectId={metadata?.projectId}
         targetPage={metadata?.targetPdfPage}
+        revealId={metadata?.pdfRevealId}
       />
     );
   if (type === 'ppt') {

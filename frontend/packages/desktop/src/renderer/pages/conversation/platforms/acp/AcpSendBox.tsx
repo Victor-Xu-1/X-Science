@@ -144,6 +144,8 @@ const AcpSendBox: React.FC<{
     setStagedSessionOptions,
     pdfReadingMutation,
     setPdfReadingMutation,
+    draftSaveFailed,
+    retryDraftSave,
   } = useAcpSendBoxDraftController(conversation_id, ownerId);
   // Staged plan mode and session options are durable in the draft; keep
   // synchronous views for the send path because the draft store resolves
@@ -850,8 +852,7 @@ const AcpSendBox: React.FC<{
     let readingContext;
     try {
       if (queuedPdfInvalid) throw new Error(t('conversation.reading.invalidQueued'));
-      if (!queuedPdfSelection) await readingAttachments.prepare();
-      readingContext = queuedPdfSelection ?? reading.capture();
+      readingContext = queuedPdfSelection ?? (await readingAttachments.prepare(reading.captureSend()));
     } catch (error) {
       if (contentRef.current === '') setContent(normalizedMessage);
       throw error;
@@ -1260,6 +1261,7 @@ const AcpSendBox: React.FC<{
         }
         prefix={
           <PdfReadingComposerPrefix
+            draftPersistence={{ failed: draftSaveFailed, retry: retryDraftSave }}
             enabled={isXScienceConversation}
             reading={reading}
             initialSend={initialSend}

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PdfReadingController } from '@/renderer/services/runtime/PdfReadingController';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
-import { pdfBinding, pdfContext, deferredPdf } from './pdfReadingFixtures';
+import { pdfBinding, pdfContext, deferredPdf, pdfPendingMemory } from './pdfReadingFixtures';
 import type { PdfReadingContext, PdfReadingPendingMutation } from '@/common/adapter/pdfReadingContext';
 
 describe('C12 PdfReadingController', () => {
@@ -11,7 +11,8 @@ describe('C12 PdfReadingController', () => {
     setRendererAccountOwner('owner');
   });
   const fixture = (initial = pdfContext()) => {
-    const persist = vi.fn();
+    const pendingMemory = pdfPendingMemory();
+    const persist = vi.fn(pendingMemory.access);
     const load = vi.fn().mockResolvedValue(initial);
     const mutate = vi.fn();
     const inspect = vi.fn();
@@ -24,7 +25,7 @@ describe('C12 PdfReadingController', () => {
       mutate,
       inspect,
     });
-    return { controller, persist, load, mutate, inspect };
+    return { controller, persist, pendingMemory, load, mutate, inspect };
   };
   it('keeps a lost link ACK as an exact draft request across disposal and never resurrects a later unlink', async () => {
     const first = fixture(pdfContext([], 0));
@@ -34,6 +35,7 @@ describe('C12 PdfReadingController', () => {
     const pending = first.persist.mock.calls[0][0] as PdfReadingPendingMutation;
     first.controller.dispose();
     const next = fixture(pdfContext([], 2));
+    next.pendingMemory.set(pending);
     next.controller.restorePending(pending);
     await next.controller.load();
     next.mutate.mockRejectedValue(
@@ -48,9 +50,10 @@ describe('C12 PdfReadingController', () => {
     expect(next.mutate).toHaveBeenCalledWith('frame', pending.request);
     expect(next.controller.getSnapshot().context?.bindings).toEqual([]);
     expect(next.controller.getSnapshot().error).toBe('conflict');
-    expect(next.persist).not.toHaveBeenCalled();
+    expect(next.pendingMemory.writes).toEqual([]);
+    expect(next.persist.mock.calls.every((args) => args.length === 0)).toBe(true);
     await next.controller.refresh();
-    expect(next.persist).toHaveBeenCalledWith(undefined);
+    expect(next.persist).toHaveBeenCalledWith(undefined, pending);
   });
   it('freezes the selected version and actual page while later unlink only changes future sends', async () => {
     const f = fixture();
@@ -70,7 +73,7 @@ describe('C12 PdfReadingController', () => {
     const f = fixture(pdfContext([], 0));
     await f.controller.load();
     f.mutate.mockImplementation(async () => {
-      expect(f.persist).toHaveBeenCalledTimes(1);
+      expect(f.pendingMemory.writes).toHaveLength(1);
       if (f.mutate.mock.calls.length < 3) throw new Error('acknowledgement unavailable');
       return { ...pdfContext(), changed: true };
     });
@@ -82,12 +85,19 @@ describe('C12 PdfReadingController', () => {
     expect(f.persist.mock.calls[0][0]).toBe(pending);
     await expect(f.controller.retry()).rejects.toThrow('acknowledgement unavailable');
     expect(f.controller.getSnapshot().pending).toBe(pending);
-    expect(f.persist).toHaveBeenCalledTimes(1);
+    expect(f.pendingMemory.writes).toHaveLength(1);
     await f.controller.retry();
     expect(f.mutate).toHaveBeenCalledTimes(3);
     expect(f.mutate.mock.calls[1][1]).toBe(originalRequest);
     expect(f.mutate.mock.calls[2][1]).toBe(originalRequest);
-    expect(f.persist.mock.calls).toEqual([[pending], [undefined]]);
+    expect(f.persist.mock.calls.filter(([next, expected]) => next !== undefined || expected !== undefined)).toEqual([
+      [pending],
+      [undefined, pending],
+    ]);
+    expect(f.pendingMemory.writes).toEqual([
+      [pending, undefined],
+      [undefined, pending],
+    ]);
     expect(f.controller.getSnapshot()).toMatchObject({
       pending: null,
       error: null,
@@ -111,6 +121,89 @@ describe('C12 PdfReadingController', () => {
       scope: { ...pdfContext().scope, frame_incarnation_id: 'replacement' },
     });
     await expect(replacement.controller.load()).rejects.toThrow('scope changed');
+  });
+  it('rejects foreign or stale-incarnation pending authority before transport', async () => {
+    const original = fixture();
+    await original.controller.load();
+    original.mutate.mockRejectedValue(new Error('unknown ACK'));
+    await expect(original.controller.unlink('binding-1')).rejects.toThrow();
+    const pending = original.controller.getSnapshot().pending!;
+    for (const stale of [
+      { ...pending, ownerId: 'foreign' },
+      { ...pending, request: { ...pending.request, expected_frame_incarnation_id: 'old-frame' } },
+      { ...pending, request: { ...pending.request, expected_root_frame_incarnation_id: 'old-root' } },
+    ]) {
+      const next = fixture();
+      await next.controller.load();
+      next.pendingMemory.set(stale);
+      next.controller.restorePending(stale);
+      expect(next.controller.getSnapshot()).toMatchObject({ blocked: true, pending: null, error: 'conflict' });
+      await expect(next.controller.link([{ artifact_id: 'artifact-2', version_id: 'version-2' }])).rejects.toThrow();
+      expect(next.mutate).not.toHaveBeenCalled();
+      expect(next.pendingMemory.writes).toEqual([]);
+      expect(next.pendingMemory.access()).toEqual({ status: 'current', pending: stale });
+    }
+  });
+  it('maps the clicked active unlinked PDF and page only through its own confirmed link', async () => {
+    const f = fixture();
+    await f.controller.load();
+    const source = { artifact_id: 'artifact-2', version_id: 'version-2' };
+    f.controller.reportPosition(source, { pageNumber: 4, pageCount: 9 });
+    const snapshot = f.controller.captureSend(source.version_id);
+    const inspected = deferredPdf<{
+      scope: PdfReadingContext['scope'];
+      candidates: Array<{ source: typeof source; eligible: boolean }>;
+    }>();
+    f.inspect.mockReturnValue(inspected.promise);
+    f.mutate.mockResolvedValue({ ...pdfContext([pdfBinding(), pdfBinding('2')], 2), changed: true });
+    const preparing = f.controller.prepareSend(snapshot, [source]);
+    await vi.waitFor(() => expect(f.inspect).toHaveBeenCalledOnce());
+    f.controller.reportPosition(source, { pageNumber: 8, pageCount: 9 });
+    inspected.resolve({ scope: pdfContext().scope, candidates: [{ source, eligible: true }] });
+    expect(await preparing).toMatchObject({
+      expected_revision: 2,
+      binding_ids: ['binding-1', 'binding-2'],
+      active_binding_id: 'binding-2',
+      page_number: 4,
+    });
+    expect(f.mutate.mock.calls[0][1]).toMatchObject({ expected_revision: 1, sources: [source] });
+    expect(snapshot.context?.revision).toBe(1);
+  });
+  it('rejects external unlink during preparation instead of replacing the frozen selection', async () => {
+    const f = fixture();
+    await f.controller.load();
+    const source = { artifact_id: 'artifact-2', version_id: 'version-2' };
+    const snapshot = f.controller.captureSend('version-1');
+    const inspected = deferredPdf<{
+      scope: PdfReadingContext['scope'];
+      candidates: Array<{ source: typeof source; eligible: boolean }>;
+    }>();
+    f.inspect.mockReturnValue(inspected.promise);
+    const preparing = f.controller.prepareSend(snapshot, [source]);
+    const rejected = expect(preparing).rejects.toThrow('selection changed');
+    await vi.waitFor(() => expect(f.inspect).toHaveBeenCalledOnce());
+    f.mutate.mockResolvedValue({ ...pdfContext([], 2), changed: true });
+    await f.controller.unlink('binding-1');
+    inspected.resolve({ scope: pdfContext().scope, candidates: [{ source, eligible: true }] });
+    await rejected;
+    expect(f.mutate).toHaveBeenCalledOnce();
+    expect(f.mutate.mock.calls[0][1].schema).toBe('x-science.pdf-reading-unlink.v1');
+    expect(snapshot.context?.bindings).toEqual([pdfBinding()]);
+    expect(f.controller.getSnapshot().error).toBe('conflict');
+  });
+  it('does not add reading bindings when optional bootstrap finishes after the send capture', async () => {
+    const f = fixture();
+    const bootstrap = deferredPdf<PdfReadingContext>();
+    f.load.mockReturnValue(bootstrap.promise);
+    const loading = f.controller.load();
+    const snapshot = f.controller.captureSend('version-1');
+    const selection = f.controller.prepareSend(snapshot, []);
+    bootstrap.resolve(pdfContext());
+    await loading;
+    expect(await selection).toBeUndefined();
+    expect(snapshot.context).toBeNull();
+    expect(f.inspect).not.toHaveBeenCalled();
+    expect(f.mutate).not.toHaveBeenCalled();
   });
   it('single-page uploads remain ordinary attachments and unavailable inspection never silently links', async () => {
     const f = fixture(pdfContext([], 0));

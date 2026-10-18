@@ -1,7 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSendBoxDraftHook } from '@/renderer/hooks/chat/useSendBoxDraft';
-import { pdfSelection } from './conversation/pdfReadingFixtures';
+import { useAcpSendBoxDraftController } from '@/renderer/pages/conversation/platforms/acp/useAcpSendBoxDraftController';
+import { PdfReadingController } from '@/renderer/services/runtime/PdfReadingController';
+import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import type { PdfReadingContext } from '@/common/adapter/pdfReadingContext';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
+import { deferredPdf, pdfBinding, pdfContext, pdfSelection } from './conversation/pdfReadingFixtures';
 import {
   clearSendBoxDraft,
   loadSendBoxDraft,
@@ -18,6 +23,199 @@ const initialDraft = {
 };
 
 describe('useSendBoxDraft', () => {
+  it('C12 preserves a newer storage-event pending mutation when an older owner receives its late ACK', async () => {
+    resetRendererAccountScopeForTest();
+    const ownerId = 'owner-late-pdf';
+    const frameId = 'draft-late-pdf';
+    setRendererAccountOwner(ownerId);
+    const draft = renderHook(() => useAcpSendBoxDraftController(frameId, ownerId));
+    const initial = pdfContext([pdfBinding(), pdfBinding('2')]);
+    initial.scope.frame_id = frameId;
+    const ack = deferredPdf<PdfReadingContext>();
+    const controller = new PdfReadingController({
+      ownerId,
+      frameId,
+      frameIncarnationId: initial.scope.frame_incarnation_id,
+      persistPending: (pending, expected) => draft.result.current.setPdfReadingMutation(pending, expected),
+      load: vi.fn().mockResolvedValue(initial),
+      mutate: vi.fn().mockReturnValue(ack.promise),
+    });
+    try {
+      await controller.load();
+      let original!: Promise<PdfReadingContext>;
+      act(() => {
+        original = controller.unlink('binding-1');
+      });
+      const pendingA = loadSendBoxDraft(ownerId, frameId)?.pdfReadingMutation;
+      expect(pendingA).toBeDefined();
+      const pendingB = {
+        ...pendingA!,
+        request: {
+          ...pendingA!.request,
+          operation_id: '00000000-0000-4000-8000-000000000002',
+          expected_revision: 2,
+          binding_id: 'binding-2',
+        },
+      };
+      // Another tab resolved A by exact replay, then persisted a new B request.
+      // Deliver the real browser-storage update before A's original ACK arrives.
+      expect(
+        saveSendBoxDraft(ownerId, frameId, {
+          ...initialDraft,
+          content: 'newer draft text',
+          pdfReadingMutation: pendingB,
+        })
+      ).toBe(true);
+      act(() => {
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: sendBoxDraftStorageKey(ownerId, frameId),
+            storageArea: localStorage,
+            newValue: localStorage.getItem(sendBoxDraftStorageKey(ownerId, frameId)!),
+          })
+        );
+      });
+      await waitFor(() => expect(draft.result.current.pdfReadingMutation).toEqual(pendingB));
+      await act(async () => {
+        ack.resolve({ ...initial, revision: 2, changed: true, bindings: [pdfBinding('2')] });
+        await original;
+      });
+      expect(loadSendBoxDraft(ownerId, frameId)).toMatchObject({
+        content: 'newer draft text',
+        pdfReadingMutation: pendingB,
+      });
+      expect(draft.result.current.pdfReadingMutation).toEqual(pendingB);
+    } finally {
+      controller.dispose();
+      draft.unmount();
+    }
+  });
+
+  it.each(['ack', 'refresh'] as const)(
+    'C12 preserves a newer durable request before its storage event arrives during %s cleanup',
+    async (mode) => {
+      resetRendererAccountScopeForTest();
+      const ownerId = `owner-no-event-${mode}`;
+      const frameId = `draft-no-event-${mode}`;
+      setRendererAccountOwner(ownerId);
+      const draft = renderHook(() => useAcpSendBoxDraftController(frameId, ownerId));
+      const initial = pdfContext([pdfBinding(), pdfBinding('2')]);
+      initial.scope.frame_id = frameId;
+      const late = deferredPdf<PdfReadingContext>();
+      const load = vi.fn().mockResolvedValue(initial);
+      const mutate = vi.fn().mockReturnValue(late.promise);
+      const controller = new PdfReadingController({
+        ownerId,
+        frameId,
+        persistPending: (pending, expected) => draft.result.current.setPdfReadingMutation(pending, expected),
+        load,
+        mutate,
+      });
+      try {
+        await controller.load();
+        if (mode === 'refresh')
+          mutate.mockRejectedValue(
+            new BackendHttpError({
+              method: 'POST',
+              path: '/reading-context/unlink',
+              status: 409,
+              body: { code: 'PDF_READING_REVISION_STALE', message: 'changed' },
+            })
+          );
+        let operation!: Promise<PdfReadingContext>;
+        act(() => {
+          operation = controller.unlink('binding-1');
+        });
+        const pendingA = loadSendBoxDraft(ownerId, frameId)!.pdfReadingMutation!;
+        let refresh: Promise<void> | undefined;
+        if (mode === 'refresh') {
+          await act(async () => {
+            await expect(operation).rejects.toMatchObject({
+              name: 'BackendHttpError',
+              status: 409,
+              code: 'PDF_READING_REVISION_STALE',
+              backendMessage: 'changed',
+            });
+          });
+          load.mockReturnValue(late.promise);
+          refresh = controller.refresh();
+        }
+        const pendingB = {
+          ...pendingA,
+          request: {
+            ...pendingA.request,
+            operation_id: '00000000-0000-4000-8000-000000000002',
+            expected_revision: 2,
+            binding_id: 'binding-2',
+          },
+        };
+        expect(
+          saveSendBoxDraft(ownerId, frameId, {
+            ...initialDraft,
+            content: 'new durable text',
+            pdfReadingMutation: pendingB,
+          })
+        ).toBe(true);
+        // Deliberately do not dispatch storage: the cache still contains A.
+        await act(async () => {
+          late.resolve({ ...initial, revision: 2, changed: mode === 'ack', bindings: [pdfBinding('2')] });
+          await (refresh ?? operation);
+        });
+        expect(loadSendBoxDraft(ownerId, frameId)).toMatchObject({
+          content: 'new durable text',
+          pdfReadingMutation: pendingB,
+        });
+      } finally {
+        controller.dispose();
+        draft.unmount();
+      }
+    }
+  );
+
+  it('C12 compares the complete normalized pending body and retains unrelated latest draft fields', async () => {
+    const ownerId = 'owner-normalized-pdf';
+    const frameId = 'draft-normalized-pdf';
+    const draft = renderHook(() => useAcpSendBoxDraftController(frameId, ownerId));
+    const expected = {
+      ownerId,
+      frameId,
+      request: {
+        schema: 'x-science.pdf-reading-unlink.v1' as const,
+        operation_id: '00000000-0000-4000-8000-000000000001',
+        expected_frame_incarnation_id: 'frame-inc',
+        expected_root_frame_id: 'root',
+        expected_root_frame_incarnation_id: 'root-inc',
+        expected_revision: 1,
+        binding_id: 'binding-1',
+      },
+    };
+    try {
+      const changedBody = { ...expected, request: { ...expected.request, binding_id: 'binding-2' } };
+      expect(
+        saveSendBoxDraft(ownerId, frameId, { ...initialDraft, content: 'keep', pdfReadingMutation: changedBody })
+      ).toBe(true);
+      act(() => draft.result.current.setPdfReadingMutation(undefined, expected));
+      expect(loadSendBoxDraft(ownerId, frameId)?.pdfReadingMutation).toEqual(changedBody);
+      const reordered = {
+        ...expected,
+        request: Object.fromEntries(Object.entries(expected.request).reverse()) as typeof expected.request,
+      };
+      expect(
+        saveSendBoxDraft(ownerId, frameId, {
+          ...initialDraft,
+          content: 'latest text',
+          uploadFile: ['/new.pdf'],
+          pdfReadingMutation: reordered,
+        })
+      ).toBe(true);
+      act(() => draft.result.current.setPdfReadingMutation(undefined, expected));
+      expect(loadSendBoxDraft(ownerId, frameId)).toMatchObject({ content: 'latest text', uploadFile: ['/new.pdf'] });
+      expect(loadSendBoxDraft(ownerId, frameId)?.pdfReadingMutation).toBeUndefined();
+    } finally {
+      draft.unmount();
+    }
+  });
+
   it('C12 persists pending exact mutation and edited queued selection only for their original owner', () => {
     const pending = {
       ownerId: 'owner-pdf',

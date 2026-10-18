@@ -979,6 +979,8 @@
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."
   },
   "sendbox": {
+    "draftSaveFailed": "Draft changes are kept in this tab but could not be saved. Retry before closing.",
+    "retryDraftSave": "Retry saving draft",
     "hint": "Type / for commands, @ to reference files",
     "invalidReference": "The reference format is invalid and could not be added to the message.",
     "contextOnlyPrompt": "Read and use the files, Skills, and MCP connectors I selected to complete this task.",

@@ -254,6 +254,12 @@ export function decodePdfReadingPending(value: unknown): PdfReadingPendingMutati
     return undefined;
   }
 }
+export function samePdfReadingPending(left: unknown, right: unknown): boolean {
+  const a = decodePdfReadingPending(left);
+  const b = decodePdfReadingPending(right);
+  // Decoder output has canonical field order; raw JSON key order is irrelevant.
+  return Boolean(a && b && JSON.stringify(a) === JSON.stringify(b));
+}
 export function pdfReadingExpected(context: Pick<PdfReadingContext, 'scope' | 'revision'>): PdfReadingExpected {
   return {
     expected_frame_incarnation_id: context.scope.frame_incarnation_id,

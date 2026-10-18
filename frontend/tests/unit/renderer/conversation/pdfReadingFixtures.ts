@@ -1,4 +1,29 @@
 import type { PdfReadingBinding, PdfReadingContext, PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
+import { samePdfReadingPending, type PdfReadingPendingMutation } from '@/common/adapter/pdfReadingContext';
+import type { PdfReadingPendingAccess } from '@/renderer/services/runtime/pdfReadingPendingState';
+
+/** Explicit persistence dependency for controller units; real draft DOM tests own storage behavior. */
+export function pdfPendingMemory(initial?: PdfReadingPendingMutation) {
+  let current = initial;
+  const writes: Array<[PdfReadingPendingMutation | undefined, PdfReadingPendingMutation | undefined]> = [];
+  const access: PdfReadingPendingAccess = (pending, expected) => {
+    if (!pending && !expected) return { status: 'current', pending: current };
+    if (current && !samePdfReadingPending(current, expected ?? pending))
+      return { status: 'conflict', pending: current };
+    if ((!pending && !current) || samePdfReadingPending(current, pending))
+      return { status: 'applied', pending: current };
+    writes.push([pending, expected]);
+    current = pending;
+    return { status: 'applied', pending: current };
+  };
+  return {
+    access,
+    writes,
+    set: (pending: PdfReadingPendingMutation | undefined) => {
+      current = pending;
+    },
+  };
+}
 
 export const pdfBinding = (suffix = '1'): PdfReadingBinding => ({
   binding_id: `binding-${suffix}`,

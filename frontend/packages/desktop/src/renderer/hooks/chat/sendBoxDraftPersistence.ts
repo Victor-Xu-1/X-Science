@@ -73,25 +73,8 @@ export function loadSendBoxDraft(ownerId: string, conversationId: string): AcpSe
   const storage = browserStorage();
   const key = sendBoxDraftStorageKey(ownerId, conversationId);
   if (!storage || !key) return undefined;
-  let raw: string | null = null;
   try {
-    raw = storage.getItem(key);
-    if (!raw) return undefined;
-    if (new TextEncoder().encode(raw).byteLength > MAX_DRAFT_BYTES) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed) || parsed.version !== DRAFT_VERSION) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    const draft = normalizeAcpSendBoxDraft(parsed.draft);
-    if (!draft) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    return draft;
+    return readStoredDraft(storage, key);
   } catch {
     try {
       storage.removeItem(key);
@@ -100,6 +83,39 @@ export function loadSendBoxDraft(ownerId: string, conversationId: string): AcpSe
       // remains authoritative for the current page lifetime.
     }
     return undefined;
+  }
+}
+
+function readStoredDraft(storage: Storage, key: string, strictPending = false): AcpSendBoxDraft | undefined {
+  const raw = storage.getItem(key);
+  if (!raw) return undefined;
+  if (new TextEncoder().encode(raw).byteLength > MAX_DRAFT_BYTES) throw new Error('Draft exceeds storage limit');
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isRecord(parsed) || parsed.version !== DRAFT_VERSION) throw new Error('Invalid draft version');
+  if (
+    strictPending &&
+    isRecord(parsed.draft) &&
+    parsed.draft.pdfReadingMutation !== undefined &&
+    !decodePdfReadingPending(parsed.draft.pdfReadingMutation)
+  )
+    throw new Error('Invalid PDF recovery request');
+  const draft = normalizeAcpSendBoxDraft(parsed.draft);
+  if (!draft) throw new Error('Invalid draft');
+  return draft;
+}
+
+/** Strict mutation reads distinguish absence from failure and never delete data. */
+export function readSendBoxDraftForMutation(
+  ownerId: string,
+  conversationId: string
+): { available: true; draft?: AcpSendBoxDraft } | { available: false } {
+  const storage = browserStorage();
+  const key = sendBoxDraftStorageKey(ownerId, conversationId);
+  if (!storage || !key) return { available: false };
+  try {
+    return { available: true, draft: readStoredDraft(storage, key, true) };
+  } catch {
+    return { available: false };
   }
 }
 

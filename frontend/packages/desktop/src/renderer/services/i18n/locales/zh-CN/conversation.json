@@ -979,6 +979,8 @@
     "sendboxHint": "正在准备运行环境。首次启动可能会稍慢一些。"
   },
   "sendbox": {
+    "draftSaveFailed": "草稿改动仍保留在当前标签页，但保存失败。关闭前请重试保存。",
+    "retryDraftSave": "重试保存草稿",
     "hint": "输入 / 唤起命令，@ 引用文件",
     "invalidReference": "引用格式无效，无法添加到消息。",
     "contextOnlyPrompt": "请读取并使用我选择的文件、Skill 和 MCP 完成任务。",

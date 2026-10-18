@@ -1,6 +1,6 @@
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import {
-  decodePdfReadingPending,
+  samePdfReadingPending,
   pdfReadingExpected,
   samePdfReadingScope,
   type PdfReadingContext,
@@ -12,19 +12,34 @@ import {
 } from '@/common/adapter/pdfReadingContext';
 import { getRendererAccountScopeToken } from '../rendererAccountScope';
 import { inspectPdfReadingCandidates, loadPdfReadingContext, mutatePdfReadingContext } from './pdfReadingContext';
+import {
+  pendingMatchesComposer,
+  PdfReadingPendingError,
+  projectPdfReadingPending,
+  type PdfReadingPendingAccess,
+  type PdfReadingPendingResult,
+  type PdfReadingPendingProjection,
+} from './pdfReadingPendingState';
+import {
+  capturePdfReadingSend,
+  PdfReadingSelectionChangedError,
+  requirePdfReadingContext,
+  selectionFromPdfReadingSend,
+  unlinkedPdfReadingSources,
+  validPdfReadingPosition,
+  type PdfReadingSendSnapshot,
+} from './pdfReadingSendSnapshot';
 
 export type PdfReadingView = {
   context: PdfReadingContext | null;
   loading: boolean;
   mutating: boolean;
-  pending: PdfReadingPendingMutation | null;
-  error: 'load' | 'uncertain' | 'conflict' | 'mutation' | null;
-};
+} & PdfReadingPendingProjection;
 export type PdfReadingControllerOptions = {
   ownerId: string;
   frameId: string;
   frameIncarnationId?: string;
-  persistPending: (pending: PdfReadingPendingMutation | undefined) => void;
+  persistPending: PdfReadingPendingAccess;
   load?: typeof loadPdfReadingContext;
   mutate?: typeof mutatePdfReadingContext;
   inspect?: typeof inspectPdfReadingCandidates;
@@ -34,7 +49,14 @@ export type PdfReadingControllerOptions = {
  * binding store or retry loop is created. Persisted draft requests are hints
  * for exact retry, never accepted binding authority. */
 export class PdfReadingController {
-  private view: PdfReadingView = { context: null, loading: false, mutating: false, pending: null, error: null };
+  private view: PdfReadingView = {
+    context: null,
+    loading: false,
+    mutating: false,
+    pending: null,
+    error: null,
+    blocked: false,
+  };
   private listeners = new Set<() => void>();
   private readonly account = getRendererAccountScopeToken();
   private disposed = false;
@@ -43,7 +65,6 @@ export class PdfReadingController {
   private readAbort?: AbortController;
   private readPromise?: Promise<PdfReadingContext>;
   private operationPromise?: Promise<PdfReadingContext>;
-  private writesStarted = false;
   private positions = new Map<string, PdfReadingPosition>();
   constructor(private options: PdfReadingControllerOptions) {}
   activate() {
@@ -74,18 +95,13 @@ export class PdfReadingController {
       throw new Error('PDF reading scope changed');
     if (!this.view.context || context.revision >= this.view.context.revision) this.emit({ context });
   }
-  restorePending(value: unknown) {
-    if (!this.current() || this.writesStarted || this.view.pending) return;
-    const pending = decodePdfReadingPending(value);
-    if (
-      !pending ||
-      pending.ownerId !== this.options.ownerId ||
-      pending.frameId !== this.options.frameId ||
-      (this.options.frameIncarnationId &&
-        pending.request.expected_frame_incarnation_id !== this.options.frameIncarnationId)
-    )
-      return;
-    this.emit({ pending, error: 'uncertain' });
+  private applyPending(result: PdfReadingPendingResult, fallback?: PdfReadingPendingMutation) {
+    this.emit(projectPdfReadingPending(result, this.view, this.options, this.view.context?.scope, fallback));
+  }
+  restorePending(_hint?: unknown) {
+    if (!this.current() || this.operationPromise || this.view.mutating) return;
+    // SWR/storage values trigger a read, but cannot resurrect a settled request.
+    this.applyPending(this.options.persistPending());
   }
   load = (): Promise<PdfReadingContext> => {
     if (!this.current()) return Promise.reject(new Error('PDF reading scope changed'));
@@ -98,12 +114,12 @@ export class PdfReadingController {
       .then((context) => {
         if (!this.current() || generation !== this.reads) throw new Error('PDF reading scope changed');
         this.accept(context);
-        this.emit({ error: this.view.pending ? this.view.error : null });
+        this.emit({ error: this.view.pending || this.view.blocked ? this.view.error : null });
         return context;
       })
       .catch((error: unknown) => {
         if (this.current() && generation === this.reads)
-          this.emit({ error: this.view.pending ? this.view.error : 'load' });
+          this.emit({ error: this.view.pending || this.view.blocked ? this.view.error : 'load' });
         throw error;
       })
       .finally(() => {
@@ -116,38 +132,45 @@ export class PdfReadingController {
     return pending;
   };
   refresh = async (): Promise<void> => {
-    const rejected = this.view.pending && ['conflict', 'mutation'].includes(this.view.error ?? '');
+    const rejected = ['conflict', 'mutation'].includes(this.view.error ?? '') ? this.view.pending : null;
     await this.load();
     if (!this.current()) return;
-    if (rejected && !this.view.mutating) {
-      this.options.persistPending(undefined);
-      this.emit({ pending: null, error: null });
-    }
+    if (rejected && !this.view.mutating && samePdfReadingPending(this.view.pending, rejected)) {
+      this.applyPending(this.options.persistPending(undefined, rejected));
+    } else if (!this.view.mutating) this.restorePending();
   };
   private submit(request: PdfReadingMutation): Promise<PdfReadingContext> {
     if (!this.current()) return Promise.reject(new Error('PDF reading scope changed'));
     if (this.operationPromise) return this.operationPromise;
     const existingPending = this.view.pending;
-    if (existingPending && JSON.stringify(existingPending.request) !== JSON.stringify(request)) {
+    if (existingPending && !samePdfReadingPending(existingPending, { ...existingPending, request })) {
       return Promise.reject(new Error('Resolve the original PDF reading request first'));
     }
-    this.writesStarted = true;
     const lifetime = this.lifetime;
     const pending = existingPending ?? {
       ownerId: this.options.ownerId,
       frameId: this.options.frameId,
       request: structuredClone(request),
     };
-    // Exact retry consumes the existing durable draft request. Only a new
-    // mutation writes it before network IO; retries must not rewrite it.
-    if (!existingPending) this.options.persistPending(pending);
-    this.emit({ pending, mutating: true, error: null });
+    // Reserve against the latest durable request before HTTP. Exact retry only
+    // observes it, so an older effect cannot overwrite or silently reuse B.
+    const result = existingPending ? this.options.persistPending() : this.options.persistPending(pending);
+    if (
+      !result ||
+      result.status === 'unavailable' ||
+      result.status !== (existingPending ? 'current' : 'applied') ||
+      !samePdfReadingPending(result.pending, pending) ||
+      !pendingMatchesComposer(pending, this.options, this.view.context?.scope)
+    ) {
+      this.applyPending(result, pending);
+      return Promise.reject(new PdfReadingPendingError(!result || result.status === 'unavailable'));
+    }
+    this.emit({ pending, mutating: true, error: null, blocked: false });
     const promise = (this.options.mutate ?? mutatePdfReadingContext)(this.options.frameId, pending.request)
       .then((context) => {
         if (!this.current() || lifetime !== this.lifetime) throw new Error('PDF reading scope changed');
         this.accept(context);
-        this.options.persistPending(undefined);
-        this.emit({ pending: null, error: null });
+        this.applyPending(this.options.persistPending(undefined, pending));
         return context;
       })
       .catch((error: unknown) => {
@@ -163,8 +186,10 @@ export class PdfReadingController {
         throw error;
       })
       .finally(() => {
+        if (this.operationPromise !== promise) return;
         this.operationPromise = undefined;
         if (lifetime === this.lifetime) this.emit({ mutating: false });
+        this.restorePending();
       });
     this.operationPromise = promise;
     return promise;
@@ -174,7 +199,7 @@ export class PdfReadingController {
       return Promise.reject(new Error('No uncertain PDF reading request'));
     return this.submit(this.view.pending.request);
   };
-  prepareSources = async (sources: PdfReadingSource[]): Promise<void> => {
+  prepareSources = async (sources: PdfReadingSource[], expected?: PdfReadingContext): Promise<PdfReadingContext> => {
     const lifetime = this.lifetime;
     const pending = this.view.pending;
     if (pending) {
@@ -190,13 +215,9 @@ export class PdfReadingController {
     }
     const context = this.view.context ?? (await this.load());
     if (!this.current() || lifetime !== this.lifetime) throw new Error('PDF reading scope changed');
-    const additions = sources.filter(
-      (source) =>
-        !context.bindings.some(
-          (binding) => binding.artifact_id === source.artifact_id && binding.version_id === source.version_id
-        )
-    );
-    if (!additions.length) return;
+    if (expected) requirePdfReadingContext(context, expected);
+    const additions = unlinkedPdfReadingSources(context, sources);
+    if (!additions.length) return context;
     const inspected = await (this.options.inspect ?? inspectPdfReadingCandidates)(this.options.frameId, additions);
     if (!this.current() || lifetime !== this.lifetime || !samePdfReadingScope(inspected.scope, context.scope)) {
       throw new Error('PDF reading scope changed');
@@ -210,18 +231,17 @@ export class PdfReadingController {
     }
     // Ordinary single-page/large attachments remain attachments. Only actual
     // eligible immutable versions are admitted as reading bindings.
-    await this.link(inspected.candidates.filter((item) => item.eligible).map((item) => item.source));
+    return this.link(
+      inspected.candidates.filter((item) => item.eligible).map((item) => item.source),
+      context
+    );
   };
-  link = async (sources: PdfReadingSource[]): Promise<PdfReadingContext> => {
+  link = async (sources: PdfReadingSource[], expected?: PdfReadingContext): Promise<PdfReadingContext> => {
     if (this.view.pending) throw new Error('Resolve the original PDF reading request first');
     const context = this.view.context ?? (await this.load());
     if (!this.current()) throw new Error('PDF reading scope changed');
-    const additions = sources.filter(
-      (source) =>
-        !context.bindings.some(
-          (binding) => binding.artifact_id === source.artifact_id && binding.version_id === source.version_id
-        )
-    );
+    if (expected) requirePdfReadingContext(context, expected);
+    const additions = unlinkedPdfReadingSources(context, sources);
     if (additions.length === 0) return context;
     if (context.bindings.length + additions.length > 3) throw new Error('A conversation can link up to 3 PDFs');
     return this.submit({
@@ -244,33 +264,37 @@ export class PdfReadingController {
     });
   };
   reportPosition = (source: PdfReadingSource, position: PdfReadingPosition): void => {
-    if (
-      !this.current() ||
-      !Number.isSafeInteger(position.pageNumber) ||
-      !Number.isSafeInteger(position.pageCount) ||
-      position.pageNumber < 1 ||
-      position.pageCount < 1 ||
-      position.pageNumber > position.pageCount
-    )
-      return;
+    if (!this.current() || !validPdfReadingPosition(position)) return;
     this.positions.set(source.version_id, { ...position });
     while (this.positions.size > 100) this.positions.delete(this.positions.keys().next().value!);
   };
   positionFor = (versionId: string) => this.positions.get(versionId);
-  capture = (activeVersionId?: string): PdfReadingSelection | undefined => {
+  captureSend = (activeVersionId?: string): PdfReadingSendSnapshot => {
     if (!this.current()) throw new Error('PDF reading scope changed');
-    if (this.view.pending) throw new Error('Resolve the original PDF reading request before sending');
-    const context = this.view.context;
-    if (!context?.bindings.length) return undefined;
-    const active = context.bindings.find((binding) => binding.version_id === activeVersionId) ?? context.bindings[0];
-    const position = this.positions.get(active.version_id);
-    return {
-      schema: 'x-science.pdf-reading-selection.v1',
-      ...pdfReadingExpected(context),
-      binding_ids: context.bindings.map((binding) => binding.binding_id),
-      active_binding_id: active.binding_id,
-      ...(position && position.pageCount === active.page_count ? { page_number: position.pageNumber } : {}),
-    };
+    if (this.view.pending || (this.view.blocked && this.view.context?.bindings.length))
+      throw new Error('Resolve the original PDF reading request before sending');
+    return capturePdfReadingSend(this.view.context, activeVersionId, this.positions);
+  };
+  capture = (activeVersionId?: string): PdfReadingSelection | undefined =>
+    selectionFromPdfReadingSend(this.captureSend(activeVersionId));
+  prepareSend = async (
+    snapshot: PdfReadingSendSnapshot,
+    sources: PdfReadingSource[]
+  ): Promise<PdfReadingSelection | undefined> => {
+    const lifetime = this.lifetime;
+    if (!this.current()) throw new Error('PDF reading scope changed');
+    // An optional bootstrap completing after the click cannot add context to it.
+    if (!snapshot.context) return undefined;
+    try {
+      const context = await this.prepareSources(sources, snapshot.context);
+      if (!this.current() || lifetime !== this.lifetime) throw new Error('PDF reading scope changed');
+      requirePdfReadingContext(this.view.context, context);
+      return selectionFromPdfReadingSend(snapshot, context);
+    } catch (error) {
+      if (error instanceof PdfReadingSelectionChangedError && this.current() && lifetime === this.lifetime)
+        this.emit({ error: 'conflict' });
+      throw error;
+    }
   };
   dispose() {
     this.disposed = true;

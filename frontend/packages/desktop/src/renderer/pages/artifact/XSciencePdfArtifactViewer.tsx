@@ -48,6 +48,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
   hideToolbar?: boolean;
   onReadingPositionChange?: (position: PdfReadingPosition) => void;
   targetPage?: number;
+  revealId?: string;
 }> = ({
   filename,
   contentUrl,
@@ -57,6 +58,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
   hideToolbar = false,
   onReadingPositionChange,
   targetPage,
+  revealId,
 }) => {
   const { i18n, t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,8 @@ export const XSciencePdfArtifactViewer: React.FC<{
     parsedSource === contentUrl ? numPages : 0,
     pagesRef,
     onReadingPositionChange,
-    targetPage
+    targetPage,
+    revealId
   );
   const clearSelection = useEffectEvent(() => onSelectionChange?.(null));
 
