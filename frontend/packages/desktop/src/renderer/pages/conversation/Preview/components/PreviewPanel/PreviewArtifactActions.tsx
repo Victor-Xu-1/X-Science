@@ -42,12 +42,14 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { usePreviewArtifactActionScope } from './usePreviewArtifactActionScope';
 
 const ROOT_FOLDER_VALUE = '__project_root__';
 
 type PreviewArtifactActionsProps = {
   artifactId: string;
   versionId?: string;
+  openingId?: string;
   fileName: string;
   onRenamed: (fileName: string) => void;
   onDeleted: () => void;
@@ -56,6 +58,7 @@ type PreviewArtifactActionsProps = {
 export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   artifactId,
   versionId,
+  openingId,
   fileName,
   onRenamed,
   onDeleted,
@@ -65,6 +68,8 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const [messageApi, messageContextHolder] = Message.useMessage();
   const messageApiRef = useRef(messageApi);
   messageApiRef.current = messageApi;
+  const identity = JSON.stringify([openingId ?? null, artifactId, versionId ?? null]);
+  const { begin, invalidate } = usePreviewArtifactActionScope(identity);
   const [menuVisible, setMenuVisible] = useState(false);
   const [artifact, setArtifact] = useState<XScienceProjectArtifact | null>(null);
   const [loadingArtifact, setLoadingArtifact] = useState(true);
@@ -83,21 +88,33 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   const [cloudBuckets, setCloudBuckets] = useState<string[]>([]);
   const [cloudBucket, setCloudBucket] = useState('');
   const [cloudKey, setCloudKey] = useState(fileName);
+  const currentArtifact = artifact?.artifactId === artifactId ? artifact : null;
+  // Undefined means a logical/current artifact. An explicit empty selection is
+  // unavailable, never permission to substitute the latest immutable version.
+  const exactVersionId = versionId ?? currentArtifact?.versionId;
 
   const refreshArtifact = useCallback(async () => {
+    const request = begin('artifact-read');
+    if (!request) return;
     setLoadingArtifact(true);
+    setArtifact(null);
     try {
-      setArtifact(await loadXScienceArtifact(artifactId));
+      const next = await loadXScienceArtifact(artifactId, { signal: request.signal });
+      if (!request.isCurrent()) return;
+      if (next.artifactId !== artifactId) throw new Error('preview_artifact_identity_mismatch');
+      setArtifact(next);
     } catch {
-      messageApiRef.current.error(t('preview.artifact.actions.loadFailed'));
+      if (request.isCurrent()) messageApiRef.current.error(t('preview.artifact.actions.loadFailed'));
     } finally {
-      setLoadingArtifact(false);
+      if (request.isCurrent()) setLoadingArtifact(false);
+      request.finish();
     }
-  }, [artifactId, t]);
+  }, [artifactId, identity, begin, t]);
 
   useEffect(() => {
     void refreshArtifact();
-  }, [refreshArtifact]);
+    return () => invalidate('artifact-read');
+  }, [refreshArtifact, invalidate]);
 
   useEffect(() => {
     setRenameValue(fileName);
@@ -106,38 +123,49 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   }, [fileName]);
 
   const runPriorityAction = async (priority: XScienceArtifactPriority) => {
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('priority');
     try {
       await setXScienceArtifactPriority({ artifactId, priority });
+      if (!request.isCurrent()) return;
       setArtifact((current) => (current ? { ...current, priority } : current));
       messageApi.success(t('preview.artifact.actions.priorityUpdated'));
     } catch {
-      messageApi.error(t('preview.artifact.actions.priorityFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.priorityFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const openArtifactPage = (tab?: 'lineage' | 'versions') => {
-    const query = tab ? `?tab=${encodeURIComponent(tab)}` : '';
+    if (versionId !== undefined && !exactVersionId) {
+      messageApi.error(t('preview.artifact.actions.linkCopyFailed'));
+      return;
+    }
+    const parameters = new URLSearchParams();
+    if (tab) parameters.set('tab', tab);
+    if (exactVersionId) parameters.set('version', exactVersionId);
+    const queryString = parameters.toString();
+    const query = queryString ? `?${queryString}` : '';
     void navigate(`/artifacts/${encodeURIComponent(artifactId)}${query}`);
   };
 
   const handleViewInContext = () => {
-    const frameId = artifact?.rootFrameId ?? artifact?.creatingFrameId ?? artifact?.frameId;
+    const frameId = currentArtifact?.rootFrameId ?? currentArtifact?.creatingFrameId ?? currentArtifact?.frameId;
     if (!frameId) return;
     void navigate(`/conversation/${encodeURIComponent(frameId)}`);
   };
 
   const handleAddToChat = () => {
     const conversationId = currentConversationId();
-    const exactVersionId = artifact?.versionId ?? versionId;
     if (!conversationId || !exactVersionId) {
       messageApi.error(t('preview.artifact.actions.addToChatUnavailable'));
       return;
     }
     const inserted = insertArtifactReferenceIntoActiveComposer({
-      filename: artifact?.filename ?? fileName,
+      filename: fileName,
       artifactId,
       versionId: exactVersionId,
       conversationId,
@@ -150,85 +178,112 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
   };
 
   const handleCopyLink = async () => {
-    const versionQuery = artifact?.versionId ?? versionId;
-    const link = `${window.location.origin}/#/artifacts/${encodeURIComponent(artifactId)}${
-      versionQuery ? `?version=${encodeURIComponent(versionQuery)}` : ''
-    }`;
+    if (!exactVersionId) {
+      messageApi.error(t('preview.artifact.actions.linkCopyFailed'));
+      return;
+    }
+    const request = begin('clipboard');
+    if (!request) return;
+    const link = `${window.location.origin}/#/artifacts/${encodeURIComponent(artifactId)}?version=${encodeURIComponent(exactVersionId)}`;
     try {
       await copyText(link);
-      messageApi.success(t('preview.artifact.actions.linkCopied'));
+      if (request.isCurrent()) messageApi.success(t('preview.artifact.actions.linkCopied'));
     } catch {
-      messageApi.error(t('preview.artifact.actions.linkCopyFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.linkCopyFailed'));
+    } finally {
+      request.finish();
     }
   };
 
   const handleRename = async () => {
     const filename = renameValue.trim();
     if (!filename) return;
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('rename');
     try {
       await renameXScienceArtifact({ artifactId, filename });
+      if (!request.isCurrent()) return;
       setArtifact((current) => (current ? { ...current, filename } : current));
       onRenamed(filename);
       setRenameVisible(false);
       messageApi.success(t('preview.artifact.actions.renamed'));
     } catch {
-      messageApi.error(t('preview.artifact.actions.renameFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.renameFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const handleCopyArtifact = async () => {
     const newFilename = copyValue.trim();
     if (!newFilename) return;
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('copy');
     try {
       await copyXScienceArtifact({ artifactId, newFilename });
+      if (!request.isCurrent()) return;
       setCopyVisible(false);
       messageApi.success(t('preview.artifact.copySucceeded'));
     } catch {
-      messageApi.error(t('preview.artifact.copyFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.copyFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const openMove = async () => {
+    const request = begin('dialog-read');
+    if (!request) return;
     setMoveVisible(true);
-    const projectId = artifact?.projectId;
-    if (!projectId) return;
+    const projectId = currentArtifact?.projectId;
+    if (!projectId) {
+      request.finish();
+      return;
+    }
     setBusyAction('folders');
     try {
-      setFolders(await loadXScienceProjectFolders(projectId));
-      setMoveFolderId(artifact?.folderId ?? ROOT_FOLDER_VALUE);
+      const next = await loadXScienceProjectFolders(projectId, { signal: request.signal });
+      if (!request.isCurrent()) return;
+      setFolders(next);
+      setMoveFolderId(currentArtifact?.folderId ?? ROOT_FOLDER_VALUE);
     } catch {
-      messageApi.error(t('preview.artifact.actions.folderLoadFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.folderLoadFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const handleMove = async () => {
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('move');
     try {
       await moveXScienceArtifact({
         artifactId,
         folderId: moveFolderId === ROOT_FOLDER_VALUE ? null : moveFolderId,
       });
+      if (!request.isCurrent()) return;
       setArtifact((current) =>
         current ? { ...current, folderId: moveFolderId === ROOT_FOLDER_VALUE ? null : moveFolderId } : current
       );
       setMoveVisible(false);
       messageApi.success(t('preview.artifact.moveSucceeded'));
     } catch {
-      messageApi.error(t('preview.artifact.moveFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.moveFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const handleMetadataExport = async () => {
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('metadata');
     try {
       await downloadFileFromUrl(
@@ -236,45 +291,60 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
         `${artifact?.filename ?? fileName}.metadata.json`
       );
     } catch {
-      messageApi.error(t('preview.artifact.actions.metadataExportFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.metadataExportFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const loadCloudCredential = async (credentialId: string, credentials = cloudCredentials) => {
+    const request = begin('cloud-buckets');
+    if (!request) return;
     setCloudCredentialId(credentialId);
     setCloudBuckets([]);
     setCloudBucket('');
-    if (!credentialId) return;
+    if (!credentialId) {
+      request.finish();
+      return;
+    }
     try {
-      const buckets = await loadXScienceCloudBuckets(credentialId);
+      const buckets = await loadXScienceCloudBuckets(credentialId, { signal: request.signal });
+      if (!request.isCurrent()) return;
       const credential = credentials.find((item) => item.id === credentialId);
       setCloudBuckets(buckets);
       setCloudBucket(credential?.defaultBucket || buckets[0] || '');
     } catch {
-      messageApi.error(t('preview.artifact.bucketLoadFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.bucketLoadFailed'));
+    } finally {
+      request.finish();
     }
   };
 
   const openCloud = async () => {
+    const request = begin('dialog-read');
+    if (!request) return;
     setCloudVisible(true);
     setBusyAction('cloud-load');
     try {
-      const storage = await loadXScienceStorageSettings();
+      const storage = await loadXScienceStorageSettings({ signal: request.signal });
+      if (!request.isCurrent()) return;
       const connected = storage.cloudCredentials.filter((item) => item.connected);
       setCloudCredentials(connected);
       const initial = connected[0]?.id ?? '';
       if (initial) await loadCloudCredential(initial, connected);
     } catch {
-      messageApi.error(t('preview.artifact.credentialsLoadFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.credentialsLoadFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const handleCloudExport = async () => {
     if (!cloudCredentialId || !cloudBucket || !cloudKey.trim()) return;
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('cloud-export');
     try {
       await exportXScienceArtifactToCloud(cloudCredentialId, {
@@ -282,32 +352,44 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
         bucket: cloudBucket,
         key: cloudKey.trim(),
       });
+      if (!request.isCurrent()) return;
       setCloudVisible(false);
       messageApi.success(t('preview.artifact.exportSucceeded'));
     } catch {
-      messageApi.error(t('preview.artifact.exportFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.exportFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
   const handleDelete = async () => {
+    const request = begin('mutation', true);
+    if (!request) return;
     setBusyAction('delete');
     try {
       await deleteXScienceArtifact(artifactId);
+      if (!request.isCurrent()) return;
       setDeleteVisible(false);
       onDeleted();
       messageApi.success(t('preview.artifact.actions.deleted'));
     } catch {
-      messageApi.error(t('preview.artifact.actions.deleteFailed'));
+      if (request.isCurrent()) messageApi.error(t('preview.artifact.actions.deleteFailed'));
     } finally {
-      setBusyAction(null);
+      if (request.isCurrent()) setBusyAction(null);
+      request.finish();
     }
   };
 
-  const priority = artifact?.priority;
-  const contextFrameId = artifact?.rootFrameId ?? artifact?.creatingFrameId ?? artifact?.frameId;
-  const disabled = loadingArtifact || busyAction !== null;
+  const closeReadDialog = (close: () => void) => {
+    invalidate('dialog-read');
+    invalidate('cloud-buckets');
+    setBusyAction((current) => (current === 'folders' || current === 'cloud-load' ? null : current));
+    close();
+  };
+  const priority = currentArtifact?.priority;
+  const contextFrameId = currentArtifact?.rootFrameId ?? currentArtifact?.creatingFrameId ?? currentArtifact?.frameId;
+  const disabled = loadingArtifact || !currentArtifact || busyAction !== null;
   const actionDialogVisible = renameVisible || copyVisible || moveVisible || deleteVisible || cloudVisible;
 
   const handleMenuVisibilityChange = (visible: boolean) => {
@@ -406,6 +488,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             </ActionMenuItem>
             <ActionMenuItem
               icon={<Copy theme='outline' size={16} />}
+              disabled={disabled}
               onClick={() => {
                 setMenuVisible(false);
                 setCopyValue(fileName);
@@ -416,7 +499,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             </ActionMenuItem>
             <ActionMenuItem
               icon={<MoveOne theme='outline' size={16} />}
-              disabled={!artifact?.projectId}
+              disabled={disabled || !currentArtifact?.projectId}
               onClick={() => {
                 setMenuVisible(false);
                 void openMove();
@@ -426,6 +509,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             </ActionMenuItem>
             <ActionMenuItem
               icon={<Edit theme='outline' size={16} />}
+              disabled={disabled}
               onClick={() => {
                 setMenuVisible(false);
                 setRenameValue(fileName);
@@ -436,6 +520,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             </ActionMenuItem>
             <ActionMenuItem
               icon={<DownloadOne theme='outline' size={16} />}
+              disabled={disabled}
               onClick={() => {
                 setMenuVisible(false);
                 void handleMetadataExport();
@@ -445,6 +530,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             </ActionMenuItem>
             <ActionMenuItem
               icon={<CloudStorage theme='outline' size={16} />}
+              disabled={disabled}
               onClick={() => {
                 setMenuVisible(false);
                 void openCloud();
@@ -455,6 +541,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
             <ActionMenuItem
               danger
               icon={<Delete theme='outline' size={16} />}
+              disabled={disabled}
               onClick={() => {
                 setMenuVisible(false);
                 setDeleteVisible(true);
@@ -527,7 +614,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
       <Modal
         title={t('preview.artifact.moveToFolder')}
         visible={moveVisible}
-        onCancel={() => setMoveVisible(false)}
+        onCancel={() => closeReadDialog(() => setMoveVisible(false))}
         onOk={() => void handleMove()}
         confirmLoading={busyAction === 'move' || busyAction === 'folders'}
         style={{ width: 500, borderRadius: 14 }}
@@ -555,7 +642,7 @@ export const PreviewArtifactActions: React.FC<PreviewArtifactActionsProps> = ({
       <Modal
         title={t('preview.artifact.exportToCloud')}
         visible={cloudVisible}
-        onCancel={() => setCloudVisible(false)}
+        onCancel={() => closeReadDialog(() => setCloudVisible(false))}
         onOk={() => void handleCloudExport()}
         confirmLoading={busyAction === 'cloud-load' || busyAction === 'cloud-export'}
         okButtonProps={{ disabled: !cloudCredentialId || !cloudBucket || !cloudKey.trim() }}

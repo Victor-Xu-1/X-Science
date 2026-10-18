@@ -47,7 +47,7 @@ import {
 import { Button, Empty, Message } from '@arco-design/web-react';
 import Tabs from '@/renderer/components/base/WorkbenchTabs';
 import { Comment, Copy, Download, FileText, FolderOpen, Left, Magic, Notes, Upload } from '@icon-park/react';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router';
 
@@ -79,12 +79,30 @@ const ArtifactPreview: React.FC = () => {
   const { artifactId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const requestedVersions = new URLSearchParams(location.search).getAll('version');
+  const requestedVersionId = requestedVersions.length ? requestedVersions[0] : null;
+  const invalidRequestedVersion = requestedVersions.length > 1 || requestedVersionId === '';
+  const versionRouteKey = JSON.stringify([artifactId, requestedVersions]);
   const [snapshot, setSnapshot] = useState<ArtifactSnapshot | null>(null);
   const [loading, setLoading] = useState(Boolean(artifactId));
   const [failed, setFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [requestOwnerId, setRequestOwnerId] = useState(artifactId);
-  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
+  const [versionSelection, setVersionSelection] = useState(() => ({
+    route: versionRouteKey,
+    versionId: requestedVersionId,
+  }));
+  // Reset on the actual route transition, including A -> B -> A, without an
+  // effect that first paints latest or repeatedly reloads healthy peer reads.
+  if (versionSelection.route !== versionRouteKey) {
+    setVersionSelection({ route: versionRouteKey, versionId: requestedVersionId });
+  }
+  const selectedVersionId =
+    versionSelection.route === versionRouteKey ? versionSelection.versionId : requestedVersionId;
+  const setSelectedVersionId = (versionId: string | null) =>
+    setVersionSelection((current) =>
+      current.route === versionRouteKey ? { route: versionRouteKey, versionId } : current
+    );
   const [pinnedVersion, setPinnedVersion] = useState<XScienceArtifactVersion | null>(null);
   const [savedVersion, setSavedVersion] = useState<XScienceAppliedArtifactEdit | null>(null);
   const [metadataRevision, setMetadataRevision] = useState(0);
@@ -92,7 +110,10 @@ const ArtifactPreview: React.FC = () => {
   const [canvasSelection, setCanvasSelection] = useState<XScienceArtifactCanvasSelection | null>(null);
   const [annotationSelection, setAnnotationSelection] = useState<XScienceArtifactCanvasSelection | null>(null);
   const [refinementSelection, setRefinementSelection] = useState<XScienceArtifactTextSelection | null>(null);
-  const [previewAnnotations, setPreviewAnnotations] = useState<XScienceArtifactAnnotation[]>([]);
+  const [annotationSnapshot, setAnnotationSnapshot] = useState<{
+    owner: string;
+    annotations: XScienceArtifactAnnotation[];
+  }>({ owner: '', annotations: [] });
   const [annotationRevision, setAnnotationRevision] = useState(0);
   const [fileAction, setFileAction] = useState<ArtifactFileAction | null>(null);
   const [notesVisible, setNotesVisible] = useState(false);
@@ -115,8 +136,11 @@ const ArtifactPreview: React.FC = () => {
     setNotesVisible(false);
     setPinnedVersion(null);
     setSavedVersion(null);
+    setCanvasSelection(null);
+    setAnnotationSelection(null);
+    setRefinementSelection(null);
     retryFocusIntent.current = false;
-  }, [artifactId]);
+  }, [artifactId, versionRouteKey]);
   useLayoutEffect(() => {
     if (!retryFocusIntent.current || loading || failed || snapshot?.artifact.artifactId !== artifactId) return;
     retryFocusIntent.current = false;
@@ -139,7 +163,6 @@ const ArtifactPreview: React.FC = () => {
     let active = true;
     setLoading(true);
     setFailed(false);
-    setSelectedVersionId(null);
     setCanvasSelection(null);
     setAnnotationSelection(null);
     setRefinementSelection(null);
@@ -186,31 +209,49 @@ const ArtifactPreview: React.FC = () => {
   };
   const selectedVersion = useMemo(
     () =>
-      metadata.versions.value.find((version) => version.versionId === selectedVersionId) ??
+      metadata.versions.value.find(
+        (version) => version.artifactId === artifactId && version.versionId === selectedVersionId
+      ) ??
       (pinnedVersion && pinnedVersion.artifactId === artifactId && pinnedVersion.versionId === selectedVersionId
         ? pinnedVersion
         : null),
     [artifactId, metadata.versions.value, pinnedVersion, selectedVersionId]
   );
-  const annotationVersionId = selectedVersionId ?? snapshot?.artifact.versionId ?? null;
+  const versionSelectionBlocked =
+    invalidRequestedVersion ||
+    (selectedVersionId !== null && !selectedVersion && metadataArtifact?.versionId !== selectedVersionId);
+  const annotationVersionId = versionSelectionBlocked
+    ? null
+    : (selectedVersionId ?? metadataArtifact?.versionId ?? null);
+  const annotationOwner = JSON.stringify([artifactId, annotationVersionId]);
+  const annotationOwnerRef = useRef(annotationOwner);
+  annotationOwnerRef.current = annotationOwner;
+  const updatePreviewAnnotations = useCallback(
+    (annotations: XScienceArtifactAnnotation[]) => {
+      if (annotationOwnerRef.current !== annotationOwner) return;
+      setAnnotationSnapshot({ owner: annotationOwner, annotations });
+    },
+    [annotationOwner]
+  );
+  const previewAnnotations = annotationSnapshot.owner === annotationOwner ? annotationSnapshot.annotations : [];
 
   useEffect(() => {
-    if (!snapshot || !annotationVersionId) {
-      setPreviewAnnotations([]);
+    if (!metadataArtifact || !annotationVersionId) {
+      updatePreviewAnnotations([]);
       return;
     }
     let active = true;
-    void loadXScienceArtifactAnnotations(snapshot.artifact.artifactId, annotationVersionId)
+    void loadXScienceArtifactAnnotations(metadataArtifact.artifactId, annotationVersionId)
       .then((collection) => {
-        if (active) setPreviewAnnotations(collection.annotations);
+        if (active) updatePreviewAnnotations(collection.annotations);
       })
       .catch(() => {
-        if (active) setPreviewAnnotations([]);
+        if (active) updatePreviewAnnotations([]);
       });
     return () => {
       active = false;
     };
-  }, [annotationRevision, annotationVersionId, snapshot]);
+  }, [annotationRevision, annotationVersionId, metadataArtifact, updatePreviewAnnotations]);
 
   const currentLoading = Boolean(artifactId) && (loading || requestOwnerId !== artifactId);
   if (currentLoading || !snapshot || failed) {
@@ -228,6 +269,33 @@ const ArtifactPreview: React.FC = () => {
   }
 
   const { artifact } = snapshot;
+  if (versionSelectionBlocked) {
+    return (
+      <div className='artifact-page size-full overflow-auto bg-1 px-24px py-24px'>
+        <h1 className='m-0 text-17px leading-24px font-600'>{artifact.filename}</h1>
+        <Button href='#/guid' className='my-12px'>
+          {t('preview.artifact.backToWorkspace')}
+        </Button>
+        {invalidRequestedVersion ? (
+          <p role='alert'>
+            {t('preview.artifact.metadata.unknownVersion')} · {requestedVersions.join(', ')}
+          </p>
+        ) : (
+          <ArtifactMetadataState
+            state={metadata.versions}
+            label={t('preview.artifact.tabs.versions')}
+            owner={JSON.stringify([metadata.owner, versionRouteKey, selectedVersionId])}
+            onRetry={() => metadata.retry('versions')}
+          >
+            <p role='alert'>
+              {t('preview.artifact.metadata.unknownVersion')} · {selectedVersionId}
+            </p>
+            <Button onClick={() => metadata.retry('versions')}>{t('common.retry')}</Button>
+          </ArtifactMetadataState>
+        )}
+      </div>
+    );
+  }
   const versions = metadata.versions.value;
   const folders = metadata.folders.value;
   const latexResourceUrls = buildLatexArtifactResourceUrls(metadata.resources.value);
@@ -434,7 +502,7 @@ const ArtifactPreview: React.FC = () => {
                     versionId={activeVersionId}
                     refreshToken={annotationRevision}
                     onVersionApplied={handleVersionApplied}
-                    onAnnotationsChange={setPreviewAnnotations}
+                    onAnnotationsChange={updatePreviewAnnotations}
                   />
                 ) : (
                   <Empty description={t('preview.artifact.noAnnotatableVersion')} />
@@ -579,6 +647,7 @@ const ArtifactPreview: React.FC = () => {
 
 async function loadArtifactSnapshot(artifactId: string): Promise<ArtifactSnapshot> {
   const artifact = await loadXScienceArtifact(artifactId);
+  if (artifact.artifactId !== artifactId) throw new Error('artifact_identity_mismatch');
   return { artifact };
 }
 

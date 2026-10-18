@@ -63,12 +63,15 @@ vi.mock('@arco-design/web-react', () => {
       {children}
     </button>
   );
-  const Modal = ({ visible, title, children, onOk }: any) =>
+  const Modal = ({ visible, title, children, onOk, onCancel }: any) =>
     visible ? (
       <div role='dialog' aria-label={title}>
         {children}
         <button type='button' data-testid='modal-ok' onClick={onOk}>
           ok
+        </button>
+        <button type='button' data-testid='modal-cancel' onClick={onCancel}>
+          cancel
         </button>
       </div>
     ) : null;
@@ -106,6 +109,16 @@ const clickAndFlush = async (element: HTMLElement) => {
     fireEvent.click(element);
     await Promise.resolve();
   });
+};
+
+const deferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((accept, decline) => {
+    resolve = accept;
+    reject = decline;
+  });
+  return { promise, resolve, reject };
 };
 
 const artifact = {
@@ -149,6 +162,192 @@ describe('PreviewArtifactActions', () => {
     mocks.addToChat.mockReturnValue(true);
   });
 
+  it('keeps the selected historical version and filename for references and links', async () => {
+    mocks.loadArtifact.mockResolvedValue({ ...artifact, versionId: 'current-version', filename: 'current.md' });
+    render(
+      <PreviewArtifactActions
+        artifactId='artifact-1'
+        versionId='historical-version'
+        fileName='historical.md'
+        onRenamed={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    fireEvent.click(screen.getByText('preview.addToChat'));
+    expect(mocks.addToChat).toHaveBeenCalledWith({
+      artifactId: 'artifact-1',
+      versionId: 'historical-version',
+      filename: 'historical.md',
+      conversationId: 'frame-1',
+    });
+
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await clickAndFlush(screen.getByText('preview.artifact.actions.copyLink'));
+    expect(mocks.copyText).toHaveBeenCalledWith(
+      `${window.location.origin}/#/artifacts/artifact-1?version=historical-version`
+    );
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    fireEvent.click(screen.getByText('preview.artifact.actions.provenance'));
+    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?tab=lineage&version=historical-version');
+  });
+
+  it('does not substitute the latest version for an explicitly empty selection', async () => {
+    render(
+      <PreviewArtifactActions
+        artifactId='artifact-1'
+        versionId=''
+        fileName='report.md'
+        onRenamed={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    fireEvent.click(screen.getByText('preview.addToChat'));
+    expect(mocks.addToChat).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await clickAndFlush(screen.getByText('preview.artifact.actions.copyLink'));
+    expect(mocks.copyText).not.toHaveBeenCalled();
+    expect(mocks.error).toHaveBeenCalledWith('preview.artifact.actions.linkCopyFailed');
+  });
+
+  it('ignores metadata from a replaced resource even when that read settles last', async () => {
+    const oldRead = deferred<typeof artifact>();
+    mocks.loadArtifact
+      .mockImplementationOnce(() => oldRead.promise)
+      .mockResolvedValue({
+        ...artifact,
+        artifactId: 'artifact-2',
+        versionId: 'version-2',
+        rootFrameId: 'frame-2',
+        priority: 'user_starred',
+      });
+    const callbacks = { onRenamed: vi.fn(), onDeleted: vi.fn() };
+    const { rerender } = render(
+      <PreviewArtifactActions {...callbacks} artifactId='artifact-1' versionId='version-1' fileName='first.md' />
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    rerender(
+      <PreviewArtifactActions {...callbacks} artifactId='artifact-2' versionId='version-2' fileName='second.md' />
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(2));
+    await act(async () => oldRead.resolve(artifact));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    expect(screen.getByText('preview.artifact.actions.unstar')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('preview.artifact.actions.viewInContext'));
+    expect(mocks.navigate).toHaveBeenCalledWith('/conversation/frame-2');
+    const oldSignal = mocks.loadArtifact.mock.calls[0][1]?.signal;
+    expect(oldSignal).toBeInstanceOf(AbortSignal);
+    expect(oldSignal.aborted).toBe(true);
+  });
+
+  it('does not show an old metadata error in a reopened preview with the same identity', async () => {
+    const oldRead = deferred<typeof artifact>();
+    mocks.loadArtifact.mockImplementationOnce(() => oldRead.promise).mockResolvedValue(artifact);
+    const props = {
+      artifactId: 'artifact-1',
+      versionId: 'version-1',
+      fileName: 'report.md',
+      onRenamed: vi.fn(),
+      onDeleted: vi.fn(),
+    };
+    const oldWindow = render(<PreviewArtifactActions {...props} />);
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    oldWindow.unmount();
+    render(<PreviewArtifactActions {...props} />);
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(2));
+    await act(async () => oldRead.reject(new Error('retired read failed')));
+    expect(mocks.error).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    fireEvent.click(screen.getByText('preview.addToChat'));
+    expect(mocks.addToChat).toHaveBeenCalledWith(expect.objectContaining({ versionId: 'version-1' }));
+  });
+
+  it('does not let a retired rename update or close a reopened same-version window', async () => {
+    const pendingRename = deferred<Record<string, never>>();
+    mocks.rename.mockReturnValue(pendingRename.promise);
+    const oldRenamed = vi.fn();
+    const props = { artifactId: 'artifact-1', versionId: 'version-1', fileName: 'report.md', onDeleted: vi.fn() };
+    const oldWindow = render(<PreviewArtifactActions {...props} onRenamed={oldRenamed} />);
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await waitFor(() => expect(screen.getByText('preview.artifact.actions.rename')).toBeEnabled());
+    fireEvent.click(screen.getByText('preview.artifact.actions.rename'));
+    fireEvent.change(screen.getByLabelText('preview.artifact.actions.fileName'), { target: { value: 'old-write.md' } });
+    await clickAndFlush(screen.getByTestId('modal-ok'));
+    expect(mocks.rename).toHaveBeenCalledWith({ artifactId: 'artifact-1', filename: 'old-write.md' });
+    oldWindow.unmount();
+
+    const newRenamed = vi.fn();
+    render(<PreviewArtifactActions {...props} onRenamed={newRenamed} />);
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(2));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await waitFor(() => expect(screen.getByText('preview.artifact.actions.rename')).toBeEnabled());
+    fireEvent.click(screen.getByText('preview.artifact.actions.rename'));
+    fireEvent.change(screen.getByLabelText('preview.artifact.actions.fileName'), { target: { value: 'new-draft.md' } });
+    await act(async () => pendingRename.resolve({}));
+    expect(oldRenamed).not.toHaveBeenCalled();
+    expect(newRenamed).not.toHaveBeenCalled();
+    expect(mocks.success).not.toHaveBeenCalledWith('preview.artifact.actions.renamed');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByLabelText('preview.artifact.actions.fileName')).toHaveValue('new-draft.md');
+  });
+
+  it('does not reactivate a retired metadata request during StrictMode effect replay', async () => {
+    const oldRead = deferred<typeof artifact>();
+    mocks.loadArtifact.mockImplementationOnce(() => oldRead.promise).mockResolvedValue(artifact);
+    render(
+      <React.StrictMode>
+        <PreviewArtifactActions
+          artifactId='artifact-1'
+          versionId='version-1'
+          fileName='report.md'
+          onRenamed={vi.fn()}
+          onDeleted={vi.fn()}
+        />
+      </React.StrictMode>
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(2));
+    await act(async () => oldRead.reject(new Error('obsolete activation failed')));
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(mocks.loadArtifact.mock.calls[0][1].signal.aborted).toBe(true);
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    fireEvent.click(screen.getByText('preview.addToChat'));
+    expect(mocks.addToChat).toHaveBeenCalledWith(expect.objectContaining({ versionId: 'version-1' }));
+  });
+
+  it('keeps a cancelled folder read from replacing the choices of a reopened dialog', async () => {
+    const oldFolders = deferred<Array<{ folderId: string; name: string }>>();
+    mocks.loadFolders
+      .mockImplementationOnce(() => oldFolders.promise)
+      .mockResolvedValue([{ folderId: 'fresh-folder', name: 'Fresh folder' }]);
+    render(
+      <PreviewArtifactActions
+        artifactId='artifact-1'
+        versionId='version-1'
+        fileName='report.md'
+        onRenamed={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await waitFor(() => expect(screen.getByText('preview.artifact.moveToFolder')).toBeEnabled());
+    await clickAndFlush(screen.getByText('preview.artifact.moveToFolder'));
+    expect(mocks.loadFolders).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('modal-cancel'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await clickAndFlush(screen.getByText('preview.artifact.moveToFolder'));
+    expect(await screen.findByRole('option', { name: 'Fresh folder' })).toBeInTheDocument();
+    await act(async () => oldFolders.resolve([{ folderId: 'old-folder', name: 'Retired folder' }]));
+    expect(screen.getByRole('option', { name: 'Fresh folder' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Retired folder' })).not.toBeInTheDocument();
+    expect(mocks.loadFolders.mock.calls[0][1].signal.aborted).toBe(true);
+  });
+
   it('exposes every consolidated file action and wires non-destructive actions', async () => {
     render(
       <PreviewArtifactActions
@@ -159,7 +358,9 @@ describe('PreviewArtifactActions', () => {
         onDeleted={vi.fn()}
       />
     );
-    await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalledWith('artifact-1'));
+    await waitFor(() =>
+      expect(mocks.loadArtifact).toHaveBeenCalledWith('artifact-1', { signal: expect.any(AbortSignal) })
+    );
     expect(mocks.loadArtifact).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
@@ -229,13 +430,13 @@ describe('PreviewArtifactActions', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/conversation/frame-1');
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
     fireEvent.click(screen.getByText('preview.artifact.actions.provenance'));
-    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?tab=lineage');
+    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?tab=lineage&version=version-1');
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
     fireEvent.click(screen.getByText('preview.artifact.actions.versionHistory'));
-    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?tab=versions');
+    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?tab=versions&version=version-1');
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
     fireEvent.click(screen.getByText('preview.artifact.actions.details'));
-    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1');
+    expect(mocks.navigate).toHaveBeenCalledWith('/artifacts/artifact-1?version=version-1');
   });
 
   it('wires rename, copy, move, cloud export and destructive confirmation', async () => {
@@ -253,6 +454,7 @@ describe('PreviewArtifactActions', () => {
     await waitFor(() => expect(mocks.loadArtifact).toHaveBeenCalled());
 
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
+    await waitFor(() => expect(screen.getByText('preview.artifact.actions.rename')).toBeEnabled());
     fireEvent.click(screen.getByText('preview.artifact.actions.rename'));
     expect(screen.queryByRole('menu', { name: 'preview.artifact.actions.more' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('preview.artifact.actions.fileName'), { target: { value: 'renamed.md' } });
@@ -274,7 +476,9 @@ describe('PreviewArtifactActions', () => {
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
     await clickAndFlush(screen.getByText('preview.artifact.moveToFolder'));
     expect(screen.queryByRole('menu', { name: 'preview.artifact.actions.more' })).not.toBeInTheDocument();
-    await waitFor(() => expect(mocks.loadFolders).toHaveBeenCalledWith('project-1'));
+    await waitFor(() =>
+      expect(mocks.loadFolders).toHaveBeenCalledWith('project-1', { signal: expect.any(AbortSignal) })
+    );
     fireEvent.change(screen.getByLabelText('preview.artifact.targetFolder'), { target: { value: 'folder-1' } });
     await clickAndFlush(screen.getByTestId('modal-ok'));
     await waitFor(() =>
@@ -284,7 +488,7 @@ describe('PreviewArtifactActions', () => {
     fireEvent.click(screen.getByTestId('preview-artifact-actions-trigger'));
     await clickAndFlush(screen.getByText('preview.artifact.exportToCloud'));
     expect(screen.queryByRole('menu', { name: 'preview.artifact.actions.more' })).not.toBeInTheDocument();
-    await waitFor(() => expect(mocks.loadBuckets).toHaveBeenCalledWith('cloud-1'));
+    await waitFor(() => expect(mocks.loadBuckets).toHaveBeenCalledWith('cloud-1', { signal: expect.any(AbortSignal) }));
     await clickAndFlush(screen.getByTestId('modal-ok'));
     await waitFor(() =>
       expect(mocks.exportCloud).toHaveBeenCalledWith('cloud-1', {

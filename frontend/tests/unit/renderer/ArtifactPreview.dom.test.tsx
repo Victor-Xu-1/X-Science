@@ -3,10 +3,28 @@ import { Message } from '@arco-design/web-react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
+import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
 
 const render = (ui: React.ReactElement) => renderWithI18n(ui);
 
-beforeEach(() => vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {}));
+const artifactRoute = vi.hoisted(() => ({ artifactId: 'artifact-1', search: '' }));
+
+const deferredFixture = <T,>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((accept) => {
+    resolve = accept;
+  });
+  return { promise, resolve };
+};
+
+beforeEach(() => {
+  artifactRoute.artifactId = 'artifact-1';
+  artifactRoute.search = '';
+  loadArtifactMock.mockReset().mockImplementation(defaultArtifactLoader);
+  loadVersionsMock.mockReset().mockImplementation(defaultVersionLoader);
+  loadAnnotationsMock.mockReset().mockImplementation(defaultAnnotationLoader);
+  vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+});
 afterEach(async () => {
   cleanup();
   await Promise.resolve();
@@ -50,6 +68,16 @@ const loadVersionsMock = vi.fn(async () => [
     parentVersionId: null,
   },
 ]);
+
+const defaultArtifactLoader = loadArtifactMock.getMockImplementation()!;
+const defaultVersionLoader = loadVersionsMock.getMockImplementation()!;
+
+const loadAnnotationsMock = vi.fn(async (_artifactId: string, _versionId: string) => ({
+  targetKey: 'fixture-version-target',
+  currentChecksum: null,
+  annotations: [] as XScienceArtifactAnnotation[],
+}));
+const defaultAnnotationLoader = loadAnnotationsMock.getMockImplementation()!;
 
 const loadLineageMock = vi.fn(async () => ({
   artifactId: 'artifact-1',
@@ -114,8 +142,8 @@ vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
 
 vi.mock('react-router', () => ({
   useNavigate: () => navigateMock,
-  useParams: () => ({ artifactId: 'artifact-1' }),
-  useLocation: () => ({ search: '' }),
+  useParams: () => ({ artifactId: artifactRoute.artifactId }),
+  useLocation: () => ({ search: artifactRoute.search }),
 }));
 
 vi.mock('@/renderer/services/xScienceGateway', () => ({
@@ -164,6 +192,12 @@ vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
   exportXScienceArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
 }));
 
+vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>()),
+  loadXScienceArtifactAnnotations: (artifactId: string, versionId: string) =>
+    loadAnnotationsMock(artifactId, versionId),
+}));
+
 import ArtifactPreview from '@/renderer/pages/artifact/ArtifactPreview';
 import AudioPreview from '@/renderer/pages/artifact/AudioPreview';
 import VideoPreview from '@/renderer/pages/artifact/VideoPreview';
@@ -175,6 +209,179 @@ vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceStruct
 }));
 
 describe('ArtifactPreview', () => {
+  it('restores a historical URL version without showing latest while its membership is loading', async () => {
+    const original = await defaultArtifactLoader();
+    const [historical] = await defaultVersionLoader();
+    const versions = deferredFixture<Awaited<ReturnType<typeof defaultVersionLoader>>>();
+    artifactRoute.search = '?version=version-1';
+    loadArtifactMock.mockResolvedValue({ ...original, versionId: 'version-2', versionNumber: 2 });
+    loadVersionsMock.mockImplementation(() => versions.promise);
+    await render(<ArtifactPreview />);
+    await waitFor(() => expect(loadVersionsMock).toHaveBeenCalledWith('artifact-1'));
+    expect(screen.queryByRole('img', { name: original.filename })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下载' })).not.toBeInTheDocument();
+    await act(async () => versions.resolve([{ ...historical, versionId: 'version-2', versionNumber: 2 }, historical]));
+    expect(await screen.findByRole('img', { name: original.filename })).toHaveAttribute(
+      'src',
+      '/api/artifacts/versions/version-1'
+    );
+  });
+
+  it.each([
+    { kind: 'absent', language: 'en-US', message: 'Version details unavailable' },
+    { kind: 'foreign', language: 'zh-CN', message: '版本详情暂不可用' },
+  ])('does not replace a $kind URL version with latest in $language', async ({ kind, language, message }) => {
+    const [version] = await defaultVersionLoader();
+    artifactRoute.search = '?version=unavailable-version';
+    loadVersionsMock.mockResolvedValue(
+      kind === 'foreign' ? [{ ...version, versionId: 'unavailable-version', artifactId: 'other-artifact' }] : []
+    );
+    await renderWithI18n(<ArtifactPreview />, language);
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.getByRole('alert')).toHaveTextContent('unavailable-version');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(复制文件|Copy file)$/ })).not.toBeInTheDocument();
+  });
+
+  it('retries a failed version read without substituting latest or refetching a healthy version list', async () => {
+    const original = await defaultArtifactLoader();
+    artifactRoute.search = '?version=version-1';
+    loadArtifactMock.mockResolvedValue({ ...original, versionId: 'version-2', versionNumber: 2 });
+    loadVersionsMock.mockRejectedValueOnce(new Error('version list temporarily unavailable'));
+    const view = await render(<ArtifactPreview />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('无法读取版本');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重试读取版本' }));
+    expect(await screen.findByRole('img', { name: original.filename })).toHaveAttribute(
+      'src',
+      '/api/artifacts/versions/version-1'
+    );
+    expect(loadVersionsMock).toHaveBeenCalledTimes(2);
+
+    artifactRoute.search = '?version=version-2';
+    // The current immutable version is already proven by the artifact metadata.
+    // A route-only selection must reuse this owner's completed metadata reads.
+    view.rerender(<ArtifactPreview />);
+    await waitFor(() =>
+      expect(screen.getByRole('img', { name: original.filename })).toHaveAttribute(
+        'src',
+        '/api/artifacts/versions/version-2'
+      )
+    );
+    expect(loadVersionsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps an explicit empty URL version unavailable rather than treating it as latest', async () => {
+    artifactRoute.search = '?version=';
+    await render(<ArtifactPreview />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('版本详情暂不可用');
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '下载' })).not.toBeInTheDocument();
+  });
+
+  it('does not let a previous artifact membership read overwrite a new URL selection', async () => {
+    const original = await defaultArtifactLoader();
+    const [version] = await defaultVersionLoader();
+    const oldVersions = deferredFixture<Awaited<ReturnType<typeof defaultVersionLoader>>>();
+    artifactRoute.search = '?version=version-old';
+    loadArtifactMock.mockImplementation(async (...args: unknown[]) =>
+      args[0] === 'artifact-2'
+        ? {
+            ...original,
+            artifactId: 'artifact-2',
+            versionId: 'version-current-2',
+            filename: 'second.png',
+          }
+        : { ...original, versionId: 'version-current-1' }
+    );
+    loadVersionsMock.mockImplementation((...args: unknown[]) =>
+      args[0] === 'artifact-1'
+        ? oldVersions.promise
+        : Promise.resolve([{ ...version, artifactId: 'artifact-2', versionId: 'selected-2' }])
+    );
+    const view = await render(<ArtifactPreview />);
+    await waitFor(() => expect(loadVersionsMock).toHaveBeenCalledWith('artifact-1'));
+    artifactRoute.artifactId = 'artifact-2';
+    artifactRoute.search = '?version=selected-2';
+    view.rerender(<ArtifactPreview />);
+    expect(await screen.findByRole('img', { name: 'second.png' })).toHaveAttribute(
+      'src',
+      '/api/artifacts/versions/selected-2'
+    );
+    await act(async () => oldVersions.resolve([{ ...version, versionId: 'version-old' }]));
+    expect(screen.getByRole('img', { name: 'second.png' })).toHaveAttribute(
+      'src',
+      '/api/artifacts/versions/selected-2'
+    );
+    expect(screen.queryByRole('heading', { name: original.filename })).not.toBeInTheDocument();
+  });
+
+  it('isolates annotations and open actions when a URL selects another version of the same artifact', async () => {
+    const original = await defaultArtifactLoader();
+    const [version] = await defaultVersionLoader();
+    const laterAnnotations = deferredFixture<Awaited<ReturnType<typeof defaultAnnotationLoader>>>();
+    const annotation: XScienceArtifactAnnotation = {
+      id: 'point-old',
+      artifactId: original.artifactId,
+      targetKey: 'fixture-version-1',
+      label: 'A',
+      contentChecksum: null,
+      type: 'point',
+      text: 'Old version note',
+      xPercent: 50,
+      yPercent: 50,
+      startLine: null,
+      startColumn: null,
+      endLine: null,
+      endColumn: null,
+      selectionText: null,
+      pageNumber: null,
+      selectionPrefix: null,
+      screenshotArtifactId: null,
+      elementSelector: null,
+      elementDescriptor: null,
+      addressedAt: null,
+      addressedInFrameId: null,
+      createdAt: '2026-10-18T01:00:00.000Z',
+    };
+    artifactRoute.search = '?version=version-1';
+    loadVersionsMock.mockResolvedValue([version, { ...version, versionId: 'version-2', versionNumber: 2 }]);
+    loadAnnotationsMock.mockImplementation((_artifactId, versionId) =>
+      versionId === 'version-2'
+        ? laterAnnotations.promise
+        : Promise.resolve({ targetKey: annotation.targetKey!, currentChecksum: null, annotations: [annotation] })
+    );
+    const loadImage = (image: HTMLElement) => {
+      Object.defineProperties(image, {
+        naturalWidth: { configurable: true, value: 200 },
+        naturalHeight: { configurable: true, value: 100 },
+      });
+      fireEvent.load(image);
+    };
+    const view = await render(<ArtifactPreview />);
+    loadImage(await screen.findByRole('img', { name: original.filename }));
+    expect(await screen.findByTitle('Old version note')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '复制文件' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    artifactRoute.search = '?version=version-2';
+    view.rerender(<ArtifactPreview />);
+    const currentImage = await screen.findByRole('img', { name: original.filename });
+    expect(currentImage).toHaveAttribute('src', '/api/artifacts/versions/version-2');
+    loadImage(currentImage);
+    expect(screen.queryByTitle('Old version note')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await act(async () =>
+      laterAnnotations.resolve({
+        targetKey: 'fixture-version-2',
+        currentChecksum: null,
+        annotations: [{ ...annotation, id: 'point-new', label: 'B', text: 'New version note' }],
+      })
+    );
+    expect(await screen.findByTitle('New version note')).toBeInTheDocument();
+    expect(screen.queryByTitle('Old version note')).not.toBeInTheDocument();
+  });
+
   it('binds structure rendering and derived snapshots to the displayed immutable version', async () => {
     const original = await loadArtifactMock();
     const [olderVersion] = await loadVersionsMock();
