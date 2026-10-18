@@ -130,6 +130,44 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/chat/ArchiveUndoNotice.tsx": "Render an account-bound archive Undo receipt without a modal or a second conversation mutation authority.",
+    "packages/desktop/src/renderer/components/chat/archiveUndo.css": "Style the compact nonmodal archive Undo notice with shared visual tokens.",
+    "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationArchive.ts": "Bind the real conversation-row archive interaction to the canonical presentation CAS and exact Undo receipt.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/LiveNotebookPreview.tsx": "Render the interactive Notebook against one account-and-frame controller while preserving the read-only file preview.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookCodeCell.tsx": "Provide the source-reference compact editor with IME-safe submit and exact execution cancellation.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookPreviewContent.tsx": "Choose live Notebook versus file-only preview from actual entry identity without inventing an executable target.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookRequests.tsx": "Present durable queued, accepted, terminal and unknown execution receipts without claiming dispatch is completion.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/notebook.module.css": "Style the compact Notebook editor, output and resizable twenty-percent terminal split.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/useLiveNotebook.ts": "Subscribe view consumers to one identity-bound Notebook controller without cancelling execution when the view closes.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/useNotebookSplit.ts": "Own bounded keyboard and pointer resizing for the reference Notebook terminal split.",
+    "packages/desktop/src/renderer/pages/settings/ArchivedSettings.tsx": "Render the canonical archived-conversation page with exact restore, pagination, retained failures and no unsafe permanent delete.",
+    "packages/desktop/src/renderer/pages/settings/archived/archivedSettings.css": "Style the compact archived-conversation settings page using shared visual tokens and no dark backdrop.",
+    "packages/desktop/src/renderer/pages/settings/archived/useArchivedConversations.ts": "Own account-fenced archive paging and restore refresh without converting unknown presentation state into write authority.",
+    "packages/desktop/src/renderer/services/notebook/NotebookSessionActions.ts": "Serialize frozen manual Notebook commands and cancellation intent with immutable idempotency identifiers.",
+    "packages/desktop/src/renderer/services/notebook/NotebookSessionController.ts": "Compose the single account-and-frame Notebook lifecycle and shared observer used by both preview layouts.",
+    "packages/desktop/src/renderer/services/notebook/NotebookSessionReads.ts": "Recover and observe durable execution receipts through bounded read-only pending pages and exact kernel inventory.",
+    "packages/desktop/src/renderer/services/notebook/NotebookSessionStore.ts": "Own one Notebook reservation, immutable retry command and account-generation fence without a competing execution queue.",
+    "packages/desktop/src/renderer/services/notebook/manualNotebookContract.ts": "Validate the owner-and-incarnation-bound manual Notebook inventory and scoped pending protocol.",
+    "packages/desktop/src/renderer/services/notebook/manualNotebookReceipt.ts": "Validate durable execution receipts, terminal states and bounded stdout and error records.",
+    "packages/desktop/src/renderer/services/notebook/manualNotebookService.ts": "Use only the typed canonical manual Notebook submit, read and cancel endpoints.",
+    "packages/desktop/src/renderer/services/notebook/manualNotebookTypes.ts": "Declare shared manual Notebook scope, exact live target, intent and receipt types.",
+    "packages/desktop/src/renderer/services/notebook/notebookPreviewNavigation.ts": "Open the same live Notebook identity from compute controls without replacing artifact preview authority.",
+    "packages/desktop/src/renderer/services/runtime/conversationArchive.ts": "Validate canonical archive CAS commands and read-only presentation projections behind the existing authenticated transport.",
+    "packages/desktop/src/renderer/services/runtime/conversationArchiveOperations.ts": "Serialize account-bound archive mutations and exact Undo receipts while preserving drafts and task state.",
+    "tests/unit/conversation/runtime/conversationArchive.test.ts": "Verify or support the directly scoped archive and manual Notebook contract in conversationArchive.test.ts, without user artifacts or scientific result substitution.",
+    "tests/unit/settings/ArchivedSettings.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in ArchivedSettings.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/LiveNotebookExecution.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookExecution.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/LiveNotebookPresentation.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookPresentation.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/LiveNotebookRecovery.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookRecovery.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/ManualNotebookPanelBoard.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPanelBoard.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/ManualNotebookPreviewEntry.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPreviewEntry.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/ManualNotebookPreviewIdentity.dom.test.tsx": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPreviewIdentity.dom.test.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/NotebookSessionController.test.ts": "Verify or support the directly scoped archive and manual Notebook contract in NotebookSessionController.test.ts, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/manualNotebookControllerFixture.ts": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookControllerFixture.ts, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/manualNotebookDomHarness.tsx": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookDomHarness.tsx, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/manualNotebookFixtures.ts": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookFixtures.ts, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/manualNotebookService.test.ts": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookService.test.ts, without user artifacts or scientific result substitution.",
+    "tests/unit/xscience/manualNotebookTarget.test.ts": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookTarget.test.ts, without user artifacts or scientific result substitution.",
     "packages/desktop/src/common/adapter/conversationInputReceipt.ts": "Decode explicit durable input receipts separately from current runtime and bind them to the receiving conversation.",
     "packages/desktop/src/common/adapter/hostGrantFileReference.ts": "Encode and validate explicit host-grant file references before guarded task-owned snapshot materialization.",
     "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/usePreviewArtifactActionScope.ts": "Fence immutable preview actions by the selected tab, artifact version, account and opening identity.",
@@ -560,9 +598,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "6295c518c9ff9e15df9d6e280286bfce3fb8a1fff67c521f0b21eb51461aabd0"
+APPROVED_ADAPTATION_FINGERPRINT = "1244d127d250a41cc949528f35dd63ccde45e19dff960966c7bb9d6a1bb54edb"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "0b8d0bda3c1bb2cd2408a332c489f9d90716746176bac6ba28348a48d7423a4c"
+APPROVED_ADDITION_FINGERPRINT = "6d46480ac0753138bb4ee6c6a0bfa4c0a1472b7fa7220d2af8f272c9e4aa7862"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

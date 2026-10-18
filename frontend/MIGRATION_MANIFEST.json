@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6295c518c9ff9e15df9d6e280286bfce3fb8a1fff67c521f0b21eb51461aabd0",
+  "adaptationFingerprintSHA256": "1244d127d250a41cc949528f35dd63ccde45e19dff960966c7bb9d6a1bb54edb",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "0b8d0bda3c1bb2cd2408a332c489f9d90716746176bac6ba28348a48d7423a4c",
+  "additionFingerprintSHA256": "6d46480ac0753138bb4ee6c6a0bfa4c0a1472b7fa7220d2af8f272c9e4aa7862",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 271,
     "adaptedSourceFiles": 788,
     "removedSourceFiles": 295,
-    "addedFiles": 1000
+    "addedFiles": 1038
   },
   "adaptations": [
     {
@@ -150,8 +150,8 @@
     {
       "path": "packages/desktop/src/common/config/storage.ts",
       "sourceSHA256": "b06e6ccfdceb7b060fb97790d79558c5bf43f9396cf3343aeeca2843ca16a8e3",
-      "targetSHA256": "e5808791bde72abf36bd627fbbf6cca2a6d0ccec87180ac02e2a0d2d1ba44346",
-      "bytes": 14850,
+      "targetSHA256": "09694948afad7d6721c5427367736b2aac3d869e86a55f6644af895a621d050b",
+      "bytes": 15086,
       "reason": "Keep the browser runtime status model aligned with canonical completed, failed, and cancelled Transcript terminal states."
     },
     {
@@ -498,8 +498,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
-      "targetSHA256": "67141b00560bd0ce2257f3139a563157b1bf27d6162553d2fa4bcbddd5cf1d3b",
-      "bytes": 21257,
+      "targetSHA256": "549317837c5332aa5e70ae67f74e6d7c3866e55e3b2fbc4a216f0276ddf9a7f4",
+      "bytes": 21371,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -875,8 +875,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/runtimeOperationsModel.ts",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/runtimeOperationsModel.ts",
       "sourceSHA256": "1c95bcd6f7aac01530c330478005d729df338dd9a614c8c7d770db38a7ea063f",
-      "targetSHA256": "b5112208fed8416827afb4aa7f0c60b991c1c76472a8b597492f276f802812e3",
-      "bytes": 37308,
+      "targetSHA256": "cb0cdefdacc1294649c879ed251fa31a9a62a9474a80f0d40447fb511bfa05bc",
+      "bytes": 37606,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -1228,8 +1228,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx",
       "sourceSHA256": "2acf7cd13e664fca0fd642fe0d213d9a7fd1475aee6cc63d5d87487a29b304fd",
-      "targetSHA256": "389c7908e3aab78b1ded638ba10458956dd60cb1a3123e9ac1d49ce9660addc8",
-      "bytes": 19937,
+      "targetSHA256": "f6b7fae2e304457cfb938c84e743b659ea3854add148c0eddd0f189aaedec050",
+      "bytes": 21510,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1333,8 +1333,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx",
       "sourceSHA256": "3ea1400c80e1d877f49270803b1aa590aa6c248205b365792947cc912f3a55fa",
-      "targetSHA256": "904cafc0885752600c60f74364793b8bd3ec4c24ec7cc2cf903932572d9a2deb",
-      "bytes": 22715,
+      "targetSHA256": "17f22418755c2a0e32657de5b48b3684b70b3e5dff54fa7e611438c103e94182",
+      "bytes": 23009,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1347,8 +1347,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/types.ts",
       "sourceSHA256": "3ba23c76155770beca9333ca4be098c3e7ef8051186af489efefef07e84e18e3",
-      "targetSHA256": "fa741627fb4767ab08ccfb1956f365df719bd0cb06c6d12692245e851cb4ead2",
-      "bytes": 2625,
+      "targetSHA256": "b434d9c8321e574d14042c7209c178eab0b7373c7b237fa506fc3ab66ebec1f0",
+      "bytes": 2710,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1594,8 +1594,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel.tsx",
       "sourceSHA256": "10c226da920132b34cbec848a0c83997c1477132b93449e4d3a7140f0b819404",
-      "targetSHA256": "e6068d1fed2f9b14faad62c7d2280ace1a6dc3cc1c7721bd45453a7c3a8be624",
-      "bytes": 26971,
+      "targetSHA256": "04d1007fcb947f107931b1a7a30b01192452aec6d5e068a265722f761d2960db",
+      "bytes": 27125,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1608,8 +1608,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewToolbar.tsx",
       "sourceSHA256": "c72df866553d45d0f8e35f895853abf975759fbef7380648e93ca31d71ea8c8d",
-      "targetSHA256": "bb1cd44778bfe7e1ca6a2c37f4f297a8aa19908dcfe3ce45157deecb0ea38201",
-      "bytes": 9919,
+      "targetSHA256": "1ede7d35312bab718f86d0c1e43a01e795b6e4b5955779ae283da6f7c53342a3",
+      "bytes": 9987,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1871,8 +1871,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/context/PreviewContext.tsx",
       "sourceSHA256": "ea6bd57ad08f37347bf39e38aa460505b34053c2508788d5fd8cead43c1cd57b",
-      "targetSHA256": "ac118b33fc2ca2c5aee7d99968d62ba2303a9d61cacadce35f236879360eaf43",
-      "bytes": 34597,
+      "targetSHA256": "446d666fe38279d16624b11bc3666957f24a44f7d9b05ee4490b677e93d0d81c",
+      "bytes": 35640,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2479,8 +2479,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/SettingsRoute.tsx",
       "sourceSHA256": "48ecc62ced2ae9e150322f342d54b5188b34c6dc989295ac097d1ba84c019ba7",
-      "targetSHA256": "3f43443a47a06fe25b699115fc7afa5e9b58da881caf8fc51fd13bf381d36d4d",
-      "bytes": 1474,
+      "targetSHA256": "c631413182b39051a5d6f904a243901cf83fb0282d223a85adfe18b81073a301",
+      "bytes": 1017,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2711,8 +2711,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsPageWrapper.tsx",
       "sourceSHA256": "9b5e4ab5cf39354a03baa5200b87b3666287654e5b015d7d5d41aef739692f09",
-      "targetSHA256": "340ef76d13d9060a70cfc09d55d50fe9d462821317e19f39dc3b9a9f97c1ab11",
-      "bytes": 7013,
+      "targetSHA256": "904b031f718bf544e351dd2e60078ebaa02ed9afd3a9ca03233a30ffe5b17959",
+      "bytes": 7231,
       "reason": "Provide route-aware responsive settings layout without nested page cards."
     },
     {
@@ -2725,8 +2725,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx",
       "sourceSHA256": "62edcc13c1bc2d7ef478cc698f73b55f2c9d07b76b694ea66acaa3cee586172c",
-      "targetSHA256": "ee76e93c3dffa563aa8a9b7e734866ec9089ca9ac1f18d408fae301a01324876",
-      "bytes": 6774,
+      "targetSHA256": "29f267ac33f7c83270fa5c7bc9ba6f4612d20945ec22786336d98584fc648603",
+      "bytes": 7018,
       "reason": "Align settings navigation icon states with the shared visual tokens."
     },
     {
@@ -2790,8 +2790,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/settingsRouteLoaders.ts",
       "sourceSHA256": "2ed520398de13480afe2a53d0c3595338073e98f7dcf2ce27b5ac7896bc778e8",
-      "targetSHA256": "f19287312cc5d2557d325b71daa061bb84c649acebebbc25d0d5551b5cd6c8f8",
-      "bytes": 3706,
+      "targetSHA256": "4196bd5d0df5038d9c6efd984f01fabd3c9506c2ebf2b57da4122ba721b8de03",
+      "bytes": 3782,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2840,8 +2840,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "e665a536547fc3d96993bbd0cea987da0ae4187310af7feb0d94abd564ad9df1",
-      "bytes": 262605,
+      "targetSHA256": "b3a41d37682c50c8769426fde9164646263c332c7a3ae2ee112411adbadd15ce",
+      "bytes": 266075,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2875,8 +2875,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "25896c514aeeb04a9c964e7fe4207203ea7b966fcd3385e02940e6ac43ffaf54",
-      "bytes": 90886,
+      "targetSHA256": "e71664cc1864299a9276092fbd745c2d912fbfb8386275f4eaf511bb0fde62a9",
+      "bytes": 95251,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2966,8 +2966,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "99a1601237321e819396b0479bf0562b96da9cd6117f924a4a730422459497b4",
-      "bytes": 85786,
+      "targetSHA256": "aea3274c8787b1997836c8a575690029172f3e9b088603a97ddb99e7795a9887",
+      "bytes": 89873,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3242,8 +3242,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceNotebook.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedNotebook.ts",
       "sourceSHA256": "c7f52376b2efab7d88bf6ce1721248548b992fa3544a75700ea4118348e8f5ab",
-      "targetSHA256": "7c799286ca6749c87bca6b6e0336bacd0ef69e022650da277a45ecdba6d1f939",
-      "bytes": 12718,
+      "targetSHA256": "7c07db9df0b8b6210e1f081463ba03fb54dce28af4375c39a89627ae2d0a6e98",
+      "bytes": 12008,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4359,8 +4359,8 @@
     {
       "path": "tests/unit/renderer/ConversationRow.dom.test.tsx",
       "sourceSHA256": "eb30626f28615700d83b499454f1229889b8bff270fd1263e74edc574650de9f",
-      "targetSHA256": "cd54e4b0f24226dbee2f02ad1da3c559011685010481e1271e2ef29ccf11195e",
-      "bytes": 17909,
+      "targetSHA256": "7cb7d779357153edf0d4c89aef8e9eba3ff8d8af64fc496213028c4390e8383d",
+      "bytes": 20448,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5117,15 +5117,15 @@
     {
       "path": "tests/unit/settings/SettingsRoute.dom.test.tsx",
       "sourceSHA256": "9f2db04bf636b8db488d9bcfc39d1d15d527a52c81b8c39e55fa0ade5578fca7",
-      "targetSHA256": "95218434f074b2425d6f5273292695a3f2abfb999cdedfb9580decf963ff1b89",
-      "bytes": 3733,
+      "targetSHA256": "b847c105b540227ec627ce45618d2eb370332fb6e3d9737aa5930a02b9e33663",
+      "bytes": 3812,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
       "path": "tests/unit/settings/SettingsSider.dom.test.tsx",
       "sourceSHA256": "65eb68d0ab06f5cfc1be64f7073e446f63e4809eaeff132ef49bb2d5f6d50f16",
-      "targetSHA256": "801d9e947cd23cc44f4a52d299cbc8bc606668f7763125b9418d8b10ba3f519d",
-      "bytes": 3454,
+      "targetSHA256": "5ea3547456c3bfebe2946d2f89f86af1049e9117e2cdb2f49a900bb056671c84",
+      "bytes": 3735,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5531,8 +5531,8 @@
       "path": "tests/unit/xscience/xScienceNotebook.test.ts",
       "originalPath": "tests/unit/synonbiomed/synonBiomedNotebook.test.ts",
       "sourceSHA256": "dd3e2ebbfd07c2d1778680e091557e43268a7cd086b5e8c5747389dea5ff123b",
-      "targetSHA256": "38c7fa04dd42acf41c65d3c24c5ef936b60be5e3cf7e408d048c55d7cab454fb",
-      "bytes": 5393,
+      "targetSHA256": "498216e9312daf84bff6fb2dba165f09af9798452d2a5e3a022e22193631b4a0",
+      "bytes": 3954,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7604,8 +7604,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/ipcDatabaseClient.ts",
-      "sha256": "17f96eda91f5cbe1033abebe48c7966f6a1ef003c926b83061f741e721adfbbb",
-      "bytes": 5055,
+      "sha256": "404b12e192e6643644a2340dd651858d07ce4133be6fecd66b4f7f815f343be4",
+      "bytes": 5068,
       "reason": "Own database inspection IPC bindings as one domain client."
     },
     {
@@ -7753,6 +7753,12 @@
       "reason": "Render one original approved mark and root-derived name across current workbench entry points."
     },
     {
+      "path": "packages/desktop/src/renderer/components/chat/ArchiveUndoNotice.tsx",
+      "sha256": "71799e43b3bad092830371d3b227b7806c387edd38501487c2c45f256f6c611d",
+      "bytes": 2255,
+      "reason": "Render an account-bound archive Undo receipt without a modal or a second conversation mutation authority."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useAsideRuntimeView.ts",
       "sha256": "ea5a0534bb3df796801c4896778cf55aa5f228f2b822ed9641f2746264e3f091",
       "bytes": 9739,
@@ -7855,6 +7861,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/chat/archiveUndo.css",
+      "sha256": "bef1497fa300b7e326e6d361bfc83e98f13a824270f31428018e6db128dd33bb",
+      "bytes": 1423,
+      "reason": "Style the compact nonmodal archive Undo notice with shared visual tokens."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/common/AccessibleActionDialog.tsx",
       "sha256": "ce06b066e5a3af94c42a42a732873846ffdafd4672934b5a9212c7f48e8c10fe",
       "bytes": 2939,
@@ -7952,8 +7964,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ComputeSessionSection.tsx",
-      "sha256": "04a93b40c6761be32db2453e0414edf593ed165a3e8010fdac1a248977f754cd",
-      "bytes": 21419,
+      "sha256": "1bd485169120103f01403db039c7bbc9410a80551a888279d370d61cd04780da",
+      "bytes": 22551,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8359,6 +8371,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationArchive.ts",
+      "sha256": "6cf43e7c745e8a6f57338e404ae5aa9ec3803669f919f593607a087c19fd83cb",
+      "bytes": 1943,
+      "reason": "Bind the real conversation-row archive interaction to the canonical presentation CAS and exact Undo receipt."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationPin.ts",
       "sha256": "376ca5b7120c7a9ae7f4dadf84c1ef278942a5ea93dbb24aec9dc965ba05234a",
       "bytes": 1842,
@@ -8726,8 +8744,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewBoard.tsx",
-      "sha256": "a4c059bd44aa4b2d4e4d734736b02aaed13d5884047652f187382290544113bd",
-      "bytes": 28620,
+      "sha256": "cb3d7a5dd93ddb64f00ab6639fa430cf61826cc90e4bb688801dee9b430908af",
+      "bytes": 28757,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8750,8 +8768,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/previewDownload.ts",
-      "sha256": "89cd20ae6fc38c546e097a6fda2f8ef1016913f18c59a77108164a0e06089475",
-      "bytes": 2908,
+      "sha256": "f7da65c02a134815f8e3268dfb10afddee157ffbe5e5dbfc2eb827a84cfb53b2",
+      "bytes": 3124,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8837,6 +8855,48 @@
       "sha256": "d64b60e3e6e061797929f89921ccfb4477dcf1c10389831fc379fe6e67d14619",
       "bytes": 1894,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/LiveNotebookPreview.tsx",
+      "sha256": "00a5b31ba9ac147b3c3500295ae398920f89cbade21352262557599175ce59b9",
+      "bytes": 7245,
+      "reason": "Render the interactive Notebook against one account-and-frame controller while preserving the read-only file preview."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookCodeCell.tsx",
+      "sha256": "646e73685d3aa5a07eb74dd5a7816befb8c019967a38e7f4e472604415c631ec",
+      "bytes": 3175,
+      "reason": "Provide the source-reference compact editor with IME-safe submit and exact execution cancellation."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookPreviewContent.tsx",
+      "sha256": "8bacae0b9af9f9b37435dcba4deb8613637884aa232842def4dce5e6ad9068c4",
+      "bytes": 1926,
+      "reason": "Choose live Notebook versus file-only preview from actual entry identity without inventing an executable target."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/NotebookRequests.tsx",
+      "sha256": "c7ae82cf238c371e9338fc8b09964e931ffbb7aaae3f70690c79128872d947aa",
+      "bytes": 4923,
+      "reason": "Present durable queued, accepted, terminal and unknown execution receipts without claiming dispatch is completion."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/notebook.module.css",
+      "sha256": "2e21582770f3d2dd0436e5f2c14a12655a9a00b241a2da99ae309d5b1d0427bc",
+      "bytes": 4160,
+      "reason": "Style the compact Notebook editor, output and resizable twenty-percent terminal split."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/useLiveNotebook.ts",
+      "sha256": "6017e8842c96c226ee3392e2eabd422143829d84002907ca5956830048dcacfa",
+      "bytes": 1212,
+      "reason": "Subscribe view consumers to one identity-bound Notebook controller without cancelling execution when the view closes."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/useNotebookSplit.ts",
+      "sha256": "2bf097c047b24cd335d603dbe99f994625c5ac2355c9a31c60d014c4624c172e",
+      "bytes": 1358,
+      "reason": "Own bounded keyboard and pointer resizing for the reference Notebook terminal split."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/renderers/isolatedHtmlDocument.ts",
@@ -9367,6 +9427,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/settings/ArchivedSettings.tsx",
+      "sha256": "d6aa033e9006cf0ce83d017c8d1d3a1bf0dcf8c072afd6e330220e1d75473769",
+      "bytes": 5282,
+      "reason": "Render the canonical archived-conversation page with exact restore, pagination, retained failures and no unsafe permanent delete."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/settings/LibrarySettingsPage.tsx",
       "sha256": "52b267bfab5531d5612df365d9dedea1c100e950e2e9f83daf45462791742435",
       "bytes": 4441,
@@ -9551,6 +9617,18 @@
       "sha256": "443bbf3f981f10c16521ea8d75b00eaa845a5ebc88f82d901720e17a7708aab6",
       "bytes": 4056,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/archived/archivedSettings.css",
+      "sha256": "65d099f4df168c1be5f2a92e18aed303796fa5b194e0a4bd9b0975312e6c7331",
+      "bytes": 2054,
+      "reason": "Style the compact archived-conversation settings page using shared visual tokens and no dark backdrop."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/settings/archived/useArchivedConversations.ts",
+      "sha256": "57d8301a3f36bd14200f66809f3e17cfeeb670de7b8b59db71d114cee03a849e",
+      "bytes": 4558,
+      "reason": "Own account-fenced archive paging and restore refresh without converting unknown presentation state into write authority."
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
@@ -9758,8 +9836,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settingsVisualContract.ts",
-      "sha256": "cb3af5a752e2641b51fc16e95958e45bf32543f7a1d439fb6ae5067be36646a5",
-      "bytes": 8387,
+      "sha256": "a8f5e3dc590fa981d426598736e9f8757d910c9daf27789df569dd3fa0bb5998",
+      "bytes": 8782,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10045,6 +10123,60 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/notebook/NotebookSessionActions.ts",
+      "sha256": "d47c86af04b9275f4d9e6c8eddf801352640e6bd2d23757c3d65cd13b7906190",
+      "bytes": 5243,
+      "reason": "Serialize frozen manual Notebook commands and cancellation intent with immutable idempotency identifiers."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/NotebookSessionController.ts",
+      "sha256": "97ba31470b5c1c69c241de575a1ad3e03f4f4dc1b04ccb46a6fb8e7d555c8acc",
+      "bytes": 5140,
+      "reason": "Compose the single account-and-frame Notebook lifecycle and shared observer used by both preview layouts."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/NotebookSessionReads.ts",
+      "sha256": "5a13f898466dadeab1f962a92e9737bc5f43ad4cd6d052b87742d3fac4b3bcb7",
+      "bytes": 7927,
+      "reason": "Recover and observe durable execution receipts through bounded read-only pending pages and exact kernel inventory."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/NotebookSessionStore.ts",
+      "sha256": "9b5174ad2090e3a10a782ff0ba081fb39a15598a11a26bd7f52184e387e76819",
+      "bytes": 5985,
+      "reason": "Own one Notebook reservation, immutable retry command and account-generation fence without a competing execution queue."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/manualNotebookContract.ts",
+      "sha256": "5546410902a327bbba240df0ffaa79f03185fae7b99d9fcdb1f55619ae53c645",
+      "bytes": 5160,
+      "reason": "Validate the owner-and-incarnation-bound manual Notebook inventory and scoped pending protocol."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/manualNotebookReceipt.ts",
+      "sha256": "efe80c86fc816e338c5a9cd165cb096e6bdf872a5594345cea744250bea711de",
+      "bytes": 7073,
+      "reason": "Validate durable execution receipts, terminal states and bounded stdout and error records."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/manualNotebookService.ts",
+      "sha256": "1b671e913adc134d690815d966b9a7163cc1b9d29a1dcedd6efd46c7836e5c22",
+      "bytes": 2505,
+      "reason": "Use only the typed canonical manual Notebook submit, read and cancel endpoints."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/manualNotebookTypes.ts",
+      "sha256": "ff017f9adfb49a1a2d2288307bca01bce1db74d249cd5943358fd4755c872685",
+      "bytes": 2235,
+      "reason": "Declare shared manual Notebook scope, exact live target, intent and receipt types."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notebook/notebookPreviewNavigation.ts",
+      "sha256": "4742763423f47d5fa59b11b6e5458dc6abf1c887910a01ebf215ed663dcd1034",
+      "bytes": 1862,
+      "reason": "Open the same live Notebook identity from compute controls without replacing artifact preview authority."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/onboardingCompletionAuthority.ts",
       "sha256": "73295d1e0515ead6c972dc6979642e0973b2da3feae315747feb4ac411de5b91",
       "bytes": 9524,
@@ -10081,6 +10213,18 @@
       "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/conversationArchive.ts",
+      "sha256": "3ae5d788c1602784e6b550229506d7f83f2914fd0141b1df51d8d609cd4de5b6",
+      "bytes": 5042,
+      "reason": "Validate canonical archive CAS commands and read-only presentation projections behind the existing authenticated transport."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/conversationArchiveOperations.ts",
+      "sha256": "d949788578137cc82c238ce1916ccb8b41f7733a517d3ae1796e21344351c3d9",
+      "bytes": 5232,
+      "reason": "Serialize account-bound archive mutations and exact Undo receipts while preserving drafts and task state."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/conversationDisclosureStore.ts",
       "sha256": "6073a8ae680dc14a0f27d5303d2d90e90c6778658833d9fd1cf92666008ac40b",
       "bytes": 3614,
@@ -10088,8 +10232,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/conversationPresentation.ts",
-      "sha256": "360f474898b5beadfd73ecf65c95da639a611126082766a784b53da78d051adb",
-      "bytes": 2685,
+      "sha256": "40fae74aec82e374009212d56c017ec1dd9ff45620be9e7af2a56ab5e3f95782",
+      "bytes": 2937,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11315,6 +11459,12 @@
       "sha256": "750de647d9e77eff1e758894afe55b78135425872943a2b1d32c24fada506f36",
       "bytes": 3006,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/conversation/runtime/conversationArchive.test.ts",
+      "sha256": "5473afdf6b6eb654cd0fa41e1f914d3978affcba100ea6f2962b2f24c836a051",
+      "bytes": 12108,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in conversationArchive.test.ts, without user artifacts or scientific result substitution."
     },
     {
       "path": "tests/unit/conversation/runtime/conversationListRefreshController.test.ts",
@@ -12619,6 +12769,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/settings/ArchivedSettings.dom.test.tsx",
+      "sha256": "a800fba7ed441bf23167b2cc5c237042120d89481bbcf8139bb4a4a4cb5feb8d",
+      "bytes": 8227,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in ArchivedSettings.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
       "path": "tests/unit/settings/ComputeJobControlState.dom.test.tsx",
       "sha256": "cabef1e41185bef187c4f6191f0a0b6d82b62c14b2cd5ce2ad211bdd661f71fe",
       "bytes": 2044,
@@ -12782,20 +12938,20 @@
     },
     {
       "path": "tests/unit/settings/settingsRouteLoaders.test.ts",
-      "sha256": "3892f75f9129e71750ea753a61246925a48c1ab540ae3632cde214ff984a8e77",
-      "bytes": 722,
+      "sha256": "f623e959975464c00c024b125c6f87c28ebff4594bc9f1765efcc8c80fed0002",
+      "bytes": 884,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/settings/settingsSiderEntries.test.ts",
-      "sha256": "9dc08967eb39c65cfff9fce7e66835488485bba23a2415b992c1289997177088",
-      "bytes": 4696,
+      "sha256": "b909b2cab5dda4c5b35f7e54de20e75a72c90faff172280e4f16739b6f4c6b67",
+      "bytes": 4727,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/settings/settingsVisualContract.test.ts",
-      "sha256": "3a0bc11cfa586c52ff2ad7ecbec95a641df40aa989ef2b232fc0ab8bd77181d3",
-      "bytes": 15422,
+      "sha256": "8ebd75a56439182183d623415354c1b5f828c26d958f55d770a6517317270422",
+      "bytes": 15451,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12875,6 +13031,48 @@
       "sha256": "f29d9072edb2a164286643175b5a5bdf810d14ca1c0fad36e1768063ea835bf6",
       "bytes": 3767,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/LiveNotebookExecution.dom.test.tsx",
+      "sha256": "a4908d1a747524e71e41f21357019d5be369cb68565e9491ff2066da43eb27e8",
+      "bytes": 5724,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookExecution.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/LiveNotebookPresentation.dom.test.tsx",
+      "sha256": "b2b87d294aabf4a69da50ce9ea17cb33581b0ff8df437f36df6c363914a83bb0",
+      "bytes": 5486,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookPresentation.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/LiveNotebookRecovery.dom.test.tsx",
+      "sha256": "7b7938dea8b0f87e95bbbad7b53760b2f4804c094756bceff9dc80b7165aeaa8",
+      "bytes": 4927,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in LiveNotebookRecovery.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/ManualNotebookPanelBoard.dom.test.tsx",
+      "sha256": "719e62db992b8da5245286077c31bf8aba4b64b46030c6cd9cc383dd47a12cf5",
+      "bytes": 5804,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPanelBoard.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/ManualNotebookPreviewEntry.dom.test.tsx",
+      "sha256": "bd5f5dac17663043c5a519020d5b122fb13326e89ae57e82a0be327f49935965",
+      "bytes": 5393,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPreviewEntry.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/ManualNotebookPreviewIdentity.dom.test.tsx",
+      "sha256": "3af7f3ce9b6a5066724018cfeaaef2d296f26fd549fb2894d725f0d47f67427e",
+      "bytes": 4417,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPreviewIdentity.dom.test.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/NotebookSessionController.test.ts",
+      "sha256": "da6162e70ece0e5b8ffca5b39aa56c621d3db3eb9df07dcad4ae0265f0818352",
+      "bytes": 8620,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in NotebookSessionController.test.ts, without user artifacts or scientific result substitution."
     },
     {
       "path": "tests/unit/xscience/OptimizePromptAction.dom.test.tsx",
@@ -13031,6 +13229,36 @@
       "sha256": "c78490f05a5bae9a3ab31a957ab412f120e9563a296a3700799a2344af95f704",
       "bytes": 9345,
       "reason": "Verify long-task lifecycle normalization and invalid-state rejection."
+    },
+    {
+      "path": "tests/unit/xscience/manualNotebookControllerFixture.ts",
+      "sha256": "fb97a97a4d5533f665b76e6f81a4978199b265e5ba7b77af8d3b80268c52561f",
+      "bytes": 3512,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookControllerFixture.ts, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/manualNotebookDomHarness.tsx",
+      "sha256": "ad414dfc90aae9d8b59087c86df1e9e46a7a5580858cbde9c4f5908c4a9665c5",
+      "bytes": 1284,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookDomHarness.tsx, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/manualNotebookFixtures.ts",
+      "sha256": "85a7815cb7d6199be9251368bee609f573e5d48ac8f21f57dfeabe72b151cfb9",
+      "bytes": 4353,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookFixtures.ts, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/manualNotebookService.test.ts",
+      "sha256": "525bcc14393e5b6f4f258a6a6232cbedb29c4b1f88f31bc88dcae16969841b85",
+      "bytes": 5268,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookService.test.ts, without user artifacts or scientific result substitution."
+    },
+    {
+      "path": "tests/unit/xscience/manualNotebookTarget.test.ts",
+      "sha256": "81497873206312a8e5a1560a99f094709d25e2cef4ba3dee0bba7e56b876c782",
+      "bytes": 3006,
+      "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookTarget.test.ts, without user artifacts or scientific result substitution."
     },
     {
       "path": "tests/unit/xscience/mcpDescriptions.test.ts",
