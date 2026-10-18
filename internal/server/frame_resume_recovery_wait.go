@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -31,6 +32,19 @@ func (s *Server) wakeChangedFrameRecoveryWaits(ctx context.Context) error {
 			if !found || current.ResumeEvent.ID != waiting.ResumeEvent.ID || current.WaitingFor != workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition {
 				continue
 			}
+			woken, err := s.wakeFrameRecoveryAfterKernelCompletion(ctx, current.ResumeEvent.ID, current.WaitRef)
+			if errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+				// Preserve the malformed conversation's execution fence without
+				// starving unrelated roots later in the same recovery page.
+				log.Printf("runner_recovery_wait_unavailable frame=%q reason=invalid_conversation_archive", current.FrameID)
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if woken {
+				continue
+			}
 			cause, err := s.frameRecoveryWaitStateChange(ctx, current)
 			if err != nil {
 				return err
@@ -57,6 +71,22 @@ func (s *Server) wakeChangedFrameRecoveryWaits(ctx context.Context) error {
 			return nil
 		}
 	}
+}
+
+// Use the same durable join after parking and during recovery. A completion
+// notification can precede the wait commit, so realtime delivery alone cannot
+// establish that the runner has observed the result.
+func (s *Server) wakeFrameRecoveryAfterKernelCompletion(ctx context.Context, resumeEventID, waitRef string) (bool, error) {
+	event, woken, err := s.workspaceStore.WakeRecoveryConditionAfterKernelCompletion(ctx, resumeEventID, waitRef)
+	if err != nil || !woken {
+		return woken, err
+	}
+	if err := s.publishWorkspaceEvent(event); err != nil {
+		return true, err
+	}
+	s.signalFrameResumeDispatchForEvent(event.Type)
+	log.Printf("runner_recovery_kernel_completion frame=%q action=wake_existing_dispatch", event.FrameID)
+	return true, nil
 }
 
 func (s *Server) frameRecoveryWaitStateChange(ctx context.Context, dispatch workspace.CompatibilityFrameResumeDispatch) (*workspace.FrameResumeWakeCause, error) {

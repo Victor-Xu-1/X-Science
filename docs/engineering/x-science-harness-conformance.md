@@ -605,6 +605,19 @@ tools are absent from new model snapshots.
    cannot. Live events and reloaded conversation state both show paused, not
    running or failed. Healthy execution and historical counts from an older
    recovery contract do not trigger this wait.
+   A background kernel completion committed during the exact dispatch claim
+   is rechecked immediately after recovery-condition parking and by the same
+   durable recovery scan. The join requires the current owner, Frame/root
+   incarnations, active stream/epoch and branch, matching interrupted input,
+   exact wait reference, terminal operation version and unread result receipt.
+   Its causal lower bound is that claim's immutable per-Frame audit sequence,
+   not a timestamp: a later claim cannot repeatedly reuse an old completion.
+   Recovery neither acknowledges the notification nor reexecutes the operation.
+   An already-acknowledged result is excluded. If a result checkpoint committed
+   but its acknowledgement was lost, at most one extra rearm is possible before
+   the next claim's sequence fences that old completion; this is not proof that
+   the model never received the result. Older-input/branch results keep their
+   existing receipt recovery path and do not acquire new wake authority here.
    Route quarantines are scoped to the recovery contract that evaluated them.
    An upgraded contract reevaluates admission while retaining successful
    execution receipts, immutable results, task ownership and permission checks.

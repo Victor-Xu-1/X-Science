@@ -398,6 +398,15 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 			if err := s.publishWorkspaceEvent(pausedEvent); err != nil {
 				return result, err
 			}
+			if waitingFor == workspace.CompatibilityFrameResumeDispatchWaitRecoveryCondition {
+				woken, err := s.wakeFrameRecoveryAfterKernelCompletion(ctx, dispatch.ResumeEvent.ID, pausedEvent.ID)
+				if err != nil {
+					return result, err
+				}
+				if woken {
+					result.Status = "interrupted"
+				}
+			}
 			return result, nil
 		}
 		// Only auto-resume interruptions may be re-claimed without a new user
