@@ -28,7 +28,7 @@ html body .app-overlay-menu.conversation-control-submenu {
   color: var(--conversation-menu-text) !important;
   background: var(--conversation-menu-surface) !important;
   border: 1px solid var(--conversation-menu-border) !important;
-  border-radius: 15px !important;
+  border-radius: calc(var(--ui-radius-2xl) - 1px) !important;
   box-shadow: var(--conversation-menu-shadow) !important;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
@@ -43,9 +43,9 @@ html body .conversation-control-menu .composer-control-menu__row {
   margin: 0 !important;
   padding: 6px 8px !important;
   gap: 8px !important;
-  border-radius: 8px !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
+  border-radius: var(--ui-radius-md) !important;
+  font-size: var(--ui-font-body) !important;
+  font-weight: var(--ui-weight-medium) !important;
   line-height: 20px !important;
 }
 
@@ -83,7 +83,7 @@ html body .conversation-control-menu .h-1px {
 
 html body .composer-icon-control.conversation-control-trigger {
   color: hsl(43 3% 57%) !important;
-  border-radius: 6px !important;
+  border-radius: var(--ui-radius-sm) !important;
   transition:
     color 200ms ease-out,
     background-color 200ms ease-out !important;
@@ -110,7 +110,7 @@ html body .conversation-control-submenu .conversation-skill-choice {
   min-height: 32px;
   padding: 6px 8px;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
 }
 
 .conversation-skill-choice .conversation-skill-choice__heading {
@@ -118,8 +118,8 @@ html body .conversation-control-submenu .conversation-skill-choice {
   gap: 8px;
   align-items: center;
   color: var(--conversation-menu-text);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ui-font-subtitle);
+  font-weight: var(--ui-weight-medium);
   line-height: 20px;
 }
 
@@ -133,11 +133,11 @@ html body .conversation-control-submenu .conversation-skill-choice {
   flex-shrink: 0;
   margin-left: auto;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-xs);
   color: oklch(0.2 0.03 62);
   background: oklch(0.87 0.115 82);
   font-size: 10px;
-  font-weight: 400;
+  font-weight: var(--ui-weight-regular);
   line-height: 14px;
 }
 
@@ -154,7 +154,7 @@ body[arco-theme='dark'] .conversation-skill-choice__source {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   color: var(--conversation-menu-muted);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 16px;
 }
 

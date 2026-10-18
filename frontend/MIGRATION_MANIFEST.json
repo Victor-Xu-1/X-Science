@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "6fa793660c9f0628c449ac686651b2523cc2292b1ba2f39f590de5e4f3732d7f",
   "removalFingerprintSHA256": "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac",
-  "additionFingerprintSHA256": "22cae4eefda54847ce35fc38491bb85284f27efd323c4b41bad34084f2c5c3ef",
+  "additionFingerprintSHA256": "923e470566faa9057638f316a0d254abc0f45fc506612ef2be9accb0e868b2e5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -7829,8 +7829,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/media/conversationControlMenu.css",
-      "sha256": "083ba7ebd6c887eba4f298443dae8641175e79b87863156932cf614cd888c2b0",
-      "bytes": 5284,
+      "sha256": "1e982436a43d7c6514b2adfd78d95ec97b1781b152043fc80ada8374de0db828",
+      "bytes": 5486,
       "reason": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority."
     },
     {
@@ -9581,8 +9581,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settings-models.css",
-      "sha256": "b8fc120ef21662364d0e618007008f5bcd08d819a8c84b83cb6f5e530d4f449d",
-      "bytes": 6757,
+      "sha256": "163781c75d3f6fa66afe037df17a9d0fa2d62b7a34c785263b2b2972594edf06",
+      "bytes": 6942,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9683,8 +9683,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/models/model-profile-editor.css",
-      "sha256": "6368fa4ec089f068011c4a5b570e56d8d85f97b87d9eb1a7d046d84c4b0d1306",
-      "bytes": 2939,
+      "sha256": "629526f2073ed0dcd4ad931f3fede0344f26a4ae7a31ae14c781345ac4563203",
+      "bytes": 3089,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10913,8 +10913,8 @@
     },
     {
       "path": "tests/unit/_helpers/designTokens.ts",
-      "sha256": "8c52a0c86fdd9c560c00de5f247f6ecc186981fb254b3f542e6e5357c7928789",
-      "bytes": 1307,
+      "sha256": "2ef56dbfcc6d2eea56af72b911f8f83d0ce714eeb8ca24581b7ee919e035936a",
+      "bytes": 2254,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -11867,8 +11867,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/conversationVisualSystemCss.test.ts",
-      "sha256": "106a0184aa94641df5520d6818f8d6e3e053310cc28d826abe170ef977094aaf",
-      "bytes": 9567,
+      "sha256": "2fc9e8c8516f1735fc4eb76f4762447da244d9403840c14a56f665ff7f83cab4",
+      "bytes": 9989,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -11993,8 +11993,8 @@
     },
     {
       "path": "tests/unit/renderer/guidActionRow.dom.test.tsx",
-      "sha256": "d2e0de92b137c6ff0e8745739c4c1ac0f4633efcdd18449ea7f3e5984f11f570",
-      "bytes": 4596,
+      "sha256": "5611d2776396a22156a6949f2766f0d0b41a128a923065a4c1b9d3b3c3975ae3",
+      "bytes": 5153,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12599,14 +12599,14 @@
     },
     {
       "path": "tests/unit/themeVisualContract.test.ts",
-      "sha256": "3d03439ac5b992e6ac88a050d27e0d06b35f09366c310a2477d16bee24727b5d",
-      "bytes": 22444,
+      "sha256": "6193542fc38d012f7b3093c7e880244e1773f108b57035222b207966e7f56156",
+      "bytes": 22665,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/themeVisualTokens.test.ts",
-      "sha256": "9bc0bd5a483017c3efd614eedf4fb9fe700cd36257162c2e5c53231be7e34fa2",
-      "bytes": 5311,
+      "sha256": "82997d97f2ba4486e732fae9121899c531bdf5b01cd6e64388c04c24cf67bf07",
+      "bytes": 8085,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
