@@ -195,6 +195,9 @@ func (s *Store) ActivateCompatibilityRootBranch(rootFrameID, branchID string) (C
 	if parentID.Valid {
 		return CompatibilityRootBranchActivationResult{}, errors.New("can only activate branches on root frames")
 	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, rootFrameID); err != nil {
+		return CompatibilityRootBranchActivationResult{}, err
+	}
 	if status != "completed" {
 		return CompatibilityRootBranchActivationResult{}, fmt.Errorf("cannot activate a branch while frame status is %s", status)
 	}
@@ -362,6 +365,9 @@ func (s *Store) mutateCompatibilityRootBranch(input compatibilityRootBranchReque
 	}
 	if parentID.Valid {
 		return CompatibilityRootForkResult{}, errors.New("can only fork root frames")
+	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, input.RootFrameID); err != nil {
+		return CompatibilityRootForkResult{}, err
 	}
 	if status == "processing" || status == "awaiting_user_response" {
 		return CompatibilityRootForkResult{}, errors.New("cannot fork while processing. Cancel first.")

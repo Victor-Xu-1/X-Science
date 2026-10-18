@@ -87,6 +87,8 @@ func (s *Server) handleWebConversation(w http.ResponseWriter, r *http.Request) {
 		s.handleWebConversationRecord(w, r, frame, project)
 	case len(segments) == 2 && segments[1] == "lineage":
 		s.handleWebConversationLineage(w, r, frame)
+	case len(segments) == 2 && segments[1] == "archive":
+		s.handleWebConversationArchive(w, r, frame)
 	case len(segments) >= 2 && segments[1] == "messages":
 		s.handleWebConversationMessages(w, r, frame, segments)
 	case len(segments) == 3 && segments[1] == "message-intents":
@@ -152,6 +154,15 @@ func (s *Server) createWebConversationRecord(
 	userID string,
 	input webConversationCreateInput,
 ) (workspace.CompatibilityFrame, workspace.CompatibilityProject, error) {
+	// These fields are written only by the presentation command's server CAS.
+	// A caller creating a new identity cannot import archive/revision authority.
+	for _, key := range []string{"archived_at", "_presentation_revision"} {
+		if _, present := input.Extra[key]; present {
+			return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, &webConversationRequestError{
+				Status: http.StatusBadRequest, Detail: "server-owned conversation presentation fields cannot be supplied on create",
+			}
+		}
+	}
 	if s.transcriptContractErr != nil {
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, transcriptWebStorageError(s.transcriptContractErr)
 	}
@@ -187,7 +198,9 @@ func (s *Server) createWebConversationRecord(
 	if err != nil {
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, err
 	}
-	contextData := map[string]any{"web_extra": copyMapAny(input.Extra)}
+	extra := copyMapAny(input.Extra)
+	delete(extra, "presentation_unavailable")
+	contextData := map[string]any{"web_extra": extra}
 	if assistantMetadata != nil {
 		contextData["web_assistant"] = assistantMetadata
 	}

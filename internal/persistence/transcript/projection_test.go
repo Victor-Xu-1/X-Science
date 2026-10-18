@@ -323,6 +323,9 @@ func seedArtifactProjectionClaim(t *testing.T, repo *Repository, db *sql.DB, str
 	if _, err := db.Exec(`INSERT INTO projects(id,user_id) VALUES('project-a',?)`, ownerID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(`INSERT INTO frames(id,project_id,root_frame_id) VALUES('root-a','project-a','root-a')`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`INSERT INTO frames(id,project_id,root_frame_id) VALUES('frame-a','project-a','root-a')`); err != nil {
 		t.Fatal(err)
 	}

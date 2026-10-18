@@ -154,6 +154,23 @@ func terminalProjection(
 	ownerID, streamUID string,
 	eventID int64,
 ) (TerminalProjection, error) {
+	projection, err := terminalProjectionHeader(ctx, queryer, ownerID, streamUID, eventID)
+	if err != nil {
+		return TerminalProjection{}, err
+	}
+	projection.ArtifactReferences, err = listArtifactReferencesConn(ctx, queryer, streamUID, projection.Attempt)
+	return projection, err
+}
+
+// terminalProjectionHeader is the shared canonical proof for terminal status.
+// Read-only consumers that do not use artifacts need not materialize the
+// potentially much larger attempt artifact list merely to verify an outcome.
+func terminalProjectionHeader(
+	ctx context.Context,
+	queryer transcriptQueryer,
+	ownerID, streamUID string,
+	eventID int64,
+) (TerminalProjection, error) {
 	var projection TerminalProjection
 	var kind, eventType, receiptStatus string
 	var payload []byte
@@ -195,8 +212,7 @@ func terminalProjection(
 	if err != nil {
 		return TerminalProjection{}, err
 	}
-	projection.ArtifactReferences, err = listArtifactReferencesConn(ctx, queryer, streamUID, projection.Attempt)
-	return projection, err
+	return projection, nil
 }
 
 // MapTerminalStatus is the single server-side mapping from durable runner

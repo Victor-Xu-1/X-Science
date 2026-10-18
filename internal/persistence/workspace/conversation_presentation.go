@@ -71,6 +71,15 @@ func (s *Store) updateConversationPresentationTx(ctx context.Context, tx workspa
 	if extra == nil {
 		extra = map[string]any{}
 	}
+	// Keep the existing opaque-extra validation/error contract before checking
+	// the archive marker. Neither check can overwrite an unknown container.
+	_, pinUpdate := input.Extra["pinned"]
+	_, orderUpdate := input.Extra["sortOrder"]
+	if pinUpdate || orderUpdate {
+		if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, input.FrameID); err != nil {
+			return err
+		}
+	}
 	revision, err := presentationRevision(extra)
 	if err != nil {
 		return err
@@ -121,12 +130,7 @@ func (s *Store) updateConversationPresentationTx(ctx context.Context, tx workspa
 		return ErrConversationPresentationStale
 	}
 	extra[presentationRevisionKey] = revision + 1
-	encoded, err := json.Marshal(extra)
-	if err != nil {
-		return err
-	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO frame_runtime_metadata(frame_id,context_data) VALUES(?,json_object('web_extra',json(?)))
-		ON CONFLICT(frame_id) DO UPDATE SET context_data=json_set(COALESCE(frame_runtime_metadata.context_data,'{}'),'$.web_extra',json(?))`, input.FrameID, string(encoded), string(encoded))
+	err = storeConversationPresentationExtraTx(ctx, tx, input.FrameID, extra)
 	if err == nil && input.changed != nil {
 		*input.changed = true
 	}

@@ -23,6 +23,7 @@ import { resolveWorkspaceToggleOwner } from '@/renderer/utils/workspace/workspac
 import './titlebar.css';
 import ProjectCommandPalette from './ProjectCommandPalette';
 import DesktopConversationTitle from './DesktopConversationTitle';
+import NotificationBell from '@/renderer/components/notifications/NotificationBell';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;
@@ -372,6 +373,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
           )}
         </div>
         <div ref={toolbarRef} className='app-titlebar__toolbar'>
+          <NotificationBell mobile={Boolean(layout?.isMobile)} onNavigate={(path) => navigate(path)} />
           {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
           {showWorkspaceButton && (
             <button

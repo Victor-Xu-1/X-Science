@@ -213,14 +213,15 @@ func (s *Store) ListCompatibilityProjects(userID string, limit, offset int) ([]C
 	return projects, nil
 }
 
-const compatibilityProjectSelect = `
+var compatibilityProjectSelect = `
 	SELECT p.id, p.name, p.path, p.created_at, p.updated_at,
 		COALESCE(m.description, ''), COALESCE(m.context_data, 'null'),
 		(SELECT COUNT(*) FROM artifacts a WHERE a.project_id = p.id AND a.id NOT LIKE 'large-tool-result-%'),
 		(SELECT COUNT(*) FROM frames f
 			LEFT JOIN frame_runtime_metadata fm ON fm.frame_id = f.id
 			WHERE f.project_id = p.id AND f.parent_frame_id IS NULL
-				AND TRIM(COALESCE(f.name, '')) <> '' AND COALESCE(fm.is_hidden, 0) = 0),
+				AND TRIM(COALESCE(f.name, '')) <> '' AND COALESCE(fm.is_hidden, 0) = 0
+				AND ` + conversationUnarchivedSQL("fm.context_data") + `),
 		COALESCE((
 			SELECT latest.id
 			FROM frames latest
@@ -229,6 +230,7 @@ const compatibilityProjectSelect = `
 				AND latest.parent_frame_id IS NULL
 				AND TRIM(COALESCE(latest.name, '')) <> ''
 				AND COALESCE(latest_meta.is_hidden, 0) = 0
+				AND ` + conversationUnarchivedSQL("latest_meta.context_data") + `
 				AND latest.conversation_type <> 'uploads'
 				AND latest.agent_name NOT IN ('CONCIERGE', 'CANVAS_CONCIERGE')
 			ORDER BY MAX(
@@ -321,7 +323,7 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 	if len(sections) == 1 {
 		section = sections[0]
 	}
-	if section != "" && section != "pinned" && section != "recent" {
+	if section != "" && section != "pinned" && section != "recent" && section != "archived" {
 		return nil, ErrConversationPresentationInvalid
 	}
 	if before != nil && (before.UpdatedAt.IsZero() || strings.TrimSpace(before.FrameID) == "") {
@@ -340,7 +342,12 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 		WHERE project.user_id = ? AND frame.parent_frame_id IS NULL
 			AND COALESCE(metadata.is_hidden, 0) = 0`
 	args := []any{userID}
-	if section != "" {
+	if section == "archived" {
+		query += " AND " + conversationArchivedSQL("metadata.context_data")
+	} else {
+		query += " AND " + conversationUnarchivedSQL("metadata.context_data")
+	}
+	if section == "pinned" || section == "recent" {
 		pinned := `COALESCE(json_type(metadata.context_data,'$.web_extra.pinned')='true',0)`
 		if section == "pinned" {
 			query += " AND " + pinned
@@ -442,6 +449,7 @@ func (s *Store) listCompatibilityFrames(userID, projectID string, rootOnly bool,
 	query := `SELECT f.id FROM frames f JOIN projects p ON p.id = f.project_id`
 	if !includeHidden {
 		query += ` LEFT JOIN frame_runtime_metadata m ON m.frame_id = f.id`
+		query += ` LEFT JOIN frame_runtime_metadata archive_meta ON archive_meta.frame_id = f.root_frame_id`
 	}
 	query += ` WHERE p.user_id = ?`
 	args := []any{userID}
@@ -451,6 +459,7 @@ func (s *Store) listCompatibilityFrames(userID, projectID string, rootOnly bool,
 	}
 	if !includeHidden {
 		query += ` AND COALESCE(m.is_hidden, 0) = 0`
+		query += " AND " + conversationUnarchivedSQL("archive_meta.context_data")
 	}
 	if rootOnly {
 		query += ` AND f.parent_frame_id IS NULL`
@@ -727,6 +736,9 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 }
 
 func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTransaction, rootID string, input ResumeCompatibilityFrameInput, now time.Time) (ResumeCompatibilityFrameResult, error) {
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, rootID); err != nil {
+		return ResumeCompatibilityFrameResult{}, err
+	}
 	if input.MessageIntent != nil {
 		if input.MessageIntent.FrameID != rootID {
 			return ResumeCompatibilityFrameResult{}, transcriptstore.ErrMessageIntentConflict
@@ -1186,6 +1198,9 @@ func (s *Store) createAutoResumeDispatch(frameID, rootFrameID, projectID, agentN
 		return ResumeCompatibilityFrameResult{}, fmt.Errorf("begin auto resume dispatch: %w", err)
 	}
 	defer tx.Rollback()
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, frameID); err != nil {
+		return ResumeCompatibilityFrameResult{}, err
+	}
 	if intent != nil {
 		if err := transcriptstore.CheckFrameMessageIntentAdmission(ctx, tx, frameID, intent.InputMessageID, intent); err != nil {
 			return ResumeCompatibilityFrameResult{}, err

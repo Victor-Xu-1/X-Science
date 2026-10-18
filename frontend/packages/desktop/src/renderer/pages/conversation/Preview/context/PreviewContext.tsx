@@ -10,6 +10,9 @@ import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePreviewFocusReturn } from './usePreviewFocusReturn';
+import type { NotebookSessionNavigation } from '@/renderer/services/notebook/manualNotebookTypes';
+import { sameNotebookPreview } from '@/renderer/services/notebook/notebookPreviewNavigation';
+import { registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 
 type PreviewDefaultTitleKey =
   | 'preview.defaultTitles.markdown'
@@ -29,6 +32,7 @@ export interface DomSnippet {
 }
 
 export interface PreviewMetadata {
+  notebookSession?: NotebookSessionNavigation;
   language?: string;
   title?: string;
   diff?: string;
@@ -243,6 +247,18 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   const previewFocusIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
   const focusBoundary = useRef<HTMLDivElement>(null);
   const embeddedFocusId = useId();
+  useEffect(
+    () =>
+      registerRendererAccountReset(`notebook-preview:${embeddedFocusId}`, () => {
+        setTabs((current) => {
+          const retained = current.filter((tab) => !tab.metadata?.notebookSession);
+          setActiveTabId((active) => (retained.some((tab) => tab.id === active) ? active : (retained[0]?.id ?? null)));
+          if (retained.length === 0) setIsOpen(false);
+          return retained;
+        });
+      }),
+    [embeddedFocusId]
+  );
   const previewFocusScopeId = scope === 'embedded' ? embeddedFocusId : undefined;
   const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(
     previewFocusIds,
@@ -329,6 +345,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       return (
         tabList.find((tab) => {
           if (tab.content_type !== type) return false;
+          const notebookMatch = sameNotebookPreview(meta?.notebookSession, tab.metadata?.notebookSession);
+          if (notebookMatch !== null) return notebookMatch;
           const tabFileName = normalize(tab.metadata?.file_name);
           const tabTitle = normalize(tab.metadata?.title);
           const tabFilePath = normalize(tab.metadata?.file_path);
@@ -890,3 +908,5 @@ export const usePreviewContext = () => {
   }
   return context;
 };
+
+export const useOptionalPreviewContext = () => useContext(PreviewContext);

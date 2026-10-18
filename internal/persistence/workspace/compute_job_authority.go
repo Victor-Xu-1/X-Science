@@ -106,6 +106,9 @@ func (s *Store) CreateComputeJob(userID string, job ComputeJob) (ComputeJob, err
 		return ComputeJob{}, fmt.Errorf("begin create compute job: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := checkComputeConversationAvailableTx(ctx, tx, userID, job); err != nil {
+		return ComputeJob{}, err
+	}
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO compute_workbench_jobs(
 			job_id,owner_user_id,project_id,frame_id,environment,tier_type,provider,state,

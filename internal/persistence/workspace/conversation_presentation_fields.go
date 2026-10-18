@@ -6,6 +6,8 @@ import (
 	"math"
 	"strings"
 	"unicode/utf8"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 var ErrConversationPresentationStale = errors.New("conversation presentation changed; refresh before editing")
@@ -37,6 +39,13 @@ func ConversationPresentation(contextData map[string]any) (map[string]any, error
 		return nil, err
 	}
 	result := map[string]any{"pinned": false, "presentation_revision": revision}
+	archivedAt, err := transcriptstore.ConversationArchivedAt(contextData)
+	if err != nil {
+		return nil, err
+	}
+	if archivedAt > 0 {
+		result["archived_at"] = extra["archived_at"]
+	}
 	for _, key := range []string{"pinned", "pinned_at", "sortOrder", "selected_view"} {
 		if value, ok := extra[key]; ok {
 			result[key] = value

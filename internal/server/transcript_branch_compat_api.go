@@ -294,6 +294,9 @@ func canonicalTranscriptBranchMutationID(r *http.Request, bodyValue string, sema
 }
 
 func writeCanonicalTranscriptBranchError(w http.ResponseWriter, err error, missingDetail string) {
+	if writeConversationAvailabilityError(w, err) {
+		return
+	}
 	switch {
 	case errors.Is(err, transcriptstore.ErrBranchTargetNotFound):
 		writeV11Detail(w, http.StatusNotFound, missingDetail)

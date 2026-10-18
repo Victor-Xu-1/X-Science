@@ -247,6 +247,11 @@ func (s *Server) recoverCompatibilityQueuedMessages() (int, error) {
 			}
 			count, err := s.advanceCompatibilityFrameAfterRunner(frameID, state.Status)
 			if err != nil {
+				if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+					// The rejected root retains its queue and typed refusal; it
+					// must not prevent another root's explicit input from delivery.
+					continue
+				}
 				return advanced, err
 			}
 			advanced += count
@@ -270,6 +275,9 @@ func (s *Server) recoverCompatibilityQueuedMessages() (int, error) {
 		}
 		count, err := s.advanceCompatibilityFrameAfterRunner(frameID, terminalStatus)
 		if err != nil {
+			if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+				continue
+			}
 			return advanced, err
 		}
 		advanced += count

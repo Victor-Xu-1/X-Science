@@ -87,6 +87,7 @@ func TestInternalRunnerAdmissionCannotBecomeGenericFreshWork(t *testing.T) {
 func seedInternalAdmissionInput(t *testing.T, repo *Repository) StartInternalFrameRunnerInput {
 	t.Helper()
 	if _, err := repo.db.Exec(`INSERT INTO projects(id,user_id) VALUES('project-a','owner-a');
+		INSERT INTO frames(id,project_id,root_frame_id) VALUES('root-a','project-a','root-a');
 		INSERT INTO frames(id,project_id,root_frame_id) VALUES('frame-a','project-a','root-a')`); err != nil {
 		t.Fatal(err)
 	}

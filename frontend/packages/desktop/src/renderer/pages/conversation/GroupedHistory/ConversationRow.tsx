@@ -8,7 +8,9 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Copy, DeleteOne, Download, EditOne, MoreOne, MoveOne } from '@icon-park/react';
-import { BookOpen, Download as ExportIcon } from 'lucide-react';
+import { Archive, BookOpen, Download as ExportIcon } from 'lucide-react';
+import { isConversationArchiveUnavailable } from '@/renderer/services/runtime/conversationArchive';
+import { isConversationPresentationUnavailable } from '@/renderer/services/runtime/conversationPresentation';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -55,6 +57,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onViewNotebook,
     onTogglePin,
     pinPending = false,
+    onArchive,
+    archivePending = false,
   } = props;
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -79,6 +83,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const taskIndicatorState = resolveConversationTaskIndicatorState(conversation, isGenerating);
   const isRunning = taskIndicatorState === 'running';
   const exportDisabled = isSessionExportDisabled(conversation, isGenerating);
+  const archiveDisabled = archivePending || isConversationArchiveUnavailable(conversation, isGenerating);
+  const presentationUnavailable = isConversationPresentationUnavailable(conversation);
+  const pinDisabled = pinPending || presentationUnavailable;
   const menuId = `conversation-menu-${conversation.id}`;
 
   const focusFirstMenuItem = useCallback(() => {
@@ -305,7 +312,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     onKeyDown={handleMenuKeyDown}
                     onClickMenuItem={(key) => {
                       if (key === 'toggle-pin') {
-                        if (!pinPending && onTogglePin) {
+                        if (!pinDisabled && onTogglePin) {
                           onMenuVisibleChange(conversation.id, false);
                           onTogglePin(conversation);
                         }
@@ -340,10 +347,19 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       if (key === 'delete') {
                         onDelete(conversation.id);
                       }
+                      if (key === 'archive' && !archiveDisabled && onArchive) {
+                        onMenuVisibleChange(conversation.id, false);
+                        onArchive(conversation);
+                      }
                     }}
                   >
+                    {presentationUnavailable ? (
+                      <div role='status' className='px-8px py-6px text-11px leading-16px text-t-tertiary'>
+                        {t('conversation.history.presentationUnavailable')}
+                      </div>
+                    ) : null}
                     {onTogglePin ? (
-                      <Menu.Item key='toggle-pin' disabled={pinPending}>
+                      <Menu.Item key='toggle-pin' disabled={pinDisabled} aria-disabled={pinDisabled}>
                         <div className='flex items-center gap-8px' aria-busy={pinPending}>
                           {conversation.extra.pinned ? (
                             <PinOff size={16} strokeWidth={2} />
@@ -397,6 +413,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                         <span>{t('conversation.history.export')}</span>
                       </div>
                     </Menu.Item>
+                    {onArchive ? (
+                      <Menu.Item key='archive' disabled={archiveDisabled} aria-disabled={archiveDisabled}>
+                        <div className='flex items-center gap-8px text-13px leading-20px' aria-busy={archivePending}>
+                          <Archive size={16} strokeWidth={2} aria-hidden='true' />
+                          <span>{t('conversation.history.archive')}</span>
+                        </div>
+                      </Menu.Item>
+                    ) : null}
                     <Menu.Item key='delete'>
                       <div className='flex items-center gap-8px text-danger-6'>
                         <DeleteOne theme='outline' size='14' />

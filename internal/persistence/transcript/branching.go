@@ -218,6 +218,9 @@ func (r *Repository) beginFrameBranchMutationConn(
 	plan branchMutationPlan,
 	now time.Time,
 ) (CancelRunnerResult, error) {
+	if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
+		return CancelRunnerResult{}, err
+	}
 	var activeBranchID string
 	var generation int64
 	if err := conn.QueryRowContext(ctx, `

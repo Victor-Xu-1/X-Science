@@ -363,6 +363,10 @@ func seedTranscriptWebWorkFrame(
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO frames(id,project_id,root_frame_id) VALUES(?,?,?)`,
+		fixture.rootFrameID, fixture.projectID, fixture.rootFrameID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO frames(id,project_id,root_frame_id) VALUES(?,?,?)`,
 		fixture.frameID, fixture.projectID, fixture.rootFrameID); err != nil {
 		t.Fatal(err)
 	}

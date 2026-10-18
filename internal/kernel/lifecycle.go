@@ -90,6 +90,7 @@ type LastCell struct {
 // SessionKernel is the v1.1 live inventory projection. RootFrameID is exposed
 // for project-level grouping while incarnation fences remain internal.
 type SessionKernel struct {
+	RegistrationGeneration uint64                `json:"-"`
 	FrameID                string                `json:"frame_id"`
 	FrameIncarnationID     string                `json:"-"`
 	RootFrameIncarnationID string                `json:"-"`
@@ -149,8 +150,11 @@ type SubmitRequest struct {
 	Code                   string
 	WorkingDir             string
 	Background             bool
-	Fresh                  bool
-	Origin                 string
+	// PersistenceRequired retains a manual foreground result until its owner
+	// commits the durable receipt. It is independent of background execution.
+	PersistenceRequired bool
+	Fresh               bool
+	Origin              string
 	// Timeout is an explicit active-cell wall-clock deadline. Zero is unbounded
 	// and must not be replaced with the worker idle timeout.
 	Timeout            time.Duration
@@ -237,11 +241,11 @@ func (h *ExecutionHandle) Done() <-chan ExecutionOutcome {
 	return h.execution.done
 }
 
-// AcknowledgePersistence releases a completed background execution only after
-// its durable execution log and notification have committed. Foreground
-// executions are released by the lifecycle immediately and ignore this call.
+// AcknowledgePersistence releases a completed persistence-owned execution.
+// Default foreground calls ignore it; a manual PersistenceRequired call and
+// existing background calls retain their result until their owner commits it.
 func (h *ExecutionHandle) AcknowledgePersistence() {
-	if h == nil || h.execution == nil || !h.execution.request.Background {
+	if h == nil || h.execution == nil || (!h.execution.request.Background && !h.execution.request.PersistenceRequired) {
 		return
 	}
 	h.execution.acknowledgePersistence()
@@ -277,6 +281,7 @@ type managedExecution struct {
 	request        SubmitRequest
 	key            executionKey
 	generation     uint64
+	identity       ExecutionIdentity
 	stdoutObserver func(ExecStdoutChunk)
 
 	mu              sync.Mutex
@@ -813,7 +818,8 @@ func (m *Manager) CloseIdleCandidate(ctx context.Context, candidate IdleCandidat
 
 func snapshotSessionKernel(state *workerLifecycle) SessionKernel {
 	projection := SessionKernel{
-		FrameID: state.spec.FrameID, FrameIncarnationID: state.spec.FrameIncarnationID,
+		RegistrationGeneration: state.generation,
+		FrameID:                state.spec.FrameID, FrameIncarnationID: state.spec.FrameIncarnationID,
 		RootFrameID: state.spec.RootFrameID, RootFrameIncarnationID: state.spec.RootFrameIncarnationID,
 		ProjectID: state.spec.ProjectID,
 		AgentName: state.spec.AgentName, Environment: state.spec.Environment,
@@ -873,10 +879,11 @@ func (m *Manager) Submit(input SubmitRequest) (*ExecutionHandle, error) {
 		state.backgroundQueued++
 	}
 	generation := state.generation
+	identity := executionIdentity(state.spec, input, generation)
 	state.mu.Unlock()
 	key := executionKey{manager: fmt.Sprintf("%p", m), frameID: input.FrameID, execID: input.ExecID}
 	execution := &managedExecution{
-		worker: worker, state: state, request: input, key: key, generation: generation,
+		worker: worker, state: state, request: input, key: key, generation: generation, identity: identity,
 		stdoutObserver: m.currentStdoutObserver(),
 		status:         "queued", interrupt: make(chan struct{}, 1), hostCancel: make(chan struct{}, 1), resourceFailure: make(chan *ResourcePressureFailure, 1),
 		started: make(chan ExecutionStarted, 1), done: make(chan ExecutionOutcome, 1), finished: make(chan struct{}),
@@ -928,6 +935,9 @@ func normalizeSubmitRequest(input SubmitRequest) SubmitRequest {
 }
 
 func validateSubmitRequest(input SubmitRequest) error {
+	if input.Background && input.PersistenceRequired {
+		return errors.New("foreground persistence obligation cannot be combined with background execution")
+	}
 	if input.FrameID == "" || input.ExecID == "" || input.ToolUseID == "" {
 		return errors.New("frame id, execution id, and tool use id are required")
 	}
@@ -1527,7 +1537,7 @@ func (execution *managedExecution) finish(outcome ExecutionOutcome) {
 			outcome.Response.Stdout = execution.stdout
 		}
 		execution.status = "done"
-		if execution.request.Background && !outcome.Dequeued {
+		if execution.request.PersistenceRequired || execution.request.Background && !outcome.Dequeued {
 			execution.status = "persisting"
 		}
 		execution.mu.Unlock()
@@ -1547,7 +1557,7 @@ func (execution *managedExecution) finish(outcome ExecutionOutcome) {
 		execution.state.mu.Unlock()
 		outcome.FinishedAt = finishedAt
 		execution.startedOnce.Do(func() { close(execution.started) })
-		if !execution.request.Background || outcome.Dequeued {
+		if !execution.request.PersistenceRequired && (!execution.request.Background || outcome.Dequeued) {
 			lifecycleRegistry.mu.Lock()
 			delete(lifecycleRegistry.executions, execution.key)
 			lifecycleRegistry.mu.Unlock()
@@ -1585,6 +1595,12 @@ func consumeRKernelRestartNotice(state *workerLifecycle, generation uint64, resp
 }
 
 func (execution *managedExecution) acknowledgePersistence() {
+	execution.mu.Lock()
+	persisting := execution.status == "persisting"
+	execution.mu.Unlock()
+	if !persisting {
+		return
+	}
 	lifecycleRegistry.mu.Lock()
 	if lifecycleRegistry.executions[execution.key] == execution {
 		delete(lifecycleRegistry.executions, execution.key)
@@ -1717,24 +1733,7 @@ func (m *Manager) interrupt(frameID, frameIncarnationID, rootFrameIncarnationID,
 			execution.request.RootFrameIncarnationID != rootFrameIncarnationID) {
 		return InterruptResult{Reason: "no such terminal cell"}
 	}
-	execution.mu.Lock()
-	switch execution.status {
-	case "queued":
-		execution.status = "dequeued"
-		execution.mu.Unlock()
-		execution.finish(ExecutionOutcome{Dequeued: true})
-		return InterruptResult{Dequeued: true, Reason: "cell had not started \u2014 dequeued"}
-	case "running":
-		execution.mu.Unlock()
-		select {
-		case execution.interrupt <- struct{}{}:
-		default:
-		}
-		return InterruptResult{Interrupted: true, Via: "sigint"}
-	default:
-		execution.mu.Unlock()
-		return InterruptResult{Reason: "no such terminal cell"}
-	}
+	return interruptManagedExecution(execution, nil)
 }
 
 func (m *Manager) ActiveExecutionCount() int {

@@ -130,6 +130,9 @@ func (s *Store) QueueCompatibilityMessage(
 	if !errors.Is(err, sql.ErrNoRows) {
 		return CompatibilityMessageIntent{}, FrameEvent{}, false, fmt.Errorf("lookup compatibility queue intent: %w", err)
 	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, frameID); err != nil {
+		return CompatibilityMessageIntent{}, FrameEvent{}, false, err
+	}
 	var pending int
 	if err := tx.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM queued_user_messages WHERE frame_id = ? AND state = 'queued'`, frameID,
