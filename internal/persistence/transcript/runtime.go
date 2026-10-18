@@ -306,44 +306,7 @@ func (tx *ImmediateTransaction) CancelLatestFrameRunner(
 	if err != nil {
 		return CancelRunnerResult{}, err
 	}
-	var attempt int64
-	err = tx.conn.QueryRowContext(ctx, `
-		SELECT attempt FROM transcript_runner_attempts WHERE stream_uid=? ORDER BY attempt DESC LIMIT 1`, streamUID,
-	).Scan(&attempt)
-	if errors.Is(err, sql.ErrNoRows) {
-		_, digest, tokenErr := tx.repository.newClaimToken()
-		if tokenErr != nil {
-			return CancelRunnerResult{}, tokenErr
-		}
-		attempt = 1
-		now := tx.repository.now().UTC()
-		if _, err := tx.conn.ExecContext(ctx, `
-			INSERT INTO transcript_runner_attempts(
-				stream_uid,attempt,runner_id,claim_token_sha256,claimed_input_revision,
-				resume_source,resume_checkpoint_sequence,status,phase,phase_sequence,
-				last_checkpoint_sequence,claimed_at,expires_at
-			) VALUES(?,1,?,?,?,'fresh',0,'running','claimed',1,0,?,?)`,
-			streamUID, "cancel-before-claim", digest, inputRevision, now, now,
-		); err != nil {
-			return CancelRunnerResult{}, err
-		}
-		err = nil
-	}
-	if err != nil {
-		return CancelRunnerResult{}, err
-	}
-	input := CancelRunnerInput{
-		StreamUID:       streamUID,
-		OwnerID:         ownerID,
-		ExpectedAttempt: attempt,
-		ClientMessageID: "runner-cancel:" + streamUID + ":" + strconv.FormatInt(attempt, 10),
-		ReasonCode:      reasonCode,
-		Destinations:    destinations,
-	}
-	if err := normalizeCancelRunnerInput(&input); err != nil {
-		return CancelRunnerResult{}, err
-	}
-	return cancelRunnerConn(ctx, tx.conn, tx.repository.now().UTC(), input)
+	return tx.cancelFrameRunner(ctx, streamUID, inputRevision, ownerID, reasonCode, destinations)
 }
 
 // CompleteLatestFrameRunner settles the latest Frame runner from a trusted

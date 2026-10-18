@@ -1372,6 +1372,32 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 
 ### File-tool feedback and structured source inspection
 
+Task-local input publication syncs the actual destination directory before
+message acceptance, including same-content retries. Creation of managed input
+directories also confirms the task directory and its storage-parent namespace.
+Blocking sync I/O runs outside the host-grant mutation guard, followed by an
+identity/authority recheck; no-overwrite, bounded source reads and cancellation
+remain in the existing shared publication owner.
+
+If the filesystem cannot confirm directory durability, submission returns a
+service-unavailable error rather than accepting a path whose persistence is
+unknown. Already-linked bytes remain available for an authorized retry, which
+revalidates the selected source and destination through the existing file owner.
+This does not create an immutable version for an unaccepted raw host-file path;
+an already accepted frozen intent replays its canonical input without copying again.
+Unsupported directory sync is not treated as success on another platform or
+filesystem. These checks establish software ordering/error behavior against
+the filesystem's contract, not a destructive power-loss experiment or a promise
+that hardware/storage can never fail.
+
+任务输入在消息接受前同步实际目标目录，同内容重试也要真实确认；新建托管输入
+目录还会同步任务目录和存储父级的命名空间。阻塞同步不持有主机授权变更锁，之后
+再复核身份与权限。文件系统无法确认持久化时返回暂不可用，不会把未知路径标成
+已接受；已链接字节保留，重试仍由现有文件链路重新验证源与目标，不覆盖其他文件。
+未接受的原始主机路径不会因此获得不可变版本；已接受的冻结意图按原有权威重放，
+不再次复制。平台不支持目录同步不会被静默视为成功；这不是断电实验
+或硬件永不失败的承诺。
+
 PDF reads inspect a single private snapshot copied from the already-authorized
 source handle. Page metadata, selected-page images, the inline document and
 extracted text use those same bytes. `total_pages` is present only with a

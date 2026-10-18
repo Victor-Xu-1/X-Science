@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"strings"
 	"time"
 	eventjournal "x-science/internal/persistence/journal"
@@ -53,20 +54,20 @@ func (s *Server) ensureKernelChildSession(child workspace.KernelSupervisedChild)
 	if err := s.sessionStore.Save(session); err != nil {
 		return err
 	}
+	canonical, err := s.workspaceStore.KernelChildHasCanonicalInitialInput(context.Background(), child)
+	if err != nil {
+		return err
+	}
+	if canonical {
+		return nil
+	}
 	clientID := "kernel-delegate-task:" + child.ToolUseID + ":" + child.FrameID
 	has, err := s.eventJournal.HasClientMessage(child.FrameID, clientID)
 	if err != nil {
 		return err
 	}
 	if !has {
-		text := child.Task
-		if strings.TrimSpace(child.ContextSummary) != "" {
-			text = "Context:\n" + child.ContextSummary + "\n\nTask:\n" + child.Task
-		}
-		if len(child.OutputSchema) > 0 {
-			rawSchema, _ := json.Marshal(child.OutputSchema)
-			text += "\n\nSubmit a compact result matching this JSON Schema with submit_output before finishing:\n" + string(rawSchema)
-		}
+		text := workspace.KernelDelegationInitialText(child)
 		if _, err := s.eventJournal.Append(child.FrameID, eventjournal.Message{
 			"type": "message", "role": "user", "text": text, "parentFrameId": child.ParentFrameID,
 		}, eventjournal.Metadata{ClientMessageID: clientID}); err != nil {
@@ -81,9 +82,20 @@ func isSessionRunnerTerminal(runner *sessionstore.Runner) bool {
 }
 
 func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gates ...chan struct{}) {
+	if s.isDraining() {
+		return
+	}
+	preflight, finishPreflight := context.WithTimeout(context.Background(), 5*time.Second)
+	target, status, targetErr := s.workspaceStore.KernelChildDispatchTarget(preflight, child.OwnerUserID, child.ParentFrameID, child.FrameID)
+	finishPreflight()
+	if targetErr != nil || status == "terminal" {
+		return
+	}
 	key := kernelChildRunKey{server: s, frameID: child.FrameID}
-	ctx, cancel := context.WithCancel(context.Background())
-	run := &kernelChildRun{cancel: cancel, done: make(chan struct{}), wake: make(chan struct{}, 1)}
+	ctx, cancelCause := context.WithCancelCause(context.Background())
+	cancel := func() { cancelCause(context.Canceled) }
+	run := &kernelChildRun{target: &target, stop: func() { cancelCause(ErrGenerationStopped) }, cancel: cancel, done: make(chan struct{}), wake: make(chan struct{}, 1)}
+	ctx = context.WithValue(ctx, kernelChildOwnerContextKey{}, run)
 	if existing, loaded := kernelChildRuns.LoadOrStore(key, run); loaded {
 		cancel()
 		existing.(*kernelChildRun).signal()
@@ -91,27 +103,19 @@ func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gate
 	}
 	_ = s.workspaceStore.MarkKernelChildDispatched(context.Background(), child.FrameID, child.OwnerUserID)
 	go func() {
-		defer close(run.done)
-		defer kernelChildRuns.CompareAndDelete(key, run)
-		defer cancel()
+		defer s.finishKernelChildRegistration(ctx, child, run)
 		if len(gates) > 0 && gates[0] != nil {
 			select {
 			case gates[0] <- struct{}{}:
 				defer func() { <-gates[0] }()
 			case <-ctx.Done():
-				_, _ = s.workspaceStore.CompleteKernelSupervisedChild(context.Background(), child.FrameID, child.OwnerUserID, "cancelled", nil, "queued child run was cancelled")
+				if run.stopSnapshot() == nil {
+					s.settleKernelChildRun(child, "cancelled", nil, "queued child run was cancelled", run.completionFences()...)
+				}
 				return
 			}
 		}
 		s.runKernelChildSupervisor(ctx, child, run)
-		kernelChildRuns.CompareAndDelete(key, run)
-		if ctx.Err() == nil {
-			if pending, _ := s.workspaceStore.KernelChildHasPendingMessages(context.Background(), child.FrameID, child.OwnerUserID); pending {
-				if reopened, err := s.workspaceStore.ReopenKernelSupervisedChild(context.Background(), child.FrameID, child.OwnerUserID); err == nil {
-					s.startKernelChildRun(reopened)
-				}
-			}
-		}
 	}()
 }
 
@@ -141,20 +145,47 @@ func (s *Server) cancelAllKernelChildRuns(ctx context.Context) error {
 func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.KernelSupervisedChild, run *kernelChildRun) {
 	runnerID := "kernel-child-" + child.FrameID
 	for {
+		if run.stopSnapshot() != nil {
+			return
+		}
 		pending, err := s.workspaceStore.ListPendingKernelChildMessages(context.Background(), child.FrameID, child.OwnerUserID)
 		if err != nil {
-			s.settleKernelChildRun(child, "failed", nil, err.Error())
+			s.settleKernelChildRun(child, "failed", nil, err.Error(), run.completionFences()...)
 			return
 		}
-		if err := s.materializeKernelChildMessages(child, pending); err != nil {
-			s.settleKernelChildRun(child, "failed", nil, err.Error())
+		if err := s.materializeKernelChildMessages(ctx, child, pending); err != nil {
+			s.settleKernelChildRun(child, "failed", nil, err.Error(), run.completionFences()...)
 			return
 		}
+		target, state, targetErr := s.workspaceStore.KernelChildDispatchTarget(ctx, child.OwnerUserID, child.ParentFrameID, child.FrameID)
+		if targetErr != nil || state == "terminal" {
+			return
+		}
+		run.targetMu.Lock()
+		run.target = &target
+		run.targetMu.Unlock()
 		result, runErr := s.RunSessionRunnerChatOnce(ctx, SessionRunnerChatOptions{
-			SessionID: child.FrameID, RunnerID: runnerID,
+			expectedInputClaim: &runnerInputClaimTarget{MessageID: target.InputMessageID, Revision: target.InputRevision, FrameIncarnationID: target.FrameIncarnationID, StreamEpoch: target.StreamEpoch},
+			SessionID:          child.FrameID, RunnerID: runnerID,
 			RequestTimeout: defaultSessionRunnerChatRequestTimeout,
 			LeaseTTL:       defaultSessionRunnerLeaseTTL,
 		})
+		if runErr != nil {
+			log.Printf("kernel child runner returned frame=%q claimed=%t status=%q attempt=%d input_revision=%d: %v",
+				child.FrameID, result.Claimed, result.Status, result.Attempt, target.InputRevision, runErr)
+		}
+		if errors.Is(runErr, transcriptstore.ErrClaimStale) {
+			return
+		}
+		if result.transcriptAuthority != nil {
+			run.targetMu.Lock()
+			run.target.RunnerAttempt = result.transcriptAuthority.Claim.Attempt
+			run.completionClaim = result.transcriptAuthority.Claim
+			run.targetMu.Unlock()
+		}
+		if run.stopSnapshot() != nil {
+			return
+		}
 
 		if result.Claimed {
 			for _, message := range pending {
@@ -162,7 +193,7 @@ func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.K
 			}
 		}
 		if errors.Is(ctx.Err(), context.Canceled) {
-			s.settleKernelChildRun(child, "cancelled", nil, "child run was cancelled")
+			s.settleKernelChildRun(child, "cancelled", nil, "child run was cancelled", run.completionFences()...)
 			return
 		}
 		if hasPending, _ := s.workspaceStore.KernelChildHasPendingMessages(context.Background(), child.FrameID, child.OwnerUserID); hasPending {
@@ -195,7 +226,9 @@ func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.K
 				}
 			}
 		}
-		if status == "completed" {
+		if status == "completed" && result.transcriptAuthority == nil {
+			// Legacy engines lack a typed pause result. A canonical terminal is
+			// already authoritative; an empty Discuss answers map is not pending.
 			if waiting, detectErr := s.kernelChildAwaitingUserResponse(child.FrameID); detectErr != nil {
 				status, failure = "failed", detectErr.Error()
 			} else if waiting {
@@ -206,7 +239,7 @@ func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.K
 		if projectionErr != nil && failure == "" {
 			status, failure = "failed", projectionErr.Error()
 		}
-		settled := s.settleKernelChildRun(child, status, output, failure)
+		settled := s.settleKernelChildRun(child, status, output, failure, run.completionFences()...)
 		if settled.Status == "processing" {
 			continue
 		}
@@ -214,8 +247,13 @@ func (s *Server) runKernelChildSupervisor(ctx context.Context, child workspace.K
 	}
 }
 
-func (s *Server) settleKernelChildRun(child workspace.KernelSupervisedChild, status string, output map[string]any, failure string) workspace.KernelSupervisedChild {
-	settled, err := s.workspaceStore.CompleteKernelSupervisedChild(context.Background(), child.FrameID, child.OwnerUserID, status, output, failure)
+func (s *Server) settleKernelChildRun(child workspace.KernelSupervisedChild, status string, output map[string]any, failure string, targets ...workspace.KernelChildCompletionFence) workspace.KernelSupervisedChild {
+	settled, err := s.workspaceStore.CompleteKernelSupervisedChild(context.Background(), child.FrameID, child.OwnerUserID, status, output, failure, targets...)
+	if errors.Is(err, transcriptstore.ErrClaimStale) {
+		// The caller no longer owns the current summary. This is an internal
+		// exit result only: no new Frame status or notification is published.
+		return workspace.KernelSupervisedChild{FrameID: child.FrameID, Status: "superseded"}
+	}
 	if err != nil {
 		return workspace.KernelSupervisedChild{FrameID: child.FrameID, Status: "failed", Error: err.Error()}
 	}
@@ -225,9 +263,18 @@ func (s *Server) settleKernelChildRun(child workspace.KernelSupervisedChild, sta
 	return settled
 }
 
-func (s *Server) materializeKernelChildMessages(child workspace.KernelSupervisedChild, pending []workspace.KernelChildQueuedMessage) error {
+func (s *Server) materializeKernelChildMessages(ctx context.Context, child workspace.KernelSupervisedChild, pending []workspace.KernelChildQueuedMessage) error {
 	if len(pending) == 0 {
 		return nil
+	}
+	if _, authoritative, err := s.resolveTranscriptFrameStream(ctx, child.FrameID); err != nil {
+		return err
+	} else if authoritative {
+		target, _, err := s.workspaceStore.KernelChildDispatchTarget(ctx, child.OwnerUserID, child.ParentFrameID, child.FrameID)
+		if err != nil {
+			return err
+		}
+		return s.workspaceStore.AdmitKernelChildMessageInputs(ctx, child, target, pending)
 	}
 	appended := 0
 	for _, message := range pending {
@@ -272,14 +319,14 @@ func (s *Server) materializeKernelChildMessages(child workspace.KernelSupervised
 }
 
 func (s *Server) kernelChildAwaitingUserResponse(frameID string) (bool, error) {
-	entries, err := s.eventJournal.ReadAll(frameID)
+	entries, err := s.readKernelChildEntries(context.Background(), frameID)
 	if err != nil {
 		return false, err
 	}
 	var latestRequest, latestAnswer int64
 	for _, entry := range entries {
 		message := entry.Message
-		if message["notification_type"] == "child_message" && message["role"] == "user" {
+		if message["role"] == "user" && (message["notification_type"] == "child_message" || strings.HasPrefix(entry.ClientMessageID, "kernel-child-message:")) {
 			latestAnswer = entry.EventID
 		}
 		name := stringValue(message["toolName"])
@@ -298,7 +345,7 @@ func (s *Server) kernelChildAwaitingUserResponse(frameID string) (bool, error) {
 }
 
 func (s *Server) projectKernelChildOutput(child workspace.KernelSupervisedChild) (map[string]any, error) {
-	entries, err := s.eventJournal.ReadAll(child.FrameID)
+	entries, err := s.readKernelChildEntries(context.Background(), child.FrameID)
 	if err != nil {
 		return nil, err
 	}

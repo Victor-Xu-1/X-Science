@@ -7,17 +7,21 @@ import { Button, Drawer, Empty, Spin } from '@arco-design/web-react';
 import { ArrowRight, Redo } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { DelegatedStopPresentation } from './useDelegatedStop';
+import DelegatedStopActions from './DelegatedStopActions';
 
 type XScienceLineageMessagesDrawerProps = {
   child: XScienceDelegateFrame | null;
   onClose: () => void;
   onOpenFull: (frameId: string) => void;
+  stop?: DelegatedStopPresentation;
 };
 
 const XScienceLineageMessagesDrawer: React.FC<XScienceLineageMessagesDrawerProps> = ({
   child,
   onClose,
   onOpenFull,
+  stop,
 }) => {
   const layout = useLayoutContext();
   const { t } = useTranslation();
@@ -35,7 +39,9 @@ const XScienceLineageMessagesDrawer: React.FC<XScienceLineageMessagesDrawerProps
     void loadXScienceLineageMessages(child.frameId, {
       signal: controller.signal,
     })
-      .then((result) => setMessages(result.items))
+      .then((result) => {
+        if (!controller.signal.aborted) setMessages(result.items);
+      })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) {
           console.error(`[${PRODUCT_NAME} LineageMessagesDrawer] Failed to load child messages`, reason);
@@ -82,6 +88,7 @@ const XScienceLineageMessagesDrawer: React.FC<XScienceLineageMessagesDrawerProps
               {t('conversation.xscienceRuntime.lineage.openFullTask')}
             </Button>
           </div>
+          {stop && <DelegatedStopActions stop={stop} childFrameId={child.frameId} />}
           <div
             className='min-h-0 flex-1 overflow-y-auto px-2px pb-12px'
             aria-label={t('conversation.xscienceRuntime.lineage.transcript')}

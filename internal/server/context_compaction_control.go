@@ -8,11 +8,6 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-type contextCompactionClaimTarget struct {
-	MessageID string
-	Revision  int64
-}
-
 func contextCompactionTerminalReceipt(receipt *transcriptstore.ContextCompactionReceipt) bool {
 	return receipt != nil && receipt.Accepted && (receipt.State == "committed" || receipt.State == "cancelled" || receipt.State == "failed")
 }

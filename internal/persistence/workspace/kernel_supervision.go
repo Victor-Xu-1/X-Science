@@ -26,6 +26,7 @@ type KernelDelegateRequest struct {
 }
 
 type CreateKernelDelegatesInput struct {
+	Admission     *KernelDelegationAdmission
 	ParentFrameID string
 	OwnerUserID   string
 	ToolUseID     string
@@ -142,164 +143,13 @@ func (s *Store) CreateKernelSupervisedChildren(ctx context.Context, input Create
 	if input.MaxDepth > 2 {
 		input.MaxDepth = 2
 	}
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin kernel delegation: %w", err)
-	}
-	defer tx.Rollback()
-
-	var projectID, rootFrameID, parentAgent, owner string
-	if err := tx.QueryRowContext(ctx, `
-		SELECT f.project_id, f.root_frame_id, f.agent_name, p.user_id
-		FROM frames f JOIN projects p ON p.id = f.project_id WHERE f.id = ?`, input.ParentFrameID,
-	).Scan(&projectID, &rootFrameID, &parentAgent, &owner); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("kernel delegation parent is unavailable")
-		}
-		return nil, fmt.Errorf("load kernel delegation parent: %w", err)
-	}
-	if owner != input.OwnerUserID {
-		return nil, errors.New("kernel delegation parent is unavailable")
-	}
-	depth := 1
-	ancestorID := input.ParentFrameID
-	for {
-		var nextParent string
-		err := tx.QueryRowContext(ctx, `SELECT parent_frame_id FROM kernel_child_supervision WHERE frame_id = ?`, ancestorID).Scan(&nextParent)
-		if errors.Is(err, sql.ErrNoRows) {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("resolve delegation depth: %w", err)
-		}
-		depth++
-		if depth > input.MaxDepth {
-			return nil, fmt.Errorf("delegation max depth %d exceeded", input.MaxDepth)
-		}
-		ancestorID = nextParent
-	}
-	var spawned int
-	countQuery := `SELECT COUNT(*) FROM kernel_child_supervision WHERE root_frame_id = ?`
-	countID := rootFrameID
-	if depth > 1 {
-		countQuery = `SELECT COUNT(*) FROM kernel_child_supervision WHERE parent_frame_id = ?`
-		countID = input.ParentFrameID
-	}
-	if err := tx.QueryRowContext(ctx, countQuery, countID).Scan(&spawned); err != nil {
-		return nil, fmt.Errorf("count kernel delegations: %w", err)
-	}
-	if spawned+len(input.Requests) > input.SpawnCap {
-		return nil, fmt.Errorf("delegation spawn cap exceeded: spawned=%d requested=%d cap=%d", spawned, len(input.Requests), input.SpawnCap)
-	}
-
-	now := s.now().UTC()
-	children := make([]KernelSupervisedChild, 0, len(input.Requests))
-	toolMapping := map[string]any{}
-	var rawParentContext sql.NullString
-	_ = tx.QueryRowContext(ctx, `SELECT context_data FROM frame_runtime_metadata WHERE frame_id = ?`, input.ParentFrameID).Scan(&rawParentContext)
-	parentContext := map[string]any{}
-	if rawParentContext.Valid && strings.TrimSpace(rawParentContext.String) != "" {
-		_ = json.Unmarshal([]byte(rawParentContext.String), &parentContext)
-	}
-	if existing, ok := parentContext["_tool_id_to_frame_id"].(map[string]any); ok {
-		for key, value := range existing {
-			toolMapping[key] = value
-		}
-	}
-
-	for index, request := range input.Requests {
-		request.Task = strings.TrimSpace(request.Task)
-		if request.Task == "" {
-			return nil, fmt.Errorf("delegate request %d task is required", index)
-		}
-		profile := strings.TrimSpace(request.Profile)
-		if profile == "" {
-			profile = parentAgent
-		}
-		if depth > 1 && !strings.EqualFold(profile, parentAgent) {
-			return nil, fmt.Errorf("delegate request %d nested profile must match its parent profile", index)
-		}
-		frameID := uuid.NewString()
-		incarnationID := uuid.NewString()
-		var rootSequence int64
-		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(root_sequence), 0) + 1 FROM frames WHERE root_frame_id = ?`, rootFrameID).Scan(&rootSequence); err != nil {
-			return nil, fmt.Errorf("allocate child root sequence: %w", err)
-		}
-		name := strings.TrimSpace(request.Name)
-		if name == "" {
-			name = profile
-		}
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO frames (id, incarnation_id, project_id, parent_frame_id, root_frame_id, root_sequence, agent_name, status, conversation_type, name, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, 'processing', 'delegate', ?, ?, ?)`,
-			frameID, incarnationID, projectID, input.ParentFrameID, rootFrameID, rootSequence, profile, name, now, now); err != nil {
-			return nil, fmt.Errorf("insert delegated child frame: %w", err)
-		}
-		contextData := map[string]any{
-			"task": request.Task, "context_summary": request.ContextSummary,
-			"profile": profile, "model": request.Model, "output_schema": request.OutputSchema,
-			"_latest_tool_block": map[string]any{"tool_use_id": input.ToolUseID, "status": "processing"},
-		}
-		rawInput, _ := json.Marshal(map[string]any{"request": request.Task})
-		rawContext, _ := json.Marshal(contextData)
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO frame_runtime_metadata (frame_id, delegate_name, input_data, context_data, model, task_summary)
-			VALUES (?, ?, ?, ?, ?, ?)`, frameID, nullableString(request.Name), string(rawInput), string(rawContext), nullableString(request.Model), request.Task); err != nil {
-			return nil, fmt.Errorf("insert delegated child metadata: %w", err)
-		}
-		rawSchema, _ := json.Marshal(request.OutputSchema)
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO kernel_child_supervision
-			(frame_id, parent_frame_id, root_frame_id, project_id, owner_user_id, tool_use_id, agent_name, delegate_name, task, context_summary, model, output_schema, status, started_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'processing', ?)`,
-			frameID, input.ParentFrameID, rootFrameID, projectID, owner, input.ToolUseID, profile,
-			request.Name, request.Task, request.ContextSummary, request.Model, string(rawSchema), now); err != nil {
-			return nil, fmt.Errorf("insert child supervision record: %w", err)
-		}
-		if _, err := appendKernelSupervisionFrameEvent(ctx, tx, FrameEventInput{
-			ID:      uuid.NewSHA1(uuid.NameSpaceOID, []byte("kernel-delegate-user:"+input.ToolUseID+":"+frameID)).String(),
-			FrameID: frameID, Type: "user_message", Payload: map[string]any{
-				"role": "user", "text": request.Task, "context_summary": request.ContextSummary,
-				"messageUuid": "delegate-task-" + frameID,
-			},
-		}, now); err != nil {
-			return nil, err
-		}
-		toolMapping[input.ToolUseID+fmt.Sprintf(":%d", index)] = frameID
-		if len(input.Requests) == 1 {
-			toolMapping[input.ToolUseID] = frameID
-		}
-		children = append(children, KernelSupervisedChild{
-			FrameID: frameID, ParentFrameID: input.ParentFrameID, RootFrameID: rootFrameID,
-			ProjectID: projectID, OwnerUserID: owner, ToolUseID: input.ToolUseID,
-			AgentName: profile, Name: request.Name, Task: request.Task,
-			ContextSummary: request.ContextSummary, Model: request.Model,
-			OutputSchema: request.OutputSchema, Status: "processing", StartedAt: now,
-		})
-	}
-	parentContext["_tool_id_to_frame_id"] = toolMapping
-	rawUpdatedContext, _ := json.Marshal(parentContext)
-	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO frame_runtime_metadata (frame_id, context_data) VALUES (?, ?)
-		ON CONFLICT(frame_id) DO UPDATE SET context_data = excluded.context_data`, input.ParentFrameID, string(rawUpdatedContext)); err != nil {
-		return nil, fmt.Errorf("persist parent child mapping: %w", err)
-	}
-	childIDs := make([]any, len(children))
-	for index := range children {
-		childIDs[index] = children[index].FrameID
-	}
-	if _, err := appendKernelSupervisionFrameEvent(ctx, tx, FrameEventInput{
-		ID:      uuid.NewSHA1(uuid.NameSpaceOID, []byte("kernel-delegate-tool-use:"+input.ParentFrameID+":"+input.ToolUseID)).String(),
-		FrameID: input.ParentFrameID, Type: "tool_use", Payload: map[string]any{
-			"tool_use_id": input.ToolUseID, "tool_name": "delegate", "child_frame_ids": childIDs,
-		},
-	}, now); err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit kernel delegation: %w", err)
-	}
-	return children, nil
+	var children []KernelSupervisedChild
+	err := transcriptstore.NewRepository(s.db).RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		var err error
+		children, err = s.createKernelSupervisedChildrenTx(ctx, tx, input)
+		return err
+	})
+	return children, err
 }
 
 func appendKernelSupervisionFrameEvent(ctx context.Context, tx workspaceTransaction, input FrameEventInput, now time.Time) (FrameEvent, error) {
@@ -417,7 +267,10 @@ func (s *Store) KernelDelegationStats(ctx context.Context, frameID, ownerUserID 
 	return KernelDelegationStats{SpawnedThisTask: spawned, Cap: cap, Remaining: remaining}, nil
 }
 
-func (s *Store) CompleteKernelSupervisedChild(ctx context.Context, frameID, ownerUserID, status string, output map[string]any, failure string) (KernelSupervisedChild, error) {
+func (s *Store) CompleteKernelSupervisedChild(ctx context.Context, frameID, ownerUserID, status string, output map[string]any, failure string, targets ...KernelChildCompletionFence) (KernelSupervisedChild, error) {
+	if len(targets) > 1 {
+		return KernelSupervisedChild{}, ErrDelegatedStopInvalid
+	}
 	if err := s.ensureKernelSupervisionSchema(ctx); err != nil {
 		return KernelSupervisedChild{}, err
 	}
@@ -442,6 +295,11 @@ func (s *Store) CompleteKernelSupervisedChild(ctx context.Context, frameID, owne
 		return KernelSupervisedChild{}, errors.New("delegated child is unavailable")
 	}
 	var generation int64
+	if len(targets) == 1 {
+		if err := validateKernelChildCompletionTargetTx(ctx, tx, child, status, targets[0]); err != nil {
+			return KernelSupervisedChild{}, err
+		}
+	}
 	_ = tx.QueryRowContext(ctx, `SELECT consumed_generation FROM kernel_child_message_clock WHERE frame_id=?`, frameID).Scan(&generation)
 	if isKernelChildTerminalStatus(child.Status) {
 		completedAt := s.now().UTC()
@@ -532,89 +390,53 @@ type KernelStopTreeResult struct {
 	Applied            bool
 }
 
+// Retained internal compatibility entry; all selection/terminal mutation is
+// performed by the same frozen host receipt and canonical cancellation core.
 func (s *Store) StopKernelSupervisedChildTree(ctx context.Context, parentFrameID, frameID, ownerUserID, reason string) (KernelStopTreeResult, error) {
-	if err := s.ensureKernelSupervisionSchema(ctx); err != nil {
+	access, found, err := s.GetKernelFrameAccessContext(ctx, parentFrameID)
+	if err != nil {
 		return KernelStopTreeResult{}, err
 	}
-	parentFrameID = strings.TrimSpace(parentFrameID)
-	frameID = strings.TrimSpace(frameID)
-	ownerUserID = strings.TrimSpace(ownerUserID)
-	reason = strings.TrimSpace(reason)
-	if parentFrameID == "" || frameID == "" || ownerUserID == "" || reason == "" {
-		return KernelStopTreeResult{}, errors.New("kernel stop tree authority is required")
+	if !found || access.UserID != ownerUserID {
+		return KernelStopTreeResult{}, ErrDelegatedStopUnavailable
+	}
+	scope := DelegatedStopScope{ParentFrameID: parentFrameID, ParentFrameIncarnationID: access.Frame.IncarnationID,
+		RootFrameID: access.Frame.RootFrameID, RootFrameIncarnationID: access.RootFrameIncarnationID}
+	receipt, err := s.AdmitKernelChildStop(ctx, ownerUserID, scope, frameID, reason, uuid.NewString())
+	if err != nil {
+		return KernelStopTreeResult{}, err
 	}
 	var result KernelStopTreeResult
-	err := transcriptstore.NewRepository(s.db).RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
-		target, found, err := scanKernelSupervisedChild(tx.QueryRowContext(ctx, `
-			SELECT frame_id,parent_frame_id,root_frame_id,project_id,owner_user_id,tool_use_id,
-				agent_name,delegate_name,task,context_summary,model,output_schema,status,
-				output_data,error,dispatched,started_at,completed_at
-			FROM kernel_child_supervision WHERE frame_id=? AND parent_frame_id=? AND owner_user_id=?`,
-			frameID, parentFrameID, ownerUserID))
+	for _, outcome := range receipt.Targets {
+		var child KernelSupervisedChild
+		var present bool
+		if outcome.Target.FrameID == frameID {
+			child, present, err = s.GetKernelSupervisedChild(ctx, parentFrameID, frameID, ownerUserID)
+			result.Target, result.Applied = child, outcome.Outcome == "cancel_requested"
+		} else {
+			frame, exists, loadErr := s.GetFrame(outcome.Target.FrameID)
+			if loadErr != nil {
+				return KernelStopTreeResult{}, loadErr
+			}
+			if !exists {
+				return KernelStopTreeResult{}, ErrDelegatedStopUnavailable
+			}
+			child, present, err = s.GetKernelSupervisedChild(ctx, frame.ParentFrameID, frame.ID, ownerUserID)
+			if outcome.Outcome == "cancel_requested" {
+				result.StoppedDescendants = append(result.StoppedDescendants, child)
+			}
+		}
 		if err != nil {
-			return err
+			return KernelStopTreeResult{}, err
 		}
-		if !found {
-			return errors.New("delegated child is unavailable")
+		if !present {
+			return KernelStopTreeResult{}, ErrDelegatedStopUnavailable
 		}
-		result.Target = target
-		if isKernelChildTerminalStatus(target.Status) {
-			return nil
-		}
-		rows, err := tx.QueryContext(ctx, `WITH RECURSIVE descendants(frame_id,depth) AS (
-			SELECT frame_id,1 FROM kernel_child_supervision WHERE parent_frame_id=? AND owner_user_id=?
-			UNION ALL
-			SELECT child.frame_id,descendants.depth+1
-			FROM kernel_child_supervision child JOIN descendants ON child.parent_frame_id=descendants.frame_id
-			WHERE child.owner_user_id=?
-		)
-		SELECT child.frame_id,child.parent_frame_id,child.root_frame_id,child.project_id,child.owner_user_id,child.tool_use_id,
-			child.agent_name,child.delegate_name,child.task,child.context_summary,child.model,child.output_schema,child.status,
-			child.output_data,child.error,child.dispatched,child.started_at,child.completed_at
-		FROM descendants JOIN kernel_child_supervision child ON child.frame_id=descendants.frame_id
-		ORDER BY descendants.depth DESC,child.started_at,child.frame_id`, frameID, ownerUserID, ownerUserID)
-		if err != nil {
-			return err
-		}
-		descendants := []KernelSupervisedChild{}
-		for rows.Next() {
-			descendant, _, scanErr := scanKernelSupervisedChild(rows)
-			if scanErr != nil {
-				_ = rows.Close()
-				return scanErr
-			}
-			descendants = append(descendants, descendant)
-		}
-		if err := rows.Close(); err != nil {
-			return err
-		}
-		if err := rows.Err(); err != nil {
-			return err
-		}
-		for _, descendant := range descendants {
-			if isKernelChildTerminalStatus(descendant.Status) {
-				continue
-			}
-			stopped, applied, err := s.stopKernelSupervisedChildTx(ctx, tx, descendant, reason)
-			if err != nil {
-				return err
-			}
-			if applied {
-				result.StoppedDescendants = append(result.StoppedDescendants, stopped)
-			}
-		}
-		stopped, applied, err := s.stopKernelSupervisedChildTx(ctx, tx, target, reason)
-		if err != nil {
-			return err
-		}
-		result.Target = stopped
-		result.Applied = applied
-		return nil
-	})
-	return result, err
+	}
+	return result, nil
 }
 
-func (s *Store) stopKernelSupervisedChildTx(ctx context.Context, tx *transcriptstore.ImmediateTransaction, child KernelSupervisedChild, reason string) (KernelSupervisedChild, bool, error) {
+func (s *Store) projectCancelledKernelChildTx(ctx context.Context, tx *transcriptstore.ImmediateTransaction, child KernelSupervisedChild, reason string, terminal transcriptstore.FinishReceipt) (KernelSupervisedChild, bool, error) {
 	output := make(map[string]any, len(child.Output)+2)
 	for key, value := range child.Output {
 		output[key] = value
@@ -628,7 +450,7 @@ func (s *Store) stopKernelSupervisedChildTx(ctx context.Context, tx *transcripts
 	now := s.now().UTC()
 	updated, err := tx.ExecContext(ctx, `UPDATE kernel_child_supervision
 		SET status='completed',output_data=?,error='',completed_at=?
-		WHERE frame_id=? AND owner_user_id=? AND status NOT IN ('completed','failed','cancelled','orphaned')`,
+		WHERE frame_id=? AND owner_user_id=?`,
 		string(rawOutput), now, child.FrameID, child.OwnerUserID)
 	if err != nil {
 		return KernelSupervisedChild{}, false, err
@@ -651,21 +473,23 @@ func (s *Store) stopKernelSupervisedChildTx(ctx context.Context, tx *transcripts
 		}
 		return current, false, nil
 	}
-	if _, err := tx.ExecContext(ctx, `UPDATE frames SET status='completed',updated_at=? WHERE id=?`, now, child.FrameID); err != nil {
+	if _, err := tx.ExecContext(ctx, `UPDATE frames SET status='cancelled',updated_at=? WHERE id=?`, now, child.FrameID); err != nil {
 		return KernelSupervisedChild{}, false, err
 	}
 	var generation int64
 	_ = tx.QueryRowContext(ctx, `SELECT consumed_generation FROM kernel_child_message_clock WHERE frame_id=?`, child.FrameID).Scan(&generation)
 	if _, err := appendKernelSupervisionFrameEvent(ctx, tx, FrameEventInput{
-		ID:      uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("kernel-child-final:%s:%d:completed", child.FrameID, generation))).String(),
+		ID:      uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("kernel-child-cancelled:%s:%s:%d", child.FrameID, terminal.StreamUID, terminal.EventID))).String(),
 		FrameID: child.FrameID, Type: "assistant_message",
-		Payload: map[string]any{"role": "assistant", "status": "completed", "output_data": output},
+		Payload: map[string]any{"role": "assistant", "status": "cancelled", "output_data": output},
 	}, now); err != nil {
 		return KernelSupervisedChild{}, false, err
 	}
-	if err := createKernelChildCompletionNotificationTx(ctx, tx, child, generation, "cancelled", output, "", now); err != nil {
+	if err := createKernelChildCompletionNotificationTx(ctx, tx, child, generation, "cancelled", output, "", now, terminal); err != nil {
 		return KernelSupervisedChild{}, false, err
 	}
+	// Retain the SDK's historical completed+stopped marker representation.
+	// Canonical runner and Frame status above remain genuinely cancelled.
 	child.Status, child.Output, child.Error, child.CompletedAt = "completed", output, "", &now
 	return child, true, nil
 }
@@ -679,15 +503,27 @@ func createKernelChildCompletionNotificationTx(
 	output map[string]any,
 	failure string,
 	completedAt time.Time,
+	terminalReceipts ...transcriptstore.FinishReceipt,
 ) error {
+	identity := fmt.Sprintf("%s:%d", child.FrameID, generation)
+	if len(terminalReceipts) == 1 {
+		receipt := terminalReceipts[0]
+		if receipt.StreamUID == "" || receipt.Attempt <= 0 || receipt.EventID <= 0 || receipt.Status != "cancelled" {
+			return ErrDelegatedStopInvalid
+		}
+		identity = fmt.Sprintf("%s:terminal:%s:%d", child.FrameID, receipt.StreamUID, receipt.EventID)
+	}
 	collectedID := uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("kernel-child-landing-collected:%s:%s:%d", child.ParentFrameID, child.FrameID, generation))).String()
+	if len(terminalReceipts) == 1 {
+		collectedID = uuid.NewSHA1(uuid.NameSpaceOID, []byte("kernel-child-landing-collected:"+child.ParentFrameID+":"+identity)).String()
+	}
 	if _, _, found, err := frameEventByID(ctx, tx, collectedID); err != nil {
 		return err
 	} else if found {
 		return nil
 	}
 	_, _, err := createNotificationTx(ctx, tx, CreateNotificationInput{
-		ID:            uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("kernel-child-notification:%s:%d", child.FrameID, generation))).String(),
+		ID:            uuid.NewSHA1(uuid.NameSpaceOID, []byte("kernel-child-notification:"+identity)).String(),
 		SenderFrameID: child.FrameID, RecipientFrameID: child.ParentFrameID,
 		RootFrameID: child.RootFrameID, OwnerUserID: child.OwnerUserID,
 		NotificationType: "child_landed",

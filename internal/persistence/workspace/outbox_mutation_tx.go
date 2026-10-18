@@ -249,6 +249,9 @@ func scanFrame(row rowScanner) (Frame, error) {
 }
 
 func (s *Store) AppendFrameOutboxEventTx(ctx context.Context, tx *sql.Tx, input FrameEventInput) (FrameEvent, error) {
+	if reservedDelegatedControlEvent(strings.TrimSpace(input.Type)) || strings.HasPrefix(strings.TrimSpace(input.ID), "delegated:") {
+		return FrameEvent{}, ErrDelegatedStopInvalid
+	}
 	if tx == nil {
 		return FrameEvent{}, errors.New("frame event transaction is required")
 	}

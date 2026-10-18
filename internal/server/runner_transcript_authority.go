@@ -30,7 +30,7 @@ func (s *Server) claimTranscriptFrameRunner(
 	ttl time.Duration,
 	resumeSource transcriptstore.ResumeSource,
 	resumeCheckpoint int64,
-	expectedInputs ...*contextCompactionClaimTarget,
+	expectedInputs ...*runnerInputClaimTarget,
 ) (*transcriptRunnerAuthority, bool, bool, error) {
 	stream, authoritative, err := s.resolveTranscriptFrameStream(ctx, sessionID)
 	if err != nil || !authoritative {
@@ -81,6 +81,7 @@ func (s *Server) claimTranscriptFrameRunner(
 	}
 	if len(expectedInputs) == 1 && expectedInputs[0] != nil {
 		claimInput.ExpectedInputMessageID, claimInput.ExpectedInputRevision = expectedInputs[0].MessageID, expectedInputs[0].Revision
+		claimInput.ExpectedFrameIncarnationID, claimInput.ExpectedStreamEpoch = expectedInputs[0].FrameIncarnationID, expectedInputs[0].StreamEpoch
 	}
 	result, err := s.transcriptStore.ClaimRunner(ctx, claimInput)
 	if err != nil {

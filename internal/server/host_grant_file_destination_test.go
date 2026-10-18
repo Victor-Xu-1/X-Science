@@ -184,7 +184,7 @@ func TestHostGrantFileSnapshotRejectsNamespaceAfterDestinationGrantChange(t *tes
 					t.Fatalf("revoke=%v err=%v", removed, err)
 				}
 			}
-			prepared, directory, inputs, _, prepareErr := app.prepareWebConversationInputDirectory(access.UserID, access.Frame.ProjectID, selected, managed)
+			prepared, directory, inputs, _, prepareErr := app.prepareWebConversationInputDirectory(context.Background(), access.UserID, access.Frame.ProjectID, selected, managed)
 			if directory != nil {
 				defer directory.Close()
 			}

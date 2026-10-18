@@ -2,10 +2,13 @@ package workspace
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestKernelSupervisionPersistsCapMappingAndMessageCounts(t *testing.T) {
@@ -24,6 +27,8 @@ func TestKernelSupervisionPersistsCapMappingAndMessageCounts(t *testing.T) {
 	for index := range requests {
 		requests[index] = KernelDelegateRequest{Task: "task", Name: "worker", Model: "saved-model"}
 	}
+	requests[0].ContextSummary = "Known evidence"
+	requests[0].OutputSchema = map[string]any{"type": "object"}
 	children, err := store.CreateKernelSupervisedChildren(context.Background(), CreateKernelDelegatesInput{
 		ParentFrameID: "root-1", OwnerUserID: "user-1", ToolUseID: "tool-wave-1",
 		Requests: requests, SpawnCap: 48,
@@ -43,8 +48,37 @@ func TestKernelSupervisionPersistsCapMappingAndMessageCounts(t *testing.T) {
 		t.Fatalf("tool mapping = %#v", mapping)
 	}
 	childEvents, err := store.ListFrameEvents(children[0].FrameID, 0, 10)
-	if err != nil || len(childEvents) != 1 || childEvents[0].Type != "user_message" {
+	if err != nil || len(childEvents) != 1 || childEvents[0].Type != delegationOriginEventType {
 		t.Fatalf("child events = %#v err=%v", childEvents, err)
+	}
+	// Delegation now admits its only first input atomically to canonical
+	// Transcript. The raw frame journal contains provenance, not a second user.
+	repository := transcriptstore.NewRepository(store.db)
+	stream, found, err := repository.GetFrameStreamBySession(context.Background(), "user-1", children[0].FrameID)
+	if err != nil || !found || stream.InputRevision != 1 {
+		t.Fatalf("canonical initial stream=%#v found=%t err=%v", stream, found, err)
+	}
+	var userCount, legacyUsers int
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM transcript_events WHERE stream_uid=? AND event_type='user_message'`, stream.UID).Scan(&userCount); err != nil || userCount != 1 {
+		t.Fatalf("canonical users=%d %v", userCount, err)
+	}
+	if err := store.db.QueryRow(`SELECT COUNT(*) FROM frame_events WHERE frame_id=? AND event_type='user_message'`, children[0].FrameID).Scan(&legacyUsers); err != nil || legacyUsers != 0 {
+		t.Fatalf("legacy duplicate users=%d %v", legacyUsers, err)
+	}
+	var raw string
+	if err := store.db.QueryRow(`SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_type='user_message'`, stream.UID).Scan(&raw); err != nil {
+		t.Fatal(err)
+	}
+	var input struct {
+		Text          string         `json:"text"`
+		RuntimeConfig map[string]any `json:"runtimeConfig"`
+	}
+	if err := json.Unmarshal([]byte(raw), &input); err != nil {
+		t.Fatal(err)
+	}
+	expected := "Context:\nKnown evidence\n\nTask:\ntask\n\nSubmit a compact result matching this JSON Schema with submit_output before finishing:\n{\"type\":\"object\"}"
+	if input.Text != expected || input.RuntimeConfig["model"] != "saved-model" {
+		t.Fatalf("initial task/context/schema/model changed=%#v", input)
 	}
 	childMetadata, found, err := store.GetFrameRuntimeMetadata(children[0].FrameID)
 	if err != nil || !found || childMetadata.InputData["request"] != "task" {

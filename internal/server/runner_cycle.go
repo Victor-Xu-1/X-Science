@@ -160,7 +160,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			transcriptAuthority, transcriptClaimed, _, err = s.claimTranscriptFrameRunner(
 				ctx, session.ID, options.RunnerID, options.LeaseTTL,
 				options.TranscriptResumeSource, options.TranscriptCheckpoint,
-				options.contextCompactionClaim,
+				options.expectedInputClaim,
 			)
 			if err != nil {
 				return result, err

@@ -184,14 +184,16 @@ type RunnerClaim struct {
 }
 
 type ClaimRunnerInput struct {
-	ExpectedInputMessageID string
-	ExpectedInputRevision  int64
-	StreamUID              string
-	OwnerID                string
-	RunnerID               string
-	TTL                    time.Duration
-	ResumeSource           ResumeSource
-	ResumeCheckpoint       int64
+	ExpectedFrameIncarnationID string
+	ExpectedStreamEpoch        int64
+	ExpectedInputMessageID     string
+	ExpectedInputRevision      int64
+	StreamUID                  string
+	OwnerID                    string
+	RunnerID                   string
+	TTL                        time.Duration
+	ResumeSource               ResumeSource
+	ResumeCheckpoint           int64
 }
 
 type ClaimRunnerResult struct {

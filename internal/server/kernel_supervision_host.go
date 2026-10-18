@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -82,10 +84,18 @@ type kernelChildRunKey struct {
 	frameID string
 }
 
+// Private lifetime identity, never a frame-ID lookup or a persisted authority.
+type kernelChildOwnerContextKey struct{}
+
 type kernelChildRun struct {
-	cancel context.CancelFunc
-	done   chan struct{}
-	wake   chan struct{}
+	targetMu        sync.Mutex
+	target          *workspace.DelegatedStopTarget
+	canonicalStop   *workspace.DelegatedStopTarget
+	completionClaim transcriptstore.RunnerClaim
+	stop            context.CancelFunc
+	cancel          context.CancelFunc
+	done            chan struct{}
+	wake            chan struct{}
 }
 
 func (r *kernelChildRun) signal() {
@@ -133,7 +143,19 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		if len(validRequests) == 0 {
 			return results, nil
 		}
+		var admission *workspace.KernelDelegationAdmission
+		if !bound.fresh && bound.transcriptExecution.stream.UID != "" {
+			identity, err := s.validateKernelTranscriptExecution(ctx, bound, access)
+			if err != nil {
+				return nil, err
+			}
+			admission, err = s.workspaceStore.CaptureKernelDelegationAdmission(ctx, access.Frame.ID, access.UserID, callID, identity.OuterToolUseID, identity.RunnerClaim, validRequests)
+			if err != nil {
+				return nil, classifyKernelHostError(err)
+			}
+		}
 		children, err := s.workspaceStore.CreateKernelSupervisedChildren(ctx, workspace.CreateKernelDelegatesInput{
+			Admission:     admission,
 			ParentFrameID: access.Frame.ID, OwnerUserID: access.UserID, ToolUseID: callID,
 			Requests: validRequests, SpawnCap: spawnCap,
 			MaxDepth: s.kernelDelegationMaxDepth(),
@@ -143,21 +165,23 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		}
 		concurrency := len(children)
 		gate := make(chan struct{}, concurrency)
-		for _, child := range children {
+		validResults := make([]any, len(children))
+		for index, child := range children {
 			if err := s.ensureKernelChildSession(child); err != nil {
-				_, _ = s.workspaceStore.CompleteKernelSupervisedChild(context.Background(), child.FrameID, access.UserID, "failed", nil, err.Error())
+				s.failKernelChildInitialization(child, err)
+				validResults[index] = map[string]any{
+					"frame_id": child.FrameID, "status": "failed", "dispatched": false,
+					"error": "delegated child session initialization failed: " + err.Error(),
+				}
 				continue
 			}
 			s.startKernelChildRun(child, gate)
+			validResults[index] = kernelChildRunningDescriptor(child, true)
 		}
 		if !options.Wait {
-			validResults := make([]any, len(children))
-			for index, child := range children {
-				validResults[index] = kernelChildRunningDescriptor(child, true)
-			}
 			return mergeKernelDelegateResults(results, validIndexes, validResults), nil
 		}
-		validResults := s.waitKernelChildren(ctx, access, children, options.Timeout, true)
+		validResults = s.waitKernelChildren(ctx, access, children, options.Timeout, true)
 		return mergeKernelDelegateResults(results, validIndexes, validResults), nil
 	case "host.collect":
 		frameIDs, timeout, err := parseKernelCollectCall(args, kwargs)
@@ -214,7 +238,7 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		}
 		results := make([]any, len(frameIDs))
 		for index, frameID := range frameIDs {
-			results[index] = s.stopKernelChild(ctx, access, frameID, reason)
+			results[index] = s.stopKernelChild(ctx, access, frameID, reason, callID)
 		}
 		if single {
 			return results[0], nil
@@ -228,5 +252,24 @@ func (s *Server) handleKernelSupervisionHostCall(ctx context.Context, bound kern
 		return s.sendKernelChildMessage(ctx, access, target, message, kind, callID, messageBudgets)
 	default:
 		return nil, kernelruntime.NewHostCallError("method_not_allowed", "host method is not allowed")
+	}
+}
+
+func (s *Server) failKernelChildInitialization(child workspace.KernelSupervisedChild, failure error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// An accepted delegation replay can fail Session I/O after another input
+	// has taken ownership. Only its immutable initial input may be settled;
+	// never upgrade this cleanup to the latest dispatch or an unfenced write.
+	initial, err := s.workspaceStore.KernelChildInitialTarget(ctx, child)
+	if err == nil && initial == nil {
+		err = workspace.ErrDelegatedStopOriginUnavailable
+	}
+	if err == nil {
+		_, err = s.workspaceStore.CompleteKernelSupervisedChild(ctx, child.FrameID, child.OwnerUserID, "failed", nil, failure.Error(),
+			workspace.KernelChildCompletionFence{Target: *initial})
+	}
+	if err != nil {
+		log.Printf("kernel child initialization failure not settled: frame=%s initialization=%v completion=%v", child.FrameID, failure, err)
 	}
 }

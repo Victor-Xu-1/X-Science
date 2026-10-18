@@ -130,6 +130,18 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/conversation/components/DelegatedStopActions.tsx": "New React adapter for the reference compact separate selected-branch Stop/pending/error interaction; single-child Stop, receipt inspection and retry are X-Science extensions. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx. Single-child Stop and physical receipt recovery are X-Science additions, not copied reference controls.",
+    "packages/desktop/src/renderer/pages/conversation/components/useDelegatedStop.ts": "Binds existing account lifecycle, selected branch and canonical wake events to the one Stop controller.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopContract.ts": "Strict X-Science wire decoding, exact request/receipt checks and field-wise rendered intent coordinate comparison.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopController.ts": "Shared synchronous reservation, rendered coordinate fencing, immutable explicit retry and stale account/read response isolation.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopHints.ts": "Bounded account/incarnation-scoped original request hints; not execution or completion authority.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopRegistry.ts": "Shares bounded controllers by existing account generation and parent incarnation and releases/reset ownership.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopTransport.ts": "Uses the existing authenticated HTTP bridge for snapshot, submit and original-UUID lookup; preserves failure classification.",
+    "packages/desktop/src/renderer/services/runtime/delegatedStopTypes.ts": "X-Science typed scope, execution target, frozen request, receipt and presentation unions.",
+    "tests/unit/chat/XScienceDelegatedStop.dom.test.tsx": "Exercises actual Dock/Drawer branch entry, added single-child Stop, lost ACK, keyboard close/focus and account switching.",
+    "tests/unit/xscience/delegatedStopContract.test.ts": "Exact coordinates, routes, unconfirmed 404, original body and nested target receipt positive/negative tests.",
+    "tests/unit/xscience/delegatedStopController.test.ts": "Exercises reservation, exact retries, account/branch fencing and actual stale rendered button handlers.",
+    "tests/unit/xscience/delegatedStopFixtures.ts": "X-Science typed wire, deferred requests and isolated hint storage test fixtures.",
     "packages/desktop/src/common/adapter/pdfReadingContext.ts": "Define and strictly decode Go-owned reading scope, immutable version bindings, selection snapshots and exact pending requests; preserve current owner/incarnation/revision identities.",
     "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingBar.tsx": "Adapt the reference linked-PDF bar, open/remove controls and filename layout to the existing composer controller, including truthful pending and blocked states. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx.",
     "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix.tsx": "Compose the reading bar, initial-send recovery, attachment suggestion, frozen queue notice and ordinary draft-save failure within the existing SendBox prefix.",
@@ -667,9 +679,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "0746dd1d71f99734b338c6e3d036f0eddfac037f2838c5f2c2eb785243ab65b9"
+APPROVED_ADAPTATION_FINGERPRINT = "fc17f3be14be6594a26f5a0e8c1d1f7a40aaa030de4d6a77bea0351f851bf7d7"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "11235080fccd9844a8fa423bf916d493d45775078a62c4a90ebea072b86392b7"
+APPROVED_ADDITION_FINGERPRINT = "765a814c440cf8a8f0b9f07713ad195f7bb5bf963474656ca3b1e66cc5fb7b62"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

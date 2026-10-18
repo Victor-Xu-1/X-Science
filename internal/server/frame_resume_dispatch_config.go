@@ -73,7 +73,7 @@ func (s *Server) configureTranscriptFrameResume(
 		if receipt.State == "cancelled" || receipt.TerminalEventID > 0 || stream.InputRevision != receipt.InputRevision {
 			return transcriptstore.ErrClaimStale
 		}
-		chat.contextCompactionClaim = &contextCompactionClaimTarget{MessageID: receipt.InputMessageID, Revision: receipt.InputRevision}
+		chat.expectedInputClaim = &runnerInputClaimTarget{MessageID: receipt.InputMessageID, Revision: receipt.InputRevision}
 	}
 	runtimeConfig := map[string]any{"agentName": dispatch.AgentName}
 	if controls, ok := dispatch.ResumeEvent.Payload["controls"].(map[string]any); ok {
