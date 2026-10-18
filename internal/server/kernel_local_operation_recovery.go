@@ -55,9 +55,10 @@ func (s *Server) RunKernelLocalOperationRecovery(ctx context.Context) error {
 					Approved: true, DecisionID: kernelLocalOperationDecisionID(
 						operation.OwnerUserID, operation.OperationID, operation.ApprovalRequestID, true, scope,
 					), Scope: scope, Source: "remembered", ActorID: "system:remembered-approval-recovery",
+					GrantProof:          policy.GrantProof,
 					AdmitRunnerRevision: true,
 				})
-			if resolveErr != nil && !errors.Is(resolveErr, workspace.ErrKernelLocalOperationStale) {
+			if resolveErr != nil && !errors.Is(resolveErr, workspace.ErrKernelLocalOperationStale) && !errors.Is(resolveErr, workspace.ErrApprovalPolicyGrantStale) {
 				return resolveErr
 			}
 			if resolveErr == nil {

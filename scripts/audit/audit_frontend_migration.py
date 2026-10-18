@@ -130,6 +130,11 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/services/runtime/sessionPermissionGrants.ts": "Validate typed owner-scoped session grant snapshots and frozen exact-generation revocation receipts.",
+    "packages/desktop/src/renderer/services/runtime/sessionPermissionGrantsController.ts": "Own one scoped live grant observer and frozen revocation command across desktop and mobile presentations.",
+    "packages/desktop/src/renderer/hooks/xScience/runtime/useSessionPermissionGrants.ts": "Bind the single session grant controller to actual account, frame incarnation and composer lifetime.",
+    "packages/desktop/src/renderer/components/xScience/runtime/SessionPermissionGrants.tsx": "Render compact observed grant categories with exact revocation, uncertainty, conflicts and readback.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpSessionPermissionGrants.tsx": "Adapt actual composer identity and share the existing mobile permission presentation without duplicate state ownership.",
     "packages/desktop/src/renderer/components/notifications/NotificationBell.tsx": "Expose the source-reference compact message-center trigger from the actual toolbar and account footer using one account-scoped store.",
     "packages/desktop/src/renderer/components/notifications/NotificationInboxList.tsx": "Render verified human notifications and exact observed read receipts without consuming agent delivery or approving a task.",
     "packages/desktop/src/renderer/components/notifications/NotificationInboxOverlay.tsx": "Own one compact inbox overlay with keyboard focus, same-click outside dismissal and a transparent mobile sheet.",
@@ -613,9 +618,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "f8e28809c7f2832c41c9f313b906b121a4baba46a301757d62abc8e949b79d52"
+APPROVED_ADAPTATION_FINGERPRINT = "229527b14b267aaf232ac5bea9d0db72059dc77f19d459be3e951fa75276d85a"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "ccf4d6126c1f0ad59a431327a68d26bbcdf72f87374357bca3016b373d8f67cd"
+APPROVED_ADDITION_FINGERPRINT = "d5c392cad3e5524e7d355c3a15871144d9489ba3115566d960995dc9371437f1"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

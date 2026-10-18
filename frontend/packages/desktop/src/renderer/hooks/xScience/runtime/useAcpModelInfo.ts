@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type UseAcpModelInfoArgs = {
   conversation_id: string;
+  frameIncarnationId?: string;
   backend?: string;
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
@@ -31,6 +32,7 @@ export type UseAcpModelInfoResult = {
   thoughtLevel: AcpDerivedOption | null;
   setStatus: AcpConfigSetStatus;
   setConfigOption: (optionId: string, value: string) => Promise<AcpConfigOptionDto[]>;
+  captureObserver: () => () => boolean;
 };
 
 function sameModelInfo(a: AcpModelInfo | null, b: AcpModelInfo | null): boolean {
@@ -60,6 +62,7 @@ function normalizeInitialModel(info: AcpModelInfo, initialModelId?: string): Acp
 
 export const useAcpModelInfo = ({
   conversation_id,
+  frameIncarnationId,
   backend: _backend,
   initialModelId,
   prepareRuntime,
@@ -67,12 +70,16 @@ export const useAcpModelInfo = ({
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
-  const { model, thoughtLevel, isLoading, loadError, reload, setStatus, setConfigOption } = useAcpConfigOptions({
-    conversation_id,
-    prepareRuntime,
-    enabled,
-  });
-  const [legacyModelInfo, setLegacyModelInfo] = useState<AcpModelInfo | null>(null);
+  const { model, thoughtLevel, isLoading, loadError, reload, setStatus, setConfigOption, captureObserver } =
+    useAcpConfigOptions({
+      conversation_id,
+      frameIncarnationId,
+      prepareRuntime,
+      enabled,
+    });
+  const [legacySnapshot, setLegacySnapshot] = useState<{ owner: typeof captureObserver; info: AcpModelInfo } | null>(
+    null
+  );
 
   const configModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!model) return null;
@@ -90,17 +97,26 @@ export const useAcpModelInfo = ({
 
   useEffect(() => {
     if (!enabled) {
-      setLegacyModelInfo(null);
+      setLegacySnapshot(null);
     }
   }, [enabled]);
 
   useEffect(() => {
     if (!enabled) return;
+    const isCurrent = captureObserver();
+    const receive = (incoming: AcpModelInfo) => {
+      setLegacySnapshot((previous) =>
+        previous?.owner === captureObserver && sameModelInfo(previous.info, incoming)
+          ? previous
+          : { owner: captureObserver, info: incoming }
+      );
+    };
     const handler = (message: IResponseMessage) => {
+      if (!isCurrent()) return;
       if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = normalizeInitialModel(message.data as AcpModelInfo, initialModelId);
-        setLegacyModelInfo((previous) => (sameModelInfo(previous, incoming) ? previous : incoming));
+        receive(incoming);
       } else if (message.type === 'codex_model_info' && message.data) {
         const data = message.data as { model?: string };
         if (!data.model) return;
@@ -109,26 +125,27 @@ export const useAcpModelInfo = ({
           current_model_label: data.model,
           available_models: [],
         };
-        setLegacyModelInfo((previous) => (sameModelInfo(previous, incoming) ? previous : incoming));
+        receive(incoming);
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversation_id, enabled, initialModelId]);
+  }, [conversation_id, enabled, initialModelId, captureObserver]);
 
-  const model_info = configModelInfo ?? legacyModelInfo;
+  const model_info = configModelInfo ?? (legacySnapshot?.owner === captureObserver ? legacySnapshot.info : null);
 
   const selectModel = useCallback(
     (model_id: string) => {
       if (!enabled || !model) return;
+      const isCurrent = captureObserver();
       void setConfigOption(model.id, model_id)
         .then(async () => {
-          onSelectModelSuccess?.(model_id);
+          if (isCurrent()) onSelectModelSuccess?.(model_id);
         })
         .catch((error) => {
-          onSelectModelFailed?.(model_id, error);
+          if (isCurrent()) onSelectModelFailed?.(model_id, error);
         });
     },
-    [enabled, model, onSelectModelFailed, onSelectModelSuccess, setConfigOption]
+    [enabled, model, onSelectModelFailed, onSelectModelSuccess, setConfigOption, captureObserver]
   );
 
   return {
@@ -144,5 +161,6 @@ export const useAcpModelInfo = ({
     thoughtLevel,
     setStatus,
     setConfigOption,
+    captureObserver,
   };
 };

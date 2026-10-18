@@ -48,6 +48,10 @@ func (s *Server) handleApprovalGrantsCompatibility(w http.ResponseWriter, r *htt
 			writeV11Detail(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if grant.Scope == "conversation" {
+			writeVersionedSessionGrantRequired(w)
+			return
+		}
 		removed, err := s.revokeCompatibilityPermissionGrant(userID, grant)
 		if err != nil {
 			writeV11Detail(w, http.StatusInternalServerError, err.Error())
@@ -78,6 +82,10 @@ func (s *Server) handleApprovalGrantsBulkCompatibility(w http.ResponseWriter, r 
 		return
 	}
 	filter.Kind, filter.Tier = strings.TrimSpace(filter.Kind), strings.TrimSpace(filter.Tier)
+	if strings.TrimSpace(filter.Scope) == "conversation" {
+		writeVersionedSessionGrantRequired(w)
+		return
+	}
 	if filter.Kind == "" && strings.TrimSpace(filter.ProjectID) == "" && strings.TrimSpace(filter.Scope) == "" {
 		writeV11Detail(w, http.StatusBadRequest, "kind, projectId, or scope filter required")
 		return
@@ -90,6 +98,13 @@ func (s *Server) handleApprovalGrantsBulkCompatibility(w http.ResponseWriter, r 
 	if err != nil {
 		writeV11Detail(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	// Preflight the entire frozen match set before touching any broader store.
+	for _, grant := range grants {
+		if grant.Scope == "conversation" && permissionGrantMatchesFilter(grant, filter) {
+			writeVersionedSessionGrantRequired(w)
+			return
+		}
 	}
 	removed := 0
 	for _, grant := range grants {
@@ -192,6 +207,9 @@ func (s *Server) loadCompatibilityPermissionGrants(userID string) ([]compatibili
 }
 
 func (s *Server) revokeCompatibilityPermissionGrant(userID string, requested compatibilityPermissionGrant) (int, error) {
+	if requested.Scope == "conversation" {
+		return 0, errors.New("conversation grants require the versioned session revoke endpoint")
+	}
 	grants, err := s.loadCompatibilityPermissionGrants(userID)
 	if err != nil {
 		return 0, err

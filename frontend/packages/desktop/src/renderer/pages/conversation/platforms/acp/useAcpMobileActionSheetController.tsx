@@ -12,6 +12,9 @@ import { Attention, Brain, MagicHat, SettingTwo, Shield } from '@icon-park/react
 import type { TFunction, i18n as I18n } from 'i18next';
 import React, { useMemo, type Dispatch, type SetStateAction } from 'react';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
+import SessionPermissionGrants from '@/renderer/components/xScience/runtime/SessionPermissionGrants';
+import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
+import { useSessionPermissionGrantsView } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
 
 type UseAcpMobileActionSheetControllerArgs = {
   isMobile: boolean;
@@ -19,6 +22,7 @@ type UseAcpMobileActionSheetControllerArgs = {
   currentMode?: string;
   runtimeThoughtLevel: AcpDerivedOption | null;
   runtimeConfig: Pick<ReturnType<typeof useAcpConfigOptions>, 'setStatus'>;
+  grantsController?: SessionPermissionGrantsController | null;
   canSwitchModel: boolean;
   model_info: AcpModelInfo | null;
   isModelListLoading: boolean;
@@ -54,6 +58,7 @@ export const useAcpMobileActionSheetController = ({
   currentMode,
   runtimeThoughtLevel,
   runtimeConfig,
+  grantsController,
   canSwitchModel,
   model_info,
   isModelListLoading,
@@ -82,6 +87,9 @@ export const useAcpMobileActionSheetController = ({
   t,
   i18n,
 }: UseAcpMobileActionSheetControllerArgs): MobileActionSheetEntry[] => {
+  const grantsView = useSessionPermissionGrantsView(grantsController);
+  const grantsCount =
+    grantsController?.isCurrent() && grantsView.available ? (grantsView.snapshot?.grants.length ?? 0) : 0;
   const sheetEntries = useMemo<MobileActionSheetEntry[]>(() => {
     if (!isMobile) return [];
 
@@ -96,6 +104,7 @@ export const useAcpMobileActionSheetController = ({
       label: i18n.exists(`agentMode.${mode.value}`) ? t(`agentMode.${mode.value}`) : mode.label,
       description: mode.description,
       active: (runtimeMode?.currentValue ?? currentMode) === mode.value,
+      disabled: runtimeConfig.setStatus.state === 'setting',
     }));
 
     const modelOptions: MobileActionSheetOption[] = canSwitchModel
@@ -295,18 +304,23 @@ export const useAcpMobileActionSheetController = ({
       });
     }
 
-    if (modeOptions.length > 0) {
+    if (modeOptions.length > 0 || grantsController) {
       entries.push({
         key: 'send-mode',
         icon: <Shield theme='outline' size='16' />,
         label: t('conversation.xscienceRuntime.sendBox.sendMode'),
         description: t('conversation.xscienceRuntime.sendBox.sendModeDescription'),
-        meta: currentModeLabel,
-        disabled: runtimeConfig.setStatus.state === 'setting',
+        meta: grantsCount
+          ? `${currentModeLabel} · ${t('agentMode.sessionGrants.count', { count: grantsCount })}`
+          : currentModeLabel,
+        disabled: runtimeConfig.setStatus.state === 'setting' && !grantsController,
         submenu: {
           title: t('conversation.xscienceRuntime.sendBox.sendMode'),
           options: modeOptions,
           onSelect: (key) => void handleSheetModeChange(key),
+          footer: grantsController
+            ? (active) => <SessionPermissionGrants controller={grantsController} open={active} />
+            : undefined,
         },
       });
     }
@@ -388,6 +402,8 @@ export const useAcpMobileActionSheetController = ({
     handleSessionComputeChange,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
+    grantsController,
+    grantsCount,
     i18n,
     isMobile,
     isModelListLoading,

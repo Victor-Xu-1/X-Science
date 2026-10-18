@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,6 +53,8 @@ type KernelLocalExecApprovalRequestInput struct {
 }
 
 type KernelLocalExecApprovalResolutionInput struct {
+	ApprovalSource     string
+	GrantProof         *ApprovalPolicyGrantProof
 	OwnerUserID        string
 	ProjectID          string
 	FrameID            string
@@ -92,6 +93,7 @@ type KernelLocalExecApprovalDecision struct {
 }
 
 type ApprovalPolicyDecision struct {
+	GrantProof    *ApprovalPolicyGrantProof
 	Found         bool
 	Tier          string
 	Scope         string
@@ -301,8 +303,14 @@ func (s *Store) ResolveKernelLocalExecApproval(
 		if err := writeKernelApprovalContextData(ctx, tx, input.FrameID, contextData); err != nil {
 			return err
 		}
-		if input.Approved && input.Scope != "once" {
-			if err := upsertKernelLocalExecApprovalGrant(ctx, tx, input, s.now().UTC()); err != nil {
+		if input.GrantProof != nil || input.ApprovalSource == "remembered" || (input.ApprovalSource == "policy" && input.Scope != "once") {
+			if err := validateApprovalPolicyGrantTx(ctx, tx, input.GrantProof, input.OwnerUserID, input.ProjectID,
+				input.RootFrameID, input.RootIncarnationID, input.Tool, input.Approved); err != nil {
+				return err
+			}
+		}
+		if input.Approved && input.Scope != "once" && input.GrantProof == nil && input.ApprovalSource == "user" {
+			if err := s.upsertKernelLocalExecApprovalGrant(ctx, tx, input, s.now().UTC()); err != nil {
 				return err
 			}
 		}
@@ -521,36 +529,7 @@ func (s *Store) KernelLocalExecApprovalPolicy(
 	ctx context.Context,
 	ownerUserID, projectID, rootFrameID, tool, environment string,
 ) (ApprovalPolicyDecision, error) {
-	if s == nil || s.db == nil {
-		return ApprovalPolicyDecision{}, errors.New("workspace store is closed")
-	}
-	if ctx == nil {
-		return ApprovalPolicyDecision{}, errors.New("kernel local execution approval context is required")
-	}
-	ownerUserID, projectID, rootFrameID = strings.TrimSpace(ownerUserID), strings.TrimSpace(projectID), strings.TrimSpace(rootFrameID)
-	tool, environment = strings.ToLower(strings.TrimSpace(tool)), strings.TrimSpace(environment)
-	if ownerUserID == "" || projectID == "" || rootFrameID == "" || tool == "" || environment == "" {
-		return ApprovalPolicyDecision{}, errors.New("kernel local execution grant identity is required")
-	}
-	var result ApprovalPolicyDecision
-	err := s.db.QueryRowContext(ctx, `
-		SELECT tier,scope,scope_target_id FROM approval_policy_grants
-		WHERE owner_user_id=? AND kind='local_exec' AND grant_key=? AND (
-			(scope='conversation' AND scope_target_id=?) OR
-			(scope='project' AND scope_target_id=?) OR
-			(scope='always' AND scope_target_id='')
-		)
-		ORDER BY CASE scope WHEN 'conversation' THEN 0 WHEN 'project' THEN 1 ELSE 2 END
-		LIMIT 1`, ownerUserID, kernelLocalExecGrantKey(tool, environment), rootFrameID, projectID,
-	).Scan(&result.Tier, &result.Scope, &result.ScopeTargetID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return ApprovalPolicyDecision{}, nil
-	}
-	if err != nil {
-		return ApprovalPolicyDecision{}, fmt.Errorf("read kernel local execution approval policy: %w", err)
-	}
-	result.Found = true
-	return result, nil
+	return s.readKernelLocalExecPolicy(ctx, ownerUserID, projectID, rootFrameID, tool, environment)
 }
 
 func (s *Store) ListApprovalPolicyGrants(ctx context.Context, ownerUserID string) ([]ApprovalPolicyGrant, error) {
@@ -600,6 +579,9 @@ func (s *Store) DeleteApprovalPolicyGrant(
 	}
 	ownerUserID, kind, key = strings.TrimSpace(ownerUserID), strings.TrimSpace(kind), strings.TrimSpace(key)
 	scope, tier, scopeTargetID = strings.TrimSpace(scope), strings.TrimSpace(tier), strings.TrimSpace(scopeTargetID)
+	if scope == "conversation" {
+		return false, ErrSessionGrantRequestInvalid
+	}
 	if ownerUserID == "" || kind == "" || key == "" || scope == "" || tier == "" {
 		return false, errors.New("complete approval policy grant coordinate is required")
 	}
@@ -651,6 +633,10 @@ func normalizeKernelLocalExecApprovalRequest(input *KernelLocalExecApprovalReque
 }
 
 func normalizeKernelLocalExecApprovalResolution(input *KernelLocalExecApprovalResolutionInput) error {
+	input.ApprovalSource = strings.TrimSpace(input.ApprovalSource)
+	if input.ApprovalSource != "" && input.ApprovalSource != "user" && input.ApprovalSource != "policy" && input.ApprovalSource != "remembered" {
+		return errors.New("kernel approval source is invalid")
+	}
 	input.OwnerUserID = strings.TrimSpace(input.OwnerUserID)
 	input.ProjectID = strings.TrimSpace(input.ProjectID)
 	input.FrameID = strings.TrimSpace(input.FrameID)
@@ -873,7 +859,7 @@ func kernelLocalExecApprovalDecisionTx(
 	return kernelLocalExecApprovalDecisionQuery(ctx, tx, frameID, requestID)
 }
 
-func upsertKernelLocalExecApprovalGrant(
+func (s *Store) upsertKernelLocalExecApprovalGrant(
 	ctx context.Context, tx workspaceTransaction,
 	input KernelLocalExecApprovalResolutionInput, now time.Time,
 ) error {
@@ -892,21 +878,32 @@ func upsertKernelLocalExecApprovalGrant(
 		return errors.New("one-time approval cannot be persisted")
 	}
 	key := kernelLocalExecGrantKey(input.Tool, input.Environment)
-	idDigest := sha256.Sum256([]byte(input.OwnerUserID + "\x00local_exec\x00" + key + "\x00" + input.Scope + "\x00" + targetID))
-	id := "local-exec:" + hex.EncodeToString(idDigest[:16])
-	_, err := tx.ExecContext(ctx, `
+	id, err := newLocalExecGrantID(ctx, tx, input)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `
 		INSERT INTO approval_policy_grants(
 			id,owner_user_id,kind,grant_key,scope,tier,scope_target_id,
 			origin_user_id,origin_project_id,origin_root_frame_id,created_at_ms,updated_at_ms
 		) VALUES(?,?,'local_exec',?,?,'allow',?,?,?,?,?,?)
 		ON CONFLICT(owner_user_id,kind,grant_key,scope,scope_target_id) DO UPDATE SET
-			tier='allow',origin_user_id=excluded.origin_user_id,
+			id=excluded.id,tier='allow',origin_user_id=excluded.origin_user_id,
 			origin_project_id=excluded.origin_project_id,
 			origin_root_frame_id=excluded.origin_root_frame_id,
 			updated_at_ms=excluded.updated_at_ms`,
 		id, input.OwnerUserID, key, input.Scope, targetID,
 		input.OwnerUserID, input.ProjectID, input.RootFrameID, now.UnixMilli(), now.UnixMilli())
-	return err
+	if err != nil || input.Scope != "conversation" {
+		return err
+	}
+	scope, err := sessionPermissionScopeTx(ctx, tx, input.OwnerUserID, input.FrameID, &SessionPermissionExpectedScope{
+		FrameIncarnationID: input.FrameIncarnationID, RootFrameID: input.RootFrameID, RootFrameIncarnationID: input.RootIncarnationID,
+	})
+	if err != nil {
+		return err
+	}
+	return s.enqueueSessionPermissionGrantChangedTx(ctx, tx, input.OwnerUserID, scope, "session-permission-minted:"+id)
 }
 
 func kernelLocalExecGrantKey(tool, environment string) string {

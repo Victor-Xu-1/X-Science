@@ -137,6 +137,15 @@ func webPendingConfirmation(item map[string]any) (map[string]any, bool) {
 			map[string]any{"label": "Allow once", "value": "proceed_once"},
 			map[string]any{"label": "Deny", "value": "deny"},
 		)
+	} else if kind == "local_exec" {
+		options = append(options, map[string]any{"label": "Allow once", "value": "proceed_once"})
+		if webPendingConversationGrantAllowed(item) {
+			options = append(options,
+				map[string]any{"label": "Allow this session", "value": "proceed_conversation"},
+				map[string]any{"label": "Always allow", "value": "proceed_always"},
+			)
+		}
+		options = append(options, map[string]any{"label": "Deny", "value": "deny"})
 	} else {
 		options = append(options,
 			map[string]any{"label": "Allow once", "value": "proceed_once"},
@@ -350,6 +359,10 @@ func webConfirmationInputResponse(
 		kind = "ask"
 	}
 	response := compatibilityInputResponse{ToolID: callID}
+	if kind == "local_exec" && !webPendingConversationGrantAllowed(item) &&
+		(alwaysAllow || selected == "proceed_always" || selected == "allow_always") {
+		return compatibilityInputResponse{}, false, errors.New("this local execution approval is valid once only")
+	}
 	if (kind == "artifact_delete" || kind == "capability_install") &&
 		(alwaysAllow || selected == "proceed_always" || selected == "allow_always") {
 		return compatibilityInputResponse{}, false, errors.New("this approval cannot be remembered")
@@ -377,6 +390,11 @@ func webConfirmationInputResponse(
 	}
 	approved := true
 	switch selected {
+	case "proceed_conversation":
+		if !webPendingConversationGrantAllowed(item) {
+			return compatibilityInputResponse{}, false, errors.New("this approval does not support conversation scope")
+		}
+		response.Action, response.Scope = "allow", "conversation"
 	case "proceed_always", "allow_always":
 		response.Action, response.Scope = "allow_always", "always"
 		alwaysAllow = true
@@ -392,6 +410,17 @@ func webConfirmationInputResponse(
 	}
 	response.Approved = &approved
 	return response, alwaysAllow, nil
+}
+
+func webPendingConversationGrantAllowed(item map[string]any) bool {
+	if strings.TrimSpace(webString(item["kind"])) != "local_exec" {
+		return false
+	}
+	if remembered, present := item["rememberable"]; present && !boolValue(remembered, false) {
+		return false
+	}
+	tool := strings.TrimSpace(firstNonEmpty(webString(item["tool"]), webString(item["tool_name"])))
+	return tool != "" && kernelLocalOperationApprovalScopeAllowed(tool, "conversation")
 }
 
 func (s *Server) handleWebConversationApprovalCheck(
