@@ -23,7 +23,7 @@ func (g serverAgentRuntimeToolGateway) retainedSkillExecutionDiagnostic(name str
 	if len(engines) != 1 {
 		return nil // Multiple entrypoints require their complete existing Skill contract.
 	}
-	bundle, resources, err := loadAgentSkillRuntimeBundle(skill)
+	bundle, resources, err := g.server.loadPublishedAgentSkillRuntimeBundle(skill)
 	if err != nil || !resources {
 		return nil
 	}

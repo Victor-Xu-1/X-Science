@@ -34,7 +34,7 @@ func (g serverAgentRuntimeToolGateway) agentRuntimeCommandIsTrustedGenericMateri
 		if !found || len(skill.ImplementationIdentities) > 0 {
 			continue
 		}
-		bundle, hasRuntimeResources, err := loadAgentSkillRuntimeBundle(skill)
+		bundle, hasRuntimeResources, err := g.server.loadPublishedAgentSkillRuntimeBundle(skill)
 		if err != nil || !hasRuntimeResources {
 			continue
 		}

@@ -24,12 +24,30 @@ func (s *Server) recordSkillImports(userID string, source *webSkillMarketplaceSo
 				}
 			}
 			next := make([]webSkillMarketplaceSource, 0, len(sources))
+			merged, matched := *source, false
 			for _, existing := range sources {
 				if existing.Slug != source.Slug {
 					next = append(next, existing)
+					continue
+				}
+				if matched {
+					return nil, errors.New("marketplace source identity is duplicated")
+				}
+				var err error
+				merged, err = mergeSkillMarketplaceSource(existing, *source)
+				if err != nil {
+					return nil, err
+				}
+				matched = true
+			}
+			if !matched {
+				var err error
+				merged, err = mergeSkillMarketplaceSource(webSkillMarketplaceSource{Slug: source.Slug, Repo: source.Repo}, *source)
+				if err != nil {
+					return nil, err
 				}
 			}
-			next = append(next, *source)
+			next = append(next, merged)
 			sort.Slice(next, func(i, j int) bool { return next[i].Slug < next[j].Slug })
 			return next, nil
 		}

@@ -252,6 +252,9 @@ func (s *Server) runtimeSkillsByName(names []string, excluded []string) ([]skill
 				"skill %q is disabled", skill.Name,
 			)}
 		}
+		if err := s.requirePublishedRuntimeSkill(skill); err != nil {
+			return nil, err
+		}
 		if _, blocked := excludedSet[normalized]; blocked {
 			return nil, selectedSkillContractUnavailable{detail: fmt.Sprintf(
 				"skill %q is excluded by the current agent policy", skill.Name,

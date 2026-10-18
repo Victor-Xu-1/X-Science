@@ -1205,6 +1205,31 @@ call. Then resume the original blocked step with the same task identity and
 artifact versions. Installation is an intermediate audited event, not task
 completion.
 
+#### Incremental Skill source provenance
+
+Importing another Skill from the same GitHub repository retains the source's
+previously tracked installed members and their directory hashes. Each member's
+`skill_revisions` entry retains its own commit, import time and reported license;
+the license lookup uses the selected commit rather than the repository's current
+HEAD. A source-wide `sha` is populated only when every tracked member has the same
+known pin. An empty source-wide pin is not permission to substitute the latest
+commit. `license_ref` identifies the revision used for that license lookup; a
+legacy reported license without this field is not upgraded into pinned evidence.
+
+Source metadata and import history use the existing atomic settings update.
+Removal still checks all tracked member hashes and agent attachments under the
+publication lock before moving anything. Local changes, ambiguous source identity
+or a failed metadata save must not become a successful removal. Historical members
+already missing from an old source record are not guessed from names or silently
+deleted; they require explicit provenance review.
+
+同一 GitHub 仓库分次导入 Skill 时，会保留先前已记录成员的目录哈希及各自的提交、
+导入时间和许可证记录；不同提交不会被统一标成最新提交。许可证按实际选定的提交查询，
+旧记录中没有 `license_ref` 的许可证不冒充已核对的固定版本证据。来源记录与导入历史
+沿用同一次原子保存。移除来源仍须核对全部已记录成员的当前哈希和智能体绑定；本地修改、
+来源身份冲突或元数据保存失败不会被当作成功删除。对于旧来源记录早已丢失的成员，不按
+名称猜测来源，也不自动删除，须另行核对。
+
 ### Hosted MCP credentials (BYOK)
 
 Hosted scientific MCPs that require an account use a user-owned credential;
