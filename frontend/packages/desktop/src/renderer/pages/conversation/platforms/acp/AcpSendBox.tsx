@@ -98,10 +98,7 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
-import { useAcpConversationSkills } from './useAcpConversationSkills';
-import { ConversationSkillTaskStatus } from './ConversationSkillTaskStatus';
-import { isActiveConversationSkillTask, useConversationSkillTask } from './useConversationSkillTask';
-import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
+import { useAcpConversationSkillController } from './useAcpConversationSkillController';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
 
@@ -746,12 +743,16 @@ const AcpSendBox: React.FC<{
     ]
   );
 
-  const { refreshCatalogs, skillActivation, mobileLibraryNames } = useAcpConversationSkills({
-    conversationId: conversation_id,
-    ownerId,
-    authority: conversationAuthorityRef.current,
+  const { skillSave, skillSurfaces, skillMenuProps, mobileSkillProps } = useAcpConversationSkillController({
+    conversationAuthorityRef,
     mountedRef,
+    runtimeView,
+    setAiProcessing,
+    executeCommand,
+    resolveCommandExecutionAuthority,
+    messages,
     disabled: isBusy,
+    saveDisabled: runtimeUnavailable || !sessionOptionsReady,
     isXScience: isXScienceConversation,
     isMobile,
     assistantId: conversationContext?.assistantId,
@@ -762,88 +763,6 @@ const AcpSendBox: React.FC<{
     mutateComposerCapabilities,
     fetchSlashCommands: messageState.fetchSlashCommands,
     onSelectSkill: handleSkillSelected,
-  });
-  const skillTaskCommandRef = useRef<{
-    scope: object;
-    id: string;
-    input: string;
-    authority?: CommandExecutionAuthority;
-    submissionTicket?: object;
-    dispatched: boolean;
-  } | null>(null);
-  const skillTaskScope = conversationAuthorityRef.current;
-  useEffect(
-    () => () => {
-      const command = skillTaskCommandRef.current;
-      if (command?.scope === skillTaskScope && !command.dispatched && command.submissionTicket) {
-        runtimeView.markSendFailed('control_submission_cancelled', command.submissionTicket);
-      }
-    },
-    [runtimeView.markSendFailed, skillTaskScope]
-  );
-  const startSkillTask = useCallback(
-    async (id: string) => {
-      const scope = conversationAuthorityRef.current;
-      let command = skillTaskCommandRef.current;
-      if (!command || command.id !== id || command.scope !== scope) {
-        command = { scope, id, input: t('conversation.attachMenu.saveAsSkillTaskPrompt'), dispatched: false };
-        skillTaskCommandRef.current = command;
-      }
-      // Reserve before the first await. The shared runtime gate owns sending;
-      // the Skill hook's synchronous admission latch guards same-tick UI calls.
-      const submissionTicket = runtimeView.markSendStarted();
-      command.submissionTicket = submissionTicket;
-      command.dispatched = false;
-      setAiProcessing(true);
-      // A lost HTTP reply is retried with the same input and branch authority,
-      // even after a language switch. Never rebind one mutation to a newer draft.
-      try {
-        command.authority ??= await resolveCommandExecutionAuthority(false, false, true);
-      } catch (error) {
-        runtimeView.markSendFailed(redactErrorText(parseError(error) || t('common.unknownError')), submissionTicket);
-        if (mountedRef.current && conversationAuthorityRef.current === scope) {
-          setAiProcessing(false);
-        }
-        throw error;
-      }
-      if (!mountedRef.current || conversationAuthorityRef.current !== scope) {
-        runtimeView.markSendFailed('control_submission_cancelled', submissionTicket);
-        return;
-      }
-      command.dispatched = true;
-      try {
-        await executeCommand(
-          { id, input: command.input, files: [], contextItems: [], turnIntent: 'save-as-skill', planMode: false },
-          command.authority
-        );
-      } catch (error) {
-        if (
-          mountedRef.current &&
-          conversationAuthorityRef.current === scope &&
-          isBackendHttpError(error) &&
-          error.status === 409 &&
-          error.code === 'CONVERSATION_BRANCH_STATE_STALE'
-        ) {
-          // A definite rejected CAS has no admitted command to replay. Refresh
-          // authority on the next explicit retry, retaining input and mutation.
-          // Lost/uncertain replies keep the original complete payload instead.
-          command.authority = undefined;
-        }
-        throw error;
-      }
-    },
-    [executeCommand, resolveCommandExecutionAuthority, runtimeView, setAiProcessing, t]
-  );
-  const skillSave = useConversationSkillTask({
-    authority: conversationAuthorityRef.current,
-    ownerId,
-    mountedRef,
-    disabled: isBusy || runtimeUnavailable || !sessionOptionsReady || !isXScienceConversation,
-    isProcessing: runtimeView.isProcessing,
-    activeControlTask:
-      runtimeView.view.hasTask && isActiveConversationSkillTask(messages, runtimeView.view.activeInputMessageId),
-    startTask: startSkillTask,
-    refreshCatalogs,
   });
   const handleContentChange = useCallback(
     (val: string) => {
@@ -1083,13 +1002,10 @@ const AcpSendBox: React.FC<{
     handleSheetModeChange,
     handleThoughtLevelSetOption,
     attachEntries,
-    loadedSkills,
-    librarySkillNames: mobileLibraryNames,
+    ...mobileSkillProps,
     loadedMcpStatuses,
     selectedSkillNames,
     selectedMcpServerIds,
-    onSelectSkill: handleSkillSelected,
-    onEnableSkill: skillActivation.canActivate ? skillActivation.request : undefined,
     onSelectMcpServer: handleMcpSelected,
     t,
     i18n,
@@ -1239,17 +1155,7 @@ const AcpSendBox: React.FC<{
         onResumeInterruptedQueue={resumeCommandQueue}
       />
 
-      <ConversationSkillTaskStatus
-        state={skillSave.state}
-        disabled={skillSave.saveDisabled}
-        onRetry={skillSave.save}
-        onRetryRefresh={skillSave.retryRefresh}
-      />
-      <ConversationSkillActivationDialog
-        state={skillActivation.state}
-        onConfirm={skillActivation.confirm}
-        onCancel={skillActivation.cancel}
-      />
+      {skillSurfaces}
 
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
@@ -1287,20 +1193,15 @@ const AcpSendBox: React.FC<{
                 onLocalFilesAdded={handleFilesAdded}
                 onLocalFilesSelected={canSelectProjectFiles ? handleLocalFilesSelected : undefined}
                 loadedMcpStatuses={loadedMcpStatuses}
-                loadedSkills={loadedSkills}
+                {...skillMenuProps}
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
-                onSelectSkill={handleSkillSelected}
-                onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
                 onSelectMcpServer={handleMcpSelected}
                 xScienceV11
                 onRequestReview={handleRequestReview}
                 reviewLabelMode='manual'
                 reviewInFlight={reviewBusy}
                 reviewDisabled={isBusy}
-                onSaveSkill={skillSave.save}
-                saveAsSkillDisabled={skillSave.saveDisabled}
-                saveAsSkillInFlight={skillSave.inFlight}
               />
               <XScienceSessionOptionsMenu
                 rootFrameId={conversation_id}

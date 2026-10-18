@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "14643d59532d22ed8ccf556a6c61487c2509264452fc353b854bb2d1221516e5",
+  "adaptationFingerprintSHA256": "6fa793660c9f0628c449ac686651b2523cc2292b1ba2f39f590de5e4f3732d7f",
   "removalFingerprintSHA256": "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac",
-  "additionFingerprintSHA256": "796c14b739b783cae1550ff96cea2db9be44a11fa2de64db397d74bf367ea4f2",
+  "additionFingerprintSHA256": "22cae4eefda54847ce35fc38491bb85284f27efd323c4b41bad34084f2c5c3ef",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 294,
-    "addedFiles": 965
+    "addedFiles": 966
   },
   "adaptations": [
     {
@@ -2169,8 +2169,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "bea17856abcb60ce2a32897797e219792974e4a3af068781dfe870f6010c7f02",
-      "bytes": 58583,
+      "targetSHA256": "8f4f11ab066ceea6a934994a4c6585b272e76ff5fa17b3d3a78896ee403848bd",
+      "bytes": 54136,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -9140,6 +9140,12 @@
       "sha256": "c8fc2be65c030ca0a2292846f10eda550d96f3b8064a722659c42cb5a5a4e42e",
       "bytes": 5470,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx",
+      "sha256": "dc668ad737f57d6486d92014da6699e972d182a9f9e75b0c612906e56253dd01",
+      "bytes": 7516,
+      "reason": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkills.ts",

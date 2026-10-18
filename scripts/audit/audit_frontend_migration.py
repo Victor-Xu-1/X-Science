@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity.",
     "packages/desktop/src/renderer/components/media/conversationControlMenu.css": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillTask.ts": "Admit a typed ordinary-agent Skill continuation, fence duplicate and stale frontend actions and refresh only actual catalogs.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/ConversationSkillTaskStatus.tsx": "Present only actionable control submission or catalog-read failures; real execution and publication remain transcript-owned.",
@@ -549,9 +550,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "14643d59532d22ed8ccf556a6c61487c2509264452fc353b854bb2d1221516e5"
+APPROVED_ADAPTATION_FINGERPRINT = "6fa793660c9f0628c449ac686651b2523cc2292b1ba2f39f590de5e4f3732d7f"
 APPROVED_REMOVAL_FINGERPRINT = "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac"
-APPROVED_ADDITION_FINGERPRINT = "796c14b739b783cae1550ff96cea2db9be44a11fa2de64db397d74bf367ea4f2"
+APPROVED_ADDITION_FINGERPRINT = "22cae4eefda54847ce35fc38491bb85284f27efd323c4b41bad34084f2c5c3ef"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
