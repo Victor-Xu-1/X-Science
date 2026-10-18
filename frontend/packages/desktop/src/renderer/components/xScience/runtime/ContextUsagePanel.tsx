@@ -17,6 +17,7 @@ import {
 import styles from './ContextUsagePanel.module.css';
 import { focusableElements, restoreScopedFocus } from '@/renderer/utils/focusScope';
 import ContextWindowHistory from './ContextWindowHistory';
+import ContextCompactionAction, { type ContextCompactionPresentation } from './ContextCompactionAction';
 import {
   contextDisplayWindow,
   formatContextTokens as formatTokenCount,
@@ -78,10 +79,10 @@ const UsageRing: React.FC<{
   );
 };
 
-type ContextUsagePanelProps = { conversationId: string; active?: boolean };
+type ContextUsagePanelProps = { conversationId: string; active?: boolean; compaction?: ContextCompactionPresentation };
 
 /** The server's latest main-agent request is the only usage authority. */
-const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, active = false }) => {
+const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, active = false, compaction }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [panelNode, setPanelNode] = useState<HTMLDivElement | null>(null);
@@ -315,6 +316,11 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
               </button>
             </div>
           )}
+          <ContextCompactionAction
+            presentation={compaction}
+            measured={Boolean(usage && usage.source === 'provider' && usage.state !== 'request')}
+            percent={usagePercent}
+          />
         </div>
       }
     >

@@ -48,15 +48,46 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 	if err := validatePayload(EventSourcePayload, input.PayloadJSON, nil); err != nil {
 		return Event{}, FinishReceipt{}, false, err
 	}
-	statusDescription := frameTerminalStatusDescription(input.Status, input.PayloadJSON)
 	var event Event
 	var receipt FinishReceipt
 	var created bool
 	err := r.withImmediate(ctx, func(conn *sql.Conn) error {
+		var err error
+		event, receipt, created, err = r.finishRunnerConn(ctx, conn, input)
+		return err
+	})
+	return event, receipt, created, schemaError(err)
+}
+
+// Shared transaction seam; only typed repository operations compose settlement.
+func (r *Repository) finishRunnerConn(ctx context.Context, conn *sql.Conn, input FinishRunnerInput) (Event, FinishReceipt, bool, error) {
+	statusDescription := frameTerminalStatusDescription(input.Status, input.PayloadJSON)
+	var event Event
+	var receipt FinishReceipt
+	var created bool
+	err := func() error {
 		now := r.now().UTC()
 		stream, err := getStreamConn(ctx, conn, input.Claim.StreamUID, input.Claim.OwnerID)
 		if err != nil {
 			return err
+		}
+		maintenance, err := contextCompactionRequestForClaimConn(ctx, conn, stream, input.Claim)
+		if err != nil {
+			return err
+		}
+		if maintenance != nil {
+			if input.Status == "completed" && !input.contextCompactionBoundary {
+				return ErrContextCompactionInvalid
+			}
+			if input.Status == "completed" {
+				if err := requireContextCompactionBoundaryConn(ctx, conn, stream, input.Claim, *maintenance); err != nil {
+					return err
+				}
+			}
+			input.PayloadJSON, err = normalizedMaintenanceTerminalPayload(input.PayloadJSON, *maintenance)
+			if err != nil {
+				return err
+			}
 		}
 		input.Destinations = terminalDeliveryDestinations(stream, input.Destinations)
 		if existing, found, err := findEventByClientID(ctx, conn, input.Claim.StreamUID, input.ClientMessageID); err != nil {
@@ -69,8 +100,10 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 			if err := loadMatchingReceipt(ctx, conn, input, event, &receipt); err != nil {
 				return err
 			}
-			if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, receipt.FinishedAt); err != nil {
-				return err
+			if maintenance == nil {
+				if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, receipt.FinishedAt); err != nil {
+					return err
+				}
 			}
 			// The first finish committed its receipt and Frame projection together.
 			// Replaying that receipt must not overwrite a later continuation.
@@ -88,8 +121,10 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 		if err != nil {
 			return err
 		}
-		if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, now); err != nil {
-			return err
+		if maintenance == nil {
+			if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, now); err != nil {
+				return err
+			}
 		}
 		result, err := conn.ExecContext(ctx, `
 			UPDATE transcript_runner_attempts SET status=?,phase='terminal',phase_sequence=phase_sequence+1,
@@ -114,6 +149,13 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 			return err
 		}
 		stream.ConsumedInputRevision = max(stream.ConsumedInputRevision, input.Claim.ClaimedInputRevision)
+		if maintenance != nil {
+			if err := restoreContextCompactionFrameConn(ctx, conn, stream.OwnerID, stream.FrameID, *maintenance, input.Claim.ClaimedInputRevision); err != nil {
+				return err
+			}
+			receipt = FinishReceipt{StreamUID: input.Claim.StreamUID, Attempt: input.Claim.Attempt, EventID: event.EventID, Status: input.Status, FinishedAt: now}
+			return nil
+		}
 		evidence, err := r.freshMessageEvidenceConn(ctx, conn, stream)
 		if err != nil {
 			return err
@@ -129,8 +171,8 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 		}
 		receipt = FinishReceipt{StreamUID: input.Claim.StreamUID, Attempt: input.Claim.Attempt, EventID: event.EventID, Status: input.Status, FinishedAt: now}
 		return nil
-	})
-	return event, receipt, created, schemaError(err)
+	}()
+	return event, receipt, created, err
 }
 
 func applyFrameTerminalStatusConn(

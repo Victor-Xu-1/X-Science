@@ -3,6 +3,7 @@ package transcript
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -27,7 +28,7 @@ const runnerReplaySeedCTE = `compact_boundary(event_id) AS (
 	JOIN transcript_events event
 		ON event.stream_uid=membership.stream_uid AND event.event_id=membership.event_id
 	WHERE state.stream_uid=? AND event.event_type='runner_checkpoint'
-		AND json_extract(event.payload_json,'$.toolPhase')='auto_compact'
+		AND ` + compactBoundarySQL + `
 ),
 retained_user_inputs(event_id) AS (
 	SELECT event.event_id FROM transcript_branch_state state
@@ -100,7 +101,7 @@ seed(event_id) AS (
 		JOIN transcript_events event
 			ON event.stream_uid=membership.stream_uid AND event.event_id=membership.event_id
 		WHERE state.stream_uid=? AND event.event_type='runner_checkpoint'
-			AND json_extract(event.payload_json,'$.toolPhase')='auto_compact'
+			AND ` + compactBoundarySQL + `
 		ORDER BY event.publication_seq DESC LIMIT 1
 	)
 	UNION
@@ -221,14 +222,25 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 	if err != nil {
 		return nil, schemaError(err)
 	}
-	selectionCTE := runnerReplayLegacySelectionCTE
+	hasInputAdmissions, err := contextCompactionLedgerForStream(ctx, tx, input.StreamUID)
+	if err != nil {
+		return nil, schemaError(err)
+	}
+	legacySelectionCTE, batchSelectionCTE := runnerReplayLegacySelectionCTE, runnerReplayBatchSelectionCTE
+	if !hasInputAdmissions {
+		// Do not compile a reference to a newer absent relation while reading
+		// a genuine legacy transcript. Its automatic boundary is unchanged.
+		legacySelectionCTE = strings.ReplaceAll(legacySelectionCTE, compactBoundarySQL, autoCompactionBoundarySQL)
+		batchSelectionCTE = strings.ReplaceAll(batchSelectionCTE, compactBoundarySQL, autoCompactionBoundarySQL)
+	}
+	selectionCTE := legacySelectionCTE
 	selectionArgs := runnerReplaySeedArgs(input)
 	if hasBatchAuthority {
 		parkedBatchID, err := allowRunnerReplayParkedToolBatch(ctx, tx, input.StreamUID)
 		if err != nil {
 			return nil, err
 		}
-		selectionCTE = runnerReplayBatchSelectionCTE
+		selectionCTE = batchSelectionCTE
 		selectionArgs = append(selectionArgs, input.StreamUID)
 		if err := validateClosedRunnerReplayToolBatches(ctx, tx, selectionCTE, selectionArgs, parkedBatchID); err != nil {
 			return nil, err
@@ -293,6 +305,22 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 	}
 	if err := rows.Err(); err != nil {
 		return nil, schemaError(err)
+	}
+	for index := range result {
+		if result[index].Event.Type != "runner_checkpoint" {
+			continue
+		}
+		var candidate struct {
+			Phase string `json:"toolPhase"`
+		}
+		if json.Unmarshal(result[index].ResolvedPayloadJSON, &candidate) != nil || candidate.Phase != ContextCompactionPhase {
+			continue
+		}
+		proof, err := ReadContextCompactionBoundaryProof(ctx, tx, input.OwnerID, input.StreamUID, result[index].Event.EventID)
+		if err != nil {
+			return nil, err
+		}
+		result[index].CompactionBoundary = proof
 	}
 	if err := tx.Commit(); err != nil {
 		return nil, schemaError(err)

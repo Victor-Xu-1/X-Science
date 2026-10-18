@@ -39,6 +39,7 @@ func (s *Server) persistCompactionArchive(frameID string, entries []eventjournal
 }
 
 func (s *Server) reconcileCompactionArchives(frameID string) error {
+	s.repairLatestContextCompactionArchive(frameID)
 	if s == nil || s.workspaceStore == nil || s.eventJournal == nil {
 		return nil
 	}

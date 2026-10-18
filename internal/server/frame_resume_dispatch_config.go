@@ -63,6 +63,18 @@ func (s *Server) configureTranscriptFrameResume(
 	if !found {
 		return transcriptstore.ErrSchemaUnavailable
 	}
+	if request, err := workspace.ContextCompactionDispatchRequest(dispatch); err != nil {
+		return err
+	} else if request != nil {
+		receipt, err := s.transcriptStore.ReadContextCompaction(ctx, frameContext.UserID, dispatch.FrameID, *request)
+		if err != nil {
+			return err
+		}
+		if receipt.State == "cancelled" || receipt.TerminalEventID > 0 || stream.InputRevision != receipt.InputRevision {
+			return transcriptstore.ErrClaimStale
+		}
+		chat.contextCompactionClaim = &contextCompactionClaimTarget{MessageID: receipt.InputMessageID, Revision: receipt.InputRevision}
+	}
 	runtimeConfig := map[string]any{"agentName": dispatch.AgentName}
 	if controls, ok := dispatch.ResumeEvent.Payload["controls"].(map[string]any); ok {
 		for key, value := range controls {

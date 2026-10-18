@@ -49,6 +49,9 @@ type webConversationSendInput struct {
 }
 
 func (s *Server) handleWebConversation(w http.ResponseWriter, r *http.Request) {
+	if s.routeContextCompaction(w, r) {
+		return
+	}
 	if s.routeSessionPermissionGrants(w, r) {
 		return
 	}

@@ -419,6 +419,10 @@ func payloadFrameTaskIntentCandidate(
 	payload []byte,
 	createdAt time.Time,
 ) (FrameTaskIntent, bool, error) {
+	var control map[string]any
+	if json.Unmarshal(payload, &control) == nil && HiddenConversationControlIntent(control) != "" {
+		return FrameTaskIntent{}, false, nil
+	}
 	var message struct {
 		MessageUUID     string `json:"messageUuid"`
 		ClientMessageID string `json:"clientMessageId"`

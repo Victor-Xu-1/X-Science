@@ -184,10 +184,14 @@ func (h *compatEventHub) PublishDirect(event compatDirectEvent) int {
 }
 
 func (s *Server) publishCompatEvent(input workspace.RealtimeEventInput) (workspace.RealtimeEvent, error) {
+	return s.publishCompatEventContext(context.Background(), input)
+}
+
+func (s *Server) publishCompatEventContext(ctx context.Context, input workspace.RealtimeEventInput) (workspace.RealtimeEvent, error) {
 	if s == nil || s.workspaceStore == nil {
 		return workspace.RealtimeEvent{}, errors.New("workspace runtime is not configured")
 	}
-	event, err := s.workspaceStore.AppendRealtimeEvent(input)
+	event, err := s.workspaceStore.AppendRealtimeEventContext(ctx, input)
 	if err != nil {
 		return workspace.RealtimeEvent{}, err
 	}

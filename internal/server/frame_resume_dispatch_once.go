@@ -73,6 +73,13 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 	if err := s.registerFrameResumeDispatch(dispatch.ResumeEvent.ID, options.ReservationTTL); err != nil {
 		return result, err
 	}
+	if err := s.checkContextCompactionDispatch(runContext, dispatch); err != nil {
+		if status, handled, settleErr := s.settleStaleContextCompactionDispatch(ctx, dispatch, err); handled {
+			result.Status = status
+			return result, settleErr
+		}
+		return result, err
+	}
 
 	// A terminal frame must never be re-run. Old dispatches left behind by a
 	// completed/failed/cancelled conversation are reconciled here so the
@@ -286,6 +293,11 @@ func (s *Server) RunFrameResumeDispatchOnce(ctx context.Context, options FrameRe
 	runErr := s.configureTranscriptFrameResume(runContext, dispatch, &chat)
 	if runErr == nil {
 		runnerResult, runErr = s.runSessionRunnerChatOnce(runContext, chat, legacyClaim)
+	}
+	if status, handled, settleErr := s.settleStaleContextCompactionDispatch(ctx, dispatch, runErr); handled {
+		result.Runner = runnerResult
+		result.Status = status
+		return result, settleErr
 	}
 	if runErr == nil && !runnerResult.Claimed {
 		runErr = errFrameResumeRunnerStillActive
