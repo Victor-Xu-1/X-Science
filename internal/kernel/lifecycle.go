@@ -90,6 +90,7 @@ type LastCell struct {
 // SessionKernel is the v1.1 live inventory projection. RootFrameID is exposed
 // for project-level grouping while incarnation fences remain internal.
 type SessionKernel struct {
+	RegistrationGeneration uint64                `json:"-"`
 	FrameID                string                `json:"frame_id"`
 	FrameIncarnationID     string                `json:"-"`
 	RootFrameIncarnationID string                `json:"-"`
@@ -817,7 +818,8 @@ func (m *Manager) CloseIdleCandidate(ctx context.Context, candidate IdleCandidat
 
 func snapshotSessionKernel(state *workerLifecycle) SessionKernel {
 	projection := SessionKernel{
-		FrameID: state.spec.FrameID, FrameIncarnationID: state.spec.FrameIncarnationID,
+		RegistrationGeneration: state.generation,
+		FrameID:                state.spec.FrameID, FrameIncarnationID: state.spec.FrameIncarnationID,
 		RootFrameID: state.spec.RootFrameID, RootFrameIncarnationID: state.spec.RootFrameIncarnationID,
 		ProjectID: state.spec.ProjectID,
 		AgentName: state.spec.AgentName, Environment: state.spec.Environment,
@@ -1731,24 +1733,7 @@ func (m *Manager) interrupt(frameID, frameIncarnationID, rootFrameIncarnationID,
 			execution.request.RootFrameIncarnationID != rootFrameIncarnationID) {
 		return InterruptResult{Reason: "no such terminal cell"}
 	}
-	execution.mu.Lock()
-	switch execution.status {
-	case "queued":
-		execution.status = "dequeued"
-		execution.mu.Unlock()
-		execution.finish(ExecutionOutcome{Dequeued: true})
-		return InterruptResult{Dequeued: true, Reason: "cell had not started \u2014 dequeued"}
-	case "running":
-		execution.mu.Unlock()
-		select {
-		case execution.interrupt <- struct{}{}:
-		default:
-		}
-		return InterruptResult{Interrupted: true, Via: "sigint"}
-	default:
-		execution.mu.Unlock()
-		return InterruptResult{Reason: "no such terminal cell"}
-	}
+	return interruptManagedExecution(execution, nil)
 }
 
 func (m *Manager) ActiveExecutionCount() int {

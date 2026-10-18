@@ -25,8 +25,8 @@ func (s *Server) submitKernelTerminalExecution(access workspace.KernelFrameAcces
 	return record.ExecutionID, "user-" + record.ExecutionID, nil
 }
 
-// Both legacy transports use this controller. A public typed retry contract
-// may supply a frozen RequestID later; WS request_id remains correlation only.
+// Both legacy transports and typed HTTP submission use this controller. Only
+// the typed contract supplies a frozen RequestID; WS request_id is correlation.
 func (s *Server) submitManualNotebookExecution(ctx context.Context, access workspace.KernelFrameAccess, request workspace.ManualKernelRequest) (workspace.ManualKernelExecution, error) {
 	if s == nil || s.workspaceStore == nil || s.kernelManager == nil {
 		return workspace.ManualKernelExecution{}, errors.New("verified kernel runtime is unavailable")

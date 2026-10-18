@@ -245,6 +245,9 @@ export function isXScienceAgentChoiceOption(label: string): boolean {
 }
 
 export type XScienceExecutionCell = {
+  frameId?: string;
+  kernelId?: string;
+  origin?: string;
   kind: 'cell';
   id: string;
   cellIndex: number;
@@ -896,6 +899,9 @@ function normalizeExecutionCell(value: RecordValue, index: number): XScienceExec
         .filter((path): path is string => Boolean(path))
     : [];
   return {
+    ...(typeof value.frame_id === 'string' ? { frameId: value.frame_id } : {}),
+    ...(typeof value.kernel_id === 'string' ? { kernelId: value.kernel_id } : {}),
+    ...(typeof value.origin === 'string' ? { origin: value.origin } : {}),
     kind: 'cell',
     id: stringValue(value.id) || `cell-${index}`,
     cellIndex: finiteNumber(value.cell_index) ?? index,

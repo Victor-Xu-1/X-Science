@@ -1,4 +1,6 @@
 import { requestXScienceJson, type XScienceGatewayOptions } from './xScienceHttp';
+import { normalizeManualNotebookScope, normalizeManualNotebookTarget } from './notebook/manualNotebookContract';
+import type { ManualNotebookScope, ManualNotebookTarget } from './notebook/manualNotebookTypes';
 
 export type XScienceKernelCell = {
   tag: string | null;
@@ -32,6 +34,7 @@ export type XScienceExecutionObservation = {
 };
 
 export type XScienceKernel = {
+  manualExecutionTarget?: ManualNotebookTarget;
   frameId: string;
   rootFrameId: string;
   projectId: string;
@@ -74,6 +77,7 @@ export type XScienceMachineMetrics = {
 };
 
 export type XScienceKernelInventory = {
+  manualExecutionScope?: ManualNotebookScope;
   kernels: XScienceKernel[];
   hasHistory: boolean;
   machine: XScienceMachineMetrics | null;
@@ -96,47 +100,10 @@ export async function loadXScienceKernels(
   rootFrameId: string,
   options: XScienceGatewayOptions = {}
 ): Promise<XScienceKernelInventory> {
-  return loadKernelInventory(`/api/frames/${encodeURIComponent(rootFrameId)}/kernels`, options);
-}
-
-export async function executeXScienceKernel(
-  kernel: Pick<XScienceKernel, 'frameId' | 'language' | 'environment'>,
-  code: string,
-  options: XScienceGatewayOptions = {}
-): Promise<{ execId: string; toolUseId: string }> {
-  const payload = await requestXScienceJson<unknown>(
-    `/api/frames/${encodeURIComponent(kernel.frameId)}/kernel-exec`,
-    {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ language: kernel.language, environment: kernel.environment, code }),
-    },
-    options
-  );
-  if (!isRecord(payload)) throw new Error('X-Science kernel execution response is invalid');
-  const execId = stringValue(payload.exec_id);
-  const toolUseId = stringValue(payload.tool_use_id);
-  if (!execId || !toolUseId) throw new Error('X-Science kernel execution response is incomplete');
-  return { execId, toolUseId };
-}
-
-export async function interruptXScienceKernel(
-  frameId: string,
-  execId: string,
-  options: XScienceGatewayOptions = {}
-): Promise<{ interrupted: boolean; via: string | null; dequeued: boolean; reason: string | null }> {
-  const payload = await requestXScienceJson<unknown>(
-    `/api/frames/${encodeURIComponent(frameId)}/kernel-exec/${encodeURIComponent(execId)}/interrupt`,
-    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
-    options
-  );
-  if (!isRecord(payload)) throw new Error('X-Science kernel interrupt response is invalid');
-  return {
-    interrupted: payload.interrupted === true,
-    via: nullableString(payload.via),
-    dequeued: payload.dequeued === true,
-    reason: nullableString(payload.reason),
-  };
+  const inventory = await loadKernelInventory(`/api/frames/${encodeURIComponent(rootFrameId)}/kernels`, options);
+  if (inventory.manualExecutionScope && inventory.manualExecutionScope.frameId !== rootFrameId)
+    throw new Error('manual_notebook_scope_mismatch');
+  return inventory;
 }
 
 async function loadKernelInventory(
@@ -148,7 +115,10 @@ async function loadKernelInventory(
     throw new Error('X-Science kernel response is invalid');
   }
   const kernels = payload.kernels.flatMap(normalizeKernel);
+  const manualExecutionScope = normalizeManualNotebookScope(payload.manual_execution_scope);
+  if ('manual_execution_scope' in payload && !manualExecutionScope) throw new Error('invalid_manual_notebook_scope');
   return {
+    ...(manualExecutionScope ? { manualExecutionScope } : {}),
     kernels,
     hasHistory: payload.has_history === true || kernels.length > 0,
     machine: normalizeMachine(payload.machine),
@@ -220,8 +190,10 @@ function normalizeKernel(value: unknown): XScienceKernel[] {
   if (!frameId || !kernelId || (language !== 'python' && language !== 'r')) return [];
   const current = isRecord(value.current_cell) ? value.current_cell : null;
   const last = isRecord(value.last_cell) ? value.last_cell : null;
+  const manualExecutionTarget = normalizeManualNotebookTarget(value.manual_execution_target, value);
   return [
     {
+      ...(manualExecutionTarget ? { manualExecutionTarget } : {}),
       frameId,
       rootFrameId: stringValue(value.root_frame_id) || frameId,
       projectId: stringValue(value.project_id),

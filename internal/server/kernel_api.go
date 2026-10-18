@@ -28,6 +28,7 @@ func (s *Server) registerKernelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/frames/{rootFrameId}/kernels", s.handleSessionKernels)
 	mux.HandleFunc("POST /api/frames/{frameId}/kernels/{kernelId}/stop", s.handleStopKernel)
 	mux.HandleFunc("POST /api/frames/{frameId}/kernel-exec", s.handleKernelTerminalExec)
+	s.registerManualNotebookRoutes(mux)
 	s.registerStructureMinimizationRoutes(mux)
 	s.registerStructureInteractionDiagramRoutes(mux)
 	s.registerStructureElectrostaticMapRoutes(mux)
@@ -333,7 +334,7 @@ func (s *Server) handleAllKernels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"kernels": inventory.Kernels,
+		"kernels": s.manualNotebookKernelProjections(inventory, compatAgentUserID(r), ""),
 		"machine": inventory.Machine,
 	})
 }
@@ -358,20 +359,18 @@ func (s *Server) handleSessionKernels(w http.ResponseWriter, r *http.Request) {
 		writeV11StoreError(w, err)
 		return
 	}
-	kernels := make([]kernelruntime.SessionKernel, 0)
-	for _, kernel := range inventory.Kernels {
-		if kernel.RootFrameID == rootFrameID {
-			kernels = append(kernels, kernel)
-		}
-	}
+	kernels := s.manualNotebookKernelProjections(inventory, userID, rootFrameID)
 	records, err := s.workspaceStore.ListExecutionLog(rootFrameID, "")
 	if err != nil {
 		writeV11StoreError(w, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"kernels": kernels, "has_history": len(records) > 0,
-	})
+	response := map[string]any{"kernels": kernels, "has_history": len(records) > 0}
+	if scope := manualNotebookInventoryScope(r, requestAccess); scope != nil {
+		response["manual_execution_scope"] = scope
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, response)
 }
 
 func (s *Server) handleStopKernel(w http.ResponseWriter, r *http.Request) {

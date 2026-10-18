@@ -50,7 +50,6 @@ import {
   LazyXScienceMcpAppViewer as XScienceMcpAppViewer,
   LazyXScienceMoleculeViewer as XScienceMoleculeViewer,
   LazyXScienceMsaViewer as XScienceMsaViewer,
-  LazyXScienceNotebookViewer as XScienceNotebookViewer,
   LazyXScienceSequenceViewer as XScienceSequenceViewer,
   LazyXScienceStructureViewer as XScienceStructureViewer,
   LazyXScienceTableViewer as XScienceTableViewer,
@@ -62,6 +61,8 @@ import { ketcherMcpAppSaveContract } from '../viewers/mcpAppSaveContracts';
 import { downloadPreviewTab } from './previewDownload';
 import PreviewRegionCommentLayer from './PreviewRegionCommentLayer';
 import { formatPreviewRegionCommentForComposer } from './previewRegionCommentModel';
+import NotebookPreviewContent from '../notebook/NotebookPreviewContent';
+import { isNotebookSessionNavigation } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 const noopToolbarExtras = { setExtras: (): void => undefined };
 const PREVIEW_BOARD_COLUMNS_KEY = 'x-science_preview_board_columns';
@@ -248,9 +249,11 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
                       <RegionCommentGlyph />
                     </BoardIconButton>
                   )}
-                  <BoardIconButton label={t('preview.downloadFile')} onClick={() => void download()}>
-                    <DownloadGlyph theme='outline' size={16} />
-                  </BoardIconButton>
+                  {!isNotebookSessionNavigation(tab.metadata?.notebookSession) && (
+                    <BoardIconButton label={t('preview.downloadFile')} onClick={() => void download()}>
+                      <DownloadGlyph theme='outline' size={16} />
+                    </BoardIconButton>
+                  )}
                   <BoardIconButton
                     label={focused ? t('preview.board.restoreFile') : t('preview.board.expandFile')}
                     pressed={focused}
@@ -554,13 +557,7 @@ const PreviewBoardTileContent: React.FC<{
     );
   }
   if (type === 'notebook') {
-    return (
-      <XScienceNotebookViewer
-        filename={fileName}
-        contentUrl={metadata?.contentUrl}
-        content={metadata?.contentUrl ? undefined : content}
-      />
-    );
+    return <NotebookPreviewContent filename={fileName} metadata={metadata} content={content} />;
   }
   if (type === 'hdf5') return <XScienceHdf5Viewer filename={fileName} contentUrl={metadata?.contentUrl} />;
   if (type === 'archive') return <ArchivePreview filename={fileName} contentUrl={metadata?.contentUrl} />;
