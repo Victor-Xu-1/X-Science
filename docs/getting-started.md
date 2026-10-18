@@ -54,6 +54,24 @@ Windows 已安装某个工具，不代表 Ubuntu 终端也已配置对应 Linux 
 首次编译、下载、缓存复用和所选科学环境都会影响资源需求。
 模型权重、GPU 软件与付费远端计算不是默认全部安装的前置条件。
 
+### PDF reading dependency · PDF 阅读依赖
+
+Multi-page PDF reading uses the real Poppler `pdfinfo` inspector; PDF text
+extraction uses `pdftotext`. Install these on the **backend host**, not merely
+on the computer running the browser. On Ubuntu/WSL, the existing system package
+provides both:
+
+```bash
+sudo apt-get install poppler-utils
+command -v pdfinfo pdftotext
+```
+
+关联多页 PDF 前，请确保后端服务自己的 PATH 能找到这两个程序。Windows 浏览器连接
+WSL 后端时，需要在 Ubuntu 中安装 Linux Poppler；Windows 的 `pdfinfo.exe` 不会自动
+授权或配置 WSL。当前原生 Windows/macOS 安装器没有自动准备 Poppler 的承诺。
+已有 System Doctor 的 artifact 区域会报告实际 `pdfinfo` 可用性；缺失时不会伪造页数、
+修改源文件或阻止普通聊天/普通附件。请求处理器不会偷偷执行 sudo 或安装软件。
+
 ## 3. Fresh source checkout · 首次获取与启动
 
 以下步骤用于**尚无本项目实例、源码目录和 `x-science` 启动器的新安装**。

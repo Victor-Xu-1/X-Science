@@ -21,6 +21,16 @@ type pdfReadingCandidateError struct{ reason string }
 
 func (err *pdfReadingCandidateError) Error() string { return err.reason }
 
+// The inspector is a backend-host dependency, not workspace/storage authority.
+// Callers and the existing doctor share this check; neither installs software.
+func pdfReadingInspector() (string, error) {
+	path, err := exec.LookPath("pdfinfo")
+	if err != nil {
+		return "", &pdfReadingCandidateError{"inspection_unavailable"}
+	}
+	return path, nil
+}
+
 func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project string, source transcriptstore.PDFReadingSource) (transcriptstore.PDFReadingBinding, error) {
 	var binding transcriptstore.PDFReadingBinding
 	artifact, version, reader, found, err := s.workspaceStore.OpenArtifactVersionContentForOwner(source.VersionID, owner)
@@ -54,9 +64,9 @@ func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project str
 	if !bytes.HasPrefix(content, []byte("%PDF-")) {
 		return binding, &pdfReadingCandidateError{"not_pdf"}
 	}
-	inspector, err := exec.LookPath("pdfinfo")
+	inspector, err := pdfReadingInspector()
 	if err != nil {
-		return binding, errors.New("governed PDF inspector is not installed")
+		return binding, err
 	}
 	path, cleanup, err := stageAgentWorkspacePDFSource(ctx, bytes.NewReader(content), version.SizeBytes)
 	if err != nil {
