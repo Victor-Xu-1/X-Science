@@ -174,13 +174,14 @@ describe('useGuidSend', () => {
     const loadingId = JSON.parse(sessionStorage.getItem('acp_initial_message_conv-1') || '{}').loading_id;
     expect(loadingId).toEqual(expect.any(String));
 
+    const submissionTicket = {};
     const params = {
       conversation_id: 'conv-1',
       backend: 'xscience',
       streamReady: true,
       setAiProcessing: vi.fn(),
       resetState: vi.fn(),
-      markSendStarted: vi.fn(),
+      markSendStarted: vi.fn(() => submissionTicket),
       markSendAccepted: vi.fn(),
       checkAndUpdateTitle: vi.fn(),
       addOrUpdateMessage: vi.fn(),
@@ -203,7 +204,15 @@ describe('useGuidSend', () => {
     );
     expect(params.onDraftPrefill).not.toHaveBeenCalled();
     expect(params.markSendStarted).toHaveBeenCalledTimes(1);
-    expect(params.markSendAccepted).toHaveBeenCalledWith('first-turn', expect.any(Object), 'first-message');
+    expect(params.markSendAccepted).toHaveBeenCalledExactlyOnceWith(
+      'first-turn',
+      { backend: 'xscience', status: 'running' },
+      'first-message',
+      {
+        ticket: submissionTicket,
+        receipt: undefined,
+      }
+    );
     expect(sessionStorage.getItem('acp_initial_message_conv-1')).toBeNull();
     conversation.rerender();
     await act(async () => Promise.resolve());

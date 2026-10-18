@@ -1,12 +1,15 @@
 import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe.each([
   { branch: 'single action', sendOptionsNode: undefined },
@@ -66,10 +69,34 @@ describe('GuidActionRow attachment actions', () => {
     const onSelectSkill = vi.fn();
     const onSelectMcpServer = vi.fn();
     const onSend = vi.fn();
+    const onFilesUploaded = vi.fn();
+    const grant = {
+      id: '/fixture/root',
+      hostPath: '/fixture/root',
+      guestPath: '/fixture/root',
+      mountName: 'Fixture',
+      mode: 'ro',
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, options?: RequestInit) => {
+      if (options?.method && options.method !== 'GET')
+        throw new Error('Guid browsing must not mutate host permissions');
+      const url = new URL(String(input), 'http://localhost');
+      if (url.pathname === '/api/skills/catalog') return new Response(JSON.stringify({ skills: [] }));
+      if (url.pathname === '/api/mcp-servers/connectors') return new Response(JSON.stringify([]));
+      const body =
+        url.pathname === '/api/preferences/host-grants'
+          ? { grants: [grant] }
+          : url.pathname === '/api/preferences/host-browse' && url.searchParams.get('path') === grant.hostPath
+            ? [{ name: 'sample.csv', isDirectory: false }]
+            : undefined;
+      if (!body) throw new Error(`unexpected fixture route: ${url.pathname}`);
+      return new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
+    });
+    vi.stubGlobal('fetch', fetchMock);
     await renderWithI18n(
       <GuidActionRow
         files={[]}
-        onFilesUploaded={vi.fn()}
+        onFilesUploaded={onFilesUploaded}
         openFileSelector={openFileSelector}
         onSelectProjectFiles={onSelectProjectFiles}
         loadedSkills={['autodock-vina']}
@@ -114,7 +141,24 @@ describe('GuidActionRow attachment actions', () => {
     expect(screen.queryByText('Upload from device')).not.toBeInTheDocument();
 
     fireEvent.click(projectFilesItem);
-    expect(onSelectProjectFiles).toHaveBeenCalledTimes(1);
+    // Your files now uses the same nested, explicitly granted host-file owner
+    // as an existing conversation; the retired project-file popup must not run.
+    const filesMenu = await screen.findByRole('menu', { name: 'Your files' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onSelectProjectFiles).not.toHaveBeenCalled();
+    fireEvent.click(await within(filesMenu).findByRole('button', { name: 'Expand Fixture' }));
+    fireEvent.click(await within(filesMenu).findByRole('button', { name: 'Reference sample.csv' }));
+    expect(onFilesUploaded).toHaveBeenCalledExactlyOnceWith([
+      `x-science-host-grant://file?${new URLSearchParams({ grant: '/fixture/root', path: 'sample.csv' })}`,
+    ]);
+    expect(new Set(fetchMock.mock.calls.map(([input]) => new URL(String(input), 'http://localhost').pathname))).toEqual(
+      new Set([
+        '/api/skills/catalog',
+        '/api/mcp-servers/connectors',
+        '/api/preferences/host-grants',
+        '/api/preferences/host-browse',
+      ])
+    );
     expect(openFileSelector).not.toHaveBeenCalled();
   });
 });
