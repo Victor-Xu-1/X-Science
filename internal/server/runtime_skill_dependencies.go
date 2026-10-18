@@ -77,6 +77,9 @@ func (s *Server) expandRuntimeSkillDependencies(
 
 	var visit func(skills.Skill, string) error
 	visit = func(skill skills.Skill, requiredBy string) error {
+		if err := s.requirePublishedRuntimeSkill(skill); err != nil {
+			return err
+		}
 		name := normalizeRuntimeSkillDependencyName(skill.Name)
 		if name == "" {
 			return selectedSkillContractUnavailable{detail: "a selected skill has an empty dependency identity"}

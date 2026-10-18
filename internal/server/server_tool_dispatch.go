@@ -711,8 +711,8 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 		return nil, err
 	}
 	for _, composed := range composedSkills {
-		if unpublishedManagedSkillPath(composed.Path, s.fileRoot) {
-			return nil, fmt.Errorf("Skill %s has not completed publication", composed.Name)
+		if err := s.withPublishedRuntimeSkillSnapshot(composed, func() error { return nil }); err != nil {
+			return nil, err
 		}
 	}
 	effectiveSkills := append([]skills.Skill(nil), composedSkills...)

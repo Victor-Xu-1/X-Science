@@ -37,15 +37,12 @@ func (s *Server) materializeAgentSkillRuntime(
 	sessionID string,
 	skill skills.Skill,
 ) (skills.Skill, error) {
-	if strings.HasPrefix(skill.Path, "builtin:") {
-		return skill, nil
-	}
-	if !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
-		return skill, nil
-	}
-	bundle, hasRuntimeResources, err := loadAgentSkillRuntimeBundle(skill)
+	bundle, hasRuntimeResources, err := s.snapshotPublishedAgentSkillRuntime(skill)
 	if err != nil {
 		return skills.Skill{}, err
+	}
+	if strings.HasPrefix(skill.Path, "builtin:") || !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
+		return skill, nil
 	}
 	if !hasRuntimeResources {
 		return skills.Skill{}, errors.New("skill references its runtime directory but has no bundled resources")
