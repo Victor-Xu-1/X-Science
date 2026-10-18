@@ -15,6 +15,8 @@ import (
 // preparedSkillImport owns an unpublished staging directory. Its bytes,
 // manifest and hash are finalized before taking the publication lock.
 type preparedSkillImport struct {
+	filesystem       *skillImportFilesystem
+	sourceIdentity   os.FileInfo
 	staging          string
 	stagingIdentity  os.FileInfo
 	retain           bool
@@ -28,14 +30,11 @@ type preparedSkillImport struct {
 }
 
 func (prepared *preparedSkillImport) cleanup() {
+	defer prepared.filesystem.close()
 	if prepared.retain {
 		return
 	}
-	info, err := os.Lstat(prepared.staging)
-	if err != nil || prepared.stagingIdentity == nil || !os.SameFile(info, prepared.stagingIdentity) {
-		return
-	}
-	_ = os.RemoveAll(prepared.staging)
+	_ = prepared.filesystem.removeOwnedDirectory(prepared.staging, prepared.stagingIdentity)
 }
 
 func (s *Server) prepareSkillBundle(filename, requestedName string, replace bool, raw []byte) (_ *preparedSkillImport, err error) {
@@ -43,38 +42,48 @@ func (s *Server) prepareSkillBundle(filename, requestedName string, replace bool
 	if extension != ".zip" && extension != ".skill" && extension != ".md" && extension != ".markdown" {
 		return nil, errors.New("skill bundle must use .zip, .skill, .md, or .markdown")
 	}
-	installRoot := filepath.Join(s.fileRoot, "skills")
-	if err := ensurePrivateDirectoryForImport(installRoot); err != nil {
-		return nil, fmt.Errorf("prepare skill directory: %w", err)
-	}
-	staging, stagingIdentity, err := createPrivateSkillImportDirectory(installRoot)
+	filesystem, err := openSkillImportFilesystem(s.fileRoot, true)
 	if err != nil {
+		return nil, fmt.Errorf("open Skill publication root: %w", err)
+	}
+	staging, stagingIdentity, err := filesystem.createPrivateDirectory()
+	if err != nil {
+		filesystem.close()
 		return nil, fmt.Errorf("create skill staging directory: %w", err)
 	}
-	prepared := &preparedSkillImport{staging: staging, stagingIdentity: stagingIdentity, replace: replace}
+	prepared := &preparedSkillImport{filesystem: filesystem, staging: staging, stagingIdentity: stagingIdentity, replace: replace}
 	defer func() {
 		if err != nil {
 			prepared.cleanup()
 		}
 	}()
 	contentRoot := filepath.Join(staging, "package")
-	if err := os.Mkdir(contentRoot, 0o700); err != nil {
+	contentRelative, err := filesystem.relative(contentRoot)
+	if err != nil {
+		return nil, err
+	}
+	if err := filesystem.root.Mkdir(contentRelative, 0o700); err != nil {
 		return nil, fmt.Errorf("create staged skill package: %w", err)
 	}
+	content, err := filesystem.openDirectory(contentRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer content.Close()
 	isArchive := extension == ".zip" || (extension == ".skill" && len(raw) >= 4 && bytes.Equal(raw[:2], []byte("PK")))
 	if isArchive {
-		if err := extractSkillArchive(contentRoot, raw); err != nil {
+		if err := extractSkillArchive(content, raw); err != nil {
 			return nil, err
 		}
 	} else {
 		if !utf8.Valid(raw) || bytes.IndexByte(raw, 0) >= 0 {
 			return nil, errors.New("markdown skill is not valid UTF-8 text")
 		}
-		if err := os.WriteFile(filepath.Join(contentRoot, "SKILL.md"), raw, 0o600); err != nil {
+		if err := writeSkillFileAtomic(content, "SKILL.md", raw, true); err != nil {
 			return nil, fmt.Errorf("stage markdown skill: %w", err)
 		}
 	}
-	loaded := skills.Load([]string{contentRoot}, runtimeSkillLoadOptions())
+	loaded := skills.LoadFromRoot(content, contentRoot, runtimeSkillLoadOptions())
 	if loadErrors := loaded.LoadErrors(); len(loadErrors) > 0 {
 		return nil, fmt.Errorf("invalid skill bundle: %s", loadErrors[0].Err)
 	}
@@ -83,7 +92,11 @@ func (s *Server) prepareSkillBundle(filename, requestedName string, replace bool
 		return nil, fmt.Errorf("skill bundle must contain exactly one SKILL.md, found %d", len(items))
 	}
 	skill := items[0]
-	manifest, err := os.ReadFile(skill.Path)
+	manifestRelative, err := filepath.Rel(contentRoot, skill.Path)
+	if err != nil || !filepath.IsLocal(manifestRelative) {
+		return nil, errors.New("staged manifest escaped the opened package")
+	}
+	manifest, err := content.ReadFile(manifestRelative)
 	if err != nil {
 		return nil, fmt.Errorf("read staged SKILL.md: %w", err)
 	}
@@ -104,7 +117,16 @@ func (s *Server) prepareSkillBundle(filename, requestedName string, replace bool
 	if err != nil || prepared.relativeManifest == "." || !filepath.IsLocal(prepared.relativeManifest) {
 		return nil, errors.New("staged skill manifest escaped its source directory")
 	}
-	prepared.files, err = listImportedSkillFiles(prepared.sourceRoot)
+	source, err := filesystem.openDirectory(prepared.sourceRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer source.Close()
+	prepared.sourceIdentity, err = source.Stat(".")
+	if err != nil {
+		return nil, err
+	}
+	prepared.files, err = listImportedSkillFiles(source)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +136,7 @@ func (s *Server) prepareSkillBundle(filename, requestedName string, replace bool
 	if skillManifestHasDescription(manifest) {
 		prepared.description = &prepared.skill.Description
 	}
-	prepared.hash, err = webSkillDirectoryHash(prepared.sourceRoot)
+	prepared.hash, err = webSkillDirectoryHash(source)
 	if err != nil {
 		return nil, fmt.Errorf("verify staged skill: %w", err)
 	}

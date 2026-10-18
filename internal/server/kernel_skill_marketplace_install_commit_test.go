@@ -202,7 +202,17 @@ func assertMarketplaceSkillPublished(t *testing.T, fixture *kernelSkillDraftFixt
 	if err != nil || len(sources) != 1 || len(sources[0].Skills) != 1 || sources[0].Skills[0] != name {
 		t.Fatalf("committed source=%#v err=%v", sources, err)
 	}
-	hash, err := webSkillDirectoryHash(root)
+	filesystem, err := openSkillImportFilesystem(fixture.server.fileRoot, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer filesystem.close()
+	directory, err := filesystem.openDirectory(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer directory.Close()
+	hash, err := webSkillDirectoryHash(directory)
 	if err != nil || hash != sources[0].Hashes[name] {
 		t.Fatalf("published hash=%q source hash=%q err=%v", hash, sources[0].Hashes[name], err)
 	}

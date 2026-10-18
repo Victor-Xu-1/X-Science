@@ -173,8 +173,20 @@ func (s *Server) createCompatibilitySkillDraft(name, initialPath, content string
 		if err != nil {
 			return skills.Skill{}, err
 		}
-		if err := extractSkillArchive(staging, archive); err != nil {
+		filesystem, err := openSkillImportFilesystem(s.fileRoot, false)
+		if err != nil {
 			return skills.Skill{}, err
+		}
+		directory, openErr := filesystem.openDirectory(staging)
+		if openErr != nil {
+			filesystem.close()
+			return skills.Skill{}, openErr
+		}
+		extractErr := extractSkillArchive(directory, archive)
+		_ = directory.Close()
+		filesystem.close()
+		if extractErr != nil {
+			return skills.Skill{}, extractErr
 		}
 		loaded := skills.Load([]string{staging}, runtimeSkillLoadOptions())
 		if len(loaded.LoadErrors()) != 0 || len(loaded.Skills()) != 1 {

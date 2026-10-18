@@ -18,53 +18,6 @@ func privateSkillImportDirectory(installRoot string) string {
 	return filepath.Join(installRoot, compatibilitySkillDraftDirectory, ".imports")
 }
 
-// A private container is on the destination filesystem but is never a catalog
-// source. Its explicit marker, not a hidden/backup filename heuristic, binds
-// it to the product's unpublished-resource lifecycle.
-func createPrivateSkillImportDirectory(parent string) (string, os.FileInfo, error) {
-	// Reuse the existing managed draft root: even a stale path captured before
-	// cleanup remains structurally outside the executable catalog namespace.
-	if err := ensurePrivateDirectoryForImport(filepath.Join(parent, compatibilitySkillDraftDirectory)); err != nil {
-		return "", nil, err
-	}
-	privateRoot := privateSkillImportDirectory(parent)
-	if err := ensurePrivateDirectoryForImport(privateRoot); err != nil {
-		return "", nil, err
-	}
-	directory, err := os.MkdirTemp(privateRoot, ".skill-import-")
-	if err != nil {
-		return "", nil, err
-	}
-	info, err := os.Lstat(directory)
-	if err != nil {
-		return "", nil, err
-	}
-	if _, err := createSkillImportMarker(directory, skillImportPrivateMarker); err != nil {
-		_ = os.RemoveAll(directory)
-		return "", nil, err
-	}
-	return directory, info, nil
-}
-
-func createSkillImportMarker(root, name string) (os.FileInfo, error) {
-	file, err := os.OpenFile(filepath.Join(root, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return nil, err
-	}
-	_, writeErr := file.WriteString("x-science.skill-import-visibility.v1\n")
-	info, statErr := file.Stat()
-	if err := errors.Join(writeErr, statErr, file.Close()); err != nil {
-		return nil, err
-	}
-	return info, nil
-}
-
-func skillImportMarkerPresent(root, name string) bool {
-	_, err := os.Lstat(filepath.Join(root, name))
-	// Inaccessible/corrupt control state is not proof of publication.
-	return err == nil || !errors.Is(err, os.ErrNotExist)
-}
-
 func managedSkillImportPath(path, fileRoot string) bool {
 	if strings.TrimSpace(fileRoot) == "" || !filepath.IsAbs(fileRoot) {
 		return false
@@ -74,10 +27,18 @@ func managedSkillImportPath(path, fileRoot string) bool {
 	if err != nil || !filepath.IsLocal(relative) {
 		return false
 	}
-	first := strings.Split(relative, string(filepath.Separator))[0]
-	directory := filepath.Join(root, first)
-	return skillImportMarkerPresent(directory, skillImportPrivateMarker) ||
-		skillImportMarkerPresent(directory, skillImportPendingMarker)
+	directory := root
+	if filepath.Dir(relative) != "." {
+		first := strings.Split(relative, string(filepath.Separator))[0]
+		directory = filepath.Join(root, first)
+	}
+	filesystem, err := openSkillImportFilesystem(fileRoot, false)
+	if err != nil {
+		return true
+	}
+	defer filesystem.close()
+	return filesystem.markerPresent(directory, skillImportPrivateMarker) ||
+		filesystem.markerPresent(directory, skillImportPendingMarker)
 }
 
 func unpublishedManagedSkillPath(path, fileRoot string) bool {
@@ -95,25 +56,28 @@ func validateSkillImportResourceNames(files []string) error {
 }
 
 func (entry *skillDirectoryPublication) confirmImportVisibility() error {
-	directory, err := os.Lstat(entry.destination)
+	if err := entry.filesystem.verifyBinding(); err != nil {
+		return err
+	}
+	directory, err := entry.filesystem.lstat(entry.destination)
 	if err != nil || !os.SameFile(directory, entry.published) {
 		return errors.New("publication destination identity changed before visibility confirmation")
 	}
 	marker := filepath.Join(entry.destination, skillImportPendingMarker)
-	info, err := os.Lstat(marker)
+	info, err := entry.filesystem.lstat(marker)
 	if err != nil || entry.pending == nil || !os.SameFile(info, entry.pending) {
 		return errors.New("publication pending marker identity changed before visibility confirmation")
 	}
-	return os.Remove(marker)
+	return entry.filesystem.remove(marker, false)
 }
 
 func (entry *skillDirectoryPublication) cleanupBackupContainer() {
-	info, err := os.Lstat(entry.backupRoot)
+	info, err := entry.filesystem.lstat(entry.backupRoot)
 	if err != nil || entry.backupOwner == nil || !os.SameFile(info, entry.backupOwner) {
 		log.Printf("Skill publication retained a backup container whose ownership changed")
 		return
 	}
-	children, err := os.ReadDir(entry.backupRoot)
+	children, err := entry.filesystem.readDir(entry.backupRoot)
 	if err != nil {
 		return
 	}
@@ -123,13 +87,13 @@ func (entry *skillDirectoryPublication) cleanupBackupContainer() {
 			return
 		}
 		if child.Name() == "previous" {
-			previous, err := os.Lstat(entry.backup)
+			previous, err := entry.filesystem.lstat(entry.backup)
 			if err != nil || !os.SameFile(previous, entry.previous) {
 				return
 			}
 		}
 	}
-	if err := os.RemoveAll(entry.backupRoot); err != nil {
+	if err := entry.filesystem.remove(entry.backupRoot, true); err != nil {
 		log.Printf("Skill publication retained a private backup after cleanup failure")
 	}
 }

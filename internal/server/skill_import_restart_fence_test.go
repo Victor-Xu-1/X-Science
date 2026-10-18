@@ -62,7 +62,7 @@ func TestSkillReplacementBackupCannotReenterRestartCatalog(t *testing.T) {
 	prepared := prepareSkillPublicationTest(t, fixture.server, name, "Current installed instructions.", true)
 	destination := filepath.Join(fixture.server.fileRoot, "skills", name)
 	fixture.server.skillMutationMu.Lock()
-	entry, err := stageSkillDirectoryPublication(prepared.sourceRoot, destination, true)
+	entry, err := stageSkillDirectoryPublication(prepared.filesystem, prepared.sourceRoot, destination, true)
 	fixture.server.skillMutationMu.Unlock()
 	if err != nil {
 		t.Fatal(err)

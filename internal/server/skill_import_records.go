@@ -23,7 +23,7 @@ func (s *Server) recordSkillImports(userID string, source *webSkillMarketplaceSo
 					return nil, err
 				}
 			}
-			next := make([]webSkillMarketplaceSource, 0, len(sources)+1)
+			next := make([]webSkillMarketplaceSource, 0, len(sources))
 			for _, existing := range sources {
 				if existing.Slug != source.Slug {
 					next = append(next, existing)

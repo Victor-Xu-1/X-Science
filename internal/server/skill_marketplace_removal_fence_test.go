@@ -35,7 +35,7 @@ func TestMarketplaceRemovalRevalidatesReplacementAfterPublicationLock(t *testing
 	waitForMarketplaceRemovalMutex(t)
 	// This is the original publication primitive while owning the same mutex,
 	// exactly the competing installation the removal has been waiting behind.
-	if err := installSkillDirectoryAtomic(replacement.sourceRoot, destination, true); err != nil {
+	if err := installSkillDirectoryAtomic(replacement.filesystem, replacement.sourceRoot, destination, true); err != nil {
 		t.Fatal(err)
 	}
 	current := replacement.skill

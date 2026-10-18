@@ -3,10 +3,13 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -151,7 +154,7 @@ func newKernelHostRegistryTestRunner(t *testing.T, store *workspace.Store, app *
 	return ctx, run
 }
 
-func runKernelHostRegistryTestCell(t *testing.T, store *workspace.Store, app *Server, identity *agentKernelContext, ctx context.Context, run *sessionRunnerChatRun, code string) map[string]any {
+func prepareKernelHostRegistryTestCell(t *testing.T, store *workspace.Store, app *Server, identity *agentKernelContext, ctx context.Context, run *sessionRunnerChatRun, code string) (agentruntime.ToolCall, workspace.KernelLocalOperation, map[string]any) {
 	t.Helper()
 	input := map[string]any{"code": code}
 	arguments, err := json.Marshal(input)
@@ -176,6 +179,12 @@ func runKernelHostRegistryTestCell(t *testing.T, store *workspace.Store, app *Se
 	if err != nil || string(encodedAdmission) != string(operation.InputJSON) {
 		t.Fatalf("registry admission did not round-trip exactly: %v", err)
 	}
+	return call, operation, admittedInput
+}
+
+func runKernelHostRegistryTestCell(t *testing.T, store *workspace.Store, app *Server, identity *agentKernelContext, ctx context.Context, run *sessionRunnerChatRun, code string) map[string]any {
+	t.Helper()
+	call, operation, admittedInput := prepareKernelHostRegistryTestCell(t, store, app, identity, ctx, run, code)
 	result, err := app.executeAgentKernelToolWithApproval(ctx, identity, call, operation.Tool, admittedInput, defaultSessionRunnerOutputLimitBytes)
 	if err != nil {
 		t.Fatal(err)
@@ -428,17 +437,41 @@ func TestKernelHostSkillInstallRequiresApprovalBeforeNetworkAccess(t *testing.T)
 	store, manager, app, identity := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "workspace.db"), true)
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 
-	returned := make(chan kernelHostCellReturn, 1)
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		result, err := app.executeAgentKernelTool(ctx, identity, "Operon", map[string]any{"code": `
+	ctx, run := newKernelHostRegistryTestRunner(t, store, app, identity)
+	code := `
 import host
 host.skills.install("https://github.com/example/not-contacted", ["demo"])
-`})
+`
+	call, operation, admittedInput := prepareKernelHostRegistryTestCell(t, store, app, identity, ctx, run, code)
+	// Approve the exact outer cell through its real policy and durable operation.
+	// Capability installation remains a separate approval under the new mode.
+	if _, err := app.authorizeAgentKernelLocalOperation(ctx, identity, call, operation.Tool, admittedInput, operation.Environment); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetFrameRuntimeMetadata(identity.access.Frame.ID, workspace.FrameRuntimeMetadata{
+		FrameID: identity.access.Frame.ID, ContextData: map[string]any{"web_assistant": map[string]any{
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "default"},
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var networkRequests atomic.Int64
+	app.httpClient = &http.Client{Transport: marketplaceRoundTripFunc(func(*http.Request) (*http.Response, error) {
+		networkRequests.Add(1)
+		return nil, errors.New("marketplace network must not run before capability approval")
+	})}
+
+	returned := make(chan kernelHostCellReturn, 1)
+	go func() {
+		cellContext, cancel := context.WithTimeout(ctx, 20*time.Second)
+		defer cancel()
+		result, err := app.executeAgentKernelToolWithApproval(cellContext, identity, call, operation.Tool, admittedInput, defaultSessionRunnerOutputLimitBytes)
 		returned <- kernelHostCellReturn{result: result, err: err}
 	}()
 	approvalID, approvalValue := waitForKernelCapabilityInstallApproval(t, app, "skill")
+	if networkRequests.Load() != 0 {
+		t.Fatal("marketplace network ran before capability approval")
+	}
 	if approvalValue["repository"] != "https://github.com/example/not-contacted" {
 		t.Fatalf("Skill install approval metadata=%#v", approvalValue)
 	}
@@ -483,6 +516,9 @@ host.skills.install("https://github.com/example/not-contacted", ["demo"])
 		}
 	case <-time.After(8 * time.Second):
 		t.Fatal("denied Skill installation did not resume")
+	}
+	if networkRequests.Load() != 0 {
+		t.Fatal("denied marketplace installation reached the network")
 	}
 }
 

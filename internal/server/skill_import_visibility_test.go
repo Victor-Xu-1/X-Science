@@ -76,7 +76,7 @@ func TestSkillImportVisibilityConfirmationFailureRetainsUnpublishedResources(t *
 			if err := os.Rename(marker, marker+".retained-original"); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := createSkillImportMarker(destination, skillImportPendingMarker); err != nil {
+			if _, err := prepared.filesystem.createMarker(destination, skillImportPendingMarker); err != nil {
 				t.Fatal(err)
 			}
 			return nil
@@ -152,10 +152,15 @@ func TestSkillImportCannotReplaceUnresolvedPublication(t *testing.T) {
 		t.Fatal(err)
 	}
 	destination := filepath.Join(fixture.server.fileRoot, "skills", name)
-	if _, err := createSkillImportMarker(destination, skillImportPendingMarker); err != nil {
+	filesystem, err := openSkillImportFilesystem(fixture.server.fileRoot, false)
+	if err != nil {
 		t.Fatal(err)
 	}
-	_, err := fixture.server.importSkillBundle(name+".md", "", true,
+	defer filesystem.close()
+	if _, err := filesystem.createMarker(destination, skillImportPendingMarker); err != nil {
+		t.Fatal(err)
+	}
+	_, err = fixture.server.importSkillBundle(name+".md", "", true,
 		[]byte(kernelSkillManifestForTest(name, "Must not erase recovery resources.")))
 	var hostError *kernelruntime.HostCallError
 	if !errors.As(err, &hostError) || hostError.Code != "outcome_unknown" {

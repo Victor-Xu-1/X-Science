@@ -4,8 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,8 +17,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 
 	"x-science/internal/buildinfo"
 	"x-science/internal/skills"
@@ -423,6 +419,11 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 	// a directory that another import has already replaced.
 	s.skillMutationMu.Lock()
 	defer s.skillMutationMu.Unlock()
+	filesystem, err := openSkillImportFilesystem(s.fileRoot, false)
+	if err != nil {
+		return err
+	}
+	defer filesystem.close()
 	sources, err := s.loadWebSkillMarketplaceSources(userID)
 	if err != nil {
 		return err
@@ -446,8 +447,13 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 		return err
 	}
 	for _, name := range selected.Skills {
-		root := filepath.Join(s.fileRoot, "skills", name)
-		hash, hashErr := webSkillDirectoryHash(root)
+		root := filepath.Join(filesystem.path, name)
+		directory, openErr := filesystem.openDirectory(root)
+		if openErr != nil {
+			return openErr
+		}
+		hash, hashErr := webSkillDirectoryHash(directory)
+		_ = directory.Close()
 		if hashErr != nil || hash != selected.Hashes[name] {
 			return fmt.Errorf("skill %s changed after import; remove it manually after reviewing local edits", name)
 		}
@@ -460,89 +466,51 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 		}
 	}
 
-	quarantine := filepath.Join(s.fileRoot, "skills", ".marketplace-remove-"+uuid.NewString())
-	if err := os.Mkdir(quarantine, 0o700); err != nil {
+	quarantine, quarantineOwner, err := filesystem.createPrivateDirectory()
+	if err != nil {
 		return err
 	}
-	moved := make([]string, 0, len(selected.Skills))
-	rollback := func() {
-		for index := len(moved) - 1; index >= 0; index-- {
-			name := moved[index]
-			_ = os.Rename(filepath.Join(quarantine, name), filepath.Join(s.fileRoot, "skills", name))
+	journal := make([]*skillDirectoryPublication, 0, len(selected.Skills))
+	rollback := func(cause error) error {
+		restoreErr := rollbackSkillPublications(journal)
+		if restoreErr == nil {
+			current, err := filesystem.lstat(quarantine)
+			if err != nil || !os.SameFile(current, quarantineOwner) {
+				restoreErr = errors.New("marketplace removal recovery retained an unverified quarantine owner")
+			} else {
+				_ = filesystem.remove(quarantine, true)
+			}
 		}
-		_ = os.Remove(quarantine)
+		return errors.Join(cause, restoreErr)
 	}
 	for _, name := range selected.Skills {
-		if err := os.Rename(filepath.Join(s.fileRoot, "skills", name), filepath.Join(quarantine, name)); err != nil {
-			rollback()
-			return err
+		source := filepath.Join(filesystem.path, name)
+		target := filepath.Join(quarantine, name)
+		identity, err := filesystem.lstat(source)
+		if err != nil {
+			return rollback(err)
 		}
-		moved = append(moved, name)
+		if err := filesystem.rename(source, target); err != nil {
+			return rollback(err)
+		}
+		journal = append(journal, &skillDirectoryPublication{
+			filesystem: filesystem, source: source, destination: target, published: identity,
+		})
 	}
 	if err := s.saveWebSkillMarketplaceSources(userID, next); err != nil {
-		rollback()
-		return err
+		return rollback(err)
 	}
-	for _, name := range moved {
+	for _, name := range selected.Skills {
 		s.skillCatalog.RemoveSkill(name)
 	}
-	if err := os.RemoveAll(quarantine); err != nil {
+	current, err := filesystem.lstat(quarantine)
+	if err != nil || !os.SameFile(current, quarantineOwner) {
+		return errors.New("marketplace source was removed but private quarantine ownership changed")
+	}
+	if err := filesystem.remove(quarantine, true); err != nil {
 		return fmt.Errorf("marketplace source was removed but quarantine cleanup failed: %w", err)
 	}
 	return nil
-}
-
-func webSkillDirectoryHash(root string) (string, error) {
-	root, err := filepath.Abs(root)
-	if err != nil {
-		return "", err
-	}
-	hasher := sha256.New()
-	files := 0
-	var total int64
-	err = filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.Type()&os.ModeSymlink != 0 {
-			return errors.New("skill directory contains a symlink")
-		}
-		if entry.IsDir() {
-			return nil
-		}
-		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
-			return errors.New("skill directory contains a non-regular file")
-		}
-		files++
-		total += info.Size()
-		if files > maxSkillArchiveFiles || total > maxSkillArchiveBytes {
-			return errors.New("skill directory exceeds verification limits")
-		}
-		relative, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		file, err := openGrantedRegularFile(path, []hostGrant{{Path: root, Mode: "read"}})
-		if err != nil {
-			return err
-		}
-		_, _ = hasher.Write([]byte(filepath.ToSlash(relative)))
-		_, _ = hasher.Write([]byte{0})
-		written, copyErr := io.Copy(hasher, io.LimitReader(file, info.Size()+1))
-		closeErr := file.Close()
-		if err := errors.Join(copyErr, closeErr); err != nil {
-			return err
-		}
-		if written != info.Size() {
-			return errors.New("skill file changed while it was hashed")
-		}
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
 func normalizeMarketplaceLicense(value *string) *string {
