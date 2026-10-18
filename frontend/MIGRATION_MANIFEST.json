@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "0746dd1d71f99734b338c6e3d036f0eddfac037f2838c5f2c2eb785243ab65b9",
+  "adaptationFingerprintSHA256": "b2520f083bd8208a86670d482a28ea50f6a205c4ff52a3f93dd01efd3f81e319",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "11235080fccd9844a8fa423bf916d493d45775078a62c4a90ebea072b86392b7",
+  "additionFingerprintSHA256": "b597798dfef9931a81241f8cb6cb6c5089ebb8909296161261192fdc58e9b6f3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1113
+    "addedFiles": 1125
   },
   "adaptations": [
     {
@@ -2125,24 +2125,24 @@
       "path": "packages/desktop/src/renderer/pages/conversation/components/XScienceDelegateDock.css",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/components/SynonBiomedDelegateDock.css",
       "sourceSHA256": "d717c1fea7dc97b8b771adc8bb967badfeb718819a607c3fc49a142d4038c5d4",
-      "targetSHA256": "1136ee3b72f989faa96e7c60ce3cee0338cb331278df2b5ef207b8f397814ed9",
-      "bytes": 4934,
+      "targetSHA256": "7a5b61fdbb18b3c63486cbcf162e8cd01581ede79bdc04ca4b5de086b7926afb",
+      "bytes": 6157,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/components/XScienceDelegateDock.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/components/SynonBiomedDelegateDock.tsx",
       "sourceSHA256": "53438610f3f6b6515840814ec586e6430a1e069243e4e673c1921f72c0bc42ba",
-      "targetSHA256": "a3323a503df1558de226748752ac05765174da8a8b5ee229294cc7b22fe99890",
-      "bytes": 9655,
+      "targetSHA256": "b538f0591d0baea990c1cc2c24e6985c3b84dc8b82a8fdb17fd66c00b8866731",
+      "bytes": 11828,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/components/XScienceLineageMessagesDrawer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/components/SynonBiomedLineageMessagesDrawer.tsx",
       "sourceSHA256": "2ced6b7613d40c986a68c91e2a3fa4390373d6de8868032effd4e5c76ddf88e0",
-      "targetSHA256": "41a5330391443c26ac5f27bc2be57402f973f5b8562a5b9f32fc0767a040f965",
-      "bytes": 6263,
+      "targetSHA256": "8f7dac5d6a4b230f51c8e7d5dd0fd9041799b3c9cf0597419aa37657a758ca81",
+      "bytes": 6572,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2183,8 +2183,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpChat.tsx",
       "sourceSHA256": "86e97c4ddd4bf9d9f78c20c8ce8ceb1671f39664e967dfc470a88392bc1c6f05",
-      "targetSHA256": "8641f7b9bea2d153780527c54a1f5696942077e7dc7cdd777d226cc662d2ff64",
-      "bytes": 6250,
+      "targetSHA256": "97b9b38de4232092b8b3065638c1df3c30eb2cace531f5989f2443be378e069c",
+      "bytes": 6513,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "73b94f95b903c50c539b0873b86364acb604e6eafb693c116fe70a8686f264ed",
-      "bytes": 271820,
+      "targetSHA256": "80a3c1eb34ff90ed72756b15b4b5c2ef6d1c6966ef81868d6c72206c604f7aae",
+      "bytes": 273259,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "d34eb308b86f1eec07c1173ee362a27d416b79dc0083dbbe21370259ef32da91",
-      "bytes": 101538,
+      "targetSHA256": "d38aa9d601ef5b6082d81a3c7fdb2befb2300177c6699ca7b6442055f31cf589",
+      "bytes": 103514,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "87d76dd2267ba2be7dbd9afb36943ea6218e51e332469b0483bfa4dde054cbad",
-      "bytes": 95644,
+      "targetSHA256": "c8dd2ee37be742f0ed8fd1bf35adc9848bad5da3dbd2ea40e614beafef1f1b9a",
+      "bytes": 97519,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -9392,6 +9392,18 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/DelegatedStopActions.tsx",
+      "sha256": "06ffe55f95238e681e2d2bad0f56517367bcf14742a9ceb1f7aae69296fdc5e0",
+      "bytes": 5860,
+      "reason": "New React adapter for the reference compact separate selected-branch Stop/pending/error interaction; single-child Stop, receipt inspection and retry are X-Science extensions. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx. Single-child Stop and physical receipt recovery are X-Science additions, not copied reference controls."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/components/useDelegatedStop.ts",
+      "sha256": "e020e79be95da8d8f4e1242a1d824640d87f6e1fd646c5d8b6bc2f6adfe1cfcb",
+      "bytes": 2813,
+      "reason": "Binds existing account lifecycle, selected branch and canonical wake events to the one Stop controller."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/conversationRoute.ts",
       "sha256": "8cb7279c45c4c99f607e224ac99a0b58311b06b2e874afeafc6d36ba92cc280b",
       "bytes": 3174,
@@ -10520,6 +10532,42 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopContract.ts",
+      "sha256": "89887a72a3dac7482327367cbf90e7ade4e4d4398909aa3a5472e98c172b0b48",
+      "bytes": 8403,
+      "reason": "Strict X-Science wire decoding, exact request/receipt checks and field-wise rendered intent coordinate comparison."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopController.ts",
+      "sha256": "cbd7aecb1dd20b9511ab75c62ad54e1ef8157daa2bdb106302dc745470c70ef2",
+      "bytes": 9853,
+      "reason": "Shared synchronous reservation, rendered coordinate fencing, immutable explicit retry and stale account/read response isolation."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopHints.ts",
+      "sha256": "192107acfc15a71abacc5985bf364c14e886588e6c63fb0fbc5af731ba5979bc",
+      "bytes": 2271,
+      "reason": "Bounded account/incarnation-scoped original request hints; not execution or completion authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopRegistry.ts",
+      "sha256": "303315fb93f9d47943ca2e3acf24a9dbce87e902c6e9e83d701ce6fb2155d7d7",
+      "bytes": 1335,
+      "reason": "Shares bounded controllers by existing account generation and parent incarnation and releases/reset ownership."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopTransport.ts",
+      "sha256": "3e4cdf883ce0418abb93a5cb031eb3fed98d6e675c403613a6340d06cea85714",
+      "bytes": 1904,
+      "reason": "Uses the existing authenticated HTTP bridge for snapshot, submit and original-UUID lookup; preserves failure classification."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/delegatedStopTypes.ts",
+      "sha256": "0885988728b0360657099a15a996aa98ca75d904ceec02ae2aa746e31a8cdcca",
+      "bytes": 2380,
+      "reason": "X-Science typed scope, execution target, frozen request, receipt and presentation unions."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/hostFiles.ts",
       "sha256": "095e00d46305e434eb176e954445e4a6f2d219f451f57a5b860f29fa280cadac",
       "bytes": 3894,
@@ -11580,6 +11628,12 @@
       "sha256": "b097a4e771e13a44e101e8d9ac013a66fb336937c127b581c9f5ea4f506bae3e",
       "bytes": 4148,
       "reason": "Verify failed child Agent operations expose deterministic retry and recovery behavior."
+    },
+    {
+      "path": "tests/unit/chat/XScienceDelegatedStop.dom.test.tsx",
+      "sha256": "a66eb9f090980f10fa130f10dfec5d384b4f853d1dd9a148b86f1fdb7ad9b6da",
+      "bytes": 13914,
+      "reason": "Exercises actual Dock/Drawer branch entry, added single-child Stop, lost ACK, keyboard close/focus and account switching."
     },
     {
       "path": "tests/unit/chat/asideRuntimeView.dom.test.tsx",
@@ -13626,6 +13680,24 @@
       "sha256": "e616335b0a1dc51cc0ada0e3803bc7bb16dfd1df8ad66f67dc041f46364399ce",
       "bytes": 32520,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/delegatedStopContract.test.ts",
+      "sha256": "68a19bb16047c77aab4158ab5a704d08783c32553babab116290c55ba2a3167d",
+      "bytes": 5834,
+      "reason": "Exact coordinates, routes, unconfirmed 404, original body and nested target receipt positive/negative tests."
+    },
+    {
+      "path": "tests/unit/xscience/delegatedStopController.test.ts",
+      "sha256": "892db66f59e219f493384290a1508a5b50362c2006b409f6ea61f11a50f4d81a",
+      "bytes": 12815,
+      "reason": "Exercises reservation, exact retries, account/branch fencing and actual stale rendered button handlers."
+    },
+    {
+      "path": "tests/unit/xscience/delegatedStopFixtures.ts",
+      "sha256": "22472ececcc072269688465670e9873db0a4c22368dbf10aeb2bb23817c93867",
+      "bytes": 2382,
+      "reason": "X-Science typed wire, deferred requests and isolated hint storage test fixtures."
     },
     {
       "path": "tests/unit/xscience/deletionActions.test.ts",
