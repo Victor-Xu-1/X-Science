@@ -1,5 +1,7 @@
 package workspace
 
+import transcriptstore "x-science/internal/persistence/transcript"
+
 // Presentation belongs to one conversation identity, not its copied history.
 // Copy both maps before deleting; retain unknown/legacy values verbatim.
 func cloneConversationPresentationContext(source map[string]any) map[string]any {
@@ -7,6 +9,7 @@ func cloneConversationPresentationContext(source map[string]any) map[string]any 
 	for key, value := range source {
 		result[key] = value
 	}
+	delete(result, transcriptstore.PDFReadingMetadataKey)
 	if extra, ok := source["web_extra"].(map[string]any); ok {
 		copyExtra := make(map[string]any, len(extra))
 		for key, value := range extra {

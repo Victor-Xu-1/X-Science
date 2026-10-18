@@ -121,6 +121,7 @@ func buildIncrementalTranscriptWebUserMessage(
 		"artifact_refs": artifactReferences,
 	}
 	projectConversationSkillControl(message, payload)
+	projectPDFReadingSnapshot(message, payload)
 	records, references, err := buildTranscriptWebMessageRecords([]map[string]any{message}, transcriptWebProjectionSourceMetadata{
 		coordinates: []canonicalReadCursorCoordinate{{id: messageID, messageID: projected.Event.ClientMessageID}},
 		ranges: []transcriptWebPublicationRange{{

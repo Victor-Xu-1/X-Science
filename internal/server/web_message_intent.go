@@ -16,6 +16,9 @@ import (
 // Both POST and DELETE use this pure normalization before upload materialization
 // or mutable capability validation. Cancellation never replays those effects.
 func normalizeWebFrozenMessageInput(input *webConversationSendInput) error {
+	if input.ReadingContext != nil && (input.ReadingContext.Validate() != nil || input.TurnIntent != "" || strings.TrimSpace(input.LoadingID) == "") {
+		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "PDF reading selection is invalid for this message"}
+	}
 	input.Content, input.LoadingID = strings.TrimSpace(input.Content), strings.TrimSpace(input.LoadingID)
 	if input.Content == "" || len(input.LoadingID) > 512 {
 		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "message content and a valid loading_id are required"}

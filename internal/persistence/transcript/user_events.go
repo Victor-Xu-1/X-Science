@@ -36,6 +36,12 @@ func normalizeAppendUserEventInput(input AppendUserEventInput) (AppendUserEventI
 	if err := validatePayload(EventSourcePayload, input.PayloadJSON, nil); err != nil {
 		return AppendUserEventInput{}, err
 	}
+	var pdfInput struct {
+		Data map[string]any `json:"inputData"`
+	}
+	if json.Unmarshal(input.PayloadJSON, &pdfInput) == nil && (pdfInput.Data[PDFReadingSelectionKey] != nil || pdfInput.Data[PDFReadingSnapshotKey] != nil) {
+		return AppendUserEventInput{}, ErrPDFReadingInvalid
+	}
 	return input, nil
 }
 
@@ -334,6 +340,19 @@ func appendFrameUserEventConn(
 			return err
 		}
 		existing, existingFound, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID)
+		if err != nil {
+			return err
+		}
+		var prior *Event
+		if existingFound {
+			prior = &existing
+		}
+		var readingRefs []UserArtifactReferenceInput
+		input.InputData, readingRefs, err = resolvePDFReadingMessageInput(ctx, conn, stream, input.ClientMessageID, input.InputData, prior)
+		if err != nil {
+			return err
+		}
+		input.ArtifactReferences, err = MergePDFReadingArtifactReferences(input.ArtifactReferences, readingRefs)
 		if err != nil {
 			return err
 		}

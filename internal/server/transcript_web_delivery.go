@@ -660,6 +660,7 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 			"position": "right", "status": "finish", "hidden": false, "created_at": createdAt,
 		}
 		projectConversationSkillControl(message, payload)
+		projectPDFReadingSnapshot(message, payload)
 		if err := s.publishWebFrameEvent(frameContext, baseID+":user", "message.userCreated", message); err != nil {
 			return err
 		}
