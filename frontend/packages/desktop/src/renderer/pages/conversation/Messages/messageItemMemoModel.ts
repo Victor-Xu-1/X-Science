@@ -19,6 +19,8 @@ export const areMessageItemPropsEqual = (prev: MessageItemMemoProps, next: Messa
   prev.message.conversation_id === next.message.conversation_id &&
   prev.message.content === next.message.content &&
   prev.message.artifact_refs === next.message.artifact_refs &&
+  prev.message.pdf_reading_context === next.message.pdf_reading_context &&
+  prev.message.pdf_reading_context_unavailable === next.message.pdf_reading_context_unavailable &&
   prev.message.position === next.message.position &&
   prev.message.type === next.message.type &&
   prev.message.status === next.message.status &&
@@ -51,6 +53,8 @@ export const areMessageTextPropsEqual = (prev: MessageTextMemoProps, next: Messa
       prev.message.conversation_id === next.message.conversation_id &&
       prev.message.content === next.message.content &&
       prev.message.artifact_refs === next.message.artifact_refs &&
+      prev.message.pdf_reading_context === next.message.pdf_reading_context &&
+      prev.message.pdf_reading_context_unavailable === next.message.pdf_reading_context_unavailable &&
       prev.message.position === next.message.position &&
       prev.message.status === next.message.status &&
       prev.message.terminal_status === next.message.terminal_status &&

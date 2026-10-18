@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -37,6 +38,7 @@ type webConversationCreateInput struct {
 }
 
 type webConversationSendInput struct {
+	ReadingContext     *transcriptstore.PDFReadingSelection    `json:"reading_context,omitempty"`
 	TurnIntent         string                                  `json:"turn_intent"`
 	Content            string                                  `json:"content"`
 	Files              []string                                `json:"files"`
@@ -116,6 +118,8 @@ func (s *Server) handleWebConversation(w http.ResponseWriter, r *http.Request) {
 		s.handleWebConversationComposerCapabilities(w, r, frame)
 	case len(segments) == 2 && segments[1] == "context-usage":
 		s.handleWebContextUsage(w, r, frame)
+	case len(segments) >= 2 && segments[1] == "reading-context":
+		s.handlePDFReadingContext(w, r, frame, segments[2:])
 	case len(segments) == 2 && segments[1] == "side-question":
 		s.handleWebConversationSideQuestion(w, r, frame)
 	case len(segments) == 2 && segments[1] == "confirmations":

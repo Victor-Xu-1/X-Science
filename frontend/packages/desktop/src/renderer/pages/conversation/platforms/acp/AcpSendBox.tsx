@@ -16,18 +16,16 @@ import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
-import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
+import { AcpComposerAttachments } from './AcpComposerAttachments';
+import { PdfReadingComposerPrefix } from '@/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix';
+import { usePdfReadingComposer } from '@/renderer/hooks/chat/usePdfReadingComposer';
+import { usePdfReadingAttachments } from '@/renderer/hooks/chat/usePdfReadingAttachments';
 import { buildAcceptedAcpUserMessage } from './acpAcceptedMessage';
-import {
-  buildComposerCapabilityPayload,
-  removeComposerContextItem,
-} from '@/renderer/components/chat/SendBox/composerCompositionModel';
+import { buildComposerCapabilityPayload } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import GuidProjectFilesModal from '@/renderer/pages/guid/components/GuidProjectFilesModal';
 import { loadXScienceComposerCapabilities } from '@/renderer/services/xScienceGateway';
-import FilePreview from '@/renderer/components/media/FilePreview';
-import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAcpConfigOptions } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
 import { useAcpModelInfo } from '@/renderer/hooks/xScience/runtime/useAcpModelInfo';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
@@ -60,7 +58,6 @@ import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/ren
 import {
   getSelectedXScienceBranch,
   getXScienceBranchSelectionRevision,
-  loadXScienceConversationBranches,
   selectXScienceBranch,
 } from '@/renderer/services/xScienceConversationBranches';
 import {
@@ -69,15 +66,12 @@ import {
   setXScienceSessionComputeProvider,
 } from '@/renderer/services/xScienceCompute';
 import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
-import {
-  toXScienceMessageSessionOptions,
-  updateXScienceSessionConfig,
-} from '@/renderer/services/xScienceSessionOptions';
+import { updateXScienceSessionConfig } from '@/renderer/services/xScienceSessionOptions';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Message, Tag } from '@arco-design/web-react';
+import { Message } from '@arco-design/web-react';
 import { useNavigate } from 'react-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -100,6 +94,7 @@ import { useAcpContextCompaction } from './useAcpContextCompaction';
 import { stopAcpConversation } from './acpStopAction';
 import { useAcpRuntimeActions } from './useAcpRuntimeActions';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
+import { useAcpCommandAuthority } from './useAcpCommandAuthority';
 import './conversationQueueDock.css';
 
 const AcpSendBox: React.FC<{
@@ -137,11 +132,20 @@ const AcpSendBox: React.FC<{
     setContent,
     replaceContentIfUnchanged,
     contextItems,
+    pdfReadingAttachmentsDisabled,
+    keepPdfAttachments,
+    queuedPdfSelection,
+    queuedPdfInvalid,
+    setQueuedPdfSelection,
     setContextItems,
     stagedPlanMode,
     setStagedPlanMode,
     stagedSessionOptions,
     setStagedSessionOptions,
+    pdfReadingMutation,
+    setPdfReadingMutation,
+    draftSaveFailed,
+    retryDraftSave,
   } = useAcpSendBoxDraftController(conversation_id, ownerId);
   // Staged plan mode and session options are durable in the draft; keep
   // synchronous views for the send path because the draft store resolves
@@ -174,6 +178,21 @@ const AcpSendBox: React.FC<{
     }));
   const isXScienceConversation =
     backend.trim().toLowerCase() === 'xscience' || workspacePath?.startsWith('x-science://') === true;
+  const reading = usePdfReadingComposer({
+    enabled: isXScienceConversation,
+    ownerId,
+    conversationId: conversation_id,
+    frameIncarnationId:
+      initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined,
+    pending: pdfReadingMutation,
+    persistPending: setPdfReadingMutation,
+  });
+  const readingAttachments = usePdfReadingAttachments(
+    reading.controller,
+    contextItems,
+    pdfReadingAttachmentsDisabled,
+    uploadFile.length > 0 || atPath.length > 0
+  );
   const compaction = useAcpContextCompaction(isXScienceConversation, ownerId, conversation_id, initialConversation);
   const { grantsController, setIsMobileSheetOpen, renderMobileSheet } = useAcpSessionPermissionGrants(
     conversation_id,
@@ -225,7 +244,7 @@ const AcpSendBox: React.FC<{
     selectedMcpServerIds,
     selectedSkillNames,
     setProjectFilesOpen,
-  } = useAcpComposerContextSelection(projectId, contextItems, setContextItems);
+  } = useAcpComposerContextSelection(projectId, contextItems, setContextItems, `${ownerId}:${conversation_id}`);
   const sendBoxAnchorRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
@@ -521,8 +540,11 @@ const AcpSendBox: React.FC<{
     [setContent, setUploadFile, setContextItems, setStagedSessionOptions, setStagedPlanMode, applyStagedSessionOptions]
   );
   const notifyDraftRestoreIssue = useMemo(() => makeDraftRestoreIssueNotifier(t), [t]);
-  useAcpInitialMessage({
+  const initialSend = useAcpInitialMessage({
     conversation_id: conversation_id,
+    ownerId,
+    canDiscardReadingPreparation: () => !reading.controller.getSnapshot().pending,
+    prepareReadingSources: reading.prepareInitialSources,
     backend,
     workspacePath,
     streamReady,
@@ -537,47 +559,11 @@ const AcpSendBox: React.FC<{
     onDraftRestoreIssue: notifyDraftRestoreIssue,
   });
 
-  const resolveCommandExecutionAuthority = useCallback(
-    async (planMode?: boolean, includeStaged = true, requireBranch = false): Promise<CommandExecutionAuthority> => {
-      const selectedBranchId = getSelectedXScienceBranch(conversation_id);
-      const targetBranchRevision = getXScienceBranchSelectionRevision(conversation_id);
-      const branchState =
-        selectedBranchId || requireBranch ? await loadXScienceConversationBranches(conversation_id) : null;
-      const targetBranchId = selectedBranchId ?? (requireBranch ? (branchState?.activeBranchId ?? null) : null);
-      if (
-        (selectedBranchId || requireBranch) &&
-        (getXScienceBranchSelectionRevision(conversation_id) !== targetBranchRevision ||
-          getSelectedXScienceBranch(conversation_id) !== selectedBranchId ||
-          !targetBranchId ||
-          !branchState?.branches.some((branch) => branch.id === targetBranchId))
-      ) {
-        throw new Error('selected_branch_changed');
-      }
-      // A staged draft carries its requesting page's session options through
-      // the durable draft; they win over the async runtime load for the first
-      // send, while an explicit per-send choice (plan mode) always wins.
-      const effectiveSessionOptions =
-        includeStaged && stagedSessionOptionsRef.current
-          ? {
-              ...xscienceSessionOptions,
-              delegation: stagedSessionOptionsRef.current.delegation,
-              autoReview: stagedSessionOptionsRef.current.autoReview,
-              memory: stagedSessionOptionsRef.current.memory,
-              targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || xscienceSessionOptions.targetAgent,
-            }
-          : xscienceSessionOptions;
-      return {
-        targetBranchId,
-        targetBranchRevision,
-        sessionOptions: toXScienceMessageSessionOptions(effectiveSessionOptions, {
-          planMode: planMode ?? (includeStaged && stagedPlanModeRef.current ? true : undefined),
-          targetBranchId,
-          expectedBranchId: branchState?.activeBranchId,
-          expectedGeneration: branchState?.generation,
-        }),
-      };
-    },
-    [conversation_id, xscienceSessionOptions]
+  const resolveCommandExecutionAuthority = useAcpCommandAuthority(
+    conversation_id,
+    xscienceSessionOptions,
+    stagedSessionOptionsRef,
+    stagedPlanModeRef
   );
 
   const executeCommand = useCallback(
@@ -589,7 +575,12 @@ const AcpSendBox: React.FC<{
         contextItems: commandContextItems,
         planMode,
         turnIntent,
-      }: Pick<ConversationCommandQueueItem, 'id' | 'input' | 'files' | 'contextItems'> & {
+        readingContext,
+        readingContextInvalid,
+      }: Pick<
+        ConversationCommandQueueItem,
+        'id' | 'input' | 'files' | 'contextItems' | 'readingContext' | 'readingContextInvalid'
+      > & {
         planMode?: boolean;
         turnIntent?: 'save-as-skill';
       },
@@ -602,6 +593,7 @@ const AcpSendBox: React.FC<{
       let submissionTicket = preparedTicket;
 
       try {
+        if (readingContextInvalid) throw new Error(t('conversation.reading.invalidQueued'));
         if (compaction.controller) {
           const admitted = await compaction.controller.prepareForPrompt();
           if (!compaction.controller.current()) return;
@@ -646,6 +638,7 @@ const AcpSendBox: React.FC<{
           conversation_id,
           loading_id: id,
           ...(turnIntent ? { turn_intent: turnIntent } : {}),
+          ...(!turnIntent && readingContext ? { reading_context: readingContext } : {}),
           files,
           artifact_refs: capabilityPayload.artifactRefs,
           inject_skills: capabilityPayload.injectSkills,
@@ -785,7 +778,7 @@ const AcpSendBox: React.FC<{
     executeCommand,
     resolveCommandExecutionAuthority,
     messages,
-    disabled: isBusy,
+    disabled: isBusy || readingAttachments.preparing,
     saveDisabled: runtimeUnavailable || !sessionOptionsReady,
     isXScience: isXScienceConversation,
     isMobile,
@@ -857,6 +850,16 @@ const AcpSendBox: React.FC<{
       planMode,
     });
     const retry = directCommandRetryRef.current?.signature === signature ? directCommandRetryRef.current : null;
+    let readingSnapshot: ReturnType<typeof reading.captureSend> | undefined;
+    try {
+      // Freeze the click before maintenance draining or PDF preparation yields.
+      // Exact retry and edited queue items already own their original selection.
+      if (!retry && queuedPdfInvalid) throw new Error(t('conversation.reading.invalidQueued'));
+      if (!retry && !queuedPdfSelection) readingSnapshot = reading.captureSend();
+    } catch (error) {
+      if (contentRef.current === '') setContent(normalizedMessage);
+      throw error;
+    }
     const maintenance = compaction.controller ? await compaction.controller.preparePromptIntent() : undefined;
     if (compaction.controller && !compaction.controller.current()) return;
     if (!mountedRef.current || conversationAuthorityRef.current !== origin) return;
@@ -870,6 +873,7 @@ const AcpSendBox: React.FC<{
         if (directCommandRetryRef.current?.item.id === retry.item.id) directCommandRetryRef.current = null;
         clearFiles();
         setContextItems([]);
+        setQueuedPdfSelection();
         emitter.emit('acp.selected.file.clear');
         return;
       } catch (error) {
@@ -878,6 +882,13 @@ const AcpSendBox: React.FC<{
       }
     }
     directCommandRetryRef.current = null;
+    let readingContext;
+    try {
+      readingContext = queuedPdfSelection ?? (await readingAttachments.prepare(readingSnapshot!));
+    } catch (error) {
+      if (contentRef.current === '') setContent(normalizedMessage);
+      throw error;
+    }
 
     if (
       shouldEnqueueConversationCommand({
@@ -891,9 +902,11 @@ const AcpSendBox: React.FC<{
         files: allFiles,
         contextItems: commandContextItems,
         planMode,
+        readingContext,
       });
       clearFiles();
       setContextItems([]);
+      setQueuedPdfSelection();
       emitter.emit('acp.selected.file.clear');
       return;
     }
@@ -903,6 +916,7 @@ const AcpSendBox: React.FC<{
       files: allFiles,
       contextItems: commandContextItems,
       planMode,
+      readingContext,
     });
     directCommandRetryRef.current = { signature, item };
     try {
@@ -910,6 +924,7 @@ const AcpSendBox: React.FC<{
       if (directCommandRetryRef.current?.item.id === item.id) directCommandRetryRef.current = null;
       clearFiles();
       setContextItems([]);
+      setQueuedPdfSelection();
       emitter.emit('acp.selected.file.clear');
     } catch (error) {
       if (contentRef.current === '') setContent(item.input);
@@ -933,7 +948,14 @@ const AcpSendBox: React.FC<{
         return;
       }
 
-      if (uploadFile.length > 0 || atPath.length > 0 || contextItems.length > 0) {
+      if (
+        uploadFile.length > 0 ||
+        atPath.length > 0 ||
+        contextItems.length > 0 ||
+        queuedPdfSelection ||
+        queuedPdfInvalid ||
+        reading.view.context?.bindings.length
+      ) {
         Message.warning(t('conversation.sendbox.structuredContextNormalSend'));
         return;
       }
@@ -951,6 +973,9 @@ const AcpSendBox: React.FC<{
       aside.sideDraft,
       aside.branchDraft,
       onSendHandler,
+      queuedPdfSelection,
+      queuedPdfInvalid,
+      reading.view.context?.bindings.length,
       skillSave.isBlocking,
       t,
       uploadFile.length,
@@ -965,15 +990,16 @@ const AcpSendBox: React.FC<{
       setContent(item.input);
       setUploadFile(Array.from(new Set(item.files)));
       setContextItems(item.contextItems);
+      setQueuedPdfSelection(item.readingContext, item.readingContextInvalid);
       setAtPath([]);
       emitter.emit('acp.selected.file.clear');
     },
-    [remove, setAtPath, setContent, setContextItems, setUploadFile, skillSave.isBlocking]
+    [remove, setAtPath, setContent, setContextItems, setUploadFile, setQueuedPdfSelection, skillSave.isBlocking]
   );
 
   const handleOpenQueuedCommandInSideChat = useCallback(
     (item: ConversationCommandQueueItem) => {
-      if (item.files.length > 0 || item.contextItems.length > 0) {
+      if (item.files.length > 0 || item.contextItems.length > 0 || item.readingContext || item.readingContextInvalid) {
         Message.warning(t('conversation.commandQueue.sideChatAttachmentsUnsupported'));
         return;
       }
@@ -1142,7 +1168,9 @@ const AcpSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={runtimeUnavailable || skillSave.inFlight || compaction.view.waitingForPrompt}
+        disabled={
+          runtimeUnavailable || skillSave.inFlight || readingAttachments.preparing || compaction.view.waitingForPrompt
+        }
         allowSendWhileLoading={!skillSave.inFlight}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || 'X-Science',
@@ -1223,47 +1251,30 @@ const AcpSendBox: React.FC<{
           </div>
         }
         prefix={
-          <>
-            <ComposerContextChips
-              items={contextItems}
-              onRemove={(key) => setContextItems((current) => removeComposerContextItem(current, key))}
+          <PdfReadingComposerPrefix
+            draftPersistence={{ failed: draftSaveFailed, retry: retryDraftSave }}
+            enabled={isXScienceConversation}
+            reading={reading}
+            initialSend={initialSend}
+            suggestion={{ visible: readingAttachments.suggested, keepAttachments: keepPdfAttachments }}
+            frozenQueue={{
+              present: Boolean(queuedPdfSelection || queuedPdfInvalid),
+              useCurrent: () => {
+                directCommandRetryRef.current = null;
+                setQueuedPdfSelection();
+              },
+            }}
+          >
+            <AcpComposerAttachments
+              contextItems={contextItems}
+              setContextItems={setContextItems}
+              onOpenArtifact={reading.openArtifact}
+              uploadFile={uploadFile}
+              setUploadFile={setUploadFile}
+              atPath={atPath}
+              setAtPath={setAtPath}
             />
-            {uploadFile.length > 0 && (
-              <HorizontalFileList>
-                {uploadFile.map((path) => (
-                  <FilePreview
-                    key={path}
-                    path={path}
-                    onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
-                  />
-                ))}
-              </HorizontalFileList>
-            )}
-            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                {atPath.map((item) => {
-                  if (typeof item === 'string') return null;
-                  if (!item.isFile) {
-                    return (
-                      <Tag
-                        key={item.path}
-                        color='blue'
-                        closable
-                        onClose={() => {
-                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('acp.selected.file', newAtPath);
-                          setAtPath(newAtPath);
-                        }}
-                      >
-                        {item.name}
-                      </Tag>
-                    );
-                  }
-                  return null;
-                })}
-              </div>
-            )}
-          </>
+          </PdfReadingComposerPrefix>
         }
         onSend={onSendHandler}
         sendButtonSuffix={

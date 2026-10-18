@@ -303,6 +303,8 @@ func (s *Server) workspaceWorktreeDoctorArea() (string, string, map[string]any, 
 	return status, message, evidence, next
 }
 func (s *Server) artifactSystemDoctorArea() (string, string, map[string]any, []string) {
+	_, pdfInspectorErr := pdfReadingInspector()
+	hasPDFReadingInspector := pdfInspectorErr == nil
 	hasRegister := hasRegisteredTool(s.tools, "artifact_register")
 	hasList := hasRegisteredTool(s.tools, "artifact_list")
 	hasGet := hasRegisteredTool(s.tools, "artifact_get")
@@ -346,7 +348,13 @@ func (s *Server) artifactSystemDoctorArea() (string, string, map[string]any, []s
 			next = append(next, "Configure FileRoot so artifact paths can be bounded and audited.")
 		}
 	}
+	// Optional document inspection does not become a global chat/runner gate.
+	if !hasPDFReadingInspector {
+		next = append(next, "Optional PDF reading requires Poppler pdfinfo on the backend service PATH; on Ubuntu/WSL install poppler-utils in that backend host.")
+	}
 	evidence := map[string]any{
+		"hasPDFReadingInspector":                   hasPDFReadingInspector,
+		"pdfReadingInspectorScope":                 "backend-host-PATH",
 		"hasArtifactRegister":                      hasRegister,
 		"hasArtifactList":                          hasList,
 		"hasArtifactGet":                           hasGet,

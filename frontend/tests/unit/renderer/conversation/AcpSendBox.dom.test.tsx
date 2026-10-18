@@ -16,6 +16,8 @@ import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
+import { pdfBinding, pdfContext } from './pdfReadingFixtures';
+import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import {
@@ -411,17 +413,31 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
       content: sendBoxDraftSeed.current,
       contextItems: draftContextItemsMock.current,
     });
+    const draftRef = React.useRef(draft);
+    draftRef.current = draft;
     return {
+      saveFailed: false,
+      retrySave: vi.fn(),
       data: {
         atPath: [],
         uploadFile: [],
         ...draft,
       },
       mutate: (updater: (current: typeof draft) => typeof draft | undefined) => {
-        setDraft((current) => {
-          const next = updater(current);
-          return next === undefined ? current : next;
-        });
+        const next = updater(draftRef.current);
+        if (next !== undefined) {
+          draftRef.current = next;
+          setDraft(next);
+        }
+      },
+      mutatePersistedIf: (updater: (current: typeof draft) => typeof draft | undefined) => {
+        const current = draftRef.current;
+        const next = updater(current) ?? current;
+        if (next !== current) {
+          draftRef.current = next;
+          setDraft(next);
+        }
+        return { available: true, draft: next };
       },
       replaceContentIfUnchanged: (expected: string, replacement: string) => {
         if (draft.content !== expected) return false;
@@ -501,11 +517,13 @@ vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
   useConversationRuntimeView: () => runtimeViewMock,
 }));
-vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({
-    setSendBoxHandler: setSendBoxHandlerMock,
-  }),
-}));
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
+  return {
+    ...actual,
+    usePreviewContext: () => actual.useOptionalPreviewContext() ?? { setSendBoxHandler: setSendBoxHandlerMock },
+  };
+});
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
 }));
@@ -547,6 +565,8 @@ vi.mock('@/renderer/services/xScienceCompute', () => ({
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
     emit: (...args: unknown[]) => emitterEmitMock(...args),
+    on: vi.fn(),
+    off: vi.fn(),
   },
   useAddEventListener: vi.fn(),
 }));
@@ -557,7 +577,7 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
   buildDisplayMessage: (input: string) => input,
 }));
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
-  useAcpInitialMessage: vi.fn(),
+  useAcpInitialMessage: vi.fn(() => ({ failed: false, retry: vi.fn() })),
 }));
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
@@ -682,7 +702,8 @@ async function renderManualCompaction(
   capability = manualCompactionSnapshot(),
   usage = manualCompactionUsage(),
   respond?: (method: string, path: string, body: unknown) => unknown | Promise<unknown>,
-  busy = false
+  busy = false,
+  reading?: { context: ReturnType<typeof pdfContext>; observer: React.ReactNode }
 ) {
   realContextDropdown.current = true;
   setRendererAccountOwner(manualCompactionIdentity.ownerId);
@@ -702,6 +723,12 @@ async function renderManualCompaction(
     return new Response(JSON.stringify(usage), { status: 200 });
   });
   const transport = vi.spyOn(httpBridge, 'httpRequest').mockImplementation(async (method, path, body) => {
+    if (
+      reading &&
+      method === 'GET' &&
+      path === `/api/conversations/${manualCompactionIdentity.frameId}/reading-context`
+    )
+      return reading.context as never;
     if (respond) return (await respond(method, path, body)) as never;
     if (method === 'GET' && path.split('?')[0] === manualCompactionPath) return capability as never;
     if (method === 'POST' && path === manualCompactionPath)
@@ -715,7 +742,7 @@ async function renderManualCompaction(
     realContextDropdown.current = false;
   };
   try {
-    const view = await render(
+    const composer = (
       <AcpSendBox
         conversation_id={manualCompactionIdentity.frameId}
         ownerId={manualCompactionIdentity.ownerId}
@@ -735,6 +762,16 @@ async function renderManualCompaction(
         }
       />
     );
+    const view = await render(
+      reading ? (
+        <PreviewProvider>
+          {reading.observer}
+          {composer}
+        </PreviewProvider>
+      ) : (
+        composer
+      )
+    );
     await act(async () => {
       await view.i18n.changeLanguage('en-US');
     });
@@ -753,6 +790,235 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  it('C12 freezes the clicked reading page while its own new PDF link is preparing', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const context = pdfContext();
+    context.scope.frame_id = 'conv-c12-preparing';
+    context.scope.root_frame_id = context.scope.frame_id;
+    context.scope.root_frame_incarnation_id = context.scope.frame_incarnation_id;
+    const source = { artifact_id: 'artifact-2', version_id: 'version-2' };
+    draftContextItemsMock.current = [
+      {
+        kind: 'artifact',
+        artifactId: source.artifact_id,
+        versionId: source.version_id,
+        label: 'paper-2.pdf',
+        contentType: 'application/pdf',
+        sizeBytes: 512,
+      },
+    ];
+    const inspection = createDeferred<Response>();
+    const readingPath = `/api/conversations/${context.scope.frame_id}/reading-context`;
+    const linkRequests: unknown[] = [];
+    const response = (body: unknown) =>
+      new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      const pathname = new URL(address, 'http://localhost').pathname;
+      const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET');
+      if (method === 'GET' && pathname === readingPath) return response(context);
+      if (method === 'GET' && pathname.endsWith('/context-usage')) return response({ status: 'unavailable' });
+      if (method === 'POST' && pathname === `${readingPath}/candidates`) return inspection.promise;
+      if (method === 'POST' && pathname === `${readingPath}/link`) {
+        linkRequests.push(JSON.parse(String(init?.body)));
+        return response({ ...context, revision: 2, changed: true, bindings: [...context.bindings, pdfBinding('2')] });
+      }
+      throw new Error(`Unexpected reading preparation request: ${method} ${pathname}`);
+    });
+    function PreviewObservation() {
+      const { pdfReadingOwner } = usePreviewContext();
+      return (
+        <>
+          <output data-testid='reading-owner'>{pdfReadingOwner?.context?.revision}</output>
+          {[4, 9].map((pageNumber) => (
+            <button
+              key={pageNumber}
+              onClick={() =>
+                pdfReadingOwner?.reportPosition(
+                  { artifact_id: 'artifact-1', version_id: 'version-1' },
+                  { pageNumber, pageCount: 9 }
+                )
+              }
+            >
+              observe page {pageNumber}
+            </button>
+          ))}
+        </>
+      );
+    }
+    sendMessageInvokeMock.mockResolvedValue({
+      turn_id: context.scope.frame_id,
+      msg_id: 'canonical-prepared-input',
+      runtime: { state: 'idle', is_processing: false },
+    });
+    let view: Awaited<ReturnType<typeof render>> | undefined;
+    try {
+      view = await render(
+        <PreviewProvider>
+          <PreviewObservation />
+          <AcpSendBox
+            conversation_id={context.scope.frame_id}
+            ownerId='owner'
+            backend='xscience'
+            messageState={makeMessageState()}
+          />
+        </PreviewProvider>
+      );
+      await waitFor(() => expect(screen.getByTestId('reading-owner')).toHaveTextContent('1'));
+      fireEvent.click(screen.getByRole('button', { name: 'observe page 4' }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/candidates'))).toBe(true)
+      );
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'observe page 9' }));
+      await act(async () => {
+        inspection.resolve(
+          response({
+            schema: 'x-science.pdf-reading-candidates.v1',
+            scope: context.scope,
+            revision: 1,
+            candidates: [{ source, eligible: true, page_count: 9, size_bytes: 512, checksum: 'a'.repeat(64) }],
+          })
+        );
+        await inspection.promise;
+      });
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(linkRequests).toEqual([expect.objectContaining({ expected_revision: 1, sources: [source] })]);
+      expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+        reading_context: {
+          expected_revision: 2,
+          binding_ids: ['binding-1', 'binding-2'],
+          active_binding_id: 'binding-1',
+          page_number: 4,
+        },
+      });
+    } finally {
+      view?.unmount();
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('C12 sends reading selection on ordinary input but never attaches it to Save-as-Skill control', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const context = pdfContext();
+    context.scope.frame_id = 'conv-c12-intents';
+    context.scope.root_frame_id = context.scope.frame_id;
+    context.scope.root_frame_incarnation_id = context.scope.frame_incarnation_id;
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      const pathname = new URL(address, 'http://localhost').pathname;
+      const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET');
+      const readingPath = `/api/conversations/${context.scope.frame_id}/reading-context`;
+      const usagePath = `/api/conversations/${context.scope.frame_id}/context-usage`;
+      if (method !== 'GET' || (pathname !== readingPath && pathname !== usagePath)) {
+        throw new Error(`Unexpected C12 fixture request: ${method} ${pathname}`);
+      }
+      const body = pathname === readingPath ? context : { status: 'unavailable' };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    sendMessageInvokeMock.mockResolvedValue({
+      turn_id: 'conv-c12-intents',
+      msg_id: 'canonical-input',
+      runtime: { state: 'idle', is_processing: false },
+    });
+    try {
+      await render(
+        <AcpSendBox
+          conversation_id='conv-c12-intents'
+          ownerId='owner'
+          backend='xscience'
+          messageState={makeMessageState()}
+        />
+      );
+      await screen.findByTestId('pdf-context-bar');
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+        reading_context: {
+          schema: 'x-science.pdf-reading-selection.v1',
+          expected_revision: 1,
+          binding_ids: ['binding-1'],
+        },
+      });
+      const action = fileAttachProps.current?.onSaveSkill;
+      if (typeof action !== 'function') throw new Error('Missing Save-as-Skill entry');
+      await act(async () => {
+        await action();
+      });
+      expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2);
+      expect(sendMessageInvokeMock.mock.calls[1][0]).toMatchObject({ turn_intent: 'save-as-skill' });
+      expect(sendMessageInvokeMock.mock.calls[1][0]).not.toHaveProperty('reading_context');
+      expect(saveConversationAsSkillMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it('C12 restores the canonical linked PDF bar without sending a message', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    const scope = {
+      frame_id: 'conv-reading',
+      frame_incarnation_id: 'frame-reading',
+      root_frame_id: 'conv-reading',
+      root_frame_incarnation_id: 'frame-reading',
+      project_id: 'project-reading',
+    };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            schema: 'x-science.pdf-reading-context.v1',
+            scope,
+            revision: 1,
+            changed: false,
+            bindings: [
+              {
+                binding_id: 'binding-reading',
+                source_kind: 'artifact-version',
+                artifact_id: 'artifact-reading',
+                version_id: 'version-reading',
+                name: 'reading.pdf',
+                mime_type: 'application/pdf',
+                size_bytes: 100,
+                checksum: 'a'.repeat(64),
+                page_count: 2,
+                linked_at: '2026-10-18T00:00:00Z',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } }
+        )
+    );
+    try {
+      await render(
+        <AcpSendBox
+          conversation_id='conv-reading'
+          ownerId='owner-reading'
+          backend='xscience'
+          messageState={makeMessageState()}
+        />
+      );
+      expect(await screen.findByTestId('pdf-context-bar')).toHaveTextContent('reading.pdf');
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     queuedCommandSequence = 0;
@@ -1016,6 +1282,95 @@ describe('AcpSendBox', () => {
         await drain.promise;
       });
       await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 C12 freezes the reading selection before waiting for the exact maintenance drain', async () => {
+    const receipt = manualCompactionReceipt();
+    const context = pdfContext();
+    context.scope.frame_id = manualCompactionIdentity.frameId;
+    context.scope.frame_incarnation_id = manualCompactionIdentity.frameIncarnationId;
+    context.scope.root_frame_id = manualCompactionIdentity.rootFrameId;
+    context.scope.root_frame_incarnation_id = manualCompactionTarget.root_frame_incarnation_id;
+    const drain = createDeferred<ReturnType<typeof manualCompactionReceipt>>();
+    function ObservePage() {
+      const { pdfReadingOwner } = usePreviewContext();
+      return (
+        <>
+          <output data-testid='combined-reading-owner'>{pdfReadingOwner?.context?.revision}</output>
+          {[4, 9].map((pageNumber) => (
+            <button
+              key={pageNumber}
+              onClick={() =>
+                pdfReadingOwner?.reportPosition(
+                  { artifact_id: 'artifact-1', version_id: 'version-1' },
+                  { pageNumber, pageCount: 9 }
+                )
+              }
+            >
+              combined page {pageNumber}
+            </button>
+          ))}
+        </>
+      );
+    }
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(receipt),
+      manualCompactionUsage(),
+      (method, path, body) => {
+        if (method === 'GET' && path === manualCompactionPath) return manualCompactionSnapshot(receipt);
+        if (method === 'DELETE' && path === `${manualCompactionPath}/by-request/${receipt.request.request_id}`) {
+          expect(body).toEqual(receipt.request);
+          return drain.promise;
+        }
+        throw new Error(`Unexpected combined control request: ${method} ${path}`);
+      },
+      true,
+      { context, observer: <ObservePage /> }
+    );
+    try {
+      await waitFor(() => expect(screen.getByTestId('combined-reading-owner')).toHaveTextContent('1'));
+      await waitFor(() =>
+        expect(
+          harness.transport.mock.calls.some(([method, path]) => method === 'GET' && path === manualCompactionPath)
+        ).toBe(true)
+      );
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      expect(await screen.findByRole('button', { name: 'Compacting context' })).toBeDisabled();
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      fireEvent.click(screen.getByRole('button', { name: 'combined page 4' }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() =>
+        expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(1)
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'combined page 9' }));
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(compactionEnqueueMock).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      await act(async () => {
+        drain.resolve({
+          ...receipt,
+          state: 'cancelled',
+          cancellation_status: 'cancelled',
+          execution_observation: 'settled',
+          can_submit_next_input: true,
+        });
+        await drain.promise;
+      });
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0]).toMatchObject({
+        reading_context: {
+          expected_revision: 1,
+          binding_ids: ['binding-1'],
+          active_binding_id: 'binding-1',
+          page_number: 4,
+        },
+      });
+      expect(compactionEnqueueMock).not.toHaveBeenCalled();
       expect(stopInvokeMock).not.toHaveBeenCalled();
       expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
     } finally {

@@ -3,6 +3,12 @@ import {
   type ComposerContextItem,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import {
+  decodePdfReadingPending,
+  decodePdfReadingSelection,
+  type PdfReadingPendingMutation,
+  type PdfReadingSelection,
+} from '@/common/adapter/pdfReadingContext';
 
 const DRAFT_VERSION = 1;
 const DRAFT_STORAGE_PREFIX = 'xscience.composer.draft.v1';
@@ -22,6 +28,10 @@ export type StagedSessionOptions = {
 };
 
 export type AcpSendBoxDraft = {
+  pdfReadingMutation?: PdfReadingPendingMutation;
+  pdfReadingAttachmentsDisabled?: true;
+  pdfReadingQueuedSelection?: PdfReadingSelection;
+  pdfReadingQueuedInvalid?: true;
   _type: 'acp';
   content: string;
   atPath: Array<string | FileOrFolderItem>;
@@ -63,25 +73,8 @@ export function loadSendBoxDraft(ownerId: string, conversationId: string): AcpSe
   const storage = browserStorage();
   const key = sendBoxDraftStorageKey(ownerId, conversationId);
   if (!storage || !key) return undefined;
-  let raw: string | null = null;
   try {
-    raw = storage.getItem(key);
-    if (!raw) return undefined;
-    if (new TextEncoder().encode(raw).byteLength > MAX_DRAFT_BYTES) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isRecord(parsed) || parsed.version !== DRAFT_VERSION) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    const draft = normalizeAcpSendBoxDraft(parsed.draft);
-    if (!draft) {
-      storage.removeItem(key);
-      return undefined;
-    }
-    return draft;
+    return readStoredDraft(storage, key);
   } catch {
     try {
       storage.removeItem(key);
@@ -90,6 +83,39 @@ export function loadSendBoxDraft(ownerId: string, conversationId: string): AcpSe
       // remains authoritative for the current page lifetime.
     }
     return undefined;
+  }
+}
+
+function readStoredDraft(storage: Storage, key: string, strictPending = false): AcpSendBoxDraft | undefined {
+  const raw = storage.getItem(key);
+  if (!raw) return undefined;
+  if (new TextEncoder().encode(raw).byteLength > MAX_DRAFT_BYTES) throw new Error('Draft exceeds storage limit');
+  const parsed = JSON.parse(raw) as unknown;
+  if (!isRecord(parsed) || parsed.version !== DRAFT_VERSION) throw new Error('Invalid draft version');
+  if (
+    strictPending &&
+    isRecord(parsed.draft) &&
+    parsed.draft.pdfReadingMutation !== undefined &&
+    !decodePdfReadingPending(parsed.draft.pdfReadingMutation)
+  )
+    throw new Error('Invalid PDF recovery request');
+  const draft = normalizeAcpSendBoxDraft(parsed.draft);
+  if (!draft) throw new Error('Invalid draft');
+  return draft;
+}
+
+/** Strict mutation reads distinguish absence from failure and never delete data. */
+export function readSendBoxDraftForMutation(
+  ownerId: string,
+  conversationId: string
+): { available: true; draft?: AcpSendBoxDraft } | { available: false } {
+  const storage = browserStorage();
+  const key = sendBoxDraftStorageKey(ownerId, conversationId);
+  if (!storage || !key) return { available: false };
+  try {
+    return { available: true, draft: readStoredDraft(storage, key, true) };
+  } catch {
+    return { available: false };
   }
 }
 
@@ -118,7 +144,10 @@ function isEmptyDraft(draft: AcpSendBoxDraft): boolean {
     draft.content.length === 0 &&
     draft.atPath.length === 0 &&
     draft.uploadFile.length === 0 &&
-    draft.contextItems.length === 0
+    draft.contextItems.length === 0 &&
+    draft.pdfReadingMutation === undefined &&
+    draft.pdfReadingQueuedSelection === undefined &&
+    draft.pdfReadingQueuedInvalid !== true
   );
 }
 
@@ -146,8 +175,25 @@ function normalizeAcpSendBoxDraft(value: unknown): AcpSendBoxDraft | null {
     uploadFile,
     contextItems: normalizeComposerContextItems(value.contextItems),
     ...(value.planMode === true ? { planMode: true as const } : {}),
+    ...(value.pdfReadingAttachmentsDisabled === true ? { pdfReadingAttachmentsDisabled: true as const } : {}),
+    ...normalizeFrozenPdfDraft(value),
     ...normalizeStagedSessionOptions(value.stagedSessionOptions),
+    ...(decodePdfReadingPending(value.pdfReadingMutation)
+      ? { pdfReadingMutation: decodePdfReadingPending(value.pdfReadingMutation) }
+      : {}),
   };
+}
+
+function normalizeFrozenPdfDraft(
+  value: Record<string, unknown>
+): Pick<AcpSendBoxDraft, 'pdfReadingQueuedSelection' | 'pdfReadingQueuedInvalid'> {
+  if (value.pdfReadingQueuedInvalid === true) return { pdfReadingQueuedInvalid: true };
+  if (value.pdfReadingQueuedSelection === undefined) return {};
+  try {
+    return { pdfReadingQueuedSelection: decodePdfReadingSelection(value.pdfReadingQueuedSelection) };
+  } catch {
+    return { pdfReadingQueuedInvalid: true };
+  }
 }
 
 function normalizeStagedSessionOptions(value: unknown): { stagedSessionOptions?: StagedSessionOptions } {

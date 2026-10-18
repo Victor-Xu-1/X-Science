@@ -11,7 +11,9 @@ import { decodeArtifactReferences, type ArtifactReferenceWire } from '@/common/a
 import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { PdfReadingSelection, PdfReadingSource } from '@/common/adapter/pdfReadingContext';
+import { prepareInitialPdfReading, type PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
 import { useTranslation } from 'react-i18next';
 import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
 import { buildSendFailureError } from './buildSendFailureError';
@@ -45,6 +47,12 @@ type DraftRestoreIssue = {
 
 type UseAcpInitialMessageParams = {
   conversation_id: string;
+  ownerId?: string;
+  prepareReadingSources?: (
+    sources: PdfReadingSource[],
+    position?: PdfReadingSourcePosition
+  ) => Promise<PdfReadingSelection | undefined>;
+  canDiscardReadingPreparation?: () => boolean;
   backend: string;
   workspacePath?: string;
   streamReady: boolean;
@@ -86,6 +94,9 @@ const normalizeInitialCapabilityIds = (value: unknown): string[] | undefined => 
  */
 export const useAcpInitialMessage = ({
   conversation_id,
+  ownerId = '',
+  prepareReadingSources,
+  canDiscardReadingPreparation,
   backend,
   workspacePath,
   streamReady,
@@ -98,17 +109,63 @@ export const useAcpInitialMessage = ({
   addOrUpdateMessage,
   onDraftPrefill,
   onDraftRestoreIssue,
-}: UseAcpInitialMessageParams): void => {
+}: UseAcpInitialMessageParams) => {
   const { t } = useTranslation();
   const accountScope = getRendererAccountScopeToken();
+  const [retryVersion, setRetryVersion] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [preparationFailed, setPreparationFailed] = useState(false);
+  const [canKeepPdfAttachments, setCanKeepPdfAttachments] = useState(false);
+  const prepareRef = useRef(prepareReadingSources);
+  prepareRef.current = prepareReadingSources;
+  const canDiscardRef = useRef(canDiscardReadingPreparation);
+  canDiscardRef.current = canDiscardReadingPreparation;
+  const retry = useCallback(() => {
+    initialMessageFailures.delete(rendererAccountScopedKey(`acp_initial_message_${conversation_id}`));
+    setFailed(false);
+    setPreparationFailed(false);
+    setCanKeepPdfAttachments(false);
+    setRetryVersion((value) => value + 1);
+  }, [conversation_id, accountScope]);
+  const keepPdfAttachments = useCallback(() => {
+    const key = `acp_initial_message_${conversation_id}`;
+    if (
+      getRendererAccountScopeToken() !== accountScope ||
+      initialMessageSendsInFlight.has(rendererAccountScopedKey(key)) ||
+      !canDiscardRef.current?.()
+    )
+      return;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return;
+      const original = JSON.parse(raw) as Record<string, unknown>;
+      // The selection is persisted before any message POST. Once prepared,
+      // its original payload is immutable even if the response was lost.
+      if (
+        original.pdf_reading_owner_id !== ownerId ||
+        !Array.isArray(original.pdf_reading_sources) ||
+        original.pdf_reading_prepared === true ||
+        original.reading_context !== undefined
+      )
+        return;
+      delete original.pdf_reading_sources;
+      delete original.pdf_reading_position;
+      sessionStorage.setItem(key, JSON.stringify(original));
+      retry();
+    } catch {
+      /* Keep the original handoff on an unreadable/unwritable draft. */
+    }
+  }, [conversation_id, accountScope, ownerId, retry]);
   const authorityRef = useRef<object | null>(null);
   useLayoutEffect(() => {
     const authority = {};
     authorityRef.current = authority;
+    setFailed(initialMessageFailures.has(rendererAccountScopedKey(`acp_initial_message_${conversation_id}`)));
+    setCanKeepPdfAttachments(false);
     return () => {
       if (authorityRef.current === authority) authorityRef.current = null;
     };
-  }, [conversation_id, accountScope]);
+  }, [conversation_id, accountScope, ownerId]);
 
   useEffect(() => {
     if (!streamReady) return;
@@ -118,7 +175,7 @@ export const useAcpInitialMessage = ({
     const authority = authorityRef.current;
     const isCurrent = () =>
       authority !== null && authorityRef.current === authority && getRendererAccountScopeToken() === accountScope;
-    const storedMessage = sessionStorage.getItem(storageKey);
+    let storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
     if (initialMessageSendsInFlight.has(submissionKey) || initialMessageFailures.has(submissionKey)) return;
@@ -226,6 +283,7 @@ export const useAcpInitialMessage = ({
 
     const sendInitialMessage = async () => {
       let submissionTicket: object | undefined;
+      let messageSubmitted = false;
       try {
         const initialMessage = parsed;
         const input = typeof initialMessage.input === 'string' ? initialMessage.input : '';
@@ -283,12 +341,27 @@ export const useAcpInitialMessage = ({
         submissionTicket = markSendStarted?.() || undefined;
         setAiProcessing(true);
 
+        const readingContext = await prepareInitialPdfReading(
+          initialMessage,
+          ownerId,
+          prepareRef.current,
+          isCurrent,
+          (next) => {
+            if (!isCurrent() || sessionStorage.getItem(storageKey) !== storedMessage)
+              throw new Error('Initial message changed');
+            storedMessage = JSON.stringify(next);
+            sessionStorage.setItem(storageKey, storedMessage);
+          }
+        );
+        if (!isCurrent()) return;
+
         await Promise.all(
           computeProviders.map((provider: string) => setXScienceSessionComputeProvider(conversation_id, provider, true))
         );
         if (!isCurrent()) return;
 
         void checkAndUpdateTitle(conversation_id, input);
+        messageSubmitted = true;
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id: conversation_id,
@@ -298,6 +371,7 @@ export const useAcpInitialMessage = ({
           ...(inject_skills ? { inject_skills } : {}),
           ...(inject_mcp_server_ids ? { inject_mcp_server_ids } : {}),
           session_options: sessionOptions,
+          ...(readingContext ? { reading_context: readingContext } : {}),
         });
         if (!isCurrent()) return;
         const accepted = markSendAccepted?.(result.turn_id, result.runtime, result.msg_id, {
@@ -317,6 +391,16 @@ export const useAcpInitialMessage = ({
       } catch (error) {
         if (!isCurrent()) return;
         initialMessageFailures.add(submissionKey);
+        setFailed(true);
+        setPreparationFailed(
+          !messageSubmitted && Array.isArray(parsed.pdf_reading_sources) && parsed.pdf_reading_prepared !== true
+        );
+        setCanKeepPdfAttachments(
+          !messageSubmitted &&
+            Array.isArray(parsed.pdf_reading_sources) &&
+            parsed.pdf_reading_prepared !== true &&
+            parsed.reading_context === undefined
+        );
         const errorMessageText =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
         if (markSendFailed?.(errorMessageText, submissionTicket) === null) return;
@@ -353,6 +437,8 @@ export const useAcpInitialMessage = ({
     });
   }, [
     accountScope,
+    ownerId,
+    retryVersion,
     addOrUpdateMessage,
     backend,
     checkAndUpdateTitle,
@@ -368,4 +454,5 @@ export const useAcpInitialMessage = ({
     t,
     workspacePath,
   ]);
+  return { failed, preparationFailed, retry, canKeepPdfAttachments, keepPdfAttachments };
 };

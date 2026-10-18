@@ -63,6 +63,9 @@ func (s *Store) AdvanceClaimedFrameRuntimeEventCursorTx(
 		return errors.New("frame runtime event cursor requires a transaction context")
 	}
 	cursor = strings.TrimSpace(cursor)
+	if cursor == transcriptstore.PDFReadingMetadataKey {
+		return transcriptstore.ErrPDFReadingInvalid
+	}
 	if cursor == "" || eventID <= 0 {
 		return errors.New("frame runtime event cursor identity and event id are required")
 	}
@@ -165,6 +168,10 @@ func (s *Store) setFrameRuntimeMetadataTransaction(
 	contextData := metadata.ContextData
 	if contextData == nil {
 		contextData = map[string]any{}
+	}
+	contextData, err := preservePDFReadingMetadata(ctx, tx, frameID, contextData)
+	if err != nil {
+		return FrameRuntimeMetadata{}, err
 	}
 	rawContext, err := json.Marshal(contextData)
 	if err != nil {

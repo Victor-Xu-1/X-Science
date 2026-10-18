@@ -18,6 +18,9 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { clampPercent } from './artifactCanvasSelection';
 import { loadPdfDocumentBytes } from './pdfDocumentSource';
+import { usePdfReadingPosition } from './usePdfReadingPosition';
+import { PdfPageNavigator } from './PdfPageNavigator';
+import type { PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
 import {
   findPdfTextAnnotationRange,
   normalizePdfTextAnnotationRects,
@@ -43,17 +46,39 @@ export const XSciencePdfArtifactViewer: React.FC<{
   onSelectionChange?: (selection: XScienceArtifactCanvasSelection | null) => void;
   onAnnotationClick?: (annotation: XScienceArtifactAnnotation) => void;
   hideToolbar?: boolean;
-}> = ({ filename, contentUrl, annotations = [], onSelectionChange, onAnnotationClick, hideToolbar = false }) => {
+  onReadingPositionChange?: (position: PdfReadingPosition) => void;
+  targetPage?: number;
+  revealId?: string;
+}> = ({
+  filename,
+  contentUrl,
+  annotations = [],
+  onSelectionChange,
+  onAnnotationClick,
+  hideToolbar = false,
+  onReadingPositionChange,
+  targetPage,
+  revealId,
+}) => {
   const { i18n, t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<VirtuosoHandle>(null);
   const [file, setFile] = useState<Uint8Array | null>(null);
   const [numPages, setNumPages] = useState(0);
+  const [parsedSource, setParsedSource] = useState<string | null>(null);
   const [containerWidth, setContainerWidth] = useState(800);
   const [scale, setScale] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ScientificPreviewError | null>(null);
   const [generation, setGeneration] = useState(0);
+  const reading = usePdfReadingPosition(
+    contentUrl,
+    parsedSource === contentUrl ? numPages : 0,
+    pagesRef,
+    onReadingPositionChange,
+    targetPage,
+    revealId
+  );
   const clearSelection = useEffectEvent(() => onSelectionChange?.(null));
 
   useEffect(() => {
@@ -72,6 +97,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
     setError(null);
     setFile(null);
     setNumPages(0);
+    setParsedSource(null);
     setScale(1);
     clearSelection();
     void loadPdfDocumentBytes(contentUrl, controller.signal)
@@ -95,9 +121,9 @@ export const XSciencePdfArtifactViewer: React.FC<{
       if (!Number.isSafeInteger(pageIndex) || pageIndex < 0 || pageIndex >= numPages) return;
       // PDF.js destinations may refer to a page outside the mounted window.
       // Let the virtualizer mount and position it instead of looking for a DOM page.
-      pagesRef.current?.scrollToIndex({ index: pageIndex, align: 'start' });
+      reading.navigate(pageIndex + 1);
     },
-    [numPages]
+    [numPages, reading.navigate]
   );
   const handlePageError = useCallback((reason: unknown) => {
     logScientificPreviewError(`[${PRODUCT_NAME} PdfArtifactViewer] Failed to render PDF page`, reason, 'parse-failed');
@@ -198,6 +224,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
             disabled={scale >= MAX_SCALE}
             onClick={() => setScale((value) => Math.min(MAX_SCALE, Number((value + 0.2).toFixed(2))))}
           />
+          {numPages > 0 && <PdfPageNavigator page={reading.currentPage} count={numPages} navigate={reading.navigate} />}
           {numPages > 0 && (
             <span className='px-4px text-11px text-t-tertiary'>
               {t('preview.scientific.pdf.pageCount', {
@@ -227,12 +254,14 @@ export const XSciencePdfArtifactViewer: React.FC<{
         </div>
       ) : (
         <Document
+          key={contentUrl}
           file={documentFile}
           options={pdfOptions}
           onItemClick={handleDocumentLink}
           loading={null}
           onLoadSuccess={({ numPages: nextNumPages }) => {
             setNumPages(nextNumPages);
+            setParsedSource(contentUrl);
             setLoading(false);
           }}
           onLoadError={(reason) => {
@@ -249,6 +278,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
         >
           <Virtuoso
             ref={pagesRef}
+            scrollerRef={reading.scrollerRef}
             key={contentUrl}
             totalCount={numPages}
             defaultItemHeight={pageWidth * 1.3 + 16}

@@ -6,6 +6,7 @@
 
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
+import type { PdfReadingSnapshot } from '../adapter/pdfReadingContext';
 import type { ArtifactReferenceWire, IResponseMessage, ToolLifecycleStatus } from '../adapter/messageStreamProtocol';
 import { uuid } from '../utils';
 import { decodeRoundSummary, type RoundSummary } from './roundSummary';
@@ -127,6 +128,8 @@ interface IMessage<T extends TMessageType, Content> {
   turn_intent?: 'save-as-skill';
   /** Canonical artifact/version identities attached to this persisted message. */
   artifact_refs?: ArtifactReferenceWire[];
+  pdf_reading_context?: PdfReadingSnapshot;
+  pdf_reading_context_unavailable?: boolean;
 }
 
 export type CronMessageMeta = {
@@ -487,11 +490,15 @@ export const preferTextMessageVersion = (primary: IMessageText, secondary: IMess
     : undefined;
   const reconciledReferences = mergeArtifactReferences(secondary.artifact_refs, primary.artifact_refs, 'union');
   const roundSummary = decodeRoundSummary(primary.round_summary) ?? decodeRoundSummary(secondary.round_summary);
+  const reading = primary.pdf_reading_context ?? secondary.pdf_reading_context;
+  const readingUnavailable = primary.pdf_reading_context_unavailable ?? secondary.pdf_reading_context_unavailable;
   const publicationCoverage = mergeTextPublicationCoverage(primary, secondary);
   if (
     terminalState === undefined &&
     roundSummary === undefined &&
     reconciledReferences === undefined &&
+    reading === undefined &&
+    readingUnavailable === undefined &&
     Object.keys(publicationCoverage).length === 0
   )
     return selected;
@@ -501,6 +508,8 @@ export const preferTextMessageVersion = (primary: IMessageText, secondary: IMess
     ...terminalState,
     ...(roundSummary ? { round_summary: roundSummary } : {}),
     ...(reconciledReferences === undefined ? {} : { artifact_refs: reconciledReferences }),
+    ...(reading ? { pdf_reading_context: reading } : {}),
+    ...(readingUnavailable ? { pdf_reading_context_unavailable: true } : {}),
   };
 };
 
