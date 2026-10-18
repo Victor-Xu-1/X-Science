@@ -7,34 +7,53 @@
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
 import { PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
-import { ipcBridge } from '@/common';
+import { Message } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
+import { reorderPinnedConversations } from '@/renderer/services/runtime/conversationPresentation';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import type { TChatConversation } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
-import { useCallback, useRef, useState } from 'react';
-
-import {
-  assignInitialSortOrders,
-  computeSortOrder,
-  getConversationSortOrder,
-  needsReindex,
-  reindexSortOrders,
-} from '../utils/sortOrderHelpers';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseDragAndDropParams = {
   pinnedConversations: TChatConversation[];
   batchMode: boolean;
   collapsed: boolean;
+  pinnedListComplete?: boolean;
 };
 
-export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: UseDragAndDropParams) => {
+export const useDragAndDrop = ({
+  pinnedConversations,
+  batchMode,
+  collapsed,
+  pinnedListComplete = true,
+}: UseDragAndDropParams) => {
+  const { t } = useTranslation();
+  const savingRef = useRef<symbol | null>(null);
+  const [saving, setSaving] = useState(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    const reset = registerRendererAccountReset('pinned-order-action', () => {
+      savingRef.current = null;
+      setSaving(false);
+      setActiveId(null);
+      setActiveConversation(null);
+      isDraggingRef.current = false;
+    });
+    return () => {
+      mounted.current = false;
+      reset();
+    };
+  }, []);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeConversation, setActiveConversation] = useState<TChatConversation | null>(null);
   const isDraggingRef = useRef(false);
 
-  const isDragEnabled = !batchMode && !collapsed && !isMobile;
+  const isDragEnabled = !batchMode && !collapsed && !isMobile && pinnedListComplete && !saving;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -43,22 +62,6 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
       },
     })
   );
-
-  const persistSortOrder = useCallback(async (conversation_id: string, sortOrder: number) => {
-    try {
-      await ipcBridge.conversation.update.invoke({
-        id: conversation_id,
-        updates: {
-          extra: {
-            sortOrder,
-          } as Partial<TChatConversation['extra']>,
-        } as Partial<TChatConversation>,
-        merge_extra: true,
-      });
-    } catch (error) {
-      console.error('[DragAndDrop] Failed to persist sort order:', error);
-    }
-  }, []);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -79,44 +82,36 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
       setActiveConversation(null);
       isDraggingRef.current = false;
 
-      if (!over || active.id === over.id) return;
+      if (!over || active.id === over.id || savingRef.current || !pinnedListComplete) return;
 
       const activeIdStr = String(active.id);
       const overIdStr = String(over.id);
 
-      // Build pinned items list with sort orders
-      const items = pinnedConversations.map((c) => ({
-        id: c.id,
-        sortOrder: getConversationSortOrder(c),
-      }));
-      const itemsWithOrder = assignInitialSortOrders(items);
-
-      const oldIndex = itemsWithOrder.findIndex((i) => i.id === activeIdStr);
-      const newIndex = itemsWithOrder.findIndex((i) => i.id === overIdStr);
+      const oldIndex = pinnedConversations.findIndex((item) => item.id === activeIdStr);
+      const newIndex = pinnedConversations.findIndex((item) => item.id === overIdStr);
 
       if (oldIndex === -1 || newIndex === -1) return;
 
-      const reordered = arrayMove(itemsWithOrder, oldIndex, newIndex);
-      const before = newIndex > 0 ? reordered[newIndex - 1].sortOrder : undefined;
-      const after = newIndex < reordered.length - 1 ? reordered[newIndex + 1].sortOrder : undefined;
-      const newSortOrder = computeSortOrder(before, after);
-
-      // Check if reindex needed
-      if (needsReindex(reordered.map((i) => ({ sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder })))) {
-        const finalOrder = reordered.map((i) => ({
-          id: i.id,
-          sortOrder: i.id === activeIdStr ? newSortOrder : i.sortOrder,
-        }));
-        const reindexed = reindexSortOrders(finalOrder);
-        await Promise.all(reindexed.map((item) => persistSortOrder(item.id, item.sortOrder)));
-        emitter.emit('chat.history.refresh');
-        return;
+      const scope = getRendererAccountScopeToken();
+      const operation = Symbol('pinned-order');
+      savingRef.current = operation;
+      setSaving(true);
+      try {
+        await reorderPinnedConversations(arrayMove(pinnedConversations, oldIndex, newIndex));
+      } catch {
+        if (mounted.current && scope === getRendererAccountScopeToken())
+          Message.error(t('conversation.history.pinFailed'));
+      } finally {
+        if (savingRef.current === operation) {
+          savingRef.current = null;
+          if (mounted.current && scope === getRendererAccountScopeToken()) {
+            setSaving(false);
+            emitter.emit('chat.history.refresh');
+          }
+        }
       }
-
-      await persistSortOrder(activeIdStr, newSortOrder);
-      emitter.emit('chat.history.refresh');
     },
-    [pinnedConversations, persistSortOrder]
+    [pinnedConversations, pinnedListComplete, t]
   );
 
   const handleDragCancel = useCallback(() => {

@@ -341,67 +341,7 @@ func (s *Server) handleWebConversationRecord(
 		}
 		writeWorkspaceJSON(w, http.StatusOK, conversation)
 	case http.MethodPatch:
-		var input struct {
-			Name        *string        `json:"name"`
-			Description *string        `json:"desc"`
-			Extra       map[string]any `json:"extra"`
-			MergeExtra  bool           `json:"merge_extra"`
-		}
-		if err := decodeWebConversationJSON(w, r, &input); err != nil {
-			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid conversation update: " + err.Error()})
-			return
-		}
-		if input.Name != nil {
-			trimmed := strings.TrimSpace(*input.Name)
-			if trimmed == "" || utf8.RuneCountInString(trimmed) > maxWebConversationNameRunes {
-				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "conversation name must contain 1 to 255 characters"})
-				return
-			}
-			input.Name = &trimmed
-		}
-		_, err := s.workspaceStore.UpdateCompatibilityFrame(frame.ID, workspace.UpdateCompatibilityFrameInput{
-			Name: input.Name, TaskSummary: input.Description,
-		})
-		if err != nil {
-			writeWebConversationError(w, err)
-			return
-		}
-		if input.Extra != nil {
-			metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(frame.ID)
-			if err != nil {
-				writeWebConversationError(w, err)
-				return
-			}
-			if !found {
-				metadata = workspace.FrameRuntimeMetadata{FrameID: frame.ID, ContextData: map[string]any{}}
-			}
-			metadata.ContextData = copyMapAny(metadata.ContextData)
-			if metadata.ContextData == nil {
-				metadata.ContextData = map[string]any{}
-			}
-			if input.MergeExtra {
-				current, _ := metadata.ContextData["web_extra"].(map[string]any)
-				merged := copyMapAny(current)
-				if merged == nil {
-					merged = map[string]any{}
-				}
-				for key, value := range input.Extra {
-					merged[key] = value
-				}
-				metadata.ContextData["web_extra"] = merged
-			} else {
-				metadata.ContextData["web_extra"] = copyMapAny(input.Extra)
-			}
-			if _, err := s.workspaceStore.SetFrameRuntimeMetadata(frame.ID, metadata); err != nil {
-				writeWebConversationError(w, err)
-				return
-			}
-		}
-		if err := s.publishWebConversationListChange(userID, frame.ID, "updated"); err != nil {
-			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "conversation updated but realtime delivery failed"})
-			return
-		}
-		writeWorkspaceJSON(w, http.StatusOK, true)
+		s.handleWebConversationPresentationUpdate(w, r, frame)
 	case http.MethodDelete:
 		runtimeCloseCtx, cancelRuntimeClose := compatibilityRuntimeCleanupContext(r.Context())
 		defer cancelRuntimeClose()

@@ -29,6 +29,52 @@ import ConversationRow, {
 } from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
 
 describe('ConversationRow v1.1 session actions', () => {
+  it('exposes one pin action with truthful pending state and the exact row callback', async () => {
+    const conversation: TChatConversation = {
+      id: 'pin-row',
+      type: 'acp',
+      name: 'Pin target',
+      created_at: 1,
+      modified_at: 1,
+      extra: { backend: 'xscience', pinned: false },
+    };
+    const toggle = vi.fn();
+    const visibility = vi.fn();
+    const props: ConversationRowProps = {
+      conversation,
+      isGenerating: false,
+      hasCompletionUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible: true,
+      onToggleChecked: vi.fn(),
+      onConversationPrefetch: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: visibility,
+      onEditStart: vi.fn(),
+      onMove: vi.fn(),
+      onDelete: vi.fn(),
+      onExport: vi.fn(),
+      onDownloadArtifacts: vi.fn(),
+      onViewNotebook: vi.fn(),
+      onTogglePin: toggle,
+    };
+    const { rerender } = await renderWithI18n(<ConversationRow {...props} />, 'en-US');
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Pin', exact: true }));
+    expect(toggle).toHaveBeenCalledWith(conversation);
+    expect(visibility).toHaveBeenCalledWith('pin-row', false);
+    rerender(<ConversationRow {...props} pinPending />);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pin', exact: true }));
+    expect(toggle).toHaveBeenCalledTimes(1);
+    rerender(
+      <ConversationRow {...props} conversation={{ ...conversation, extra: { ...conversation.extra, pinned: true } }} />
+    );
+    expect(screen.getByRole('menuitem', { name: 'Unpin', exact: true })).toBeInTheDocument();
+  });
   it('keeps the essential conversation actions and removes obsolete secondary actions', async () => {
     const successMessage = vi.spyOn(Message, 'success').mockImplementation(() => () => undefined);
     const callbacks = {

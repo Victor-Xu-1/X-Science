@@ -298,6 +298,7 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 	userID string,
 	limit int,
 	before *CompatibilityFrameSummaryCursor,
+	sections ...string,
 ) ([]CompatibilityFrameSummary, error) {
 	if s == nil || s.db == nil {
 		return nil, errors.New("workspace store is closed")
@@ -309,8 +310,18 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 	if limit <= 0 {
 		limit = 100
 	}
-	if limit > 1000 {
-		limit = 1000
+	if limit > 1001 {
+		limit = 1001
+	}
+	section := ""
+	if len(sections) > 1 {
+		return nil, ErrConversationPresentationInvalid
+	}
+	if len(sections) == 1 {
+		section = sections[0]
+	}
+	if section != "" && section != "pinned" && section != "recent" {
+		return nil, ErrConversationPresentationInvalid
 	}
 	if before != nil && (before.UpdatedAt.IsZero() || strings.TrimSpace(before.FrameID) == "") {
 		return nil, errors.New("valid visible root compatibility frame summary cursor is required")
@@ -328,6 +339,14 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 		WHERE project.user_id = ? AND frame.parent_frame_id IS NULL
 			AND COALESCE(metadata.is_hidden, 0) = 0`
 	args := []any{userID}
+	if section != "" {
+		pinned := `COALESCE(json_type(metadata.context_data,'$.web_extra.pinned')='true',0)`
+		if section == "pinned" {
+			query += " AND " + pinned
+		} else {
+			query += " AND NOT " + pinned
+		}
+	}
 	if before != nil {
 		query += ` AND (frame.updated_at < ? OR (frame.updated_at = ? AND frame.id < ?))`
 		args = append(args, before.UpdatedAt, before.UpdatedAt, strings.TrimSpace(before.FrameID))
@@ -519,29 +538,8 @@ func (s *Store) UpdateCompatibilityFrame(id string, input UpdateCompatibilityFra
 		return CompatibilityFrame{}, fmt.Errorf("begin compatibility frame update: %w", err)
 	}
 	defer tx.Rollback()
-	var foundID string
-	if err := tx.QueryRowContext(ctx, `SELECT id FROM frames WHERE id = ?`, id).Scan(&foundID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return CompatibilityFrame{}, fmt.Errorf("frame %q does not exist", id)
-		}
-		return CompatibilityFrame{}, fmt.Errorf("load compatibility frame: %w", err)
-	}
-	if input.Name != nil {
-		if _, err := tx.ExecContext(ctx, `UPDATE frames SET name = ?, updated_at = ? WHERE id = ?`, strings.TrimSpace(*input.Name), s.now().UTC(), id); err != nil {
-			return CompatibilityFrame{}, fmt.Errorf("update compatibility frame name: %w", err)
-		}
-	}
-	if input.TaskSummary != nil {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO frame_runtime_metadata (frame_id, task_summary) VALUES (?, ?)
-			ON CONFLICT(frame_id) DO UPDATE SET task_summary = excluded.task_summary`, id, strings.TrimSpace(*input.TaskSummary)); err != nil {
-			return CompatibilityFrame{}, fmt.Errorf("update compatibility frame task summary: %w", err)
-		}
-		if input.Name == nil {
-			if _, err := tx.ExecContext(ctx, `UPDATE frames SET updated_at = ? WHERE id = ?`, s.now().UTC(), id); err != nil {
-				return CompatibilityFrame{}, fmt.Errorf("advance compatibility frame revision: %w", err)
-			}
-		}
+	if err := updateCompatibilityFrameMetadataTx(ctx, tx, id, input, s.now().UTC()); err != nil {
+		return CompatibilityFrame{}, err
 	}
 	if err := tx.Commit(); err != nil {
 		return CompatibilityFrame{}, fmt.Errorf("commit compatibility frame update: %w", err)
@@ -554,6 +552,34 @@ func (s *Store) UpdateCompatibilityFrame(id string, input UpdateCompatibilityFra
 		return CompatibilityFrame{}, fmt.Errorf("frame %q disappeared after update", id)
 	}
 	return updated, nil
+}
+
+func updateCompatibilityFrameMetadataTx(ctx context.Context, tx workspaceTransaction, id string, input UpdateCompatibilityFrameInput, now time.Time) error {
+	var foundID string
+	if err := tx.QueryRowContext(ctx, `SELECT id FROM frames WHERE id = ?`, id).Scan(&foundID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("frame %q does not exist", id)
+		}
+		return fmt.Errorf("load compatibility frame: %w", err)
+	}
+	if input.Name != nil {
+		if _, err := tx.ExecContext(ctx, `UPDATE frames SET name = ?, updated_at = ? WHERE id = ?`, strings.TrimSpace(*input.Name), now, id); err != nil {
+			return fmt.Errorf("update compatibility frame name: %w", err)
+		}
+	}
+	if input.TaskSummary != nil {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO frame_runtime_metadata (frame_id, task_summary) VALUES (?, ?)
+			ON CONFLICT(frame_id) DO UPDATE SET task_summary = excluded.task_summary`, id, strings.TrimSpace(*input.TaskSummary)); err != nil {
+			return fmt.Errorf("update compatibility frame task summary: %w", err)
+		}
+		if input.Name == nil {
+			if _, err := tx.ExecContext(ctx, `UPDATE frames SET updated_at = ? WHERE id = ?`, now, id); err != nil {
+				return fmt.Errorf("advance compatibility frame revision: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *Store) CancelCompatibilityFrameTree(id, reason string) (CancelCompatibilityFrameResult, error) {

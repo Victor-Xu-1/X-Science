@@ -108,10 +108,14 @@ func (s *Server) handleWebConversationClone(w http.ResponseWriter, r *http.Reque
 	writeWorkspaceJSON(w, http.StatusCreated, webConversation(cloned.Frame, project.Name))
 }
 
-func (s *Server) publishWebConversationListChange(userID, conversationID, action string) error {
-	_, err := s.publishUserEvent(userID, "conversation.listChanged", map[string]any{
+func (s *Server) publishWebConversationListChange(userID, conversationID, action string, presentationChanged ...bool) error {
+	payload := map[string]any{
 		"conversation_id": conversationID, "action": action, "source": "xscience",
-	})
+	}
+	if len(presentationChanged) > 0 && presentationChanged[0] {
+		payload["presentation_changed"] = true
+	}
+	_, err := s.publishUserEvent(userID, "conversation.listChanged", payload)
 	return err
 }
 

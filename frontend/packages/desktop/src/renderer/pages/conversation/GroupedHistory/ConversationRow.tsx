@@ -12,6 +12,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import { Pin, PinOff } from 'lucide-react';
 
 import type { ConversationRowProps } from './types';
 import { resolveConversationTaskIndicatorState } from './conversationTaskIndicatorModel';
@@ -48,6 +49,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onMove,
     onDelete,
     onDownloadArtifacts,
+    onTogglePin,
+    pinPending = false,
   } = props;
   const prefetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -291,6 +294,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     style={{ maxWidth: 'calc(100vw - 16px)' }}
                     onKeyDown={handleMenuKeyDown}
                     onClickMenuItem={(key) => {
+                      if (key === 'toggle-pin') {
+                        if (!pinPending && onTogglePin) {
+                          onMenuVisibleChange(conversation.id, false);
+                          onTogglePin(conversation);
+                        }
+                        return;
+                      }
                       if (key === 'copy-id') {
                         void copyText(conversation.id)
                           .then(() => Message.success(t('conversation.history.taskIdCopied')))
@@ -314,6 +324,20 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       }
                     }}
                   >
+                    {onTogglePin ? (
+                      <Menu.Item key='toggle-pin' disabled={pinPending}>
+                        <div className='flex items-center gap-8px' aria-busy={pinPending}>
+                          {conversation.extra.pinned ? (
+                            <PinOff size={16} strokeWidth={2} />
+                          ) : (
+                            <Pin size={16} strokeWidth={2} />
+                          )}
+                          <span>
+                            {t(conversation.extra.pinned ? 'conversation.history.unpin' : 'conversation.history.pin')}
+                          </span>
+                        </div>
+                      </Menu.Item>
+                    ) : null}
                     <Menu.Item key='copy-id'>
                       <div className='flex items-center gap-8px'>
                         <Copy theme='outline' size='14' />

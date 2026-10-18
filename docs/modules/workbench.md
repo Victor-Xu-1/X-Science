@@ -63,6 +63,30 @@ delete action or queue cleanup; superseded reads cannot hide a newer composer.
 
 ### Presentation and keyboard contracts · 显示与键盘契约
 
+Conversation pinning and pinned ordering share the existing conversation metadata
+authority. `PATCH /api/conversations/:id` accepts only `pinned`, `sortOrder` and
+the existing `selected_view` presentation fields in `extra`; it never treats
+workspace paths, model settings or arbitrary runtime context as presentation.
+Pin/order mutations require `expected_incarnation_id` and
+`expected_presentation_revision`, projected in detail/list `extra` as
+`frame_incarnation_id` and `presentation_revision`. Pin timestamps are server-owned.
+Stale revisions return `409 CONVERSATION_PRESENTATION_STALE`; clients may read back
+an uncertain outcome but must not silently retry a mutation using a newer revision.
+Presentation-only changes leave last-active time unchanged. Existing name/description
+updates keep their activity semantics. A no-op pin/order retry publishes no change.
+
+Atomic reorder uses the same PATCH with mutually exclusive `pinned_order` entries
+(`id`, `expected_incarnation_id`, `expected_presentation_revision`, `sortOrder`),
+at most 1000 unique owned pinned roots. Every row is validated in one transaction;
+an error commits none. The ordinary list and pin list share the existing list store,
+with independent `section=recent|pinned` pagination, retained data on read errors and
+explicit retry/load-more. Section cursors bind the owner and section. Omitting
+section preserves the legacy list and v1 cursor contract. Committed presentation
+changes use the existing `conversation.listChanged` event with
+`presentation_changed:true`, allowing active rows to refresh without turning normal
+stream updates into list-refresh traffic. Archive and notification inbox semantics
+are separate and are not implemented by pinning or internal Frame visibility.
+
 Modal backdrops use one lightweight, non-darkening token in light and dark
 appearance modes. Dialogs, confirmations, drawers, image previews and custom
 mobile/BTW overlays keep the underlying page visible without full-page blur.

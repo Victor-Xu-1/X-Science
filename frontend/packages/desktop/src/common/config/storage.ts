@@ -174,6 +174,9 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinned_at?: number;
+          sortOrder?: number;
+          presentation_revision?: number;
+          frame_incarnation_id?: string;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
           acp_session_id?: string;
           /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
