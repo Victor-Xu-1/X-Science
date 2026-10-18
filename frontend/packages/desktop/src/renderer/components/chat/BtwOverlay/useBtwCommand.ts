@@ -1,6 +1,6 @@
 import { captureXScienceAsideIntent } from '@/renderer/services/xScienceAside';
-import { XScienceAsideOperation } from '@/renderer/services/xScienceAsideOperation';
-import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/xScienceAsidePresentation';
+import { XScienceAsideOperation } from '@/renderer/services/runtime/asideOperation';
+import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/runtime/asidePresentation';
 import { getRendererAccountOwnerId, getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { toXScienceRuntimeSummary } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';

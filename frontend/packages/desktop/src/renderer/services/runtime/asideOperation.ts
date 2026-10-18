@@ -11,17 +11,17 @@ import {
   type XScienceAsideLookup,
   type XScienceAsideReceipt,
   type XScienceAsideMessageCancellation,
-} from './xScienceAside';
-import { getRendererAccountOwnerId, getRendererAccountScopeToken } from './rendererAccountScope';
+} from '../xScienceAside';
+import { getRendererAccountOwnerId, getRendererAccountScopeToken } from '../rendererAccountScope';
 import {
   clearAsidePresentation,
   saveAsidePresentation,
   type AsidePresentation,
   type AsideConsumer,
-} from './xScienceAsidePresentation';
-import { loadXScienceSessionOptions, toXScienceMessageSessionOptions } from './xScienceSessionOptions';
-import { isXScienceHttpError, type XScienceGatewayOptions } from './xScienceHttp';
-import { resumeXScienceFrame } from './xScienceRuntimeOperations';
+} from './asidePresentation';
+import { loadXScienceSessionOptions, toXScienceMessageSessionOptions } from '../xScienceSessionOptions';
+import { isXScienceHttpError, type XScienceGatewayOptions } from '../xScienceHttp';
+import { resumeXScienceFrame } from '../xScienceRuntimeOperations';
 import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 
 /** One UI action owner, not a task scheduler. Server ownership/receipts remain authoritative. */

@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
-import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/xScienceAsidePresentation';
+import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/runtime/asidePresentation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { ConversationCommandQueueItem } from '../useConversationCommandQueue';
 

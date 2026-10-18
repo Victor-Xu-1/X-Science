@@ -31,8 +31,8 @@ vi.mock('@/renderer/services/xScienceRuntimeOperations', async (importOriginal) 
   resumeXScienceFrame: transport.resume,
 }));
 
-import { XScienceAsideOperation } from '@/renderer/services/xScienceAsideOperation';
-import { readAsidePresentation } from '@/renderer/services/xScienceAsidePresentation';
+import { XScienceAsideOperation } from '@/renderer/services/runtime/asideOperation';
+import { readAsidePresentation } from '@/renderer/services/runtime/asidePresentation';
 
 const intent = {
   parentFrameId: 'parent-1',

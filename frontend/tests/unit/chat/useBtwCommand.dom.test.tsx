@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { XScienceAsideIntent } from '@/renderer/services/xScienceAside';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { normalizeXScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
-import { readAsidePresentation } from '@/renderer/services/xScienceAsidePresentation';
+import { readAsidePresentation } from '@/renderer/services/runtime/asidePresentation';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 
 const transport = vi.hoisted(() => ({

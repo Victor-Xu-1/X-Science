@@ -133,8 +133,8 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/usePreviewArtifactActionScope.ts": "Fence immutable preview actions by the selected tab, artifact version, account and opening identity.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useSessionNotebook.ts": "Read the existing execution log with account/opening fencing and exact-cursor pagination and retry, without owning a kernel.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/sessionExportAvailability.ts": "Share the canonical runtime and local submission availability contract between session export actions and their menu entry.",
-    "packages/desktop/src/renderer/services/xScienceAsideOperation.ts": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs.",
-    "packages/desktop/src/renderer/services/xScienceAsidePresentation.ts": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority.",
+    "packages/desktop/src/renderer/services/runtime/asideOperation.ts": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs.",
+    "packages/desktop/src/renderer/services/runtime/asidePresentation.ts": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority.",
     "packages/desktop/src/renderer/components/chat/BtwOverlay/useAsideRuntimeView.ts": "Observe canonical child messages and runtime progress without polling only final output or imposing an execution deadline.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity.",
@@ -557,9 +557,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "0c1cafc7d25a4669ca280e4d83aec3b55ed56433e2ef400e8b84fa6e29dab044"
+APPROVED_ADAPTATION_FINGERPRINT = "5b7d86c3340887b5819f7e7351ec8a3c73f1e15c417e782002c700d3fc5e5ff6"
 APPROVED_REMOVAL_FINGERPRINT = "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac"
-APPROVED_ADDITION_FINGERPRINT = "55356b8d7075b9021dd4aaf8a09cf1d8e31a91e3f0d4016a74081afbf297abb9"
+APPROVED_ADDITION_FINGERPRINT = "5da234726514796535afccab8c68f0956f8cc49a63024002a03de1f0b59a8439"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

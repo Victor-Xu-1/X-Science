@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "0c1cafc7d25a4669ca280e4d83aec3b55ed56433e2ef400e8b84fa6e29dab044",
+  "adaptationFingerprintSHA256": "5b7d86c3340887b5819f7e7351ec8a3c73f1e15c417e782002c700d3fc5e5ff6",
   "removalFingerprintSHA256": "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac",
-  "additionFingerprintSHA256": "55356b8d7075b9021dd4aaf8a09cf1d8e31a91e3f0d4016a74081afbf297abb9",
+  "additionFingerprintSHA256": "5da234726514796535afccab8c68f0956f8cc49a63024002a03de1f0b59a8439",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "240125a5086fb548b3093e8b784788f739e3c0e216a0ea665e445296c4062ef7",
+      "targetSHA256": "ff8536f53e772c4df639307c2c86294c2bc241e87d559fe4bf91a018b1cbaf97",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "6f82d24a0cbdab8d53183c2c332ffcad70e498f22027dd2a9b53911631a34056",
+      "targetSHA256": "fb9c296c9ce008ec940c23fe8fb2785eca525e2a29f1ee9e02c80e962c42124c",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -386,7 +386,7 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts",
       "sourceSHA256": "14baafa4d2ae619ea46eaacb6e42a9ad86eff14609de3610b8e46f7094170921",
-      "targetSHA256": "6923d09840293fdc7dd41a33f51cdf902776b431d6f162000ca976d14893114c",
+      "targetSHA256": "2a2e097e016a61bd7f3f45590bb697fe04bfeb3021d1268f539861ff49851a33",
       "bytes": 15807,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
@@ -3942,7 +3942,7 @@
     {
       "path": "tests/unit/chat/useBtwCommand.dom.test.tsx",
       "sourceSHA256": "fdbc85af8c8850ee24c219569fcbab3ca3589d3f5d58373fbfd3f94d9caf5cbc",
-      "targetSHA256": "02de983ba5d2c6a11c0e227cc2043434a5e96aca2476b0e7fd75a91217e7935d",
+      "targetSHA256": "552610615d02393d3fd232a2aabe2345fc0cf21b811ba71c98fa578dd507083d",
       "bytes": 16926,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
@@ -7529,7 +7529,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3ed07f5d21109082596537d82b80afe6d08ac3887b0720db7cd6d4c001f3293c",
+      "sha256": "08b9322d2150e4234b4215d1d9097d35256b96d7cf6ae213a0a6ed31df99e19c",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9161,7 +9161,7 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx",
-      "sha256": "ec08668132b617a10aa8d2c209247e6e62e7ae1759975fe0e1ed54fc41527d33",
+      "sha256": "091ae56ca871fcd4e507990784cd9650fe9fac2a2d2817b9a1d7b5dabb3a1fc1",
       "bytes": 8836,
       "reason": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input."
     },
@@ -9982,6 +9982,18 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/asideOperation.ts",
+      "sha256": "c763fdb59ff899345d31d8d714fae9604ce289fe9e46c82fabc59ea953be9027",
+      "bytes": 15155,
+      "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/asidePresentation.ts",
+      "sha256": "6cf5f6189bd44d493fbc18021cfb095d39a093e3c20bd9ae4f869f08db75cc6e",
+      "bytes": 7350,
+      "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/conversationDisclosureStore.ts",
       "sha256": "6073a8ae680dc14a0f27d5303d2d90e90c6778658833d9fd1cf92666008ac40b",
       "bytes": 3614,
@@ -10064,18 +10076,6 @@
       "sha256": "6c7d4fc1ea4e884f033efa71e6e6f5307c03d56bf2d502898a11035dcecddb55",
       "bytes": 5217,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
-    },
-    {
-      "path": "packages/desktop/src/renderer/services/xScienceAsideOperation.ts",
-      "sha256": "98bd86487a42fa0b7e7c937344855d00baed55299d8ee1996d05dce7b88cd072",
-      "bytes": 15158,
-      "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
-    },
-    {
-      "path": "packages/desktop/src/renderer/services/xScienceAsidePresentation.ts",
-      "sha256": "494934f8ce5ac24991ff2a2f8cd0dfb464908449422030f247c73b656ec2345e",
-      "bytes": 7348,
-      "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
     },
     {
       "path": "packages/desktop/src/renderer/services/xScienceBilling.ts",
@@ -12797,7 +12797,7 @@
     },
     {
       "path": "tests/unit/xscience/asideOperation.dom.test.ts",
-      "sha256": "dd3847fee259aaf9f50656e7689feb5632968d8732abe9eafbb1b1d60d227934",
+      "sha256": "c81b15b79120ad2479684d2bc026ec7e5478b14e5b1632ac3d41897db6bcd267",
       "bytes": 11955,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },

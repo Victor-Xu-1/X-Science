@@ -1,10 +1,10 @@
-import { getRendererAccountOwnerId } from './rendererAccountScope';
+import { getRendererAccountOwnerId } from '../rendererAccountScope';
 import {
   isXScienceAsideIntent,
   type XScienceAsideFollowup,
   type XScienceAsideIntent,
   type XScienceAsideReceipt,
-} from './xScienceAside';
+} from '../xScienceAside';
 import {
   normalizeXScienceResumeTarget,
   type XScienceContinueInput,
