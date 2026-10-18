@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "229527b14b267aaf232ac5bea9d0db72059dc77f19d459be3e951fa75276d85a",
+  "adaptationFingerprintSHA256": "98af31218a65a6546e0724c78138e1dc1a4944d9adbec8e443cf6629c6dd9477",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "d5c392cad3e5524e7d355c3a15871144d9489ba3115566d960995dc9371437f1",
+  "additionFingerprintSHA256": "80a0f57252b48e8b30a98a881e3db44c1bcbb68717abce1a4e588bf878539567",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1064
+    "addedFiles": 1081
   },
   "adaptations": [
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "d61236cd7d633e6dbeb40e39f446c7c29b1c7c1479b3aca3d68f9f2ead46e80c",
-      "bytes": 54297,
+      "targetSHA256": "426dfc6fa82742f269d6b575159651c88198b63647b4b360315d7bab58e9061e",
+      "bytes": 52998,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "d2af6c3580b8ba4fa8a6615e0150e1c075e570d31979647bfd4517b0ff6b915f",
-      "bytes": 268685,
+      "targetSHA256": "e0944e4ee6ee07b6070968e6557fecfd3726eb229aa8a13d561a86af5ca53f8c",
+      "bytes": 270514,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "468436915a65e4f9c5a83cba4d70c6e80a5e101b9cf82bafaf6242df19309491",
-      "bytes": 97268,
+      "targetSHA256": "c73270533edc7574236db8c65709e54b34d130ca644172655958c7c4ac5b0bee",
+      "bytes": 99473,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "c272260bc69501882043684ef0d4eae6f3977068e4dee832456c8069467f6ad7",
-      "bytes": 91714,
+      "targetSHA256": "d1f27fc086f3ef33ffe350e7bb5b5c6a928ffc804d753ff498ad87a8d2f974cf",
+      "bytes": 93680,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "34efc7f0fcafea790a900dec222c6b5c6dfcac36ad98d7495abc497f19967520",
-      "bytes": 121156,
+      "targetSHA256": "5d01393d9ef25761a67c7b6fd78abc07aae9534a1aee888d07cd51f9b5b27827",
+      "bytes": 149349,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8000,6 +8000,18 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.module.css",
+      "sha256": "7613afcb1c079dda1bd69b3e43bff7dee9487b8e9f78d43010caf54f09e33518",
+      "bytes": 674,
+      "reason": "Style the compact source-aligned maintenance action with shared tokens and no modal backdrop."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.tsx",
+      "sha256": "7ec9eb5803dad9a0292febd259f84ae82c3af59992b4ddecafcb15a084287b64",
+      "bytes": 5559,
+      "reason": "Render actual maintenance receipts, exact retry/cancel and explicit capacity recovery without fabricated progress."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.module.css",
       "sha256": "e119397a6809639ffab33f2551c0281138c3e0db68670d7821361676f466c5d9",
       "bytes": 7149,
@@ -8007,8 +8019,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.tsx",
-      "sha256": "563db71e079fb4bad9840f550883ff260f44b0cf0700c9a3798c6ddc7fd1d186",
-      "bytes": 14370,
+      "sha256": "d6fd84cc5f06339b725e562c6acf6450a51492f9da4e8c02cf0ab675c7687b5f",
+      "bytes": 14750,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9338,6 +9350,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/acpStopAction.ts",
+      "sha256": "1fb1b44e98021db0cde2b48397eb4d1984c7fa0e3f4862bbf54dfa5b84c9b144",
+      "bytes": 2498,
+      "reason": "Route Stop through the observed maintenance owner only; ordinary Stop does not wait for optional bootstrap."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/conversationQueueDock.css",
       "sha256": "6a9f7b12c8ad5f12660d49131f60a3cc5793f7eace1a3357ef74463ef49d3e37",
       "bytes": 2161,
@@ -9362,6 +9380,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextCompaction.ts",
+      "sha256": "a57b456cb3cd9dccd338c6aa028f27b043e16d14124adc7f611bf89827bc3b7b",
+      "bytes": 2112,
+      "reason": "Bind one composer maintenance controller to account and frame incarnation, keeping recovery reachable with a draft."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx",
       "sha256": "799fa27825ddd58015a7f669a88e87ea9e95705d58581b9f0e0e1830f2767316",
       "bytes": 7587,
@@ -9378,6 +9402,12 @@
       "sha256": "e5c891ea5bb6932796bf3f187ba5479b79e1b8eafe03a409fe2c2c7d9b6e4bb9",
       "bytes": 16297,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpRuntimeActions.ts",
+      "sha256": "3bdd1b96796e7c3d67a13a8a8c53fa6bd7843efbf7ea2665bef1f9f939eeb67b",
+      "bytes": 2268,
+      "reason": "Share existing ordinary runtime stop and refresh actions while retaining exact maintenance cancellation."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpSendBoxDraftController.ts",
@@ -10104,6 +10134,42 @@
       "sha256": "1c8f05b4ed005275bb19b33d28ed970ecb584d8832c2f875b403e246850c247e",
       "bytes": 2747,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/ContextCompactionController.ts",
+      "sha256": "fdfa8df341970afeb0207eea74667241762145f77c1bcaf3419dcaa848db5270",
+      "bytes": 12783,
+      "reason": "Serialize frozen maintenance requests and cancellation/readback with exact lost-ACK recovery and ordinary-input handoff."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/contextCompactionContract.ts",
+      "sha256": "3d2f04e02893fbc89362cba66dde7d4318176cafb624133056bd72d11e9560ad",
+      "bytes": 5426,
+      "reason": "Decode canonical scope, numerical event coordinates, admission facts and actual execution observations strictly."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/contextCompactionObservation.ts",
+      "sha256": "88e72d24fc44e80d48963a9f3402fcf98eeb6bfe3c48690b9d25f495a0dddd2d",
+      "bytes": 873,
+      "reason": "Retire only proven terminal maintenance observations without equating unrelated task busy state with compaction."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/contextCompactionRegistry.ts",
+      "sha256": "b7e187954fa540e18e34db37d731b0378871ad2e752b92b4b428acaa982cddc0",
+      "bytes": 1167,
+      "reason": "Retain unresolved renderer-local request owners under a bounded registry without an additional durable ledger."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/contextCompactionService.ts",
+      "sha256": "cbbcd1c86e547a524a889b3365196b96f2b446b0eb715ab2e30d5aad4fec63e3",
+      "bytes": 2082,
+      "reason": "Use the existing authenticated transport for typed canonical maintenance admit, read and exact cancellation routes."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/compaction/contextCompactionTypes.ts",
+      "sha256": "18db21419362ffc8858c28ee7dfe5e18ce93c354cbd9ca02c8b9a8bde7adfb7d",
+      "bytes": 4562,
+      "reason": "Declare canonical maintenance request, receipt, capability and presentation types without execution authority in the renderer."
     },
     {
       "path": "packages/desktop/src/renderer/services/compute/jobPresentation.ts",
@@ -12278,6 +12344,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversation/ContextCompactionController.test.ts",
+      "sha256": "b179e41e4fa06d734cc156425c6468fc15e9cfef97997a9d02c717f735258e4c",
+      "bytes": 25969,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in ContextCompactionController.test.ts, without scientific task replay or user artifacts."
+    },
+    {
       "path": "tests/unit/renderer/conversation/ConversationSkillActivationDialog.dom.test.tsx",
       "sha256": "e4e57c7b72ac526a5af98c6e19f144e921c2217a9f8e8877c02eeb36f759459f",
       "bytes": 2868,
@@ -12300,6 +12372,30 @@
       "sha256": "1ff4c427871d95ad3aaf6bccd2b3d7a2a88f45c06089e0ffa79c6e3da3a645ad",
       "bytes": 2919,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/contextCompactionCapacityTestFixture.ts",
+      "sha256": "8f69d179ab31bfc0e9f245c93eb14d8a798973334de743e31aa530856f17f4f0",
+      "bytes": 3104,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionCapacityTestFixture.ts, without scientific task replay or user artifacts."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/contextCompactionObservation.test.ts",
+      "sha256": "27c9b227b4ea561c4ee643f1aa20bc97378ea945a9ba2d41d8f4ec72240611eb",
+      "bytes": 2688,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionObservation.test.ts, without scientific task replay or user artifacts."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/contextCompactionRegistry.test.ts",
+      "sha256": "be7ef0813dc200e7aebf4502de31d9c5d55a56ec4d77ed68d31260c2d98d0c65",
+      "bytes": 1578,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionRegistry.test.ts, without scientific task replay or user artifacts."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/contextCompactionService.test.ts",
+      "sha256": "75f2a62c3e65106ad99e39d232998402a2ff3c2b4b743757b15dffc0bcee1ae0",
+      "bytes": 6780,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionService.test.ts, without scientific task replay or user artifacts."
     },
     {
       "path": "tests/unit/renderer/conversation/conversationVisualSystemCss.test.ts",
@@ -12330,6 +12426,12 @@
       "sha256": "c51da8452d1ea037e5881c7f3b758165bc306875b269b60376a579af5c735604",
       "bytes": 1282,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/manualContextCompactionFixtures.ts",
+      "sha256": "dbe148b9d6e7fdaf9c2f3655331ee0fd2377399b07cf652a38cda09f2ac26f9b",
+      "bytes": 2655,
+      "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in manualContextCompactionFixtures.ts, without scientific task replay or user artifacts."
     },
     {
       "path": "tests/unit/renderer/conversation/messageListProjection.test.ts",
