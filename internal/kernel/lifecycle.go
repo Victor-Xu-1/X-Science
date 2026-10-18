@@ -403,7 +403,7 @@ func (m *Manager) startSessionLocked(spec SessionSpec) (*Worker, error) {
 		return nil, err
 	}
 	select {
-	case <-worker.done:
+	case <-worker.physicalExit():
 		return nil, worker.stoppedError()
 	default:
 	}
@@ -654,7 +654,7 @@ func (m *Manager) workerByID(id string) *Worker {
 		return nil
 	}
 	select {
-	case <-worker.done:
+	case <-worker.physicalExit():
 		return nil
 	default:
 		return worker
@@ -1116,7 +1116,7 @@ func (execution *managedExecution) run() {
 	var nextHostCall *HostCall
 	var pendingHostResponse *Response
 	select {
-	case <-worker.done:
+	case <-worker.physicalExit():
 		execution.finish(ExecutionOutcome{Err: worker.stoppedError(), StartedAt: startedAt})
 		return
 	default:
@@ -1229,12 +1229,24 @@ func (execution *managedExecution) run() {
 			}
 			// Syntax/import preflight is a terminal, non-executing response and
 			// deliberately has no execution_started event.
-			response = execution.withUserStopReason(response)
-			execution.finish(ExecutionOutcome{Response: response})
+			finish(execution.terminalResponseOutcome(response, time.Time{}))
 			return
 		case <-worker.done:
 			startTimer.Stop()
-			execution.finish(ExecutionOutcome{Err: execution.withUserStopError(worker.stoppedError()), StartedAt: startedAt})
+			cancelHostCalls()
+			outcome := execution.workerExitOutcome(startedAt, responseAfterStart)
+			if outcome.Response.ID == execution.request.ExecID {
+				select {
+				case <-executionStarted:
+					executionStarted = nil
+					executionAcknowledged = true
+					responseAfterStart = &outcome.Response
+					continue
+				default:
+					outcome.StartedAt = time.Time{}
+				}
+			}
+			finish(outcome)
 			return
 		case <-execution.interrupt:
 			preStartInterruptPending = true
@@ -1269,8 +1281,7 @@ func (execution *managedExecution) run() {
 		close(execution.started)
 	})
 	if responseAfterStart != nil {
-		response := execution.withUserStopReason(*responseAfterStart)
-		execution.finish(ExecutionOutcome{Response: response, StartedAt: startedAt})
+		finish(execution.terminalResponseOutcome(*responseAfterStart, startedAt))
 		return
 	}
 
@@ -1299,6 +1310,9 @@ func (execution *managedExecution) run() {
 		case call := <-incomingHostCalls:
 			if drainingHostCall {
 				nextHostCall = nil
+			}
+			if worker.hasExited() {
+				continue
 			}
 			// Python can emit its next synchronous request as soon as it reads
 			// the terminal frame, before the writer goroutine publishes completion.
@@ -1331,6 +1345,9 @@ func (execution *managedExecution) run() {
 			hostCallPending = true
 			go executeHostCall(hostContext, policy, call, hostCompletions)
 		case completed := <-hostCompletions:
+			if worker.hasExited() {
+				continue
+			}
 			// Keep cancellation, execution deadlines and worker exit observable
 			// while a large successful result is flowing through the host pipe.
 			hostResultWriting = true
@@ -1341,6 +1358,12 @@ func (execution *managedExecution) run() {
 			hostCallPending = false
 			hostResultWriting = false
 			if err != nil {
+				if worker.hasExited() {
+					<-worker.done
+					cancelHostCalls()
+					finish(execution.workerExitOutcome(startedAt, pendingHostResponse))
+					return
+				}
 				finish(ExecutionOutcome{Err: fmt.Errorf("write kernel host result: %w", err), TimedOut: execution.isTimedOut(), StartedAt: startedAt})
 				return
 			}
@@ -1352,6 +1375,12 @@ func (execution *managedExecution) run() {
 		case response := <-worker.responses:
 			if response.ID != execution.request.ExecID {
 				continue
+			}
+			if worker.hasExited() {
+				<-worker.done
+				cancelHostCalls()
+				finish(execution.workerExitOutcome(startedAt, &response, pendingHostResponse))
+				return
 			}
 			if hostResultWriting {
 				// Python can consume the terminal result and finish the cell
@@ -1365,7 +1394,8 @@ func (execution *managedExecution) run() {
 			finish(ExecutionOutcome{Response: response, TimedOut: execution.isTimedOut(), StartedAt: startedAt})
 			return
 		case <-worker.done:
-			finish(ExecutionOutcome{Err: execution.withUserStopError(worker.stoppedError()), TimedOut: execution.isTimedOut(), StartedAt: startedAt})
+			cancelHostCalls()
+			finish(execution.workerExitOutcome(startedAt, pendingHostResponse))
 			return
 		case failure := <-execution.resourceFailure:
 			if failure == nil || grace != nil || pressureFailure != nil {
