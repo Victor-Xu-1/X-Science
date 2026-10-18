@@ -42,13 +42,14 @@ const configErrorMessageKey = (error: unknown) => {
  */
 const XScienceModelSelector: React.FC<{
   conversation_id: string;
+  frameIncarnationId?: string;
   /** ACP backend name for loading cached models (e.g., 'claude', 'qwen') */
   backend?: string;
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
   /** Deprecated: runtime config loading now ensures the conversation runtime. */
   waitForWarmup?: boolean;
-}> = ({ conversation_id, backend, initialModelId }) => {
+}> = ({ conversation_id, frameIncarnationId, backend, initialModelId }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -63,8 +64,10 @@ const XScienceModelSelector: React.FC<{
     thoughtLevel,
     setStatus,
     setConfigOption,
+    captureObserver,
   } = useAcpModelInfo({
     conversation_id,
+    frameIncarnationId,
     backend,
     initialModelId,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
@@ -89,14 +92,15 @@ const XScienceModelSelector: React.FC<{
   const handleThoughtLevelSelect = useCallback(
     async (value: string) => {
       if (!thoughtLevel || value === thoughtLevel.currentValue || isRuntimeSetting) return;
+      const isCurrent = captureObserver();
       try {
         await setConfigOption(thoughtLevel.id, value);
-        Message.success(t('agent.thoughtLevel.switchSuccess'));
+        if (isCurrent()) Message.success(t('agent.thoughtLevel.switchSuccess'));
       } catch (error) {
-        Message.error(t(configErrorMessageKey(error)));
+        if (isCurrent()) Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [isRuntimeSetting, setConfigOption, thoughtLevel, t]
+    [isRuntimeSetting, setConfigOption, thoughtLevel, t, captureObserver]
   );
   const tooltipContent = combinedLabel;
 

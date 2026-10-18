@@ -804,6 +804,12 @@ describe('AcpSendBox', () => {
           }
         />
       );
+      const runtimeScope = {
+        conversation_id: sessionGrantIdentity.frameId,
+        frameIncarnationId: sessionGrantIdentity.frameIncarnationId,
+      };
+      expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining(runtimeScope));
+      expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining(runtimeScope));
       if (mobile) {
         await waitFor(() => expect(transport.mock.calls.filter(([method]) => method === 'GET')).toHaveLength(1));
         fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));

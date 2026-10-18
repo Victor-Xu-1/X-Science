@@ -242,10 +242,11 @@ const AcpSendBox: React.FC<{
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const mobileModeChangeInFlightRef = useRef(false);
-  const prepareRuntimeConfig = useCallback(async () => {}, []);
+  const frameIncarnationId =
+    initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
-    prepareRuntime: prepareRuntimeConfig,
+    frameIncarnationId,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -286,8 +287,8 @@ const AcpSendBox: React.FC<{
     selectModel,
   } = useAcpModelInfo({
     conversation_id,
+    frameIncarnationId,
     backend,
-    prepareRuntime: prepareRuntimeConfig,
     enabled: true,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -1246,6 +1247,7 @@ const AcpSendBox: React.FC<{
             )}
             <XScienceModelSelector
               conversation_id={conversation_id}
+              frameIncarnationId={frameIncarnationId}
               backend={backend}
               initialModelId={model_info?.current_model_id}
             />
