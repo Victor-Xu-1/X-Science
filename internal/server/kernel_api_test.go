@@ -524,7 +524,7 @@ func TestKernelTerminalInterruptPublishesV11StartAndDoneEvents(t *testing.T) {
 }
 
 func TestKernelExecutionPublishesLiveAndReplayEvents(t *testing.T) {
-	store, manager, _ := newKernelAPITestRuntime(t)
+	store, manager, _ := newKernelAPITestRuntime(t, kernelAPIFixtureOwnRealtimeOutbox)
 	createKernelAPIProjectAndFrame(t, store, "project-a", "user-a", "root-a", "OPERON", "")
 	access, found, err := store.GetKernelFrameAccess("root-a")
 	if err != nil || !found {
@@ -643,7 +643,12 @@ func TestRefreshKernelsUsesExactV11ResponseAndCleansRunningExecution(t *testing.
 	}
 }
 
-func newKernelAPITestRuntime(t *testing.T) (*workspace.Store, *kernelruntime.Manager, http.Handler) {
+type kernelAPIFixtureOption int
+
+// The calling test supplies its own real Server and dispatcher.
+const kernelAPIFixtureOwnRealtimeOutbox kernelAPIFixtureOption = iota
+
+func newKernelAPITestRuntime(t *testing.T, options ...kernelAPIFixtureOption) (*workspace.Store, *kernelruntime.Manager, http.Handler) {
 	t.Helper()
 	python, err := exec.LookPath("python3")
 	if err != nil {
@@ -681,6 +686,22 @@ func newKernelAPITestRuntime(t *testing.T) (*workspace.Store, *kernelruntime.Man
 		defer cancel()
 		_, _ = manager.CloseAll(ctx)
 		_ = store.Close()
+	})
+	startOutbox := true
+	for _, option := range options {
+		if option == kernelAPIFixtureOwnRealtimeOutbox {
+			startOutbox = false
+		}
+	}
+	if startOutbox {
+		startServerRealtimeOutbox(t, store, server)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Close(ctx); err != nil {
+			t.Errorf("close manual kernel runtime: %v", err)
+		}
 	})
 	return store, manager, mux
 }

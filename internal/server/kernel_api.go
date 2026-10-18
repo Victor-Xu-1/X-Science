@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -617,30 +616,12 @@ func (s *Server) handleKernelTerminalInterrupt(w http.ResponseWriter, r *http.Re
 	if !ok {
 		return
 	}
-	result := s.kernelManager.InterruptSession(frameID, access.Frame.IncarnationID, access.RootFrameIncarnationID, strings.TrimSpace(r.PathValue("execId")))
-	writeJSON(w, http.StatusOK, result)
-}
-func (s *Server) submitKernelTerminalExecution(access workspace.KernelFrameAccess, frameID, language, environment, code string) (string, string, error) {
-	execID := uuid.NewString()
-	toolUseID := "user-" + execID
-	handle, err := s.kernelManager.Submit(kernelruntime.SubmitRequest{
-		OwnerID: access.UserID, ProjectID: access.Frame.ProjectID, FrameID: frameID,
-		FrameIncarnationID: access.Frame.IncarnationID, RootFrameIncarnationID: access.RootFrameIncarnationID,
-		Language: language, Environment: environment,
-		ExecID: execID, ToolUseID: toolUseID, Code: code, Origin: "user",
-		Timeout: userTerminalCellTimeout,
-	})
+	result, err := s.interruptManualNotebookExecution(r.Context(), access, strings.TrimSpace(r.PathValue("execId")))
 	if err != nil {
-		if strings.HasPrefix(strings.ToLower(err.Error()), "no running ") {
-			return "", "", fmt.Errorf(
-				"No running %s kernel for environment '%s' on this frame \u2014 the terminal attaches to live kernels only. Ask the agent to run a cell first (or pick another kernel).",
-				language, environment,
-			)
-		}
-		return "", "", err
+		writeV11Detail(w, http.StatusConflict, err.Error())
+		return
 	}
-	go s.observeKernelTerminalExecution(access, handle)
-	return execID, toolUseID, nil
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) compatKernelTerminalAck(ctx context.Context, userID string, message map[string]any) map[string]any {
@@ -692,7 +673,11 @@ func (s *Server) compatKernelTerminalAck(ctx context.Context, userID string, mes
 		ack["ok"], ack["exec_id"], ack["tool_use_id"] = true, execID, toolUseID
 		return ack
 	case "kernel_user_interrupt":
-		result := s.kernelManager.InterruptSession(frameID, access.Frame.IncarnationID, access.RootFrameIncarnationID, strings.TrimSpace(stringValue(message["exec_id"])))
+		result, err := s.interruptManualNotebookExecution(ctx, access, strings.TrimSpace(stringValue(message["exec_id"])))
+		if err != nil {
+			ack["error"] = err.Error()
+			return ack
+		}
 		ack["ok"] = true
 		ack["interrupted"] = result.Interrupted
 		ack["via"] = result.Via
@@ -724,87 +709,6 @@ func (s *Server) kernelFrameRequestAccess(w http.ResponseWriter, r *http.Request
 		return workspace.KernelFrameAccess{}, false
 	}
 	return access, true
-}
-
-func (s *Server) observeKernelTerminalExecution(access workspace.KernelFrameAccess, handle *kernelruntime.ExecutionHandle) {
-	started, startedOK := <-handle.Started()
-	if startedOK {
-		if _, err := s.publishCompatEvent(workspace.RealtimeEventInput{
-			ID:     "kernel-execution:" + started.ExecID + ":start",
-			UserID: access.UserID, ProjectID: access.Frame.ProjectID,
-			RootFrameID: access.Frame.RootFrameID, FrameID: access.Frame.ID,
-			Type: "execution_cell_update",
-			Payload: map[string]any{
-				"phase": "start", "origin": started.Origin,
-				"language": started.Language, "environment": started.Environment,
-				"kernel_target": "analysis", "source": started.Code,
-				"started_at":  started.StartedAt.UTC().Format(time.RFC3339Nano),
-				"tool_use_id": started.ToolUseID,
-			},
-		}); err != nil {
-			log.Printf("persist kernel start event %s: %v", started.ExecID, err)
-		}
-	}
-	outcome, outcomeOK := <-handle.Done()
-	if !outcomeOK || !startedOK || outcome.Dequeued {
-		return
-	}
-	cancelled := outcome.Response.Interrupted || outcome.TimedOut
-	exitStatus := "ok"
-	var exitCode any = 0
-	stderr := outcome.Response.Stderr
-	if outcome.Response.Error != "" {
-		if stderr != "" {
-			stderr += "\n"
-		}
-		stderr += outcome.Response.Error
-	}
-	if cancelled {
-		exitStatus, exitCode = "cancelled", nil
-	} else if outcome.Err != nil || outcome.Response.Error != "" {
-		exitStatus, exitCode = "error", -1
-		if outcome.Err != nil {
-			if stderr != "" {
-				stderr += "\n"
-			}
-			stderr += outcome.Err.Error()
-		}
-	}
-	if _, err := s.workspaceStore.SaveExecutionLog(workspace.SaveExecutionLogInput{
-		Record: workspace.ExecutionLogRecord{
-			ID: started.ExecID, FrameID: started.FrameID, CellIndex: outcome.CellIndex,
-			KernelID: started.KernelID, KernelKind: "analysis", CondaEnv: started.Environment,
-			Language: started.Language, Source: started.Code, Stdout: outcome.Response.Stdout,
-			Stderr: stderr, ExitStatus: exitStatus, Origin: started.Origin,
-			ExecutedAt: started.StartedAt, ErrorLine: kernelErrorLine(outcome.Response.Trace),
-		},
-		ExpectedOwnerID: access.UserID, ExpectedProjectID: access.Frame.ProjectID,
-		ExpectedFrameIncarnationID:     access.Frame.IncarnationID,
-		ExpectedRootFrameIncarnationID: access.RootFrameIncarnationID,
-	}); err != nil {
-		log.Printf("persist kernel execution log %s: %v", started.ExecID, err)
-		return
-	}
-	duration := outcome.FinishedAt.Sub(started.StartedAt).Milliseconds()
-	if duration < 0 {
-		duration = 0
-	}
-	if _, err := s.publishCompatEvent(workspace.RealtimeEventInput{
-		ID:     "kernel-execution:" + started.ExecID + ":done",
-		UserID: access.UserID, ProjectID: access.Frame.ProjectID,
-		RootFrameID: access.Frame.RootFrameID, FrameID: access.Frame.ID,
-		Type: "execution_cell_update",
-		Payload: map[string]any{
-			"phase": "done", "origin": started.Origin,
-			"language": started.Language, "environment": started.Environment,
-			"kernel_target": "analysis", "cell_id": started.ExecID,
-			"exit_code": exitCode, "stdout": outcome.Response.Stdout,
-			"stderr": stderr, "cancelled": cancelled, "duration_ms": duration,
-			"tool_use_id": started.ToolUseID,
-		},
-	}); err != nil {
-		log.Printf("persist kernel done event %s: %v", started.ExecID, err)
-	}
 }
 
 func kernelErrorLine(trace map[string]any) *int {
