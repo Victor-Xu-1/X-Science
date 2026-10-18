@@ -122,15 +122,17 @@ export const database = {
       )) as (p: PutConversationReadCursorParams) => Promise<ConversationReadCursor>,
   },
   getUserConversations: withResponseMap(
-    httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
-      (p) => {
-        const params = new URLSearchParams();
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
-        const qs = params.toString();
-        return `/api/conversations${qs ? `?${qs}` : ''}`;
-      }
-    ),
+    httpGet<
+      PaginatedResult<import('@/common/config/storage').TChatConversation>,
+      { cursor?: string; limit?: number; section?: 'pinned' | 'recent' }
+    >((p) => {
+      const params = new URLSearchParams();
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      if (p.section) params.set('section', p.section);
+      const qs = params.toString();
+      return `/api/conversations${qs ? `?${qs}` : ''}`;
+    }),
     fromApiPaginatedConversations
   ),
   searchConversationMessages: withResponseMap(

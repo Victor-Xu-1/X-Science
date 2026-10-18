@@ -9,6 +9,12 @@ import type { ConversationTurnCompletedEvent } from '@/common/adapter/conversati
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
+import {
+  emptyConversationSectionPage,
+  mergeConversationSection,
+  type ConversationListSection,
+} from './conversationListPagination';
 import {
   getConversationTaskStreamGuardDecision,
   isConversationRuntimeUnfinished,
@@ -24,6 +30,10 @@ type ConversationListSyncSnapshot = {
   completionUnreadConversationIds: Set<string>;
   hasMoreConversations: boolean;
   isLoadingMoreConversations: boolean;
+  hasMorePinned: boolean;
+  pinnedLoading: boolean;
+  pinnedLoadError: boolean;
+  conversationsLoadError: boolean;
 };
 
 const CONVERSATION_LIST_REFRESH_DELAY_MS = 120;
@@ -113,12 +123,17 @@ let activeConversationIdState: string | null = null;
 let nextConversationCursorState: string | null = null;
 let hasMoreConversationsState = false;
 let isLoadingMoreConversationsState = false;
+const sectionPages = { pinned: emptyConversationSectionPage(), recent: emptyConversationSectionPage() };
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
   generatingConversationIds: generatingConversationIdsState,
   completionUnreadConversationIds: completionUnreadConversationIdsState,
   hasMoreConversations: hasMoreConversationsState,
   isLoadingMoreConversations: isLoadingMoreConversationsState,
+  hasMorePinned: false,
+  pinnedLoading: false,
+  pinnedLoadError: false,
+  conversationsLoadError: false,
 };
 
 const emitStoreChange = () => {
@@ -128,6 +143,10 @@ const emitStoreChange = () => {
     completionUnreadConversationIds: completionUnreadConversationIdsState,
     hasMoreConversations: hasMoreConversationsState,
     isLoadingMoreConversations: isLoadingMoreConversationsState,
+    hasMorePinned: sectionPages.pinned.cursor !== null,
+    pinnedLoading: sectionPages.pinned.loading,
+    pinnedLoadError: sectionPages.pinned.error,
+    conversationsLoadError: sectionPages.recent.error,
   };
   listeners.forEach((listener) => listener());
 };
@@ -141,69 +160,96 @@ const subscribeConversationListSync = (listener: () => void) => {
 
 const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snapshotState;
 
-const loadConversationPage = async (cursor?: string, append = false): Promise<void> => {
-  if (append) {
-    if (isLoadingMoreConversationsState) return;
-    isLoadingMoreConversationsState = true;
-    emitStoreChange();
-  }
+const loadConversationPage = async (
+  section: ConversationListSection,
+  cursor?: string,
+  append = false
+): Promise<void> => {
+  const page = sectionPages[section];
+  if (append && page.loading) return;
+  const request = ++page.request;
+  const scope = getRendererAccountScopeToken();
+  const current = () => request === sectionPages[section].request && scope === getRendererAccountScopeToken();
+  page.loading = true;
+  page.error = false;
+  page.retryCursor = cursor;
+  page.retryAppend = append;
+  if (section === 'recent') isLoadingMoreConversationsState = append;
+  emitStoreChange();
   try {
     const result = await ipcBridge.database.getUserConversations.invoke({
       limit: CONVERSATION_LIST_PAGE_LIMIT,
+      section,
       ...(cursor ? { cursor } : {}),
     });
     const items = result?.items;
     if (!items || !Array.isArray(items)) throw new Error('conversation_list_page_invalid');
+    if (!current()) return;
     const filteredData = items.filter((conv) => {
       // Legacy rows from the pre-provider-probe health check flow are hidden
       // from normal history. New health checks must not create conversations.
       const extra = conv.extra as { is_health_check?: boolean } | undefined;
       return extra?.is_health_check !== true;
     });
-    if (append) {
-      const existingIDs = new Set(conversationsState.map((conversation) => conversation.id));
-      conversationsState = [
-        ...conversationsState,
-        ...filteredData.filter((conversation) => !existingIDs.has(conversation.id)),
-      ];
-      conversation_idsState = new Set([...conversation_idsState, ...items.map((conversation) => conversation.id)]);
-    } else {
-      conversationsState = reduceConversationTaskStatus(conversationsState, {
-        type: 'list-refreshed',
-        incoming: filteredData,
-        completedConversationIds: completedConversationIdsState,
-      });
-      // Use all IDs from the page (including legacy health-check rows) so the
-      // responseStream listener does not turn hidden rows into a refresh loop.
-      conversation_idsState = new Set(items.map((conversation) => conversation.id));
-    }
     const nextCursor = typeof result.next_cursor === 'string' && result.next_cursor ? result.next_cursor : null;
-    hasMoreConversationsState = result.has_more === true && nextCursor !== null;
-    nextConversationCursorState = hasMoreConversationsState ? nextCursor : null;
+    if (result.has_more === true && (!nextCursor || nextCursor === cursor))
+      throw new Error('conversation_list_cursor_invalid');
+    conversationsState = reduceConversationTaskStatus(conversationsState, {
+      type: 'list-refreshed',
+      incoming: mergeConversationSection(conversationsState, filteredData, section, append),
+      completedConversationIds: completedConversationIdsState,
+    });
+    conversation_idsState = new Set([...conversationsState.map((item) => item.id), ...items.map((item) => item.id)]);
+    page.cursor = result.has_more === true ? nextCursor : null;
+    if (section === 'recent') {
+      hasMoreConversationsState = page.cursor !== null;
+      nextConversationCursorState = page.cursor;
+    }
   } catch (error) {
     console.warn('[WorkspaceGroupedHistory] Failed to load conversations:', error);
-    if (!append) {
-      conversationsState = [];
-      conversation_idsState = new Set();
-      nextConversationCursorState = null;
-      hasMoreConversationsState = false;
-    }
+    if (current()) page.error = true;
   } finally {
-    if (append) isLoadingMoreConversationsState = false;
-    emitStoreChange();
+    if (current()) {
+      page.loading = false;
+      if (section === 'recent') isLoadingMoreConversationsState = false;
+      emitStoreChange();
+    }
   }
 };
 
-const loadConversations = () => loadConversationPage();
+const loadConversations = async () => {
+  await Promise.all([loadConversationPage('pinned'), loadConversationPage('recent')]);
+};
 
 const conversationListRefresh = createConversationListRefreshController(loadConversations);
 const unknownConversationRefreshGuard = createUnknownConversationRefreshGuard();
+registerRendererAccountReset('conversation-list-sync', () => {
+  for (const page of Object.values(sectionPages)) {
+    page.request++;
+    page.cursor = null;
+    page.loading = false;
+    page.error = false;
+  }
+  conversationsState = [];
+  conversation_idsState = new Set();
+  generatingConversationIdsState = new Set();
+  completionUnreadConversationIdsState = new Set();
+  completedConversationIdsState = new Set();
+  activeConversationIdState = null;
+  hasMoreConversationsState = false;
+  isLoadingMoreConversationsState = false;
+  nextConversationCursorState = null;
+  emitStoreChange();
+  if (isStoreInitialized) conversationListRefresh.schedule();
+});
 
 export function shouldRefreshConversationListAfterChange(input: {
   action: 'created' | 'updated' | 'deleted';
   known: boolean;
   active: boolean;
+  presentationChanged?: boolean;
 }): boolean {
+  if (input.presentationChanged) return true;
   if (input.action === 'deleted' || input.action === 'created' || !input.known) return true;
   // Streaming publishes durable conversation updates throughout a long turn.
   // Runtime/stream reducers already update the visible row incrementally, so
@@ -223,7 +269,7 @@ const scheduleConversationRefresh = () => {
 
 const loadMoreConversationsState = () => {
   if (!hasMoreConversationsState || !nextConversationCursorState || isLoadingMoreConversationsState) return;
-  void loadConversationPage(nextConversationCursorState, true);
+  void loadConversationPage('recent', nextConversationCursorState, true);
 };
 
 const markGenerating = (conversation_id: string) => {
@@ -378,6 +424,7 @@ const initializeConversationListSyncStore = () => {
         action: event.action,
         known,
         active,
+        presentationChanged: event.presentation_changed === true,
       })
     ) {
       scheduleConversationRefresh();
@@ -490,6 +537,10 @@ export const useConversationListSync = () => {
     completionUnreadConversationIds,
     hasMoreConversations,
     isLoadingMoreConversations,
+    hasMorePinned,
+    pinnedLoading,
+    pinnedLoadError,
+    conversationsLoadError,
   } = useSyncExternalStore(
     subscribeConversationListSync,
     getConversationListSyncSnapshot,
@@ -506,6 +557,18 @@ export const useConversationListSync = () => {
 
   const loadMoreConversations = useCallback(() => {
     loadMoreConversationsState();
+  }, []);
+  const loadMorePinned = useCallback(() => {
+    const cursor = sectionPages.pinned.cursor;
+    if (cursor) void loadConversationPage('pinned', cursor, true);
+  }, []);
+  const retryPinned = useCallback(() => {
+    const page = sectionPages.pinned;
+    void loadConversationPage('pinned', page.retryCursor, page.retryAppend);
+  }, []);
+  const retryConversations = useCallback(() => {
+    const page = sectionPages.recent;
+    void loadConversationPage('recent', page.retryCursor, page.retryAppend);
   }, []);
 
   const isConversationGenerating = useCallback(
@@ -531,5 +594,12 @@ export const useConversationListSync = () => {
     hasMoreConversations,
     isLoadingMoreConversations,
     loadMoreConversations,
+    hasMorePinned,
+    pinnedLoading,
+    pinnedLoadError,
+    conversationsLoadError,
+    loadMorePinned,
+    retryPinned,
+    retryConversations,
   };
 };

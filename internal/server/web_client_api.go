@@ -243,15 +243,20 @@ func (s *Server) handleWebConversations(w http.ResponseWriter, r *http.Request) 
 		limit = min(parsed, 1000)
 	}
 	var before *workspace.CompatibilityFrameSummaryCursor
+	section := r.URL.Query().Get("section")
+	if section != "" && section != "pinned" && section != "recent" {
+		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid conversation section"})
+		return
+	}
 	if rawCursor := strings.TrimSpace(r.URL.Query().Get("cursor")); rawCursor != "" {
 		parsed, err := parseWebConversationListCursor(rawCursor)
-		if err != nil {
+		if err != nil || (section == "" && parsed.Version != 1) || (section != "" && (parsed.Version != 2 || parsed.OwnerID != userID || parsed.Section != section)) {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"success": false, "message": "invalid conversation cursor"})
 			return
 		}
 		before = &workspace.CompatibilityFrameSummaryCursor{UpdatedAt: parsed.UpdatedAt, FrameID: parsed.FrameID}
 	}
-	summaries, err := s.workspaceStore.ListVisibleRootCompatibilityFrameSummaries(r.Context(), userID, limit+1, before)
+	summaries, err := s.workspaceStore.ListVisibleRootCompatibilityFrameSummaries(r.Context(), userID, limit+1, before, section)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"success": false, "message": "unable to list conversations"})
 		return
@@ -272,9 +277,15 @@ func (s *Server) handleWebConversations(w http.ResponseWriter, r *http.Request) 
 	var nextCursor any
 	if hasMore && len(summaries) > 0 {
 		last := summaries[len(summaries)-1].Frame
-		nextCursor = encodeWebConversationListCursor(webConversationListCursor{
+		cursor := webConversationListCursor{
 			Version: 1, UpdatedAt: last.UpdatedAt.UTC(), FrameID: last.ID,
-		})
+		}
+		if section != "" {
+			cursor.Version = 2
+			cursor.OwnerID = userID
+			cursor.Section = section
+		}
+		nextCursor = encodeWebConversationListCursor(cursor)
 	}
 	payload := map[string]any{
 		"items": items, "total": len(items), "has_more": hasMore, "next_cursor": nextCursor,
@@ -286,6 +297,8 @@ func (s *Server) handleWebConversations(w http.ResponseWriter, r *http.Request) 
 
 type webConversationListCursor struct {
 	Version   int       `json:"version"`
+	OwnerID   string    `json:"owner_id,omitempty"`
+	Section   string    `json:"section,omitempty"`
 	UpdatedAt time.Time `json:"updated_at"`
 	FrameID   string    `json:"frame_id"`
 }
@@ -304,8 +317,11 @@ func parseWebConversationListCursor(value string) (webConversationListCursor, er
 		return webConversationListCursor{}, errors.New("invalid conversation cursor")
 	}
 	var cursor webConversationListCursor
-	if err := json.Unmarshal(raw, &cursor); err != nil || cursor.Version != 1 || cursor.UpdatedAt.IsZero() ||
+	if err := json.Unmarshal(raw, &cursor); err != nil || (cursor.Version != 1 && cursor.Version != 2) || cursor.UpdatedAt.IsZero() ||
 		strings.TrimSpace(cursor.FrameID) == "" || cursor.FrameID != strings.TrimSpace(cursor.FrameID) || len(cursor.FrameID) > 255 {
+		return webConversationListCursor{}, errors.New("invalid conversation cursor")
+	}
+	if cursor.Version == 1 && (cursor.OwnerID != "" || cursor.Section != "") || cursor.Version == 2 && (cursor.OwnerID == "" || (cursor.Section != "pinned" && cursor.Section != "recent")) {
 		return webConversationListCursor{}, errors.New("invalid conversation cursor")
 	}
 	return cursor, nil
@@ -337,6 +353,15 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 
 func (s *Server) webConversationSnapshot(frame workspace.CompatibilityFrame, projectName string) (map[string]any, error) {
 	conversation := webConversation(frame, projectName)
+	presentation, err := workspace.ConversationPresentation(frame.ContextData)
+	if err != nil {
+		return nil, err
+	}
+	extra := conversation["extra"].(map[string]any)
+	for key, value := range presentation {
+		extra[key] = value
+	}
+	extra["frame_incarnation_id"] = frame.IncarnationID
 	runtime, err := s.webConversationRuntimeSnapshot(frame)
 	if err != nil {
 		return nil, err

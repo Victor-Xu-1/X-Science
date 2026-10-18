@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useParams } from 'react-router';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
+import { useConversationPin } from './hooks/useConversationPin';
 import { emitter } from '@/renderer/utils/emitter';
 
 import ConversationRow from './ConversationRow';
@@ -55,6 +56,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { id, projectId } = useParams();
   const location = useLocation();
   const { t } = useTranslation();
+  const { togglePin, isPinPending } = useConversationPin();
   const [projectBatchMode, setProjectBatchMode] = useState(false);
   const [selectLatestProjectOnLanding, setSelectLatestProjectOnLanding] = useState(
     () => (location.state as { selectLatestProject?: boolean } | null)?.selectLatestProject === true
@@ -71,6 +73,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     hasMoreConversations,
     isLoadingMoreConversations,
     loadMoreConversations,
+    hasMorePinned,
+    pinnedLoading,
+    pinnedLoadError,
+    conversationsLoadError,
+    loadMorePinned,
+    retryPinned,
+    retryConversations,
   } = useConversations();
 
   const SectionLabel = useCallback(
@@ -259,6 +268,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       pinnedConversations,
       batchMode,
       collapsed,
+      pinnedListComplete: !hasMorePinned && !pinnedLoading && !pinnedLoadError,
     });
 
   const handleTaskRowClick = useCallback(
@@ -292,6 +302,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onExport: handleExport,
       onDownloadArtifacts: handleDownloadArtifacts,
       onViewNotebook: handleViewNotebook,
+      onTogglePin: togglePin,
+      pinPending: isPinPending(conversation.id),
     }),
     [
       collapsed,
@@ -314,6 +326,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleExport,
       handleDownloadArtifacts,
       handleViewNotebook,
+      togglePin,
+      isPinPending,
     ]
   );
 
@@ -361,7 +375,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const handleStartTask = onStartTask
     ? () => (activeProjectId ? onStartTask(activeProjectId) : emitter.emit('xscience.projects.create'))
     : undefined;
-  const shouldRenderTaskSection = taskSections.length > 0 || !!onStartTask;
+  const shouldRenderTaskSection = taskSections.length > 0 || !!onStartTask || conversationsLoadError;
 
   return (
     <>
@@ -435,7 +449,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          {pinnedConversations.length > 0 && (
+          {(pinnedConversations.length > 0 || pinnedLoading || pinnedLoadError) && (
             <div className='min-w-0'>
               {!collapsed && <SectionLabel sectionKey='pinned' label={t('conversation.history.pinnedSection')} />}
               {!collapsedSections.has('pinned') && (
@@ -450,6 +464,29 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       );
                     })}
                   </div>
+                  {!collapsed && (pinnedLoading || hasMorePinned || pinnedLoadError) ? (
+                    <div className='px-8px py-4px'>
+                      {pinnedLoadError ? (
+                        <p role='alert' className='text-12px text-t-secondary'>
+                          {t('conversation.history.pinnedLoadFailed')}
+                        </p>
+                      ) : null}
+                      <button
+                        type='button'
+                        disabled={pinnedLoading}
+                        onClick={pinnedLoadError ? retryPinned : loadMorePinned}
+                        className='text-12px text-t-secondary'
+                      >
+                        {t(
+                          pinnedLoading
+                            ? 'conversation.history.loadingMore'
+                            : pinnedLoadError
+                              ? 'common.retry'
+                              : 'conversation.history.loadMorePinned'
+                        )}
+                      </button>
+                    </div>
+                  ) : null}
                 </SortableContext>
               )}
             </div>
@@ -508,13 +545,21 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 )}
               </div>
             ))}
-            {taskSections.length === 0 && !collapsed && (
+            {taskSections.length === 0 && !collapsed && !conversationsLoadError && (
               <div className='px-16px py-8px text-12px leading-18px text-t-tertiary' role='status'>
                 {!activeProjectId
                   ? t('conversation.history.createProjectFirst')
                   : t('conversation.history.noProjectTasks')}
               </div>
             )}
+            {conversationsLoadError && !collapsed ? (
+              <div className='px-8px py-4px'>
+                <p role='alert'>{t('conversation.history.listLoadFailed')}</p>
+                <button type='button' onClick={retryConversations}>
+                  {t('common.retry')}
+                </button>
+              </div>
+            ) : null}
             {hasMoreConversations && !collapsed && (
               <button
                 type='button'
