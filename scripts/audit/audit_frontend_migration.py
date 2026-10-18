@@ -130,6 +130,38 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/pdfReadingContext.ts": "Define and strictly decode Go-owned reading scope, immutable version bindings, selection snapshots and exact pending requests; preserve current owner/incarnation/revision identities.",
+    "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingBar.tsx": "Adapt the reference linked-PDF bar, open/remove controls and filename layout to the existing composer controller, including truthful pending and blocked states. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx.",
+    "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix.tsx": "Compose the reading bar, initial-send recovery, attachment suggestion, frozen queue notice and ordinary draft-save failure within the existing SendBox prefix.",
+    "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingSuggestion.tsx": "Adapt the automatic-reading suggestion and Keep as attachments action without removing the original attachment or claiming a binding is accepted. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx, src/renderer/src/pages/workspace/workspace-composer-controller.ts.",
+    "packages/desktop/src/renderer/components/chat/SendBox/reading/ReadingContextPicker.tsx": "Adapt the source reading picker to authenticated Project ArtifactVersion candidates, scoped search/loading/retry/selection and the three-document limit; do not fabricate Library authority. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ReadingContextPicker.tsx.",
+    "packages/desktop/src/renderer/components/chat/SendBox/reading/readingContext.css": "Translate the reference linked-bar/picker geometry and light/dark color tokens into scoped CSS using existing application radius/weight tokens. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx, src/renderer/src/pages/workspace/ReadingContextPicker.tsx, src/renderer/src/assets/main.css.",
+    "packages/desktop/src/renderer/hooks/chat/sendBoxDraftEdits.ts": "Define ordinary editable-field deltas and snapshot comparison while reserving the exact PDF pending request to the typed conditional draft owner.",
+    "packages/desktop/src/renderer/hooks/chat/useComposerLifetime.ts": "Capture a component/account lifetime predicate to fence late draft/upload UI callbacks without granting filesystem or send authority.",
+    "packages/desktop/src/renderer/hooks/chat/usePdfReadingAttachments.ts": "Adapt automatic eligible-attachment preparation to the existing composer and its captured send snapshot; fence completion and retain ordinary ineligible attachments.",
+    "packages/desktop/src/renderer/hooks/chat/usePdfReadingComposer.ts": "Bind one reading controller to the actual account/conversation and existing PreviewProvider, forwarding canonical invalidations, positions and initial-upload preparation.",
+    "packages/desktop/src/renderer/pages/artifact/PdfPageNavigator.tsx": "Add bounded previous/next/direct-page controls to the existing PDF viewer using parsed page counts, not a new PDF engine. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/previews/renderers/PdfPreview.tsx.",
+    "packages/desktop/src/renderer/pages/artifact/usePdfReadingPosition.ts": "Track the actual virtualized PDF viewport and route page/reveal actions through the existing viewer; repeat reveal is an action, not a document reload.",
+    "packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePdfReadingContext.tsx": "Adapt the reference historical reading badge to canonical Go snapshots and reopen the original immutable version/page without relinking it. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/WorkspaceMessageItem.tsx, src/renderer/src/pages/workspace/pdf-reading-reveal.ts.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/PdfReadingPreviewAction.tsx": "Adapt Read with agent/remove controls to a borrowed live-composer or Guid-draft port with immutable identity and late-response fencing. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/use-pdf-context-action.ts, src/renderer/src/pages/workspace/ConversationPanel.tsx.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpComposerAttachments.tsx": "Extract the existing Acp attachment/directory rendering and removal callbacks, adding PDF open delegation while retaining prior imported/adapted code ancestry. Preserve the original imported/adapted ancestry of the extracted target code.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandAuthority.ts": "Extract the existing X-Science branch/session-option authority capture from AcpSendBox so ordinary and typed sends retain one implementation. Preserve the original imported/adapted ancestry of the extracted target code.",
+    "packages/desktop/src/renderer/pages/guid/hooks/useGuidPdfReading.ts": "Adapt pre-conversation PDF selection and preview position to the existing Guid draft; actual binding remains deferred to the canonical first-message handoff.",
+    "packages/desktop/src/renderer/services/runtime/PdfReadingController.ts": "Implement the browser-side single composer intent lifecycle over Go CAS endpoints, exact durable retry feedback, account fences and click-time selection preparation; not a second binding authority.",
+    "packages/desktop/src/renderer/services/runtime/pdfReadingContext.ts": "Use the existing authenticated HTTP bridge for strict reading read/mutate/candidate responses and bounded Project candidate batches.",
+    "packages/desktop/src/renderer/services/runtime/pdfReadingHandoff.ts": "Carry validated immutable PDF sources/page hints through the existing initial-message handoff and reuse a prepared selection on uncertain send retries.",
+    "packages/desktop/src/renderer/services/runtime/pdfReadingPendingState.ts": "Project strict original-draft feedback into recoverable/blocked UI state with complete account/frame/root checks; unavailable is not successful persistence.",
+    "packages/desktop/src/renderer/services/runtime/pdfReadingPreview.ts": "Define the borrowed composer preview port and immutable ArtifactVersion preview metadata without adding a second preview or server-state owner.",
+    "packages/desktop/src/renderer/services/runtime/pdfReadingSendSnapshot.ts": "Implement click-time reading snapshot and own-link mapping over the Go contract, preserving active unlinked-source position and rejecting external selection changes.",
+    "tests/unit/renderer/conversation/PdfReadingController.test.ts": "Cover original controller scope, immutable preparation, retry and lost-acknowledgement behavior with typed contracts.",
+    "tests/unit/renderer/conversation/PdfReadingControls.dom.test.tsx": "Exercise source-adapted bar/picker UI states and real controller callbacks.",
+    "tests/unit/renderer/conversation/PdfReadingPendingOwner.dom.test.tsx": "Exercise late ACK/refresh, next-click protection, ordinary editing, storage failures and exact pending recovery through actual hooks.",
+    "tests/unit/renderer/conversation/pdfReadingDraft.test.ts": "Verify reading draft/selection decoding, source identity and owner-bound persistence data.",
+    "tests/unit/renderer/conversation/pdfReadingFixtures.ts": "Provide authored typed reference data and pending-owner fixtures for focused C12 tests, not scientific evidence.",
+    "tests/unit/renderer/conversation/pdfReadingHandoff.test.ts": "Verify original initial-message reading preparation, exact retry and known/unknown handoff behavior.",
+    "tests/unit/renderer/conversation/pdfReadingTransport.test.ts": "Verify strict Go wire decoders/transport response binding and source validation.",
+    "tests/unit/renderer/conversation/useGuidPdfReading.dom.test.tsx": "Exercise the existing Guid draft and shared preview port before canonical frame creation.",
+    "tests/unit/renderer/useSendBoxDraftReservedFields.dom.test.ts": "Verify ordinary save/clear cannot remove or resurrect the reserved pending request, including durable absence and nested mutation.",
     "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.module.css": "Style the compact source-aligned maintenance action with shared tokens and no modal backdrop.",
     "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.tsx": "Render actual maintenance receipts, exact retry/cancel and explicit capacity recovery without fabricated progress.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/acpStopAction.ts": "Route Stop through the observed maintenance owner only; ordinary Stop does not wait for optional bootstrap.",
@@ -635,9 +667,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "1c827a7c8055105b3ca52d1d6b640de55b49b64e94fc5ed7ce7ce611197ce553"
+APPROVED_ADAPTATION_FINGERPRINT = "e4a57eaf40cf6c01aed05ab1543acd6c3dcb3d4bb6b4760d399096dafa3d1d5f"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "f3c055c2d050ad7b0df1395fce2cd305e0ded281e4a767d658caa009c1976d92"
+APPROVED_ADDITION_FINGERPRINT = "bbccaf7269816e7fc80aeed677f62b110db4a36419e970f63ca8dfd445b63477"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
