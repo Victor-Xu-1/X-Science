@@ -25,8 +25,16 @@ func storeConversationPresentationExtraTx(ctx context.Context, tx workspaceTrans
 	return err
 }
 
-// SQL consumers apply visibility before their cursor/order/LIMIT. The column
-// expression is an internal SQL identifier, never caller-controlled input.
+// SQL readers hide only a valid positive archive marker before cursor/order/
+// LIMIT. Unknown authority remains browsable; the strict reader and admission
+// guard still reject it. The column is an internal identifier, not user input.
+func conversationArchivedSQL(contextColumn string) string {
+	value := "json_extract(" + contextColumn + ",'$.web_extra.archived_at')"
+	return "COALESCE((json_type(" + contextColumn + ",'$.web_extra.archived_at') IN ('integer','real')" +
+		" AND " + value + ">0 AND " + value + "<=9007199254740991" +
+		" AND " + value + "=CAST(" + value + " AS INTEGER)),0)"
+}
+
 func conversationUnarchivedSQL(contextColumn string) string {
-	return "COALESCE(json_extract(" + contextColumn + ",'$.web_extra.archived_at'),0)=0"
+	return "NOT (" + conversationArchivedSQL(contextColumn) + ")"
 }

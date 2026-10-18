@@ -213,7 +213,7 @@ func (s *Store) ListCompatibilityProjects(userID string, limit, offset int) ([]C
 	return projects, nil
 }
 
-const compatibilityProjectSelect = `
+var compatibilityProjectSelect = `
 	SELECT p.id, p.name, p.path, p.created_at, p.updated_at,
 		COALESCE(m.description, ''), COALESCE(m.context_data, 'null'),
 		(SELECT COUNT(*) FROM artifacts a WHERE a.project_id = p.id AND a.id NOT LIKE 'large-tool-result-%'),
@@ -221,7 +221,7 @@ const compatibilityProjectSelect = `
 			LEFT JOIN frame_runtime_metadata fm ON fm.frame_id = f.id
 			WHERE f.project_id = p.id AND f.parent_frame_id IS NULL
 				AND TRIM(COALESCE(f.name, '')) <> '' AND COALESCE(fm.is_hidden, 0) = 0
-				AND COALESCE(json_extract(fm.context_data,'$.web_extra.archived_at'),0)=0),
+				AND ` + conversationUnarchivedSQL("fm.context_data") + `),
 		COALESCE((
 			SELECT latest.id
 			FROM frames latest
@@ -230,7 +230,7 @@ const compatibilityProjectSelect = `
 				AND latest.parent_frame_id IS NULL
 				AND TRIM(COALESCE(latest.name, '')) <> ''
 				AND COALESCE(latest_meta.is_hidden, 0) = 0
-				AND COALESCE(json_extract(latest_meta.context_data,'$.web_extra.archived_at'),0)=0
+				AND ` + conversationUnarchivedSQL("latest_meta.context_data") + `
 				AND latest.conversation_type <> 'uploads'
 				AND latest.agent_name NOT IN ('CONCIERGE', 'CANVAS_CONCIERGE')
 			ORDER BY MAX(
@@ -343,7 +343,7 @@ func (s *Store) ListVisibleRootCompatibilityFrameSummaries(
 			AND COALESCE(metadata.is_hidden, 0) = 0`
 	args := []any{userID}
 	if section == "archived" {
-		query += ` AND COALESCE(json_extract(metadata.context_data,'$.web_extra.archived_at'),0)>0`
+		query += " AND " + conversationArchivedSQL("metadata.context_data")
 	} else {
 		query += " AND " + conversationUnarchivedSQL("metadata.context_data")
 	}
