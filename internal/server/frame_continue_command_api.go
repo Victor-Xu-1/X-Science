@@ -9,6 +9,9 @@ import (
 )
 
 func writeFrameContinueError(w http.ResponseWriter, err error) bool {
+	if writeConversationAvailabilityError(w, err) {
+		return true
+	}
 	code, status := "", http.StatusConflict
 	switch {
 	case errors.Is(err, workspace.ErrFrameResumePrecondition):

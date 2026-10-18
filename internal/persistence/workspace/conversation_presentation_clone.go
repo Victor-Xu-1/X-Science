@@ -12,7 +12,7 @@ func cloneConversationPresentationContext(source map[string]any) map[string]any 
 		for key, value := range extra {
 			copyExtra[key] = value
 		}
-		for _, key := range []string{"pinned", "pinned_at", "sortOrder", presentationRevisionKey} {
+		for _, key := range []string{"pinned", "pinned_at", "sortOrder", "archived_at", "presentation_unavailable", presentationRevisionKey} {
 			delete(copyExtra, key)
 		}
 		result["web_extra"] = copyExtra

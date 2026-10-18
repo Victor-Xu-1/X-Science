@@ -13,6 +13,7 @@ import (
 	"time"
 
 	productidentity "x-science"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -244,7 +245,7 @@ func (s *Server) handleWebConversations(w http.ResponseWriter, r *http.Request) 
 	}
 	var before *workspace.CompatibilityFrameSummaryCursor
 	section := r.URL.Query().Get("section")
-	if section != "" && section != "pinned" && section != "recent" {
+	if section != "" && section != "pinned" && section != "recent" && section != "archived" {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid conversation section"})
 		return
 	}
@@ -321,7 +322,7 @@ func parseWebConversationListCursor(value string) (webConversationListCursor, er
 		strings.TrimSpace(cursor.FrameID) == "" || cursor.FrameID != strings.TrimSpace(cursor.FrameID) || len(cursor.FrameID) > 255 {
 		return webConversationListCursor{}, errors.New("invalid conversation cursor")
 	}
-	if cursor.Version == 1 && (cursor.OwnerID != "" || cursor.Section != "") || cursor.Version == 2 && (cursor.OwnerID == "" || (cursor.Section != "pinned" && cursor.Section != "recent")) {
+	if cursor.Version == 1 && (cursor.OwnerID != "" || cursor.Section != "") || cursor.Version == 2 && (cursor.OwnerID == "" || (cursor.Section != "pinned" && cursor.Section != "recent" && cursor.Section != "archived")) {
 		return webConversationListCursor{}, errors.New("invalid conversation cursor")
 	}
 	return cursor, nil
@@ -351,7 +352,7 @@ func webConversation(frame workspace.CompatibilityFrame, projectName string) map
 	}
 }
 
-func (s *Server) webConversationSnapshot(frame workspace.CompatibilityFrame, projectName string) (map[string]any, error) {
+func webConversationPresentationSnapshot(frame workspace.CompatibilityFrame, projectName string) (map[string]any, error) {
 	conversation := webConversation(frame, projectName)
 	presentation, err := workspace.ConversationPresentation(frame.ContextData)
 	if err != nil {
@@ -362,6 +363,22 @@ func (s *Server) webConversationSnapshot(frame workspace.CompatibilityFrame, pro
 		extra[key] = value
 	}
 	extra["frame_incarnation_id"] = frame.IncarnationID
+	return conversation, nil
+}
+
+func (s *Server) webConversationSnapshot(frame workspace.CompatibilityFrame, projectName string) (map[string]any, error) {
+	conversation, err := webConversationPresentationSnapshot(frame, projectName)
+	if errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+		// Unknown archive authority must block mutations, not read-only browsing.
+		// This flag is computed for this response only; no revision/Pin/archive
+		// state is invented and the strict command projection remains unchanged.
+		conversation = webConversation(frame, projectName)
+		extra := conversation["extra"].(map[string]any)
+		extra["frame_incarnation_id"] = frame.IncarnationID
+		extra["presentation_unavailable"] = true
+	} else if err != nil {
+		return nil, err
+	}
 	runtime, err := s.webConversationRuntimeSnapshot(frame)
 	if err != nil {
 		return nil, err

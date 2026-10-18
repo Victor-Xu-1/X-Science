@@ -15,6 +15,7 @@ import { useLocation, useParams } from 'react-router';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { useConversationPin } from './hooks/useConversationPin';
+import { useConversationArchive } from './hooks/useConversationArchive';
 import { emitter } from '@/renderer/utils/emitter';
 
 import ConversationRow from './ConversationRow';
@@ -57,6 +58,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const location = useLocation();
   const { t } = useTranslation();
   const { togglePin, isPinPending } = useConversationPin();
+  const { archiveConversation, isArchivePending } = useConversationArchive();
   const [projectBatchMode, setProjectBatchMode] = useState(false);
   const [selectLatestProjectOnLanding, setSelectLatestProjectOnLanding] = useState(
     () => (location.state as { selectLatestProject?: boolean } | null)?.selectLatestProject === true
@@ -304,6 +306,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onViewNotebook: handleViewNotebook,
       onTogglePin: togglePin,
       pinPending: isPinPending(conversation.id),
+      onArchive: archiveConversation,
+      archivePending: isArchivePending(conversation),
     }),
     [
       collapsed,
@@ -328,6 +332,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleViewNotebook,
       togglePin,
       isPinPending,
+      archiveConversation,
+      isArchivePending,
     ]
   );
 

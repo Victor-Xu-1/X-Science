@@ -20,6 +20,7 @@ export const COMPACT_SETTINGS_ROUTES: readonly SettingsRouteId[] = [
   'network',
   'credentials',
   'storage',
+  'archived',
   'general',
 ];
 
@@ -226,6 +227,14 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     sectionCount: 5,
     interactionSelectors: ['.settings-section button', '.message-channel-card button', 'select'],
     dynamicStates: ['contact-loading', 'contact-empty', 'email-invalid', 'save-error'],
+  }),
+  archived: contract({
+    route: 'archived',
+    reference: { desktop: null, mobile: null },
+    rootTestId: 'x-science-archived-settings',
+    primarySelectors: ['.archived-conversations__list', '.archived-conversations__empty'],
+    interactionSelectors: ['.archived-conversations__action'],
+    dynamicStates: ['loading', 'empty', 'load-error', 'restoring', 'conflict'],
   }),
 } as const satisfies Record<SettingsRouteId, SettingsVisualContract>;
 

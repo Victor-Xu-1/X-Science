@@ -25,6 +25,9 @@ func (s *Store) activateCompatibilityFrameRequest(
 	repository := transcriptstore.NewRepository(s.db)
 	activated := false
 	err := repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, frameID); err != nil {
+			return err
+		}
 		query := `UPDATE frames SET status = 'processing', updated_at = ?
 			WHERE id = ? AND status NOT IN ('processing', 'running', 'awaiting_user_response', 'awaiting_plan_approval')`
 		if mode == compatibilityFrameActivationCompleted {

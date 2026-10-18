@@ -732,6 +732,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/assistants/", s.handleWebAssistants)
 	mux.HandleFunc("/api/conversations", s.handleWebConversations)
 	mux.HandleFunc("/api/conversations/", s.handleWebConversation)
+	s.registerNotificationInboxRoutes(mux)
 	mux.HandleFunc("/api/contact-email", s.handleContactEmail)
 	mux.HandleFunc("/api/x-science/licenses/third-party", s.handleThirdPartyLicenses)
 	mux.HandleFunc("/api/x-science/experts", s.handleWebManagedExperts)

@@ -337,6 +337,11 @@ func appendFrameUserEventConn(
 		if err != nil {
 			return err
 		}
+		if !existingFound {
+			if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
+				return err
+			}
+		}
 		if input.RequireCompletedFrame && !existingFound {
 			var status string
 			if err := conn.QueryRowContext(ctx, `SELECT status FROM frames WHERE id=?`, stream.FrameID).Scan(&status); err != nil {

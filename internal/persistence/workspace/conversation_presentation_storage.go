@@ -1,0 +1,40 @@
+package workspace
+
+import (
+	"context"
+	"encoding/json"
+)
+
+// Presentation commands share one narrow write, without advancing activity or
+// replacing runtime-owned context, draft, history, artifacts or pin fields.
+func storeConversationPresentationExtraTx(ctx context.Context, tx workspaceTransaction, frameID string, extra map[string]any) error {
+	// A response-only availability hint is never durable presentation authority,
+	// including when an existing legacy map is merged by a real CAS command.
+	stored := make(map[string]any, len(extra))
+	for key, value := range extra {
+		if key != "presentation_unavailable" {
+			stored[key] = value
+		}
+	}
+	encoded, err := json.Marshal(stored)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO frame_runtime_metadata(frame_id,context_data) VALUES(?,json_object('web_extra',json(?)))
+		ON CONFLICT(frame_id) DO UPDATE SET context_data=json_set(COALESCE(frame_runtime_metadata.context_data,'{}'),'$.web_extra',json(?))`, frameID, string(encoded), string(encoded))
+	return err
+}
+
+// SQL readers hide only a valid positive archive marker before cursor/order/
+// LIMIT. Unknown authority remains browsable; the strict reader and admission
+// guard still reject it. The column is an internal identifier, not user input.
+func conversationArchivedSQL(contextColumn string) string {
+	value := "json_extract(" + contextColumn + ",'$.web_extra.archived_at')"
+	return "COALESCE((json_type(" + contextColumn + ",'$.web_extra.archived_at') IN ('integer','real')" +
+		" AND " + value + ">0 AND " + value + "<=9007199254740991" +
+		" AND " + value + "=CAST(" + value + " AS INTEGER)),0)"
+}
+
+func conversationUnarchivedSQL(contextColumn string) string {
+	return "NOT (" + conversationArchivedSQL(contextColumn) + ")"
+}

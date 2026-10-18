@@ -27,6 +27,7 @@ vi.mock('@/renderer/pages/settings/settingsRouteLoaders', () => ({
       'environments',
       'credentials',
       'storage',
+      'archived',
       'general',
     ].includes(value),
 }));
@@ -49,7 +50,7 @@ describe('SettingsSider navigation', () => {
     expect(screen.queryByRole('link', { name: 'Skills' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Connectors' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Scientific environments' })).toBeNull();
-    // The eight remaining entries are the toolkit row plus the untouched ones.
+    // Existing entries are retained, with a real archive-recovery destination.
     expect(screen.getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
       'Scientific Toolkit',
       'Models',
@@ -58,6 +59,7 @@ describe('SettingsSider navigation', () => {
       'Network',
       'Credentials',
       'Storage',
+      'Archived',
       'General',
     ]);
 
@@ -92,5 +94,9 @@ describe('SettingsSider navigation', () => {
     fireEvent.click(toolkit);
     await waitFor(() => expect(window.location.hash).toBe('#/settings/experts'));
     await waitFor(() => expect(toolkit).toHaveAttribute('aria-current', 'page'));
+    const archived = screen.getByRole('link', { name: 'Archived' });
+    fireEvent.click(archived);
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/archived'));
+    expect(archived).toHaveAttribute('aria-current', 'page');
   });
 });

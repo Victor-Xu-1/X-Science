@@ -301,6 +301,14 @@ func (s *Store) claimNextCompatibilityFrameResumeDispatch(owner string, ttl time
 	var selected *compatibilityFrameResumeDispatchRow
 	for index := range candidates {
 		candidate := &candidates[index]
+		if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, candidate.dispatch.FrameID); err != nil {
+			if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+				// Unavailable presentation blocks this candidate, not unrelated
+				// roots behind it. Direct admission remains strictly rejected.
+				continue
+			}
+			return CompatibilityFrameResumeDispatch{}, false, false, err
+		}
 		if candidate.dispatch.Status == frameResumeDispatchRegistered && candidate.dispatch.WaitingFor == "" && !candidate.dispatch.NotBefore.After(now) ||
 			candidate.dispatch.Status == frameResumeDispatchClaimed && !candidate.dispatch.LeaseExpiresAt.After(now) {
 			selected = candidate
@@ -759,6 +767,9 @@ func wakeCompatibilityFrameResumeDispatchTx(ctx context.Context, tx workspaceTra
 		event, _, err := compatibilityDispatchAuditEventByID(ctx, tx, frameResumeWakeAuditID(eventID, input.ExpectedWaitRef))
 		return event, false, err
 	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, row.dispatch.FrameID); err != nil {
+		return FrameEvent{}, false, err
+	}
 	dispatchPayload["waitEventId"] = input.ExpectedWaitRef
 	delete(dispatchPayload, "notBefore")
 	delete(dispatchPayload, "waitingFor")
@@ -881,6 +892,9 @@ func (s *Store) signalCompatibilityFrameResumeDispatchModelSwitch(
 
 	now := s.now().UTC()
 	state := CompatibilityFrameResumeDispatchWakeWoken
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, row.dispatch.FrameID); err != nil {
+		return FrameEvent{}, CompatibilityFrameResumeDispatchWakeNone, false, err
+	}
 	eventType := "frame_resume_dispatch_woken"
 	eventID := fmt.Sprintf("frame-resume-dispatch-model-switch-woken:%s:%d", row.dispatch.ResumeEvent.ID, modelRevision)
 	if row.dispatch.Status == frameResumeDispatchClaimed {

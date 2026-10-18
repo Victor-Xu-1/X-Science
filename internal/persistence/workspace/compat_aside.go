@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 var (
@@ -140,6 +142,9 @@ func (s *Store) createCompatibilityAsideInTransaction(
 	}
 	if parentID.Valid {
 		return CompatibilityAsideResult{}, ErrCompatibilityAsideParentNotRoot
+	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, input.ParentRootFrameID); err != nil {
+		return CompatibilityAsideResult{}, err
 	}
 	parentContext, parentInput, err := compatibilityAsideRuntimeMetadata(ctx, tx, input.ParentRootFrameID)
 	if err != nil {

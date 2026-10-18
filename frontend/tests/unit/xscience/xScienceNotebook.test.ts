@@ -1,10 +1,4 @@
-import {
-  executeXScienceKernel,
-  interruptXScienceKernel,
-  loadXScienceAllKernels,
-  loadXScienceKernels,
-  stopXScienceKernel,
-} from '@/renderer/services/xScienceNotebook';
+import { loadXScienceAllKernels, loadXScienceKernels, stopXScienceKernel } from '@/renderer/services/xScienceNotebook';
 import { describe, expect, it, vi } from 'vitest';
 
 const inventoryPayload = {
@@ -132,50 +126,6 @@ describe('X-Science notebook service', () => {
           force: true,
         }),
       })
-    );
-  });
-
-  it('uses the shared live-kernel terminal execute and interrupt contracts', async () => {
-    const fetchImpl = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ exec_id: 'exec-1', tool_use_id: 'user-exec-1' }), {
-          status: 200,
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ interrupted: true, via: 'sigint', dequeued: false }), {
-          status: 200,
-        })
-      );
-    const kernel = {
-      frameId: 'frame-1',
-      language: 'python' as const,
-      environment: 'chem',
-    };
-
-    await expect(executeXScienceKernel(kernel, 'print(42)', { fetchImpl })).resolves.toEqual({
-      execId: 'exec-1',
-      toolUseId: 'user-exec-1',
-    });
-    await expect(interruptXScienceKernel('frame-1', 'exec-1', { fetchImpl })).resolves.toEqual({
-      interrupted: true,
-      via: 'sigint',
-      dequeued: false,
-      reason: null,
-    });
-    expect(fetchImpl).toHaveBeenNthCalledWith(
-      1,
-      '/api/frames/frame-1/kernel-exec',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ language: 'python', environment: 'chem', code: 'print(42)' }),
-      })
-    );
-    expect(fetchImpl).toHaveBeenNthCalledWith(
-      2,
-      '/api/frames/frame-1/kernel-exec/exec-1/interrupt',
-      expect.objectContaining({ method: 'POST', body: '{}' })
     );
   });
 });

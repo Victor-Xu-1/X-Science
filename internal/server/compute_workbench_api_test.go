@@ -30,6 +30,9 @@ func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	if _, err := store.CreateFrame(workspace.CreateFrameInput{ID: "root-a", ProjectID: "project-a", AgentName: "OPERON", Status: "processing", ConversationType: "chat"}); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := store.CreateFrame(workspace.CreateFrameInput{ID: "frame-a", ProjectID: "project-a", ParentFrameID: "root-a", AgentName: "OPERON", Status: "processing", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
 	now := time.Date(2026, 7, 11, 8, 0, 0, 0, time.UTC)
 	frame := "frame-a"
 	root := "root-a"

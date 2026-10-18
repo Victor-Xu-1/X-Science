@@ -4,11 +4,16 @@ import { getRendererAccountScopeToken } from '../rendererAccountScope';
 
 type PresentationAuthority = { expected_incarnation_id: string; expected_presentation_revision: number };
 
+export function isConversationPresentationUnavailable(conversation: TChatConversation): boolean {
+  return (conversation.extra as Record<string, unknown>).presentation_unavailable === true;
+}
+
 export function conversationPresentationAuthority(conversation: TChatConversation): PresentationAuthority {
   const extra = conversation.extra as Record<string, unknown>;
   const incarnation = extra.frame_incarnation_id;
   const revision = extra.presentation_revision;
   if (
+    isConversationPresentationUnavailable(conversation) ||
     typeof incarnation !== 'string' ||
     !incarnation ||
     typeof revision !== 'number' ||

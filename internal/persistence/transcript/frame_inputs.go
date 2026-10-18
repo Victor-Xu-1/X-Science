@@ -121,6 +121,13 @@ func (tx *ImmediateTransaction) AppendFrameInputResponse(
 	if !found || authority.ActiveStreamUID != stream.UID || authority.ActiveEpoch != stream.Epoch {
 		return Event{}, false, fmt.Errorf("input response authority: %w", ErrEventConflict)
 	}
+	if _, existing, err := findEventByClientID(ctx, tx.conn, stream.UID, input.ClientMessageID); err != nil {
+		return Event{}, false, err
+	} else if !existing {
+		if err := CheckFrameConversationAvailable(ctx, tx.conn, stream.FrameID); err != nil {
+			return Event{}, false, err
+		}
+	}
 	now := tx.repository.now().UTC()
 	record := eventRecord{eventType: "user_input_response", destinations: input.Destinations, createdAt: now}
 	if authority.TranscriptPayloadActive() {

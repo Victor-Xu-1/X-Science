@@ -6,6 +6,7 @@
 
 import { downloadFileFromPath, downloadFileFromUrl, downloadTextContent } from '@/renderer/utils/file/download';
 import type { PreviewTab } from '../../context/PreviewContext';
+import { isNotebookSessionNavigation } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 const resolveTextDownload = (tab: PreviewTab): { extension: string; mimeType: string } => {
   const { content_type: type, metadata } = tab;
@@ -45,6 +46,7 @@ const resolveTextDownload = (tab: PreviewTab): { extension: string; mimeType: st
 };
 
 export const downloadPreviewTab = async (tab: PreviewTab): Promise<void> => {
+  if (isNotebookSessionNavigation(tab.metadata?.notebookSession)) throw new Error('LIVE_NOTEBOOK_IS_NOT_A_FILE');
   const { content, content_type: type, metadata } = tab;
   const rawFileName = metadata?.file_name || `${type}-${Date.now()}`;
 
