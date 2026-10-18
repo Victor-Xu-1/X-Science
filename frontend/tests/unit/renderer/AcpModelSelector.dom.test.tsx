@@ -9,7 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import AcpModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import type { AcpConfigSetStatus, AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
+import type { AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
+import type { UseAcpModelInfoResult } from '@/renderer/hooks/xScience/runtime/useAcpModelInfo';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted(() => ({
@@ -18,18 +19,7 @@ const { messageSuccessMock, messageErrorMock, useAcpModelInfoMock } = vi.hoisted
   useAcpModelInfoMock: vi.fn(),
 }));
 
-type MockAcpModelInfoResult = {
-  model_info: AcpModelInfo | null;
-  canSwitch: boolean;
-  isModelListLoading: boolean;
-  modelListError: unknown;
-  retryModelList: () => Promise<void>;
-  isSetting: boolean;
-  selectModel: (modelId: string) => void;
-  thoughtLevel: AcpDerivedOption | null;
-  setStatus: AcpConfigSetStatus;
-  setConfigOption: (optionId: string, value: string) => Promise<unknown>;
-};
+type MockAcpModelInfoResult = UseAcpModelInfoResult;
 
 const modelInfo: AcpModelInfo = {
   current_model_id: 'gpt-5.2',
@@ -60,7 +50,8 @@ const makeResult = (overrides: Partial<MockAcpModelInfoResult> = {}): MockAcpMod
   selectModel: vi.fn(),
   thoughtLevel,
   setStatus: { state: 'idle' },
-  setConfigOption: vi.fn().mockResolvedValue(undefined),
+  setConfigOption: vi.fn().mockResolvedValue([]),
+  captureObserver: () => () => true,
   ...overrides,
 });
 
