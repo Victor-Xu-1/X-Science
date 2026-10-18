@@ -31,7 +31,8 @@ type NotificationSourcePage struct {
 }
 
 // ReadNotificationSources reads at most 16 indexed source heads and 128 event
-// metadata rows. Payload decoding happens only after that bounded selection.
+// metadata rows plus one indexed latest-receipt probe per selected head.
+// Canonical payload validation happens only after that bounded selection.
 // It never creates a delivery destination, acknowledges an intent, or repairs a
 // runner. A caller commits the returned coordinates only with its projection.
 func (r *Repository) ReadNotificationSources(ctx context.Context, owner, after string, include bool, positions map[string]NotificationSourcePosition) (NotificationSourcePage, error) {
@@ -83,10 +84,16 @@ func (r *Repository) ReadNotificationSources(ctx context.Context, owner, after s
 		heads = heads[:16]
 	}
 	budget := 128
+	historyBlocked := false
 	for _, source := range heads {
+		// These are the activation lower bound and current upper bound from
+		// this same read snapshot, before a frozen history window is restored.
+		head := source
 		if prior, ok := positions[source.StreamUID]; ok {
 			if prior.Incarnation != source.Incarnation { // Never rebind a known stream to a replacement frame.
-				result.AfterSession, result.IncludeSession = source.SessionID, false
+				if !historyBlocked {
+					result.AfterSession, result.IncludeSession = source.SessionID, false
+				}
 				continue
 			}
 			if prior.Publication > source.Scanned {
@@ -102,53 +109,26 @@ func (r *Repository) ReadNotificationSources(ctx context.Context, owner, after s
 		if source.Incarnation == "" || source.Scanned > source.Through {
 			return result, errors.New("invalid notification source coordinate")
 		}
-		if budget == 0 {
-			more = true
-			break
-		}
-		type eventMeta struct {
-			id, publication int64
-			kind            string
-		}
-		events := []eventMeta{}
-		rows, err := tx.QueryContext(ctx, `SELECT event_id,publication_seq,event_type FROM transcript_events
-			WHERE stream_uid=? AND publication_seq>? AND publication_seq<=? ORDER BY publication_seq LIMIT ?`,
-			source.StreamUID, source.Scanned, source.Through, budget)
+		latest, err := notificationSourceTerminalHead(ctx, tx, owner, head, head.Scanned)
 		if err != nil {
 			return result, err
 		}
-		for rows.Next() {
-			var event eventMeta
-			if err := rows.Scan(&event.id, &event.publication, &event.kind); err != nil {
-				rows.Close()
+		if latest != nil {
+			source.Terminals = append(source.Terminals, *latest)
+		}
+		if !historyBlocked && budget > 0 {
+			budget, err = scanNotificationSourceHistory(ctx, tx, owner, &source, budget)
+			if err != nil {
 				return result, err
 			}
-			events = append(events, event)
 		}
-		if err := rows.Close(); err != nil {
-			return result, err
-		}
-		if err := rows.Err(); err != nil {
-			return result, err
-		}
-		for _, event := range events {
-			if event.kind == "runner_finished" {
-				projection, err := terminalProjection(ctx, tx, owner, source.StreamUID, event.id)
-				if err != nil {
-					return result, err
-				}
-				if !projection.Superseded {
-					source.Terminals = append(source.Terminals, projection)
-				}
-			}
-			source.Scanned = event.publication
-		}
-		budget -= len(events)
 		result.Sources = append(result.Sources, source)
-		result.AfterSession, result.IncludeSession = source.SessionID, source.Scanned < source.Through
-		if result.IncludeSession {
+		if !historyBlocked {
+			result.AfterSession, result.IncludeSession = source.SessionID, source.Scanned < source.Through
+		}
+		if source.Scanned < source.Through {
 			more = true
-			break
+			historyBlocked = true
 		}
 	}
 	result.Complete = !more

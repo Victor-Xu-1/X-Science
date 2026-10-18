@@ -10,7 +10,7 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-func TestNotificationInboxBoundedEmptyPageContinuesToCanonicalTerminal(t *testing.T) {
+func TestNotificationInboxBoundedHistoryContinuesAfterLatestTerminal(t *testing.T) {
 	f := newNotificationInboxFixture(t)
 	_, claim := f.begin(t, "inbox-owner", "long-source")
 	for index := 0; index < 130; index++ {
@@ -28,8 +28,8 @@ func TestNotificationInboxBoundedEmptyPageContinuesToCanonicalTerminal(t *testin
 		t.Fatal(err)
 	}
 	first := memoryCompatJSON(t, f.app.Handler(), http.MethodGet, notificationInboxTestPath, nil, "inbox-owner", http.StatusOK)
-	if first["reconciliation_incomplete"] != true || len(first["items"].([]any)) != 0 || first["incomplete_reason"] != "more_sources" {
-		t.Fatalf("empty bounded page falsely complete=%#v", first)
+	if first["reconciliation_incomplete"] != true || len(first["items"].([]any)) != 1 || first["incomplete_reason"] != "more_sources" {
+		t.Fatalf("latest terminal must not pretend historical scan complete=%#v", first)
 	}
 	entry, found, err := f.runtime.Get(notificationInboxTestNamespace("inbox-owner"), "snapshot")
 	if err != nil {
@@ -44,15 +44,15 @@ func TestNotificationInboxBoundedEmptyPageContinuesToCanonicalTerminal(t *testin
 	memoryCompatJSON(t, f.app.Handler(), http.MethodGet, path, nil, "foreign-owner", http.StatusConflict)
 	second := memoryCompatJSON(t, f.app.Handler(), http.MethodGet, path, nil, "inbox-owner", http.StatusOK)
 	if second["reconciliation_incomplete"] != false || len(second["items"].([]any)) != 1 {
-		t.Fatalf("terminal lost across empty page=%#v", second)
+		t.Fatalf("terminal lost or duplicated across history page=%#v", second)
 	}
 	memoryCompatJSON(t, f.app.Handler(), http.MethodGet, path, nil, "inbox-owner", http.StatusConflict)
-	// A receipt from the empty first page cannot mark this newly discovered
-	// outcome read, even though its canonical time predates both inbox reads.
+	// The same canonical outcome was already visible in the first snapshot.
+	// Encountering it later in history must not turn it into a new unread item.
 	marked := memoryCompatJSON(t, f.app.Handler(), http.MethodPost, notificationInboxTestPath+"/read-all",
 		map[string]any{"read_receipt": first["read_receipt"]}, "inbox-owner", http.StatusOK)
-	if marked["unread_count"] != float64(1) || marked["schema"] != notificationInboxSchema {
-		t.Fatalf("old empty receipt swallowed outcome=%#v", marked)
+	if marked["unread_count"] != float64(0) || marked["schema"] != notificationInboxSchema {
+		t.Fatalf("historical rediscovery replaced visible outcome=%#v", marked)
 	}
 }
 
