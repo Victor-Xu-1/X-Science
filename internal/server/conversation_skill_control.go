@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const conversationSkillControlIntent = "save-as-skill"
@@ -60,8 +62,12 @@ func isConversationSkillControlPayload(payload map[string]any) bool {
 // hiding its user bubble just like the reference product. Real agent/tool output
 // remains visible and uses the ordinary completion/error presentation.
 func projectConversationSkillControl(message, payload map[string]any) {
-	if isConversationSkillControlPayload(payload) {
+	if intent := transcriptstore.HiddenConversationControlIntent(payload); intent != "" {
 		message["hidden"] = true
-		message["turn_intent"] = conversationSkillControlIntent
+		message["turn_intent"] = intent
 	}
+}
+
+func isHiddenConversationControlPayload(payload map[string]any) bool {
+	return transcriptstore.HiddenConversationControlIntent(payload) != ""
 }

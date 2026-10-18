@@ -44,6 +44,27 @@ func (s *Server) advanceCompatibilityFrameAfterRunner(frameID, terminalStatus st
 		_, err := s.workspaceStore.UpdateFrame(frame.ID, workspace.UpdateFrameInput{Status: &status})
 		return 0, err
 	}
+	if s.transcriptStore != nil {
+		access, found, err := s.workspaceStore.GetFrameRealtimeContext(frameID)
+		if err == nil && found {
+			err = s.drainContextCompactionForQueuedInput(context.Background(), access.UserID, frameID)
+		}
+		if err != nil || !found {
+			_ = s.releaseCompatibilityQueueClaims(records)
+			if err != nil {
+				return 0, err
+			}
+			return 0, transcriptstore.ErrOwnerMismatch
+		}
+		snapshot, err := s.transcriptStore.ContextCompactionSnapshot(context.Background(), access.UserID, frameID)
+		if err != nil {
+			_ = s.releaseCompatibilityQueueClaims(records)
+			return 0, err
+		}
+		if contextCompactionTerminalReceipt(snapshot.Operation) {
+			terminalStatus = "maintenance"
+		}
+	}
 	if s.transcriptStore == nil {
 		processing := "processing"
 		if _, err := s.workspaceStore.UpdateFrame(frame.ID, workspace.UpdateFrameInput{Status: &processing}); err != nil {
@@ -222,6 +243,19 @@ func (s *Server) recoverCompatibilityQueuedMessages() (int, error) {
 			if !found {
 				return advanced, fmt.Errorf("queued frame %s has no owner-scoped context", frameID)
 			}
+			if err := s.drainContextCompactionForQueuedInput(context.Background(), frameContext.UserID, frameID); err != nil {
+				if errors.Is(err, transcriptstore.ErrContextCompactionBusy) || errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+					continue
+				}
+				return advanced, err
+			}
+			frameContext, found, err = s.workspaceStore.GetFrameRealtimeContext(frameID)
+			if err != nil {
+				return advanced, err
+			}
+			if !found {
+				continue
+			}
 			stream, found, err := s.transcriptStore.GetFrameStreamBySession(
 				context.Background(), frameContext.UserID, frameID,
 			)
@@ -240,14 +274,23 @@ func (s *Server) recoverCompatibilityQueuedMessages() (int, error) {
 			if !found || state.Phase != transcriptstore.RunnerPhaseTerminal || !isRunnerFinishStatus(state.Status) {
 				continue
 			}
-			if frameContext.Frame.Status != state.Status {
+			maintenance, readErr := s.transcriptStore.ContextCompactionSnapshot(context.Background(), frameContext.UserID, frameID)
+			if readErr != nil {
+				return advanced, readErr
+			}
+			isMaintenance := contextCompactionTerminalReceipt(maintenance.Operation)
+			if frameContext.Frame.Status != state.Status && !isMaintenance {
 				return advanced, fmt.Errorf(
 					"queued frame %s terminal status conflicts with transcript authority", frameID,
 				)
 			}
-			count, err := s.advanceCompatibilityFrameAfterRunner(frameID, state.Status)
+			status := state.Status
+			if isMaintenance {
+				status = "maintenance"
+			}
+			count, err := s.advanceCompatibilityFrameAfterRunner(frameID, status)
 			if err != nil {
-				if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) {
+				if errors.Is(err, transcriptstore.ErrConversationArchived) || errors.Is(err, transcriptstore.ErrConversationArchiveInvalid) || errors.Is(err, transcriptstore.ErrContextCompactionBusy) {
 					// The rejected root retains its queue and typed refusal; it
 					// must not prevent another root's explicit input from delivery.
 					continue

@@ -13,6 +13,7 @@ import (
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	taskruns "x-science/internal/persistence/taskruns"
+	transcriptstore "x-science/internal/persistence/transcript"
 	runnermachine "x-science/internal/sessionrunner"
 )
 
@@ -23,19 +24,20 @@ var (
 )
 
 type activeSessionRun struct {
-	runnerID         string
-	cancel           context.CancelCauseFunc
-	done             chan struct{}
-	settlement       sync.Mutex
-	settled          bool
-	draining         atomic.Bool
-	transcript       *transcriptRunnerAuthority
-	phaseMachine     *runnermachine.Machine
-	kernelPeer       kernelMessageBudgets
-	chatRun          *sessionRunnerChatRun
-	inputBinding     sessionRunInputBinding
-	taskRunCancelled bool
-	projectionClaim  sessionstore.RunnerMutationClaim
+	runnerID          string
+	cancel            context.CancelCauseFunc
+	done              chan struct{}
+	settlement        sync.Mutex
+	settled           bool
+	draining          atomic.Bool
+	transcript        *transcriptRunnerAuthority
+	phaseMachine      *runnermachine.Machine
+	kernelPeer        kernelMessageBudgets
+	chatRun           *sessionRunnerChatRun
+	inputBinding      sessionRunInputBinding
+	taskRunCancelled  bool
+	projectionClaim   sessionstore.RunnerMutationClaim
+	contextCompaction *transcriptstore.ContextCompactionRequest
 }
 
 type sessionRunInputBinding struct {
@@ -103,6 +105,7 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 			s.sessionRunsMu.Unlock()
 			cancel(nil)
 			close(run.done)
+			s.publishContextCompactionDrainedRun(run)
 		})
 	}
 	return ctx, run, cleanup, nil

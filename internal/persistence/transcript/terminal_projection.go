@@ -158,6 +158,9 @@ func terminalProjection(
 	if err != nil {
 		return TerminalProjection{}, err
 	}
+	if projection.Purpose == ContextCompactionPurpose {
+		return projection, nil
+	}
 	projection.ArtifactReferences, err = listArtifactReferencesConn(ctx, queryer, streamUID, projection.Attempt)
 	return projection, err
 }
@@ -211,6 +214,10 @@ func terminalProjectionHeader(
 	projection.Detail, projection.ReasonCode, err = terminalPayloadDetail(payload, projection.TerminalStatus)
 	if err != nil {
 		return TerminalProjection{}, err
+	}
+	var value map[string]any
+	if json.Unmarshal(payload, &value) == nil && IsContextCompactionTerminal(value) {
+		projection.Purpose = ContextCompactionPurpose
 	}
 	return projection, nil
 }

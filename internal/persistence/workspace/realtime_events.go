@@ -67,6 +67,12 @@ func (s *Store) GetRealtimeEventByID(id string) (RealtimeEvent, bool, error) {
 }
 
 func (s *Store) AppendRealtimeEvent(input RealtimeEventInput) (RealtimeEvent, error) {
+	return s.AppendRealtimeEventContext(context.Background(), input)
+}
+
+// AppendRealtimeEventContext retains the same catalog and idempotency owner
+// while allowing lifecycle notifications to respect their bounded context.
+func (s *Store) AppendRealtimeEventContext(ctx context.Context, input RealtimeEventInput) (RealtimeEvent, error) {
 	if s == nil || s.db == nil {
 		return RealtimeEvent{}, errors.New("workspace store is closed")
 	}
@@ -103,7 +109,6 @@ func (s *Store) AppendRealtimeEvent(input RealtimeEventInput) (RealtimeEvent, er
 	if now.IsZero() {
 		now = s.now().UTC()
 	}
-	ctx := context.Background()
 	result, err := s.db.ExecContext(ctx, `
 		INSERT INTO realtime_events (
 			id, user_id, project_id, root_frame_id, frame_id,
