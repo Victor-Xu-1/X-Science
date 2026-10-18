@@ -222,14 +222,25 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 	if err != nil {
 		return nil, schemaError(err)
 	}
-	selectionCTE := runnerReplayLegacySelectionCTE
+	hasInputAdmissions, err := contextCompactionLedgerForStream(ctx, tx, input.StreamUID)
+	if err != nil {
+		return nil, schemaError(err)
+	}
+	legacySelectionCTE, batchSelectionCTE := runnerReplayLegacySelectionCTE, runnerReplayBatchSelectionCTE
+	if !hasInputAdmissions {
+		// Do not compile a reference to a newer absent relation while reading
+		// a genuine legacy transcript. Its automatic boundary is unchanged.
+		legacySelectionCTE = strings.ReplaceAll(legacySelectionCTE, compactBoundarySQL, autoCompactionBoundarySQL)
+		batchSelectionCTE = strings.ReplaceAll(batchSelectionCTE, compactBoundarySQL, autoCompactionBoundarySQL)
+	}
+	selectionCTE := legacySelectionCTE
 	selectionArgs := runnerReplaySeedArgs(input)
 	if hasBatchAuthority {
 		parkedBatchID, err := allowRunnerReplayParkedToolBatch(ctx, tx, input.StreamUID)
 		if err != nil {
 			return nil, err
 		}
-		selectionCTE = runnerReplayBatchSelectionCTE
+		selectionCTE = batchSelectionCTE
 		selectionArgs = append(selectionArgs, input.StreamUID)
 		if err := validateClosedRunnerReplayToolBatches(ctx, tx, selectionCTE, selectionArgs, parkedBatchID); err != nil {
 			return nil, err

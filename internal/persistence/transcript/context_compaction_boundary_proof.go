@@ -9,7 +9,8 @@ import (
 // The manual branch requires the original admitted input, a completed attempt,
 // and its actual terminal receipt. A checkpoint phase or copied payload alone
 // cannot shorten replay. Automatic compaction retains its existing contract.
-const compactBoundarySQL = `(json_extract(event.payload_json,'$.toolPhase')='auto_compact' OR (` + manualCompactionBoundarySQL + `))`
+const autoCompactionBoundarySQL = `json_extract(event.payload_json,'$.toolPhase')='auto_compact'`
+const compactBoundarySQL = `(` + autoCompactionBoundarySQL + ` OR (` + manualCompactionBoundarySQL + `))`
 
 const manualCompactionBoundarySQL = `
  event.event_type='runner_checkpoint' AND event.source='payload'
@@ -70,8 +71,12 @@ func (proof ContextCompactionBoundaryProof) Matches(eventID int64) bool {
 // ReadContextCompactionBoundaryProof also serves archive final transactions.
 // It uses only immutable canonical relations, not current input or generation.
 func ReadContextCompactionBoundaryProof(ctx context.Context, query MessageIntentQuery, owner, stream string, eventID int64) (*ContextCompactionBoundaryProof, error) {
+	installed, err := contextCompactionLedgerForStream(ctx, query, stream)
+	if err != nil || !installed {
+		return nil, schemaError(err)
+	}
 	var found int64
-	err := query.QueryRowContext(ctx, `SELECT event.event_id FROM transcript_events event
+	err = query.QueryRowContext(ctx, `SELECT event.event_id FROM transcript_events event
   JOIN transcript_streams scope ON scope.stream_uid=event.stream_uid AND scope.owner_id=?
   WHERE event.stream_uid=? AND event.event_id=? AND (`+manualCompactionBoundarySQL+`)`, owner, stream, eventID).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {

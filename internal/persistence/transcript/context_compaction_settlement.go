@@ -85,6 +85,10 @@ func contextCompactionRequestForClaimConn(ctx context.Context, conn *sql.Conn, s
 	if stream.Kind != StreamKindFrameRef {
 		return nil, nil
 	}
+	installed, err := contextCompactionLedgerForStream(ctx, conn, stream.UID)
+	if err != nil || !installed {
+		return nil, err
+	}
 	input, err := readAdmittedRunnerInputContextConn(ctx, conn, stream, claim.ClaimedInputRevision, true)
 	if err != nil || input == nil {
 		return nil, err

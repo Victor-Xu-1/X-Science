@@ -11,8 +11,12 @@ import (
 // rechecks the same cancellation tombstone. A reclaimed lease is not a new
 // permission to revive a maintenance request that the user already cancelled.
 func validateContextCompactionClaimAdmissionConn(ctx context.Context, conn *sql.Conn, stream Stream) error {
+	installed, err := contextCompactionLedgerForStream(ctx, conn, stream.UID)
+	if err != nil || !installed {
+		return err
+	}
 	var raw []byte
-	err := conn.QueryRowContext(ctx, `SELECT event.payload_json FROM transcript_input_admissions admission
+	err = conn.QueryRowContext(ctx, `SELECT event.payload_json FROM transcript_input_admissions admission
   JOIN transcript_events event ON event.stream_uid=admission.stream_uid AND event.event_id=admission.event_id
   WHERE admission.stream_uid=? AND admission.input_revision=? AND admission.source_kind='event'
    AND admission.input_kind='message' AND event.source='payload'
