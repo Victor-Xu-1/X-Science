@@ -210,18 +210,18 @@ describe('X-Science Aside receipt transport', () => {
       task_status: 'running',
       is_processing: true,
       pending_confirmations: 0,
-      turn_id: 'turn-followup',
+      turn_id: 'child-1',
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       response({
         msg_id: 'branch-continue:' + command.loadingId,
-        turn_id: 'turn-followup',
+        turn_id: 'child-1',
         runtime,
       })
     );
     expect(await sendXScienceAsideFollowup('child-1', command, { fetchImpl })).toEqual({
       msg_id: 'branch-continue:' + command.loadingId,
-      turn_id: 'turn-followup',
+      turn_id: 'child-1',
       runtime,
     });
     expect(fetchImpl.mock.calls[0][0]).toBe('/api/conversations/child-1/messages');
@@ -238,7 +238,7 @@ describe('X-Science Aside receipt transport', () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       response({
         msg_id: 'branch-continue:' + command.loadingId,
-        turn_id: 'turn-followup',
+        turn_id: 'child-1',
         runtime: {
           state: 'starting',
           task_status: 'running',
@@ -246,7 +246,7 @@ describe('X-Science Aside receipt transport', () => {
           is_processing: true,
           can_send_message: false,
           pending_confirmations: 0,
-          turn_id: 'turn-followup',
+          turn_id: 'child-1',
         },
       })
     );

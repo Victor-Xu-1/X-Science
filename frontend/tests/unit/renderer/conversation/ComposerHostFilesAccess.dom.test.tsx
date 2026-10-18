@@ -28,7 +28,7 @@ afterEach(() => {
 async function openFiles() {
   fireEvent.click(screen.getByRole('button', { name: 'Add to message' }));
   fireEvent.click(screen.getByRole('menuitem', { name: 'Your files' }));
-  return screen.findByRole('dialog', { name: 'Your files' });
+  return screen.findByRole('menu', { name: 'Your files' });
 }
 
 describe('composer host access actions', () => {
@@ -48,7 +48,8 @@ describe('composer host access actions', () => {
     );
     const dialog = await openFiles();
     await screen.findByText('No granted folders.');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Grant folder access' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Grant folder…' }));
+    expect(screen.getByRole('dialog', { name: 'Grant folder access' })).toBeVisible();
     const action = screen.getByRole('region', { name: 'Grant folder access' });
     expect(within(action).getByText(/can stop this account's active tools/)).toBeVisible();
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -56,14 +57,18 @@ describe('composer host access actions', () => {
       target: { value: '/fixture/new-folder' },
     });
     fireEvent.click(within(action).getByRole('button', { name: 'Grant folder access' }));
-    expect(await screen.findByText('The installation operator must approve this folder access change.')).toBeVisible();
+    expect(
+      await within(screen.getByRole('dialog', { name: 'Grant folder access' })).findByText(
+        'The installation operator must approve this folder access change.'
+      )
+    ).toBeVisible();
     expect(selected).not.toHaveBeenCalled();
     const writes = fetchMock.mock.calls.filter(([, init]) => init?.method && init.method !== 'GET');
     expect(writes).toHaveLength(1);
     expect(JSON.parse(writes[0][1]!.body as string)).toEqual({ path: '/fixture/new-folder', mode: 'read' });
   });
 
-  it('confirms revoke separately and removes permission without any file deletion request', async () => {
+  it('revokes once from the root trailing action without closing the menu or deleting files', async () => {
     let revoked = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = new URL(String(input), 'http://localhost').pathname;
@@ -82,16 +87,14 @@ describe('composer host access actions', () => {
     );
     await openFiles();
     fireEvent.click(await screen.findByRole('button', { name: 'Revoke access to Fixture' }));
-    const action = screen.getByRole('region', { name: 'Revoke access' });
-    expect(within(action).getByText(/not the folder or its files/)).toBeVisible();
-    expect(revoked).toBe(false);
-    fireEvent.click(within(action).getByRole('button', { name: 'Revoke access' }));
     expect(await screen.findByText('No granted folders.')).toBeVisible();
+    expect(screen.getByRole('menu', { name: 'Your files' })).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(1);
     expect(fetchMock.mock.calls.every(([input]) => !String(input).includes('/api/fs/'))).toBe(true);
   });
 
-  it('does not restore an old folder dialog or its late listing after conversation A to B to A', async () => {
+  it('does not restore an old submenu or its late listing after conversation A to B to A', async () => {
     let resolveListing!: (value: Response) => void;
     const pending = new Promise<Response>((resolve) => {
       resolveListing = resolve;
@@ -115,7 +118,7 @@ describe('composer host access actions', () => {
       resolveListing(response([{ name: 'late.txt', isDirectory: false }]));
       await pending;
     });
-    expect(screen.queryByRole('dialog', { name: 'Your files' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menu', { name: 'Your files' })).not.toBeInTheDocument();
     expect(screen.queryByText('late.txt')).not.toBeInTheDocument();
     expect(selected).not.toHaveBeenCalled();
   });

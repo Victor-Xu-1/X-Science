@@ -10,14 +10,14 @@ import { Check, FolderOpen, ListCheckbox, Paperclip, Plus, Shield } from '@icon-
 import { BookMarked, Loader2, Plus as ControlPlus } from 'lucide-react';
 import ComposerCapabilityPicker from './ComposerCapabilityPicker';
 import ComposerHostFiles from '@/renderer/components/chat/SendBox/hostFiles/ComposerHostFiles';
-import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { emitter } from '@/renderer/utils/emitter';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import './conversationControlMenu.css';
@@ -153,12 +153,23 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
-  const accountScope = getRendererAccountScopeToken();
+  const scopeId = useId();
+  const [accountScope, setAccountScope] = useState(getRendererAccountScopeToken);
   const hostFilesScope = useMemo(
     () => ({ account: accountScope, conversationId: conversationContext?.conversation_id }),
     [accountScope, conversationContext?.conversation_id]
   );
-  const [openedHostFilesScope, setOpenedHostFilesScope] = useState<typeof hostFilesScope | null>(null);
+  useEffect(
+    () =>
+      registerRendererAccountReset(`file-attach:${scopeId}`, () => {
+        setAccountScope(getRendererAccountScopeToken());
+        setOpen(false);
+      }),
+    [scopeId]
+  );
+  useEffect(() => {
+    setOpen(false);
+  }, [hostFilesScope]);
 
   const skillNames = loadedSkills ?? conversationContext?.loadedSkills ?? [];
   const mcpStatuses = buildLoadedMcpStatuses(
@@ -306,16 +317,12 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           />
         )}
         {onLocalFilesAdded && (
-          <MenuItem
-            icon={<FolderOpen theme='outline' size={15} />}
-            label={t('conversation.attachMenu.yourFiles')}
-            description={t('conversation.hostFiles.snapshotHint')}
-            onClick={() =>
-              closeAndRun(() => {
-                triggerButtonRef.current?.focus();
-                setOpenedHostFilesScope(hostFilesScope);
-              })
-            }
+          <ComposerHostFiles
+            key={JSON.stringify(hostFilesScope)}
+            menuOpen={open}
+            onReference={(file) => {
+              if (hostFilesScope.account === getRendererAccountScopeToken()) onLocalFilesAdded([file]);
+            }}
           />
         )}
       </div>
@@ -453,7 +460,9 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
 
   return (
     <>
+      {/* Cache ordinary closes, but dispose old portals when the account or conversation changes. */}
       <Trigger
+        key={JSON.stringify(hostFilesScope)}
         popup={() => (xScienceV11 ? v11Menu : menu)}
         trigger='click'
         position='tl'
@@ -461,6 +470,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
         onVisibleChange={setOpen}
         clickToClose
         popupAlign={{ bottom: 8 }}
+        unmountOnExit={false}
       >
         <Button
           ref={triggerButtonRef}
@@ -474,14 +484,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           aria-label={xScienceV11 ? t('conversation.attachMenu.addToMessage') : undefined}
         />
       </Trigger>
-      {openedHostFilesScope === hostFilesScope && onLocalFilesAdded && (
-        <ComposerHostFiles
-          onReference={(file) => {
-            if (hostFilesScope.account === getRendererAccountScopeToken()) onLocalFilesAdded([file]);
-          }}
-          onClose={() => setOpenedHostFilesScope(null)}
-        />
-      )}
       <input
         ref={fileInputRef}
         type='file'

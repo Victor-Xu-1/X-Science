@@ -1180,7 +1180,10 @@ describe('AcpSendBox', () => {
       true
     );
     expect(emitterEmitMock).not.toHaveBeenCalledWith(expect.stringContaining('response'), expect.anything());
-    expect(runtimeViewMock.markSendFailed).toHaveBeenCalledWith('[ACP-AUTH-401] authentication failed');
+    expect(runtimeViewMock.markSendFailed).toHaveBeenCalledWith(
+      '[ACP-AUTH-401] authentication failed',
+      runtimeViewMock.markSendStarted.mock.results[0]?.value
+    );
     expect(resetStateMock).toHaveBeenCalledTimes(1);
     expect(setAiProcessingMock).toHaveBeenLastCalledWith(false);
   });
@@ -1265,6 +1268,63 @@ describe('AcpSendBox', () => {
 
     expect(runtimeViewMock.markSendAccepted).not.toHaveBeenCalled();
     expect(emitterEmitMock).not.toHaveBeenCalledWith('chat.history.refresh');
+  });
+
+  it('settles a terminal send acknowledgement without another stream event', async () => {
+    const receipt = {
+      version: 1,
+      frame_id: 'conv-1',
+      frame_incarnation_id: 'incarnation',
+      input_message_id: 'original-input',
+      request_sha256: 'a'.repeat(64),
+      replayed: true,
+      state: 'accepted',
+      source: 'transcript',
+      event_id: 'original-event',
+      input_revision: 2,
+      branch_id: 'branch',
+      branch_generation: 1,
+    };
+    sendMessageInvokeMock.mockResolvedValueOnce({
+      msg_id: 'original-input',
+      turn_id: 'conv-1',
+      input_receipt: receipt,
+      runtime: { state: 'idle', is_processing: false },
+    });
+    runtimeViewMock.markSendAccepted.mockReturnValueOnce({ state: 'idle', isProcessing: false });
+    loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
+    await act(async () => {
+      screen.getByRole('button', { name: 'send' }).click();
+    });
+    await waitFor(() =>
+      expect(runtimeViewMock.markSendAccepted).toHaveBeenCalledWith(
+        'conv-1',
+        expect.objectContaining({ state: 'idle' }),
+        'original-input',
+        { ticket: runtimeViewMock.markSendStarted.mock.results[0]?.value, receipt }
+      )
+    );
+    expect(setAiProcessingMock).toHaveBeenLastCalledWith(false);
+    expect(emitterEmitMock).toHaveBeenCalledWith('chat.history.refresh');
+  });
+
+  it('does not reset a newer submission when its acknowledgement is stale', async () => {
+    sendMessageInvokeMock.mockResolvedValueOnce({
+      msg_id: 'old-input',
+      turn_id: 'conv-1',
+      runtime: { state: 'idle', is_processing: false },
+    });
+    runtimeViewMock.markSendAccepted.mockReturnValueOnce(null);
+    loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
+    await act(async () => {
+      screen.getByRole('button', { name: 'send' }).click();
+    });
+    await waitFor(() => expect(runtimeViewMock.markSendAccepted).toHaveBeenCalledOnce());
+    expect(setAiProcessingMock).not.toHaveBeenCalledWith(false);
+    expect(addOrUpdateMessageMock).not.toHaveBeenCalledWith(expect.objectContaining({ msg_id: 'old-input' }), false);
+    expect(emitterEmitMock).toHaveBeenCalledWith('chat.history.refresh');
   });
 
   it('does not expose a failed send request after switching conversations', async () => {
@@ -1867,7 +1927,8 @@ describe('AcpSendBox', () => {
     expect(runtimeViewMock.markSendAccepted).toHaveBeenCalledWith(
       'skill-control-turn',
       expect.objectContaining({ state: 'running' }),
-      'skill-control-message'
+      'skill-control-message',
+      { ticket: runtimeViewMock.markSendStarted.mock.results[0]?.value, receipt: undefined }
     );
     expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
       expect.objectContaining({

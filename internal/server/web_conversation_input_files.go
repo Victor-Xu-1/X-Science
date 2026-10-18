@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	workspace "x-science/internal/persistence/workspace"
@@ -21,7 +22,9 @@ const (
 // inside an isolated Web task workspace. The browser's server-side file picker
 // returns host-absolute paths, while scientific runtimes mount only the task
 // workspace. Persisting the source path makes the attachment visible in the UI
-// but unreadable by every runtime tool.
+// but unreadable by every runtime tool. Results retain input positions, including
+// repeated sources: content rewriting needs that correspondence. The submission
+// consumer deduplicates its file list only after resolving every reference.
 func (s *Server) materializeWebConversationInputFiles(
 	ctx context.Context,
 	r *http.Request,
@@ -73,11 +76,16 @@ func (s *Server) materializeWebConversationInputFiles(
 	defer inputRoot.Close()
 
 	materialized := make([]string, 0, len(files))
-	seen := make(map[string]struct{}, len(files))
+	resolved := make(map[string]string, len(files))
 	var total int64
 	for index, raw := range files {
 		requested := strings.TrimSpace(raw)
 		if requested == "" {
+			materialized = append(materialized, "")
+			continue
+		}
+		if relative, exists := resolved[requested]; exists {
+			materialized = append(materialized, relative)
 			continue
 		}
 		if reference := references[index]; reference != nil {
@@ -86,11 +94,13 @@ func (s *Server) materializeWebConversationInputFiles(
 				return nil, copyErr
 			}
 			total += size
-			materialized = appendUniqueWebConversationFile(materialized, seen, relative)
+			resolved[requested] = relative
+			materialized = append(materialized, relative)
 			continue
 		}
 		if !managed {
-			materialized = appendUniqueWebConversationFile(materialized, seen, requested)
+			resolved[requested] = requested
+			materialized = append(materialized, requested)
 			continue
 		}
 		if !filepath.IsAbs(requested) {
@@ -98,7 +108,8 @@ func (s *Server) materializeWebConversationInputFiles(
 			if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
 				return nil, invalidWebConversationInputFile()
 			}
-			materialized = appendUniqueWebConversationFile(materialized, seen, filepath.ToSlash(cleaned))
+			resolved[requested] = filepath.ToSlash(cleaned)
+			materialized = append(materialized, resolved[requested])
 			continue
 		}
 
@@ -125,7 +136,8 @@ func (s *Server) materializeWebConversationInputFiles(
 				return nil, invalidWebConversationInputFile()
 			}
 			total += info.Size()
-			materialized = appendUniqueWebConversationFile(materialized, seen, relative)
+			resolved[requested] = relative
+			materialized = append(materialized, relative)
 			continue
 		}
 
@@ -136,7 +148,8 @@ func (s *Server) materializeWebConversationInputFiles(
 			return nil, invalidWebConversationInputFile()
 		}
 		total += size
-		materialized = appendUniqueWebConversationFile(materialized, seen, relative)
+		resolved[requested] = relative
+		materialized = append(materialized, relative)
 	}
 	return materialized, nil
 }
@@ -223,15 +236,33 @@ func appendUniqueWebConversationFile(target []string, seen map[string]struct{}, 
 }
 
 func rewriteWebConversationAttachedFilePaths(content string, original, materialized []string) string {
+	replacements := make(map[string]string, len(original))
 	for index := 0; index < len(original) && index < len(materialized); index++ {
 		source := strings.TrimSpace(original[index])
 		target := strings.TrimSpace(materialized[index])
-		if source == "" || target == "" || source == target {
+		if source == "" || target == "" {
 			continue
 		}
-		content = strings.ReplaceAll(content, source, target)
+		replacements[source] = target
 	}
-	return content
+	sources := make([]string, 0, len(replacements))
+	for source := range replacements {
+		sources = append(sources, source)
+	}
+	// Longest first protects another selected path with a shared prefix. An
+	// identity pair also shields an unchanged selected source from shorter ones.
+	sort.Slice(sources, func(i, j int) bool {
+		if len(sources[i]) == len(sources[j]) {
+			return sources[i] < sources[j]
+		}
+		return len(sources[i]) > len(sources[j])
+	})
+	pairs := make([]string, 0, 2*len(sources))
+	for _, source := range sources {
+		pairs = append(pairs, source, replacements[source])
+	}
+	// One pass only: generated task paths are never treated as another input.
+	return strings.NewReplacer(pairs...).Replace(content)
 }
 
 func relativePathWithin(root, target string) (string, bool) {

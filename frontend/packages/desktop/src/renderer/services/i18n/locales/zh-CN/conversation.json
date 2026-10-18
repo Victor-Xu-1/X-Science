@@ -49,6 +49,7 @@
     "readWrite": "读写",
     "unknownMode": "权限不可用",
     "grant": "授予目录访问权限",
+    "grantShort": "授权目录…",
     "change": "更改权限",
     "revoke": "撤销权限",
     "changeFor": "更改 {{name}} 的权限",

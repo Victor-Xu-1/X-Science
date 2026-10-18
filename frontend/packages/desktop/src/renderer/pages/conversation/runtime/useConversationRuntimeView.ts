@@ -29,6 +29,7 @@ import {
   resetLocalGate,
   subscribeConversationRuntimeView,
   turnCompleted,
+  type ConversationSendAcceptanceOptions,
   type ConversationRuntimeView,
   type ConversationRuntimeViewLogEntry,
 } from './conversationRuntimeViewStore';
@@ -42,8 +43,13 @@ type UseConversationRuntimeViewReturn = {
   canSendMessage: boolean;
   activeTurnId: string | null;
   markSendStarted: () => object;
-  markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
-  markSendFailed: (reason: string, ticket?: object) => void;
+  markSendAccepted: (
+    turn_id: string,
+    runtime: TConversationRuntimeSummary,
+    msg_id?: string,
+    options?: ConversationSendAcceptanceOptions
+  ) => ConversationRuntimeView | null;
+  markSendFailed: (reason: string, ticket?: object) => ConversationRuntimeView | null;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
   resetLocalGate: (reason: string) => void;
@@ -311,15 +317,24 @@ export const useConversationRuntimeView = (
   }, [conversation_id]);
 
   const markSendAccepted = useCallback(
-    (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => {
-      flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, runtime, msg_id));
+    (
+      turn_id: string,
+      runtime: TConversationRuntimeSummary,
+      msg_id?: string,
+      options?: ConversationSendAcceptanceOptions
+    ) => {
+      const logs = localSendAccepted(conversation_id, turn_id, runtime, msg_id, options);
+      flushRuntimeViewLogs(logs);
+      return logs.length ? getConversationRuntimeViewSnapshot(conversation_id) : null;
     },
     [conversation_id]
   );
 
   const markSendFailed = useCallback(
     (reason: string, ticket?: object) => {
-      flushRuntimeViewLogs(localSendFailed(conversation_id, normalizeReason(reason), ticket));
+      const logs = localSendFailed(conversation_id, normalizeReason(reason), ticket);
+      flushRuntimeViewLogs(logs);
+      return logs.length ? getConversationRuntimeViewSnapshot(conversation_id) : null;
     },
     [conversation_id]
   );

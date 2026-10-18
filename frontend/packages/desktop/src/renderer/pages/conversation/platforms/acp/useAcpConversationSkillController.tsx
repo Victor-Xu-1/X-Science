@@ -27,7 +27,11 @@ type Options = Omit<Parameters<typeof useAcpConversationSkills>[0], 'authority' 
     includeStaged?: boolean,
     requireBranch?: boolean
   ) => Promise<CommandExecutionAuthority>;
-  executeCommand: (command: SkillCommand, preparedAuthority?: CommandExecutionAuthority) => Promise<void>;
+  executeCommand: (
+    command: SkillCommand,
+    preparedAuthority?: CommandExecutionAuthority,
+    submissionTicket?: object
+  ) => Promise<void>;
   messages: readonly TMessage[];
   saveDisabled: boolean;
 };
@@ -114,7 +118,8 @@ export function useAcpConversationSkillController(options: Options) {
       try {
         await executeCommand(
           { id, input: command.input, files: [], contextItems: [], turnIntent: 'save-as-skill', planMode: false },
-          command.authority
+          command.authority,
+          submissionTicket
         );
       } catch (error) {
         if (

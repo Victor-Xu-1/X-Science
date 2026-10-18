@@ -16,6 +16,7 @@ import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import MobileActionSheet, { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
 import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
+import { buildAcceptedAcpUserMessage } from './acpAcceptedMessage';
 import {
   buildComposerCapabilityPayload,
   removeComposerContextItem,
@@ -585,18 +586,20 @@ const AcpSendBox: React.FC<{
         planMode?: boolean;
         turnIntent?: 'save-as-skill';
       },
-      preparedAuthority?: CommandExecutionAuthority
+      preparedAuthority?: CommandExecutionAuthority,
+      preparedTicket?: object
     ) => {
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
       const capabilityPayload = buildComposerCapabilityPayload(commandContextItems);
       const conversationAuthority = conversationAuthorityRef.current;
+      let submissionTicket = preparedTicket;
 
       try {
         if (!turnIntent) void checkAndUpdateTitle(conversation_id, input);
         // A control command reserves the same runtime gate before resolving
         // branch authority. Ordinary commands reserve it here.
         if (!turnIntent) {
-          runtimeView.markSendStarted();
+          submissionTicket = runtimeView.markSendStarted();
           setAiProcessing(true);
         }
         // Surface the submitted message immediately. Durable history replaces
@@ -637,7 +640,16 @@ const AcpSendBox: React.FC<{
           session_options: commandAuthority.sessionOptions,
         });
         if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) return;
-        runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id);
+        const accepted = runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id, {
+          ticket: submissionTicket,
+          receipt: result.input_receipt,
+        });
+        if (accepted === null) {
+          removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
+          emitter.emit('chat.history.refresh');
+          return;
+        }
+        if (accepted) setAiProcessing(accepted.isProcessing && accepted.state !== 'waiting_confirmation');
         // The staged intents applied to this first accepted send and must not
         // leak into later manual sends: the frame now records them.
         if (!turnIntent && stagedPlanModeRef.current) {
@@ -655,18 +667,13 @@ const AcpSendBox: React.FC<{
         removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
         if (result.msg_id) {
           addOrUpdateMessageRef.current(
-            {
-              id: result.msg_id,
-              msg_id: result.msg_id,
-              conversation_id,
-              type: 'text',
-              position: 'right',
-              status: 'finish',
-              created_at: Date.now(),
-              content: { content: displayMessage },
-              artifact_refs: capabilityPayload.artifactRefs,
-              ...(turnIntent ? { hidden: true, turn_intent: turnIntent } : {}),
-            },
+            buildAcceptedAcpUserMessage({
+              conversationId: conversation_id,
+              messageId: result.msg_id,
+              text: displayMessage,
+              artifactRefs: capabilityPayload.artifactRefs,
+              turnIntent,
+            }),
             false
           );
         }
@@ -680,6 +687,7 @@ const AcpSendBox: React.FC<{
         }
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
+        if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) throw error;
         removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
         const pendingRetry = directCommandRetryRef.current;
         if (
@@ -696,9 +704,8 @@ const AcpSendBox: React.FC<{
             authority: undefined,
           };
         }
-        if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) throw error;
         const errorMsg = redactErrorText(parseError(error) || t('common.unknownError'));
-        runtimeView.markSendFailed(errorMsg);
+        if (runtimeView.markSendFailed(errorMsg, submissionTicket) === null) throw error;
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,

@@ -4,10 +4,10 @@ import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccoun
 import { XScienceSettingsRequestError } from '@/renderer/services/xScienceWorkspaceSettings';
 import { loadHostFolders, type XScienceHostGrant } from '@/renderer/services/runtime/hostFiles';
 
-type FolderState = { status: 'loading' | 'loaded' | 'error'; grants: XScienceHostGrant[]; revision: number };
+type FolderState = { status: 'idle' | 'loading' | 'loaded' | 'error'; grants: XScienceHostGrant[]; revision: number };
 
-export function useHostFiles() {
-  const [state, setState] = useState<FolderState>({ status: 'loading', grants: [], revision: 0 });
+export function useHostFiles(enabled: boolean) {
+  const [state, setState] = useState<FolderState>({ status: 'idle', grants: [], revision: 0 });
   const [busy, setBusy] = useState(false);
   const [mutationError, setMutationError] = useState<'operatorRequired' | 'changeFailed' | null>(null);
   const [refreshRequired, setRefreshRequired] = useState(false);
@@ -23,6 +23,7 @@ export function useHostFiles() {
 
   const refresh = useCallback(async (): Promise<boolean> => {
     const generation = epoch.current;
+    if (!isCurrent(generation)) return false;
     const request = ++sequence.current;
     read.current?.abort();
     const controller = new AbortController();
@@ -43,17 +44,20 @@ export function useHostFiles() {
 
   useEffect(() => {
     epoch.current += 1;
-    void refresh();
     return () => {
       epoch.current += 1;
       sequence.current += 1;
       read.current?.abort();
     };
-  }, [refresh]);
+  }, []);
+
+  useEffect(() => {
+    if (enabled && state.status === 'idle') void refresh();
+  }, [enabled, state.status, refresh]);
 
   const changeAccess = useCallback(
     async (operation: () => Promise<boolean | void>): Promise<boolean> => {
-      if (mutating.current) return false;
+      if (mutating.current || !isCurrent(epoch.current)) return false;
       mutating.current = true;
       const generation = epoch.current;
       sequence.current += 1;

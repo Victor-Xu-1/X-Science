@@ -101,6 +101,76 @@ describe('useAcpInitialMessage', () => {
     expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1);
   });
 
+  it('settles a terminal input receipt immediately without waiting for another SSE', async () => {
+    const conversationId = 'initial-terminal-receipt';
+    const ticket = {};
+    const receipt = {
+      version: 1,
+      frame_id: conversationId,
+      frame_incarnation_id: 'incarnation',
+      input_message_id: 'original-input',
+      request_sha256: 'a'.repeat(64),
+      replayed: true,
+      state: 'accepted',
+      source: 'transcript',
+      event_id: 'original-event',
+      input_revision: 2,
+      branch_id: 'branch',
+      branch_generation: 1,
+    };
+    const runtime = {
+      state: 'idle',
+      can_send_message: true,
+      has_task: false,
+      task_status: 'finished',
+      is_processing: false,
+      pending_confirmations: 0,
+      turn_id: null,
+    };
+    sessionStorage.setItem(
+      `acp_initial_message_${conversationId}`,
+      JSON.stringify({ input: 'already accepted', loading_id: 'original-input' })
+    );
+    sendMessageInvokeMock.mockResolvedValue({
+      turn_id: conversationId,
+      msg_id: 'original-input',
+      runtime,
+      input_receipt: receipt,
+    });
+    const params = createParams(conversationId);
+    params.markSendStarted.mockReturnValue(ticket);
+    params.markSendAccepted.mockReturnValue({ isProcessing: false, state: 'idle' });
+    renderHook(() => useAcpInitialMessage(params));
+    await vi.waitFor(() =>
+      expect(params.markSendAccepted).toHaveBeenCalledWith(conversationId, runtime, 'original-input', {
+        ticket,
+        receipt,
+      })
+    );
+    expect(params.setAiProcessing).toHaveBeenLastCalledWith(false);
+    expect(sessionStorage.getItem(`acp_initial_message_${conversationId}`)).toBeNull();
+  });
+
+  it('does not apply a late initial acknowledgement after the conversation unmounts', async () => {
+    const conversationId = 'initial-unmounted-ack';
+    const storageKey = `acp_initial_message_${conversationId}`;
+    const stored = JSON.stringify({ input: 'preserve unmounted draft', loading_id: 'unmounted-input' });
+    const pending = createDeferred<unknown>();
+    sessionStorage.setItem(storageKey, stored);
+    sendMessageInvokeMock.mockReturnValue(pending.promise);
+    const params = createParams(conversationId);
+    const { unmount } = renderHook(() => useAcpInitialMessage(params));
+    await vi.waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+    unmount();
+    await act(async () => {
+      pending.resolve({ turn_id: conversationId, msg_id: 'unmounted-input', runtime: {} });
+      await pending.promise;
+    });
+    expect(params.markSendAccepted).not.toHaveBeenCalled();
+    expect(params.addOrUpdateMessage).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(storageKey)).toBe(stored);
+  });
+
   it('keeps automatic review off when an initial-message payload does not explicitly enable it', async () => {
     const conversationId = 'initial-review-default-off';
     sessionStorage.setItem(
@@ -250,7 +320,15 @@ describe('useAcpInitialMessage', () => {
     });
 
     await vi.waitFor(() => expect(sessionStorage.getItem(storageKey)).toBeNull());
-    expect(params.markSendAccepted).toHaveBeenCalledWith('turn-1', { backend: 'xscience', status: 'running' }, 'msg-1');
+    expect(params.markSendAccepted).toHaveBeenCalledWith(
+      'turn-1',
+      { backend: 'xscience', status: 'running' },
+      'msg-1',
+      {
+        ticket: undefined,
+        receipt: undefined,
+      }
+    );
     expect(setComputeProviderMock).toHaveBeenCalledWith(conversationId, 'local', true);
   });
 
@@ -263,7 +341,7 @@ describe('useAcpInitialMessage', () => {
     const params = createParams(conversationId);
 
     const { rerender } = renderHook(() => useAcpInitialMessage(params));
-    await vi.waitFor(() => expect(params.markSendFailed).toHaveBeenCalledWith('Unknown error'));
+    await vi.waitFor(() => expect(params.markSendFailed).toHaveBeenCalledWith('Unknown error', undefined));
 
     rerender();
     await Promise.resolve();

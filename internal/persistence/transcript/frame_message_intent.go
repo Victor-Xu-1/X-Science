@@ -115,36 +115,8 @@ func messageIntentCandidateIDs(intent FrameMessageIntent) []string {
 // Uses the canonical client-message index, bounded to the two historical ID
 // forms. A changed branch mode cannot reuse a frozen mutation as another task.
 func ReadAcceptedFrameMessageIntent(ctx context.Context, db MessageIntentQuery, intent FrameMessageIntent) (bool, error) {
-	var streamUID string
-	err := db.QueryRowContext(ctx, `SELECT active_stream_uid FROM transcript_frame_authority
-		WHERE owner_id=? AND session_id=? AND read_authority='transcript_payload_v1' AND write_authority='transcript_payload_v1'`, intent.OwnerID, intent.FrameID).Scan(&streamUID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, ErrMessageIntentUnavailable
-	}
-	if err != nil {
-		return false, err
-	}
-	for _, id := range messageIntentCandidateIDs(intent) {
-		var raw, source, kind string
-		err := db.QueryRowContext(ctx, `SELECT COALESCE(payload_json,''),source,event_type FROM transcript_events WHERE stream_uid=? AND client_message_id=?`, streamUID, id).Scan(&raw, &source, &kind)
-		if errors.Is(err, sql.ErrNoRows) {
-			continue
-		}
-		if err != nil {
-			return false, err
-		}
-		var payload struct {
-			Intent *FrameMessageIntent `json:"messageIntent"`
-		}
-		if source != string(EventSourcePayload) || (kind != "user_message" && kind != "user_input_response") || json.Unmarshal([]byte(raw), &payload) != nil || payload.Intent == nil || !payload.Intent.Valid() {
-			return false, ErrMessageIntentUnavailable
-		}
-		if *payload.Intent != intent || id != intent.InputMessageID {
-			return false, ErrMessageIntentConflict
-		}
-		return true, nil
-	}
-	return false, nil
+	_, found, err := readAcceptedFrameMessageIntentEvent(ctx, db, intent)
+	return found && err == nil, err
 }
 
 func (receipt FrameMessageIntentCancellation) Valid() bool {

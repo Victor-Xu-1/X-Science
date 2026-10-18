@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { ConversationInputReceipt } from '@/common/adapter/conversationInputReceipt';
 import type {
   TChatConversationStatus,
   TConversationRuntimeStateKind,
@@ -59,6 +60,10 @@ type ConversationRuntimeSnapshot = {
 };
 
 type ConversationRuntimeViewListener = () => void;
+export type ConversationSendAcceptanceOptions = {
+  ticket?: object;
+  receipt?: ConversationInputReceipt;
+};
 type ConversationRuntimeMetadata = {
   pendingLocalSendSeq: number | null;
   pendingLocalSendTicket: object | null;
@@ -572,9 +577,15 @@ export const localSendAccepted = (
   conversation_id: string,
   turn_id: string,
   runtime: TConversationRuntimeSummary,
-  msg_id?: string
+  msg_id?: string,
+  options: ConversationSendAcceptanceOptions = {}
 ): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
+  // HTTP acknowledgements can arrive after a newer submission, account reset,
+  // or terminal publication. Only the reservation that sent them may settle.
+  if (options.ticket !== undefined && metadata.pendingLocalSendTicket !== options.ticket) return [];
+  if (options.receipt && (options.receipt.frame_id !== conversation_id || options.receipt.input_message_id !== msg_id))
+    return [];
   const staleAfterCompleted = isStaleCompletedRuntimeSummary(runtime, metadata);
   if (!staleAfterCompleted) {
     metadata.pendingLocalSendSeq = null;

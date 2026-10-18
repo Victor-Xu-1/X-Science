@@ -52,7 +52,8 @@ describe('composer granted folder snapshots', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Add to message' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Your files' }));
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Your files' })).toBeVisible());
+    await waitFor(() => expect(screen.getByRole('menu', { name: 'Your files' })).toBeVisible());
+    expect(screen.queryByRole('dialog', { name: 'Your files' })).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole('button', { name: 'Expand Fixture' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Reference sample + 测量.csv' }));
     expect(onLocalFilesAdded).toHaveBeenCalledTimes(1);

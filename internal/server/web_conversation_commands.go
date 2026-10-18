@@ -36,28 +36,37 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		return
 	}
 	if messageIntent != nil {
-		if err := s.workspaceStore.CheckFrameMessageIntent(r.Context(), *messageIntent); err != nil {
+		result, replayed, err := s.replayWebConversationMessage(r.Context(), *messageIntent)
+		if err != nil {
 			writeWebConversationError(w, err)
+			return
+		}
+		if replayed {
+			s.writeWebConversationMessageAccepted(w, r, frame, result, messageIntent, true)
 			return
 		}
 	}
 	if err := s.validateWebConversationSendInput(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame, &input); err != nil {
-		writeWebConversationError(w, err)
+		s.writeWebConversationSubmissionError(w, r, frame, messageIntent, err)
 		return
 	}
 	originalFiles := append([]string(nil), input.Files...)
 	materializedFiles, err := s.materializeWebConversationInputFiles(r.Context(), r, frame, input.Files)
 	if err != nil {
-		writeWebConversationError(w, err)
+		s.writeWebConversationSubmissionError(w, r, frame, messageIntent, err)
 		return
 	}
-	input.Files = materializedFiles
 	input.Content = rewriteWebConversationAttachedFilePaths(input.Content, originalFiles, materializedFiles)
+	input.Files = nil
+	seenFiles := make(map[string]struct{}, len(materializedFiles))
+	for _, file := range materializedFiles {
+		input.Files = appendUniqueWebConversationFile(input.Files, seenFiles, file)
+	}
 	artifactReferences, err := s.validateWebConversationArtifactReferences(
 		r.Context(), strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame, input.ArtifactRefs, input.MessageContext,
 	)
 	if err != nil {
-		writeWebConversationError(w, err)
+		s.writeWebConversationSubmissionError(w, r, frame, messageIntent, err)
 		return
 	}
 	inputData := map[string]any{"request": input.Content}
@@ -99,19 +108,14 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		ArtifactReferences: artifactReferences, MessageContext: input.MessageContext,
 	})
 	if err != nil {
-		writeWebConversationError(w, err)
+		s.writeWebConversationSubmissionError(w, r, frame, messageIntent, err)
 		return
 	}
 	if err := s.publishWebConversationListChange(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame.ID, "updated"); err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "message accepted but realtime delivery failed"})
 		return
 	}
-	runtimeFrame := frame
-	runtimeFrame.Status = "processing"
-	writeWorkspaceJSON(w, http.StatusAccepted, map[string]any{
-		"msg_id": result.MessageID, "turn_id": frame.ID,
-		"runtime": webConversationRuntime(runtimeFrame),
-	})
+	s.writeWebConversationMessageAccepted(w, r, frame, result, messageIntent, false)
 }
 
 func (s *Server) handleWebConversationAssociated(

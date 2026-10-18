@@ -868,6 +868,7 @@ export type I18nKey =
   | 'conversation.hostFiles.expand'
   | 'conversation.hostFiles.folderPath'
   | 'conversation.hostFiles.grant'
+  | 'conversation.hostFiles.grantShort'
   | 'conversation.hostFiles.invalidReference'
   | 'conversation.hostFiles.loadFailed'
   | 'conversation.hostFiles.loading'

@@ -49,6 +49,7 @@
     "readWrite": "Read and write",
     "unknownMode": "Access unavailable",
     "grant": "Grant folder access",
+    "grantShort": "Grant folder…",
     "change": "Change access",
     "revoke": "Revoke access",
     "changeFor": "Change access for {{name}}",
