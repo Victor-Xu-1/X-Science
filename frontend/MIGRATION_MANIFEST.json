@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "47f6e0573f2ce4a2799fd35abeaee9940fa416877ca5196461fc1c5498f4cc33",
+  "adaptationFingerprintSHA256": "229527b14b267aaf232ac5bea9d0db72059dc77f19d459be3e951fa75276d85a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "d5c392cad3e5524e7d355c3a15871144d9489ba3115566d960995dc9371437f1",
   "summary": {
@@ -4317,8 +4317,8 @@
     {
       "path": "tests/unit/renderer/AcpModelSelector.dom.test.tsx",
       "sourceSHA256": "d9a40cd3556abf4729cb2b1b73bf83c4beab50e2f03ec56de8bb113b43f1c5f9",
-      "targetSHA256": "edddd81fd9691859a5bfc9745367ba6fa215eac483fc4d4d63d7c3bff421308a",
-      "bytes": 14051,
+      "targetSHA256": "7d0090ac8e7a3a5cae82419604bb8eb400d97d31284553df6c8f84658673bc27",
+      "bytes": 13809,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
