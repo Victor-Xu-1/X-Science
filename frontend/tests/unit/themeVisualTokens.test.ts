@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fileURLToPath } from 'node:url';
+import { resolveDesignTokens } from './_helpers/designTokens';
 
 /**
  * Guards the canonical design primitives in styles/tokens.css: one scale for
@@ -36,6 +37,57 @@ const moduleCss = collectCss(rendererDir)
 const PENDING_FONT_SIZE = /font-size:\s*(?:8|9|10)px/;
 
 describe('design primitive scale', () => {
+  it('does not leak compact-settings tokens into root or default-settings consumers', () => {
+    const probe =
+      'font-size: var(--ui-font-title); line-height: var(--ui-line-height-section); radius: var(--settings-card-radius); title: var(--settings-page-title-size)/var(--settings-page-title-line);';
+    expect(resolveDesignTokens(probe)).toBe(
+      'font-size: 15px; line-height: 24px; radius: var(--settings-card-radius); title: var(--settings-page-title-size)/var(--settings-page-title-line);'
+    );
+    expect(resolveDesignTokens(probe, 'settings')).toBe(
+      'font-size: 15px; line-height: 24px; radius: 16px; title: 26px/34px;'
+    );
+    expect(resolveDesignTokens(probe, 'settings-compact')).toBe(
+      'font-size: 14px; line-height: 22px; radius: 12px; title: 22px/30px;'
+    );
+    // A compact resolution must not mutate later root resolutions.
+    expect(resolveDesignTokens('font-size: var(--ui-font-title);')).toBe('font-size: 15px;');
+  });
+
+  it('preserves the scoped conversation menu and model geometry through canonical primitives', () => {
+    const menu = resolveDesignTokens(
+      readFileSync(path.join(rendererDir, 'components/media/conversationControlMenu.css'), 'utf8')
+    );
+    // OpenScience 6d869cd components/ui/dropdown-menu.tsx:44/64 uses 15px
+    // surfaces and 8px rows; ConversationPanel.tsx:2377 pins Save to 13/500/20.
+    expect(menu).toContain('border-radius: calc(16px - 1px) !important;');
+    expect(menu).toMatch(
+      /\.composer-control-menu__row\s*\{[^}]*min-height:\s*32px[^}]*padding:\s*6px 8px[^}]*gap:\s*8px[^}]*border-radius:\s*8px[^}]*font-size:\s*13px[^}]*font-weight:\s*500[^}]*line-height:\s*20px/s
+    );
+    expect(menu).toMatch(
+      /\.conversation-skill-choice__heading\s*\{[^}]*font-size:\s*14px[^}]*font-weight:\s*500[^}]*line-height:\s*20px/s
+    );
+    const models = resolveDesignTokens(
+      readFileSync(path.join(rendererDir, 'pages/settings/components/settings-models.css'), 'utf8'),
+      'settings'
+    );
+    const editor = resolveDesignTokens(
+      readFileSync(path.join(rendererDir, 'pages/settings/models/model-profile-editor.css'), 'utf8'),
+      'settings'
+    );
+    expect(models).toContain('border-radius: calc(16px + 4px);');
+    expect(editor).toContain('border-radius: calc(16px - 2px);');
+    expect(editor).toContain('border-radius: calc(10px - 1px);');
+    for (const file of [
+      'components/media/conversationControlMenu.css',
+      'pages/settings/components/settings-models.css',
+      'pages/settings/models/model-profile-editor.css',
+    ]) {
+      expect(readFileSync(path.join(rendererDir, file), 'utf8')).not.toMatch(
+        /border-radius:\s*\d+px\s*(?:!important)?;/
+      );
+    }
+  });
+
   it('covers every module stylesheet in the renderer', () => {
     expect(moduleCss.length).toBeGreaterThan(50);
   });

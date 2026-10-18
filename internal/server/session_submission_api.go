@@ -220,6 +220,7 @@ func (s *Server) submitTranscriptFrameMessage(
 		var result transcriptstore.AppendFrameUserEventToBranchResult
 		result, err = s.transcriptStore.AppendFrameUserEventToBranch(ctx, transcriptstore.AppendFrameUserEventToBranchInput{
 			AppendFrameUserEventInput: appendInput,
+			RequireIdle:               input.InputData["turn_intent"] == conversationSkillControlIntent,
 			TargetBranchID:            input.TargetBranchID,
 			ExpectedActiveBranchID:    input.ExpectedBranchID,
 			ExpectedGeneration:        input.ExpectedGeneration,

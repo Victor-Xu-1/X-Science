@@ -23,11 +23,11 @@
   margin: 0;
   color: var(--settings-text);
   font-size: var(--settings-section-title-size);
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
 }
 .model-connections-count {
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: calc(var(--ui-radius-2xl) + var(--ui-space-2));
   background: var(--settings-surface-subtle);
   color: var(--settings-text-secondary);
   font-size: var(--settings-meta-size);
@@ -63,7 +63,7 @@
   flex: 0 0 36px;
   width: 36px;
   height: 36px;
-  border-radius: 10px;
+  border-radius: var(--ui-radius-lg);
   background: var(--settings-surface-subtle);
   color: var(--settings-text-secondary);
 }
@@ -80,7 +80,7 @@
   color: var(--settings-text);
   font-size: var(--settings-card-title-size);
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
   overflow-wrap: anywhere;
 }
 .model-profile-card__identity > span {
@@ -93,11 +93,11 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  border-radius: 20px;
+  border-radius: calc(var(--ui-radius-2xl) + var(--ui-space-2));
   color: var(--settings-accent-strong);
   background: var(--settings-accent-soft);
   font-size: var(--settings-meta-size);
-  font-weight: 500;
+  font-weight: var(--ui-weight-medium);
   white-space: nowrap;
 }
 .model-profile-card__details {
@@ -123,7 +123,7 @@
   overflow-wrap: anywhere;
 }
 .model-profile-card__model {
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
 }
 .model-profile-card__endpoint {
   font-family: var(--font-family-mono, ui-monospace, SFMono-Regular, Consolas, monospace);

@@ -7,7 +7,7 @@ const rendererRoot = new URL('../../packages/desktop/src/renderer/', import.meta
 /** Stylesheets are read with design tokens inlined; contracts keep pinning numbers. */
 const readFileSync = (target: string | URL, encoding?: BufferEncoding): string =>
   `${target}`.endsWith('.css')
-    ? resolveDesignTokens(readFileRaw(target, 'utf8'))
+    ? resolveDesignTokens(readFileRaw(target, 'utf8'), /[/\\]settings[/\\]/.test(String(target)) ? 'settings' : 'root')
     : (readFileRaw(target, encoding) as unknown as string);
 const warmCss = readFileSync(new URL('pages/settings/AppearanceSettings/presets/warm.css', rendererRoot), 'utf8');
 const coolCss = readFileSync(new URL('pages/settings/AppearanceSettings/presets/cool.css', rendererRoot), 'utf8');
@@ -39,17 +39,7 @@ const askUserHistoryCss = readFileSync(
   'utf8'
 );
 const themeInitScript = readFileSync(new URL('../../public/theme-init.js', import.meta.url), 'utf8');
-const textAddActionSources = [
-  'pages/settings/XScienceModelsSettings.tsx',
-  'pages/settings/NetworkSettings.tsx',
-  'pages/settings/CredentialsSettings.tsx',
-  'pages/settings/ComputeSettings.tsx',
-  'pages/settings/XScienceSkillsSettings.tsx',
-  'pages/settings/ToolsSettings/XScienceMcpSettings.tsx',
-  'pages/settings/XScienceExpertsSettings/ExpertWorkbench.tsx',
-  'pages/settings/XScienceExpertsSettings/home/AssistantHomeTabs.tsx',
-  'pages/settings/components/ApiKeyEditorModal.tsx',
-].map((path) => readFileSync(new URL(path, rendererRoot), 'utf8'));
+const modelsSettingsSource = readFileSync(new URL('pages/settings/XScienceModelsSettings.tsx', rendererRoot), 'utf8');
 const memoryManagerSource = readFileSync(
   new URL('pages/settings/components/XScienceMemoryManager.tsx', rendererRoot),
   'utf8'
@@ -309,8 +299,18 @@ describe('shared visual shell contract', () => {
     );
   });
 
-  it('does not repeat additive wording with a leading plus icon', () => {
-    for (const source of textAddActionSources) expect(source).not.toMatch(/<(?:Plus|Add)\b/);
+  it('keeps the reference model-add affordance on its labeled action', () => {
+    // OpenScience 6d869cd, ProvidersPanel.tsx:565-574 explicitly pairs Plus
+    // with Add provider. A blanket prohibition contradicted that contract.
+    const addAction = modelsSettingsSource.match(
+      /<Button\b(?:(?!<\/Button>)[\s\S])*?data-testid='x-science-model-add'(?:(?!<\/Button>)[\s\S])*?<\/Button>/
+    )?.[0];
+    expect(addAction).toBeDefined();
+    expect(addAction).toMatch(/icon=\{<Add\b/);
+    expect(addAction).toContain("aria-label={t('settings.modelsAdd')}");
+    expect(addAction).toContain("{t('settings.modelsAdd')}");
+    expect(addAction).toContain('onClick={() => setEditor({})}');
+    expect([...modelsSettingsSource.matchAll(/<Add\b/g)]).toHaveLength(1);
 
     expect([...memoryManagerSource.matchAll(/<Plus\b/g)]).toHaveLength(1);
     expect(memoryManagerSource).toMatch(/data-testid='memory-category-add'[\s\S]{0,240}icon=\{<Plus\b/);

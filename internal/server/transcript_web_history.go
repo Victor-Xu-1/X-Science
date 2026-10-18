@@ -619,12 +619,14 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 			}
 			artifactReferences = payloadReferences
 		}
-		*messages = append(*messages, map[string]any{
+		message := map[string]any{
 			"id": messageID, "msg_id": projected.Event.ClientMessageID,
 			"conversation_id": sessionID, "type": "text", "position": "right", "status": "finish",
 			"created_at": createdAt, "content": map[string]any{"content": transcriptPayloadText(payload)},
 			"artifact_refs": artifactReferences,
-		})
+		}
+		projectConversationSkillControl(message, payload)
+		*messages = append(*messages, message)
 	case "content_delta", "content_reset", "assistant_message", "history_assistant_message":
 		if projected.Event.RunnerAttempt == nil {
 			legacyFrameMessage := projected.Event.Type == "assistant_message" &&

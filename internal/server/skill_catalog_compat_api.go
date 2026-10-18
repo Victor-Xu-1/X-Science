@@ -114,6 +114,14 @@ func (s *Server) handleCompatibilityCatalogSkill(w http.ResponseWriter, r *http.
 		return
 	}
 	skill, found := findCatalogSkill(s.skillCatalog, name)
+	if r.Method == http.MethodGet && (segments[1] == "content" || segments[1] == "files") {
+		var resolveErr error
+		skill, found, resolveErr = s.compatibilityAuthorSkill(name)
+		if resolveErr != nil {
+			writeV11Detail(w, http.StatusBadRequest, "Skill authoring path is unavailable")
+			return
+		}
+	}
 	if !found {
 		writeV11Detail(w, http.StatusNotFound, fmt.Sprintf("skill '%s'", name))
 		return

@@ -113,8 +113,10 @@ const CapabilityListRow: React.FC<{
   checked?: boolean;
   disabled?: boolean;
   statusSuffix?: React.ReactNode;
+  skillChoice?: boolean;
+  sourceLabel?: string;
   onClick?: () => void;
-}> = ({ name, description, checked, disabled = false, statusSuffix, onClick }) => {
+}> = ({ name, description, checked, disabled = false, statusSuffix, skillChoice = false, sourceLabel, onClick }) => {
   const avatar = useMemo(() => {
     const initial = name.trim().charAt(0).toUpperCase() || '?';
     const pair = AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length] ?? AVATAR_PALETTE[0];
@@ -130,19 +132,26 @@ const CapabilityListRow: React.FC<{
       title={description || name}
       className={`box-border flex h-40px w-full items-center gap-9px border-0 bg-transparent px-10px text-left rounded-6px [&_.i-icon]:flex [&_.i-icon]:items-center [&_.i-icon]:justify-center [&_.i-icon]:leading-none [&_.i-icon_svg]:block [&_.i-icon_svg]:mx-auto ${
         checked ? 'bg-fill-2' : 'hover:bg-fill-2'
-      } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+      } ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${skillChoice ? 'conversation-skill-choice' : ''}`}
       onClick={disabled ? undefined : onClick}
     >
-      <span
-        aria-hidden='true'
-        className='inline-flex h-20px w-20px flex-shrink-0 items-center justify-center rounded-4px text-11px font-600'
-        style={{ background: avatar.bg, color: avatar.fg }}
-      >
-        {avatar.letter}
-      </span>
+      {!skillChoice && (
+        <span
+          aria-hidden='true'
+          className='inline-flex h-20px w-20px flex-shrink-0 items-center justify-center rounded-4px text-11px font-600'
+          style={{ background: avatar.bg, color: avatar.fg }}
+        >
+          {avatar.letter}
+        </span>
+      )}
       <span className='min-w-0 flex-1'>
-        <span className='block text-13px leading-18px text-t-primary truncate'>{name}</span>
-        <span className='block text-11px leading-14px text-t-secondary truncate'>{description}</span>
+        <span className='conversation-skill-choice__heading block text-13px leading-18px text-t-primary truncate'>
+          <span className='conversation-skill-choice__name'>{name}</span>
+          {sourceLabel && <span className='conversation-skill-choice__source'>{sourceLabel}</span>}
+        </span>
+        <span className='conversation-skill-choice__description block text-11px leading-14px text-t-secondary truncate'>
+          {description}
+        </span>
       </span>
       {checked ? <Check theme='outline' size={14} className='flex-shrink-0 text-primary' /> : statusSuffix}
     </button>
@@ -218,6 +227,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
   const [skillQuery, setSkillQuery] = useState('');
   const [mcpQuery, setMcpQuery] = useState('');
   const [skillCatalog, setSkillCatalog] = useState<Map<string, CatalogEntry> | null>(null);
+  const [skillCatalogEpoch, setSkillCatalogEpoch] = useState(0);
+  const [skillCatalogState, setSkillCatalogState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [mcpCatalog, setMcpCatalog] = useState<Map<string, CatalogEntry> | null>(null);
 
   // Join the loaded names with the catalog descriptions so every row carries
@@ -225,11 +236,24 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
   // blurbs come from the locale resources (the catalog ships English-only).
   useEffect(() => {
     let cancelled = false;
+    setSkillCatalogState('loading');
     loadXScienceSkills()
       .then((skills: XScienceSkill[]) => {
-        if (!cancelled && Array.isArray(skills)) setSkillCatalog(catalogMap(skills, localeKey));
+        if (!cancelled && Array.isArray(skills)) {
+          setSkillCatalog(catalogMap(skills, localeKey));
+          setSkillCatalogState('ready');
+        }
       })
-      .catch((): undefined => undefined);
+      .catch(() => {
+        if (!cancelled) setSkillCatalogState('error');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [localeKey, skillCatalogEpoch]);
+
+  useEffect(() => {
+    let cancelled = false;
     loadXScienceMcpServers()
       .then((servers: XScienceMcpServer[]) => {
         if (!cancelled && Array.isArray(servers))
@@ -267,7 +291,12 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
       availableNames
         .map((name) => {
           const catalog = skillCatalog?.get(name);
-          return { name, label: catalog?.label ?? name, description: catalog?.description ?? '' };
+          return {
+            name,
+            label: catalog?.label ?? name,
+            description: catalog?.description ?? '',
+            source: catalog?.source,
+          };
         })
         .filter((skill) => searchMatches(skillQuery, skill.name, skill.label, skill.description)),
     [skillCatalog, availableNames, skillQuery]
@@ -284,12 +313,12 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
     [mcpCatalog, mcpQuery, mcpStatuses]
   );
 
-  if (availableNames.length === 0 && mcpStatuses.length === 0) return null;
+  if (availableNames.length === 0 && mcpStatuses.length === 0 && !onEnableSkill) return null;
 
   const skillPanel = (
     <div
-      className='app-overlay-menu composer-control-submenu flex flex-col'
-      style={{ width: 'min(360px, calc(100vw - 96px))', maxHeight: 'min(400px, calc(100vh - 220px))' }}
+      className='app-overlay-menu composer-control-submenu conversation-control-submenu flex flex-col'
+      style={{ width: 'min(360px, calc(100vw - 24px))', maxHeight: 'min(45vh, 288px)' }}
       role='menu'
       aria-label={skillMenuLabel}
     >
@@ -298,6 +327,23 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
         onChange={setSkillQuery}
         placeholder={t('conversation.attachMenu.searchSkills')}
       />
+      {skillCatalogState === 'loading' && (
+        <div role='status' className='px-12px py-6px text-12px text-t-secondary'>
+          {t('conversation.attachMenu.skillLibraryLoading')}
+        </div>
+      )}
+      {skillCatalogState === 'error' && (
+        <div role='alert' className='px-12px py-6px text-12px text-t-secondary'>
+          {t('conversation.attachMenu.skillLibraryRefreshFailed')}
+          <button
+            type='button'
+            className='ml-6px border-0 bg-transparent text-12px text-primary'
+            onClick={() => setSkillCatalogEpoch((epoch) => epoch + 1)}
+          >
+            {t('conversation.attachMenu.saveAsSkillRetryRefresh')}
+          </button>
+        </div>
+      )}
       <div className='min-h-0 flex-1 overflow-y-auto overscroll-contain py-2px'>
         {filteredSkills.length === 0 ? (
           <div className='px-12px py-16px text-12px text-t-secondary'>{t('conversation.skills.noMatch')}</div>
@@ -305,6 +351,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
           filteredSkills.map((skill) => (
             <CapabilityListRow
               key={skill.name}
+              skillChoice
+              sourceLabel={skill.source === 'personal' ? t('settings.skillsSettings.sources.personal') : undefined}
               name={skill.label}
               description={skill.description}
               checked={selectedSkillNames.includes(skill.name)}
@@ -400,13 +448,16 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
 
   return (
     <div className='px-6px'>
-      {availableNames.length > 0 ? (
+      {availableNames.length > 0 || onEnableSkill ? (
         <Trigger
           popup={(): React.ReactNode => skillPanel}
           trigger='hover'
           position='rt'
           popupVisible={skillsOpen}
-          onVisibleChange={setSkillsOpen}
+          onVisibleChange={(open) => {
+            setSkillsOpen(open);
+            if (open) setSkillCatalogEpoch((epoch) => epoch + 1);
+          }}
           mouseEnterDelay={100}
           mouseLeaveDelay={150}
         >

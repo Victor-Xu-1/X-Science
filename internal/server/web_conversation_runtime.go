@@ -147,8 +147,10 @@ func (s *Server) webConversationRuntimeSnapshot(frame workspace.CompatibilityFra
 	// than being downgraded to a stale waiting state by that old cache.
 	modelConfigurationWait := false
 	recoveryConditionWait := false
+	activeInputMessageID := ""
 	if runtimeProjection, _, projectionErr := s.compatibilityFrameRuntimeProjection(frame.ID); projectionErr == nil {
 		if boolValue(runtimeProjection["runtime_active"], false) || boolValue(runtimeProjection["runtime_task_active"], false) {
+			activeInputMessageID = stringValue(runtimeProjection["runtime_active_input_message_id"])
 			pending = 0
 			planApproval = false
 		} else if boolValue(runtimeProjection["runtime_paused"], false) &&
@@ -207,6 +209,9 @@ func (s *Server) webConversationRuntimeSnapshot(frame workspace.CompatibilityFra
 		runtime["is_processing"] = false
 		runtime["pending_confirmations"] = 0
 		runtime["turn_id"] = nil
+	}
+	if boolValue(runtime["is_processing"], false) && activeInputMessageID != "" {
+		runtime["active_input_message_id"] = activeInputMessageID
 	}
 	return runtime, nil
 }

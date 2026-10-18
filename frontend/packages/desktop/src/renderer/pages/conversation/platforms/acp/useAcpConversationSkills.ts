@@ -5,7 +5,6 @@ import {
   type XScienceComposerCapabilities,
 } from '@/renderer/services/xScienceGateway';
 import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
-import { useConversationSkillSave } from './useConversationSkillSave';
 import { useConversationSkillActivation } from './useConversationSkillActivation';
 
 type Options = {
@@ -52,17 +51,6 @@ export function useAcpConversationSkills(options: Options) {
     },
     [conversationId, fetchSlashCommands, mutateComposerCapabilities]
   );
-  const skillSave = useConversationSkillSave({
-    conversationId,
-    ownerId,
-    authority,
-    mountedRef,
-    disabled,
-    refreshCatalogs,
-  });
-  const savedName = skillSave.state.status === 'saved' ? skillSave.state.name : null;
-  const savedSkillAvailable =
-    savedName !== null && options.loadedSkills.some((name) => name.toLowerCase() === savedName.toLowerCase());
   const skillActivation = useConversationSkillActivation({
     authority,
     ownerId,
@@ -90,5 +78,5 @@ export function useAcpConversationSkills(options: Options) {
         : [],
     [mobileSkillLibrary, skillActivation.canActivate]
   );
-  return { skillSave, skillActivation, savedSkillAvailable, mobileLibraryNames };
+  return { refreshCatalogs, skillActivation, mobileLibraryNames };
 }

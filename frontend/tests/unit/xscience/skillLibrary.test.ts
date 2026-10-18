@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { XScienceSkillLibraryError } from '@/renderer/services/skills/xScienceSkillLibrary';
+import * as skillLibrary from '@/renderer/services/skills/xScienceSkillLibrary';
 import {
   importXScienceRepositorySkills,
   importXScienceSkillFile,
@@ -9,7 +10,6 @@ import {
   loadXScienceSkillSources,
   previewXScienceSkillRepository,
   saveXScienceSkillDraftFile,
-  saveXScienceConversationAsSkill,
 } from '@/renderer/services/skills/xScienceSkillLibrary';
 
 describe('X-Science skill library service', () => {
@@ -148,19 +148,8 @@ describe('X-Science skill library service', () => {
     );
   });
 
-  it('retains only allowlisted Save-as-Skill failure codes', async () => {
-    const fetchImpl = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(json({ code: 'skill_authoring_output_limit', message: 'safe error' }, 502))
-      .mockResolvedValueOnce(json({ code: 'synthetic-private-code', message: 'safe error' }, 502));
-    await expect(saveXScienceConversationAsSkill('fixture', { fetchImpl })).rejects.toMatchObject({
-      status: 502,
-      code: 'skill_authoring_output_limit',
-    });
-    await expect(saveXScienceConversationAsSkill('fixture', { fetchImpl })).rejects.toMatchObject({
-      status: 502,
-      code: undefined,
-    });
+  it('does not expose a second conversation-to-Skill authoring or installation API', () => {
+    expect(skillLibrary).not.toHaveProperty('saveXScienceConversationAsSkill');
   });
 
   it('returns typed, non-leaking HTTP failures', async () => {

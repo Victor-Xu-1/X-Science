@@ -270,6 +270,11 @@ class _SkillsAccessor:
             raise TypeError("host.skills.read: path must be a non-empty str")
         return _host_rpc("host.skills.read", [name, path], {})
 
+    def validate(self, name):
+        if not isinstance(name, str) or not name.strip():
+            raise TypeError("host.skills.validate: name must be a non-empty str")
+        return _host_rpc("host.skills.validate", [name], {})
+
     def edit(self, name, path, content, old_string=None):
         for label, value in (("name", name), ("path", path), ("content", content)):
             if not isinstance(value, str) or not value.strip():

@@ -54,6 +54,9 @@ describe('conversation visual system CSS', () => {
     );
 
     expect(css).toContain('--conversation-font-size: 15px');
+    // Compact settings live on a different selector; they must not rewrite
+    // the conversation root when this source-level contract resolves tokens.
+    expect(readFileRaw(workspaceThemeCssPath, 'utf8')).toContain('--conversation-font-size: var(--ui-font-title)');
     expect(css).toContain('--conversation-stream-accent: #6f6b65');
     expect(css).toContain('--conversation-stream-accent-soft: #efede9');
     expect(css).toContain('--conversation-stream-accent: #f2f2f2');
@@ -77,6 +80,9 @@ describe('conversation visual system CSS', () => {
     expect(css).toContain('max-width: min(100%, var(--conversation-content-max-width, 56rem)) !important');
     expect(css).not.toContain('max-width: min(85%, 56rem) !important');
     expect(transcriptCss).toContain('font-size: var(--chat-font-size, 15px);');
+    expect(transcriptCss).toMatch(
+      /@media \(max-width:\s*767px\)\s*\{\s*\.assistant-transcript-text\s*\{[^}]*--chat-line-height:\s*24px/s
+    );
     expect(css).toContain("[data-testid='x-science-ask-user-card']");
     for (const selector of [
       '.x-science-ask-user-card__composer',

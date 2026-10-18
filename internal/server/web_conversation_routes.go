@@ -37,12 +37,12 @@ type webConversationCreateInput struct {
 }
 
 type webConversationSendInput struct {
+	TurnIntent         string                                  `json:"turn_intent"`
 	Content            string                                  `json:"content"`
 	Files              []string                                `json:"files"`
 	ArtifactRefs       []webConversationArtifactReferenceInput `json:"artifact_refs"`
 	MessageContext     string                                  `json:"message_context"`
 	LoadingID          string                                  `json:"loading_id"`
-	TurnIntent         string                                  `json:"turn_intent,omitempty"`
 	InjectSkills       []string                                `json:"inject_skills"`
 	InjectMCPServerIDs []string                                `json:"inject_mcp_server_ids"`
 	SessionOptions     map[string]any                          `json:"session_options"`

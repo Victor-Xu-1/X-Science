@@ -292,6 +292,7 @@ export const conversation = {
         })),
         message_context: p.message_context,
         loading_id: p.loading_id,
+        ...(p.turn_intent ? { turn_intent: p.turn_intent } : {}),
         inject_skills: p.inject_skills,
         inject_mcp_server_ids: p.inject_mcp_server_ids,
         session_options: p.session_options,
@@ -334,6 +335,7 @@ export const conversation = {
     position: 'right';
     status: 'finish';
     hidden: boolean;
+    turn_intent?: 'save-as-skill';
     created_at: number;
   }>('durable', 'message.userCreated'),
   artifactStream: unavailableEmitter<IConversationArtifact>('realtime_event_unavailable_conversation_artifact'),

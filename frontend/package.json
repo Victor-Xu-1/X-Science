@@ -1,6 +1,6 @@
 {
   "name": "@x-science/workbench-web",
-  "version": "0.2.45",
+  "version": "0.2.46",
   "private": true,
   "description": "X-Science scientific workbench Web application.",
   "license": "Apache-2.0",
@@ -59,6 +59,7 @@
     "i18next": "23.16.8",
     "igv": "3.8.0",
     "katex": "0.18.2",
+    "lucide-react": "1.25.0",
     "mammoth": "1.11.0",
     "mermaid": "11.17.0",
     "molstar": "5.11.0",

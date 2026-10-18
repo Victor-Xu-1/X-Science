@@ -28,6 +28,7 @@ export interface ISendMessageParams {
   artifact_refs?: ArtifactReferenceWire[];
   message_context?: 'onboarding_first_task';
   loading_id?: string;
+  turn_intent?: 'save-as-skill';
   inject_skills?: string[];
   inject_mcp_server_ids?: string[];
   session_options?: {

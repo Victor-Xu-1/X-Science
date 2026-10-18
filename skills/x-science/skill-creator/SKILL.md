@@ -36,13 +36,14 @@ Then after the skill is done (but again, the order is flexible), you can also ru
 You author skills via the `host.skills` SDK in the **`repl` tool** (not
 the `python` tool — it's a separate stdlib-only control-plane kernel that
 shares your workspace cwd; full API reference in the `customize` skill).
-The four calls you need:
+The package lifecycle calls:
 
 ```python
 host.skills.list()                          # all skills + drafts
 host.skills.read(name, path="SKILL.md")     # → {"name","path","content"}
-host.skills.edit(name, path, content,       # create/overwrite (old_string=None)
+host.skills.edit(name, path, content,       # create a missing file (old_string=None)
                  old_string=None)           #   or str_replace one match
+host.skills.validate(name)                   # structure only; never executes helpers
 host.skills.publish(name, overwrite=False)  # promote draft → live skill set
 ```
 

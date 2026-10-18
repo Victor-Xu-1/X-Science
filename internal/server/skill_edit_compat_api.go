@@ -187,97 +187,29 @@ func (s *Server) duplicateCompatibilitySkill(sourceName, targetName string) (ski
 	if !found {
 		return skills.Skill{}, fmt.Errorf("source skill '%s' not found", sourceName)
 	}
-	installRoot := filepath.Join(s.fileRoot, "skills")
-	if err := ensurePrivateDirectoryForImport(installRoot); err != nil {
-		return skills.Skill{}, err
+	if !strings.HasPrefix(source.Path, "builtin:") {
+		return s.createCompatibilitySkillDraft(targetName, "SKILL.md", "", &source, immediateSkillDraftCommit)
 	}
-	destination := filepath.Join(installRoot, targetName)
-	if _, err := os.Lstat(destination); err == nil {
-		return skills.Skill{}, fmt.Errorf("%w: skill '%s' already exists", os.ErrExist, targetName)
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return skills.Skill{}, err
-	}
-	staging, err := os.MkdirTemp(installRoot, ".skill-duplicate-")
+	manifest, err := compatibilitySkillManifest(source, targetName)
 	if err != nil {
 		return skills.Skill{}, err
 	}
-	defer os.RemoveAll(staging)
-	var sourceRoot string
-	if strings.HasPrefix(source.Path, "builtin:") {
-		sourceRoot = filepath.Join(staging, source.Name)
-		if err := os.Mkdir(sourceRoot, 0o700); err != nil {
-			return skills.Skill{}, err
-		}
-		manifest, err := compatibilitySkillManifest(source, targetName)
-		if err != nil {
-			return skills.Skill{}, err
-		}
-		if err := os.WriteFile(filepath.Join(sourceRoot, "SKILL.md"), manifest, 0o600); err != nil {
-			return skills.Skill{}, err
-		}
-	} else {
-		raw, err := workspaceSkillArchive(source)
-		if err != nil {
-			return skills.Skill{}, err
-		}
-		if err := extractSkillArchive(staging, raw); err != nil {
-			return skills.Skill{}, err
-		}
-		loaded := skills.Load([]string{staging})
-		items := loaded.Skills()
-		if failures := loaded.LoadErrors(); len(failures) > 0 || len(items) != 1 {
-			return skills.Skill{}, errors.New("source skill could not be staged safely")
-		}
-		sourceRoot = filepath.Dir(items[0].Path)
-		if err := rewriteCompatibilitySkillManifestName(filepath.Join(sourceRoot, "SKILL.md"), targetName); err != nil {
-			return skills.Skill{}, err
-		}
-	}
-	if err := os.WriteFile(filepath.Join(sourceRoot, compatibilitySkillDraftMarker), []byte("draft\n"), 0o600); err != nil {
-		return skills.Skill{}, err
-	}
-	if err := os.Rename(sourceRoot, destination); err != nil {
-		return skills.Skill{}, err
-	}
-	loaded := skills.Load([]string{destination}, runtimeSkillLoadOptions())
-	items := loaded.Skills()
-	if failures := loaded.LoadErrors(); len(failures) > 0 || len(items) != 1 || !strings.EqualFold(items[0].Name, targetName) {
-		_ = os.RemoveAll(destination)
-		return skills.Skill{}, errors.New("duplicated skill failed validation")
-	}
-	s.skillCatalog.UpsertSkill(items[0])
-	return items[0], nil
-}
-
-func (s *Server) publishCompatibilitySkillDraft(name string, overwrite bool) (skills.Skill, error) {
-	root := filepath.Join(s.fileRoot, "skills", name)
-	if err := verifyWritableCompatibilitySkillRoot(root); err != nil {
-		return skills.Skill{}, err
-	}
-	marker := filepath.Join(root, compatibilitySkillDraftMarker)
-	if !regularDraftFile(marker) {
-		return skills.Skill{}, fmt.Errorf("skill '%s' is not a draft", name)
-	}
-	if !overwrite {
-		if existing, found := findCatalogSkill(s.skillCatalog, name); found && !sameCleanPath(filepath.Dir(existing.Path), root) {
-			return skills.Skill{}, fmt.Errorf("skill '%s' already exists", name)
-		}
-	}
-	if err := os.Remove(marker); err != nil {
-		return skills.Skill{}, err
-	}
-	loaded := skills.Load([]string{root}, runtimeSkillLoadOptions())
-	items := loaded.Skills()
-	if failures := loaded.LoadErrors(); len(failures) > 0 || len(items) != 1 || !strings.EqualFold(items[0].Name, name) {
-		_ = os.WriteFile(marker, []byte("draft\n"), 0o600)
-		return skills.Skill{}, errors.New("published skill failed validation")
-	}
-	s.skillCatalog.UpsertSkill(items[0])
-	return items[0], nil
+	return s.createCompatibilitySkillDraft(targetName, "SKILL.md", string(manifest), nil, immediateSkillDraftCommit)
 }
 
 func (s *Server) deleteCompatibilitySkill(userID, name string, draftOnly bool) error {
+	return s.deleteCompatibilitySkillWithCommit(userID, name, draftOnly, immediateSkillDraftCommit)
+}
+
+func (s *Server) deleteCompatibilitySkillWithCommit(userID, name string, draftOnly bool, commit skillDraftCommit) error {
 	skill, found := findCatalogSkill(s.skillCatalog, name)
+	if draftOnly {
+		var err error
+		skill, found, err = s.findCompatibilitySkillDraft(name)
+		if err != nil {
+			return err
+		}
+	}
 	if !found {
 		return fmt.Errorf("%w: skill '%s' not found", os.ErrNotExist, name)
 	}
@@ -288,7 +220,7 @@ func (s *Server) deleteCompatibilitySkill(userID, name string, draftOnly bool) e
 	if draftOnly && !regularDraftFile(filepath.Join(root, compatibilitySkillDraftMarker)) {
 		return fmt.Errorf("skill '%s' is not a draft", name)
 	}
-	if s.workspaceStore != nil {
+	if !draftOnly && s.workspaceStore != nil {
 		agents, err := s.workspaceStore.ListAgents(userID)
 		if err != nil {
 			return err
@@ -308,14 +240,20 @@ func (s *Server) deleteCompatibilitySkill(userID, name string, draftOnly bool) e
 		}
 	}
 	trash := filepath.Join(filepath.Dir(root), ".skill-delete-"+uuid.NewString())
-	if err := os.Rename(root, trash); err != nil {
+	if err := commit(func() error {
+		if err := os.Rename(root, trash); err != nil {
+			return err
+		}
+		if err := os.RemoveAll(trash); err != nil {
+			return errors.Join(err, os.Rename(trash, root))
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
-	if err := os.RemoveAll(trash); err != nil {
-		_ = os.Rename(trash, root)
-		return err
+	if published, found := findCatalogSkill(s.skillCatalog, name); found && sameCleanPath(filepath.Dir(published.Path), root) {
+		s.skillCatalog.RemoveSkill(name)
 	}
-	s.skillCatalog.RemoveSkill(name)
 	return nil
 }
 
@@ -425,9 +363,16 @@ func rewriteCompatibilitySkillManifestName(path, name string) error {
 }
 
 func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newString string) (string, string, error) {
-	skill, found := findCatalogSkill(s.skillCatalog, name)
-	if !found {
-		return "", "", fmt.Errorf("skill '%s' not found", name)
+	return s.editCompatibilitySkillFileWithCommit(name, relativePath, oldString, newString, immediateSkillDraftCommit)
+}
+
+func (s *Server) editCompatibilitySkillFileWithCommit(name, relativePath, oldString, newString string, commit skillDraftCommit) (string, string, error) {
+	if !utf8.ValidString(newString) || strings.IndexByte(newString, 0) >= 0 {
+		return "", "", errors.New("Skill edit must be valid UTF-8 text without NUL")
+	}
+	skill, err := s.ensureCompatibilitySkillDraft(name, commit)
+	if err != nil {
+		return "", "", err
 	}
 	editableRoot, err := s.compatibilityEditableSkillRoot(skill)
 	if err != nil {
@@ -441,10 +386,9 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	if err := verifyOpenedGrantedDirectory(directory, []hostGrant{{Path: filepath.Join(s.fileRoot, "skills"), Mode: "write"}}); err != nil {
 		return "", "", err
 	}
-	relativePath = filepath.ToSlash(strings.TrimSpace(relativePath))
-	if relativePath == "." || strings.HasPrefix(relativePath, "/") || relativePath == ".." ||
-		strings.HasPrefix(relativePath, "../") || strings.Contains(relativePath, "/../") {
-		return "", "", fmt.Errorf("invalid path '%s'", relativePath)
+	relativePath, err = normalizeCompatibilitySkillResourcePath(relativePath)
+	if err != nil {
+		return "", "", err
 	}
 	target := filepath.Join(editableRoot, filepath.FromSlash(relativePath))
 	if !pathWithinRoot(target, editableRoot) {
@@ -453,9 +397,6 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	relativePath, err = filepath.Rel(editableRoot, target)
 	if err != nil || !filepath.IsLocal(relativePath) {
 		return "", "", errors.New("skill edit path escaped its root")
-	}
-	if err := ensureSkillEditParent(directory, filepath.Dir(relativePath)); err != nil {
-		return "", "", err
 	}
 	if oldString == "" {
 		if _, err := directory.Lstat(relativePath); err == nil {
@@ -466,11 +407,21 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 		if len(newString) > maxSkillArchiveBytes {
 			return "", "", fmt.Errorf("skill file exceeds %d bytes", maxSkillArchiveBytes)
 		}
-		if err := writeSkillFileAtomic(directory, relativePath, []byte(newString), true); err != nil {
-			return "", "", err
-		}
-		if err := s.reloadEditedSkill(name, editableRoot); err != nil {
-			_ = directory.Remove(relativePath)
+		if err := commit(func() error {
+			if err := ensureSkillEditParent(directory, filepath.Dir(relativePath)); err != nil {
+				return err
+			}
+			if err := writeSkillFileAtomic(directory, relativePath, []byte(newString), true); err != nil {
+				return err
+			}
+			if err := validateCompatibilitySkillDraftResources(directory); err != nil {
+				if rollbackErr := directory.Remove(relativePath); rollbackErr != nil {
+					return skillValidationError("draft_rollback_failed", "Skill draft resource failed safety checks and could not be rolled back", errors.Join(err, rollbackErr))
+				}
+				return err
+			}
+			return nil
+		}); err != nil {
 			return "", "", err
 		}
 		return "created", target, nil
@@ -480,6 +431,10 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 		if errors.Is(err, os.ErrNotExist) {
 			return "", "", fmt.Errorf("file '%s' does not exist in '%s' - use empty old_string to create it", relativePath, name)
 		}
+		return "", "", err
+	}
+	if err := validateCompatibilitySkillResourceIdentity(source); err != nil {
+		_ = source.Close()
 		return "", "", err
 	}
 	raw, readErr := io.ReadAll(io.LimitReader(source, maxSkillArchiveBytes+1))
@@ -502,12 +457,16 @@ func (s *Server) editCompatibilitySkillFile(name, relativePath, oldString, newSt
 	if len(updated) > maxSkillArchiveBytes {
 		return "", "", fmt.Errorf("skill file exceeds %d bytes", maxSkillArchiveBytes)
 	}
-	if err := writeSkillFileAtomic(directory, relativePath, []byte(updated), false); err != nil {
+	if err := commit(func() error {
+		if err := writeSkillFileAtomic(directory, relativePath, []byte(updated), false); err != nil {
+			return err
+		}
+		if err := validateCompatibilitySkillDraftResources(directory); err != nil {
+			return errors.Join(err, writeSkillFileAtomic(directory, relativePath, raw, false))
+		}
+		return nil
+	}); err != nil {
 		return "", "", err
-	}
-	if err := s.reloadEditedSkill(name, editableRoot); err != nil {
-		rollbackErr := writeSkillFileAtomic(directory, relativePath, raw, false)
-		return "", "", errors.Join(err, rollbackErr)
 	}
 	return "edited", target, nil
 }
@@ -532,18 +491,4 @@ func (s *Server) compatibilityEditableSkillRoot(skill skills.Skill) (string, err
 		return "", errors.New("writable skill root is not a verified regular directory")
 	}
 	return root, nil
-}
-
-func (s *Server) reloadEditedSkill(name, root string) error {
-	reloaded := skills.Load([]string{root})
-	if loadErrors := reloaded.LoadErrors(); len(loadErrors) > 0 {
-		return fmt.Errorf("edited skill is invalid: %s", loadErrors[0].Err)
-	}
-	for _, skill := range reloaded.Skills() {
-		if strings.EqualFold(skill.Name, name) {
-			s.skillCatalog.UpsertSkill(skill)
-			return nil
-		}
-	}
-	return fmt.Errorf("edited skill %q no longer has a valid SKILL.md", name)
 }

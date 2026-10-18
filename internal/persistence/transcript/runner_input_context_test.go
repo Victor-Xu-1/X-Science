@@ -3,6 +3,7 @@ package transcript
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 )
@@ -100,6 +101,99 @@ func TestClaimedRunnerInputDataSurvivesControlResume(t *testing.T) {
 		t.Fatalf("resume=%+v err=%v", resumed, err)
 	}
 	assertClaimedComposerData(t, repo, resumed.Claim, true)
+}
+
+func TestClaimedRunnerInputContextKeepsExactEventWhenAnotherSkillSaveIsQueued(t *testing.T) {
+	for _, legacy := range []bool{false, true} {
+		t.Run(map[bool]string{false: "canonical", true: "frame-reference"}[legacy], func(t *testing.T) {
+			repo, _, stream, previous := claimedComposerFixture(t, legacy)
+			if _, _, _, err := repo.FinishRunner(t.Context(), FinishRunnerInput{Claim: previous, ClientMessageID: "previous-finished", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
+				t.Fatal(err)
+			}
+			appendComposerFixtureInput(t, repo, stream, "save-a", map[string]any{"turn_intent": "save-as-skill", "request": "first save"})
+			claimed, err := repo.ClaimRunner(t.Context(), ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "save-a-runner", TTL: time.Minute, ResumeSource: ResumeSourceFresh})
+			if err != nil || !claimed.Claimed {
+				t.Fatalf("claim=%+v err=%v", claimed, err)
+			}
+			first, err := repo.ClaimedRunnerInputContext(t.Context(), claimed.Claim)
+			if err != nil || first == nil || first.ClientMessageID != "save-a" {
+				t.Fatalf("first input=%+v err=%v", first, err)
+			}
+			appendComposerFixtureInput(t, repo, stream, "save-b", map[string]any{"turn_intent": "save-as-skill", "request": "later save must not leak"})
+			after, err := repo.ClaimedRunnerInputContext(t.Context(), claimed.Claim)
+			if err != nil || after == nil || after.EventID != first.EventID || after.PublicationSeq != first.PublicationSeq || after.ClientMessageID != "save-a" || after.InputData["request"] != "first save" {
+				t.Fatalf("later save changed the claimed source: first=%+v after=%+v err=%v", first, after, err)
+			}
+		})
+	}
+}
+
+func TestRunnerInputContextReportsActualAttemptRatherThanNewestQueuedMessage(t *testing.T) {
+	repo, _, stream, claim := claimedComposerFixture(t, false)
+	appendComposerFixtureInput(t, repo, stream, "queued-save", map[string]any{"turn_intent": "save-as-skill"})
+	active, err := repo.ActiveRunnerInputContext(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || active == nil || active.ClientMessageID != "selected" {
+		t.Fatalf("active input=%+v err=%v", active, err)
+	}
+	if _, err := repo.RunnerInputContext(t.Context(), stream.UID, "other-owner", claim.Attempt); !errors.Is(err, ErrOwnerMismatch) {
+		t.Fatalf("cross-owner provenance err=%v", err)
+	}
+	if _, _, _, err := repo.FinishRunner(t.Context(), FinishRunnerInput{Claim: claim, ClientMessageID: "finished-input-context", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	if active, err := repo.ActiveRunnerInputContext(t.Context(), stream.UID, stream.OwnerID); err != nil || active != nil {
+		t.Fatalf("terminal attempt advertised as active: input=%+v err=%v", active, err)
+	}
+	recorded, err := repo.RunnerInputContext(t.Context(), stream.UID, stream.OwnerID, claim.Attempt)
+	if err != nil || recorded == nil || recorded.ClientMessageID != "selected" {
+		t.Fatalf("recorded provenance lost after completion: input=%+v err=%v", recorded, err)
+	}
+	next, err := repo.ClaimRunner(t.Context(), ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "next-save", TTL: time.Minute, ResumeSource: ResumeSourceFresh})
+	if err != nil || !next.Claimed {
+		t.Fatalf("next=%+v err=%v", next, err)
+	}
+	active, err = repo.ActiveRunnerInputContext(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || active == nil || active.ClientMessageID != "queued-save" || active.InputData["turn_intent"] != "save-as-skill" {
+		t.Fatalf("new attempt input=%+v err=%v", active, err)
+	}
+}
+
+func TestRunnerInputContextKeepsHistoricalProvenanceAfterSameBranchContinuation(t *testing.T) {
+	repo, _, stream, claim := claimedComposerFixture(t, false)
+	if _, _, _, err := repo.FinishRunner(t.Context(), FinishRunnerInput{Claim: claim, ClientMessageID: "before-control-finished", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	state, err := repo.GetBranchState(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	control, err := repo.AppendFrameUserEventToBranch(t.Context(), AppendFrameUserEventToBranchInput{
+		AppendFrameUserEventInput: AppendFrameUserEventInput{
+			StreamUID: stream.UID, OwnerID: stream.OwnerID,
+			ClientMessageID: "branch-continue:recorded-control", MessageUUID: "branch-continue:recorded-control",
+			FrameEventID: "frame-branch-continue:" + stream.FrameID + ":" + state.ActiveBranchID + ":recorded-control",
+			Text:         "Save this procedure", InputData: map[string]any{"turn_intent": "save-as-skill"},
+		}, TargetBranchID: state.ActiveBranchID, ExpectedActiveBranchID: state.ActiveBranchID,
+		ExpectedGeneration: state.Generation, ClientMutationID: "recorded-control", RequireIdle: true,
+	})
+	if err != nil || !control.Created || control.BranchGeneration != state.Generation+1 {
+		t.Fatalf("control=%+v err=%v", control, err)
+	}
+	historical, err := repo.RunnerInputContext(t.Context(), stream.UID, stream.OwnerID, claim.Attempt)
+	if err != nil || historical == nil || historical.ClientMessageID != "selected" {
+		t.Fatalf("historical=%+v err=%v", historical, err)
+	}
+	if _, err := repo.ClaimedRunnerInputContext(t.Context(), claim); err == nil {
+		t.Fatal("historical provenance revived a terminated claim")
+	}
+	next, err := repo.ClaimRunner(t.Context(), ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "control-runner", TTL: time.Minute, ResumeSource: ResumeSourceFresh})
+	if err != nil || !next.Claimed {
+		t.Fatalf("next=%+v err=%v", next, err)
+	}
+	current, err := repo.ClaimedRunnerInputContext(t.Context(), next.Claim)
+	if err != nil || current == nil || current.EventID != control.Event.EventID || current.InputData["turn_intent"] != "save-as-skill" {
+		t.Fatalf("current=%+v err=%v", current, err)
+	}
 }
 
 func TestClaimedRunnerInputDataRejectsStaleAuthority(t *testing.T) {

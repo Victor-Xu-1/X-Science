@@ -38,7 +38,8 @@ describe('v1.1 add-to-message menu', () => {
     await renderMenu();
     fireEvent.click(screen.getByRole('button', { name: '添加到消息' }));
     const menu = screen.getByRole('menu', { name: '添加到消息' });
-    expect(menu).toHaveStyle({ minWidth: '210px' });
+    expect(menu).toHaveStyle({ width: 'min(224px, calc(100vw - 24px))' });
+    expect(menu).toHaveClass('conversation-control-menu');
     expect(screen.getByText('添加文件')).toBeInTheDocument();
     expect(screen.getByText('你的文件')).toBeInTheDocument();
     expect(screen.queryByText('查看计划')).not.toBeInTheDocument();
@@ -240,12 +241,39 @@ describe('v1.1 add-to-message menu', () => {
     const reviewItem = screen.getByRole('menuitem', { name: '审阅中...' });
     const saveSkillItem = screen.getByRole('menuitem', { name: '保存为 Skill' });
     expect(reviewItem).toBeDisabled();
-    expect(saveSkillItem).toBeDisabled();
+    expect(saveSkillItem).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByText('专家正在审阅')).not.toBeInTheDocument();
     expect(screen.queryByText('任务空闲后可用')).not.toBeInTheDocument();
     fireEvent.click(reviewItem);
     fireEvent.click(saveSkillItem);
     expect(onRequestReview).not.toHaveBeenCalled();
+    expect(onSaveSkill).not.toHaveBeenCalled();
+  });
+
+  it('labels the actual Skill task as running instead of waiting for an idle task', async () => {
+    const onSaveSkill = vi.fn();
+    await renderWithI18n(
+      <FileAttachButton
+        xScienceV11
+        openFileSelector={vi.fn()}
+        onSaveSkill={onSaveSkill}
+        saveAsSkillDisabled
+        saveAsSkillInFlight
+      />,
+      'zh-CN',
+      { wrapper: MemoryRouter }
+    );
+    fireEvent.click(screen.getByRole('button', { name: '添加到消息' }));
+    const item = screen.getByRole('menuitem', { name: '正在保存为 Skill…' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    expect(item).toHaveAttribute('aria-busy', 'true');
+    expect(item.querySelector('.conversation-control-menu__spinner')).toHaveAttribute('width', '16');
+    fireEvent.mouseEnter(item.parentElement!);
+    await waitFor(() =>
+      expect(screen.getByText('正在将本次任务梳理为 Skill，请在对话中查看真实执行过程和结果。')).toBeVisible()
+    );
+    expect(screen.queryByText('任务空闲时可用')).not.toBeInTheDocument();
+    fireEvent.click(item);
     expect(onSaveSkill).not.toHaveBeenCalled();
   });
 

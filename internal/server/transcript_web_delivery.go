@@ -655,10 +655,12 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 		if userID == "" {
 			return transcriptstore.ErrEventConflict
 		}
-		if err := s.publishWebFrameEvent(frameContext, baseID+":user", "message.userCreated", map[string]any{
+		message := map[string]any{
 			"conversation_id": stream.SessionID, "msg_id": userID, "content": transcriptPayloadText(payload),
 			"position": "right", "status": "finish", "hidden": false, "created_at": createdAt,
-		}); err != nil {
+		}
+		projectConversationSkillControl(message, payload)
+		if err := s.publishWebFrameEvent(frameContext, baseID+":user", "message.userCreated", message); err != nil {
 			return err
 		}
 		if err := s.publishWebMessageStream(frameContext, baseID+":start", map[string]any{

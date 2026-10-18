@@ -1,6 +1,7 @@
 import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
@@ -64,6 +65,7 @@ describe('GuidActionRow attachment actions', () => {
     const onSelectProjectFiles = vi.fn();
     const onSelectSkill = vi.fn();
     const onSelectMcpServer = vi.fn();
+    const onSend = vi.fn();
     await renderWithI18n(
       <GuidActionRow
         files={[]}
@@ -79,7 +81,7 @@ describe('GuidActionRow attachment actions', () => {
         modelSelectorNode={<span>model</span>}
         loading={false}
         isButtonDisabled
-        onSend={vi.fn()}
+        onSend={onSend}
       />,
       'en-US',
       { wrapper: MemoryRouter }
@@ -99,7 +101,16 @@ describe('GuidActionRow attachment actions', () => {
     expect(projectFilesItem).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'View plan' })).toBeDisabled();
     expect(screen.getByRole('menuitem', { name: 'Review findings' })).toBeDisabled();
-    expect(screen.getByRole('menuitem', { name: 'Save as Skill' })).toBeDisabled();
+    const saveSkillItem = screen.getByRole('menuitem', { name: 'Save as Skill' });
+    // Unavailable Skill actions stay keyboard-focusable for their explanatory
+    // tooltip; aria-disabled and the shared click guard own non-activation.
+    expect(saveSkillItem).toHaveAttribute('aria-disabled', 'true');
+    expect(saveSkillItem).toHaveAttribute('tabindex', '0');
+    fireEvent.click(saveSkillItem);
+    saveSkillItem.focus();
+    await userEvent.setup().keyboard('{Enter} ');
+    expect(menu).toBeInTheDocument();
+    expect(onSend).not.toHaveBeenCalled();
     expect(screen.queryByText('Upload from device')).not.toBeInTheDocument();
 
     fireEvent.click(projectFilesItem);
