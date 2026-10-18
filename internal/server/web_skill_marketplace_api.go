@@ -114,127 +114,26 @@ func (s *Server) handleWebSkillMarketplaceImport(w http.ResponseWriter, r *http.
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	var input struct {
-		Repo    string   `json:"repo"`
-		SHA     string   `json:"sha"`
-		Skills  []string `json:"skills"`
-		License *string  `json:"license"`
-	}
+	var input skillMarketplaceImportInput
 	if err := decodeAgentCompatJSON(r, &input); err != nil {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid marketplace import request: "+err.Error())
 		return
 	}
-	repository, err := parseGitHubSkillRepository(input.Repo)
+	result, err := s.importMarketplaceSkills(r.Context(), compatAgentUserID(r), input, immediateSkillDraftCommit)
 	if err != nil {
-		writeV11Detail(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	input.SHA = strings.ToLower(strings.TrimSpace(input.SHA))
-	if !githubCommitPattern.MatchString(input.SHA) {
-		writeV11Detail(w, http.StatusBadRequest, "sha must be a full 40-character Git commit")
-		return
-	}
-	selected := normalizedSkillNameSet(input.Skills)
-	if len(selected) == 0 || len(selected) > maxMarketplaceSkills {
-		writeV11Detail(w, http.StatusBadRequest, "between 1 and 100 skills must be selected")
-		return
-	}
-	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-	defer cancel()
-	resolved, err := s.resolveGitHubSkillCommit(ctx, repository, input.SHA)
-	if err != nil || !strings.EqualFold(resolved, input.SHA) {
-		writeV11Detail(w, http.StatusConflict, "the selected Git commit could not be verified")
-		return
-	}
-	verifiedLicense, licenseErr := s.resolveGitHubSkillLicense(ctx, repository)
-	if licenseErr != nil {
-		verifiedLicense = nil
-	}
-	items, cleanup, err := s.downloadGitHubSkillRepository(ctx, repository, input.SHA)
-	if cleanup != nil {
-		defer cleanup()
-	}
-	if err != nil {
-		writeV11Detail(w, http.StatusBadGateway, err.Error())
-		return
-	}
-	byName := make(map[string]skills.Skill, len(items))
-	for _, skill := range items {
-		key := strings.ToLower(skill.Name)
-		if _, duplicate := byName[key]; duplicate {
-			writeV11Detail(w, http.StatusBadRequest, "repository contains duplicate skill names")
-			return
+		status := http.StatusInternalServerError
+		var failure *skillMarketplaceImportError
+		if errors.As(err, &failure) {
+			status = failure.status
 		}
-		byName[key] = skill
-	}
-	for name := range selected {
-		if _, found := byName[name]; !found {
-			writeV11Detail(w, http.StatusBadRequest, "selected skill is absent from the pinned repository: "+name)
-			return
-		}
-	}
-
-	operationID := uuid.NewString()
-	imported := make([]string, 0, len(selected))
-	skipped := make([]map[string]any, 0)
-	history := make([]webSkillImportHistoryEntry, 0, len(selected))
-	hashes := map[string]string{}
-	s.skillMutationMu.Lock()
-	for _, skill := range items {
-		if _, wanted := selected[strings.ToLower(skill.Name)]; !wanted {
-			continue
-		}
-		raw, importErr := workspaceSkillArchive(skill)
-		if importErr == nil {
-			_, importErr = s.importSkillBundle(skill.Name+".zip", "", false, raw)
-		}
-		if importErr != nil {
-			skipped = append(skipped, map[string]any{"name": skill.Name, "reason": importErr.Error()})
-			history = append(history, newWebSkillImportHistory(
-				operationID, repository.Canonical(), repository.Canonical(), skill.Name, skill.Name, "failed", "IMPORT_FAILED",
-			))
-			continue
-		}
-		installedRoot := filepath.Join(s.fileRoot, "skills", skill.Name)
-		hash, hashErr := webSkillDirectoryHash(installedRoot)
-		if hashErr != nil {
-			_ = os.RemoveAll(installedRoot)
-			s.skillCatalog.RemoveSkill(skill.Name)
-			skipped = append(skipped, map[string]any{"name": skill.Name, "reason": "installed skill verification failed"})
-			continue
-		}
-		imported = append(imported, skill.Name)
-		hashes[skill.Name] = hash
-		history = append(history, newWebSkillImportHistory(
-			operationID, repository.Canonical(), repository.Canonical(), skill.Name, skill.Name, "imported", "",
-		))
-	}
-	s.skillMutationMu.Unlock()
-	if len(imported) == 0 {
-		_ = s.appendWebSkillImportHistory(compatAgentUserID(r), history...)
-		writeWorkspaceJSON(w, http.StatusConflict, map[string]any{
-			"imported": []string{}, "skipped": skipped, "slug": nil, "sha": nil,
-		})
+		writeV11Detail(w, status, err.Error())
 		return
 	}
-	sort.Strings(imported)
-	license := normalizeMarketplaceLicense(verifiedLicense)
-	source := webSkillMarketplaceSource{
-		Slug: repository.Slug(), Repo: repository.Canonical(), SHA: input.SHA, License: license,
-		Skills: imported, ImportedAt: time.Now().UTC().Format(time.RFC3339Nano), Removable: true, Hashes: hashes,
+	status := http.StatusCreated
+	if len(result.imported) == 0 {
+		status = http.StatusConflict
 	}
-	if err := s.upsertWebSkillMarketplaceSource(compatAgentUserID(r), source); err != nil {
-		s.rollbackMarketplaceImports(imported)
-		writeV11Detail(w, http.StatusInternalServerError, "marketplace source could not be persisted")
-		return
-	}
-	if err := s.appendWebSkillImportHistory(compatAgentUserID(r), history...); err != nil {
-		writeV11Detail(w, http.StatusInternalServerError, "marketplace import completed but audit history could not be persisted")
-		return
-	}
-	writeJSON(w, http.StatusCreated, map[string]any{
-		"imported": imported, "skipped": skipped, "slug": source.Slug, "sha": source.SHA,
-	})
+	writeJSON(w, status, result.projection())
 }
 
 func (s *Server) handleWebSkillMarketplaceSources(w http.ResponseWriter, r *http.Request) {
@@ -515,26 +414,15 @@ func (s *Server) saveWebSkillMarketplaceSources(userID string, sources []webSkil
 	return err
 }
 
-func (s *Server) upsertWebSkillMarketplaceSource(userID string, source webSkillMarketplaceSource) error {
-	sources, err := s.loadWebSkillMarketplaceSources(userID)
-	if err != nil {
-		return err
-	}
-	next := make([]webSkillMarketplaceSource, 0, len(sources)+1)
-	for _, existing := range sources {
-		if existing.Slug != source.Slug {
-			next = append(next, existing)
-		}
-	}
-	next = append(next, source)
-	sort.Slice(next, func(i, j int) bool { return next[i].Slug < next[j].Slug })
-	return s.saveWebSkillMarketplaceSources(userID, next)
-}
-
 func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 	if s == nil || s.workspaceStore == nil {
 		return errors.New("workspace store is not configured")
 	}
+	// Read provenance and verify the actual directories only after joining
+	// the same publication lock as installers. Pre-lock hashes can describe
+	// a directory that another import has already replaced.
+	s.skillMutationMu.Lock()
+	defer s.skillMutationMu.Unlock()
 	sources, err := s.loadWebSkillMarketplaceSources(userID)
 	if err != nil {
 		return err
@@ -572,8 +460,6 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 		}
 	}
 
-	s.skillMutationMu.Lock()
-	defer s.skillMutationMu.Unlock()
 	quarantine := filepath.Join(s.fileRoot, "skills", ".marketplace-remove-"+uuid.NewString())
 	if err := os.Mkdir(quarantine, 0o700); err != nil {
 		return err
@@ -604,15 +490,6 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 		return fmt.Errorf("marketplace source was removed but quarantine cleanup failed: %w", err)
 	}
 	return nil
-}
-
-func (s *Server) rollbackMarketplaceImports(names []string) {
-	s.skillMutationMu.Lock()
-	defer s.skillMutationMu.Unlock()
-	for _, name := range names {
-		_ = os.RemoveAll(filepath.Join(s.fileRoot, "skills", name))
-		s.skillCatalog.RemoveSkill(name)
-	}
 }
 
 func webSkillDirectoryHash(root string) (string, error) {

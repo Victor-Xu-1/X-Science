@@ -109,16 +109,16 @@ func managedSkillDraftPath(path, fileRoot string) bool {
 	return regularDraftFile(filepath.Join(root, parts[0], compatibilitySkillDraftMarker))
 }
 
-func withoutManagedSkillDrafts(catalog *skills.Catalog, fileRoot string) *skills.Catalog {
+func withoutUnpublishedSkills(catalog *skills.Catalog, fileRoot string) *skills.Catalog {
 	filtered := skills.NewCatalog()
 	for _, skill := range catalog.Skills() {
-		if !strings.HasPrefix(skill.Path, "builtin:") && managedSkillDraftPath(skill.Path, fileRoot) {
+		if !strings.HasPrefix(skill.Path, "builtin:") && unpublishedManagedSkillPath(skill.Path, fileRoot) {
 			continue
 		}
 		filtered.AddSkill(skill)
 	}
 	for _, failure := range catalog.LoadErrors() {
-		if !managedSkillDraftPath(failure.Path, fileRoot) {
+		if !unpublishedManagedSkillPath(failure.Path, fileRoot) {
 			filtered.AddLoadError(failure.Path, errors.New(failure.Err))
 		}
 	}

@@ -710,6 +710,11 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 	if err != nil {
 		return nil, err
 	}
+	for _, composed := range composedSkills {
+		if unpublishedManagedSkillPath(composed.Path, s.fileRoot) {
+			return nil, fmt.Errorf("Skill %s has not completed publication", composed.Name)
+		}
+	}
 	effectiveSkills := append([]skills.Skill(nil), composedSkills...)
 	effectiveSkill := effectiveSkills[len(effectiveSkills)-1]
 	filter := strings.TrimSpace(stringValue(input["filter"]))

@@ -19,7 +19,7 @@ func (s *Server) kernelSkillMutationCommit(ctx context.Context, bound kernelHost
 		if _, err := s.validateKernelHostIdentity(ctx, bound.access); err != nil {
 			return err
 		}
-		return s.transcriptStore.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		outcome, err := s.transcriptStore.RunImmediateWithOutcome(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
@@ -34,5 +34,9 @@ func (s *Server) kernelSkillMutationCommit(ctx context.Context, bound kernelHost
 			// A different runner claim cannot be admitted between check and write.
 			return commit()
 		})
+		if err != nil && outcome.CommitAttempted {
+			return kernelruntime.NewHostCallError("outcome_unknown", "Skill publication completed but the execution transaction acknowledgement is uncertain; inspect installed Skills before retrying")
+		}
+		return err
 	}, nil
 }

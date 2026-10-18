@@ -13,12 +13,9 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
-
-	"x-science/internal/skills"
 )
 
 const maxSkillImportRequestBytes = maxSkillArchiveBytes + (1 << 20)
@@ -80,25 +77,25 @@ func (s *Server) handleSkillBundleImport(w http.ResponseWriter, r *http.Request)
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": fmt.Sprintf("skill bundle must be between 1 and %d bytes", maxSkillArchiveBytes)})
 		return
 	}
-	result, err := s.importSkillBundle(header.Filename, strings.TrimSpace(r.FormValue("name")), parseImportReplace(r.FormValue("replace")), raw)
+	var record func(skillImportResult) error
+	if compatibility {
+		record = func(result skillImportResult) error {
+			entry := newWebSkillImportHistory(uuid.NewString(), "File upload", "", header.Filename, result.Name, "imported", "")
+			entry.ActualBytes = int64(len(raw))
+			return s.recordSkillImports(compatAgentUserID(r), nil, []webSkillImportHistoryEntry{entry})
+		}
+	}
+	result, err := s.importSkillBundleWithRecord(header.Filename, strings.TrimSpace(r.FormValue("name")), parseImportReplace(r.FormValue("replace")), raw, record)
 	if err != nil {
 		status := http.StatusBadRequest
 		if errors.Is(err, os.ErrExist) {
 			status = http.StatusConflict
 		}
+		if errors.Is(err, errSkillImportMetadata) {
+			status = http.StatusInternalServerError
+		}
 		writeWorkspaceJSON(w, status, map[string]any{"ok": false, "error": err.Error()})
 		return
-	}
-	if compatibility {
-		operationID := uuid.NewString()
-		entry := newWebSkillImportHistory(operationID, "File upload", "", header.Filename, result.Name, "imported", "")
-		entry.ActualBytes = int64(len(raw))
-		if err := s.appendWebSkillImportHistory(compatAgentUserID(r), entry); err != nil {
-			writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{
-				"ok": false, "error": "skill imported but import history could not be persisted",
-			})
-			return
-		}
 	}
 	status := http.StatusOK
 	if compatibility {
@@ -127,38 +124,56 @@ func (s *Server) handleWebSkillPathImport(w http.ResponseWriter, r *http.Request
 		writeV11Detail(w, webSkillPathStatus(err), err.Error())
 		return
 	}
-	s.skillMutationMu.Lock()
-	defer s.skillMutationMu.Unlock()
 	operationID := uuid.NewString()
-	imported := make([]string, 0, len(items))
+	prepared := make([]*preparedSkillImport, 0, len(items))
+	defer func() {
+		for _, item := range prepared {
+			item.cleanup()
+		}
+	}()
 	failed := make([]map[string]any, 0)
 	history := make([]webSkillImportHistoryEntry, 0, len(items))
-	for _, skill := range items {
-		raw, archiveErr := workspaceSkillArchive(skill)
-		if archiveErr == nil {
-			_, archiveErr = s.importSkillBundle(skill.Name+".zip", "", input.Replace, raw)
+	addFailure := func(name, path string, err error) {
+		code := "IMPORT_FAILED"
+		if errors.Is(err, os.ErrExist) {
+			code = "ALREADY_EXISTS"
 		}
-		if archiveErr != nil {
-			code := "IMPORT_FAILED"
-			if errors.Is(archiveErr, os.ErrExist) {
-				code = "ALREADY_EXISTS"
-			}
-			failed = append(failed, map[string]any{
-				"source_name": skill.Name, "code": code, "error_path": skill.Path,
-			})
-			history = append(history, newWebSkillImportHistory(
-				operationID, filepath.Base(canonical), canonical, skill.Name, skill.Name, "failed", code,
-			))
+		failed = append(failed, map[string]any{"source_name": name, "code": code, "error_path": path})
+		history = append(history, newWebSkillImportHistory(operationID, filepath.Base(canonical), canonical, name, name, "failed", code))
+	}
+	for _, skill := range items {
+		raw, err := workspaceSkillArchive(skill)
+		var item *preparedSkillImport
+		if err == nil {
+			item, err = s.prepareSkillBundle(skill.Name+".zip", "", input.Replace, raw)
+		}
+		if err != nil {
+			addFailure(skill.Name, skill.Path, err)
 			continue
 		}
-		imported = append(imported, skill.Name)
-		history = append(history, newWebSkillImportHistory(
-			operationID, filepath.Base(canonical), canonical, skill.Name, skill.Name, "imported", "",
-		))
+		prepared = append(prepared, item)
 	}
-	if err := s.appendWebSkillImportHistory(compatAgentUserID(r), history...); err != nil {
-		writeV11Detail(w, http.StatusInternalServerError, "skill import history could not be persisted")
+	results, _, err := s.publishPreparedSkillImports(prepared, immediateSkillDraftCommit, func(results []skillImportResult, conflicts []skillImportFailure) error {
+		for _, conflict := range conflicts {
+			for _, skill := range items {
+				if strings.EqualFold(skill.Name, conflict.name) {
+					addFailure(conflict.name, skill.Path, conflict.err)
+					break
+				}
+			}
+		}
+		for _, result := range results {
+			history = append(history, newWebSkillImportHistory(operationID, filepath.Base(canonical), canonical, result.Name, result.Name, "imported", ""))
+		}
+		return s.recordSkillImports(compatAgentUserID(r), nil, history)
+	})
+	if err != nil {
+		writeV11Detail(w, http.StatusInternalServerError, "skill import could not be committed: "+err.Error())
 		return
+	}
+	imported := make([]string, 0, len(results))
+	for _, result := range results {
+		imported = append(imported, result.Name)
 	}
 	if len(imported) == 0 {
 		writeWorkspaceJSON(w, http.StatusConflict, map[string]any{
@@ -193,113 +208,6 @@ func listImportedSkillFiles(root string) ([]string, error) {
 	}
 	sort.Strings(files)
 	return files, nil
-}
-
-func (s *Server) importSkillBundle(filename, requestedName string, replace bool, raw []byte) (skillImportResult, error) {
-	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(filename)))
-	if extension != ".zip" && extension != ".skill" && extension != ".md" && extension != ".markdown" {
-		return skillImportResult{}, errors.New("skill bundle must use .zip, .skill, .md, or .markdown")
-	}
-	installRoot := filepath.Join(s.fileRoot, "skills")
-	if err := ensurePrivateDirectoryForImport(installRoot); err != nil {
-		return skillImportResult{}, fmt.Errorf("prepare skill directory: %w", err)
-	}
-	staging, err := os.MkdirTemp(installRoot, ".skill-import-")
-	if err != nil {
-		return skillImportResult{}, fmt.Errorf("create skill staging directory: %w", err)
-	}
-	cleanupStaging := true
-	defer func() {
-		if cleanupStaging {
-			_ = os.RemoveAll(staging)
-		}
-	}()
-
-	isArchive := extension == ".zip" || (extension == ".skill" && len(raw) >= 4 && bytes.Equal(raw[:2], []byte("PK")))
-	if isArchive {
-		if err := extractSkillArchive(staging, raw); err != nil {
-			return skillImportResult{}, err
-		}
-	} else {
-		if !utf8.Valid(raw) || bytes.IndexByte(raw, 0) >= 0 {
-			return skillImportResult{}, errors.New("markdown skill is not valid UTF-8 text")
-		}
-		if err := os.WriteFile(filepath.Join(staging, "SKILL.md"), raw, 0o600); err != nil {
-			return skillImportResult{}, fmt.Errorf("stage markdown skill: %w", err)
-		}
-	}
-
-	loaded := skills.Load([]string{staging}, runtimeSkillLoadOptions())
-	if loadErrors := loaded.LoadErrors(); len(loadErrors) > 0 {
-		return skillImportResult{}, fmt.Errorf("invalid skill bundle: %s", loadErrors[0].Err)
-	}
-	items := loaded.Skills()
-	if len(items) != 1 {
-		return skillImportResult{}, fmt.Errorf("skill bundle must contain exactly one SKILL.md, found %d", len(items))
-	}
-	skill := items[0]
-	manifest, err := os.ReadFile(skill.Path)
-	if err != nil {
-		return skillImportResult{}, fmt.Errorf("read staged SKILL.md: %w", err)
-	}
-	fallbackName := strings.TrimSuffix(filepath.Base(filename), filepath.Ext(filename))
-	if requestedName != "" {
-		fallbackName = requestedName
-	}
-	if !skillManifestHasName(manifest) {
-		skill.Name = fallbackName
-	}
-	skill.Name = strings.TrimSpace(skill.Name)
-	if !importedSkillNamePattern.MatchString(skill.Name) || skill.Name == "." || skill.Name == ".." {
-		return skillImportResult{}, fmt.Errorf("invalid imported skill name %q", skill.Name)
-	}
-	if existingSkill, found := findCatalogSkill(s.skillCatalog, skill.Name); found {
-		existingRoot := filepath.Clean(filepath.Dir(existingSkill.Path))
-		writableRoot := filepath.Clean(filepath.Join(installRoot, skill.Name))
-		if strings.HasPrefix(existingSkill.Path, "builtin:") || compatibilitySkillSource(existingSkill) == "x_science_llm" {
-			return skillImportResult{}, fmt.Errorf("%w: skill %q conflicts with a bundled read-only catalog entry", os.ErrExist, skill.Name)
-		}
-		if sameCleanPath(existingRoot, writableRoot) && !replace {
-			return skillImportResult{}, fmt.Errorf("%w: skill %q is already installed", os.ErrExist, skill.Name)
-		}
-	}
-
-	sourceRoot := filepath.Dir(skill.Path)
-	files, err := listImportedSkillFiles(sourceRoot)
-	if err != nil {
-		return skillImportResult{}, err
-	}
-	var description *string
-	if skillManifestHasDescription(manifest) {
-		description = &skill.Description
-	}
-	destinationName, existing, err := findCaseInsensitiveSkillDestination(installRoot, skill.Name)
-	if err != nil {
-		return skillImportResult{}, err
-	}
-	if destinationName == "" {
-		destinationName = skill.Name
-	}
-	destination := filepath.Join(installRoot, destinationName)
-	if existing && !replace {
-		return skillImportResult{}, fmt.Errorf("%w: skill %q is already installed", os.ErrExist, destinationName)
-	}
-	if err := installSkillDirectoryAtomic(sourceRoot, destination, existing); err != nil {
-		return skillImportResult{}, err
-	}
-	if sourceRoot == staging {
-		cleanupStaging = false
-	}
-	relativeManifest, err := filepath.Rel(sourceRoot, skill.Path)
-	if err != nil || relativeManifest == "." || strings.HasPrefix(relativeManifest, ".."+string(filepath.Separator)) {
-		return skillImportResult{}, errors.New("staged skill manifest escaped its source directory")
-	}
-	skill.Name = destinationName
-	skill.Path = filepath.Join(destination, relativeManifest)
-	s.skillCatalog.UpsertSkill(skill)
-	return skillImportResult{
-		Name: skill.Name, InstalledPath: filepath.Join("skills", skill.Name), Files: files, Description: description,
-	}, nil
 }
 
 func extractSkillArchive(staging string, raw []byte) error {
@@ -368,36 +276,6 @@ func extractSkillArchive(staging string, raw []byte) error {
 		if extractedBytes > maxSkillArchiveBytes || written != int64(entry.UncompressedSize64) {
 			return errors.New("skill archive entry size did not match its authenticated bounds")
 		}
-	}
-	return nil
-}
-
-func installSkillDirectoryAtomic(source, destination string, replace bool) error {
-	if !replace {
-		if err := os.Rename(source, destination); err != nil {
-			return fmt.Errorf("install skill atomically: %w", err)
-		}
-		return nil
-	}
-	info, err := os.Lstat(destination)
-	if err != nil {
-		return fmt.Errorf("inspect existing skill: %w", err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return errors.New("existing skill destination is not a regular directory")
-	}
-	backup := destination + ".backup-" + uuid.NewString()
-	if err := os.Rename(destination, backup); err != nil {
-		return fmt.Errorf("stage existing skill replacement: %w", err)
-	}
-	if err := os.Rename(source, destination); err != nil {
-		_ = os.Rename(backup, destination)
-		return fmt.Errorf("install replacement skill atomically: %w", err)
-	}
-	if err := os.RemoveAll(backup); err != nil {
-		removeNewErr := os.RemoveAll(destination)
-		restoreErr := os.Rename(backup, destination)
-		return fmt.Errorf("remove replaced skill backup: %w", errors.Join(err, removeNewErr, restoreErr))
 	}
 	return nil
 }
