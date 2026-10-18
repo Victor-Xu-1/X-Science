@@ -4,21 +4,11 @@ import AppLoader from '@renderer/components/layout/AppLoader';
 import { isSettingsRouteId, settingsRouteLoaders, type SettingsRouteId } from './settingsRouteLoaders';
 import './components/settings.css';
 
-const settingsPages: Record<SettingsRouteId, React.LazyExoticComponent<React.ComponentType>> = {
-  account: React.lazy(settingsRouteLoaders.account),
-  'plans-usage': React.lazy(settingsRouteLoaders['plans-usage']),
-  experts: React.lazy(settingsRouteLoaders.experts),
-  skills: React.lazy(settingsRouteLoaders.skills),
-  tools: React.lazy(settingsRouteLoaders.tools),
-  models: React.lazy(settingsRouteLoaders.models),
-  compute: React.lazy(settingsRouteLoaders.compute),
-  governance: React.lazy(settingsRouteLoaders.governance),
-  network: React.lazy(settingsRouteLoaders.network),
-  environments: React.lazy(settingsRouteLoaders.environments),
-  credentials: React.lazy(settingsRouteLoaders.credentials),
-  storage: React.lazy(settingsRouteLoaders.storage),
-  general: React.lazy(settingsRouteLoaders.general),
-};
+// Derive lazy pages from the one route registry; a new recovery route cannot
+// leave a second manually maintained map behind as an undefined component.
+const settingsPages = Object.fromEntries(
+  Object.entries(settingsRouteLoaders).map(([id, loader]) => [id, React.lazy(loader)])
+) as Record<SettingsRouteId, React.LazyExoticComponent<React.ComponentType>>;
 
 const SettingsRoute: React.FC = () => {
   const { section } = useParams<{ section: string }>();

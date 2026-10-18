@@ -28,6 +28,7 @@ export const settingsRouteLoaders = {
   environments: cachedLoader(() => import('./LibrarySettingsPage')),
   credentials: cachedLoader(() => import('./CredentialsSettings')),
   storage: cachedLoader(() => import('./StorageSettings')),
+  archived: cachedLoader(() => import('./ArchivedSettings')),
   general: cachedLoader(() => import('./GeneralSettings')),
 } as const;
 
@@ -44,6 +45,7 @@ const settingsNavigationOrder: SettingsRouteId[] = [
   'environments',
   'credentials',
   'storage',
+  'archived',
   'general',
 ];
 

@@ -56,6 +56,9 @@ func (s *Server) handleCompatibilityAsideAcceptance(w http.ResponseWriter, r *ht
 }
 
 func writeCompatibilityAsideError(w http.ResponseWriter, err error) {
+	if writeConversationAvailabilityError(w, err) {
+		return
+	}
 	status, code, detail := 0, "", ""
 	switch {
 	case errors.Is(err, workspace.ErrFrameCancellationInputStale):

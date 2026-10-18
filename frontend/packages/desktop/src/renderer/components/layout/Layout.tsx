@@ -13,6 +13,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import ArchiveUndoNotice from '@/renderer/components/chat/ArchiveUndoNotice';
 import { setGlobalNavigate } from '@/renderer/utils/navigation';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
@@ -532,6 +533,7 @@ const Layout: React.FC<{
               }
             >
               <Outlet />
+              <ArchiveUndoNotice />
               {directorySelectionContextHolder}
               <PwaPullToRefresh />
             </ArcoLayout.Content>

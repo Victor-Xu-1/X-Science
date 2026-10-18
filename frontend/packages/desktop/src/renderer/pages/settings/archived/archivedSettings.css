@@ -1,0 +1,100 @@
+.archived-conversations {
+  width: 100%;
+  max-width: 760px;
+}
+.archived-conversations__list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.archived-conversations__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+}
+.archived-conversations__icon {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+.archived-conversations__copy {
+  flex: 1;
+  min-width: 0;
+}
+.archived-conversations__title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--color-text-1);
+}
+.archived-conversations__meta {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-3);
+}
+.archived-conversations__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-2);
+  cursor: pointer;
+}
+.archived-conversations__action:hover,
+.archived-conversations__action:focus-visible {
+  background: var(--color-fill-2);
+  outline: 1px solid var(--color-border-2);
+}
+.archived-conversations__action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.archived-conversations__note {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--color-text-2);
+}
+.archived-conversations__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 16px;
+  border: 1px dashed var(--color-border-2);
+  border-radius: 8px;
+  color: var(--color-text-3);
+  font-size: 13px;
+}
+.archived-conversations__empty p {
+  margin: 0;
+}
+.archived-conversations__more {
+  margin-top: 12px;
+}
+@media (max-width: 480px) {
+  .archived-conversations__row {
+    gap: 8px;
+  }
+}
+@media (pointer: coarse) {
+  .archived-conversations__action {
+    min-height: 44px;
+  }
+}

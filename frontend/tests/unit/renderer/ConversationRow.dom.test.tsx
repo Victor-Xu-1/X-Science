@@ -29,6 +29,61 @@ import ConversationRow, {
 } from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
 
 describe('ConversationRow v1.1 session actions', () => {
+  it('archives the exact idle conversation once and never substitutes Delete or a live-task stop', async () => {
+    const conversation: TChatConversation = {
+      id: 'archive-row',
+      type: 'acp',
+      name: 'Archive target',
+      created_at: 1,
+      modified_at: 1,
+      status: 'finished',
+      extra: { backend: 'xscience', frame_incarnation_id: 'frame-inc-1', presentation_revision: 4 },
+    };
+    const props: ConversationRowProps & { onArchive: (value: TChatConversation) => void; archivePending?: boolean } = {
+      conversation,
+      isGenerating: false,
+      hasCompletionUnread: false,
+      collapsed: false,
+      tooltipEnabled: false,
+      batchMode: false,
+      checked: false,
+      selected: false,
+      menuVisible: true,
+      onToggleChecked: vi.fn(),
+      onConversationPrefetch: vi.fn(),
+      onConversationClick: vi.fn(),
+      onOpenMenu: vi.fn(),
+      onMenuVisibleChange: vi.fn(),
+      onEditStart: vi.fn(),
+      onMove: vi.fn(),
+      onDelete: vi.fn(),
+      onExport: vi.fn(),
+      onDownloadArtifacts: vi.fn(),
+      onViewNotebook: vi.fn(),
+      onArchive: vi.fn(),
+    };
+    const { rerender } = await renderWithI18n(<ConversationRow {...props} />, 'en-US');
+    const archive = await screen.findByRole('menuitem', { name: 'Archive', exact: true });
+    fireEvent.click(archive);
+    expect(props.onArchive).toHaveBeenCalledExactlyOnceWith(conversation);
+    expect(props.onMenuVisibleChange).toHaveBeenCalledWith('archive-row', false);
+    expect(props.onDelete).not.toHaveBeenCalled();
+    rerender(<ConversationRow {...props} archivePending />);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Archive', exact: true }));
+    expect(props.onArchive).toHaveBeenCalledTimes(1);
+    rerender(<ConversationRow {...props} isGenerating />);
+    const busyArchive = screen.getByRole('menuitem', { name: 'Archive', exact: true });
+    expect(busyArchive).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(busyArchive);
+    expect(props.onArchive).toHaveBeenCalledTimes(1);
+    expect(props.onDelete).not.toHaveBeenCalled();
+    const unavailable = { ...conversation, extra: { ...conversation.extra, presentation_unavailable: true } };
+    rerender(<ConversationRow {...props} conversation={unavailable} />);
+    const unknownArchive = screen.getByRole('menuitem', { name: 'Archive', exact: true });
+    expect(unknownArchive).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(unknownArchive);
+    expect(props.onArchive).toHaveBeenCalledTimes(1);
+  });
   it('exposes one pin action with truthful pending state and the exact row callback', async () => {
     const conversation: TChatConversation = {
       id: 'pin-row',

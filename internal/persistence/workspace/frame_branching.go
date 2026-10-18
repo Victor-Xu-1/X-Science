@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 const (
@@ -94,6 +96,9 @@ func (s *Store) CreateFrameBranch(input CreateFrameBranchInput) (FrameBranchResu
 	}
 	if root.RootFrameID != root.ID {
 		return FrameBranchResult{}, fmt.Errorf("frame %q is not a root frame", input.RootFrameID)
+	}
+	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, root.ID); err != nil {
+		return FrameBranchResult{}, err
 	}
 	source, err := branchFrameByID(ctx, tx, input.SourceFrameID)
 	if err != nil {

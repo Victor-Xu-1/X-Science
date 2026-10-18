@@ -438,6 +438,9 @@ func (e *webConversationRequestError) Error() string { return e.Detail }
 func (e *webConversationRequestError) Unwrap() error { return e.Cause }
 
 func writeWebConversationError(w http.ResponseWriter, err error) {
+	if writeConversationAvailabilityError(w, err) {
+		return
+	}
 	if writeWebMessageIntentError(w, err) {
 		return
 	}

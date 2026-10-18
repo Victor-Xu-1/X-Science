@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import React from 'react';
+import { Archive } from 'lucide-react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
   SettingsTabNavigateProvider,
@@ -89,6 +90,12 @@ export function getBuiltinSettingsNavItems(_isDesktop: boolean, t: TranslateFn):
       label: t('settings.general'),
       icon: <SettingsGeneratedNavIcon id='general' />,
       path: 'general',
+    },
+    archived: {
+      id: 'archived',
+      label: t('conversation.history.archivedSection'),
+      icon: <Archive size={16} strokeWidth={1.8} />,
+      path: 'archived',
     },
   };
 

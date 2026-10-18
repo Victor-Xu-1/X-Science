@@ -28,6 +28,7 @@ vi.mock('@/renderer/pages/settings/settingsRouteLoaders', async () => {
     environments: page('Scientific environments'),
     credentials: page('Credentials'),
     storage: page('Storage'),
+    archived: page('Archived'),
     general: page('General'),
   };
   return {
@@ -45,7 +46,7 @@ const NavigationControls: React.FC = () => {
   const navigate = useNavigate();
   return (
     <>
-      {['tools', 'models', 'compute', 'account', 'plans-usage'].map((section) => (
+      {['tools', 'models', 'compute', 'account', 'plans-usage', 'archived'].map((section) => (
         <button key={section} type='button' onClick={() => void navigate(`/settings/${section}`)}>
           Go {section}
         </button>
@@ -96,6 +97,7 @@ describe('SettingsRoute', () => {
       ['Go compute', 'Compute'],
       ['Go account', 'Account'],
       ['Go plans-usage', 'Plans and usage'],
+      ['Go archived', 'Archived'],
     ]) {
       fireEvent.click(screen.getByRole('button', { name: button }));
       expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument();

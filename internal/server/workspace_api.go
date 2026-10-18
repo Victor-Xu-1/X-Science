@@ -1241,6 +1241,9 @@ func writeWorkspaceJSON(w http.ResponseWriter, status int, payload any) {
 }
 
 func workspaceStatus(err error) int {
+	if errors.Is(err, transcriptstore.ErrConversationArchived) {
+		return http.StatusGone
+	}
 	if errors.Is(err, workspace.ErrMutationIdempotencyConflict) || errors.Is(err, workspace.ErrReadCursorConflict) ||
 		errors.Is(err, transcriptstore.ErrBranchStateStale) {
 		return http.StatusConflict

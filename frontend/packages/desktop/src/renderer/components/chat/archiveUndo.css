@@ -1,0 +1,61 @@
+.conversation-archive-notices {
+  position: fixed;
+  inset-inline-start: 20px;
+  bottom: 20px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 40px));
+}
+.conversation-archive-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  background: var(--workspace-overlay-surface, var(--color-bg-1));
+  color: var(--color-text-1);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 7%);
+  font-size: 12px;
+  line-height: 18px;
+}
+.conversation-archive-notice__text {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.conversation-archive-notice > svg {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+.conversation-archive-notice button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 28px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-text-2);
+  font: inherit;
+  cursor: pointer;
+}
+.conversation-archive-notice button:hover,
+.conversation-archive-notice button:focus-visible {
+  background: var(--color-fill-2);
+  outline: 1px solid var(--color-border-2);
+}
+.conversation-archive-notice button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+@media (pointer: coarse) {
+  .conversation-archive-notice button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
