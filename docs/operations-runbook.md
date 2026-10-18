@@ -1372,6 +1372,29 @@ Never paste the secret vault, environment file, channel tokens, model keys, or u
 
 ### File-tool feedback and structured source inspection
 
+PDF reads inspect a single private snapshot copied from the already-authorized
+source handle. Page metadata, selected-page images, the inline document and
+extracted text use those same bytes. `total_pages` is present only with a
+verified `page_count_status`; an absent host `pdfinfo`, inspection timeout or
+invalid document has an explicit reason and never invents a zero-page bound.
+The optional inspector does not block ordinary readable PDF content.
+
+A selected-page read reports `requested_pages` and `invalid_pages`. A wholly
+out-of-range request returns `pdf_page_out_of_range` as a non-executing
+preflight with the verified bound, not an opaque rendering failure. A mixed
+request preserves valid pages in their requested order as a partial result;
+it neither substitutes a page nor claims full reading/evidence coverage.
+Invalid or encrypted sources have their own typed feedback, not a guessed
+out-of-range diagnosis. Existing size, output, cancellation and authorization
+boundaries remain in force. Text-line cursors remain separate from PDF pages.
+
+PDF 阅读从已授权的打开句柄复制一次私有快照，总页数、所选页图像、原始文档附件
+和提取文本均读取相同字节。只有真实检查成功才返回 `total_pages`；缺少宿主
+`pdfinfo`、检查超时或文档无效时会明确说明原因，不会伪造零页，也不会因可选
+检查器缺失而阻塞原本可读取的内容。完全越界返回带真实上限的非执行预检；部分
+越界保留有效页面并标记部分结果，不替换页码、不冒称完整阅读或完整证据。无效、
+加密文档与越界请求分开反馈，原有大小、取消、权限及文本行游标边界保持不变。
+
 An interrupted agent round returns the completed conversation and tool receipts
 with its original error, not an empty history or a fabricated successful final
 answer. Caller cancellation stops before the next model-request event. Rejected
