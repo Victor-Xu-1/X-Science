@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "2bf96126a51f7a7b6b72b25b7347380b2e3006a93f4199c7661689119eaf4a42",
+  "adaptationFingerprintSHA256": "f8e28809c7f2832c41c9f313b906b121a4baba46a301757d62abc8e949b79d52",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "0c0865267087cb62f2b373361b6f33e50ba69cd5f740593ff7aef47c128aac54",
+  "additionFingerprintSHA256": "ccf4d6126c1f0ad59a431327a68d26bbcdf72f87374357bca3016b373d8f67cd",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 271,
     "adaptedSourceFiles": 788,
     "removedSourceFiles": 295,
-    "addedFiles": 1038
+    "addedFiles": 1053
   },
   "adaptations": [
     {
@@ -519,15 +519,15 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/SiderFooter.tsx",
       "sourceSHA256": "cfdb0eb9e05e1c05a0c8954a76e6079fe791e3b5a9a5aae1e1446e5aa7364805",
-      "targetSHA256": "04dae2bea0cfa7674e88d6a1b2b3b86c603db634c7449aae2effcf0bdb264c7c",
-      "bytes": 9232,
+      "targetSHA256": "f872b1df4aaca97f690e7c9b960d54c95bc0533af2b2e38e91450bdbcf3c8643",
+      "bytes": 9725,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/index.tsx",
       "sourceSHA256": "c4547120c7bd207073f1f7991073e1e60ee281ba74c9053544b2b372666e8f46",
-      "targetSHA256": "e79b5515938d2c0b6438463faeb71952f7e97d92e56495045fed52b6bae02382",
-      "bytes": 8115,
+      "targetSHA256": "e9a6bcbf584ee09988609c96f4e8b4e1af4077c114a3bdf27f1db4dfa89bddf4",
+      "bytes": 8229,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -547,8 +547,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Titlebar/index.tsx",
       "sourceSHA256": "7b153bd44dd2f1ecd46c3153d779ba5fe40294f9b70db169a5ff5355ad57949e",
-      "targetSHA256": "8d8f1fab435e38483f61515d023cb8bbb87476d002f51cba61ed3e66724e8252",
-      "bytes": 16193,
+      "targetSHA256": "e8abcba6f08d4d64dc0c6ccada1e541c032716e7d0c21095accf951d0639fd39",
+      "bytes": 16382,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -2840,8 +2840,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "b3a41d37682c50c8769426fde9164646263c332c7a3ae2ee112411adbadd15ce",
-      "bytes": 266075,
+      "targetSHA256": "ed30b9d6cf7ab9a15341e8a792c697972271f9ad86efa1d01cf21fb3fabd4a25",
+      "bytes": 267751,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2875,8 +2875,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "e71664cc1864299a9276092fbd745c2d912fbfb8386275f4eaf511bb0fde62a9",
-      "bytes": 95251,
+      "targetSHA256": "468436915a65e4f9c5a83cba4d70c6e80a5e101b9cf82bafaf6242df19309491",
+      "bytes": 97268,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2966,8 +2966,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "aea3274c8787b1997836c8a575690029172f3e9b088603a97ddb99e7795a9887",
-      "bytes": 89873,
+      "targetSHA256": "c272260bc69501882043684ef0d4eae6f3977068e4dee832456c8069467f6ad7",
+      "bytes": 91714,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7921,6 +7921,30 @@
       "reason": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority."
     },
     {
+      "path": "packages/desktop/src/renderer/components/notifications/NotificationBell.tsx",
+      "sha256": "07565d65d9be5e70ab8c78bcfa4b0a3d606d2ad6465866fb1f29af396c766b28",
+      "bytes": 2919,
+      "reason": "Expose the source-reference compact message-center trigger from the actual toolbar and account footer using one account-scoped store."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/notifications/NotificationInboxList.tsx",
+      "sha256": "ec7b1144f277376a441d0b53f8014a524ee9c7c3af57bcaf0830f004377712e6",
+      "bytes": 8290,
+      "reason": "Render verified human notifications and exact observed read receipts without consuming agent delivery or approving a task."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/notifications/NotificationInboxOverlay.tsx",
+      "sha256": "a99789f58691bb14df8b924429a6c77cf62d3ac68573e94c49e3cc84605ff4b7",
+      "bytes": 4379,
+      "reason": "Own one compact inbox overlay with keyboard focus, same-click outside dismissal and a transparent mobile sheet."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/notifications/notificationInbox.module.css",
+      "sha256": "1f65362aa0198b41c6b4db0b0e466bfbddaf4edc1ee1789d31a21bcf1d863215",
+      "bytes": 4849,
+      "reason": "Style the source-reference 36-pixel trigger and compact notification panel without adding a black mask."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/XScienceAvatar.tsx",
       "sha256": "5667863f0342ea6873a19e0df5398961ce72214b77e437fa185b513ef89a6508",
       "bytes": 751,
@@ -10177,6 +10201,36 @@
       "reason": "Open the same live Notebook identity from compute controls without replacing artifact preview authority."
     },
     {
+      "path": "packages/desktop/src/renderer/services/notifications/NotificationInboxStore.ts",
+      "sha256": "207fab9003f62729a1f0b07688fc98c889231712568c2c252026e06d3a8845db",
+      "bytes": 6017,
+      "reason": "Own one account-fenced inbox observer, request reservation and retained exact marking retry across both UI entries."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notifications/notificationInboxActions.ts",
+      "sha256": "4c55ecbff639f2e1d2bde5a2ec6c191dfa1b858a5a48872858aa77b2907e1b39",
+      "bytes": 3611,
+      "reason": "Freeze read mutations and verify exact target incarnation before navigation without starting, approving or cancelling execution."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notifications/notificationInboxObservation.ts",
+      "sha256": "da3e2893b8cda1e17084ab2cbd8428a1753e214e865440e3c8c5d5814cae948f",
+      "bytes": 983,
+      "reason": "Invalidate the single human inbox from existing canonical events and reconnect without a competing notification delivery queue."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notifications/notificationInboxService.ts",
+      "sha256": "124e32a62255ee876a3aeda4c1d5a4bcf01174a878f296de0f1b9f2482e980a9",
+      "bytes": 5963,
+      "reason": "Validate the bounded inbox wire contract and use the existing authenticated transport for scoped read and marking requests."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/notifications/notificationInboxTypes.ts",
+      "sha256": "75beb9839d5fab7d6be69b577eb0091285530f1134eeeb6a32fb398ce0b1e627",
+      "bytes": 1243,
+      "reason": "Declare immutable human-inbox snapshot, scope, mutation and explicit incomplete-history state types."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/onboardingCompletionAuthority.ts",
       "sha256": "73295d1e0515ead6c972dc6979642e0973b2da3feae315747feb4ac411de5b91",
       "bytes": 9524,
@@ -12025,6 +12079,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/NotificationInboxEntries.dom.test.tsx",
+      "sha256": "bbc68d02f5b95f67dea2770c0a9fc6d6225c85d1c6cf7d83fcf61e99a118d41f",
+      "bytes": 3471,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInboxEntries.dom.test.tsx."
+    },
+    {
       "path": "tests/unit/renderer/OnboardingModelSetup.dom.test.tsx",
       "sha256": "5c7e11e80096541396f1eb8a3950750f733a17c8afb47eb70fc070eb4954cf08",
       "bytes": 2202,
@@ -13075,6 +13135,18 @@
       "reason": "Verify or support the directly scoped archive and manual Notebook contract in NotebookSessionController.test.ts, without user artifacts or scientific result substitution."
     },
     {
+      "path": "tests/unit/xscience/NotificationInbox.dom.test.tsx",
+      "sha256": "639de3bc80fdf69acd07e79b9e5e34c03b99e00ea0229baa0ac77f8c97052cb0",
+      "bytes": 12002,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInbox.dom.test.tsx."
+    },
+    {
+      "path": "tests/unit/xscience/NotificationInboxStore.test.ts",
+      "sha256": "70b5c27e001461506e47efafa5d9d39e79cb438299a4347c4cf48a986e82c573",
+      "bytes": 6562,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInboxStore.test.ts."
+    },
+    {
       "path": "tests/unit/xscience/OptimizePromptAction.dom.test.tsx",
       "sha256": "6a1adea9f5102eb670f2c1674f410949ef727dbd4fc90065faee65d8ac477cac",
       "bytes": 10100,
@@ -13265,6 +13337,24 @@
       "sha256": "564522f2517237a95f4748545cb0b9aeb389983debc3e1e960d3b5daa239a26e",
       "bytes": 1201,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/notificationInboxDomFixture.ts",
+      "sha256": "7436bf4d0e514dab7436d4a3121f2567c29c49fdd1886bb6fc6e0997e054f4f2",
+      "bytes": 2747,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxDomFixture.ts."
+    },
+    {
+      "path": "tests/unit/xscience/notificationInboxFixtures.ts",
+      "sha256": "804e89d78a9b59a6c8766977ee78b0ef4c72bdbd0686668a841a06378001e21e",
+      "bytes": 1420,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxFixtures.ts."
+    },
+    {
+      "path": "tests/unit/xscience/notificationInboxService.test.ts",
+      "sha256": "4c0453de33a3675885f53f00049f8fafa22cefd8b1e8cd25d4e7c501b61d1f55",
+      "bytes": 3553,
+      "reason": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxService.test.ts."
     },
     {
       "path": "tests/unit/xscience/resumeCommandIntent.test.ts",

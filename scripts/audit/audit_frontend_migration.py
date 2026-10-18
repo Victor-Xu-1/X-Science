@@ -130,6 +130,21 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/notifications/NotificationBell.tsx": "Expose the source-reference compact message-center trigger from the actual toolbar and account footer using one account-scoped store.",
+    "packages/desktop/src/renderer/components/notifications/NotificationInboxList.tsx": "Render verified human notifications and exact observed read receipts without consuming agent delivery or approving a task.",
+    "packages/desktop/src/renderer/components/notifications/NotificationInboxOverlay.tsx": "Own one compact inbox overlay with keyboard focus, same-click outside dismissal and a transparent mobile sheet.",
+    "packages/desktop/src/renderer/components/notifications/notificationInbox.module.css": "Style the source-reference 36-pixel trigger and compact notification panel without adding a black mask.",
+    "packages/desktop/src/renderer/services/notifications/NotificationInboxStore.ts": "Own one account-fenced inbox observer, request reservation and retained exact marking retry across both UI entries.",
+    "packages/desktop/src/renderer/services/notifications/notificationInboxActions.ts": "Freeze read mutations and verify exact target incarnation before navigation without starting, approving or cancelling execution.",
+    "packages/desktop/src/renderer/services/notifications/notificationInboxObservation.ts": "Invalidate the single human inbox from existing canonical events and reconnect without a competing notification delivery queue.",
+    "packages/desktop/src/renderer/services/notifications/notificationInboxService.ts": "Validate the bounded inbox wire contract and use the existing authenticated transport for scoped read and marking requests.",
+    "packages/desktop/src/renderer/services/notifications/notificationInboxTypes.ts": "Declare immutable human-inbox snapshot, scope, mutation and explicit incomplete-history state types.",
+    "tests/unit/renderer/NotificationInboxEntries.dom.test.tsx": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInboxEntries.dom.test.tsx.",
+    "tests/unit/xscience/NotificationInbox.dom.test.tsx": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInbox.dom.test.tsx.",
+    "tests/unit/xscience/NotificationInboxStore.test.ts": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in NotificationInboxStore.test.ts.",
+    "tests/unit/xscience/notificationInboxDomFixture.ts": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxDomFixture.ts.",
+    "tests/unit/xscience/notificationInboxFixtures.ts": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxFixtures.ts.",
+    "tests/unit/xscience/notificationInboxService.test.ts": "Verify or support the directly scoped human-inbox protocol, account isolation, actual entries and interaction behavior in notificationInboxService.test.ts.",
     "packages/desktop/src/renderer/components/chat/ArchiveUndoNotice.tsx": "Render an account-bound archive Undo receipt without a modal or a second conversation mutation authority.",
     "packages/desktop/src/renderer/components/chat/archiveUndo.css": "Style the compact nonmodal archive Undo notice with shared visual tokens.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationArchive.ts": "Bind the real conversation-row archive interaction to the canonical presentation CAS and exact Undo receipt.",
@@ -598,9 +613,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "2bf96126a51f7a7b6b72b25b7347380b2e3006a93f4199c7661689119eaf4a42"
+APPROVED_ADAPTATION_FINGERPRINT = "f8e28809c7f2832c41c9f313b906b121a4baba46a301757d62abc8e949b79d52"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "0c0865267087cb62f2b373361b6f33e50ba69cd5f740593ff7aef47c128aac54"
+APPROVED_ADDITION_FINGERPRINT = "ccf4d6126c1f0ad59a431327a68d26bbcdf72f87374357bca3016b373d8f67cd"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
