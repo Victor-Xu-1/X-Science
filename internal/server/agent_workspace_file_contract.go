@@ -81,7 +81,7 @@ func agentWorkspaceReadFileToolSchema() agentruntime.ToolSchema {
 				"pages": map[string]any{
 					"type": "array", "maxItems": agentWorkspaceReadMaxPages,
 					"items":       map[string]any{"type": "integer", "minimum": 1},
-					"description": "Optional 1-based PDF pages. It cannot be combined with offset or limit.",
+					"description": "Optional 1-based PDF pages. It cannot be combined with offset or limit. The result reports verified total_pages when available, lists invalid_pages without substituting another page, and preserves valid requested pages as a partial result. An unavailable page count is explicit, never zero or an estimated bound.",
 				},
 			},
 			"required": []string{"human_description"},

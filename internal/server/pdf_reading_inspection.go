@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 
@@ -20,16 +18,6 @@ import (
 type pdfReadingCandidateError struct{ reason string }
 
 func (err *pdfReadingCandidateError) Error() string { return err.reason }
-
-// The inspector is a backend-host dependency, not workspace/storage authority.
-// Callers and the existing doctor share this check; neither installs software.
-func pdfReadingInspector() (string, error) {
-	path, err := exec.LookPath("pdfinfo")
-	if err != nil {
-		return "", &pdfReadingCandidateError{"inspection_unavailable"}
-	}
-	return path, nil
-}
 
 func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project string, source transcriptstore.PDFReadingSource) (transcriptstore.PDFReadingBinding, error) {
 	var binding transcriptstore.PDFReadingBinding
@@ -64,47 +52,35 @@ func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project str
 	if !bytes.HasPrefix(content, []byte("%PDF-")) {
 		return binding, &pdfReadingCandidateError{"not_pdf"}
 	}
-	inspector, err := pdfReadingInspector()
-	if err != nil {
-		return binding, err
-	}
 	path, cleanup, err := stageAgentWorkspacePDFSource(ctx, bytes.NewReader(content), version.SizeBytes)
 	if err != nil {
 		return binding, err
 	}
 	defer cleanup()
-	bounded, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-	command := exec.CommandContext(bounded, inspector, path)
-	stdout, stderr := &agentWorkspaceBoundedCapture{limit: 16 << 10}, &agentWorkspaceBoundedCapture{limit: 4 << 10}
-	command.Stdout, command.Stderr = stdout, stderr
-	if err = command.Run(); err != nil {
-		if bounded.Err() != nil {
-			return binding, bounded.Err()
+	inspection, err := inspectStagedPDFDocument(ctx, path)
+	if err != nil {
+		if cause := context.Cause(ctx); cause != nil {
+			return binding, cause
 		}
-		var exit *exec.ExitError
-		if errors.As(err, &exit) {
-			return binding, &pdfReadingCandidateError{"invalid_pdf"}
+		var unavailable *pdfDocumentInspectionError
+		if !errors.As(err, &unavailable) {
+			return binding, err
 		}
-		return binding, err
-	}
-	pages := 0
-	for _, line := range strings.Split(stdout.String(), "\n") {
-		key, value, found := strings.Cut(line, ":")
-		if found && strings.TrimSpace(key) == "Pages" {
-			pages, err = strconv.Atoi(strings.TrimSpace(value))
-			if err != nil {
-				return binding, &pdfReadingCandidateError{"inspection_unavailable"}
-			}
+		reason := unavailable.reason
+		if reason == "encrypted_pdf" {
+			reason = "invalid_pdf"
+		} else if reason == "inspection_timeout" {
+			reason = "inspection_unavailable"
 		}
+		return binding, &pdfReadingCandidateError{reason}
 	}
-	if pages <= 0 || stdout.truncated {
-		return binding, &pdfReadingCandidateError{"inspection_unavailable"}
+	if inspection.Encrypted {
+		return binding, &pdfReadingCandidateError{"invalid_pdf"}
 	}
-	if pages == 1 {
+	if inspection.PageCount == 1 {
 		return binding, &pdfReadingCandidateError{"single_page"}
 	}
 	return transcriptstore.PDFReadingBinding{BindingID: "inspected", SourceKind: "artifact-version", ArtifactID: artifact.ID, VersionID: version.ID,
 		Name: artifact.Name, MIMEType: "application/pdf", SizeBytes: version.SizeBytes, Checksum: strings.ToLower(version.ContentSHA256),
-		PageCount: pages, LinkedAt: time.Now().UTC().Format(time.RFC3339Nano)}, nil
+		PageCount: inspection.PageCount, LinkedAt: time.Now().UTC().Format(time.RFC3339Nano)}, nil
 }

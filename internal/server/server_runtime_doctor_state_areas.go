@@ -303,7 +303,7 @@ func (s *Server) workspaceWorktreeDoctorArea() (string, string, map[string]any, 
 	return status, message, evidence, next
 }
 func (s *Server) artifactSystemDoctorArea() (string, string, map[string]any, []string) {
-	_, pdfInspectorErr := pdfReadingInspector()
+	_, pdfInspectorErr := pdfDocumentInspector()
 	hasPDFReadingInspector := pdfInspectorErr == nil
 	hasRegister := hasRegisteredTool(s.tools, "artifact_register")
 	hasList := hasRegisteredTool(s.tools, "artifact_list")

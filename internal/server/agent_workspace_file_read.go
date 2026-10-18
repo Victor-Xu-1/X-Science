@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 	"x-science/internal/agentruntime"
 )
@@ -228,7 +229,7 @@ func agentWorkspacePageValues(raw any) []int {
 
 func renderAgentWorkspacePDFPages(
 	ctx context.Context,
-	reader io.Reader,
+	inputPath string,
 	filename string,
 	contentType string,
 	size int64,
@@ -253,21 +254,6 @@ func renderAgentWorkspacePDFPages(
 	if err := os.Chmod(temporaryRoot, 0o700); err != nil {
 		return nil, errors.New("read_file could not secure PDF inspection")
 	}
-	inputPath := filepath.Join(temporaryRoot, "source.pdf")
-	inputFile, err := os.OpenFile(inputPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
-	if err != nil {
-		return nil, errors.New("read_file could not prepare PDF inspection")
-	}
-	written, copyErr := copyAgentWorkspaceBounded(ctx, inputFile, reader, agentWorkspacePDFMaxBytes+1)
-	closeErr := inputFile.Close()
-	if copyErr != nil || closeErr != nil {
-		return nil, errors.New("read_file could not stage PDF inspection")
-	}
-	if written > agentWorkspacePDFMaxBytes {
-		return agentWorkspaceReadPolicySkip(filename, contentType, size,
-			"read_file PDF exceeds the 500 MiB source limit",
-			"Create a smaller PDF before selecting pages for visual inspection."), nil
-	}
 	parts := make([]agentruntime.ContentPart, 0, len(pages))
 	total := int64(0)
 	for index, page := range pages {
@@ -278,8 +264,13 @@ func renderAgentWorkspacePDFPages(
 		command := exec.CommandContext(ctx, renderer,
 			"-f", strconv.Itoa(page), "-l", strconv.Itoa(page), "-singlefile", "-png", "-r", "144", inputPath, prefix,
 		)
-		if output, renderErr := command.CombinedOutput(); renderErr != nil {
-			_ = output
+		command.WaitDelay = time.Second
+		command.Stdout = &agentWorkspaceBoundedCapture{limit: 4 << 10}
+		command.Stderr = &agentWorkspaceBoundedCapture{limit: 4 << 10}
+		if renderErr := command.Run(); renderErr != nil {
+			if cause := context.Cause(ctx); cause != nil {
+				return nil, cause
+			}
 			return nil, fmt.Errorf("read_file could not render PDF page %d", page)
 		}
 		rendered, openErr := os.Open(prefix + ".png")

@@ -19,6 +19,19 @@ func readAgentWorkspacePDF(
 	pages []int,
 	input map[string]any,
 ) (any, error) {
+	path, cleanup, err := stageAgentWorkspacePDFSource(ctx, reader, size)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	scope, err := inspectAgentWorkspacePDFPageScope(ctx, path, pages)
+	if err != nil {
+		return nil, err
+	}
+	if rejection := scope.rejection(filename, contentType, size); rejection != nil {
+		return rejection, nil
+	}
+	pages = scope.valid
 	_, hasOffset := input["offset"]
 	_, hasLimit := input["limit"]
 	textOnly := hasOffset || hasLimit
@@ -30,9 +43,16 @@ func readAgentWorkspacePDF(
 		var result any
 		var err error
 		if len(pages) > 0 {
-			result, err = renderAgentWorkspacePDFPages(ctx, reader, filename, contentType, size, pages)
+			result, err = renderAgentWorkspacePDFPages(ctx, path, filename, contentType, size, pages)
 		} else {
-			result, err = readAgentWorkspaceInlineVisual(ctx, reader, filename, "application/pdf", size, agentruntime.ContentPartDocument)
+			// The inline document, page count, text and rendered images must all
+			// consume this private snapshot, not different reads of the source.
+			staged, openErr := os.Open(path)
+			if openErr != nil {
+				return nil, openErr
+			}
+			result, err = readAgentWorkspaceInlineVisual(ctx, staged, filename, "application/pdf", size, agentruntime.ContentPartDocument)
+			_ = staged.Close()
 		}
 		if err != nil {
 			return nil, err
@@ -40,10 +60,14 @@ func readAgentWorkspacePDF(
 		var ok bool
 		rich, ok = result.(agentRuntimeRichToolResponse)
 		if !ok {
+			if value, ok := result.(map[string]any); ok {
+				scope.addMetadata(value)
+			}
 			return result, nil
 		}
 	}
 	value := rich.value.(map[string]any)
+	scope.addMetadata(value)
 	format, confidence, _ := agentWorkspaceFormatHint(filename, contentType)
 	status := "parsed_and_attached"
 	if textOnly {
@@ -64,7 +88,7 @@ func readAgentWorkspacePDF(
 		readWith["limit"] = agentWorkspaceReadDefaultRows
 		value["text_read_with"] = readWith
 	}
-	view, err := readAgentWorkspacePDFTextWindow(ctx, reader, filename, contentType, size, pages, input, value)
+	view, err := readAgentWorkspacePDFTextWindow(ctx, path, filename, contentType, size, pages, input, value)
 	if err != nil {
 		if cause := context.Cause(ctx); cause != nil {
 			return nil, cause
