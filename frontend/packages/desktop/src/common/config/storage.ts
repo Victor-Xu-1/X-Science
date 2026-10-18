@@ -114,6 +114,8 @@ export type TConversationRuntimeSummary = {
   is_processing: boolean;
   pending_confirmations: number;
   turn_id: string | null;
+  /** Canonical active input message, distinct from the reused conversation/frame turn id. */
+  active_input_message_id?: string | null;
 };
 
 export type TConversationAssistantIdentity = {

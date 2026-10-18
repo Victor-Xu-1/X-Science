@@ -25,11 +25,21 @@ vi.mock('@arco-design/web-react', () => ({
     onChange: (value: string) => void;
     placeholder: string;
   }) => <input aria-label={placeholder} value={value} onChange={(event) => onChange(event.target.value)} />,
-  Trigger: ({ children, popup }: { children: React.ReactNode; popup: React.ReactNode | (() => React.ReactNode) }) => (
-    <>
+  Trigger: ({
+    children,
+    popup,
+    popupVisible,
+    onVisibleChange,
+  }: {
+    children: React.ReactNode;
+    popup: React.ReactNode | (() => React.ReactNode);
+    popupVisible: boolean;
+    onVisibleChange: (visible: boolean) => void;
+  }) => (
+    <div onMouseEnter={() => onVisibleChange(true)} onMouseLeave={() => onVisibleChange(false)}>
       {children}
-      {typeof popup === 'function' ? popup() : popup}
-    </>
+      {popupVisible ? (typeof popup === 'function' ? popup() : popup) : null}
+    </div>
   ),
 }));
 
@@ -39,6 +49,32 @@ vi.mock('@/renderer/services/xScienceCapabilities', () => ({
 }));
 
 import ComposerCapabilityPicker from '@/renderer/components/media/ComposerCapabilityPicker';
+
+const renderPicker = async (...args: Parameters<typeof renderWithI18n>) => {
+  let view!: Awaited<ReturnType<typeof renderWithI18n>>;
+  await act(async () => {
+    view = await renderWithI18n(...args);
+  });
+  return view;
+};
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+};
+
+const personalSkill = (name: string) => ({
+  name,
+  displayName: name,
+  description: 'Read existing files.',
+  source: 'personal',
+  enabled: true,
+});
 
 describe('ComposerCapabilityPicker', () => {
   beforeEach(() => {
@@ -57,7 +93,7 @@ describe('ComposerCapabilityPicker', () => {
   it('reloads localized catalog descriptions when the active language changes', async () => {
     let view!: Awaited<ReturnType<typeof renderWithI18n>>;
     await act(async () => {
-      view = await renderWithI18n(
+      view = await renderPicker(
         <ComposerCapabilityPicker
           skillNames={[]}
           mcpStatuses={[{ id: 'pubmed', name: 'pubmed', status: 'loaded' }]}
@@ -71,6 +107,9 @@ describe('ComposerCapabilityPicker', () => {
         { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
       );
       await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /已加载 MCP/ }));
     });
 
     await waitFor(() =>
@@ -114,7 +153,7 @@ describe('ComposerCapabilityPicker', () => {
     ]);
     const onSelectSkill = vi.fn();
     const onEnableSkill = vi.fn();
-    await renderWithI18n(
+    await renderPicker(
       <ComposerCapabilityPicker
         skillNames={['existing-workflow']}
         mcpStatuses={[]}
@@ -127,12 +166,17 @@ describe('ComposerCapabilityPicker', () => {
       'en-US',
       { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
     );
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
     const newSkill = await screen.findByRole('menuitemcheckbox', { name: 'New library workflow' });
     expect(newSkill).toHaveAttribute('aria-checked', 'false');
     expect(onEnableSkill).not.toHaveBeenCalled();
     expect(onSelectSkill).not.toHaveBeenCalled();
     expect(screen.queryByRole('menuitemcheckbox', { name: 'Disabled library workflow' })).not.toBeInTheDocument();
-    fireEvent.click(newSkill);
+    await act(async () => {
+      fireEvent.click(newSkill);
+    });
     expect(onEnableSkill).toHaveBeenCalledExactlyOnceWith('new-library-workflow');
     expect(onSelectSkill).not.toHaveBeenCalled();
   });
@@ -146,7 +190,7 @@ describe('ComposerCapabilityPicker', () => {
         enabled: true,
       },
     ]);
-    await renderWithI18n(
+    await renderPicker(
       <ComposerCapabilityPicker
         skillNames={['existing-workflow']}
         mcpStatuses={[]}
@@ -158,6 +202,9 @@ describe('ComposerCapabilityPicker', () => {
       'en-US',
       { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
     );
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Loaded Skills ·/ }));
+    });
     await screen.findByRole('menuitemcheckbox', { name: 'existing-workflow' });
     expect(screen.queryByRole('menuitemcheckbox', { name: 'New library workflow' })).not.toBeInTheDocument();
   });
@@ -172,7 +219,7 @@ describe('ComposerCapabilityPicker', () => {
         enabled: true,
       },
     ]);
-    await renderWithI18n(
+    await renderPicker(
       <ComposerCapabilityPicker
         skillNames={['existing-workflow']}
         mcpStatuses={[]}
@@ -185,7 +232,146 @@ describe('ComposerCapabilityPicker', () => {
       'en-US',
       { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
     );
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
     await screen.findByRole('menuitemcheckbox', { name: 'existing-workflow' });
     expect(screen.queryByRole('menuitemcheckbox', { name: 'Outside builtin' })).not.toBeInTheDocument();
   });
+
+  it('refreshes the personal Skill library every time the submenu opens without selecting a Skill', async () => {
+    const onSelectSkill = vi.fn();
+    const onEnableSkill = vi.fn();
+    await renderPicker(
+      <ComposerCapabilityPicker
+        skillNames={[]}
+        mcpStatuses={[]}
+        selectedSkillNames={[]}
+        selectedMcpServerIds={[]}
+        onSelectSkill={onSelectSkill}
+        onEnableSkill={onEnableSkill}
+        onOpenMcpSettings={vi.fn()}
+      />,
+      'en-US',
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
+    );
+    await waitFor(() => expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('menu', { name: 'Skills' })).not.toBeInTheDocument();
+
+    capabilityMocks.loadSkills.mockResolvedValue([personalSkill('newly-saved-workflow')]);
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
+    expect(await screen.findByRole('menuitemcheckbox', { name: 'newly-saved-workflow' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      fireEvent.mouseLeave(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
+    expect(screen.queryByRole('menu', { name: 'Skills' })).not.toBeInTheDocument();
+    capabilityMocks.loadSkills.mockResolvedValue([
+      personalSkill('newly-saved-workflow'),
+      personalSkill('later-workflow'),
+    ]);
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
+    expect(await screen.findByRole('menuitemcheckbox', { name: 'later-workflow' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(3);
+    expect(onEnableSkill).not.toHaveBeenCalled();
+    expect(onSelectSkill).not.toHaveBeenCalled();
+  });
+
+  it('keeps an empty Skill library reachable through loading, refresh failure, and explicit retry', async () => {
+    const pendingRefresh = createDeferred<ReturnType<typeof personalSkill>[]>();
+    await renderPicker(
+      <ComposerCapabilityPicker
+        skillNames={[]}
+        mcpStatuses={[]}
+        selectedSkillNames={[]}
+        selectedMcpServerIds={[]}
+        onSelectSkill={vi.fn()}
+        onEnableSkill={vi.fn()}
+        onOpenMcpSettings={vi.fn()}
+      />,
+      'en-US',
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
+    );
+    await waitFor(() => expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(1));
+    capabilityMocks.loadSkills.mockReturnValueOnce(pendingRefresh.promise);
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: 'Skills · 0' }));
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Refreshing Skills');
+    await act(async () => {
+      pendingRefresh.reject(new Error('synthetic-private-catalog-failure'));
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('The Skill list could not be refreshed');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('synthetic-private-catalog-failure');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(2);
+
+    capabilityMocks.loadSkills.mockResolvedValueOnce([personalSkill('recovered-workflow')]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Retry refresh' }));
+    });
+    expect(await screen.findByRole('menuitemcheckbox', { name: 'recovered-workflow' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(3);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores an obsolete Skill refresh that later %ss after the submenu has reopened',
+    async (completion) => {
+      const obsolete = createDeferred<ReturnType<typeof personalSkill>[]>();
+      const current = createDeferred<ReturnType<typeof personalSkill>[]>();
+      await renderPicker(
+        <ComposerCapabilityPicker
+          skillNames={[]}
+          mcpStatuses={[]}
+          selectedSkillNames={[]}
+          selectedMcpServerIds={[]}
+          onSelectSkill={vi.fn()}
+          onEnableSkill={vi.fn()}
+          onOpenMcpSettings={vi.fn()}
+        />,
+        'en-US',
+        { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
+      );
+      await waitFor(() => expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(1));
+      capabilityMocks.loadSkills.mockReturnValueOnce(obsolete.promise).mockReturnValueOnce(current.promise);
+      await act(async () => {
+        fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+      });
+      expect(screen.getByRole('status')).toHaveTextContent('Refreshing Skills');
+      await act(async () => {
+        fireEvent.mouseLeave(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+      });
+      await act(async () => {
+        fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+      });
+      expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(3);
+      await act(async () => {
+        current.resolve([personalSkill('current-workflow')]);
+      });
+      expect(await screen.findByRole('menuitemcheckbox', { name: 'current-workflow' })).toBeInTheDocument();
+      await act(async () => {
+        if (completion === 'resolve') obsolete.resolve([personalSkill('obsolete-workflow')]);
+        else obsolete.reject(new Error('obsolete catalog failure'));
+      });
+      expect(screen.getByRole('menuitemcheckbox', { name: 'current-workflow' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitemcheckbox', { name: 'obsolete-workflow' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    }
+  );
 });

@@ -92,6 +92,52 @@ func TestAppendFrameUserEventToBranchSwitchesAtomicallyAndRetriesExactlyOnce(t *
 	}
 }
 
+func TestAppendFrameUserEventToBranchIdleActionNeverCancelsExistingWorkAndRetryIsIdempotent(t *testing.T) {
+	repo, db, stream, _, branchID, claim := newBranchContinuationFixture(t)
+	state, err := repo.GetBranchState(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := AppendFrameUserEventToBranchInput{
+		AppendFrameUserEventInput: AppendFrameUserEventInput{
+			StreamUID: stream.UID, OwnerID: stream.OwnerID,
+			ClientMessageID: "branch-continue:idle-action", MessageUUID: "branch-continue:idle-action",
+			FrameEventID: "frame-branch-continue:" + stream.FrameID + ":" + branchID + ":idle-action",
+			Text:         "Inspect the completed procedure", InputData: map[string]any{"action": "read-only-continuation"},
+		},
+		TargetBranchID: branchID, ExpectedActiveBranchID: branchID,
+		ExpectedGeneration: state.Generation, ClientMutationID: "idle-action", RequireIdle: true,
+	}
+	beforeInput, beforeConsumed := branchContinuationRevisions(t, db, stream.UID)
+	if _, err := repo.AppendFrameUserEventToBranch(t.Context(), input); !errors.Is(err, ErrBranchStateStale) {
+		t.Fatalf("busy action error=%v", err)
+	}
+	assertBranchContinuationState(t, repo, db, stream, state, claim, "processing")
+	if afterInput, afterConsumed := branchContinuationRevisions(t, db, stream.UID); afterInput != beforeInput || afterConsumed != beforeConsumed {
+		t.Fatal("rejected action changed admitted input")
+	}
+	if _, _, _, err := repo.FinishRunner(t.Context(), FinishRunnerInput{Claim: claim, ClientMessageID: "idle-prior-finished", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
+		t.Fatal(err)
+	}
+	created, err := repo.AppendFrameUserEventToBranch(t.Context(), input)
+	if err != nil || !created.Created || created.RunnerCancellation.Applied {
+		t.Fatalf("idle action=%+v err=%v", created, err)
+	}
+	// Another new action cannot replace this accepted, not-yet-claimed input.
+	other := input
+	other.ClientMutationID = "another-idle-action"
+	other.ClientMessageID, other.MessageUUID = "branch-continue:another-idle-action", "branch-continue:another-idle-action"
+	other.FrameEventID = "frame-branch-continue:" + stream.FrameID + ":" + branchID + ":another-idle-action"
+	other.ExpectedGeneration = created.BranchGeneration
+	if _, err := repo.AppendFrameUserEventToBranch(t.Context(), other); !errors.Is(err, ErrBranchStateStale) {
+		t.Fatalf("pending input was superseded: %v", err)
+	}
+	retried, err := repo.AppendFrameUserEventToBranch(t.Context(), input)
+	if err != nil || retried.Created || retried.Event.EventID != created.Event.EventID {
+		t.Fatalf("exact retry=%+v err=%v", retried, err)
+	}
+}
+
 func TestAppendFrameUserEventToBranchRejectsStaleAndRollsBackDeliveryFailure(t *testing.T) {
 	repo, db, stream, baseBranchID, activeBranchID, activeClaim := newBranchContinuationFixture(t)
 	stateBefore, err := repo.GetBranchState(context.Background(), stream.UID, stream.OwnerID)

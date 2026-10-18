@@ -48,6 +48,7 @@ var kernelHostMethods = []string{
 	"host.app_tools_list",
 	"host.skills.list",
 	"host.skills.read",
+	"host.skills.validate",
 	"host.skills.edit",
 	"host.skills.install",
 	"host.skills.publish",
@@ -211,6 +212,9 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 		}
 		if isKernelArtifactMutationHostMethod(call.Method) {
 			return s.handleKernelArtifactMutationHostCall(ctx, bound, current, call, args, kwargs)
+		}
+		if isKernelRegistryHostMethod(call.Method) && isKernelSkillHostMethod(call.Method) {
+			return s.handleKernelSkillHostCall(ctx, current, call.ID, call.Method, args, kwargs, bound)
 		}
 		if isKernelRegistryHostMethod(call.Method) {
 			return s.handleKernelRegistryHostCall(ctx, current, call.ID, call.Method, args, kwargs)

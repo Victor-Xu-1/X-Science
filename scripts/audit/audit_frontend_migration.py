@@ -130,6 +130,10 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/media/conversationControlMenu.css": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillTask.ts": "Admit a typed ordinary-agent Skill continuation, fence duplicate and stale frontend actions and refresh only actual catalogs.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/ConversationSkillTaskStatus.tsx": "Present only actionable control submission or catalog-read failures; real execution and publication remain transcript-owned.",
+    "tests/unit/renderer/conversation/useConversationSkillTask.dom.test.tsx": "Verify exact active-input identity, hidden controls, same-runtime submission tickets and scope-safe refresh/retry behavior.",
     "public/storage-namespace-upgrade.js": "Transfer only explicitly owned historical browser keys before theme/module initialization, preserving conflicting values and showing bounded recovery diagnostics.",
     "scripts/molstarPickingPatch.ts": "Keep explicit molecular picks synchronous when the locked Molstar hover GPU read is pending, consistently in production and development bundles.",
     "packages/desktop/src/common/config/productIdentity.ts": "Project the singular root product identity into the browser and centralize the current public repository and original brand mark.",
@@ -328,6 +332,7 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "packages/desktop/src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx": "Retire the competing synchronous Skill author/install button; preserve historical suggestions as read-only content and use the sole typed conversation action.",
     "public/pwa/icon-180.png": "Retire the superseded product artwork after the original approved touch icon became the only current browser reference.",
     "public/pwa/icon-192.png": "Retire the superseded product artwork after all renderer and service-worker references use the approved original orange mark.",
     "public/pwa/icon-512.png": "Retire the superseded product artwork after the installable application manifest uses the unchanged original 660px mark.",
@@ -544,9 +549,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "1c3bf61f536a260bcbdfdbc2da3d00585f179d007210f4d8f314d5f28606ba36"
-APPROVED_REMOVAL_FINGERPRINT = "b0650d3d04094ff06a07d500d81a90fdaf7bf9bf4f34722213985f8f0769bbff"
-APPROVED_ADDITION_FINGERPRINT = "774e562f5675cc440c24202493d6873e2d82d05db1e719f9cbd1c03a80a90bb2"
+APPROVED_ADAPTATION_FINGERPRINT = "14d7db5aa12bd8ce0202d993e2df8531a844e92984fbdd9ad0bfcee205d1571c"
+APPROVED_REMOVAL_FINGERPRINT = "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac"
+APPROVED_ADDITION_FINGERPRINT = "db7375fb39f0055f4708447e7d24f8600e4fb2b4bc5e216726d42837666d7d19"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

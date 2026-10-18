@@ -176,6 +176,11 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", err
 	}
 	options = toolAuthority.Options
+	preparationSubstage = "prepare_conversation_control"
+	options, err = s.prepareConversationSkillContinuation(ctx, options, run)
+	if err != nil {
+		return "", err
+	}
 	runtimeToolUniverse := toolAuthority.Schemas
 	policyContext := toolAuthority.PolicyContext
 	if err := checkpointPreparationStage("history_compaction"); err != nil {

@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"x-science/internal/agentruntime"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
-	"x-science/internal/skills"
 )
 
 func TestKernelHostSkillsAndAgentsRegistryBridge(t *testing.T) {
@@ -28,18 +29,63 @@ func TestKernelHostSkillsAndAgentsRegistryBridge(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(personalRoot, "SKILL.md"), []byte("---\nname: host_saved_skill\ndescription: A host bridge test skill.\n---\n\nUse the original workflow.\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	loaded := skills.Load([]string{personalRoot}, skills.LoadOptions{MaxBodyBytes: 12000})
-	if failures := loaded.LoadErrors(); len(failures) != 0 || len(loaded.Skills()) != 1 {
-		t.Fatalf("personal test Skill did not load: failures=%#v skills=%#v", failures, loaded.Skills())
+	repo, err := store.TranscriptRepository(context.Background())
+	if err != nil {
+		t.Fatal(err)
 	}
-	app.skillCatalog.UpsertSkill(loaded.Skills()[0])
-
-	result := runKernelHostCell(t, app, identity, `
+	app.transcriptStore = repo
+	stream, err := repo.CreateStream(context.Background(), transcriptstore.CreateStreamInput{
+		UID: "frame:" + identity.access.Frame.ID, OwnerID: identity.access.UserID,
+		ExternalID: identity.access.Frame.ID, SessionID: identity.access.Frame.ID,
+		Kind: transcriptstore.StreamKindFrameRef, ProjectID: identity.access.Frame.ProjectID,
+		RootFrameID: identity.access.Frame.RootFrameID, FrameID: identity.access.Frame.ID, Epoch: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "skill-registry-input", FrameEventID: "skill-registry-event",
+		MessageUUID: "skill-registry-message", Text: "Author a synthetic fixture Skill.", Destinations: []string{"ws"},
+	}); err != nil || !created {
+		t.Fatalf("append registry input created=%t err=%v", created, err)
+	}
+	claimed, err := repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "skill-registry-runner", TTL: time.Minute,
+		ResumeSource: transcriptstore.ResumeSourceFresh,
+	})
+	if err != nil || !claimed.Claimed {
+		t.Fatalf("registry claim=%#v err=%v", claimed, err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	run := &sessionRunnerChatRun{
+		SessionID: stream.SessionID, Attempt: int(claimed.Claim.Attempt), ClaimToken: claimed.Claim.ClaimToken,
+		Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim},
+	}
+	ctx = withTranscriptRunnerChatRun(ctx, run)
+	seedPermissionTestAgent(t, store, stream.OwnerID)
+	if _, err := store.SetFrameRuntimeMetadata(stream.FrameID, workspace.FrameRuntimeMetadata{
+		FrameID: stream.FrameID, ContextData: map[string]any{"web_assistant": map[string]any{
+			"id": "xscience:operon", "conversation_overrides": map[string]any{"permission": "allow"},
+		}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	code := `
 import host, json
 listed = [item for item in host.skills.list() if item["name"] == "host_saved_skill"]
 print(json.dumps(listed, sort_keys=True))
 print(json.dumps(host.skills.read("host_saved_skill"), sort_keys=True))
 host.skills.edit("host_saved_skill", "SKILL.md", "Use the updated workflow.", "Use the original workflow.")
+validated = host.skills.validate("host_saved_skill")
+assert validated["valid"] is True
+print(json.dumps(validated, sort_keys=True))
+try:
+    host.skills.validate(42)
+except TypeError:
+    print("validate-name-type-rejected")
+else:
+    raise AssertionError("validate accepted a non-string name")
 print(json.dumps(host.skills.publish("host_saved_skill"), sort_keys=True))
 created = host.agents.create("HOST_BRIDGE_TEST", "Host bridge test", "Host bridge test agent", "Use the test Skill.", ["host_saved_skill"])
 print(json.dumps(created, sort_keys=True))
@@ -49,12 +95,41 @@ print(json.dumps(host.agents.attach_skill("HOST_BRIDGE_TEST", "host_saved_skill"
 print(json.dumps(host.agents.detach_skill("HOST_BRIDGE_TEST", "host_saved_skill"), sort_keys=True))
 print(json.dumps(host.agents.switch("HOST_BRIDGE_TEST"), sort_keys=True))
 print(json.dumps(host.agents.delete("HOST_BRIDGE_TEST"), sort_keys=True))
-`)
+`
+	input := map[string]any{"code": code}
+	arguments, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := agentruntime.ToolCall{ID: "skill-registry-cell", Name: "repl", Arguments: arguments}
+	if err := app.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: claimed.Claim.RunnerID}, run, []agentruntime.ToolCall{call}); err != nil {
+		t.Fatal(err)
+	}
+	operation, found, err := store.GetKernelLocalOperationByToolCall(ctx, stream.OwnerID, stream.UID, call.ID)
+	if err != nil || !found || operation.OperationID != run.KernelOperationIDs[call.ID] ||
+		operation.Tool != call.Name || operation.Environment != call.Name {
+		t.Fatalf("registry operation binding: found=%t tool=%q environment=%q err=%v", found, operation.Tool, operation.Environment, err)
+	}
+	// The normal checkpoint and gateway share argument normalization. Execute
+	// its immutable admission, not the pre-normalization model proposal above.
+	var admittedInput map[string]any
+	if err := json.Unmarshal(operation.InputJSON, &admittedInput); err != nil || admittedInput == nil {
+		t.Fatalf("decode admitted registry input: %v", err)
+	}
+	encodedAdmission, err := json.Marshal(admittedInput)
+	if err != nil || string(encodedAdmission) != string(operation.InputJSON) {
+		t.Fatalf("registry admission did not round-trip exactly: %v", err)
+	}
+	result, err := app.executeAgentKernelToolWithApproval(ctx, identity, call, operation.Tool, admittedInput, defaultSessionRunnerOutputLimitBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if result["ok"] != true {
 		t.Fatalf("registry bridge result=%#v", result)
 	}
 	stdout := stringValue(result["stdout"])
 	if !strings.Contains(stdout, `"origin": "draft"`) ||
+		!strings.Contains(stdout, `"valid": true`) || !strings.Contains(stdout, "validate-name-type-rejected") ||
 		!strings.Contains(stdout, `"name": "HOST_BRIDGE_TEST"`) ||
 		!strings.Contains(stdout, `"switched": true`) ||
 		!strings.Contains(stdout, `"deleted": "HOST_BRIDGE_TEST"`) {

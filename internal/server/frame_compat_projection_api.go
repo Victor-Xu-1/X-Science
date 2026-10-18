@@ -337,6 +337,15 @@ func (s *Server) compatibilityFrameRuntimeProjection(frameID string) (map[string
 		"runtime_task_observed_at":       taskSummary.ObservedAt.UTC(),
 		"runtime_task_started_at":        compatibilityRunnerStartedAtValue(taskSummary.StartedAt),
 	}
+	if summary.Active {
+		input, inputErr := s.transcriptStore.ActiveRunnerInputContext(ctx, stream.UID, stream.OwnerID)
+		if inputErr != nil {
+			return nil, "", inputErr
+		}
+		if input != nil {
+			projection["runtime_active_input_message_id"] = input.ClientMessageID
+		}
+	}
 	if !compatibilityFrameStatusTerminal(frameContext.Frame.Status) {
 		retryReason, retryErr := s.transcriptStore.RunnerAutomaticRetryReason(
 			ctx, stream.UID, stream.OwnerID, summary.InputRevision, summary.Attempt,

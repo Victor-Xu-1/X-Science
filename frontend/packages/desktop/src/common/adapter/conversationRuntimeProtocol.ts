@@ -85,6 +85,13 @@ export function decodeConversationRuntimeSummary(raw: unknown): TConversationRun
     return invalidRuntime();
   }
   if (value.turn_id !== null && !exactIdentifier(value.turn_id)) return invalidRuntime();
+  if (
+    value.active_input_message_id !== undefined &&
+    value.active_input_message_id !== null &&
+    !exactIdentifier(value.active_input_message_id)
+  )
+    return invalidRuntime();
+  if (!value.has_task && value.active_input_message_id != null) return invalidRuntime();
 
   const state = value.state as TConversationRuntimeStateKind;
   const taskStatus = value.task_status as TChatConversationStatus;
@@ -124,6 +131,9 @@ export function decodeConversationRuntimeSummary(raw: unknown): TConversationRun
     is_processing: value.is_processing,
     pending_confirmations: value.pending_confirmations as number,
     turn_id: value.turn_id as string | null,
+    ...(value.active_input_message_id !== undefined
+      ? { active_input_message_id: value.active_input_message_id as string | null }
+      : {}),
   };
 }
 

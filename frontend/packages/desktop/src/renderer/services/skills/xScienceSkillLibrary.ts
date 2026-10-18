@@ -11,14 +11,6 @@ export type XScienceSkillDraft = {
   updatedAt: string | null;
 };
 
-export type XScienceSaveConversationSkillResult = {
-  name: string;
-  installedPath: string;
-  files: string[];
-  source: string;
-  scope: 'personal';
-};
-
 export type XScienceSkillSource = {
   slug: string;
   repo: string;
@@ -52,30 +44,13 @@ export type XScienceSkillImportResult = {
   sha: string | null;
 };
 
-const conversationSkillFailureCodes = [
-  'skill_authoring_timeout',
-  'skill_authoring_cancelled',
-  'skill_authoring_output_limit',
-  'skill_authoring_refused',
-  'skill_authoring_invalid_draft',
-  'skill_authoring_provider_auth',
-  'skill_authoring_rate_limited',
-  'skill_authoring_provider_unavailable',
-  'skill_authoring_configuration',
-  'skill_authoring_source_unavailable',
-] as const;
-
-export type XScienceSkillSaveFailureCode = (typeof conversationSkillFailureCodes)[number];
-
 export class XScienceSkillLibraryError extends Error {
   readonly status: number;
-  readonly code?: XScienceSkillSaveFailureCode;
 
-  constructor(status: number, message: string, code?: unknown) {
+  constructor(status: number, message: string) {
     super(message);
     this.name = 'XScienceSkillLibraryError';
     this.status = status;
-    this.code = conversationSkillFailureCodes.find((value) => value === code);
   }
 }
 
@@ -87,32 +62,6 @@ export async function loadXScienceSkillDrafts(
   const payload = asRecord(await requestJson('/api/skills/drafts', options));
   const drafts = Array.isArray(payload?.drafts) ? payload.drafts : [];
   return drafts.map(toDraft).filter((draft): draft is XScienceSkillDraft => draft !== null);
-}
-
-export async function saveXScienceConversationAsSkill(
-  conversationId: string,
-  options: XScienceSkillLibraryOptions = {}
-): Promise<XScienceSaveConversationSkillResult> {
-  const payload = asRecord(
-    await requestJson('/api/skills/from-conversation', options, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ conversation_id: conversationId }),
-    })
-  );
-  const name = stringValue(payload?.name).trim();
-  if (!payload || payload.ok !== true || !name) {
-    throw new XScienceSkillLibraryError(502, 'Personal Skill save response is invalid');
-  }
-  return {
-    name,
-    installedPath: stringValue(payload.installed_path ?? payload.installedPath),
-    files: Array.isArray(payload.files)
-      ? payload.files.filter((value): value is string => typeof value === 'string')
-      : [],
-    source: stringValue(payload.source),
-    scope: 'personal',
-  };
 }
 
 export async function loadXScienceSkillSources(
@@ -351,8 +300,7 @@ async function requestJson(
     const row = asRecord(payload);
     throw new XScienceSkillLibraryError(
       response.status,
-      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`,
-      row?.code
+      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`
     );
   }
   return payload;

@@ -119,6 +119,11 @@ func (s *Server) submitCompatibilityFrameMessage(
 		}
 	}
 	input.TargetBranchID = strings.TrimSpace(input.TargetBranchID)
+	if input.InputData["turn_intent"] == conversationSkillControlIntent && input.TargetBranchID == "" {
+		return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{
+			Status: http.StatusBadRequest, Detail: "Save as Skill requires the current branch authority; refresh and retry",
+		}
+	}
 	if input.TargetBranchID != "" {
 		if current.ParentFrameID != "" {
 			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{
@@ -442,7 +447,17 @@ func (s *Server) submitCompatibilityTranscriptBranchMessage(
 			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{Status: http.StatusNotFound, Detail: "Branch not found"}
 		case errors.Is(err, transcriptstore.ErrBranchRequestInvalid):
 			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{Status: http.StatusBadRequest, Detail: "Invalid branch id"}
-		case errors.Is(err, transcriptstore.ErrBranchStateStale), errors.Is(err, transcriptstore.ErrEventConflict):
+		case errors.Is(err, transcriptstore.ErrBranchStateStale):
+			if input.InputData["turn_intent"] == conversationSkillControlIntent {
+				return compatibilityFrameMessageResult{}, &webConversationRequestError{
+					Status: http.StatusConflict, Code: "CONVERSATION_BRANCH_STATE_STALE",
+					Detail: "Conversation branch changed; refresh and retry", Cause: err,
+				}
+			}
+			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{
+				Status: http.StatusConflict, Detail: "Conversation branch changed; refresh and retry",
+			}
+		case errors.Is(err, transcriptstore.ErrEventConflict):
 			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{
 				Status: http.StatusConflict, Detail: "Conversation branch changed; refresh and retry",
 			}

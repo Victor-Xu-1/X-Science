@@ -7,7 +7,7 @@
 import type { ISkillSuggestArtifact } from '@/common/adapter/ipcBridge';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import SkillSuggestCard from './SkillSuggestCard';
+import MarkdownView from '@/renderer/components/Markdown';
 
 type NormalizedSkillSuggestion = {
   name: string;
@@ -50,15 +50,11 @@ const MessageSkillSuggest: React.FC<{ artifact: ISkillSuggestArtifact }> = ({ ar
 
   return (
     <div data-testid='message-skill-suggest' className='w-full mx-auto'>
-      <SkillSuggestCard
-        artifact_id={artifact.id}
-        conversation_id={artifact.conversation_id}
-        suggestion={{
-          name: suggestion.name,
-          description: suggestion.description,
-          content: suggestion.content,
-        }}
-      />
+      {/* Historical suggestions remain readable. Creation is owned exclusively
+          by the typed conversation action, not by legacy artifact buttons. */}
+      <h3 className='text-14px font-medium'>{suggestion.name}</h3>
+      {suggestion.description && <p className='text-12px text-t-secondary'>{suggestion.description}</p>}
+      <MarkdownView>{suggestion.content}</MarkdownView>
     </div>
   );
 };

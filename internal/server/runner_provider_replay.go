@@ -41,6 +41,9 @@ func sessionEntriesToProviderMessages(
 			if entry.EventID > compactEventID || (stringValue(entry.Message["role"]) != "user" && !runnerEntryIsInputResponse(entry)) {
 				continue
 			}
+			if isConversationSkillControlPayload(entry.Message) {
+				continue
+			}
 			text := strings.TrimSpace(runnerModelMessageText(entry.Message))
 			if text != "" {
 				messages = append(messages, chatCompletionMessage{Role: "user", Content: text})
@@ -204,6 +207,13 @@ func sessionEntriesToProviderMessages(
 		}
 		role := strings.TrimSpace(stringValue(entry.Message["role"]))
 		if role != "user" && role != "assistant" {
+			continue
+		}
+		if role == "user" && isConversationSkillControlPayload(entry.Message) {
+			// Internal product actions remain durable task boundaries, not
+			// recurring user instructions. The claimed Save continuation has
+			// its explicit runtime contract; historical controls must not ask
+			// a later ordinary task to save the same Skill again.
 			continue
 		}
 		text := runnerMessageText(entry.Message)

@@ -14,6 +14,7 @@ import { registerRendererAccountReset } from '@/renderer/services/rendererAccoun
 export type ConversationRuntimeView = {
   conversation_id: string;
   activeTurnId: string | null;
+  activeInputMessageId?: string | null;
   state: TConversationRuntimeStateKind;
   isProcessing: boolean;
   canSendMessage: boolean;
@@ -60,6 +61,7 @@ type ConversationRuntimeSnapshot = {
 type ConversationRuntimeViewListener = () => void;
 type ConversationRuntimeMetadata = {
   pendingLocalSendSeq: number | null;
+  pendingLocalSendTicket: object | null;
   pendingStopTurnId: string | null;
   lastCompletedTurnId: string | null;
 };
@@ -86,6 +88,7 @@ const touchRuntimeOwner = (conversation_id: string): void => {
 
 const createRuntimeMetadata = (): ConversationRuntimeMetadata => ({
   pendingLocalSendSeq: null,
+  pendingLocalSendTicket: null,
   pendingStopTurnId: null,
   lastCompletedTurnId: null,
 });
@@ -104,6 +107,7 @@ const getRuntimeMetadata = (conversation_id: string): ConversationRuntimeMetadat
 export const createDefaultConversationRuntimeView = (conversation_id: string): ConversationRuntimeView => ({
   conversation_id,
   activeTurnId: null,
+  activeInputMessageId: null,
   state: 'idle',
   isProcessing: false,
   canSendMessage: true,
@@ -169,6 +173,7 @@ const viewFromRuntimeSummary = (
   return {
     ...previous,
     activeTurnId,
+    activeInputMessageId: runtime.has_task ? (runtime.active_input_message_id ?? null) : null,
     state: pendingLocalSend && runtime.state === 'idle' ? 'starting' : runtime.state,
     isProcessing: pendingLocalSend || isCancelling || runtime.is_processing,
     canSendMessage: !pendingLocalSend && !isCancelling && runtime.can_send_message,
@@ -225,6 +230,7 @@ export const hydrateSucceededConversationRuntimeView = (
     const view: ConversationRuntimeView = {
       ...base,
       activeTurnId: null,
+      activeInputMessageId: null,
       state: 'idle' as const,
       isProcessing: false,
       canSendMessage: true,
@@ -496,6 +502,7 @@ export const hydrateSucceeded = (
 
   if (releasePendingLocalSend) {
     metadata.pendingLocalSendSeq = null;
+    metadata.pendingLocalSendTicket = null;
     metadata.pendingStopTurnId = null;
     metadata.lastCompletedTurnId = options.completedTurnId ?? metadata.lastCompletedTurnId;
   }
@@ -522,6 +529,7 @@ export const turnCompleted = (
 ): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = null;
+  metadata.pendingLocalSendTicket = null;
   if (metadata.pendingStopTurnId === turn_id) {
     metadata.pendingStopTurnId = null;
   }
@@ -548,9 +556,10 @@ export const conversationDeleted = (conversation_id: string): ConversationRuntim
     : [];
 };
 
-export const localSendStarted = (conversation_id: string): ConversationRuntimeViewLogEntry[] => {
+export const localSendStarted = (conversation_id: string, ticket: object = {}): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = (metadata.pendingLocalSendSeq ?? 0) + 1;
+  metadata.pendingLocalSendTicket = ticket;
   metadata.pendingStopTurnId = null;
   metadata.lastCompletedTurnId = null;
   return setConversationRuntimeSnapshot(
@@ -569,6 +578,7 @@ export const localSendAccepted = (
   const staleAfterCompleted = isStaleCompletedRuntimeSummary(runtime, metadata);
   if (!staleAfterCompleted) {
     metadata.pendingLocalSendSeq = null;
+    metadata.pendingLocalSendTicket = null;
   }
   return setConversationRuntimeSnapshot(
     conversation_id,
@@ -592,9 +602,15 @@ export const localSendAccepted = (
   );
 };
 
-export const localSendFailed = (conversation_id: string, reason: string): ConversationRuntimeViewLogEntry[] => {
+export const localSendFailed = (
+  conversation_id: string,
+  reason: string,
+  ticket?: object
+): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
+  if (ticket !== undefined && metadata.pendingLocalSendTicket !== ticket) return [];
   metadata.pendingLocalSendSeq = null;
+  metadata.pendingLocalSendTicket = null;
   return setConversationRuntimeSnapshot(
     conversation_id,
     localSendFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, reason)

@@ -40,6 +40,7 @@ import {
   useAddOrUpdateMessage,
   useRemoveMessageByMsgId,
   useUpdateMessageList,
+  useMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
 import { X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX } from '@/renderer/pages/conversation/Messages/optimisticUserMessage';
 import {
@@ -98,7 +99,8 @@ import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import { useAcpConversationSkills } from './useAcpConversationSkills';
-import { ConversationSkillSaveStatus } from './ConversationSkillSaveStatus';
+import { ConversationSkillTaskStatus } from './ConversationSkillTaskStatus';
+import { isActiveConversationSkillTask, useConversationSkillTask } from './useConversationSkillTask';
 import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import './conversationQueueDock.css';
@@ -224,11 +226,14 @@ const AcpSendBox: React.FC<{
   const sendBoxAnchorRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
   const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
-  const conversationAuthorityRef = useRef({ conversationId: conversation_id });
+  const conversationAuthorityRef = useRef({ conversationId: conversation_id, ownerId });
   const sendIntentRef = useRef<XScienceSendIntent | null>(null);
   const terminalFailureRollbackRef = useRef<TerminalFailureRollback>([]);
-  if (conversationAuthorityRef.current.conversationId !== conversation_id) {
-    conversationAuthorityRef.current = { conversationId: conversation_id };
+  if (
+    conversationAuthorityRef.current.conversationId !== conversation_id ||
+    conversationAuthorityRef.current.ownerId !== ownerId
+  ) {
+    conversationAuthorityRef.current = { conversationId: conversation_id, ownerId };
     directCommandRetryRef.current = null;
     terminalFailureRollbackRef.current = [];
   }
@@ -399,16 +404,6 @@ const AcpSendBox: React.FC<{
     [conversation_id, t]
   );
 
-  const handleContentChange = useCallback(
-    (val: string) => {
-      // SendBox clears its controlled value synchronously immediately before
-      // onSend. Preserve an ambiguous direct-send receipt through that exact
-      // transition; a real non-empty edit still starts a new mutation.
-      if (val !== '' && directCommandRetryRef.current?.item.input !== val) directCommandRetryRef.current = null;
-      setContent(val);
-    },
-    [setContent]
-  );
   const { setSendBoxHandler } = usePreviewContext();
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -421,6 +416,7 @@ const AcpSendBox: React.FC<{
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const removeMessageByMsgIdRef = useLatestRef(removeMessageByMsgId);
   const updateMessageList = useUpdateMessageList();
+  const messages = useMessageList();
   const runtimeView = useConversationRuntimeView(conversation_id, initialConversation);
 
   // Shared file handling logic
@@ -524,14 +520,17 @@ const AcpSendBox: React.FC<{
   });
 
   const resolveCommandExecutionAuthority = useCallback(
-    async (planMode?: boolean): Promise<CommandExecutionAuthority> => {
-      const targetBranchId = getSelectedXScienceBranch(conversation_id);
+    async (planMode?: boolean, includeStaged = true, requireBranch = false): Promise<CommandExecutionAuthority> => {
+      const selectedBranchId = getSelectedXScienceBranch(conversation_id);
       const targetBranchRevision = getXScienceBranchSelectionRevision(conversation_id);
-      const branchState = targetBranchId ? await loadXScienceConversationBranches(conversation_id) : null;
+      const branchState =
+        selectedBranchId || requireBranch ? await loadXScienceConversationBranches(conversation_id) : null;
+      const targetBranchId = selectedBranchId ?? (requireBranch ? (branchState?.activeBranchId ?? null) : null);
       if (
-        targetBranchId &&
+        (selectedBranchId || requireBranch) &&
         (getXScienceBranchSelectionRevision(conversation_id) !== targetBranchRevision ||
-          getSelectedXScienceBranch(conversation_id) !== targetBranchId ||
+          getSelectedXScienceBranch(conversation_id) !== selectedBranchId ||
+          !targetBranchId ||
           !branchState?.branches.some((branch) => branch.id === targetBranchId))
       ) {
         throw new Error('selected_branch_changed');
@@ -539,20 +538,21 @@ const AcpSendBox: React.FC<{
       // A staged draft carries its requesting page's session options through
       // the durable draft; they win over the async runtime load for the first
       // send, while an explicit per-send choice (plan mode) always wins.
-      const effectiveSessionOptions = stagedSessionOptionsRef.current
-        ? {
-            ...xscienceSessionOptions,
-            delegation: stagedSessionOptionsRef.current.delegation,
-            autoReview: stagedSessionOptionsRef.current.autoReview,
-            memory: stagedSessionOptionsRef.current.memory,
-            targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || xscienceSessionOptions.targetAgent,
-          }
-        : xscienceSessionOptions;
+      const effectiveSessionOptions =
+        includeStaged && stagedSessionOptionsRef.current
+          ? {
+              ...xscienceSessionOptions,
+              delegation: stagedSessionOptionsRef.current.delegation,
+              autoReview: stagedSessionOptionsRef.current.autoReview,
+              memory: stagedSessionOptionsRef.current.memory,
+              targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || xscienceSessionOptions.targetAgent,
+            }
+          : xscienceSessionOptions;
       return {
         targetBranchId,
         targetBranchRevision,
         sessionOptions: toXScienceMessageSessionOptions(effectiveSessionOptions, {
-          planMode: planMode ?? (stagedPlanModeRef.current ? true : undefined),
+          planMode: planMode ?? (includeStaged && stagedPlanModeRef.current ? true : undefined),
           targetBranchId,
           expectedBranchId: branchState?.activeBranchId,
           expectedGeneration: branchState?.generation,
@@ -570,8 +570,10 @@ const AcpSendBox: React.FC<{
         files,
         contextItems: commandContextItems,
         planMode,
+        turnIntent,
       }: Pick<ConversationCommandQueueItem, 'id' | 'input' | 'files' | 'contextItems'> & {
         planMode?: boolean;
+        turnIntent?: 'save-as-skill';
       },
       preparedAuthority?: CommandExecutionAuthority
     ) => {
@@ -580,27 +582,32 @@ const AcpSendBox: React.FC<{
       const conversationAuthority = conversationAuthorityRef.current;
 
       try {
-        void checkAndUpdateTitle(conversation_id, input);
-        runtimeView.markSendStarted();
-        setAiProcessing(true);
+        if (!turnIntent) void checkAndUpdateTitle(conversation_id, input);
+        // A control command reserves the same runtime gate before resolving
+        // branch authority. Ordinary commands reserve it here.
+        if (!turnIntent) {
+          runtimeView.markSendStarted();
+          setAiProcessing(true);
+        }
         // Surface the submitted message immediately. Durable history replaces
         // this optimistic row on the next canonical refresh; long-running
         // turns must never look empty while the model is still thinking.
-        addOrUpdateMessageRef.current(
-          {
-            id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
-            msg_id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
-            conversation_id,
-            type: 'text',
-            position: 'right',
-            status: 'pending',
-            created_at: Date.now(),
-            content: { content: displayMessage },
-            artifact_refs: capabilityPayload.artifactRefs,
-          },
-          true
-        );
-        const commandAuthority = preparedAuthority ?? (await resolveCommandExecutionAuthority(planMode));
+        if (!turnIntent)
+          addOrUpdateMessageRef.current(
+            {
+              id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
+              msg_id: `${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`,
+              conversation_id,
+              type: 'text',
+              position: 'right',
+              status: 'pending',
+              created_at: Date.now(),
+              content: { content: displayMessage },
+              artifact_refs: capabilityPayload.artifactRefs,
+            },
+            true
+          );
+        const commandAuthority = preparedAuthority ?? (await resolveCommandExecutionAuthority(planMode, !turnIntent));
         const pendingRetry = directCommandRetryRef.current;
         if (pendingRetry?.item.id === id && pendingRetry.authority === undefined) {
           directCommandRetryRef.current = {
@@ -612,6 +619,7 @@ const AcpSendBox: React.FC<{
           input: displayMessage,
           conversation_id,
           loading_id: id,
+          ...(turnIntent ? { turn_intent: turnIntent } : {}),
           files,
           artifact_refs: capabilityPayload.artifactRefs,
           inject_skills: capabilityPayload.injectSkills,
@@ -622,11 +630,11 @@ const AcpSendBox: React.FC<{
         runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         // The staged intents applied to this first accepted send and must not
         // leak into later manual sends: the frame now records them.
-        if (stagedPlanModeRef.current) {
+        if (!turnIntent && stagedPlanModeRef.current) {
           stagedPlanModeRef.current = false;
           setStagedPlanMode(false);
         }
-        if (stagedSessionOptionsRef.current) {
+        if (!turnIntent && stagedSessionOptionsRef.current) {
           stagedSessionOptionsRef.current = null;
           setStagedSessionOptions(null);
         }
@@ -647,11 +655,13 @@ const AcpSendBox: React.FC<{
               created_at: Date.now(),
               content: { content: displayMessage },
               artifact_refs: capabilityPayload.artifactRefs,
+              ...(turnIntent ? { hidden: true, turn_intent: turnIntent } : {}),
             },
             false
           );
         }
         if (
+          !turnIntent &&
           commandAuthority.targetBranchId &&
           getXScienceBranchSelectionRevision(conversation_id) === commandAuthority.targetBranchRevision &&
           getSelectedXScienceBranch(conversation_id) === commandAuthority.targetBranchId
@@ -736,7 +746,7 @@ const AcpSendBox: React.FC<{
     ]
   );
 
-  const { skillSave, skillActivation, savedSkillAvailable, mobileLibraryNames } = useAcpConversationSkills({
+  const { refreshCatalogs, skillActivation, mobileLibraryNames } = useAcpConversationSkills({
     conversationId: conversation_id,
     ownerId,
     authority: conversationAuthorityRef.current,
@@ -753,6 +763,98 @@ const AcpSendBox: React.FC<{
     fetchSlashCommands: messageState.fetchSlashCommands,
     onSelectSkill: handleSkillSelected,
   });
+  const skillTaskCommandRef = useRef<{
+    scope: object;
+    id: string;
+    input: string;
+    authority?: CommandExecutionAuthority;
+    submissionTicket?: object;
+    dispatched: boolean;
+  } | null>(null);
+  const skillTaskScope = conversationAuthorityRef.current;
+  useEffect(
+    () => () => {
+      const command = skillTaskCommandRef.current;
+      if (command?.scope === skillTaskScope && !command.dispatched && command.submissionTicket) {
+        runtimeView.markSendFailed('control_submission_cancelled', command.submissionTicket);
+      }
+    },
+    [runtimeView.markSendFailed, skillTaskScope]
+  );
+  const startSkillTask = useCallback(
+    async (id: string) => {
+      const scope = conversationAuthorityRef.current;
+      let command = skillTaskCommandRef.current;
+      if (!command || command.id !== id || command.scope !== scope) {
+        command = { scope, id, input: t('conversation.attachMenu.saveAsSkillTaskPrompt'), dispatched: false };
+        skillTaskCommandRef.current = command;
+      }
+      // Reserve before the first await. The shared runtime gate owns sending;
+      // the Skill hook's synchronous admission latch guards same-tick UI calls.
+      const submissionTicket = runtimeView.markSendStarted();
+      command.submissionTicket = submissionTicket;
+      command.dispatched = false;
+      setAiProcessing(true);
+      // A lost HTTP reply is retried with the same input and branch authority,
+      // even after a language switch. Never rebind one mutation to a newer draft.
+      try {
+        command.authority ??= await resolveCommandExecutionAuthority(false, false, true);
+      } catch (error) {
+        runtimeView.markSendFailed(redactErrorText(parseError(error) || t('common.unknownError')), submissionTicket);
+        if (mountedRef.current && conversationAuthorityRef.current === scope) {
+          setAiProcessing(false);
+        }
+        throw error;
+      }
+      if (!mountedRef.current || conversationAuthorityRef.current !== scope) {
+        runtimeView.markSendFailed('control_submission_cancelled', submissionTicket);
+        return;
+      }
+      command.dispatched = true;
+      try {
+        await executeCommand(
+          { id, input: command.input, files: [], contextItems: [], turnIntent: 'save-as-skill', planMode: false },
+          command.authority
+        );
+      } catch (error) {
+        if (
+          mountedRef.current &&
+          conversationAuthorityRef.current === scope &&
+          isBackendHttpError(error) &&
+          error.status === 409 &&
+          error.code === 'CONVERSATION_BRANCH_STATE_STALE'
+        ) {
+          // A definite rejected CAS has no admitted command to replay. Refresh
+          // authority on the next explicit retry, retaining input and mutation.
+          // Lost/uncertain replies keep the original complete payload instead.
+          command.authority = undefined;
+        }
+        throw error;
+      }
+    },
+    [executeCommand, resolveCommandExecutionAuthority, runtimeView, setAiProcessing, t]
+  );
+  const skillSave = useConversationSkillTask({
+    authority: conversationAuthorityRef.current,
+    ownerId,
+    mountedRef,
+    disabled: isBusy || runtimeUnavailable || !sessionOptionsReady || !isXScienceConversation,
+    isProcessing: runtimeView.isProcessing,
+    activeControlTask:
+      runtimeView.view.hasTask && isActiveConversationSkillTask(messages, runtimeView.view.activeInputMessageId),
+    startTask: startSkillTask,
+    refreshCatalogs,
+  });
+  const handleContentChange = useCallback(
+    (val: string) => {
+      if (skillSave.isBlocking()) return;
+      // Preserve a direct-send receipt through SendBox's synchronous pre-send
+      // clear; a real non-empty edit still starts a new mutation.
+      if (val !== '' && directCommandRetryRef.current?.item.input !== val) directCommandRetryRef.current = null;
+      setContent(val);
+    },
+    [setContent, skillSave.isBlocking]
+  );
 
   const {
     items: queuedCommands,
@@ -779,6 +881,7 @@ const AcpSendBox: React.FC<{
   });
 
   const onSendHandler = async (message: string) => {
+    if (skillSave.isBlocking()) return;
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = Array.from(new Set([...uploadFile, ...atPathFiles].filter(Boolean)));
     const normalizedMessage = message.trim() || t('conversation.sendbox.contextOnlyPrompt');
@@ -855,6 +958,7 @@ const AcpSendBox: React.FC<{
 
   const handleSendOption = useCallback(
     (intent: XScienceSendIntent) => {
+      if (skillSave.isBlocking()) return;
       const draft = contentRef.current;
       if (!draft.trim()) return;
 
@@ -908,6 +1012,7 @@ const AcpSendBox: React.FC<{
       onSendHandler,
       setContent,
       sideQuestion,
+      skillSave.isBlocking,
       t,
       uploadFile.length,
     ]
@@ -915,6 +1020,7 @@ const AcpSendBox: React.FC<{
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
+      if (skillSave.isBlocking()) return;
       remove(item.id);
       sendIntentRef.current = item.planMode ? 'plan_first' : null;
       setContent(item.input);
@@ -923,7 +1029,7 @@ const AcpSendBox: React.FC<{
       setAtPath([]);
       emitter.emit('acp.selected.file.clear');
     },
-    [remove, setAtPath, setContent, setContextItems, setUploadFile]
+    [remove, setAtPath, setContent, setContextItems, setUploadFile, skillSave.isBlocking]
   );
 
   const handleOpenQueuedCommandInSideChat = useCallback(
@@ -1120,7 +1226,7 @@ const AcpSendBox: React.FC<{
         items={queuedCommands}
         isInterrupted={isCommandQueueInterrupted}
         isQueueingEnabled={isQueueingEnabled}
-        isSendNowDisabled={runtimeUnavailable || isCancelling || isCommandQueueInterrupted}
+        isSendNowDisabled={runtimeUnavailable || isCancelling || isCommandQueueInterrupted || skillSave.inFlight}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
         onEdit={handleEditQueuedCommand}
@@ -1133,16 +1239,11 @@ const AcpSendBox: React.FC<{
         onResumeInterruptedQueue={resumeCommandQueue}
       />
 
-      <ConversationSkillSaveStatus
+      <ConversationSkillTaskStatus
         state={skillSave.state}
-        saveDisabled={skillSave.saveDisabled}
-        skillAvailable={savedSkillAvailable}
-        availableSkillNames={loadedSkills}
-        selectedSkillNames={selectedSkillNames}
-        onRetrySave={skillSave.save}
+        disabled={skillSave.saveDisabled}
+        onRetry={skillSave.save}
         onRetryRefresh={skillSave.retryRefresh}
-        onUseSkill={handleSkillSelected}
-        onEnableSkill={skillActivation.canActivate ? skillActivation.request : undefined}
       />
       <ConversationSkillActivationDialog
         state={skillActivation.state}
@@ -1160,8 +1261,8 @@ const AcpSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={runtimeUnavailable}
-        allowSendWhileLoading
+        disabled={runtimeUnavailable || skillSave.inFlight}
+        allowSendWhileLoading={!skillSave.inFlight}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || 'X-Science',
         })}
@@ -1180,6 +1281,7 @@ const AcpSendBox: React.FC<{
           isMobile ? undefined : (
             <div className='flex min-w-0 items-center gap-4px'>
               <FileAttachButton
+                key={`${ownerId}:${conversation_id}`}
                 openFileSelector={openFileSelector}
                 onSelectProjectFiles={canSelectProjectFiles ? openProjectFiles : undefined}
                 onLocalFilesAdded={handleFilesAdded}
@@ -1198,6 +1300,7 @@ const AcpSendBox: React.FC<{
                 reviewDisabled={isBusy}
                 onSaveSkill={skillSave.save}
                 saveAsSkillDisabled={skillSave.saveDisabled}
+                saveAsSkillInFlight={skillSave.inFlight}
               />
               <XScienceSessionOptionsMenu
                 rootFrameId={conversation_id}
@@ -1206,13 +1309,13 @@ const AcpSendBox: React.FC<{
                 onPersistentOptionChange={updatePersistentSessionOption}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
-                disabled={!sessionOptionsReady}
+                disabled={!sessionOptionsReady || skillSave.inFlight}
               />
               <XSciencePermissionMenu
                 option={runtimeMode}
                 setStatus={runtimeConfig.setStatus}
                 setConfigOption={runtimeConfig.setConfigOption}
-                disabled={runtimeUnavailable}
+                disabled={runtimeUnavailable || skillSave.inFlight}
               />
             </div>
           )
@@ -1227,7 +1330,7 @@ const AcpSendBox: React.FC<{
                 draft={content}
                 conversationId={conversation_id}
                 ownerId={ownerId}
-                disabled={false}
+                disabled={skillSave.inFlight}
                 replaceIfCurrent={replaceContentIfUnchanged}
               />
             )}

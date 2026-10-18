@@ -19,6 +19,14 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		return
 	}
 	input.Content = strings.TrimSpace(input.Content)
+	if input.TurnIntent != "" && input.TurnIntent != conversationSkillControlIntent {
+		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "unsupported conversation control intent"})
+		return
+	}
+	if input.TurnIntent == conversationSkillControlIntent && (len(input.Files) != 0 || len(input.ArtifactRefs) != 0 || len(input.InjectSkills) != 0 || len(input.InjectMCPServerIDs) != 0 || input.MessageContext != "") {
+		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "Skill distillation uses recorded conversation evidence, not draft attachments or capability selections"})
+		return
+	}
 	if input.Content == "" {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "message content is required"})
 		return
@@ -43,6 +51,9 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		return
 	}
 	inputData := map[string]any{"request": input.Content}
+	if input.TurnIntent != "" {
+		inputData["turn_intent"] = input.TurnIntent
+	}
 	if len(input.Files) > 0 {
 		inputData["files"] = input.Files
 	}
