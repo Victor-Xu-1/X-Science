@@ -73,7 +73,7 @@ func (s *Server) conversationSkillControlEvidence(ctx context.Context, authority
 			}
 			request := projected.Event.Type == "user_message" || projected.Event.Type == "history_user_message"
 			if request {
-				skipControl = isConversationSkillControlPayload(payload)
+				skipControl = isHiddenConversationControlPayload(payload)
 			}
 			if skipControl {
 				continue
@@ -89,7 +89,7 @@ func (s *Server) conversationSkillControlEvidence(ctx context.Context, authority
 					inputs[*attempt] = input
 				}
 				if input != nil {
-					if input.InputData["turn_intent"] == conversationSkillControlIntent {
+					if isHiddenConversationControlPayload(map[string]any{"inputData": input.InputData}) {
 						continue
 					}
 					inputID = input.ClientMessageID

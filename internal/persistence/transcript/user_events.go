@@ -36,6 +36,10 @@ func normalizeAppendUserEventInput(input AppendUserEventInput) (AppendUserEventI
 	if err := validatePayload(EventSourcePayload, input.PayloadJSON, nil); err != nil {
 		return AppendUserEventInput{}, err
 	}
+	var payload map[string]any
+	if json.Unmarshal(input.PayloadJSON, &payload) == nil && HiddenConversationControlIntent(payload) == ContextCompactionIntent {
+		return AppendUserEventInput{}, ErrContextCompactionInvalid
+	}
 	return input, nil
 }
 
@@ -284,6 +288,9 @@ func (tx *ImmediateTransaction) AppendFrameUserEvent(
 }
 
 func normalizeAppendFrameUserEventInput(input AppendFrameUserEventInput) (AppendFrameUserEventInput, error) {
+	if input.InputData["turn_intent"] == ContextCompactionIntent && !input.contextCompactionAdmitted {
+		return AppendFrameUserEventInput{}, ErrContextCompactionInvalid
+	}
 	input.StreamUID = strings.TrimSpace(input.StreamUID)
 	input.OwnerID = strings.TrimSpace(input.OwnerID)
 	input.ClientMessageID = strings.TrimSpace(input.ClientMessageID)

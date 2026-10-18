@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	eventjournal "x-science/internal/persistence/journal"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func recoveredToolTranscriptContext(entries []eventjournal.Entry, afterEventID int64) string {
@@ -102,8 +103,14 @@ func isCompactJournalEntry(entry eventjournal.Entry) bool {
 		return true
 	}
 	_, hasPublicHandoff := compactPublicHandoffValue(entry.Message)
+	if stringValue(entry.Message["toolPhase"]) == transcriptstore.ContextCompactionPhase {
+		proof, ok := entry.RuntimeProjection.(transcriptstore.ContextCompactionBoundaryProof)
+		if !ok || !proof.Matches(entry.EventID) {
+			return false
+		}
+	}
 	return eventType == "runner_checkpoint" &&
-		strings.EqualFold(strings.TrimSpace(stringValue(entry.Message["toolPhase"])), "auto_compact") &&
+		transcriptstore.IsCompactionBoundaryPayload(entry.Message) &&
 		(strings.TrimSpace(compactSummaryFromMessage(entry.Message)) != "" || hasPublicHandoff)
 }
 

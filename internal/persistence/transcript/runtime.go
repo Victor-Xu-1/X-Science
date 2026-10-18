@@ -401,6 +401,9 @@ func cancelRunnerConn(
 	if err != nil {
 		return CancelRunnerResult{}, err
 	}
+	if input.contextCompaction != nil {
+		payload = contextCompactionTerminalPayload(*input.contextCompaction, "cancelled")
+	}
 	var result CancelRunnerResult
 	err = func() error {
 		stream, err := getStreamConn(ctx, conn, input.StreamUID, input.OwnerID)
@@ -421,6 +424,11 @@ func cancelRunnerConn(
 			return err
 		}
 		result.CurrentStatus = status
+		if input.contextCompaction != nil {
+			if err := validateContextCompactionAttemptConn(ctx, conn, stream, attempt, claimedRevision, *input.contextCompaction); err != nil {
+				return err
+			}
+		}
 		if existing, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID); err != nil {
 			return err
 		} else if found {
@@ -446,12 +454,17 @@ func cancelRunnerConn(
 				}
 				return ErrEventConflict
 			}
-			if _, err := bindCommittedArtifactReferencesConn(
-				ctx, conn, stream, attempt, existing.EventID, result.Receipt.FinishedAt,
-			); err != nil {
-				return err
+			if input.contextCompaction == nil {
+				if _, err := bindCommittedArtifactReferencesConn(
+					ctx, conn, stream, attempt, existing.EventID, result.Receipt.FinishedAt,
+				); err != nil {
+					return err
+				}
 			}
 			result.CurrentStatus = "cancelled"
+			if input.contextCompaction != nil {
+				return restoreContextCompactionFrameConn(ctx, conn, stream.OwnerID, stream.FrameID, *input.contextCompaction, claimedRevision)
+			}
 			return applyFrameTerminalStatusConn(ctx, conn, stream, "cancelled", "", result.Receipt.FinishedAt)
 		}
 		if status != "running" {
@@ -464,8 +477,10 @@ func cancelRunnerConn(
 		if err != nil || !created {
 			return err
 		}
-		if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, attempt, event.EventID, now); err != nil {
-			return err
+		if input.contextCompaction == nil {
+			if _, err := bindCommittedArtifactReferencesConn(ctx, conn, stream, attempt, event.EventID, now); err != nil {
+				return err
+			}
 		}
 		updated, err := conn.ExecContext(ctx, `
 			UPDATE transcript_runner_attempts SET status='cancelled',phase='terminal',phase_sequence=phase_sequence+1,
@@ -488,7 +503,11 @@ func cancelRunnerConn(
 			claimedRevision, stream.UID); err != nil {
 			return err
 		}
-		if err := applyFrameTerminalStatusConn(ctx, conn, stream, "cancelled", "", now); err != nil {
+		if input.contextCompaction != nil {
+			if err := restoreContextCompactionFrameConn(ctx, conn, stream.OwnerID, stream.FrameID, *input.contextCompaction, claimedRevision); err != nil {
+				return err
+			}
+		} else if err := applyFrameTerminalStatusConn(ctx, conn, stream, "cancelled", "", now); err != nil {
 			return err
 		}
 		result.Applied = true

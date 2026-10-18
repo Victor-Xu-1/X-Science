@@ -66,6 +66,9 @@ func (r *Repository) claimNextRunner(
 			}
 			claimed, err := r.claimRunnerConn(ctx, conn, stream, ClaimRunnerInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: input.RunnerID, TTL: input.TTL, ResumeSource: source, ResumeCheckpoint: checkpoint}, now)
 			if err != nil {
+				if errors.Is(err, ErrMessageIntentCancelled) {
+					continue
+				}
 				return err
 			}
 			if !claimed.Claimed {
@@ -269,6 +272,24 @@ func (r *Repository) claimRunnerConn(
 	now time.Time,
 ) (ClaimRunnerResult, error) {
 	var result ClaimRunnerResult
+	if (input.ExpectedInputMessageID == "") != (input.ExpectedInputRevision == 0) || input.ExpectedInputRevision < 0 {
+		return result, ErrContextCompactionInvalid
+	}
+	if err := validateContextCompactionClaimAdmissionConn(ctx, conn, stream); err != nil {
+		return result, err
+	}
+	if input.ExpectedInputMessageID != "" {
+		if stream.InputRevision != input.ExpectedInputRevision || stream.ConsumedInputRevision >= input.ExpectedInputRevision {
+			return result, ErrClaimStale
+		}
+		admitted, err := readAdmittedRunnerInputContextConn(ctx, conn, stream, input.ExpectedInputRevision, false)
+		if err != nil {
+			return result, err
+		}
+		if admitted == nil || admitted.ClientMessageID != input.ExpectedInputMessageID {
+			return result, ErrClaimStale
+		}
+	}
 	if stream.Kind == StreamKindFrameRef {
 		if err := CheckFrameConversationAvailable(ctx, conn, stream.FrameID); err != nil {
 			return result, err

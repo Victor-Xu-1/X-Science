@@ -139,6 +139,9 @@ func (s *Server) loadTranscriptRunnerReplay(
 		if projectedEvent.ToolOutcome != nil {
 			runtimeProjection = *projectedEvent.ToolOutcome
 		}
+		if projectedEvent.CompactionBoundary != nil {
+			runtimeProjection = *projectedEvent.CompactionBoundary
+		}
 		entries = append(entries, eventjournal.Entry{
 			SessionID:         authority.Stream.SessionID,
 			EventID:           projectedEvent.Event.EventID,

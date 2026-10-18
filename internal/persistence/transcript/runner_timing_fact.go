@@ -79,5 +79,5 @@ func appendRunnerTimingResumeFactConn(ctx context.Context, conn *sql.Conn, strea
 // reserved even if damaged: an invalid internal payload must not become public
 // activity. Their clock reader separately verifies the complete typed identity.
 func IsRunnerInternalFact(event Event, payload []byte) bool {
-	return event.Type == RunnerTimingResumeEventType || IsRunnerAdmissionFact(event, payload)
+	return event.Type == RunnerTimingResumeEventType || IsRunnerAdmissionFact(event, payload) || IsContextCompactionLifecycleEvent(event, payload)
 }

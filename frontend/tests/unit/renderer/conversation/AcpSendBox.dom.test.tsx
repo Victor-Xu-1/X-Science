@@ -17,6 +17,15 @@ import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platform
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
+import {
+  manualCompactionIdentity,
+  manualCompactionTarget,
+  type manualCompactionRequest,
+  manualCompactionReceipt,
+  manualCompactionSnapshot,
+  manualCompactionUsage,
+} from './manualContextCompactionFixtures';
 import {
   sessionGrantIdentity,
   sessionGrantRevokeBody,
@@ -27,6 +36,8 @@ import {
 let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
 let queuedCommandSequence = 0;
+const realContextDropdown = { current: false };
+const compactionEnqueueMock = vi.fn();
 const sendBoxProps = {
   current: null as { allowSendWhileLoading?: boolean; bottomHint?: React.ReactNode } | null,
 };
@@ -453,29 +464,34 @@ vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useUpdateMessageList: () => updateMessageListMock,
   useRemoveMessageByMsgId: () => removeMessageByMsgIdMock,
 }));
-vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
-  createQueuedCommandItem: (input: Record<string, unknown>) => ({
-    id: `command-${++queuedCommandSequence}`,
-    ...input,
-  }),
-  shouldEnqueueConversationCommand: () => false,
-  useConversationCommandQueue: () => ({
-    items: [],
-    isPaused: false,
-    isInteractionLocked: false,
-    hasPendingCommands: false,
-    enqueue: vi.fn(),
-    remove: vi.fn(),
-    clear: vi.fn(),
-    reorder: vi.fn(),
-    pause: vi.fn(),
-    resume: vi.fn(),
-    lockInteraction: vi.fn(),
-    unlockInteraction: vi.fn(),
-    resetActiveExecution: vi.fn(),
-    getQueuedItem: () => null,
-  }),
-}));
+vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/renderer/pages/conversation/platforms/useConversationCommandQueue')>();
+  return {
+    createQueuedCommandItem: (input: Record<string, unknown>) => ({
+      id: `command-${++queuedCommandSequence}`,
+      ...input,
+    }),
+    shouldEnqueueConversationCommand: (input: Parameters<typeof actual.shouldEnqueueConversationCommand>[0]) =>
+      realContextDropdown.current ? actual.shouldEnqueueConversationCommand(input) : false,
+    useConversationCommandQueue: () => ({
+      items: [],
+      isPaused: false,
+      isInteractionLocked: false,
+      hasPendingCommands: false,
+      enqueue: compactionEnqueueMock,
+      remove: vi.fn(),
+      clear: vi.fn(),
+      reorder: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      lockInteraction: vi.fn(),
+      unlockInteraction: vi.fn(),
+      resetActiveExecution: vi.fn(),
+      getQueuedItem: () => null,
+    }),
+  };
+});
 vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
   getSelectedXScienceBranch: (...args: unknown[]) => getSelectedBranchMock(...args),
   getXScienceBranchSelectionRevision: (...args: unknown[]) => getBranchRevisionMock(...args),
@@ -543,90 +559,96 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
   useAcpInitialMessage: vi.fn(),
 }));
-vi.mock('@arco-design/web-react', () => ({
-  Input: ({
-    value,
-    onChange,
-    placeholder,
-  }: {
-    value?: string;
-    onChange?: (value: string) => void;
-    placeholder?: string;
-  }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
-  Trigger: ({
-    children,
-    popup,
-    popupVisible,
-    onVisibleChange,
-  }: {
-    children?: React.ReactNode;
-    popup?: React.ReactNode | (() => React.ReactNode);
-    popupVisible?: boolean;
-    onVisibleChange?: (visible: boolean) => void;
-  }) => (
-    <div onMouseEnter={() => onVisibleChange?.(true)} onMouseLeave={() => onVisibleChange?.(false)}>
-      {children}
-      {popupVisible ? (typeof popup === 'function' ? popup() : popup) : null}
-    </div>
-  ),
-  Spin: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
-  Popover: ({
-    children,
-    content,
-    popupVisible,
-  }: {
-    children?: React.ReactNode;
-    content?: React.ReactNode;
-    popupVisible?: boolean;
-  }) => (
-    <>
-      {children}
-      {popupVisible ? content : null}
-    </>
-  ),
-  Dropdown: ({
-    children,
-    droplist,
-    popupVisible,
-  }: {
-    children?: React.ReactNode;
-    droplist?: React.ReactNode;
-    popupVisible?: boolean;
-  }) => (
-    <>
-      {children}
-      {popupVisible ? droplist : null}
-    </>
-  ),
-  Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  Modal: ({ visible, title, children }: { visible?: boolean; title?: React.ReactNode; children?: React.ReactNode }) =>
-    visible ? (
-      <div role='dialog' aria-label={typeof title === 'string' ? title : undefined}>
+vi.mock('@arco-design/web-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@arco-design/web-react')>();
+  return {
+    Input: ({
+      value,
+      onChange,
+      placeholder,
+    }: {
+      value?: string;
+      onChange?: (value: string) => void;
+      placeholder?: string;
+    }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
+    Trigger: ({
+      children,
+      popup,
+      popupVisible,
+      onVisibleChange,
+    }: {
+      children?: React.ReactNode;
+      popup?: React.ReactNode | (() => React.ReactNode);
+      popupVisible?: boolean;
+      onVisibleChange?: (visible: boolean) => void;
+    }) => (
+      <div onMouseEnter={() => onVisibleChange?.(true)} onMouseLeave={() => onVisibleChange?.(false)}>
         {children}
+        {popupVisible ? (typeof popup === 'function' ? popup() : popup) : null}
       </div>
-    ) : null,
-  Button: ({
-    children,
-    disabled,
-    onClick,
-    'aria-label': ariaLabel,
-  }: {
-    children?: React.ReactNode;
-    disabled?: boolean;
-    onClick?: () => void;
-    'aria-label'?: string;
-  }) => (
-    <button type='button' aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
-      {children}
-    </button>
-  ),
-  Message: {
-    success: (...args: unknown[]) => messageSuccessMock(...args),
-    error: (...args: unknown[]) => messageErrorMock(...args),
-    useMessage: () => [{ success: vi.fn(), error: vi.fn() }, null],
-  },
-  Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+    ),
+    Spin: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+    Popover: ({
+      children,
+      content,
+      popupVisible,
+    }: {
+      children?: React.ReactNode;
+      content?: React.ReactNode;
+      popupVisible?: boolean;
+    }) => (
+      <>
+        {children}
+        {popupVisible ? content : null}
+      </>
+    ),
+    Dropdown: (props: React.ComponentProps<typeof actual.Dropdown>) =>
+      realContextDropdown.current ? (
+        <actual.Dropdown {...props} />
+      ) : (
+        <>
+          {props.children}
+          {props.popupVisible ? props.droplist : null}
+        </>
+      ),
+    Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    Modal: ({
+      visible,
+      title,
+      children,
+    }: {
+      visible?: boolean;
+      title?: React.ReactNode;
+      children?: React.ReactNode;
+    }) =>
+      visible ? (
+        <div role='dialog' aria-label={typeof title === 'string' ? title : undefined}>
+          {children}
+        </div>
+      ) : null,
+    Button: ({
+      children,
+      disabled,
+      onClick,
+      'aria-label': ariaLabel,
+    }: {
+      children?: React.ReactNode;
+      disabled?: boolean;
+      onClick?: () => void;
+      'aria-label'?: string;
+    }) => (
+      <button type='button' aria-label={ariaLabel} disabled={disabled} onClick={onClick}>
+        {children}
+      </button>
+    ),
+    Message: {
+      success: (...args: unknown[]) => messageSuccessMock(...args),
+      error: (...args: unknown[]) => messageErrorMock(...args),
+      useMessage: () => [{ success: vi.fn(), error: vi.fn() }, null],
+    },
+    Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 const makeMessageState = (): UseAcpMessageReturn => ({
   thought: { subject: '', description: '' },
@@ -655,10 +677,86 @@ const acceptSkillTaskSend = async () => {
   };
 };
 
+const manualCompactionPath = '/api/conversations/compaction-child/context-compactions';
+async function renderManualCompaction(
+  capability = manualCompactionSnapshot(),
+  usage = manualCompactionUsage(),
+  respond?: (method: string, path: string, body: unknown) => unknown | Promise<unknown>,
+  busy = false
+) {
+  realContextDropdown.current = true;
+  setRendererAccountOwner(manualCompactionIdentity.ownerId);
+  runtimeViewMock.isProcessing = busy;
+  runtimeViewMock.canSendMessage = !busy;
+  runtimeViewMock.state = busy ? 'running' : 'idle';
+  runtimeViewMock.view.taskStatus = busy ? 'running' : 'finished';
+  const messageState = makeMessageState();
+  messageState.running = false;
+  sendMessageInvokeMock.mockResolvedValue({
+    msg_id: 'ordinary-next-input',
+    turn_id: 'ordinary-next-turn',
+    runtime: { state: 'running', is_processing: true },
+  });
+  const usageFetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+    if (!String(input).endsWith('/context-usage')) throw new Error('Unexpected C11 usage request');
+    return new Response(JSON.stringify(usage), { status: 200 });
+  });
+  const transport = vi.spyOn(httpBridge, 'httpRequest').mockImplementation(async (method, path, body) => {
+    if (respond) return (await respond(method, path, body)) as never;
+    if (method === 'GET' && path.split('?')[0] === manualCompactionPath) return capability as never;
+    if (method === 'POST' && path === manualCompactionPath)
+      return manualCompactionReceipt(body as typeof manualCompactionRequest) as never;
+    throw new Error(`Unexpected C11 control request: ${method} ${path}`);
+  });
+  const restore = () => {
+    transport.mockRestore();
+    usageFetch.mockRestore();
+    setRendererAccountOwner(null);
+    realContextDropdown.current = false;
+  };
+  try {
+    const view = await render(
+      <AcpSendBox
+        conversation_id={manualCompactionIdentity.frameId}
+        ownerId={manualCompactionIdentity.ownerId}
+        backend='xscience'
+        messageState={messageState}
+        initialConversation={
+          {
+            id: manualCompactionIdentity.frameId,
+            type: 'acp',
+            name: 'Manual context compaction',
+            extra: {
+              backend: 'xscience',
+              root_frame_id: manualCompactionIdentity.rootFrameId,
+              frame_incarnation_id: manualCompactionIdentity.frameIncarnationId,
+            },
+          } as TChatConversation
+        }
+      />
+    );
+    await act(async () => {
+      await view.i18n.changeLanguage('en-US');
+    });
+    return {
+      view,
+      transport,
+      dispose: () => {
+        view.unmount();
+        restore();
+      },
+    };
+  } catch (error) {
+    restore();
+    throw error;
+  }
+}
+
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queuedCommandSequence = 0;
+    realContextDropdown.current = false;
     sendBoxDraftSeed.current = '';
     sendBoxProps.current = null;
     isMobileMock.current = false;
@@ -759,6 +857,515 @@ describe('AcpSendBox', () => {
     });
   });
 
+  it('C11 starts explicit measured compaction from the real context card and closing only hides it', async () => {
+    const harness = await renderManualCompaction();
+    try {
+      const trigger = screen.getByTestId('x-science-context-usage-trigger');
+      fireEvent.click(trigger);
+      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('30.0%');
+      expect(trigger.querySelector('svg')).toHaveAttribute('width', '16');
+      const compact = await screen.findByRole('button', { name: 'Compact context' });
+      expect(compact).toBeEnabled();
+      fireEvent.click(compact);
+      await waitFor(() => expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(1));
+      const body = harness.transport.mock.calls.find(([method]) => method === 'POST')![2];
+      expect(body).toEqual({
+        schema: 'x-science.context-compaction-request.v1',
+        request_id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i),
+        expected: manualCompactionTarget,
+      });
+      expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('30.0%');
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(0);
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 uses typed queued availability rather than treating high usage as execution permission', async () => {
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(null, false, 'queued'),
+      manualCompactionUsage(450_000)
+    );
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('45.0%');
+      expect(await screen.findByRole('button', { name: 'Compact context' })).toBeDisabled();
+      expect(
+        harness.transport.mock.calls.some(([method, path]) => method === 'GET' && path === manualCompactionPath)
+      ).toBe(true);
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 recovers the original maintenance request and explicit Stop never reports a draining receipt as stopped', async () => {
+    const receipt = manualCompactionReceipt();
+    const capability = manualCompactionSnapshot(receipt);
+    const draining = { ...receipt, cancellation_status: 'requested', execution_observation: 'draining' };
+    const harness = await renderManualCompaction(
+      capability,
+      manualCompactionUsage(50_000, true),
+      (method, path, body) => {
+        if (method === 'GET' && path.split('?')[0] === manualCompactionPath) return capability;
+        if (method === 'DELETE') {
+          expect(path).toBe(`${manualCompactionPath}/by-request/${receipt.request.request_id}`);
+          expect(body).toEqual(receipt.request);
+          return draining;
+        }
+        if (method === 'GET' && path.includes('/by-request/')) return draining;
+        throw new Error('Unexpected C11 recovery mutation');
+      }
+    );
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('5.0%');
+      expect(await screen.findByRole('button', { name: 'Compacting context' })).toBeDisabled();
+      await act(async () => {
+        await runtimeOperationsProps.current?.onStop?.();
+      });
+      await waitFor(() =>
+        expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(1)
+      );
+      expect(screen.getByRole('button', { name: 'Compacting context' })).toBeDisabled();
+      expect(runtimeViewMock.markStopAcknowledged).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 reconciles a lost acknowledgement and explicitly retries the same UUID and complete original body', async () => {
+    let submissions = 0;
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(),
+      manualCompactionUsage(),
+      (method, path, body) => {
+        if (method === 'GET' && path.split('?')[0] === manualCompactionPath) return manualCompactionSnapshot();
+        if (method === 'POST' && path === manualCompactionPath) {
+          if (++submissions === 1) throw new Error('Lost compaction acknowledgement');
+          return manualCompactionReceipt(body as typeof manualCompactionRequest);
+        }
+        if (method === 'GET' && path.includes('/by-request/'))
+          throw new BackendHttpError({
+            method,
+            path,
+            status: 404,
+            body: { code: 'CONTEXT_COMPACTION_NOT_FOUND' },
+          });
+        throw new Error('Unexpected C11 retry request');
+      }
+    );
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Compact context' }));
+      const retry = await screen.findByRole('button', { name: 'Retry original compaction' });
+      const writes = () => harness.transport.mock.calls.filter(([method]) => method === 'POST');
+      expect(writes()).toHaveLength(1);
+      expect(
+        harness.transport.mock.calls.some(([method, path]) => method === 'GET' && path.includes('/by-request/'))
+      ).toBe(true);
+      fireEvent.click(retry);
+      await waitFor(() => expect(writes()).toHaveLength(2));
+      expect(writes()[1][2]).toEqual(writes()[0][2]);
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 waits for the exact maintenance drain receipt before admitting a new ordinary prompt', async () => {
+    const receipt = manualCompactionReceipt();
+    const capability = manualCompactionSnapshot(receipt);
+    const drain = createDeferred<ReturnType<typeof manualCompactionReceipt>>();
+    const harness = await renderManualCompaction(capability, manualCompactionUsage(), (method, path, body) => {
+      if (method === 'GET' && path.split('?')[0] === manualCompactionPath) return capability;
+      if (method === 'DELETE') {
+        expect(path).toBe(`${manualCompactionPath}/by-request/${receipt.request.request_id}`);
+        expect(body).toEqual(receipt.request);
+        return drain.promise;
+      }
+      throw new Error('Unexpected C11 preemption request');
+    });
+    try {
+      await waitFor(() =>
+        expect(
+          harness.transport.mock.calls.some(([method, path]) => method === 'GET' && path === manualCompactionPath)
+        ).toBe(true)
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() =>
+        expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(1)
+      );
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      await act(async () => {
+        drain.resolve({
+          ...receipt,
+          state: 'cancelled',
+          cancellation_status: 'cancelled',
+          terminal_event_id: 43,
+          execution_observation: 'settled',
+          can_submit_next_input: true,
+        });
+        await drain.promise;
+      });
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 preempts exact busy maintenance before the real queue decision and does not duplicate a waiting prompt', async () => {
+    const receipt = manualCompactionReceipt();
+    const drain = createDeferred<ReturnType<typeof manualCompactionReceipt>>();
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(receipt),
+      manualCompactionUsage(),
+      (method, path) => {
+        if (method === 'GET' && path === manualCompactionPath) return manualCompactionSnapshot(receipt);
+        if (method === 'DELETE') return drain.promise;
+        throw new Error('Unexpected busy maintenance request');
+      },
+      true
+    );
+    try {
+      await waitFor(() => expect(harness.transport.mock.calls.some(([method]) => method === 'GET')).toBe(true));
+      const send = screen.getByRole('button', { name: 'send' });
+      fireEvent.click(send);
+      fireEvent.click(send);
+      await waitFor(() =>
+        expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(1)
+      );
+      expect(compactionEnqueueMock).not.toHaveBeenCalled();
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      await act(async () => {
+        drain.resolve({
+          ...receipt,
+          state: 'cancelled',
+          cancellation_status: 'cancelled',
+          execution_observation: 'settled',
+          can_submit_next_input: true,
+        });
+        await drain.promise;
+      });
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(compactionEnqueueMock).not.toHaveBeenCalled();
+      expect(runtimeViewMock.markStopAcknowledged).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it.each([
+    [299_999, false],
+    [600_000, true],
+  ])('C11 hides the new action below threshold or for preflight usage (%s, %s)', async (used, preflight) => {
+    const harness = await renderManualCompaction(manualCompactionSnapshot(), manualCompactionUsage(used, preflight));
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      await screen.findByTestId('context-usage-percent');
+      expect(screen.queryByRole('button', { name: 'Compact context' })).not.toBeInTheDocument();
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 admits a new prompt with unavailable physical observation only when safe admission is proven', async () => {
+    const receipt = manualCompactionReceipt();
+    const capability = manualCompactionSnapshot(receipt);
+    const harness = await renderManualCompaction(capability, manualCompactionUsage(), (method, path) => {
+      if (method === 'GET' && path === manualCompactionPath) return capability;
+      if (method === 'DELETE')
+        return {
+          ...receipt,
+          state: 'cancelled',
+          cancellation_status: 'cancelled',
+          execution_observation: 'unavailable',
+          can_submit_next_input: true,
+        };
+      throw new Error('Unexpected C11 safe admission request');
+    });
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      await screen.findByRole('button', { name: 'Compacting context' });
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(screen.getByText(/Physical execution observation unavailable/)).toBeInTheDocument();
+      expect(screen.queryByText(/Execution settled/)).not.toBeInTheDocument();
+      expect(runtimeViewMock.markStopAcknowledged).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 sends terminal maintenance superseded by a busy ordinary input through the original queue', async () => {
+    const terminal = {
+      ...manualCompactionReceipt(),
+      state: 'committed',
+      boundary_event_id: 41,
+      terminal_event_id: 42,
+      execution_observation: 'unavailable',
+      can_submit_next_input: false,
+    };
+    const original = manualCompactionSnapshot(terminal);
+    const ordinary = {
+      ...manualCompactionSnapshot(null, false, 'active'),
+      target: { ...manualCompactionTarget, input_revision: 9, through_publication_seq: 30 },
+    };
+    let reads = 0;
+    const harness = await renderManualCompaction(
+      original,
+      manualCompactionUsage(),
+      (method, path) => {
+        if (method === 'GET' && path === manualCompactionPath) return ++reads === 1 ? original : ordinary;
+        if (method === 'GET' && path.includes('/by-request/')) return terminal;
+        throw new Error('Unexpected superseded maintenance write');
+      },
+      true
+    );
+    try {
+      await waitFor(() => expect(reads).toBe(1));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(compactionEnqueueMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE' || method === 'POST')).toHaveLength(
+        0
+      );
+      expect(runtimeViewMock.markStopAcknowledged).not.toHaveBeenCalled();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it.each(['pending', 'failed'])(
+    'C11 optional bootstrap %s does not interrupt the ordinary composer send',
+    async (mode) => {
+      const bootstrap = createDeferred<ReturnType<typeof manualCompactionSnapshot>>();
+      const harness = await renderManualCompaction(
+        manualCompactionSnapshot(),
+        manualCompactionUsage(),
+        (method, path) => {
+          if (method === 'GET' && path === manualCompactionPath) {
+            if (mode === 'pending') return bootstrap.promise;
+            throw new BackendHttpError({
+              method,
+              path,
+              status: 500,
+              body: { code: 'CONTEXT_COMPACTION_STORAGE_UNAVAILABLE' },
+            });
+          }
+          throw new Error('Unexpected optional bootstrap mutation');
+        }
+      );
+      try {
+        fireEvent.click(screen.getByRole('button', { name: 'send' }));
+        await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+        expect(compactionEnqueueMock).not.toHaveBeenCalled();
+        expect(stopInvokeMock).not.toHaveBeenCalled();
+        expect(
+          harness.transport.mock.calls.filter(([method]) => method === 'DELETE' || method === 'POST')
+        ).toHaveLength(0);
+        fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+        expect(await screen.findByRole('button', { name: 'Compact context' })).toBeDisabled();
+        if (mode === 'failed')
+          expect(
+            screen.getByText('Could not verify context maintenance. Retry the read; no new operation was started.')
+          ).toBeInTheDocument();
+      } finally {
+        harness.dispose();
+        bootstrap.resolve(manualCompactionSnapshot());
+      }
+    }
+  );
+
+  it('C11 keeps uncertain maintenance recovery reachable while preserving a nonempty draft', async () => {
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(),
+      manualCompactionUsage(),
+      (method, path) => {
+        if (method === 'GET' && path === manualCompactionPath) return manualCompactionSnapshot();
+        if (method === 'POST') throw new Error('lost acknowledgement');
+        if (method === 'GET' && path.includes('/by-request/'))
+          throw new BackendHttpError({ method, path, status: 404, body: { code: 'CONTEXT_COMPACTION_NOT_FOUND' } });
+        throw new Error('Unexpected draft recovery request');
+      }
+    );
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Compact context' }));
+      await screen.findByRole('button', { name: 'Retry original compaction' });
+      expect(screen.getByRole('button', { name: 'Context maintenance unconfirmed' })).toBeDisabled();
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      fireEvent.click(screen.getByRole('button', { name: 'change' }));
+      expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      expect(await screen.findByRole('button', { name: 'Retry original compaction' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Check receipt' })).toBeEnabled();
+      expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(1);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 ordinary Stop reaches its existing owner without waiting for optional bootstrap', async () => {
+    const bootstrap = createDeferred<ReturnType<typeof manualCompactionSnapshot>>();
+    const harness = await renderManualCompaction(
+      manualCompactionSnapshot(),
+      manualCompactionUsage(),
+      (method, path) => {
+        if (method === 'GET' && path === manualCompactionPath) return bootstrap.promise;
+        throw new Error('Unexpected maintenance mutation for ordinary Stop');
+      },
+      true
+    );
+    try {
+      await act(async () => {
+        await runtimeOperationsProps.current?.onStop?.();
+      });
+      expect(stopInvokeMock).toHaveBeenCalledTimes(1);
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(0);
+    } finally {
+      harness.dispose();
+      bootstrap.resolve(manualCompactionSnapshot());
+    }
+  });
+
+  it('C11 shows retained-capacity error and retries allocation in the same composer scope without evicting unknown requests', async () => {
+    setRendererAccountOwner(manualCompactionIdentity.ownerId);
+    const capacity = await retainCompactionCapacity(manualCompactionIdentity.ownerId);
+    const harness = await renderManualCompaction();
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'change' }));
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      expect(
+        await screen.findByText(
+          'Context maintenance session capacity reached. Reconcile pending requests in their original conversations, then retry.'
+        )
+      ).toBeInTheDocument();
+      const retry = screen.getByRole('button', { name: 'Retry context maintenance access' });
+      fireEvent.click(retry);
+      expect(capacity.sessions.every((session) => session.controller.retained)).toBe(true);
+      expect(capacity.read.mock.calls.some(([identity]) => identity.frameId === manualCompactionIdentity.frameId)).toBe(
+        false
+      );
+      expect(screen.getByRole('button', { name: 'Retry context maintenance access' })).toBeInTheDocument();
+      await act(async () => {
+        await harness.view.i18n.changeLanguage('zh-CN');
+      });
+      expect(screen.getByText('上下文维护会话已达容量上限。请在原对话核对待定请求后重试。')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '重试上下文维护入口' })).toBeInTheDocument();
+      await act(async () => {
+        await harness.view.i18n.changeLanguage('en-US');
+      });
+      await act(async () => {
+        await capacity.settleOne();
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Retry context maintenance access' }));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Retry context maintenance access' })).not.toBeInTheDocument()
+      );
+      await waitFor(() =>
+        expect(
+          capacity.read.mock.calls.filter(([identity]) => identity.frameId === manualCompactionIdentity.frameId)
+        ).toHaveLength(1)
+      );
+      expect(capacity.sessions.slice(1).every((session) => session.controller.retained)).toBe(true);
+      expect(capacity.submit).toHaveBeenCalledTimes(32);
+      expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+    } finally {
+      harness.dispose();
+      capacity.dispose();
+    }
+  });
+
+  it.each([
+    ['recovery_needed', 'unavailable', 'Recovery required'],
+    ['accepted', 'not_started', 'Accepted'],
+    ['cancelled', 'draining', 'Waiting for execution cleanup'],
+  ])(
+    'C11 labels unresolved %s from the actual receipt instead of claiming compaction is running',
+    async (state, observation, label) => {
+      const operation = { ...manualCompactionReceipt(), state, execution_observation: observation };
+      const harness = await renderManualCompaction(
+        manualCompactionSnapshot(operation),
+        manualCompactionUsage(50_000, true)
+      );
+      try {
+        fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+        expect(await screen.findByRole('button', { name: label })).toBeDisabled();
+        fireEvent.click(screen.getByTestId('context-usage-close'));
+        fireEvent.click(screen.getByRole('button', { name: 'change' }));
+        fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+        expect(await screen.findByRole('button', { name: label })).toBeDisabled();
+        expect(screen.queryByRole('button', { name: 'Compacting context' })).not.toBeInTheDocument();
+      } finally {
+        harness.dispose();
+      }
+    }
+  );
+
+  it('C11 mobile uses the same context card and explicit request controller', async () => {
+    isMobileMock.current = true;
+    const harness = await renderManualCompaction();
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Compact context' }));
+      await screen.findByRole('button', { name: 'Compacting context' });
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(0);
+      expect(mobileActionSheetOpen.current).toBe(false);
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it('C11 exposes exact cancellation in the existing card and keeps committed archive pending diagnostic', async () => {
+    const receipt = manualCompactionReceipt();
+    const capability = manualCompactionSnapshot(receipt);
+    const harness = await renderManualCompaction(capability, manualCompactionUsage(), (method, path, body) => {
+      if (method === 'GET' && path === manualCompactionPath) return capability;
+      if (method === 'DELETE') {
+        expect(body).toEqual(receipt.request);
+        return {
+          ...receipt,
+          state: 'committed',
+          cancellation_status: 'already_terminal',
+          execution_observation: 'unavailable',
+          can_submit_next_input: true,
+          archive_status: 'pending',
+        };
+      }
+      throw new Error('Unexpected C11 archive diagnostic request');
+    });
+    try {
+      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel context maintenance' }));
+      expect(await screen.findByText('Context committed; its history archive is still pending.')).toBeInTheDocument();
+      expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('30.0%');
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+      await act(async () => {
+        await harness.view.i18n.changeLanguage('zh-CN');
+      });
+      expect(screen.getByText('上下文已提交；历史归档仍待完成。')).toBeInTheDocument();
+    } finally {
+      harness.dispose();
+    }
+  });
+
   it.each([false, true])('C6 scoped grants stay revocable from the running composer, mobile=%s', async (mobile) => {
     isMobileMock.current = mobile;
     realMobileActionSheet.current = mobile;
@@ -778,11 +1385,26 @@ describe('AcpSendBox', () => {
       setConfigOption: modeSetter,
     });
     const transport = vi.spyOn(httpBridge, 'httpRequest').mockImplementation(async (method, path) => {
+      if (method === 'GET' && path === '/api/conversations/grant-child/context-compactions') {
+        return {
+          ...manualCompactionSnapshot(null, false, 'active'),
+          target: {
+            ...manualCompactionTarget,
+            frame_incarnation_id: sessionGrantIdentity.frameIncarnationId,
+            root_frame_id: sessionGrantIdentity.rootFrameId,
+            stream_uid: `frame:${sessionGrantIdentity.frameId}`,
+          },
+        } as never;
+      }
       if (!path.startsWith('/api/conversations/grant-child/permission-grants')) {
         throw new Error(`Unexpected C6 request: ${method} ${path}`);
       }
       return (method === 'GET' ? sessionGrantsSnapshot() : sessionGrantRevokeResponse()) as never;
     });
+    const grantReads = () =>
+      transport.mock.calls.filter(
+        ([method, path]) => method === 'GET' && path === '/api/conversations/grant-child/permission-grants'
+      );
     try {
       await render(
         <AcpSendBox
@@ -811,7 +1433,7 @@ describe('AcpSendBox', () => {
       expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining(runtimeScope));
       expect(useAcpModelInfoMock).toHaveBeenCalledWith(expect.objectContaining(runtimeScope));
       if (mobile) {
-        await waitFor(() => expect(transport.mock.calls.filter(([method]) => method === 'GET')).toHaveLength(1));
+        await waitFor(() => expect(grantReads()).toHaveLength(1));
         fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
         const permissionEntry = await screen.findByTestId('mobile-action-sheet-send-mode');
         expect(permissionEntry).toHaveTextContent('本会话已授权 1 项');
@@ -820,7 +1442,7 @@ describe('AcpSendBox', () => {
         expect(await screen.findByLabelText('本会话已授权 1 项')).toHaveTextContent('1');
         fireEvent.click(screen.getByTestId('x-science-permission-selector'));
       }
-      expect(transport.mock.calls.filter(([method]) => method === 'GET')).toHaveLength(1);
+      expect(grantReads()).toHaveLength(1);
       fireEvent.click(await screen.findByRole('button', { name: '撤销本会话对 Python execution 的授权' }));
       await waitFor(() =>
         expect(transport).toHaveBeenCalledWith(
