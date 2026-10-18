@@ -146,7 +146,7 @@ export class XScienceAsideOperation {
         return receipt;
       } catch (error) {
         this.assertOwner();
-        const known = await this.reconcile().catch(() => null);
+        const known = await this.reconcile().catch((): null => null);
         if (known?.status === 'accepted') return known.receipt;
         throw error;
       }

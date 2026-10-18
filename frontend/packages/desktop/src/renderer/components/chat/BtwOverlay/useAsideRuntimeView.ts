@@ -211,7 +211,7 @@ export function useAsideRuntimeView(receipt: XScienceAsideReceipt | null, enable
     const stream = ipcBridge.acpConversation.responseStream.on((event) => {
       if (event.conversation_id === receipt.frameId) schedule();
     });
-    const users = ipcBridge.acpConversation.userCreated.on((event) => {
+    const users = ipcBridge.conversation.userCreated.on((event) => {
       if (event.conversation_id === receipt.frameId) schedule();
     });
     void read();

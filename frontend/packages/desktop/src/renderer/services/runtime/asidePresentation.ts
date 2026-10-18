@@ -69,7 +69,9 @@ export function readAsidePresentation(parent: string, asSession: boolean): Aside
       pendingResume = {
         client_command_id: value.pendingResume.client_command_id,
         resume_target: target,
-        ...(value.pendingResume.model ? { model: value.pendingResume.model } : {}),
+        ...(typeof value.pendingResume.model === 'string' && value.pendingResume.model
+          ? { model: value.pendingResume.model }
+          : {}),
       };
     }
     if (value.inputMessageId !== null && (typeof value.inputMessageId !== 'string' || !value.inputMessageId))
@@ -184,7 +186,7 @@ function normalizeFollowup(value: unknown): XScienceAsideFollowup | null {
       target_branch_id: options.target_branch_id,
       expected_branch_id: options.target_branch_id,
       expected_generation: Number(options.expected_generation),
-      ...(options.model ? { model: options.model } : {}),
+      ...(typeof options.model === 'string' && options.model ? { model: options.model } : {}),
     },
   };
 }

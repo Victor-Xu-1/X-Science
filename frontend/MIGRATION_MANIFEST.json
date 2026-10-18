@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "5b7d86c3340887b5819f7e7351ec8a3c73f1e15c417e782002c700d3fc5e5ff6",
+  "adaptationFingerprintSHA256": "22c3d8c90b847dc432f0737b2737435776f6c9fd84b53e257e9a418686164daf",
   "removalFingerprintSHA256": "8cbcd490051bf7a229d3fbd30607e912b3a60cef16d461a18042cc71704589ac",
-  "additionFingerprintSHA256": "5da234726514796535afccab8c68f0956f8cc49a63024002a03de1f0b59a8439",
+  "additionFingerprintSHA256": "9913fb489e576a176e17be801b4a96c5e5e2a8b036bb9fa91763771645c726dd",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 275,
     "adaptedSourceFiles": 785,
     "removedSourceFiles": 294,
-    "addedFiles": 976
+    "addedFiles": 977
   },
   "adaptations": [
     {
@@ -1139,8 +1139,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "548c543573056d3c81c46b536c020295261741c1ec7199e15d6b3c650e15442c",
-      "bytes": 40588,
+      "targetSHA256": "b1d439080a6345e43ad683932d9a96a17ba96e8847e26c7dae492c4d984c43a8",
+      "bytes": 40966,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -3124,8 +3124,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAside.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAside.ts",
       "sourceSHA256": "78245de61d5ed4af2ee1da16589fa98b56a22b1f76243762fd1b2c5f9e9b987a",
-      "targetSHA256": "edb6efdb39dfee820b0eaaa572d272f7addb0e9e77cb578469ba6f704aa0cb58",
-      "bytes": 13522,
+      "targetSHA256": "fc0960b4438852274b5ebcfa2669b757f3db817fbbdd3b8f0796f0741ba17809",
+      "bytes": 13647,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4324,8 +4324,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "ba5a6289f91f3a3ee1d10345773b3bbc96489e9bc4d0e90b909f4897abb78907",
-      "bytes": 26686,
+      "targetSHA256": "20371b8a1aca7d098e3c023f6bebfa9f1416a39e480b1f6c743a81a7da31f535",
+      "bytes": 29235,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -7715,8 +7715,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useAsideRuntimeView.ts",
-      "sha256": "09c15011176ac32a6f1376031a46bb14cf25834f8174c4c208c6d93f4dad6268",
-      "bytes": 9742,
+      "sha256": "ea5a0534bb3df796801c4896778cf55aa5f228f2b822ed9641f2746264e3f091",
+      "bytes": 9739,
       "reason": "Observe canonical child messages and runtime progress without polling only final output or imposing an execution deadline."
     },
     {
@@ -9983,14 +9983,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asideOperation.ts",
-      "sha256": "c763fdb59ff899345d31d8d714fae9604ce289fe9e46c82fabc59ea953be9027",
-      "bytes": 15155,
+      "sha256": "b3a7e6dfe493c37d38f4ae33b48e2ffdf9f60846c40a9403ad975a71ed3a5ff1",
+      "bytes": 15161,
       "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asidePresentation.ts",
-      "sha256": "6cf5f6189bd44d493fbc18021cfb095d39a093e3c20bd9ae4f869f08db75cc6e",
-      "bytes": 7350,
+      "sha256": "642ab66cabca6c0050a62dcf266952d32c6a7c1033ac13213601abea3996ee53",
+      "bytes": 7456,
       "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
     },
     {
@@ -11042,6 +11042,12 @@
       "sha256": "b097a4e771e13a44e101e8d9ac013a66fb336937c127b581c9f5ea4f506bae3e",
       "bytes": 4148,
       "reason": "Verify failed child Agent operations expose deterministic retry and recovery behavior."
+    },
+    {
+      "path": "tests/unit/chat/asideRuntimeView.dom.test.tsx",
+      "sha256": "04786448be7b20a16726d57d7c48a8b91cecdd72528bbd817a984f8d57f266b6",
+      "bytes": 3694,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/chat/asideRuntimeView.test.ts",

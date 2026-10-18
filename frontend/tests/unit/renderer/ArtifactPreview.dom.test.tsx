@@ -23,6 +23,7 @@ beforeEach(() => {
   loadArtifactMock.mockReset().mockImplementation(defaultArtifactLoader);
   loadVersionsMock.mockReset().mockImplementation(defaultVersionLoader);
   loadAnnotationsMock.mockReset().mockImplementation(defaultAnnotationLoader);
+  createAnnotationMock.mockReset();
   vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
 });
 afterEach(async () => {
@@ -78,6 +79,7 @@ const loadAnnotationsMock = vi.fn(async (_artifactId: string, _versionId: string
   annotations: [] as XScienceArtifactAnnotation[],
 }));
 const defaultAnnotationLoader = loadAnnotationsMock.getMockImplementation()!;
+const createAnnotationMock = vi.fn();
 
 const loadLineageMock = vi.fn(async () => ({
   artifactId: 'artifact-1',
@@ -196,6 +198,7 @@ vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>()),
   loadXScienceArtifactAnnotations: (artifactId: string, versionId: string) =>
     loadAnnotationsMock(artifactId, versionId),
+  createXScienceArtifactAnnotation: (...args: unknown[]) => createAnnotationMock(...args),
 }));
 
 import ArtifactPreview from '@/renderer/pages/artifact/ArtifactPreview';
@@ -380,6 +383,75 @@ describe('ArtifactPreview', () => {
     );
     expect(await screen.findByTitle('New version note')).toBeInTheDocument();
     expect(screen.queryByTitle('Old version note')).not.toBeInTheDocument();
+  });
+
+  it('displays a newly saved point through the version-owned annotation updater', async () => {
+    const original = await defaultArtifactLoader();
+    const annotation: XScienceArtifactAnnotation = {
+      id: 'saved-point',
+      artifactId: original.artifactId,
+      targetKey: 'fixture-version-1',
+      label: 'A',
+      contentChecksum: null,
+      type: 'point',
+      text: 'Saved point',
+      xPercent: 50,
+      yPercent: 50,
+      startLine: null,
+      startColumn: null,
+      endLine: null,
+      endColumn: null,
+      selectionText: null,
+      pageNumber: null,
+      selectionPrefix: null,
+      screenshotArtifactId: null,
+      elementSelector: null,
+      elementDescriptor: null,
+      addressedAt: null,
+      addressedInFrameId: null,
+      createdAt: '2026-10-18T03:00:00Z',
+    };
+    createAnnotationMock.mockResolvedValue(annotation);
+    loadAnnotationsMock.mockImplementation(async () => ({
+      targetKey: 'fixture-version-1',
+      currentChecksum: null,
+      annotations: createAnnotationMock.mock.calls.length ? [annotation] : [],
+    }));
+    await render(<ArtifactPreview />);
+    const image = await screen.findByRole('img', { name: original.filename });
+    Object.defineProperties(image, {
+      naturalWidth: { configurable: true, value: 200 },
+      naturalHeight: { configurable: true, value: 100 },
+    });
+    vi.spyOn(image, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 100,
+      width: 200,
+      height: 100,
+      toJSON: () => ({}),
+    });
+    fireEvent.load(image);
+    fireEvent.click(image, { clientX: 100, clientY: 50 });
+    fireEvent.click(await screen.findByRole('button', { name: '批注', exact: true }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: annotation.text } });
+    fireEvent.click(within(dialog).getByRole('button', { name: '添加', exact: true }));
+    expect(await screen.findByTitle(annotation.text)).toBeInTheDocument();
+    expect(createAnnotationMock).toHaveBeenCalledWith(
+      'artifact-1',
+      'version-1',
+      expect.objectContaining({
+        type: 'point',
+        text: annotation.text,
+        xPercent: 50,
+        yPercent: 50,
+      })
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('binds structure rendering and derived snapshots to the displayed immutable version', async () => {

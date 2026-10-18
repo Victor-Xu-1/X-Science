@@ -227,9 +227,19 @@ const ArtifactPreview: React.FC = () => {
   const annotationOwnerRef = useRef(annotationOwner);
   annotationOwnerRef.current = annotationOwner;
   const updatePreviewAnnotations = useCallback(
-    (annotations: XScienceArtifactAnnotation[]) => {
+    (
+      annotations:
+        | XScienceArtifactAnnotation[]
+        | ((current: XScienceArtifactAnnotation[]) => XScienceArtifactAnnotation[])
+    ) => {
       if (annotationOwnerRef.current !== annotationOwner) return;
-      setAnnotationSnapshot({ owner: annotationOwner, annotations });
+      setAnnotationSnapshot((current) => ({
+        owner: annotationOwner,
+        annotations:
+          typeof annotations === 'function'
+            ? annotations(current.owner === annotationOwner ? current.annotations : [])
+            : annotations,
+      }));
     },
     [annotationOwner]
   );
@@ -582,9 +592,10 @@ const ArtifactPreview: React.FC = () => {
           selection={annotationSelection}
           onCancel={() => setAnnotationSelection(null)}
           onCreated={(annotation) => {
+            if (annotationOwnerRef.current !== annotationOwner) return;
             setAnnotationSelection(null);
             setActiveInspectorTab('annotations');
-            setPreviewAnnotations((current) => [...current.filter((item) => item.id !== annotation.id), annotation]);
+            updatePreviewAnnotations((current) => [...current.filter((item) => item.id !== annotation.id), annotation]);
             setAnnotationRevision((revision) => revision + 1);
             messageApi.success(t('preview.artifact.selectionAnnotationAdded'));
           }}

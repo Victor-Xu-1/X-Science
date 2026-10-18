@@ -258,7 +258,12 @@ export async function sendXScienceAsideFollowup(
   return accepted;
 }
 
-export function asideFollowupRequestBody(command: XScienceAsideFollowup) {
+export function asideFollowupRequestBody(command: XScienceAsideFollowup): {
+  content: string;
+  files: string[];
+  loading_id: string;
+  session_options: XScienceAsideFollowup['sessionOptions'];
+} {
   return { content: command.text, files: [], loading_id: command.loadingId, session_options: command.sessionOptions };
 }
 
