@@ -5,7 +5,6 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { XScienceExecutionRecord } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import type { XScienceSessionUpdate } from '@/renderer/services/xScienceSessionActions';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
@@ -18,6 +17,9 @@ import { useAuth } from '@/renderer/hooks/context/AuthContext';
 import { prefetchConversationRoute, warmConversationNavigation } from '@/renderer/pages/conversation/conversationRoute';
 import { beginConversationRoutePerformance } from '@/renderer/pages/conversation/conversationRoutePerformance';
 import { useSessionMove } from './useSessionMove';
+import { useSessionNotebook } from './useSessionNotebook';
+import { isSessionExportDisabled } from '../sessionExportAvailability';
+import { getConversationRuntimeViewSnapshot } from '../../runtime/conversationRuntimeViewStore';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -54,10 +56,6 @@ export const useConversationActions = ({
   const [editorTarget, setEditorTarget] = useState<TChatConversation | null>(null);
   const [editorLoading, setEditorLoading] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
-  const [notebookTarget, setNotebookTarget] = useState<TChatConversation | null>(null);
-  const [notebookRecords, setNotebookRecords] = useState<XScienceExecutionRecord[]>([]);
-  const [notebookLoading, setNotebookLoading] = useState(false);
-  const [notebookError, setNotebookError] = useState<string | null>(null);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
   const { id } = useParams();
   const { user } = useAuth();
@@ -72,6 +70,7 @@ export const useConversationActions = ({
     emitter.emit('chat.history.refresh');
   }, []);
   const move = useSessionMove(loadConversationActionRuntime, refreshHistory);
+  const notebook = useSessionNotebook(user?.id ?? '', loadConversationActionRuntime);
 
   const handleConversationPrefetch = useCallback(
     (_conversation: TChatConversation) => {
@@ -238,9 +237,13 @@ export const useConversationActions = ({
   const handleExport = useCallback(
     async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
+      const disabled = () =>
+        isSessionExportDisabled(conversation, false, getConversationRuntimeViewSnapshot(conversation.id));
+      if (disabled()) return;
       try {
         const { downloadFileFromUrl, getXScienceSessionExportUrl, sanitizeFileName } =
           await loadConversationActionRuntime();
+        if (disabled()) return;
         await downloadFileFromUrl(
           getXScienceSessionExportUrl(conversation.id),
           `${sanitizeFileName(conversation.name || conversation.id)}.x-science-session.json`
@@ -274,28 +277,10 @@ export const useConversationActions = ({
   const handleViewNotebook = useCallback(
     async (conversation: TChatConversation) => {
       setDropdownVisibleId(null);
-      setNotebookTarget(conversation);
-      setNotebookRecords([]);
-      setNotebookError(null);
-      setNotebookLoading(true);
-      try {
-        const { loadXScienceExecutionLogPage } = await loadConversationActionRuntime();
-        setNotebookRecords((await loadXScienceExecutionLogPage(conversation.id)).records);
-      } catch (error) {
-        console.warn('[ConversationActions] Failed to load session notebook:', diagnostic(error));
-        setNotebookError(t('conversation.history.sessionNotebook.loadFailed'));
-      } finally {
-        setNotebookLoading(false);
-      }
+      await notebook.handleViewNotebook(conversation);
     },
-    [t]
+    [notebook.handleViewNotebook]
   );
-
-  const handleNotebookClose = useCallback(() => {
-    setNotebookTarget(null);
-    setNotebookRecords([]);
-    setNotebookError(null);
-  }, []);
 
   const handleMenuVisibleChange = useCallback((conversationId: string, visible: boolean) => {
     setDropdownVisibleId(visible ? conversationId : null);
@@ -315,12 +300,8 @@ export const useConversationActions = ({
     ...move,
     moveCurrentProjectId: conversationProjectId(move.moveTarget),
     handleMoveStart,
-    notebookTarget,
-    notebookRecords,
-    notebookLoading,
-    notebookError,
+    ...notebook,
     handleViewNotebook,
-    handleNotebookClose,
     dropdownVisibleId,
     handleConversationPrefetch,
     prepareConversationNavigation,

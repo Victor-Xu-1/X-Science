@@ -89,6 +89,7 @@
       "empty": "此任务没有执行记录",
       "cell": "执行单元",
       "cellNumber": "执行单元 {{number}}",
+      "loadOlder": "加载更早记录",
       "loadFailed": "任务执行记录加载失败。"
     },
     "exportDialogTitle": "导出话题",

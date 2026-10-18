@@ -212,8 +212,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     notebookRecords,
     notebookLoading,
     notebookError,
+    notebookHasOlder,
     handleViewNotebook,
     handleNotebookClose,
+    handleNotebookRetry,
+    handleNotebookLoadOlder,
     dropdownVisibleId,
     handleConversationPrefetch,
     prepareConversationNavigation,
@@ -393,6 +396,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             records={notebookRecords}
             loading={notebookLoading}
             error={notebookError}
+            hasOlder={notebookHasOlder}
+            onRetry={handleNotebookRetry}
+            onLoadOlder={handleNotebookLoadOlder}
             onClose={handleNotebookClose}
           />
         </React.Suspense>

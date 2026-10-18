@@ -29,7 +29,7 @@ import ConversationRow, {
 } from '@/renderer/pages/conversation/GroupedHistory/ConversationRow';
 
 describe('ConversationRow v1.1 session actions', () => {
-  it('keeps the essential conversation actions and removes obsolete secondary actions', async () => {
+  it('connects export and read-only notebook actions with canonical runtime availability', async () => {
     const successMessage = vi.spyOn(Message, 'success').mockImplementation(() => () => undefined);
     const callbacks = {
       onConversationPrefetch: vi.fn(),
@@ -91,8 +91,10 @@ describe('ConversationRow v1.1 session actions', () => {
     });
     expect(screen.getByText('移动到项目')).toBeInTheDocument();
     expect(screen.getByText('下载全部产物')).toBeInTheDocument();
-    expect(screen.queryByText('导出')).not.toBeInTheDocument();
-    expect(screen.queryByText('查看 notebook')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: '导出' }));
+    expect(callbacks.onExport).toHaveBeenCalledWith(conversation);
+    fireEvent.click(screen.getByRole('menuitem', { name: '查看 notebook' }));
+    expect(callbacks.onViewNotebook).toHaveBeenCalledWith(conversation);
     expect(screen.queryByText('笔记')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: '删除' }));
     expect(callbacks.onDelete).toHaveBeenCalledWith('frame-1');
@@ -104,10 +106,31 @@ describe('ConversationRow v1.1 session actions', () => {
     expect(screen.getByText('Rename')).toBeInTheDocument();
     expect(screen.getByText('Move to project')).toBeInTheDocument();
     expect(screen.getByText('Download all artifacts')).toBeInTheDocument();
-    expect(screen.queryByText('Export')).not.toBeInTheDocument();
-    expect(screen.queryByText('View notebook')).not.toBeInTheDocument();
+    expect(screen.getByText('Export')).toBeInTheDocument();
+    expect(screen.getByText('View notebook')).toBeInTheDocument();
     expect(screen.queryByText('Notes')).not.toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
+    for (const state of ['running', 'waiting_input', 'waiting_confirmation'] as const) {
+      const current: TChatConversation = {
+        ...conversation,
+        runtime: {
+          state,
+          is_processing: state === 'running',
+          has_task: true,
+          task_status: 'pending',
+          pending_confirmations: state === 'waiting_confirmation' ? 1 : 0,
+          can_send_message: false,
+          turn_id: conversation.id,
+        },
+      };
+      rerender(<ConversationRow {...props} conversation={current} />);
+      const exportItem = screen.getByRole('menuitem', { name: 'Export', exact: true });
+      expect(exportItem).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(exportItem);
+      expect(callbacks.onExport).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByRole('menuitem', { name: 'View notebook' }));
+      expect(callbacks.onViewNotebook).toHaveBeenLastCalledWith(current);
+    }
   });
 
   it('uses the Codex-style running ring and lets persisted terminal states win immediately', async () => {

@@ -89,6 +89,7 @@
       "empty": "This task has no execution records",
       "cell": "Execution cell",
       "cellNumber": "Execution cell {{number}}",
+      "loadOlder": "Load older records",
       "loadFailed": "Failed to load task execution records."
     },
     "exportDialogTitle": "Export Topics",
