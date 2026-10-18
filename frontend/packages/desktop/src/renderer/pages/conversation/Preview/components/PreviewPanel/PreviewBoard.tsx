@@ -410,7 +410,18 @@ const PreviewBoardTileContent: React.FC<{
     );
   }
   if (type === 'pdf')
-    return <PDFPreview file_path={metadata?.file_path} fileName={fileName} content={metadata?.contentUrl || content} />;
+    return (
+      <PDFPreview
+        file_path={metadata?.file_path}
+        fileName={fileName}
+        content={metadata?.contentUrl || content}
+        artifactId={metadata?.artifactId}
+        versionId={metadata?.versionId}
+        projectId={metadata?.projectId}
+        targetPage={metadata?.targetPdfPage}
+        revealId={metadata?.pdfRevealId}
+      />
+    );
   if (type === 'ppt') {
     return (
       <PptViewer

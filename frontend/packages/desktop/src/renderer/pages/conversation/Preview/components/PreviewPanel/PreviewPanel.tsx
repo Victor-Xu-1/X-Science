@@ -409,6 +409,11 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
           file_path={metadata?.file_path}
           fileName={metadata?.file_name || metadata?.title}
           content={metadata?.contentUrl || content}
+          artifactId={metadata?.artifactId}
+          versionId={metadata?.versionId}
+          projectId={metadata?.projectId}
+          targetPage={metadata?.targetPdfPage}
+          revealId={metadata?.pdfRevealId}
         />
       );
     } else if (content_type === 'ppt') {

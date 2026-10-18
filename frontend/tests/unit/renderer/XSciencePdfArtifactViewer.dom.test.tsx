@@ -1,10 +1,20 @@
 import { ConfigProvider } from '@arco-design/web-react';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React, { useEffect } from 'react';
+import { MemoryRouter } from 'react-router';
 import { VirtuosoMockContext } from 'react-virtuoso';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { XSciencePdfArtifactViewer } from '@/renderer/pages/artifact/XSciencePdfArtifactViewer';
 import { renderWithI18n as renderTranslated, type TestLanguage } from '../i18nTestUtils';
+import { pdfContext } from './conversation/pdfReadingFixtures';
+import { MessagePdfReadingContext } from '@/renderer/pages/conversation/Messages/components/MessagePdfReadingContext';
+import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+
+// Artifact mutations are outside this reveal regression. Keep the actual
+// history button, tab owner, panel, PDF viewer and page navigation intact.
+vi.mock('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewArtifactActions', () => ({
+  default: () => null,
+}));
 
 const textLayerCallbacks = new Map<number, () => void>();
 const parser = vi.hoisted(() => ({ failure: false, pageFailure: false, pages: 2 }));
@@ -78,6 +88,159 @@ class TestResizeObserver {
 }
 
 describe('X-Science PDF artifact viewer', () => {
+  it('C12 carries repeated reveal actions through the board without reloading the PDF or replacing its tab', async () => {
+    parser.pages = 9;
+    localStorage.clear();
+    const pdfPath = '/api/artifacts/versions/version-board';
+    const unexpectedRequests: string[] = [];
+    const requestPath = (input: RequestInfo | URL) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      return new URL(address, 'http://localhost').pathname;
+    };
+    // Cold CodeEditor/ThemeContext imports initialize the real UI config owner.
+    // Its settings read is not a second PDF byte read.
+    vi.mocked(fetch).mockImplementation(async (input, init) => {
+      const path = requestPath(input);
+      const method = init?.method ?? (typeof input === 'object' && 'method' in input ? input.method : 'GET');
+      if (method === 'GET' && path === pdfPath) return new Response(new Uint8Array([37, 80, 68, 70]));
+      if (method === 'GET' && path === '/api/settings/client')
+        return new Response(JSON.stringify({ data: { 'theme.activeId': 'light', 'theme.userThemes': [] } }), {
+          headers: { 'content-type': 'application/json' },
+        });
+      unexpectedRequests.push(`${method} ${path}`);
+      throw new Error(`Unexpected board reveal request: ${method} ${path}`);
+    });
+    const pdfReads = () => vi.mocked(fetch).mock.calls.filter(([input]) => requestPath(input) === pdfPath);
+    const { default: PreviewBoard } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewBoard');
+    function BoardReveal() {
+      const { openPreview, activeTabId, tabs, closePreview } = usePreviewContext();
+      return (
+        <>
+          <button
+            onClick={() =>
+              openPreview(
+                '/api/artifacts/versions/version-board',
+                'pdf',
+                {
+                  file_name: 'board.pdf',
+                  artifactId: 'artifact-board',
+                  versionId: 'version-board',
+                  contentUrl: '/api/artifacts/versions/version-board',
+                  targetPdfPage: 4,
+                },
+                { presentation: 'board' }
+              )
+            }
+          >
+            Reveal board page 4
+          </button>
+          <button onClick={closePreview}>Close board presentation</button>
+          <output data-testid='board-reveal-tab'>{activeTabId}</output>
+          <output data-testid='board-reveal-count'>{tabs.length}</output>
+          <PreviewBoard />
+        </>
+      );
+    }
+    await renderWithI18n(
+      <MemoryRouter>
+        <PreviewProvider>
+          <BoardReveal />
+        </PreviewProvider>
+      </MemoryRouter>,
+      'en-US'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal board page 4' }));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Current PDF page' })).toHaveValue('4'));
+    expect(pdfReads()).toHaveLength(1);
+    const tabId = screen.getByTestId('board-reveal-tab').textContent;
+    const navigator = screen.getByRole('textbox', { name: 'Current PDF page' });
+    fireEvent.change(navigator, { target: { value: '9' } });
+    fireEvent.keyDown(navigator, { key: 'Enter' });
+    expect(navigator).toHaveValue('9');
+    fireEvent.click(screen.getByRole('button', { name: 'Reveal board page 4' }));
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Current PDF page' })).toHaveValue('4'));
+    expect(screen.getByTestId('board-reveal-tab')).toHaveTextContent(tabId!);
+    expect(screen.getByTestId('board-reveal-count')).toHaveTextContent('1');
+    expect(pdfReads()).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close board presentation' }));
+    expect(screen.getByTestId('board-reveal-count')).toHaveTextContent('0');
+    expect(pdfReads()).toHaveLength(1);
+    expect(unexpectedRequests).toEqual([]);
+  }, 30_000);
+
+  it('C12 reveals the same historical version and page again after navigating elsewhere', async () => {
+    parser.pages = 9;
+    localStorage.clear();
+    const { default: PreviewPanel } =
+      await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+    const { ThemeProvider } = await import('@/renderer/hooks/context/ThemeContext');
+    const pdfPath = '/api/artifacts/versions/version-1';
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const address = typeof input === 'string' ? input : 'url' in input ? input.url : input.href;
+      return new URL(address, 'http://localhost').pathname === pdfPath
+        ? new Response(new Uint8Array([37, 80, 68, 70]))
+        : new Response(JSON.stringify({ data: {} }), { headers: { 'content-type': 'application/json' } });
+    });
+    function HistoryAndPreview() {
+      const { tabs, activeTabId } = usePreviewContext();
+      return (
+        <>
+          <MessagePdfReadingContext
+            snapshot={{
+              ...pdfContext(),
+              schema: 'x-science.pdf-reading-snapshot.v1',
+              active_binding_id: 'binding-1',
+              page_number: 4,
+            }}
+          />
+          <output data-testid='history-reveal-tab'>{activeTabId}</output>
+          <output data-testid='history-reveal-tab-count'>{tabs.length}</output>
+          <PreviewPanel />
+        </>
+      );
+    }
+    await renderWithI18n(
+      <MemoryRouter>
+        <ThemeProvider>
+          <PreviewProvider>
+            <HistoryAndPreview />
+          </PreviewProvider>
+        </ThemeProvider>
+      </MemoryRouter>,
+      'en-US'
+    );
+    const reveal = screen.getByRole('button', { name: 'Reading · Page 4 · paper-1.pdf' });
+    fireEvent.click(reveal);
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Current PDF page' })).toHaveValue('4'));
+    const tabId = screen.getByTestId('history-reveal-tab').textContent;
+    const navigator = screen.getByRole('textbox', { name: 'Current PDF page' });
+    fireEvent.change(navigator, { target: { value: '9' } });
+    fireEvent.keyDown(navigator, { key: 'Enter' });
+    expect(navigator).toHaveValue('9');
+    fireEvent.click(reveal);
+    await waitFor(() => expect(screen.getByRole('textbox', { name: 'Current PDF page' })).toHaveValue('4'));
+    expect(screen.getByTestId('history-reveal-tab')).toHaveTextContent(tabId!);
+    expect(screen.getByTestId('history-reveal-tab-count')).toHaveTextContent('1');
+    expect(vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith(pdfPath))).toHaveLength(1);
+  }, 30_000);
+
+  it('C12 reports the actual parsed PDF page and explicit navigation to its composer owner', async () => {
+    parser.pages = 500;
+    const onReadingPositionChange = vi.fn();
+    await renderWithI18n(
+      <XSciencePdfArtifactViewer
+        filename='reading.pdf'
+        contentUrl='/api/artifacts/reading-version'
+        {...{ onReadingPositionChange }}
+      />,
+      'en-US'
+    );
+    await waitFor(() => expect(onReadingPositionChange).toHaveBeenCalledWith({ pageNumber: 1, pageCount: 500 }));
+    fireEvent.click(screen.getByRole('button', { name: 'Go to appendix' }));
+    await waitFor(() => expect(onReadingPositionChange).toHaveBeenLastCalledWith({ pageNumber: 400, pageCount: 500 }));
+  });
+
   beforeEach(() => {
     parser.failure = false;
     parser.pageFailure = false;

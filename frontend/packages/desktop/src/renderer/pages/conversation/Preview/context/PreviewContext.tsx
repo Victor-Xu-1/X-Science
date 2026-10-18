@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { PdfReadingPreviewOwner } from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -32,6 +33,8 @@ export interface DomSnippet {
 }
 
 export interface PreviewMetadata {
+  targetPdfPage?: number;
+  pdfRevealId?: string;
   notebookSession?: NotebookSessionNavigation;
   language?: string;
   title?: string;
@@ -92,6 +95,8 @@ export interface OpenPreviewOptions {
 export type PreviewPresentationMode = 'single' | 'board';
 
 export interface PreviewContextValue {
+  pdfReadingOwner: PdfReadingPreviewOwner | null;
+  registerPdfReadingOwner: (owner: PdfReadingPreviewOwner) => () => void;
   previewFocusScopeId?: string;
   // 预览面板状态 / Preview panel state
   isOpen: boolean;
@@ -220,6 +225,11 @@ type PreviewScope = 'workspace' | 'embedded';
 type PreviewProviderProps = { children: React.ReactNode; scope?: PreviewScope };
 
 const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scope = 'workspace' }) => {
+  const [pdfReadingOwner, setPdfReadingOwner] = useState<PdfReadingPreviewOwner | null>(null);
+  const registerPdfReadingOwner = useCallback((owner: PdfReadingPreviewOwner) => {
+    setPdfReadingOwner(owner);
+    return () => setPdfReadingOwner((current) => (current === owner ? null : current));
+  }, []);
   const { t, i18n } = useTranslation();
   // 从 localStorage 恢复初始状态 / Restore initial state from localStorage
   // localStorage parsing is synchronous and may include several preview tabs.
@@ -250,6 +260,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   useEffect(
     () =>
       registerRendererAccountReset(`notebook-preview:${embeddedFocusId}`, () => {
+        setPdfReadingOwner(null);
         setTabs((current) => {
           const retained = current.filter((tab) => !tab.metadata?.notebookSession);
           setActiveTabId((active) => (retained.some((tab) => tab.id === active) ? active : (retained[0]?.id ?? null)));
@@ -415,6 +426,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
+      // A repeated reveal is an action even if the version and page are equal.
+      if (type === 'pdf' && meta?.targetPdfPage !== undefined) meta = { ...meta, pdfRevealId: crypto.randomUUID() };
       const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const activateTab = (tabId: string) => {
         rememberPreviewOpener(tabId, opener);
@@ -834,6 +847,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const previewContextValue = useMemo(() => {
     return {
+      pdfReadingOwner,
+      registerPdfReadingOwner,
       previewFocusScopeId,
       isOpen,
       tabs,
@@ -859,6 +874,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       clearDomSnippets,
     };
   }, [
+    pdfReadingOwner,
+    registerPdfReadingOwner,
     previewFocusScopeId,
     isOpen,
     tabs,

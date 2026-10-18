@@ -7,7 +7,10 @@
 import FilePreview from '@/renderer/components/media/FilePreview';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
-import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
+import type {
+  ComposerContextItem,
+  ComposerArtifactContext,
+} from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
@@ -16,6 +19,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 import type { GuidLocalFile } from '../hooks/useGuidInput';
+import { suggestPdfReading } from '@/renderer/services/runtime/pdfReadingHandoff';
+import { PdfReadingSuggestion } from '@/renderer/components/chat/SendBox/reading/PdfReadingSuggestion';
 
 const formatLocalFileSize = (bytes: number): string => {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
@@ -100,9 +105,12 @@ type GuidInputCardProps = {
   files: string[];
   localFiles?: GuidLocalFile[];
   contextItems?: ComposerContextItem[];
+  pdfReadingEnabled?: boolean;
+  onKeepAttachments?: () => void;
   onRemoveFile: (path: string) => void;
   onRemoveLocalFile?: (id: string) => void;
   onRemoveContextItem?: (key: string) => void;
+  onOpenArtifact?: (item: ComposerArtifactContext) => void;
 
   // Action row
   actionRow: React.ReactNode;
@@ -128,9 +136,12 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   files,
   localFiles = [],
   contextItems = [],
+  pdfReadingEnabled = false,
+  onKeepAttachments,
   onRemoveFile,
   onRemoveLocalFile = () => {},
   onRemoveContextItem = () => {},
+  onOpenArtifact,
   actionRow,
   slashCommandMenu,
 }) => {
@@ -167,9 +178,18 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       {...dragHandlers}
     >
       <div className={`${styles.guidInputInner} relative p-16px flex flex-col`} data-input-active={isInputActive}>
+        {pdfReadingEnabled &&
+          (contextItems.some((item) => item.kind === 'artifact' && item.readingSelected) ||
+            (files.length === 0 &&
+              suggestPdfReading([
+                ...localFiles.map(({ file }) => ({ name: file.name, size: file.size, contentType: file.type })),
+                ...contextItems
+                  .filter((item) => item.kind === 'artifact')
+                  .map((item) => ({ name: item.label, size: item.sizeBytes, contentType: item.contentType })),
+              ]))) && <PdfReadingSuggestion onKeepAttachments={onKeepAttachments} />}
         {contextItems.length > 0 ? (
           <div className='mb-10px'>
-            <ComposerContextChips items={contextItems} onRemove={onRemoveContextItem} />
+            <ComposerContextChips items={contextItems} onRemove={onRemoveContextItem} onOpenArtifact={onOpenArtifact} />
           </div>
         ) : null}
         <Input.TextArea

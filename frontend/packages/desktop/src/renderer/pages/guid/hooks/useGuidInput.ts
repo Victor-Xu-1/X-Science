@@ -24,6 +24,8 @@ export type GuidInputResult = {
   localFiles: GuidLocalFile[];
   setLocalFiles: React.Dispatch<React.SetStateAction<GuidLocalFile[]>>;
   contextItems: ComposerContextItem[];
+  pdfReadingEnabled: boolean;
+  setPdfReadingEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   setContextItems: React.Dispatch<React.SetStateAction<ComposerContextItem[]>>;
   dir: string;
   setDir: React.Dispatch<React.SetStateAction<string>>;
@@ -54,6 +56,10 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   const [files, setFiles] = useState<string[]>([]);
   const [localFiles, setLocalFiles] = useState<GuidLocalFile[]>([]);
   const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
+  const [pdfReadingEnabled, setPdfReadingEnabled] = useState(true);
+  useEffect(() => {
+    if (localFiles.length === 0 && contextItems.length === 0) setPdfReadingEnabled(true);
+  }, [localFiles.length, contextItems.length]);
   const [dir, setDir] = useState<string>('');
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -159,6 +165,8 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
     localFiles,
     setLocalFiles,
     contextItems,
+    pdfReadingEnabled,
+    setPdfReadingEnabled,
     setContextItems,
     dir,
     setDir,

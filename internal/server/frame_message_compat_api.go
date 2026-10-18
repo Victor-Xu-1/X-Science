@@ -74,6 +74,10 @@ func (s *Server) handleCompatibilityFrameMessageSubmission(w http.ResponseWriter
 		writeV11Detail(w, http.StatusBadRequest, "input_data must be an object")
 		return
 	}
+	if input.InputData[transcriptstore.PDFReadingSelectionKey] != nil || input.InputData[transcriptstore.PDFReadingSnapshotKey] != nil {
+		writeV11Detail(w, http.StatusBadRequest, "PDF reading selection requires the typed conversation message contract")
+		return
+	}
 
 	result, err := s.submitCompatibilityFrameMessage(frame, input)
 	if err != nil {

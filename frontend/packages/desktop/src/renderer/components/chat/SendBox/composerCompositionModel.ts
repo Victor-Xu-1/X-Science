@@ -1,4 +1,5 @@
 import type { ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
+import type { PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
 
 export const MAX_COMPOSER_CONTEXT_ITEMS = 64;
 
@@ -13,6 +14,9 @@ export type ComposerArtifactContext = ComposerContextBase & {
   projectId?: string;
   contentType?: string;
   sizeBytes?: number;
+  /** Draft intent only; never a server reading binding. */
+  readingSelected?: true;
+  readingPosition?: PdfReadingPosition;
 };
 
 export type ComposerSkillContext = ComposerContextBase & {
@@ -85,6 +89,9 @@ function normalizeComposerContextItem(value: unknown): ComposerContextItem | nul
       ...(projectId ? { projectId } : {}),
       ...(contentType ? { contentType } : {}),
       ...(sizeBytes === undefined ? {} : { sizeBytes }),
+      ...(candidate.readingSelected === true
+        ? { readingSelected: true as const, ...normalizeDraftReadingPosition(candidate.readingPosition) }
+        : {}),
     };
   }
 
@@ -99,6 +106,18 @@ function normalizeComposerContextItem(value: unknown): ComposerContextItem | nul
   }
 
   return null;
+}
+
+function normalizeDraftReadingPosition(value: unknown): { readingPosition?: PdfReadingPosition } {
+  if (!value || typeof value !== 'object') return {};
+  const position = value as Partial<PdfReadingPosition>;
+  return Number.isSafeInteger(position.pageNumber) &&
+    Number.isSafeInteger(position.pageCount) &&
+    Number(position.pageNumber) > 0 &&
+    Number(position.pageCount) > 1 &&
+    Number(position.pageNumber) <= Number(position.pageCount)
+    ? { readingPosition: { pageNumber: Number(position.pageNumber), pageCount: Number(position.pageCount) } }
+    : {};
 }
 
 export function normalizeComposerContextItems(value: unknown): ComposerContextItem[] {

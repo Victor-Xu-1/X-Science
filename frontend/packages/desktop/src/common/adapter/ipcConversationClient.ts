@@ -14,6 +14,7 @@
  */
 
 import type { IConfirmation } from '@/common/chat/chatLib';
+import type { PdfReadingSnapshot } from './pdfReadingContext';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import type { TChatConversation, TConversationRuntimeSummary } from '../config/storage';
 import { buildCreateConversationBody, fromApiConversation } from './apiModelMapper';
@@ -228,6 +229,7 @@ const sendConversationMessage = httpPost<unknown, ISendMessageParams>(
     })),
     message_context: p.message_context,
     loading_id: p.loading_id,
+    ...(p.reading_context ? { reading_context: p.reading_context } : {}),
     ...(p.turn_intent ? { turn_intent: p.turn_intent } : {}),
     inject_skills: p.inject_skills,
     inject_mcp_server_ids: p.inject_mcp_server_ids,
@@ -339,6 +341,8 @@ export const conversation = {
     status: 'finish';
     hidden: boolean;
     turn_intent?: 'save-as-skill';
+    pdf_reading_context?: PdfReadingSnapshot;
+    pdf_reading_context_unavailable?: boolean;
     created_at: number;
   }>('durable', 'message.userCreated'),
   artifactStream: unavailableEmitter<IConversationArtifact>('realtime_event_unavailable_conversation_artifact'),

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { decodePdfReadingProjection } from '@/common/adapter/pdfReadingContext';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type {
@@ -563,11 +564,17 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
         }
         // User messages (right position) are complete — skip if already exists to prevent duplicates
         if (message.position === 'right') {
-          if (message.artifact_refs === undefined) return list;
+          if (
+            message.artifact_refs === undefined &&
+            message.pdf_reading_context === undefined &&
+            message.pdf_reading_context_unavailable === undefined
+          )
+            return list;
           const newList = list.slice();
           newList[existingIdx] = {
             ...existingMsg,
             artifact_refs: mergeArtifactReferences(existingMsg.artifact_refs, message.artifact_refs, 'union'),
+            ...decodePdfReadingProjection(message),
           };
           return newList;
         }
@@ -1056,7 +1063,12 @@ export function normalizeDbMessage(msg: TMessage): TMessage {
   if (hasArtifactReferences && artifactReferences === undefined) {
     throw new Error('conversation_artifact_refs_invalid');
   }
-  const normalized = hasArtifactReferences ? ({ ...msg, artifact_refs: artifactReferences! } as TMessage) : msg;
+  const normalized = {
+    ...msg,
+    ...decodePdfReadingProjection(msg),
+    ...(hasArtifactReferences ? { artifact_refs: artifactReferences! } : {}),
+  } as TMessage;
+  if (normalized.pdf_reading_context_unavailable) delete normalized.pdf_reading_context;
   if (normalized.type === 'tips') return normalizeDbTipsMessage(normalized);
   if (normalized.type !== 'text') return normalized;
 
@@ -1599,6 +1611,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
             position: payload.position,
             status: payload.status,
             hidden: payload.hidden,
+            ...decodePdfReadingProjection(payload),
             ...(payload.turn_intent === 'save-as-skill' ? { turn_intent: payload.turn_intent } : {}),
             created_at: payload.created_at,
             content: {

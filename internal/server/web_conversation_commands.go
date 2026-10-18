@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -76,6 +78,15 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		return
 	}
 	inputData := map[string]any{"request": input.Content}
+	if input.ReadingContext != nil {
+		raw, _ := json.Marshal(input.ReadingContext)
+		var selection map[string]any
+		if err := json.Unmarshal(raw, &selection); err != nil {
+			writePDFReadingError(w, err)
+			return
+		}
+		inputData[transcriptstore.PDFReadingSelectionKey] = selection
+	}
 	if input.TurnIntent != "" {
 		inputData["turn_intent"] = input.TurnIntent
 	}

@@ -133,6 +133,10 @@ func (s *Store) QueueCompatibilityMessage(
 	if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, frameID); err != nil {
 		return CompatibilityMessageIntent{}, FrameEvent{}, false, err
 	}
+	deliveryPayload, err = freezeQueuedPDFReadingContext(ctx, tx, frameID, deliveryPayload)
+	if err != nil {
+		return CompatibilityMessageIntent{}, FrameEvent{}, false, err
+	}
 	var pending int
 	if err := tx.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM queued_user_messages WHERE frame_id = ? AND state = 'queued'`, frameID,

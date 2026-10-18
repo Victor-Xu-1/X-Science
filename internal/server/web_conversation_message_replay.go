@@ -48,6 +48,10 @@ func (s *Server) writeWebConversationSubmissionError(w http.ResponseWriter, r *h
 			return
 		}
 	}
+	if isPDFReadingError(original) {
+		writePDFReadingError(w, original)
+		return
+	}
 	writeWebConversationError(w, original)
 }
 
