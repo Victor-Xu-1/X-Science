@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { shouldShowDownload } from './previewToolbarUtils';
 
 interface PreviewToolbarProps {
+  allowDownload?: boolean;
   content_type: string;
   file_name?: string;
   canEdit: boolean;
@@ -74,6 +75,7 @@ const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonProps>(fu
 });
 
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
+  allowDownload = true,
   content_type,
   file_name,
   canEdit,
@@ -101,7 +103,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   onSwitchTab,
 }) => {
   const { t } = useTranslation();
-  const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
+  const showDownload = allowDownload && shouldShowDownload(content_type, showOpenInSystemButton);
   const saveLabel = historyTarget?.artifact_id ? t('preview.saveAsNewVersion') : t('preview.saveChanges');
   const showFileSwitcher = tabs.length > 1 && Boolean(onSwitchTab);
   const fileIdentity = (

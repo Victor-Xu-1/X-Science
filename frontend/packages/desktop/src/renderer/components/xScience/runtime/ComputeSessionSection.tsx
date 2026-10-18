@@ -18,6 +18,8 @@ import {
   type ComputeSessionGroup,
 } from './computeRuntimeModel';
 import KernelStopDrawer from './KernelStopDrawer';
+import { useOptionalPreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import { openNotebookPreview } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 export type ComputeStopTarget = { kind: 'kernel'; kernelId: string } | { kind: 'session'; rootFrameId: string };
 
@@ -61,6 +63,7 @@ const ComputeSessionSection: React.FC<ComputeSessionSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const preview = useOptionalPreviewContext();
   const [menuVisible, setMenuVisible] = useState(false);
   const sessionStopOpen = stopTarget?.kind === 'session' && stopTarget.rootFrameId === group.rootFrameId;
   const sessionMenu = (
@@ -185,6 +188,9 @@ const ComputeSessionSection: React.FC<ComputeSessionSectionProps> = ({
             onCloseStop={onCloseStop}
             onSubmitStop={(request) => onSubmitStop([kernel], request)}
             onForceStop={() => onForceStop(kernel)}
+            onNotebook={
+              preview ? () => openNotebookPreview(preview, kernel, t('conversation.manualNotebook.title')) : undefined
+            }
           />
         ))}
     </section>
@@ -203,6 +209,7 @@ const KernelRow: React.FC<{
   onCloseStop: () => void;
   onSubmitStop: (request: XScienceKernelStopRequest) => Promise<void>;
   onForceStop: () => Promise<void>;
+  onNotebook?: () => void;
 }> = ({
   kernel,
   ring,
@@ -215,6 +222,7 @@ const KernelRow: React.FC<{
   onCloseStop,
   onSubmitStop,
   onForceStop,
+  onNotebook,
 }) => {
   const { t } = useTranslation();
   const idle = !kernel.busy && !kernel.starting;
@@ -341,40 +349,56 @@ const KernelRow: React.FC<{
           warning={cpuHot}
           className='x-science-compute-resource-column--cpu'
         />
-        {unresponsive ? (
-          <span
-            className='inline-flex items-center gap-6px whitespace-nowrap'
-            onClick={(event) => event.stopPropagation()}
-          >
-            <span className='text-10px font-500 text-danger-6'>
-              {t('conversation.xscienceRuntime.computeRuntime.notResponding')}
-            </span>
+        <span className='inline-flex items-center gap-4px' onKeyDown={(event) => event.stopPropagation()}>
+          {onNotebook && (
             <button
               type='button'
-              data-testid='kernel-force-kill'
-              className='x-science-compute-stop-kill inline-flex h-24px items-center rounded-6px border-0 px-8px text-11px font-500 text-white'
-              title={t('conversation.xscienceRuntime.computeRuntime.forceKillTitle')}
-              onClick={() => void onForceStop()}
+              className='x-science-compute-row-action text-11px'
+              aria-label={t('conversation.manualNotebook.title')}
+              onKeyDown={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation();
+                onNotebook();
+              }}
             >
-              {t('conversation.xscienceRuntime.computeRuntime.forceKill')}
+              {t('conversation.manualNotebook.title')}
             </button>
-          </span>
-        ) : pendingStop ? (
-          <span className='size-24px' aria-label={t('conversation.xscienceRuntime.computeRuntime.stoppingKernel')} />
-        ) : (
-          <button
-            type='button'
-            className='x-science-compute-row-action inline-flex size-24px items-center justify-center rounded-6px border-0 bg-transparent p-0 text-t-tertiary hover:bg-fill-2 hover:text-t-primary'
-            aria-label={t('conversation.xscienceRuntime.computeRuntime.stopKernel')}
-            title={t('conversation.xscienceRuntime.computeRuntime.stopKernel')}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenStop();
-            }}
-          >
-            <PauseOne theme='outline' size={13} />
-          </button>
-        )}
+          )}
+          {unresponsive ? (
+            <span
+              className='inline-flex items-center gap-6px whitespace-nowrap'
+              onClick={(event) => event.stopPropagation()}
+            >
+              <span className='text-10px font-500 text-danger-6'>
+                {t('conversation.xscienceRuntime.computeRuntime.notResponding')}
+              </span>
+              <button
+                type='button'
+                data-testid='kernel-force-kill'
+                className='x-science-compute-stop-kill inline-flex h-24px items-center rounded-6px border-0 px-8px text-11px font-500 text-white'
+                title={t('conversation.xscienceRuntime.computeRuntime.forceKillTitle')}
+                onClick={() => void onForceStop()}
+              >
+                {t('conversation.xscienceRuntime.computeRuntime.forceKill')}
+              </button>
+            </span>
+          ) : pendingStop ? (
+            <span className='size-24px' aria-label={t('conversation.xscienceRuntime.computeRuntime.stoppingKernel')} />
+          ) : (
+            <button
+              type='button'
+              className='x-science-compute-row-action inline-flex size-24px items-center justify-center rounded-6px border-0 bg-transparent p-0 text-t-tertiary hover:bg-fill-2 hover:text-t-primary'
+              aria-label={t('conversation.xscienceRuntime.computeRuntime.stopKernel')}
+              title={t('conversation.xscienceRuntime.computeRuntime.stopKernel')}
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenStop();
+              }}
+            >
+              <PauseOne theme='outline' size={13} />
+            </button>
+          )}
+        </span>
       </div>
       {stopDrawerOpen ? (
         <div className='x-science-compute-row-stop-drawer'>

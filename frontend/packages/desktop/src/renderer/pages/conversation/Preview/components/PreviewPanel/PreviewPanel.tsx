@@ -31,7 +31,6 @@ import {
   LazyXScienceMcpAppViewer as XScienceMcpAppViewer,
   LazyXScienceMoleculeViewer as XScienceMoleculeViewer,
   LazyXScienceMsaViewer as XScienceMsaViewer,
-  LazyXScienceNotebookViewer as XScienceNotebookViewer,
   LazyXScienceSequenceViewer as XScienceSequenceViewer,
   LazyXScienceStructureViewer as XScienceStructureViewer,
   LazyXScienceTableViewer as XScienceTableViewer,
@@ -51,6 +50,8 @@ import { downloadPreviewTab } from './previewDownload';
 import PreviewRegionCommentLayer from './PreviewRegionCommentLayer';
 import { formatPreviewRegionCommentForComposer } from './previewRegionCommentModel';
 import './preview.css';
+import NotebookPreviewContent from '../notebook/NotebookPreviewContent';
+import { isNotebookSessionNavigation } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
 
@@ -551,10 +552,10 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
       );
     } else if (content_type === 'notebook') {
       return (
-        <XScienceNotebookViewer
+        <NotebookPreviewContent
           filename={metadata?.file_name || activeTab.title}
-          contentUrl={metadata?.contentUrl}
-          content={metadata?.contentUrl ? undefined : content}
+          metadata={metadata}
+          content={content}
         />
       );
     } else if (content_type === 'hdf5') {
@@ -616,6 +617,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
 
           {/* v1.1 parity: one unified file header. The previous tab strip duplicated the filename and controls. */}
           <PreviewToolbar
+            allowDownload={!isNotebookSessionNavigation(metadata?.notebookSession)}
             content_type={content_type}
             file_name={metadata?.file_name || activeTab.title}
             canEdit={canEdit}

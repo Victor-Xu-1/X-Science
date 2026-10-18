@@ -1,0 +1,246 @@
+.pane {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--color-bg-1);
+  font-size: 13px;
+}
+.pane button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+.pane button:hover {
+  background: var(--color-fill-2);
+}
+.pane button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.pane button:focus-visible,
+.separator:focus-visible {
+  outline: 2px solid var(--color-primary-6);
+  outline-offset: -2px;
+}
+.header,
+.cellHeader,
+.requestHeader,
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border-2);
+}
+.header button {
+  margin-left: auto;
+}
+.header code,
+.environment,
+.cellHeader,
+.observation,
+.footer {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.targets {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px 8px;
+}
+.targets button {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+  font-size: 13px;
+}
+.targets button[aria-selected='true'] {
+  background: var(--color-fill-2);
+}
+.targets code {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.history {
+  flex: 1;
+  min-height: 80px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.cell {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-2);
+}
+.cellHeader {
+  margin-bottom: 8px;
+}
+.mono,
+.lineNumber,
+.source,
+.output,
+.inputRow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.source {
+  position: relative;
+  background: var(--color-fill-1);
+}
+.source pre {
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.sourceLine {
+  display: flex;
+  min-width: max-content;
+}
+.lineNumber {
+  display: inline-block;
+  min-width: 28px;
+  padding-right: 16px;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+.errorLine {
+  background: var(--color-danger-1);
+}
+.copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  opacity: 0.6;
+}
+.source:hover .copy,
+.copy:focus-visible {
+  opacity: 1;
+}
+.output {
+  margin: 8px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 18px;
+}
+.error {
+  color: var(--color-danger-6);
+}
+.user {
+  color: var(--color-primary-6);
+  background: var(--color-primary-1);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.notice {
+  padding: 6px 12px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.requests {
+  max-height: 32%;
+  overflow: auto;
+  flex-shrink: 0;
+  padding: 0 10px;
+  font-size: 11px;
+}
+.requests:empty {
+  display: none;
+}
+.request {
+  padding: 6px 0;
+  border-top: 1px solid var(--color-border-2);
+}
+.request p {
+  margin: 4px 0;
+}
+.requestHeader strong {
+  font-weight: 500;
+}
+.requestActions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.separator {
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 8px;
+  height: 28px;
+  align-items: center;
+  padding: 0 12px;
+  border-block: 1px solid var(--color-border-2);
+  background: var(--color-fill-1);
+  color: var(--text-secondary);
+  cursor: row-resize;
+  touch-action: none;
+  font-size: 11px;
+}
+.terminal {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 90px;
+  max-height: 55%;
+  padding: 8px 12px;
+}
+.inputLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.inputRow {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-height: 32px;
+  padding-top: 4px;
+  font-size: 13px;
+}
+.inputRow textarea {
+  width: 100%;
+  min-height: 32px;
+  resize: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.inputRow textarea:focus-visible {
+  box-shadow: inset 0 -1px var(--color-primary-6);
+}
+.footer {
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.footer button {
+  color: var(--color-primary-6);
+}
+@media (pointer: coarse) {
+  .pane button {
+    min-height: 40px;
+  }
+  .separator {
+    min-height: 40px;
+  }
+}

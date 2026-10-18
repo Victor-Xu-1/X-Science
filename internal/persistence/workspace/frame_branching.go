@@ -196,8 +196,10 @@ func branchFrameByID(ctx context.Context, tx *sql.Tx, id string) (Frame, error) 
 }
 
 func branchSourceEvents(ctx context.Context, tx *sql.Tx, frameID string) ([]FrameEvent, error) {
-	query := "SELECT id, frame_id, sequence, event_type, payload, created_at FROM frame_events WHERE frame_id = ? ORDER BY sequence"
-	rows, err := tx.QueryContext(ctx, query, frameID)
+	// Execution authority belongs to its original frame incarnation. Exclude
+	// it before slicing/editing or computing the legacy runtime keep coordinate.
+	query := "SELECT id, frame_id, sequence, event_type, payload, created_at FROM frame_events WHERE frame_id = ? AND event_type <> ? ORDER BY sequence"
+	rows, err := tx.QueryContext(ctx, query, frameID, ManualKernelExecutionEventType)
 	if err != nil {
 		return nil, fmt.Errorf("query source branch events: %w", err)
 	}
