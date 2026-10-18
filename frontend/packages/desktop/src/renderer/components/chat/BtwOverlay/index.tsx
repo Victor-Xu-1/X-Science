@@ -1,181 +1,340 @@
 import MarkdownView from '@/renderer/components/Markdown';
-import { Spin } from '@arco-design/web-react';
-import React, { useEffect, useId, useState } from 'react';
-import ReactDOM from 'react-dom';
+import { ArrowUp, MessageCircleMore, Plus, Square, X } from 'lucide-react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import styles from './BtwOverlay.module.css';
+import type { useBtwCommand } from './useBtwCommand';
 import { shouldDismissBtwOverlay } from './btwEscapePolicy';
+import styles from './BtwOverlay.module.css';
 
-type BtwOverlayProps = {
-  answer: string;
-  anchorEl?: HTMLElement | null;
-  isLoading: boolean;
-  isOpen: boolean;
-  onDismiss: () => void;
-  parentTaskRunning?: boolean;
-  question: string;
+type Controller = ReturnType<typeof useBtwCommand>;
+type Props = { controller: Controller; parentTaskRunning?: boolean };
+const TOOL_STATES: Record<string, string> = {
+  Executing: 'running',
+  in_progress: 'running',
+  running: 'running',
+  Success: 'completed',
+  completed: 'completed',
+  Error: 'failed',
+  error: 'failed',
+  failed: 'failed',
+  Canceled: 'cancelled',
+  canceled: 'cancelled',
+  cancelled: 'cancelled',
+  interrupted: 'cancelled',
+  Pending: 'pending',
+  pending: 'pending',
+  Confirming: 'waiting',
+  confirming: 'waiting',
 };
 
-const DISMISS_BIND_DELAY_MS = 200;
-const VIEWPORT_MARGIN_PX = 16;
-const OVERLAY_GAP_PX = 8;
-const MIN_OVERLAY_WIDTH_PX = 320;
-const MAX_OVERLAY_WIDTH_PX = 760;
-const MIN_OVERLAY_HEIGHT_PX = 180;
-const CHROME_RESERVE_HEIGHT_PX = 168;
-const BtwOverlay: React.FC<BtwOverlayProps> = ({
-  answer,
-  anchorEl,
-  isLoading,
-  isOpen,
-  onDismiss,
-  parentTaskRunning = false,
-  question,
-}) => {
+function panelBounds() {
+  const max = Math.round(Math.min(window.innerHeight * 0.7, 704));
+  return { min: Math.min(288, max), max };
+}
+
+const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) => {
   const { t } = useTranslation();
   const titleId = useId();
-  const panelRef = React.useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({
-    left: VIEWPORT_MARGIN_PX,
-    maxHeight: Math.max(MIN_OVERLAY_HEIGHT_PX, window.innerHeight - VIEWPORT_MARGIN_PX * 2),
-    top: VIEWPORT_MARGIN_PX,
-    width: Math.min(MAX_OVERLAY_WIDTH_PX, window.innerWidth - VIEWPORT_MARGIN_PX * 2),
-  });
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const updatePosition = () => {
-      const viewportWidth = window.innerWidth;
-      const header = document.querySelector('.chat-layout-header');
-      const headerBottom = header ? header.getBoundingClientRect().bottom : 60;
-      const anchorRect = anchorEl?.getBoundingClientRect();
-
-      const width = Math.max(
-        MIN_OVERLAY_WIDTH_PX,
-        Math.min(
-          MAX_OVERLAY_WIDTH_PX,
-          anchorRect ? anchorRect.width : viewportWidth - VIEWPORT_MARGIN_PX * 2,
-          viewportWidth - VIEWPORT_MARGIN_PX * 2
-        )
-      );
-
-      let left: number;
-      if (header) {
-        const headerRect = header.getBoundingClientRect();
-        left = headerRect.left + Math.round((headerRect.width - width) / 2);
-      } else {
-        left = Math.round((viewportWidth - width) / 2);
-      }
-      left = Math.max(VIEWPORT_MARGIN_PX, Math.min(left, viewportWidth - width - VIEWPORT_MARGIN_PX));
-
-      const top = headerBottom + OVERLAY_GAP_PX;
-      const bottomBound = anchorRect ? anchorRect.top - OVERLAY_GAP_PX : window.innerHeight - VIEWPORT_MARGIN_PX;
-      const maxHeight = Math.max(MIN_OVERLAY_HEIGHT_PX, bottomBound - top);
-
-      setPosition({ left, maxHeight, top, width });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [anchorEl, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (!shouldDismissBtwOverlay(event, panelRef.current)) return;
-      event.preventDefault();
-      onDismiss();
-    };
-
-    // Delay keyboard dismissal binding so the Enter press used to submit `/btw`
-    // cannot immediately close the overlay before the response is shown.
-    const bindTimer = window.setTimeout(() => {
-      window.addEventListener('keydown', onKeyDown);
-    }, DISMISS_BIND_DELAY_MS);
-
-    return () => {
-      window.clearTimeout(bindTimer);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [isOpen, onDismiss]);
-
-  if (!isOpen) {
-    return null;
-  }
-
-  const answerMaxHeight = Math.max(120, position.maxHeight - CHROME_RESERVE_HEIGHT_PX);
-  const overlayStyle: React.CSSProperties = {
-    left: `${position.left}px`,
-    maxHeight: `${position.maxHeight}px`,
-    top: `${position.top}px`,
-    width: `${position.width}px`,
+  const panelId = useId();
+  const panel = useRef<HTMLElement>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
+  const followBottom = useRef(true);
+  const drag = useRef<{ pointerId: number; y: number; height: number } | null>(null);
+  const [height, setHeight] = useState<number>();
+  const [size, setSize] = useState({ min: 0, max: 0, now: 0 });
+  const resizeTo = (next: number) => {
+    const limit = panelBounds();
+    setHeight(Math.min(limit.max, Math.max(limit.min, Math.round(next))));
   };
+  useLayoutEffect(() => {
+    setHeight(undefined);
+    followBottom.current = true;
+  }, [controller.generation]);
+  useLayoutEffect(() => {
+    if (!controller.isOpen || !panel.current) return;
+    const measure = () => {
+      const limit = panelBounds();
+      const now = Math.round(panel.current?.getBoundingClientRect().height ?? 0);
+      setSize((current) =>
+        current.now === now && current.max === limit.max
+          ? current
+          : { min: Math.min(limit.min, now), max: Math.max(limit.max, now), now }
+      );
+      if (height !== undefined && height > limit.max) setHeight(limit.max);
+    };
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
+    observer?.observe(panel.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [controller.isOpen, height]);
+  useLayoutEffect(() => {
+    if (controller.isOpen && viewport.current && followBottom.current)
+      viewport.current.scrollTop = viewport.current.scrollHeight;
+  }, [controller.entries, controller.isOpen, controller.error]);
+  useLayoutEffect(() => {
+    const element = input.current;
+    if (!element) return;
+    element.style.height = 'auto';
+    element.style.height = `${Math.min(112, Math.max(32, element.scrollHeight))}px`;
+  }, [controller.draft, controller.isOpen]);
+  useEffect(() => {
+    if (controller.isOpen && controller.frameId) input.current?.focus();
+  }, [controller.frameId, controller.isOpen]);
+  useEffect(() => {
+    if (!controller.isOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (!shouldDismissBtwOverlay(event, panel.current)) return;
+      event.preventDefault();
+      void controller.close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [controller.close, controller.isOpen]);
 
-  return ReactDOM.createPortal(
-    <div className={styles.portalRoot}>
-      <div className={styles.backdrop} aria-hidden='true' onClick={onDismiss} />
-      <div className={styles.panelWrap}>
+  if (!controller.isOpen) return null;
+  const send = () => {
+    if (controller.canSend && controller.draft.trim()) void controller.send(controller.draft);
+  };
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (drag.current?.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    drag.current = null;
+  };
+  return (
+    <section
+      ref={panel}
+      className={styles.panel}
+      style={height === undefined ? undefined : { height }}
+      role='region'
+      aria-labelledby={titleId}
+      data-testid='side-chat-panel'
+    >
+      <div
+        role='separator'
+        tabIndex={0}
+        aria-label={t('conversation.sideQuestion.resizePanel')}
+        aria-orientation='horizontal'
+        aria-controls={panelId}
+        aria-valuemin={size.min}
+        aria-valuemax={size.max}
+        aria-valuenow={size.now}
+        aria-valuetext={`${size.now}px`}
+        className={styles.resizeHandle}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            resizeTo(size.now + (event.key === 'ArrowUp' ? 32 : -32));
+          }
+        }}
+        onPointerDown={(event) => {
+          if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) return;
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+          drag.current = {
+            pointerId: event.pointerId,
+            y: event.clientY,
+            height: panel.current?.getBoundingClientRect().height ?? 0,
+          };
+        }}
+        onPointerMove={(event) => {
+          if (drag.current?.pointerId === event.pointerId)
+            resizeTo(drag.current.height - (event.clientY - drag.current.y));
+        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
+      >
+        <span aria-hidden='true' />
+      </div>
+      <div id={panelId} className={styles.surface}>
+        <header className={styles.header} data-testid='side-chat-header'>
+          <MessageCircleMore size={16} strokeWidth={2} aria-hidden='true' />
+          <span id={titleId}>{t('conversation.sideQuestion.title')}</span>
+          <div className={styles.spacer} />
+          {controller.frameId && (
+            <a href={`#/conversation/${encodeURIComponent(controller.frameId)}`} className={styles.textButton}>
+              {t('conversation.sideQuestion.openTask')}
+            </a>
+          )}
+          <button
+            type='button'
+            className={styles.iconButton}
+            aria-label={t('conversation.sideQuestion.close')}
+            title={t('conversation.sideQuestion.close')}
+            onClick={() => void controller.close()}
+          >
+            <X size={16} strokeWidth={2} aria-hidden='true' />
+          </button>
+        </header>
         <div
-          ref={panelRef}
-          className={`rd-16px p-16px ${styles.overlay}`}
-          style={overlayStyle}
-          role='dialog'
-          aria-modal='true'
-          aria-labelledby={titleId}
-          tabIndex={-1}
+          ref={viewport}
+          className={styles.messages}
+          data-testid='side-chat-message-scroll'
+          onScroll={(event) => {
+            const element = event.currentTarget;
+            followBottom.current = element.scrollHeight - element.clientHeight - element.scrollTop < 48;
+          }}
         >
-          <div className='flex flex-col gap-12px'>
-            <div className='flex flex-col gap-4px'>
-              <div id={titleId} className='text-12px text-t-secondary uppercase tracking-[0.08em]'>
-                {t('conversation.sideQuestion.title')}
+          {parentTaskRunning && <p className={styles.note}>{t('conversation.sideQuestion.parentTaskRunning')}</p>}
+          {controller.entries.length === 0 && controller.question && (
+            <div className={styles.user}>
+              <div>{controller.question}</div>
+            </div>
+          )}
+          {controller.entries.map((entry) => {
+            if (entry.kind === 'tool') {
+              const status = TOOL_STATES[entry.status];
+              return (
+                <div key={entry.id} className={styles.tool} data-testid='side-chat-tool'>
+                  {entry.title || t('conversation.sideQuestion.tool')}
+                  {status ? ` · ${t(`conversation.sideQuestion.toolStates.${status}` as Parameters<typeof t>[0])}` : ''}
+                </div>
+              );
+            }
+            if (entry.kind === 'message')
+              return entry.role === 'user' ? (
+                <div key={entry.id} className={styles.user}>
+                  <div>{entry.text}</div>
+                </div>
+              ) : (
+                <div key={entry.id} className={styles.assistant}>
+                  <MarkdownView>{entry.text}</MarkdownView>
+                </div>
+              );
+            return (
+              <div key={entry.id} className={styles.note}>
+                {entry.text}
               </div>
-              {parentTaskRunning && (
-                <div className='text-12px text-t-secondary'>{t('conversation.sideQuestion.parentTaskRunning')}</div>
+            );
+          })}
+          {controller.isLoading && (
+            <p className={styles.note} role='status'>
+              {t(controller.starting ? 'conversation.sideQuestion.started' : 'conversation.sideQuestion.loading')}
+            </p>
+          )}
+          {controller.truncated && <p className={styles.note}>{t('conversation.sideQuestion.olderEntries')}</p>}
+          {controller.error && (
+            <p role='alert' className={styles.error}>
+              {controller.error}
+            </p>
+          )}
+          {controller.observationError && (
+            <p role='alert' className={styles.error}>
+              {t('conversation.sideQuestion.observationFailed')}
+            </p>
+          )}
+          {controller.persistenceError && (
+            <p role='alert' className={styles.error}>
+              {t('conversation.sideQuestion.persistenceFailed')}
+            </p>
+          )}
+          {controller.snapshot?.pendingInputRequests.length ? (
+            <p className={styles.note}>{t('conversation.sideQuestion.openTaskToRespond')}</p>
+          ) : null}
+          {(controller.error || controller.observationError) && (
+            <div className={styles.recovery}>
+              <button
+                type='button'
+                className={styles.textButton}
+                disabled={Boolean(controller.action)}
+                onClick={() => void controller.reconnect()}
+              >
+                {t('conversation.sideQuestion.reconnect')}
+              </button>
+              {!controller.receipt && !controller.closeRequested && (
+                <button
+                  type='button'
+                  className={styles.textButton}
+                  disabled={controller.starting}
+                  onClick={() => void controller.retry()}
+                >
+                  {t('conversation.sideQuestion.retryOriginal')}
+                </button>
+              )}
+              {controller.closeRequested && (
+                <button
+                  type='button'
+                  className={styles.textButton}
+                  disabled={Boolean(controller.action)}
+                  onClick={() => void controller.close()}
+                >
+                  {t('conversation.sideQuestion.retryClose')}
+                </button>
+              )}
+              {controller.canRetryFollowup && controller.pendingFollowupText && (
+                <button
+                  type='button'
+                  className={styles.textButton}
+                  onClick={() => void controller.send(controller.pendingFollowupText!)}
+                >
+                  {t('conversation.sideQuestion.retryMessage')}
+                </button>
+              )}
+              {controller.canRetryFollowup && controller.canCancel && (
+                <button type='button' className={styles.textButton} onClick={() => void controller.cancel()}>
+                  {t('conversation.sideQuestion.cancelPendingMessage')}
+                </button>
               )}
             </div>
-
-            <div className='flex justify-end'>
-              <div
-                className={`${styles.questionBubble} max-w-[85%] rd-14px px-14px py-10px text-14px whitespace-pre-wrap break-words`}
-              >
-                {question}
-              </div>
-            </div>
-
-            <div className='flex justify-start'>
-              <div
-                className={`${styles.answerBubble} ${styles.answer} min-h-48px max-w-[85%] rd-14px px-14px py-10px text-14px text-t-primary`}
-                style={{ maxHeight: `${answerMaxHeight}px` }}
-              >
-                {isLoading ? (
-                  <div className='flex items-center gap-8px text-t-secondary'>
-                    <Spin size={16} />
-                    <span>{t('conversation.sideQuestion.loading')}</span>
-                  </div>
-                ) : (
-                  <MarkdownView className='text-14px'>{answer}</MarkdownView>
-                )}
-              </div>
-            </div>
-
-            <div className='text-12px text-t-secondary'>{t('conversation.sideQuestion.dismissHint')}</div>
-          </div>
+          )}
+          {controller.canResume && (
+            <button type='button' className={styles.textButton} onClick={() => void controller.resume()}>
+              {t('conversation.sideQuestion.resume')}
+            </button>
+          )}
         </div>
+        <footer className={styles.composer} data-testid='side-chat-composer'>
+          <textarea
+            ref={input}
+            rows={1}
+            value={controller.draft}
+            className={styles.input}
+            placeholder={t('conversation.sideQuestion.followupPlaceholder')}
+            aria-label={t('conversation.sideQuestion.followup')}
+            onChange={(event) => controller.setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault();
+                send();
+              }
+            }}
+          />
+          <div className={styles.footerActions}>
+            <button
+              type='button'
+              aria-disabled='true'
+              aria-label={t('conversation.sideQuestion.addAttachment')}
+              title={t('conversation.sideQuestion.attachmentsUnavailable')}
+              className={styles.unavailableAttachment}
+              onClick={(event) => event.preventDefault()}
+            >
+              <Plus size={16} strokeWidth={2} aria-hidden='true' />
+            </button>
+            <div className={styles.spacer} />
+            <button
+              type='button'
+              className={styles.sendButton}
+              disabled={controller.isLoading ? !controller.canCancel : !controller.canSend || !controller.draft.trim()}
+              aria-label={t(
+                controller.isLoading ? 'conversation.sideQuestion.cancel' : 'conversation.sideQuestion.sendFollowup'
+              )}
+              onClick={controller.isLoading ? () => void controller.cancel() : send}
+            >
+              {controller.isLoading ? (
+                <Square size={14} strokeWidth={2} aria-hidden='true' />
+              ) : (
+                <ArrowUp size={16} strokeWidth={2} aria-hidden='true' />
+              )}
+            </button>
+          </div>
+        </footer>
       </div>
-    </div>,
-    document.body
+    </section>
   );
 };
-
 export default BtwOverlay;

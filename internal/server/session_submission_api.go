@@ -15,20 +15,22 @@ import (
 )
 
 type frameMessageSubmission struct {
-	FrameID              string
-	MessageUUID          string
-	ClientMessageID      string
-	Text                 string
-	MessageOrigin        string
-	InputData            map[string]any
-	RuntimeConfig        map[string]any
-	ArtifactReferences   []transcriptstore.UserArtifactReferenceInput
-	MessageContext       string
-	TargetBranchID       string
-	ExpectedBranchID     string
-	ExpectedGeneration   int64
-	ClientMutationID     string
-	DeferFrameActivation bool
+	MessageIntent         *transcriptstore.FrameMessageIntent
+	RequireCompletedFrame bool
+	FrameID               string
+	MessageUUID           string
+	ClientMessageID       string
+	Text                  string
+	MessageOrigin         string
+	InputData             map[string]any
+	RuntimeConfig         map[string]any
+	ArtifactReferences    []transcriptstore.UserArtifactReferenceInput
+	MessageContext        string
+	TargetBranchID        string
+	ExpectedBranchID      string
+	ExpectedGeneration    int64
+	ClientMutationID      string
+	DeferFrameActivation  bool
 }
 
 func (s *Server) handleRuntimeRequestSubmission(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +199,9 @@ func (s *Server) submitTranscriptFrameMessage(
 		frameEventID = "frame-branch-continue:" + input.FrameID + ":" + input.TargetBranchID + ":" + input.ClientMutationID
 	}
 	appendInput := transcriptstore.AppendFrameUserEventInput{
-		StreamUID: stream.UID, OwnerID: frameContext.UserID, ClientMessageID: input.ClientMessageID,
+		MessageIntent:         input.MessageIntent,
+		RequireCompletedFrame: input.RequireCompletedFrame,
+		StreamUID:             stream.UID, OwnerID: frameContext.UserID, ClientMessageID: input.ClientMessageID,
 		FrameEventID: frameEventID,
 		MessageUUID:  input.MessageUUID, Text: input.Text, MessageOrigin: input.MessageOrigin,
 		InputData:          input.InputData,

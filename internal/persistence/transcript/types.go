@@ -259,18 +259,20 @@ type StartInternalFrameRunnerResult struct {
 }
 
 type AppendFrameUserEventInput struct {
-	StreamUID          string
-	OwnerID            string
-	ClientMessageID    string
-	FrameEventID       string
-	MessageUUID        string
-	Text               string
-	MessageOrigin      string
-	InputData          map[string]any
-	RuntimeConfig      map[string]any
-	ArtifactReferences []UserArtifactReferenceInput
-	MessageContext     string
-	Destinations       []string
+	MessageIntent         *FrameMessageIntent
+	RequireCompletedFrame bool
+	StreamUID             string
+	OwnerID               string
+	ClientMessageID       string
+	FrameEventID          string
+	MessageUUID           string
+	Text                  string
+	MessageOrigin         string
+	InputData             map[string]any
+	RuntimeConfig         map[string]any
+	ArtifactReferences    []UserArtifactReferenceInput
+	MessageContext        string
+	Destinations          []string
 	// DeferFrameActivation persists the input while leaving a terminal frame
 	// unchanged. Recovery flows use this to make the input durable before they
 	// publish a claimable resume dispatch.

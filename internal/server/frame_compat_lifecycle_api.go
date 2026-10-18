@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -17,8 +18,34 @@ func (s *Server) handleCompatibilityFrameCancel(w http.ResponseWriter, r *http.R
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	result, err := s.cancelCompatibilityFrameTree(r.Context(), frame, r.URL.Query().Get("reason"))
+	var input struct {
+		ExpectedInputMessageID json.RawMessage `json:"expected_input_message_id"`
+	}
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := decodeAgentCompatJSON(r, &input); err != nil {
+			writeV11Detail(w, http.StatusBadRequest, "Invalid cancel request")
+			return
+		}
+	}
+	expected := []string{}
+	if len(input.ExpectedInputMessageID) > 0 {
+		var id string
+		if json.Unmarshal(input.ExpectedInputMessageID, &id) != nil || strings.TrimSpace(id) == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"code": "CONVERSATION_CANCEL_INPUT_INVALID", "detail": "expected_input_message_id must be a non-empty string"})
+			return
+		}
+		expected = append(expected, strings.TrimSpace(id))
+	}
+	result, err := s.cancelCompatibilityFrameTree(r.Context(), frame, r.URL.Query().Get("reason"), expected...)
 	if err != nil {
+		if errors.Is(err, workspace.ErrFrameCancellationInputStale) || errors.Is(err, workspace.ErrFrameCancellationInputUnavailable) {
+			code := "CONVERSATION_CANCEL_INPUT_STALE"
+			if errors.Is(err, workspace.ErrFrameCancellationInputUnavailable) {
+				code = "CONVERSATION_CANCEL_INPUT_UNAVAILABLE"
+			}
+			writeJSON(w, http.StatusConflict, map[string]any{"code": code, "detail": "Cancellation target is not the current owned input"})
+			return
+		}
 		writeV11StoreError(w, err)
 		return
 	}
@@ -37,7 +64,11 @@ func (s *Server) cancelCompatibilityFrameTree(
 	ctx context.Context,
 	frame workspace.CompatibilityFrame,
 	reason string,
+	expectedInputIDs ...string,
 ) (workspace.CancelCompatibilityFrameResult, error) {
+	if len(expectedInputIDs) > 0 && s.transcriptStore == nil {
+		return workspace.CancelCompatibilityFrameResult{}, workspace.ErrFrameCancellationInputUnavailable
+	}
 	// Request submission owns Frame creation, tree mutation, and Transcript
 	// admission under this lock. Take the same authority before the tree
 	// snapshot so cancellation cannot miss a child or observe a provisional
@@ -58,7 +89,7 @@ func (s *Server) cancelCompatibilityFrameTree(
 	err = s.commitSessionRunCancellation(frameIDs, func(_ map[string]*transcriptRunnerAuthority) error {
 		var cancelErr error
 		if s.transcriptStore != nil {
-			result, cancelErr = s.workspaceStore.CancelCompatibilityFrameTreeWithTranscript(ctx, frame.ID, reason)
+			result, cancelErr = s.workspaceStore.CancelCompatibilityFrameTreeWithTranscript(ctx, frame.ID, reason, expectedInputIDs...)
 		} else {
 			result, cancelErr = s.workspaceStore.CancelCompatibilityFrameTree(frame.ID, reason)
 		}

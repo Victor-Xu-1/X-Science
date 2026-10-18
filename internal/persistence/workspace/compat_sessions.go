@@ -81,13 +81,14 @@ type CancelCompatibilityFrameResult struct {
 }
 
 type ResumeCompatibilityFrameInput struct {
-	Command      *CompatibilityFrameContinueCommand
-	VerifierMode *string
-	MemoryMode   *string
-	PlanMode     *bool
-	UltraMode    *bool
-	TargetAgent  *string
-	Model        *string
+	MessageIntent *transcriptstore.FrameMessageIntent
+	Command       *CompatibilityFrameContinueCommand
+	VerifierMode  *string
+	MemoryMode    *string
+	PlanMode      *bool
+	UltraMode     *bool
+	TargetAgent   *string
+	Model         *string
 	// AllowProcessingInterrupted permits an explicit continue of a nonterminal
 	// frame whose transcript holds a durable runner interruption (provider
 	// interruption, correction-required, or drain). The caller must verify the
@@ -700,6 +701,14 @@ func (s *Store) ResumeCompatibilityFrameConversation(rootID string, input Resume
 }
 
 func resumeCompatibilityFrameConversationTx(ctx context.Context, tx workspaceTransaction, rootID string, input ResumeCompatibilityFrameInput, now time.Time) (ResumeCompatibilityFrameResult, error) {
+	if input.MessageIntent != nil {
+		if input.MessageIntent.FrameID != rootID {
+			return ResumeCompatibilityFrameResult{}, transcriptstore.ErrMessageIntentConflict
+		}
+		if err := transcriptstore.CheckFrameMessageIntentAdmission(ctx, tx, rootID, input.MessageIntent.InputMessageID, input.MessageIntent); err != nil {
+			return ResumeCompatibilityFrameResult{}, err
+		}
+	}
 	rows, err := tx.QueryContext(ctx, `
 		SELECT id, parent_frame_id, agent_name, status, root_sequence
 		FROM frames WHERE root_frame_id = ? ORDER BY root_sequence, id`, rootID)
@@ -1126,6 +1135,14 @@ func (s *Store) CreateAutoResumeDispatch(
 	frameID, rootFrameID, projectID, agentName, reasonCode string,
 	coordinates ...AutoResumeDispatchTranscriptCoordinate,
 ) (ResumeCompatibilityFrameResult, error) {
+	return s.createAutoResumeDispatch(frameID, rootFrameID, projectID, agentName, reasonCode, nil, coordinates...)
+}
+
+func (s *Store) CreateMessageAutoResumeDispatch(frameID, rootFrameID, projectID, agentName, reasonCode string, intent transcriptstore.FrameMessageIntent) (ResumeCompatibilityFrameResult, error) {
+	return s.createAutoResumeDispatch(frameID, rootFrameID, projectID, agentName, reasonCode, &intent)
+}
+
+func (s *Store) createAutoResumeDispatch(frameID, rootFrameID, projectID, agentName, reasonCode string, intent *transcriptstore.FrameMessageIntent, coordinates ...AutoResumeDispatchTranscriptCoordinate) (ResumeCompatibilityFrameResult, error) {
 	if s == nil || s.db == nil {
 		return ResumeCompatibilityFrameResult{}, errors.New("workspace store is closed")
 	}
@@ -1143,6 +1160,11 @@ func (s *Store) CreateAutoResumeDispatch(
 		return ResumeCompatibilityFrameResult{}, fmt.Errorf("begin auto resume dispatch: %w", err)
 	}
 	defer tx.Rollback()
+	if intent != nil {
+		if err := transcriptstore.CheckFrameMessageIntentAdmission(ctx, tx, frameID, intent.InputMessageID, intent); err != nil {
+			return ResumeCompatibilityFrameResult{}, err
+		}
+	}
 	if existing, found, err := activeCompatibilityResume(ctx, tx, rootFrameID); err != nil {
 		return ResumeCompatibilityFrameResult{}, err
 	} else if found {

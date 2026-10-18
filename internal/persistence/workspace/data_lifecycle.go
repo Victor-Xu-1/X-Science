@@ -13,7 +13,8 @@ import (
 // content gets a short reference-safe grace period, resolved transport state
 // is kept for one week, completed compute usage for 30 days, and superseded
 // memory for 90 days. Conversation messages and final artifacts are not
-// time-limited by this policy.
+// time-limited by this policy. Typed Aside lifecycle receipts remain bound to
+// their Frame lifetime rather than the ordinary transport-receipt timeout.
 type DataLifecyclePolicy struct {
 	ContentSnapshotGrace       time.Duration
 	EphemeralArtifactMaxAge    time.Duration
@@ -68,6 +69,11 @@ func (s *Store) SweepDataLifecycle(ctx context.Context, policy DataLifecyclePoli
 		return DataLifecycleReport{}, err
 	}
 	now := s.now().UTC()
+	queuedCutoff := now.Add(-policy.ResolvedQueuedIntentMaxAge)
+	queuedCandidates, err := resolvedQueuedIntentCandidates(ctx, s.readDatabase(), queuedCutoff)
+	if err != nil {
+		return DataLifecycleReport{}, fmt.Errorf("classify resolved queued intents: %w", err)
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return DataLifecycleReport{}, fmt.Errorf("begin data lifecycle sweep: %w", err)
@@ -117,10 +123,7 @@ func (s *Store) SweepDataLifecycle(ctx context.Context, policy DataLifecyclePoli
 		now.Add(-policy.SupersededMemoryMaxAge)); err != nil {
 		return DataLifecycleReport{}, fmt.Errorf("delete expired superseded memories: %w", err)
 	}
-	if report.ResolvedQueuedIntents, err = lifecycleDelete(ctx, tx, `
-		DELETE FROM queued_user_messages
-		WHERE state IN ('drained','retracted') AND resolved_at IS NOT NULL AND resolved_at<?`,
-		now.Add(-policy.ResolvedQueuedIntentMaxAge)); err != nil {
+	if report.ResolvedQueuedIntents, err = sweepResolvedQueuedIntents(ctx, tx, queuedCutoff, queuedCandidates); err != nil {
 		return DataLifecycleReport{}, fmt.Errorf("delete resolved queued intents: %w", err)
 	}
 	if report.RealtimeEvents, err = lifecycleDelete(ctx, tx, `

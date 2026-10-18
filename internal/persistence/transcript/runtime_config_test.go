@@ -35,6 +35,14 @@ func TestLatestFrameRuntimeConfigMergesPartialInputPatchesAndHonorsExplicitOverr
 		"agentName": "OPERON", "model": "mimo-v2.5", "memoryMode": "on", "verifierMode": "on",
 	})
 	appendInput("continue", map[string]any{"agentName": "OPERON"})
+	var selection AsideHistorySelection
+	if err := repo.RunImmediate(context.Background(), func(tx *ImmediateTransaction) error {
+		var err error
+		selection, err = tx.ResolveAsideHistorySelection(context.Background(), "stream-runtime-config", "owner-a", "", 0)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
 	config, found, err := repo.LatestFrameRuntimeConfig(context.Background(), "stream-runtime-config", "owner-a")
 	if err != nil || !found {
 		t.Fatalf("merged config found=%t err=%v", found, err)
@@ -48,5 +56,12 @@ func TestLatestFrameRuntimeConfigMergesPartialInputPatchesAndHonorsExplicitOverr
 	config, found, err = repo.LatestFrameRuntimeConfig(context.Background(), "stream-runtime-config", "owner-a")
 	if err != nil || !found || config["verifierMode"] != "off" || config["memoryMode"] != "on" {
 		t.Fatalf("explicit override config=%#v found=%t err=%v", config, found, err)
+	}
+	if err := repo.RunImmediate(context.Background(), func(tx *ImmediateTransaction) error {
+		var err error
+		config, found, err = tx.LatestFrameRuntimeConfig(context.Background(), "stream-runtime-config", "owner-a", selection)
+		return err
+	}); err != nil || !found || config["verifierMode"] != "on" || config["model"] != "mimo-v2.5" || config["memoryMode"] != "on" {
+		t.Fatalf("selected cutoff lost merged config: %#v found=%t err=%v", config, found, err)
 	}
 }

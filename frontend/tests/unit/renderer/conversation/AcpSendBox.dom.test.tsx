@@ -171,6 +171,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     tools,
     disabled,
     allowSendWhileLoading,
+    btwController,
   }: {
     value?: string;
     onSend: (message: string) => Promise<void>;
@@ -184,8 +185,12 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     tools?: React.ReactNode;
     disabled?: boolean;
     allowSendWhileLoading?: boolean;
+    btwController?: unknown;
   }) => (
-    <div data-allow-send-while-loading={allowSendWhileLoading ? 'true' : 'false'}>
+    <div
+      data-allow-send-while-loading={allowSendWhileLoading ? 'true' : 'false'}
+      data-aside-owner={btwController ? 'external' : 'local'}
+    >
       {tools}
       {rightTools}
       {prefix}
@@ -233,6 +238,15 @@ vi.mock('@/renderer/components/chat/BtwOverlay/useBtwCommand', () => ({
     question: '',
     ask: (...args: unknown[]) => askSideQuestionMock(...args),
     dismiss: vi.fn(),
+    operation: null,
+    starting: false,
+    action: null,
+    receipt: null,
+    acceptedConsumer: null,
+    getReceipt: () => null,
+    getAcceptedConsumer: () => null,
+    acknowledgeConsumer: vi.fn(),
+    acknowledgeBranch: vi.fn(),
   }),
 }));
 vi.mock('@/renderer/components/xScience/runtime/XScienceModelSelector', () => ({
@@ -372,6 +386,11 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
           return next === undefined ? current : next;
         });
       },
+      replaceContentIfUnchanged: (expected: string, replacement: string) => {
+        if (draft.content !== expected) return false;
+        setDraft((current) => (current.content === expected ? { ...current, content: replacement } : current));
+        return true;
+      },
     };
   },
 }));
@@ -428,6 +447,7 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', (
     lockInteraction: vi.fn(),
     unlockInteraction: vi.fn(),
     resetActiveExecution: vi.fn(),
+    getQueuedItem: () => null,
   }),
 }));
 vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
@@ -1611,7 +1631,7 @@ describe('AcpSendBox', () => {
     });
   });
 
-  it('keeps plan access out of the mobile add sheet because the task status center owns it', async () => {
+  it('routes mobile View plan to the existing task center without duplicate discovery', async () => {
     isMobileMock.current = true;
     loadFramePlanMock.mockResolvedValue({
       artifactId: 'artifact-plan-1',
@@ -1630,10 +1650,12 @@ describe('AcpSendBox', () => {
     );
 
     const keys = mobileActionSheetEntries.current.map((entry) => entry.key);
-    expect(keys).not.toContain('view-plan');
+    expect(keys).toContain('view-plan');
     expect(keys).not.toContain('request-review');
     expect(keys).not.toContain('save-skill');
     expect(loadFramePlanMock).not.toHaveBeenCalled();
+    act(() => mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')?.onClick?.());
+    expect(emitterEmitMock).toHaveBeenCalledWith('xscience.runtime.plan.open', 'conv-1');
   });
 
   it('does not run duplicate plan discovery or retry logic in the composer', async () => {
@@ -1642,7 +1664,9 @@ describe('AcpSendBox', () => {
 
     await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
-    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')).toBeUndefined();
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')?.onClick).toEqual(
+      expect.any(Function)
+    );
     expect(loadFramePlanMock).not.toHaveBeenCalled();
   });
 
@@ -1729,7 +1753,12 @@ describe('AcpSendBox', () => {
       createdAt: null,
     });
     await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
-    expect(fileAttachProps.current?.onViewPlan).toBeUndefined();
+    const viewPlan = fileAttachProps.current?.onViewPlan as (() => void) | undefined;
+    expect(viewPlan).toEqual(expect.any(Function));
+    if (!viewPlan) throw new Error('Expected the current plan action');
+    act(viewPlan);
+    expect(emitterEmitMock).toHaveBeenCalledWith('xscience.runtime.plan.open', 'conv-1');
+    expect(document.querySelector('[data-aside-owner="external"]')).toBeInTheDocument();
     expect(fileAttachProps.current?.onRequestReview).toEqual(expect.any(Function));
     expect(fileAttachProps.current?.reviewInFlight).toBe(false);
     expect(fileAttachProps.current?.reviewDisabled).toBe(false);

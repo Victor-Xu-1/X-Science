@@ -18,10 +18,20 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid message request: " + err.Error()})
 		return
 	}
-	input.Content = strings.TrimSpace(input.Content)
-	if input.Content == "" {
-		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "message content is required"})
+	if err := normalizeWebFrozenMessageInput(&input); err != nil {
+		writeWebConversationError(w, err)
 		return
+	}
+	messageIntent, err := s.webFrozenMessageIntent(r, frame, input)
+	if err != nil {
+		writeWebConversationError(w, err)
+		return
+	}
+	if messageIntent != nil {
+		if err := s.workspaceStore.CheckFrameMessageIntent(r.Context(), *messageIntent); err != nil {
+			writeWebConversationError(w, err)
+			return
+		}
 	}
 	if err := s.validateWebConversationSendInput(strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame, &input); err != nil {
 		writeWebConversationError(w, err)
@@ -70,7 +80,8 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 	expectedGeneration, _ := webPositiveSafeInteger(input.SessionOptions["expected_generation"])
 	delete(inputData, "expected_generation")
 	result, err := s.submitCompatibilityFrameMessage(frame, compatibilityFrameMessageRequest{
-		InputData: inputData, Model: model, Effort: effort,
+		MessageIntent: messageIntent,
+		InputData:     inputData, Model: model, Effort: effort,
 		TargetBranchID: targetBranchID, ExpectedBranchID: expectedBranchID,
 		ExpectedGeneration: expectedGeneration, ClientMutationID: strings.TrimSpace(input.LoadingID),
 		SessionConfig:      webConversationRunnerSessionConfig(input.SessionOptions),

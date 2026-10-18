@@ -38,6 +38,12 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 		if err != nil {
 			return err
 		}
+		if replay, found, err := lookupCompatibilityAsideIntent(ctx, tx, ownerID, input.ParentRootFrameID, input.IntentID, &input); err != nil {
+			return err
+		} else if found {
+			result = replay
+			return nil
+		}
 		var parentStreamUID string
 		if err := tx.QueryRowContext(ctx, `
 			SELECT authority.active_stream_uid FROM transcript_frame_authority authority
@@ -53,7 +59,23 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 			}
 			return err
 		}
-		parentConfig, found, err := tx.LatestFrameRuntimeConfig(ctx, parentStreamUID, ownerID)
+		selection, err := tx.ResolveAsideHistorySelection(ctx, parentStreamUID, ownerID, input.SourceBranchID, input.ExpectedGeneration)
+		if err != nil {
+			return err
+		}
+		var parentIncarnation string
+		if err := tx.QueryRowContext(ctx, `SELECT incarnation_id FROM frames WHERE id=?`, input.ParentRootFrameID).Scan(&parentIncarnation); err != nil {
+			return err
+		}
+		if parentIncarnation == "" {
+			return ErrCompatibilityAsideAcceptanceUnavailable
+		}
+		input.canonicalAcceptance = &CompatibilityAsideAcceptance{
+			OwnerID: ownerID, ParentRootFrameID: input.ParentRootFrameID, ParentIncarnationID: parentIncarnation, IntentID: input.IntentID,
+			FrameID: input.ID, InputMessageID: messageID, SourceBranchID: selection.BranchID,
+			SourceGeneration: selection.Generation, ThroughPublication: selection.ThroughPublication, AsSession: input.AsSession,
+		}
+		parentConfig, found, err := tx.LatestFrameRuntimeConfig(ctx, parentStreamUID, ownerID, selection)
 		if err != nil {
 			return err
 		}
@@ -61,7 +83,7 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 			parentConfig = map[string]any{}
 		}
 		stripThinking := input.Model != nil && !compatibilityAsideEqualScalar(*input.Model, parentConfig["model"])
-		input.canonicalSeedCount, err = tx.CountAsideHistory(ctx, parentStreamUID, ownerID, stripThinking)
+		input.canonicalSeedCount, err = tx.CountAsideHistory(ctx, parentStreamUID, ownerID, stripThinking, selection)
 		if err != nil {
 			return err
 		}
@@ -83,6 +105,7 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 		if _, err := tx.CloneAsideHistory(ctx, transcriptstore.CloneAsideHistoryInput{
 			SourceStreamUID: parentStreamUID, TargetStreamUID: stream.UID,
 			OwnerID: ownerID, IncludeForkNotice: input.AsSession, StripThinking: stripThinking,
+			Selection: selection,
 		}); err != nil {
 			return err
 		}

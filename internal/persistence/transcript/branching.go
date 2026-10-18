@@ -667,6 +667,11 @@ func validateBranchReplacementMembershipConn(
 	return nil
 }
 
+// IsValidBranchID exposes the canonical branch identity format to consumers.
+func IsValidBranchID(value string) bool {
+	return validTranscriptBranchID(value)
+}
+
 func validTranscriptBranchID(value string) bool {
 	if len(value) != 11 || !strings.HasPrefix(value, "br_") {
 		return false

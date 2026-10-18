@@ -15,6 +15,7 @@ import (
 )
 
 type compatibilityFrameMessageRequest struct {
+	MessageIntent      *transcriptstore.FrameMessageIntent          `json:"-"`
 	InputData          map[string]any                               `json:"input_data"`
 	Model              *string                                      `json:"model"`
 	Effort             *string                                      `json:"effort"`
@@ -36,9 +37,11 @@ type compatibilityBranchContinuation struct {
 }
 
 type compatibilityFrameMessageRuntimeOptions struct {
-	Continuation         *compatibilityBranchContinuation
-	DeferFrameActivation bool
-	MessageOrigin        string
+	MessageIntent         *transcriptstore.FrameMessageIntent
+	RequireCompletedFrame bool
+	Continuation          *compatibilityBranchContinuation
+	DeferFrameActivation  bool
+	MessageOrigin         string
 }
 
 type compatibilityFrameMessageResult struct {
@@ -119,6 +122,11 @@ func (s *Server) submitCompatibilityFrameMessage(
 		}
 	}
 	input.TargetBranchID = strings.TrimSpace(input.TargetBranchID)
+	if input.MessageIntent != nil {
+		if err := s.workspaceStore.CheckFrameMessageIntent(context.Background(), *input.MessageIntent); err != nil {
+			return compatibilityFrameMessageResult{}, err
+		}
+	}
 	if input.TargetBranchID != "" {
 		if current.ParentFrameID != "" {
 			return compatibilityFrameMessageResult{}, &compatibilityFrameMessageError{
@@ -147,10 +155,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 	requestText := compatibilityInputRequestText(inputData["request"])
 	messageID := uuid.NewString()
 	if input.ClientMutationID != "" {
-		messageID = uuid.NewSHA1(
-			uuid.NameSpaceURL,
-			[]byte("x-science:frame-message:"+current.ID+"\x00"+input.ClientMutationID),
-		).String()
+		messageID = transcriptstore.FrameMessageIntentID(current.ID, input.ClientMutationID, "")
 	}
 	if requestText != "" && input.ClientMutationID != "" {
 		if s.transcriptStore != nil {
@@ -167,6 +172,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 				if err := s.prepareCompatibilityFrameMessageRuntime(
 					current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
 					input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{
+						MessageIntent:        input.MessageIntent,
 						DeferFrameActivation: isCompatibilityTerminalRootMessageResume(current),
 					},
 				); err != nil {
@@ -194,6 +200,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 		delivery := compatibilityFrameMessageDeliveryPayload(
 			current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
 			input.ArtifactReferences, input.MessageContext,
+			input.MessageIntent,
 		)
 		if _, queued, queueErr := s.workspaceStore.ResolveCompatibilityMessageIntent(current.ID, messageID, delivery); queueErr != nil {
 			return compatibilityFrameMessageResult{}, compatibilityQueuedMessageError(queueErr, messageID)
@@ -205,7 +212,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 	}
 	if current.Status == "processing" {
 		if requestText != "" {
-			delivery := compatibilityFrameMessageDeliveryPayload(current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking, input.ArtifactReferences, input.MessageContext)
+			delivery := compatibilityFrameMessageDeliveryPayload(current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking, input.ArtifactReferences, input.MessageContext, input.MessageIntent)
 			direct, directErr := s.shouldDirectlyDeliverExpiredTranscriptMessage(current.ID)
 			if directErr != nil {
 				return compatibilityFrameMessageResult{}, directErr
@@ -215,11 +222,12 @@ func (s *Server) submitCompatibilityFrameMessage(
 					current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
 					input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{
 						MessageOrigin: "input_response",
+						MessageIntent: input.MessageIntent,
 					},
 				); err != nil {
 					return compatibilityFrameMessageResult{}, err
 				}
-				if err := s.ensureExpiredTranscriptContinuationDispatch(context.Background(), current); err != nil {
+				if err := s.ensureExpiredTranscriptContinuationDispatch(context.Background(), current, input.MessageIntent); err != nil {
 					return compatibilityFrameMessageResult{}, err
 				}
 				return compatibilityFrameMessageResult{
@@ -254,13 +262,11 @@ func (s *Server) submitCompatibilityFrameMessage(
 		}
 		if err := s.prepareCompatibilityFrameMessageRuntime(
 			current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
-			input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{},
+			input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{MessageIntent: input.MessageIntent},
 		); err != nil {
 			return compatibilityFrameMessageResult{}, err
 		}
-		resumed, err := s.workspaceStore.CreateAutoResumeDispatch(
-			current.ID, current.RootFrameID, current.ProjectID, current.AgentName, "plan_text_decision",
-		)
+		resumed, err := s.createCompatibilityMessageResumeDispatch(current, "plan_text_decision", input.MessageIntent)
 		if err != nil {
 			return compatibilityFrameMessageResult{}, err
 		}
@@ -289,6 +295,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 				current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
 				input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{
 					DeferFrameActivation: true, MessageOrigin: "input_response",
+					MessageIntent: input.MessageIntent,
 				},
 			); err != nil {
 				return compatibilityFrameMessageResult{}, err
@@ -309,6 +316,15 @@ func (s *Server) submitCompatibilityFrameMessage(
 			Status: http.StatusBadRequest,
 			Detail: "Frame not addressable. Status: " + current.Status + ". Only 'completed' frames can receive direct messages.",
 		}
+	}
+	// Canonical append already activates the frame in its admission transaction.
+	// Do not expose processing before its final cancellation fence has succeeded.
+	if input.MessageIntent != nil && s.transcriptStore != nil {
+		if err := s.prepareCompatibilityFrameMessageRuntime(current, messageID, inputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
+			input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{MessageIntent: input.MessageIntent, RequireCompletedFrame: true}); err != nil {
+			return compatibilityFrameMessageResult{}, err
+		}
+		return compatibilityFrameMessageResult{RootFrameID: current.RootFrameID, FrameID: current.ID, MessageID: messageID, Status: "accepted"}, nil
 	}
 	activated, err := s.workspaceStore.ActivateCompletedCompatibilityFrameRequest(current.ID)
 	if err != nil {
@@ -345,6 +361,7 @@ func (s *Server) submitCompatibilityFrameMessage(
 func (s *Server) ensureExpiredTranscriptContinuationDispatch(
 	ctx context.Context,
 	frame workspace.CompatibilityFrame,
+	intents ...*transcriptstore.FrameMessageIntent,
 ) error {
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
 		return nil
@@ -376,9 +393,12 @@ func (s *Server) ensureExpiredTranscriptContinuationDispatch(
 	if rootFrameID == "" {
 		rootFrameID = frame.ID
 	}
-	resumed, err := s.workspaceStore.CreateAutoResumeDispatch(
-		frame.ID, rootFrameID, frame.ProjectID, frame.AgentName, reasonCode,
-	)
+	frame.RootFrameID = rootFrameID
+	var intent *transcriptstore.FrameMessageIntent
+	if len(intents) > 0 {
+		intent = intents[0]
+	}
+	resumed, err := s.createCompatibilityMessageResumeDispatch(frame, reasonCode, intent)
 	if err != nil {
 		return err
 	}
@@ -428,14 +448,14 @@ func (s *Server) submitCompatibilityTranscriptBranchMessage(
 			Status: http.StatusBadRequest, Detail: "target branch continuation requires expected branch state and client mutation id",
 		}
 	}
-	messageID := "branch-continue:" + input.ClientMutationID
+	messageID := transcriptstore.FrameMessageIntentID(frame.ID, input.ClientMutationID, input.TargetBranchID)
 	continuation := &compatibilityBranchContinuation{
 		TargetBranchID: input.TargetBranchID, ExpectedBranchID: input.ExpectedBranchID,
 		ExpectedGeneration: input.ExpectedGeneration, ClientMutationID: input.ClientMutationID,
 	}
 	if err := s.prepareCompatibilityFrameMessageRuntime(
 		frame, messageID, input.InputData, input.SessionConfig, input.Model, input.Effort, input.Thinking,
-		input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{Continuation: continuation},
+		input.ArtifactReferences, input.MessageContext, compatibilityFrameMessageRuntimeOptions{Continuation: continuation, MessageIntent: input.MessageIntent},
 	); err != nil {
 		switch {
 		case errors.Is(err, transcriptstore.ErrBranchTargetNotFound), errors.Is(err, transcriptstore.ErrOwnerMismatch):
@@ -493,7 +513,7 @@ func (s *Server) resumeTerminalRootCompatibilityFrameForMessage(
 		return errors.New("transcript root frame recovery runtime is unavailable")
 	}
 	result, err := s.workspaceStore.ResumeCompatibilityFrameConversation(frame.ID, workspace.ResumeCompatibilityFrameInput{
-		Model: input.Model,
+		Model: input.Model, MessageIntent: input.MessageIntent,
 	})
 	if err != nil {
 		return err
@@ -599,6 +619,7 @@ func compatibilityFrameMessageDeliveryPayload(
 	thinking *bool,
 	artifactReferences []transcriptstore.UserArtifactReferenceInput,
 	messageContext string,
+	intents ...*transcriptstore.FrameMessageIntent,
 ) map[string]any {
 	config := copyMapAny(sessionConfig)
 	if config == nil {
@@ -625,6 +646,9 @@ func compatibilityFrameMessageDeliveryPayload(
 	if messageContext != "" {
 		payload["messageContext"] = messageContext
 	}
+	if len(intents) > 0 && intents[0] != nil {
+		payload["messageIntent"] = intents[0]
+	}
 	return payload
 }
 
@@ -645,11 +669,14 @@ func (s *Server) prepareCompatibilityFrameMessageRuntime(
 	}
 	payload := compatibilityFrameMessageDeliveryPayload(
 		frame, messageID, inputData, sessionConfig, model, effort, thinking, artifactReferences, messageContext,
+		options.MessageIntent,
 	)
 	runtimeConfig, _ := payload["sessionConfig"].(map[string]any)
 	if s.transcriptStore != nil {
 		submission := frameMessageSubmission{
-			FrameID: frame.ID, MessageUUID: messageID, ClientMessageID: messageID, Text: requestText,
+			MessageIntent:         options.MessageIntent,
+			RequireCompletedFrame: options.RequireCompletedFrame,
+			FrameID:               frame.ID, MessageUUID: messageID, ClientMessageID: messageID, Text: requestText,
 			MessageOrigin:      strings.TrimSpace(options.MessageOrigin),
 			InputData:          copyMapAny(inputData),
 			RuntimeConfig:      runtimeConfig,

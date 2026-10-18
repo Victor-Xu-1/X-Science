@@ -429,6 +429,9 @@ func (e *webConversationRequestError) Error() string { return e.Detail }
 func (e *webConversationRequestError) Unwrap() error { return e.Cause }
 
 func writeWebConversationError(w http.ResponseWriter, err error) {
+	if writeWebMessageIntentError(w, err) {
+		return
+	}
 	var requestErr *webConversationRequestError
 	if errors.As(err, &requestErr) {
 		payload := map[string]any{"message": requestErr.Detail}
