@@ -50,7 +50,7 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 			encoded, encodeErr := json.Marshal(candidate)
 			if encodeErr != nil {
 				sourceErr = encodeErr
-			} else if len(encoded) > notificationInboxMaxBytes-4096 {
+			} else if len(encoded) > notificationInboxMaxBytes-notificationInboxMutationReserve(candidate) {
 				sourceErr = errNotificationInboxCapacity
 			}
 		}
@@ -88,4 +88,13 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 		return true, nil
 	})
 	return result, err
+}
+
+// Every newly accepted snapshot must leave room for read and invalidated-target
+// timestamps on every record. A fixed 4 KiB reserve covers neither a 1000-item
+// read-all nor later target invalidation. RFC3339Nano timestamps are at most 35
+// bytes; 128 bytes per item covers both optional fields, separators and the
+// pending-to-resolved label change. The fixed margin covers snapshot metadata.
+func notificationInboxMutationReserve(state notificationInboxState) int {
+	return 4096 + 128*len(state.Items)
 }
