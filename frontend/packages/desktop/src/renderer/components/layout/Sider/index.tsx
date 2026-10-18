@@ -232,6 +232,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         onSettingsIntent={handleSettingsIntent}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
+        onNotificationNavigate={(path) => {
+          closePreview();
+          return navigate(path);
+        }}
       />
     </div>
   );
