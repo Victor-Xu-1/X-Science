@@ -14,12 +14,13 @@ import (
 	"time"
 
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -57,6 +58,7 @@ func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testi
 		}
 		hasToolResult := false
 		prompt := ""
+		userMessages := 0
 		for _, raw := range messages {
 			message, _ := raw.(map[string]any)
 			role, _ := message["role"].(string)
@@ -64,9 +66,19 @@ func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testi
 				hasToolResult = true
 			}
 			if role == "user" {
+				userMessages++
 				if text, ok := message["content"].(string); ok {
 					prompt += text
 				}
+			}
+		}
+		if sequence == 1 {
+			expected := "Context:\nKnown evidence\n\nTask:\nstructured-child\n\nSubmit a compact result matching this JSON Schema with submit_output before finishing:\n" +
+				`{"properties":{"answer":{"type":"string"}},"required":["answer"],"type":"object"}`
+			if userMessages != 1 || prompt != expected {
+				t.Errorf("canonical initial user input count=%d content=%q", userMessages, prompt)
+				w.WriteHeader(http.StatusBadRequest)
+				return
 			}
 		}
 		if strings.Contains(prompt, "slow-child") && !hasToolResult {
@@ -90,6 +102,7 @@ func TestKernelHostSupervisionRunsRealChildCollectsStructuredAndResumes(t *testi
 import host, json
 handle = host.delegate({
     "task": "structured-child",
+    "context_summary": "Known evidence",
     "name": "schema-worker",
     "model": "pinned-child-model",
     "output_schema": {
@@ -135,9 +148,20 @@ print(json.dumps({"handle": handle, "collected": collected, "stats": host.delega
 	if !kernelFrameEventsContain(parentEvents, "tool_use") || !kernelFrameEventsContain(parentEvents, "notification") {
 		t.Fatalf("parent tool mapping/completion events = %#v", parentEvents)
 	}
-	childEvents, err := store.ListFrameEvents(childID, 0, 100)
-	if err != nil || !kernelFrameEventsContain(childEvents, "user_message") || !kernelFrameEventsContain(childEvents, "assistant_message") {
-		t.Fatalf("child message projection = %#v err=%v", childEvents, err)
+	childStream, found, err := app.transcriptStore.GetFrameStreamBySession(t.Context(), identity.access.UserID, childID)
+	if err != nil || !found {
+		t.Fatalf("canonical child stream found=%t err=%v", found, err)
+	}
+	childEvents, err := app.transcriptStore.ListProjectedEvents(t.Context(), transcriptstore.ListProjectedEventsInput{
+		StreamUID: childStream.UID, OwnerID: identity.access.UserID, Limit: 100,
+	})
+	hasUser, hasAssistant := false, false
+	for _, event := range childEvents {
+		hasUser = hasUser || event.Event.Type == "user_message"
+		hasAssistant = hasAssistant || event.Event.Type == "assistant_message"
+	}
+	if err != nil || !hasUser || !hasAssistant {
+		t.Fatalf("canonical child message projection = %#v err=%v", childEvents, err)
 	}
 
 	resumed := runKernelHostCell(t, app, identity, `
@@ -201,7 +225,7 @@ func TestKernelDelegateSubmitOutputIsSchemaBoundAndAtMostOnce(t *testing.T) {
 
 func TestKernelHostSupervisionQueuesMessageDuringActiveProviderCall(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 
 	firstStarted := make(chan struct{})
@@ -271,7 +295,7 @@ print(json.dumps(host.delegate("active queue child", model="queue-model", wait=F
 
 func TestKernelHostSupervisionRecoversPendingMessageAfterRuntimeRestart(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	providerRequests := atomic.Int64{}
 	providerStarted := make(chan struct{})
 	releaseProvider := make(chan struct{})
@@ -313,7 +337,7 @@ func TestKernelHostSupervisionRecoversPendingMessageAfterRuntimeRestart(t *testi
 	}
 	closeKernelHostTestRuntime(t, app, manager, store)
 
-	store, manager, app, identity = newKernelHostTestRuntime(t, databasePath, false)
+	store, manager, app, identity = newKernelHostTestRuntime(t, databasePath, false, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	type collectOutcome struct {
 		result map[string]any
@@ -354,7 +378,7 @@ print(json.dumps(host.collect(["` + childID + `"], timeout=20)[0], sort_keys=Tru
 
 func TestKernelHostSupervisionParksForQuestionAndResumesWithParentAnswer(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	var requests atomic.Int64
 	questionStarted := make(chan struct{})
@@ -413,6 +437,9 @@ print(json.dumps(host.delegate("ask the parent when needed", model="question-mod
 	if err != nil || !found || parked.Status != "awaiting_user_response" || parked.Error != "" {
 		t.Fatalf("parked child=%#v found=%t err=%v", parked, found, err)
 	}
+	if requests.Load() != 1 {
+		t.Fatalf("canonical AskUser parking issued an extra provider request: %d", requests.Load())
+	}
 	childEvents, err := store.ListFrameEvents(childID, 0, 100)
 	if err != nil {
 		t.Fatal(err)
@@ -443,12 +470,65 @@ print(json.dumps(host.children(), sort_keys=True))
 	if err != nil || receipt["status"] != "injected" {
 		t.Fatalf("parked answer receipt=%#v err=%v", receipt, err)
 	}
-	waitForKernelSupervisionSignal(t, answerStarted, "answered child provider request")
+	select {
+	case <-answerStarted:
+	case <-time.After(5 * time.Second):
+		current, _, readErr := store.GetKernelSupervisedChild(t.Context(), identity.access.Frame.ID, childID, identity.access.UserID)
+		target, phase, targetErr := store.KernelChildDispatchTarget(t.Context(), identity.access.UserID, identity.access.Frame.ID, childID)
+		state, stateErr := app.transcriptStore.GetRunnerRuntimeState(t.Context(), target.StreamUID, identity.access.UserID, target.RunnerAttempt)
+		_, replayErr := app.readKernelChildEntries(t.Context(), childID)
+		projection, projectionErr := app.transcriptStore.ListProjectedEvents(t.Context(), transcriptstore.ListProjectedEventsInput{
+			StreamUID: target.StreamUID, OwnerID: identity.access.UserID, Limit: 100,
+		})
+		stages := []string{}
+		for _, event := range projection {
+			var payload map[string]any
+			_ = json.Unmarshal(event.ResolvedPayloadJSON, &payload)
+			if stage := stringValue(payload["stage"]); stage != "" {
+				stages = append(stages, fmt.Sprintf("%d:%s", event.Event.EventID, stage))
+			}
+		}
+		_, registered := kernelChildRuns.Load(kernelChildRunKey{server: app, frameID: childID})
+		t.Fatalf("answered child provider request did not arrive: requests=%d child=%#v read=%v target=%#v phase=%s targetError=%v runtime=%#v runtimeError=%v replay=%v registered=%t stages=%v projection=%v",
+			requests.Load(), current, readErr, target, phase, targetErr, state, stateErr, replayErr, registered, stages, projectionErr)
+	}
 	answerRun := kernelSupervisionRunAtBoundary(t, app, childID)
+	replayed, err := app.sendKernelChildMessage(context.Background(), identity.access, childID, "Use the approved assay window", "question", "hc-00000000000000000000000000000002", nil)
+	if err != nil || replayed["status"] != "injected" {
+		t.Fatalf("parent discussion exact replay=%#v err=%v", replayed, err)
+	}
+	stream, found, err := app.transcriptStore.GetFrameStreamBySession(t.Context(), identity.access.UserID, childID)
+	if err != nil || !found || stream.InputRevision != 2 {
+		t.Fatalf("parent discussion duplicated canonical input: %#v found=%t err=%v", stream, found, err)
+	}
+	events, err := app.transcriptStore.ListProjectedEvents(t.Context(), transcriptstore.ListProjectedEventsInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, Limit: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	discussions := 0
+	for _, event := range events {
+		if event.Event.Type != transcriptstore.AskUserResultEventType {
+			continue
+		}
+		result, err := transcriptstore.DecodeAskUserResultEventV1(event.ResolvedPayloadJSON)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.Result.Status == transcriptstore.AskUserStatusAwaitingResponse {
+			continue
+		}
+		if result.Result.Status != transcriptstore.AskUserStatusDiscussed || result.Result.Action != transcriptstore.AskUserActionDiscuss || len(result.Result.Answers) != 0 || !strings.Contains(result.ModelContinuation, "not a human answer") {
+			t.Fatalf("agent discussion became user authority: %#v", result)
+		}
+		discussions++
+	}
+	if discussions != 1 {
+		t.Fatalf("parent discussion result count=%d", discussions)
+	}
 	releaseAnswerRequest()
 	waitForKernelSupervisionRun(t, answerRun, "answered child completion")
 	child, found, err := store.GetKernelSupervisedChild(context.Background(), identity.access.Frame.ID, childID, identity.access.UserID)
-	if err != nil || !found || child.Status != "completed" || requests.Load() != 3 ||
+	if err != nil || !found || child.Status != "completed" || requests.Load() != 2 ||
 		!strings.Contains(stringValue(child.Output["response"]), "parent answer consumed") {
 		t.Fatalf("answered child did not complete: child=%#v found=%t err=%v requests=%d", child, found, err, requests.Load())
 	}
@@ -487,7 +567,7 @@ func waitForKernelSupervisionRun(t *testing.T, run *kernelChildRun, label string
 
 func TestKernelHostSupervisionTimeoutStopTopologyAndUpfrontLimits(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
@@ -702,7 +782,7 @@ host.children()`})
 
 func TestKernelHostSupervisionParallelOrderChildrenAndBlockingCancel(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	parallelReady := make(chan struct{})
 	var parallelCalls atomic.Int64
@@ -807,14 +887,26 @@ print(json.dumps({"results":results, "children":host.children()}, sort_keys=True
 		t.Fatal("blocking delegate did not release after cell cancellation")
 	}
 	cancelled, found, err := store.GetKernelSupervisedChild(context.Background(), identity.access.Frame.ID, cancelChild.FrameID, identity.access.UserID)
-	if err != nil || !found || cancelled.Status != "cancelled" {
+	if err != nil || !found || cancelled.Status != "completed" || cancelled.Output["stopped_by_parent"] != true || kernelChildPublicStatus(cancelled) != "cancelled" {
 		t.Fatalf("blocking cancellation child = %#v found=%t err=%v", cancelled, found, err)
+	}
+	frame, found, err := store.GetFrame(cancelChild.FrameID)
+	if err != nil || !found || frame.Status != "cancelled" {
+		t.Fatalf("blocking cancellation frame=%#v found=%t err=%v", frame, found, err)
+	}
+	stream, found, err := app.transcriptStore.GetFrameStreamBySession(t.Context(), identity.access.UserID, cancelChild.FrameID)
+	if err != nil || !found {
+		t.Fatalf("blocking cancellation stream found=%t err=%v", found, err)
+	}
+	state, err := app.transcriptStore.GetRunnerRuntimeState(t.Context(), stream.UID, stream.OwnerID, 1)
+	if err != nil || state.Status != "cancelled" {
+		t.Fatalf("blocking cancellation canonical state=%#v err=%v", state, err)
 	}
 }
 
 func TestKernelHostSendMessageMatchesPeerBudgetsAndNormalization(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "workspace.db")
-	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true)
+	store, manager, app, identity := newKernelHostTestRuntime(t, databasePath, true, kernelHostTestRuntimeOptions{CanonicalTranscript: true})
 	defer closeKernelHostTestRuntime(t, app, manager, store)
 	children, err := store.CreateKernelSupervisedChildren(context.Background(), workspace.CreateKernelDelegatesInput{
 		ParentFrameID: identity.access.Frame.ID, OwnerUserID: identity.access.UserID, ToolUseID: "message-budget-child",

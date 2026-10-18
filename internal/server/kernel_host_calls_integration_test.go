@@ -484,7 +484,11 @@ for line in sys.stdin:
 	return path
 }
 
-func newKernelHostTestRuntime(t *testing.T, databasePath string, seed bool) (*workspace.Store, *kernelruntime.Manager, *Server, *agentKernelContext) {
+type kernelHostTestRuntimeOptions struct {
+	CanonicalTranscript bool
+}
+
+func newKernelHostTestRuntime(t *testing.T, databasePath string, seed bool, configurations ...kernelHostTestRuntimeOptions) (*workspace.Store, *kernelruntime.Manager, *Server, *agentKernelContext) {
 	t.Helper()
 	python, err := exec.LookPath("python3")
 	if err != nil {
@@ -514,7 +518,17 @@ func newKernelHostTestRuntime(t *testing.T, databasePath string, seed bool) (*wo
 	if err != nil || !found {
 		t.Fatalf("kernel frame access found=%t err=%v", found, err)
 	}
-	app := New(Options{FileRoot: filepath.Dir(databasePath), Workspace: store, KernelManager: manager})
+	options := Options{FileRoot: filepath.Dir(databasePath), Workspace: store, KernelManager: manager}
+	if len(configurations) > 1 {
+		t.Fatal("only one kernel host fixture configuration is allowed")
+	}
+	if len(configurations) == 1 && configurations[0].CanonicalTranscript {
+		options.Transcript, err = store.TranscriptRepository(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	app := New(options)
 	identity := &agentKernelContext{access: access, workspaceDir: t.TempDir()}
 	if err := disableBundledMCPForLocalFixture(t.Context(), app, identity.access.UserID); err != nil {
 		closeKernelHostTestRuntime(t, app, manager, store)

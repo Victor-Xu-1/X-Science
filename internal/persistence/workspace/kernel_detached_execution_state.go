@@ -433,49 +433,10 @@ func requestDetachedKernelFrameCancellationTx(
 	frameID string,
 	now time.Time,
 ) error {
-	rows, err := tx.QueryContext(ctx, `SELECT execution_id FROM kernel_detached_executions
+	return requestDetachedKernelCancellationQueryTx(ctx, tx, `SELECT execution_id FROM kernel_detached_executions
 		WHERE state IN ('accepted','dispatch_committed','started') AND operation_id IN (
 			SELECT operation_id FROM kernel_local_operations WHERE frame_id=? AND state='started'
-		) ORDER BY execution_id`, frameID)
-	if err != nil {
-		return err
-	}
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
-		_ = rows.Close()
-		return err
-	}
-	if err := rows.Close(); err != nil {
-		return err
-	}
-	for _, id := range ids {
-		current, found, err := getDetachedKernelExecutionQuery(ctx, tx, id)
-		if err != nil {
-			return err
-		}
-		if !found || current.CancelRequestID != "" ||
-			(current.State != DetachedKernelExecutionStateAccepted &&
-				current.State != DetachedKernelExecutionStateDispatchCommitted &&
-				current.State != DetachedKernelExecutionStateStarted) {
-			return ErrDetachedKernelExecutionConflict
-		}
-		cancelRequestID := "frame-cancel:" + current.ExecutionID
-		if _, err := updateDetachedKernelExecutionTx(ctx, tx, current,
-			`state=?,state_version=state_version+1,cancel_request_id=?,cancel_requested_at=?,updated_at=?`,
-			DetachedKernelExecutionStateCancelRequested, cancelRequestID,
-			now.Format(time.RFC3339Nano), now.Format(time.RFC3339Nano)); err != nil {
-			return err
-		}
-	}
-	return nil
+		) ORDER BY execution_id`, []any{frameID}, now)
 }
 
 func (s *Store) AcknowledgeKernelExecutionCancel(

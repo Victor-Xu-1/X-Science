@@ -231,6 +231,71 @@
   color: var(--color-text-4);
 }
 
+.delegate-dock__stop-controls,
+.delegate-dock__stop-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--color-text-3);
+}
+
+.delegate-dock__stop-controls [role='alert'],
+.delegate-dock__stop-state {
+  color: rgb(var(--red-6));
+}
+
+.delegate-dock__stop-button {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--color-text-1);
+  background: var(--color-fill-2);
+  cursor: pointer;
+}
+
+.delegate-dock__stop-text,
+.delegate-dock__stop-state button {
+  border: 0;
+  padding: 4px;
+  font-size: 11px;
+  color: rgb(var(--primary-6));
+  background: transparent;
+  cursor: pointer;
+}
+
+.delegate-dock__stop-button:focus-visible,
+.delegate-dock__stop-text:focus-visible {
+  outline: 2px solid rgb(var(--primary-6));
+  outline-offset: 2px;
+}
+
+.delegate-dock__stop-controls button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.delegate-dock__stop-results {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.delegate-dock__stop-results summary {
+  cursor: pointer;
+}
+
+.delegate-dock__stop-results ul {
+  margin: 4px 0;
+  padding-left: 16px;
+}
+
 @media (max-width: 640px) {
   .delegate-dock__breadcrumb {
     max-width: 96px;

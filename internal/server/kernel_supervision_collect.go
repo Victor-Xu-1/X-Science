@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
 	workspace "x-science/internal/persistence/workspace"
@@ -14,9 +13,13 @@ func (s *Server) waitKernelChildren(ctx context.Context, access workspace.Kernel
 		deadline = time.Now().Add(timeout)
 	}
 	ids := make([]string, len(children))
+	originalInputs := make(map[string]*workspace.DelegatedStopTarget, len(children))
 	valid := make([]bool, len(children))
 	for index := range children {
 		ids[index], valid[index] = children[index].FrameID, true
+		if cancelOnContext {
+			originalInputs[children[index].FrameID], _ = s.workspaceStore.KernelChildInitialTarget(ctx, children[index])
+		}
 	}
 	for {
 		allTerminal := true
@@ -37,8 +40,9 @@ func (s *Server) waitKernelChildren(ctx context.Context, access workspace.Kernel
 			if cancelOnContext {
 				for _, child := range children {
 					if !kernelChildTerminal(child.Status) {
-						s.cancelKernelChildRun(child.FrameID)
-						_, _ = s.workspaceStore.CompleteKernelSupervisedChild(context.Background(), child.FrameID, access.UserID, "cancelled", nil, "blocking delegation was cancelled")
+						if original := originalInputs[child.FrameID]; original != nil {
+							_ = s.stopKernelChildTarget(context.WithoutCancel(ctx), access, child.FrameID, "blocking delegation was cancelled", "blocking-delegate-cancel:"+child.ToolUseID+":"+child.FrameID, original)
+						}
 					}
 				}
 			}
@@ -209,84 +213,4 @@ func kernelChildRunningDescriptor(child workspace.KernelSupervisedChild, dispatc
 
 func kernelChildTerminal(status string) bool {
 	return status == "completed" || status == "failed" || status == "cancelled" || status == "orphaned"
-}
-
-func (s *Server) stopKernelChild(ctx context.Context, access workspace.KernelFrameAccess, frameID, reason string) map[string]any {
-	child, found, err := s.workspaceStore.GetKernelSupervisedChild(ctx, access.Frame.ID, frameID, access.UserID)
-	if err == nil && !found && s.kernelManager != nil {
-		interrupted := s.kernelManager.Interrupt(access.Frame.ID, frameID)
-		if interrupted.Interrupted || interrupted.Dequeued {
-			return map[string]any{
-				"exec_id": frameID, "status": "stopped", "outcome": "interrupted",
-				"via": interrupted.Via, "dequeued": interrupted.Dequeued,
-			}
-		}
-	}
-	if err != nil || !found {
-		return map[string]any{"child_frame_id": frameID, "status": "failed", "error": "delegated child is unavailable"}
-	}
-	if kernelChildTerminal(child.Status) {
-		if err := s.workspaceStore.CollectKernelChildLanding(context.Background(), access.Frame.ID, access.Frame.RootFrameID, access.UserID, child.FrameID); err != nil {
-			return map[string]any{"child_frame_id": frameID, "status": "failed", "error": "delegated child result could not be discarded"}
-		}
-		status := kernelChildPublicStatus(child)
-		output := child.Output
-		if output == nil {
-			output = map[string]any{}
-		}
-		result := map[string]any{
-			"status": "already_terminal", "child_frame_id": frameID, "frame_id": frameID,
-			"agent_name": child.AgentName, "child_status": status, "output_data": output,
-			"message": fmt.Sprintf("Child is already %s; nothing to stop.", status),
-		}
-		return result
-	}
-	if strings.TrimSpace(reason) == "" {
-		reason = "Parent requested stop"
-	}
-	stoppedTree, err := s.workspaceStore.StopKernelSupervisedChildTree(ctx, access.Frame.ID, frameID, access.UserID, reason)
-	if err != nil {
-		return map[string]any{"child_frame_id": frameID, "status": "failed", "error": "delegated child could not be stopped"}
-	}
-	if !stoppedTree.Applied {
-		status := kernelChildPublicStatus(stoppedTree.Target)
-		output := stoppedTree.Target.Output
-		if output == nil {
-			output = map[string]any{}
-		}
-		return map[string]any{
-			"status": "already_terminal", "child_frame_id": frameID, "frame_id": frameID,
-			"agent_name": stoppedTree.Target.AgentName, "child_status": status, "output_data": output,
-			"message": fmt.Sprintf("Child is already %s; nothing to stop.", status),
-		}
-	}
-	stoppedDescendants := make([]any, 0, len(stoppedTree.StoppedDescendants))
-	for _, descendant := range stoppedTree.StoppedDescendants {
-		s.cancelKernelChildRun(descendant.FrameID)
-		_ = s.workspaceStore.CollectKernelChildLanding(context.Background(), descendant.ParentFrameID, descendant.RootFrameID, access.UserID, descendant.FrameID)
-		stoppedDescendants = append(stoppedDescendants, map[string]any{"frame_id": descendant.FrameID, "agent_name": descendant.AgentName})
-	}
-	s.cancelKernelChildRun(frameID)
-	if err := s.workspaceStore.CollectKernelChildLanding(context.Background(), access.Frame.ID, access.Frame.RootFrameID, access.UserID, stoppedTree.Target.FrameID); err != nil {
-		return map[string]any{"child_frame_id": frameID, "status": "failed", "error": "delegated child result could not be discarded"}
-	}
-	result := map[string]any{
-		"status": "stopped", "child_frame_id": frameID, "frame_id": frameID,
-		"agent_name": stoppedTree.Target.AgentName, "stopped_descendants": stoppedDescendants,
-	}
-	if len(stoppedTree.Target.Output) > 0 {
-		result["output_data"] = stoppedTree.Target.Output
-	}
-	if len(stoppedDescendants) > 0 {
-		result["message"] = fmt.Sprintf("Child stopped along with %d descendant(s). All marked as cancelled (stopped by parent; will not auto-resume).", len(stoppedDescendants))
-	} else {
-		result["message"] = "Child stopped and marked as cancelled (stopped by parent; will not auto-resume)."
-	}
-	return result
-}
-
-func (s *Server) cancelKernelChildRun(frameID string) {
-	if value, ok := kernelChildRuns.Load(kernelChildRunKey{server: s, frameID: frameID}); ok {
-		value.(*kernelChildRun).cancel()
-	}
 }

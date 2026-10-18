@@ -29,6 +29,13 @@ func (s *Server) releaseSessionRunnerKernels(
 	}
 	rootFrameID := strings.TrimSpace(sessionID)
 	if authority != nil {
+		if authority.Stream.FrameID != "" && authority.Stream.RootFrameID != "" && authority.Stream.FrameID != authority.Stream.RootFrameID {
+			// A delegated runner is not the root task's lifetime owner. Even
+			// its frame worker can host an independent manual cell. Its agent
+			// executions settle through their exact execution owner; shared
+			// workers remain under the root lifecycle and existing idle policy.
+			return nil
+		}
 		rootFrameID = firstNonEmpty(strings.TrimSpace(authority.Stream.RootFrameID), rootFrameID)
 	}
 	if rootFrameID == "" {

@@ -1752,6 +1752,45 @@
     "returnProjects": "返回项目列表",
     "projects": "项目列表"
   },
+  "delegatedStop": {
+    "results": "{{count}} 个目标的结果",
+    "outcomes": {
+      "cancel_requested": "已请求取消",
+      "cancelled": "权威输入已取消",
+      "already_terminal": "此前已结束；保留输出"
+    },
+    "observations": {
+      "running": "执行仍在运行",
+      "stopped": "执行已停止",
+      "unavailable": "执行状态不可观测"
+    },
+    "branch": "停止子智能体",
+    "child": "停止此子智能体",
+    "check": "查询停止请求",
+    "retry": "重试停止",
+    "loading": "正在核对停止目标…",
+    "targetUnavailable": "此子智能体没有可验证的停止目标。",
+    "recoveryLimited": "刷新后的恢复提示不可用。请保留此视图并查询原请求。",
+    "states": {
+      "submitting": "正在提交停止请求…",
+      "checking": "正在查询原停止请求…",
+      "unconfirmed": "停止尚未确认",
+      "rejected": "停止请求已被拒绝",
+      "stopping": "已请求取消；执行仍在运行",
+      "observationUnavailable": "执行状态不可观测；尚未确认物理停止",
+      "alreadyTerminal": "任务此前已结束；已保存输出保持不变",
+      "settled": "停止已完成；已保存输出保持不变"
+    },
+    "errors": {
+      "unavailable": "未找到停止回执或目标，不能据此认定已经停止。",
+      "stale": "停止范围或目标已变化。请查询原请求，不会自动改换目标。",
+      "conflict": "此请求 ID 已绑定另一份停止请求。",
+      "invalid": "无法验证停止响应或请求。",
+      "readFailed": "无法读取停止状态。可重试读取，不会停止其他任务。",
+      "unconfirmed": "未收到停止确认。重试前请先查询原请求。",
+      "capacity": "待确认停止请求的恢复容量已满，请先核对现有请求。"
+    }
+  },
   "delegateDock": {
     "status": {
       "needs-input": "等待操作",

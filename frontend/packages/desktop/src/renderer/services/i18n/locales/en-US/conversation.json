@@ -1752,6 +1752,45 @@
     "returnProjects": "Return to project list",
     "projects": "Projects"
   },
+  "delegatedStop": {
+    "results": "{{count}} target results",
+    "outcomes": {
+      "cancel_requested": "Cancellation requested",
+      "cancelled": "Canonical input cancelled",
+      "already_terminal": "Already terminal; output retained"
+    },
+    "observations": {
+      "running": "Execution still running",
+      "stopped": "Execution stopped",
+      "unavailable": "Execution observation unavailable"
+    },
+    "branch": "Stop subagents",
+    "child": "Stop this subagent",
+    "check": "Check stop request",
+    "retry": "Retry stop",
+    "loading": "Checking stop targets…",
+    "targetUnavailable": "This subagent has no verified stop target.",
+    "recoveryLimited": "Reload recovery is unavailable. Keep this view open and check the original request.",
+    "states": {
+      "submitting": "Submitting stop request…",
+      "checking": "Checking original stop request…",
+      "unconfirmed": "Stop not yet confirmed",
+      "rejected": "Stop request was rejected",
+      "stopping": "Cancellation requested; execution is still running",
+      "observationUnavailable": "Execution status is unavailable; physical stop is not confirmed",
+      "alreadyTerminal": "Already finished; saved output is retained",
+      "settled": "Stop completed; saved output is retained"
+    },
+    "errors": {
+      "unavailable": "Stop receipt or target was not found. The stop is not confirmed.",
+      "stale": "The stop scope or target changed. Check the original request; it will not be retargeted.",
+      "conflict": "This request ID belongs to a different stop request.",
+      "invalid": "The stop response or request could not be verified.",
+      "readFailed": "Could not read stop status. Retry the read without stopping another task.",
+      "unconfirmed": "The stop acknowledgement was lost. Check the original request before retrying.",
+      "capacity": "Pending stop recovery capacity is full. Resolve existing requests before creating another."
+    }
+  },
   "delegateDock": {
     "status": {
       "needs-input": "Needs input",

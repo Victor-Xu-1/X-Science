@@ -272,6 +272,18 @@ func (r *Repository) claimRunnerConn(
 	now time.Time,
 ) (ClaimRunnerResult, error) {
 	var result ClaimRunnerResult
+	if (input.ExpectedFrameIncarnationID == "") != (input.ExpectedStreamEpoch == 0) || input.ExpectedStreamEpoch < 0 {
+		return result, ErrClaimStale
+	}
+	if input.ExpectedFrameIncarnationID != "" {
+		var incarnation string
+		if err := conn.QueryRowContext(ctx, `SELECT incarnation_id FROM frames WHERE id=?`, stream.FrameID).Scan(&incarnation); err != nil {
+			return result, err
+		}
+		if incarnation != input.ExpectedFrameIncarnationID || stream.Epoch != input.ExpectedStreamEpoch || input.ExpectedInputMessageID == "" {
+			return result, ErrClaimStale
+		}
+	}
 	if (input.ExpectedInputMessageID == "") != (input.ExpectedInputRevision == 0) || input.ExpectedInputRevision < 0 {
 		return result, ErrContextCompactionInvalid
 	}

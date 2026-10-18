@@ -29,6 +29,9 @@ type FrameEventInput struct {
 }
 
 func (s *Store) AppendFrameEvent(input FrameEventInput) (FrameEvent, error) {
+	if reservedDelegatedControlEvent(strings.TrimSpace(input.Type)) || strings.HasPrefix(strings.TrimSpace(input.ID), "delegated:") {
+		return FrameEvent{}, ErrDelegatedStopInvalid
+	}
 	if s == nil || s.db == nil {
 		return FrameEvent{}, errors.New("workspace store is closed")
 	}
