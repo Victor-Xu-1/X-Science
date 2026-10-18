@@ -11,6 +11,12 @@ import (
 // Aside children, must be quiescent before the root can leave active lists.
 func (s *Store) assertConversationArchiveIdleTx(ctx context.Context, tx workspaceTransaction, rootID string, now time.Time) error {
 	checks := []string{
+		// Manual Notebook admission is a canonical frame event, not a runner
+		// status label or a managed local-program operation. Unknown/missing
+		// states remain busy; malformed JSON propagates an error, never idle.
+		`SELECT EXISTS(SELECT 1 FROM frame_events e JOIN frames f ON f.id=e.frame_id
+			WHERE f.root_frame_id=? AND e.event_type='` + ManualKernelExecutionEventType + `'
+			AND COALESCE(json_extract(e.payload,'$.state'),'')<>'terminal')`,
 		`SELECT EXISTS(SELECT 1 FROM frames WHERE root_frame_id=? AND status IN ('awaiting_user_response','awaiting_plan_approval'))`,
 		`SELECT EXISTS(SELECT 1 FROM queued_user_messages q JOIN frames f ON f.id=q.frame_id
 			WHERE f.root_frame_id=? AND q.state IN ('queued','delivering'))`,

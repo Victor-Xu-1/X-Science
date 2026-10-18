@@ -39,6 +39,11 @@ func (s *Store) AdmitManualKernelExecution(ctx context.Context, input AdmitManua
 			record = existing
 			return nil
 		}
+		// Re-reading an accepted receipt is not new work. Only a first
+		// admission must serialize with the root's archive presentation.
+		if err := transcriptstore.CheckFrameConversationAvailable(ctx, tx, input.Binding.FrameID); err != nil {
+			return err
+		}
 		raw, err := json.Marshal(record)
 		if err != nil {
 			return err

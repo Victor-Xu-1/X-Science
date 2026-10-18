@@ -60,6 +60,10 @@ func writeManualNotebookAPIError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.As(err, &requestErr):
 		status, code, detail = requestErr.status, requestErr.code, requestErr.detail
+	case errors.Is(err, transcriptstore.ErrConversationArchived):
+		status, code, detail = http.StatusGone, "CONVERSATION_ARCHIVED", transcriptstore.ErrConversationArchived.Error()
+	case errors.Is(err, transcriptstore.ErrConversationArchiveInvalid):
+		status, code, detail = http.StatusBadRequest, "CONVERSATION_PRESENTATION_INVALID", transcriptstore.ErrConversationArchiveInvalid.Error()
 	case errors.Is(err, transcriptstore.ErrOwnerMismatch):
 		status, code, detail = http.StatusNotFound, "MANUAL_EXECUTION_FRAME_NOT_FOUND", "Frame not found"
 	case errors.Is(err, errKernelHostAccessFenced):

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	kernelruntime "x-science/internal/kernel"
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -45,13 +46,19 @@ type manualNotebookKernelProjection struct {
 
 func (s *Server) manualNotebookKernelProjections(inventory authorizedKernelInventory, userID, rootID string) []manualNotebookKernelProjection {
 	result := make([]manualNotebookKernelProjection, 0, len(inventory.Kernels))
+	rootAvailability := make(map[string]bool)
 	for _, kernel := range inventory.Kernels {
 		if rootID != "" && kernel.RootFrameID != rootID {
 			continue
 		}
 		projection := manualNotebookKernelProjection{SessionKernel: kernel}
 		_, detached := inventory.Detached[kernel.KernelID]
-		if !detached && s.kernelManager != nil {
+		available, checked := rootAvailability[kernel.RootFrameID]
+		if !checked {
+			available = s.manualNotebookRootAllowsInput(kernel.RootFrameID)
+			rootAvailability[kernel.RootFrameID] = available
+		}
+		if !detached && s.kernelManager != nil && available {
 			target, found := s.kernelManager.LocalExecutionTarget(kernel.KernelID)
 			if found && target.OwnerID == userID && target.ProjectID == kernel.ProjectID &&
 				target.FrameID == kernel.FrameID && target.RootFrameID == kernel.RootFrameID &&
@@ -68,6 +75,21 @@ func (s *Server) manualNotebookKernelProjections(inventory authorizedKernelInven
 		result = append(result, projection)
 	}
 	return result
+}
+
+// This is a read-only capability hint, not admission authority. Archived or
+// unknown roots retain their kernel/history rows without advertising Run;
+// first execution admission rechecks the same marker in its write transaction.
+func (s *Server) manualNotebookRootAllowsInput(rootID string) bool {
+	if s.workspaceStore == nil {
+		return false
+	}
+	metadata, _, err := s.workspaceStore.GetFrameRuntimeMetadata(rootID)
+	if err != nil {
+		return false
+	}
+	archivedAt, err := transcriptstore.ConversationArchivedAt(metadata.ContextData)
+	return err == nil && archivedAt == 0
 }
 
 func (s *Server) validateManualNotebookLiveTarget(access workspace.KernelFrameAccess, expected manualNotebookExpectedTarget) error {
