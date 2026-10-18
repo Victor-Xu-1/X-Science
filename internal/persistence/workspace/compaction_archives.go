@@ -31,6 +31,8 @@ type CompactionArchive struct {
 }
 
 type CreateCompactionArchiveInput struct {
+	Context         context.Context
+	CanonicalSource *ContextCompactionArchiveSource
 	ID              string
 	FrameID         string
 	CompactionIndex *int
@@ -85,7 +87,7 @@ func (s *Store) CreateCompactionArchive(input CreateCompactionArchiveInput) (Com
 	} else {
 		input.CreatedAt = input.CreatedAt.UTC()
 	}
-	if input.SourceEventID != nil {
+	if input.SourceEventID != nil && input.CanonicalSource == nil {
 		if *input.SourceEventID <= 0 {
 			return CompactionArchive{}, errors.New("compaction source event id must be positive")
 		}
@@ -123,12 +125,31 @@ func (s *Store) CreateCompactionArchive(input CreateCompactionArchiveInput) (Com
 }
 
 func (s *Store) createCompactionArchiveAttempt(input CreateCompactionArchiveInput, rawMessages []byte) (CompactionArchive, error) {
-	ctx := context.Background()
+	ctx := input.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return CompactionArchive{}, fmt.Errorf("begin compaction archive: %w", err)
 	}
 	defer tx.Rollback()
+	if input.CanonicalSource != nil {
+		if err := validateContextCompactionArchiveSourceTx(ctx, tx, input); err != nil {
+			return CompactionArchive{}, err
+		}
+		existing, found, err := scanCompactionArchive(tx.QueryRowContext(ctx, `SELECT id,frame_id,compaction_index,message_count,token_count,summary,messages,source_event_id,created_at
+			FROM compaction_archives WHERE frame_id=? AND source_event_id=?`, input.FrameID, *input.SourceEventID))
+		if err != nil {
+			return CompactionArchive{}, err
+		}
+		if found {
+			if err := verifyCompactionIdempotency(existing, input, rawMessages); err != nil {
+				return CompactionArchive{}, err
+			}
+			return existing, tx.Commit()
+		}
+	}
 	var frameExists string
 	if err := tx.QueryRowContext(ctx, `SELECT id FROM frames WHERE id = ?`, input.FrameID).Scan(&frameExists); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -152,7 +173,7 @@ func (s *Store) createCompactionArchiveAttempt(input CreateCompactionArchiveInpu
 		input.Summary, string(rawMessages), nullableInt64(input.SourceEventID), input.CreatedAt,
 	)
 	if err != nil {
-		if input.SourceEventID != nil && isCompactionSourceConflict(err) {
+		if input.SourceEventID != nil && input.CanonicalSource == nil && isCompactionSourceConflict(err) {
 			_ = tx.Rollback()
 			existing, found, lookupErr := s.compactionArchiveBySourceEvent(input.FrameID, *input.SourceEventID)
 			if lookupErr != nil {
@@ -169,6 +190,10 @@ func (s *Store) createCompactionArchiveAttempt(input CreateCompactionArchiveInpu
 	}
 	if err := tx.Commit(); err != nil {
 		return CompactionArchive{}, fmt.Errorf("commit compaction archive: %w", err)
+	}
+	if input.CanonicalSource != nil {
+		return CompactionArchive{ID: input.ID, FrameID: input.FrameID, CompactionIndex: index, MessageCount: input.MessageCount,
+			TokenCount: input.TokenCount, Summary: input.Summary, Messages: input.Messages, SourceEventID: input.SourceEventID, CreatedAt: input.CreatedAt}, nil
 	}
 	archive, found, err := s.GetCompactionArchive(input.FrameID, index)
 	if err != nil {

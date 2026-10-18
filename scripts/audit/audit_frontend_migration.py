@@ -130,6 +130,28 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.module.css": "Style the compact source-aligned maintenance action with shared tokens and no modal backdrop.",
+    "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.tsx": "Render actual maintenance receipts, exact retry/cancel and explicit capacity recovery without fabricated progress.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/acpStopAction.ts": "Route Stop through the observed maintenance owner only; ordinary Stop does not wait for optional bootstrap.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextCompaction.ts": "Bind one composer maintenance controller to account and frame incarnation, keeping recovery reachable with a draft.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpRuntimeActions.ts": "Share existing ordinary runtime stop and refresh actions while retaining exact maintenance cancellation.",
+    "packages/desktop/src/renderer/services/compaction/contextCompactionContract.ts": "Decode canonical scope, numerical event coordinates, admission facts and actual execution observations strictly.",
+    "packages/desktop/src/renderer/services/compaction/ContextCompactionController.ts": "Serialize frozen maintenance requests and cancellation/readback with exact lost-ACK recovery and ordinary-input handoff.",
+    "packages/desktop/src/renderer/services/compaction/contextCompactionObservation.ts": "Retire only proven terminal maintenance observations without equating unrelated task busy state with compaction.",
+    "packages/desktop/src/renderer/services/compaction/contextCompactionRegistry.ts": "Retain unresolved renderer-local request owners under a bounded registry without an additional durable ledger.",
+    "packages/desktop/src/renderer/services/compaction/contextCompactionService.ts": "Use the existing authenticated transport for typed canonical maintenance admit, read and exact cancellation routes.",
+    "packages/desktop/src/renderer/services/compaction/contextCompactionTypes.ts": "Declare canonical maintenance request, receipt, capability and presentation types without execution authority in the renderer.",
+    "tests/unit/renderer/conversation/contextCompactionCapacityTestFixture.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionCapacityTestFixture.ts, without scientific task replay or user artifacts.",
+    "tests/unit/renderer/conversation/ContextCompactionController.test.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in ContextCompactionController.test.ts, without scientific task replay or user artifacts.",
+    "tests/unit/renderer/conversation/contextCompactionObservation.test.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionObservation.test.ts, without scientific task replay or user artifacts.",
+    "tests/unit/renderer/conversation/contextCompactionRegistry.test.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionRegistry.test.ts, without scientific task replay or user artifacts.",
+    "tests/unit/renderer/conversation/contextCompactionService.test.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionService.test.ts, without scientific task replay or user artifacts.",
+    "tests/unit/renderer/conversation/manualContextCompactionFixtures.ts": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in manualContextCompactionFixtures.ts, without scientific task replay or user artifacts.",
+    "packages/desktop/src/renderer/services/runtime/sessionPermissionGrants.ts": "Validate typed owner-scoped session grant snapshots and frozen exact-generation revocation receipts.",
+    "packages/desktop/src/renderer/services/runtime/sessionPermissionGrantsController.ts": "Own one scoped live grant observer and frozen revocation command across desktop and mobile presentations.",
+    "packages/desktop/src/renderer/hooks/xScience/runtime/useSessionPermissionGrants.ts": "Bind the single session grant controller to actual account, frame incarnation and composer lifetime.",
+    "packages/desktop/src/renderer/components/xScience/runtime/SessionPermissionGrants.tsx": "Render compact observed grant categories with exact revocation, uncertainty, conflicts and readback.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpSessionPermissionGrants.tsx": "Adapt actual composer identity and share the existing mobile permission presentation without duplicate state ownership.",
     "packages/desktop/src/renderer/components/notifications/NotificationBell.tsx": "Expose the source-reference compact message-center trigger from the actual toolbar and account footer using one account-scoped store.",
     "packages/desktop/src/renderer/components/notifications/NotificationInboxList.tsx": "Render verified human notifications and exact observed read receipts without consuming agent delivery or approving a task.",
     "packages/desktop/src/renderer/components/notifications/NotificationInboxOverlay.tsx": "Own one compact inbox overlay with keyboard focus, same-click outside dismissal and a transparent mobile sheet.",
@@ -613,9 +635,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "f8e28809c7f2832c41c9f313b906b121a4baba46a301757d62abc8e949b79d52"
+APPROVED_ADAPTATION_FINGERPRINT = "b4051f9b5d3115f90202feb4cf84492a74a7cd4068fe9d7078b6f2ae340562c9"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "ccf4d6126c1f0ad59a431327a68d26bbcdf72f87374357bca3016b373d8f67cd"
+APPROVED_ADDITION_FINGERPRINT = "d4f66834b33c46bff7e9df55143bf50f57097bcd23a6d463f91e7fe09f675686"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

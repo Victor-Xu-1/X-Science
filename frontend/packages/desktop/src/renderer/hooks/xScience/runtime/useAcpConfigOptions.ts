@@ -15,6 +15,11 @@ import type {
 import { ensureConversationRuntime } from '@/renderer/pages/conversation/utils/ensureConversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
+import {
+  getRendererAccountScopeToken,
+  registerRendererAccountReset,
+  rendererAccountScopedKey,
+} from '@/renderer/services/rendererAccountScope';
 
 export type AcpDerivedSelectOption = {
   value: string;
@@ -107,13 +112,22 @@ export function classifyConfigSetError(error: unknown): AcpConfigSetErrorKind {
   return 'unknown';
 }
 
-type AcpConfigOptionsKey = readonly ['acp-config-options', string];
+type AcpConfigOptionsKey = readonly ['acp-config-options', string, string, string];
 
-const getRuntimeConfigOptionsKey = (conversation_id: string): AcpConfigOptionsKey =>
-  ['acp-config-options', conversation_id] as const;
+const getRuntimeConfigOptionsKey = (conversation_id: string, scope: string, incarnation: string): AcpConfigOptionsKey =>
+  ['acp-config-options', scope, conversation_id, incarnation] as const;
 
 const statusByConversation = new Map<string, AcpConfigSetStatus>();
 const statusListeners = new Map<string, Set<(status: AcpConfigSetStatus) => void>>();
+const snapshotEpochByScope = new Map<string, number>();
+
+function snapshotEpoch(scope: string): number {
+  return snapshotEpochByScope.get(scope) ?? 0;
+}
+
+function invalidateSnapshotReads(scope: string): void {
+  snapshotEpochByScope.set(scope, snapshotEpoch(scope) + 1);
+}
 
 function getConversationSetStatus(conversation_id: string): AcpConfigSetStatus {
   return statusByConversation.get(conversation_id) ?? { state: 'idle' };
@@ -155,70 +169,121 @@ function isTransientConfigUpdateError(error: unknown): boolean {
   return error.message.includes('config_update_in_progress') || error.message.includes('confirmation_timeout');
 }
 
-const ensureRuntimeConfigOptions = async ([, conversation_id]: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> =>
-  (await ensureConversationRuntime(conversation_id)).config_options;
+const ensureRuntimeConfigOptions = async ([, scope, conversation_id, incarnation]: AcpConfigOptionsKey): Promise<
+  AcpConfigOptionDto[]
+> => (await ensureConversationRuntime(conversation_id, incarnation, snapshotEpoch(scope))).config_options;
 
 const configOptionsInFlight = new Map<string, Promise<AcpConfigOptionDto[]>>();
 
+registerRendererAccountReset('acp-config-options', () => {
+  configOptionsInFlight.clear();
+  statusByConversation.clear();
+  statusListeners.clear();
+  snapshotEpochByScope.clear();
+});
+
 function fetchConfigOptionsOnce(key: AcpConfigOptionsKey): Promise<AcpConfigOptionDto[]> {
-  const [, conversation_id] = key;
-  const existing = configOptionsInFlight.get(conversation_id);
+  const [, scope] = key;
+  const readKey = JSON.stringify([scope, snapshotEpoch(scope)]);
+  const existing = configOptionsInFlight.get(readKey);
   if (existing) return existing;
 
   const promise = ensureRuntimeConfigOptions(key).finally(() => {
-    if (configOptionsInFlight.get(conversation_id) === promise) {
-      configOptionsInFlight.delete(conversation_id);
+    if (configOptionsInFlight.get(readKey) === promise) {
+      configOptionsInFlight.delete(readKey);
     }
   });
-  configOptionsInFlight.set(conversation_id, promise);
+  configOptionsInFlight.set(readKey, promise);
   return promise;
 }
 
 export function useAcpConfigOptions({
   conversation_id,
+  frameIncarnationId = '',
   prepareRuntime,
   enabled = true,
 }: {
   conversation_id: string;
+  frameIncarnationId?: string;
   prepareRuntime?: () => Promise<void>;
   enabled?: boolean;
 }) {
-  const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(conversation_id));
+  const accountScope = getRendererAccountScopeToken();
+  const statusKey = rendererAccountScopedKey(JSON.stringify([conversation_id, frameIncarnationId]));
+  const owner = useMemo(
+    () => ({ accountScope, conversation_id, frameIncarnationId, enabled }),
+    [accountScope, conversation_id, frameIncarnationId, enabled]
+  );
+  const currentOwner = useRef(owner);
+  const lastAutoScope = useRef<typeof owner | null>(null);
+  currentOwner.current = owner;
+  const mount = useRef({ mounted: false, generation: 0 });
+  const captureOwner = useCallback(() => {
+    const generation = mount.current.generation;
+    return () =>
+      mount.current.mounted &&
+      mount.current.generation === generation &&
+      currentOwner.current === owner &&
+      owner.enabled &&
+      getRendererAccountScopeToken() === owner.accountScope;
+  }, [owner]);
+  const [setStatus, setSetStatus] = useState<AcpConfigSetStatus>(() => getConversationSetStatus(statusKey));
   const [reloadPending, setReloadPending] = useState(false);
   const [loadError, setLoadError] = useState<unknown>(null);
   const loadGenerationRef = useRef(0);
   const optionsRef = useRef<AcpConfigOptionDto[] | null>(null);
-  const key = useMemo(() => getRuntimeConfigOptionsKey(conversation_id), [conversation_id]);
+  const key = useMemo(
+    () => getRuntimeConfigOptionsKey(conversation_id, statusKey, frameIncarnationId),
+    [conversation_id, statusKey, frameIncarnationId]
+  );
   const {
     data: snapshotData,
     mutate,
     isLoading,
   } = useSWR<AcpConfigOptionDto[] | null>(enabled ? key : null, fetchConfigOptionsOnce, {
     revalidateOnMount: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    revalidateIfStale: false,
   });
   const configOptions = enabled ? (snapshotData ?? null) : null;
+
+  useEffect(() => {
+    mount.current.mounted = true;
+    mount.current.generation += 1;
+    return () => {
+      mount.current.mounted = false;
+      mount.current.generation += 1;
+      loadGenerationRef.current += 1;
+    };
+  }, [owner]);
 
   useEffect(() => {
     optionsRef.current = configOptions;
   }, [configOptions]);
 
   useEffect(() => {
-    setSetStatus(getConversationSetStatus(conversation_id));
-    return subscribeConversationSetStatus(conversation_id, setSetStatus);
-  }, [conversation_id]);
+    setSetStatus(getConversationSetStatus(statusKey));
+    return subscribeConversationSetStatus(statusKey, setSetStatus);
+  }, [statusKey]);
 
   useEffect(() => {
     loadGenerationRef.current += 1;
     setReloadPending(false);
     setLoadError(null);
-  }, [conversation_id, enabled]);
+  }, [owner]);
 
   const replaceSnapshot = useCallback(
-    (next: AcpConfigOptionDto[]) => {
-      optionsRef.current = next;
-      void mutate(next, false);
+    async (next: AcpConfigOptionDto[], isCurrent = captureOwner()) => {
+      if (!isCurrent()) return;
+      try {
+        await mutate(next, false);
+        if (isCurrent()) optionsRef.current = next;
+      } catch (error) {
+        if (isCurrent()) setLoadError(error);
+      }
     },
-    [mutate]
+    [mutate, captureOwner]
   );
 
   const reload = useCallback(
@@ -226,19 +291,25 @@ export function useAcpConfigOptions({
       // A running task can emit session_active while a config update is being
       // acknowledged. Do not start a competing ensure/reload request: the
       // update path owns the authoritative snapshot until it settles.
-      if (getConversationSetStatus(conversation_id).state === 'setting') {
+      const isCurrent = captureOwner();
+      if (!isCurrent()) return [];
+      if (getConversationSetStatus(statusKey).state === 'setting') {
         return optionsRef.current ?? [];
       }
       const generation = ++loadGenerationRef.current;
+      const epoch = snapshotEpoch(statusKey);
       setReloadPending(true);
       setLoadError(null);
       try {
         await prepareRuntime?.();
+        if (!isCurrent()) return [];
         const next = await fetchConfigOptionsOnce(key);
-        if (generation === loadGenerationRef.current) replaceSnapshot(next);
+        if (isCurrent() && generation === loadGenerationRef.current && epoch === snapshotEpoch(statusKey)) {
+          await replaceSnapshot(next, isCurrent);
+        }
         return next;
       } catch (error) {
-        if (generation === loadGenerationRef.current) {
+        if (isCurrent() && generation === loadGenerationRef.current && epoch === snapshotEpoch(statusKey)) {
           // Once a conversation has a usable config snapshot, a passive refresh
           // failure must not turn a running task's controls into a false
           // "loading error" state. Explicit retries still surface their error.
@@ -248,36 +319,41 @@ export function useAcpConfigOptions({
         }
         throw error;
       } finally {
-        if (generation === loadGenerationRef.current) setReloadPending(false);
+        if (isCurrent() && generation === loadGenerationRef.current) setReloadPending(false);
       }
     },
-    [key, prepareRuntime, replaceSnapshot]
+    [key, prepareRuntime, replaceSnapshot, captureOwner, statusKey]
   );
 
   const setConfigOption = useCallback(
     async (optionId: string, value: string) => {
-      if (getConversationSetStatus(conversation_id).state === 'setting') {
+      const isCurrent = captureOwner();
+      if (!isCurrent()) throw new Error('config_observer_detached');
+      if (getConversationSetStatus(statusKey).state === 'setting') {
         throw new Error('config_update_in_progress');
       }
       // Invalidate any passive session_active refresh that was already in
       // flight. Its failure or stale snapshot must not overwrite this update.
       ++loadGenerationRef.current;
-      setConversationSetStatus(conversation_id, { state: 'setting', optionId, requestedValue: value });
+      invalidateSnapshotReads(statusKey);
+      setConversationSetStatus(statusKey, { state: 'setting', optionId, requestedValue: value });
       setLoadError(null);
       try {
         await prepareRuntime?.();
+        if (!isCurrent()) throw new Error('config_observer_detached');
         // The initial ensure is already coalesced by fetchConfigOptionsOnce.
         // Re-reading it before every update creates a race with the active
         // task's session_active event; only fetch when this hook has no usable
         // option snapshot or the requested option is not present.
         const currentOptions = optionsRef.current;
         if (!currentOptions?.some((option) => option.id === optionId)) {
-          replaceSnapshot(await fetchConfigOptionsOnce(key));
+          await replaceSnapshot(await fetchConfigOptionsOnce(key), isCurrent);
         }
 
         let response: SetConfigOptionResponse | null = null;
         let lastError: unknown = null;
         for (let attempt = 0; attempt <= CONFIG_UPDATE_RETRY_DELAYS_MS.length; attempt += 1) {
+          if (!isCurrent()) throw new Error('config_observer_detached');
           try {
             // Config writes are intentionally serialized; parallel writes can
             // make the runtime acknowledge the wrong value.
@@ -304,7 +380,7 @@ export function useAcpConfigOptions({
           ? observedOptions.find((option) => option.id === optionId && getOptionCurrentValue(option) === value)
           : undefined;
         if (confirmedResponse.confirmation === 'observed' && observedOption && Array.isArray(observedOptions)) {
-          replaceSnapshot(observedOptions);
+          await replaceSnapshot(observedOptions, isCurrent);
           return observedOptions;
         }
 
@@ -313,16 +389,18 @@ export function useAcpConfigOptions({
         // bounded number of real runtime snapshots before reporting failure.
         if (confirmedResponse.confirmation === 'command_ack') {
           for (const retryDelay of CONFIG_OBSERVATION_RETRY_DELAYS_MS) {
+            if (!isCurrent()) throw new Error('config_observer_detached');
             const observed = optionsRef.current?.find(
               (option) => option.id === optionId && getOptionCurrentValue(option) === value
             );
             if (observed) return optionsRef.current ?? [];
             // eslint-disable-next-line no-await-in-loop
             await delay(retryDelay);
+            if (!isCurrent()) throw new Error('config_observer_detached');
             try {
               // eslint-disable-next-line no-await-in-loop
               const next = await fetchConfigOptionsOnce(key);
-              replaceSnapshot(next);
+              await replaceSnapshot(next, isCurrent);
               if (hasObservedValue({ confirmation: 'observed', config_options: next }, optionId, value)) {
                 return next;
               }
@@ -336,27 +414,36 @@ export function useAcpConfigOptions({
 
         throw new Error('config_not_observed');
       } finally {
-        setConversationSetStatus(conversation_id, { state: 'idle' });
+        if (getRendererAccountScopeToken() === accountScope) setConversationSetStatus(statusKey, { state: 'idle' });
       }
     },
-    [conversation_id, key, prepareRuntime, replaceSnapshot]
+    [conversation_id, key, prepareRuntime, replaceSnapshot, captureOwner, statusKey, accountScope]
   );
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || setStatus.state === 'setting') return;
+    // React may still carry the previous conversation's status for this
+    // render. Do not mark a new owner refreshed while its shared writer owns
+    // the snapshot; the idle notification must trigger its first real read.
+    if (getConversationSetStatus(statusKey).state === 'setting') return;
+    if (lastAutoScope.current === owner && optionsRef.current?.length) return;
+    lastAutoScope.current = owner;
     void reload({ surfaceError: false }).catch(() => {});
-  }, [enabled, reload]);
+  }, [enabled, reload, setStatus.state, owner, statusKey]);
 
   useEffect(() => {
     if (!enabled) return;
+    const isCurrent = captureOwner();
     const handler = (message: IResponseMessage) => {
+      if (!isCurrent()) return;
       if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_config_option' && message.data) {
         const optionPayload = message.data as { config_options?: AcpConfigOptionDto[] } | AcpConfigOptionDto[];
         const next = Array.isArray(optionPayload) ? optionPayload : optionPayload.config_options;
         if (Array.isArray(next)) {
+          invalidateSnapshotReads(statusKey);
           setLoadError(null);
-          replaceSnapshot(next);
+          void replaceSnapshot(next, isCurrent);
         }
       }
       if (message.type === 'agent_status') {
@@ -365,7 +452,7 @@ export function useAcpConfigOptions({
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversation_id, enabled, reload, replaceSnapshot]);
+  }, [conversation_id, enabled, reload, replaceSnapshot, captureOwner, statusKey]);
 
   return {
     configOptions,
@@ -377,5 +464,6 @@ export function useAcpConfigOptions({
     thoughtLevel: deriveSelectOption(configOptions, 'thought_level', ['thought_level', 'reasoning_effort']),
     reload,
     setConfigOption,
+    captureObserver: captureOwner,
   };
 }

@@ -52,6 +52,12 @@ func (s *Server) handleWebConversationMessageSubmission(w http.ResponseWriter, r
 		s.writeWebConversationSubmissionError(w, r, frame, messageIntent, err)
 		return
 	}
+	if input.TurnIntent == "" {
+		if err := s.preemptContextCompactionForInput(r.Context(), strings.TrimSpace(r.Header.Get("X-Science-User-Id")), frame.ID); err != nil {
+			writeContextCompactionError(w, err)
+			return
+		}
+	}
 	originalFiles := append([]string(nil), input.Files...)
 	materializedFiles, err := s.materializeWebConversationInputFiles(r.Context(), r, frame, input.Files)
 	if err != nil {

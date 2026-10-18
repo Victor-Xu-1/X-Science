@@ -123,6 +123,7 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
 
   const handleSubSelect = (key: string) => {
     if (!activeSub) return;
+    if (activeSub.options.find((option) => option.key === key)?.disabled) return;
     activeSub.onSelect(key);
     // For settings (model, permission) the user expects to see the new value
     // reflected on the main pane, so we slide back instead of dismissing the
@@ -217,7 +218,8 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                       <button
                         type='button'
                         key={option.key}
-                        className={styles.item}
+                        className={`${styles.item} ${option.disabled ? styles.disabled : ''}`}
+                        disabled={option.disabled}
                         onClick={() => handleSubSelect(option.key)}
                         role={showRadio ? 'menuitemradio' : 'menuitem'}
                         aria-checked={showRadio ? Boolean(option.active) : undefined}
@@ -237,6 +239,7 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                     );
                   })
                 )}
+                {renderedSub.footer?.(open && activeSubKey === renderedSubKey)}
               </div>
             </div>
           )}

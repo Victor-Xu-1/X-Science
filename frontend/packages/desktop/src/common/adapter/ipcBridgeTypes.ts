@@ -208,6 +208,8 @@ export interface IConversationListChangedEvent {
   frame_incarnation_id?: string;
   root_frame_incarnation_id?: string;
   presentation_changed?: true;
+  /** Read-only invalidation; the scoped permission-grants GET remains authoritative. */
+  permission_grants_changed?: true;
   conversation_id: string;
   action: 'created' | 'updated' | 'deleted';
   source?: string;

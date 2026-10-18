@@ -143,11 +143,21 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
   const { t, i18n } = useTranslation();
   const { options = [], description, title, call_id, command_type } = message.content || {};
   const displayTitle = title || description || t('messages.permissionRequest');
-  const approvalOptions: ConversationApprovalOption[] = options.map((option) => ({
-    label: i18n.exists(option.label) ? t(option.label, option.params) : option.label,
-    value: String(option.value),
-    alwaysAllow: String(option.value) === 'proceed_always',
-  }));
+  const managedLabels: Record<string, { value: string; key: string }> = {
+    'Allow once': { value: 'proceed_once', key: 'agentMode.sessionGrants.allowOnce' },
+    'Allow this session': { value: 'proceed_conversation', key: 'agentMode.sessionGrants.allow' },
+    'Always allow': { value: 'proceed_always', key: 'agentMode.sessionGrants.alwaysAllow' },
+    Deny: { value: 'deny', key: 'agentMode.sessionGrants.deny' },
+  };
+  const approvalOptions: ConversationApprovalOption[] = options.map((option) => {
+    const managed = managedLabels[option.label];
+    const labelKey = managed?.value === String(option.value) ? managed.key : option.label;
+    return {
+      label: i18n.exists(labelKey) ? t(labelKey, option.params) : option.label,
+      value: String(option.value),
+      alwaysAllow: String(option.value) === 'proceed_always',
+    };
+  });
 
   return (
     <ConversationApprovalCard

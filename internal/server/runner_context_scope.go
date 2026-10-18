@@ -265,6 +265,7 @@ func runnerEntryIsInputResponse(entry eventjournal.Entry) bool {
 func runnerEntryStartsNewLogicalTask(entry eventjournal.Entry) bool {
 	message := entry.Message
 	return strings.TrimSpace(stringValue(message["role"])) == "user" &&
+		!isHiddenConversationControlPayload(message) &&
 		strings.TrimSpace(stringValue(message["type"])) == "message" &&
 		!runnerEntryIsInputResponse(entry) &&
 		!transcriptstore.IsExplicitTaskContinuationDirective(runnerMessageText(message))
@@ -527,47 +528,16 @@ func (s *Server) autoCompactSessionForRunner(ctx context.Context, options Sessio
 		if episodeErr != nil {
 			return entries, result, episodeErr
 		}
-		summary, summaryErr := buildCompactModelContextSummary(session, entries, instructions, "auto")
-		if summaryErr != nil {
-			return entries, result, summaryErr
+		compactDetails, err := s.buildCanonicalCompactionDetails(session, entries, instructions, "auto")
+		if err != nil {
+			return entries, result, err
 		}
-		summary = s.compactSummaryWithPlanNavigation(session.ID, summary)
-		// Automatic recovery must be reproducible even with a weaker selected
-		// conversation model. The deterministic handoff is derived from durable
-		// user messages, exact tool receipts, failures and pending work; replacing
-		// it with a model paraphrase can invent completion, stale date windows or
-		// duplicate already-finished work. Manual Compact remains model-enriched,
-		// while the runner's automatic continuity path has one authoritative form.
-		summaryStatus := "deterministic-context"
-		modelSummary := map[string]any{
-			"attempted": false,
-			"provider":  "deterministic",
-			"reason":    "automatic runner compaction uses durable deterministic context",
-		}
-		compactedThroughEventID := maxEntryIDFromEntries(entries)
-		toolContinuity, continuityErr := sessionRunnerToolContinuityRecords(entries)
-		if continuityErr != nil {
-			return entries, result, continuityErr
-		}
-		modelContext := map[string]any{"summary": summary}
-		addCompactPublicHandoff(modelContext, entries)
-		compactDetails := map[string]any{
-			runnerSoftCompactionEpisodeField: episodeValue,
-			"summary":                        summary,
-			"modelContext":                   modelContext,
-			"summaryStatus":                  summaryStatus,
-			"modelSummary":                   modelSummary,
-			"trigger":                        "auto",
-			"compactedThroughEventId":        compactedThroughEventID,
-			"estimatedTokens":                estimated,
-			"threshold":                      threshold,
-			"contextWindow":                  contextWindow,
-			"contextPercent":                 contextPercent,
-			"reason":                         result.TriggerReason,
-		}
-		if len(toolContinuity) > 0 {
-			compactDetails[sessionRunnerToolContinuityField] = toolContinuity
-		}
+		compactDetails[runnerSoftCompactionEpisodeField] = episodeValue
+		compactDetails["estimatedTokens"] = estimated
+		compactDetails["threshold"] = threshold
+		compactDetails["contextWindow"] = contextWindow
+		compactDetails["contextPercent"] = contextPercent
+		compactDetails["reason"] = result.TriggerReason
 		if err := s.checkpointChatTool(options, run, "completed", result.Message, "", "auto_compact", compactDetails); err != nil {
 			return entries, result, err
 		}

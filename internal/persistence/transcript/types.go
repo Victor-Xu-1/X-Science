@@ -184,12 +184,14 @@ type RunnerClaim struct {
 }
 
 type ClaimRunnerInput struct {
-	StreamUID        string
-	OwnerID          string
-	RunnerID         string
-	TTL              time.Duration
-	ResumeSource     ResumeSource
-	ResumeCheckpoint int64
+	ExpectedInputMessageID string
+	ExpectedInputRevision  int64
+	StreamUID              string
+	OwnerID                string
+	RunnerID               string
+	TTL                    time.Duration
+	ResumeSource           ResumeSource
+	ResumeCheckpoint       int64
 }
 
 type ClaimRunnerResult struct {
@@ -259,20 +261,21 @@ type StartInternalFrameRunnerResult struct {
 }
 
 type AppendFrameUserEventInput struct {
-	MessageIntent         *FrameMessageIntent
-	RequireCompletedFrame bool
-	StreamUID             string
-	OwnerID               string
-	ClientMessageID       string
-	FrameEventID          string
-	MessageUUID           string
-	Text                  string
-	MessageOrigin         string
-	InputData             map[string]any
-	RuntimeConfig         map[string]any
-	ArtifactReferences    []UserArtifactReferenceInput
-	MessageContext        string
-	Destinations          []string
+	contextCompactionAdmitted bool
+	MessageIntent             *FrameMessageIntent
+	RequireCompletedFrame     bool
+	StreamUID                 string
+	OwnerID                   string
+	ClientMessageID           string
+	FrameEventID              string
+	MessageUUID               string
+	Text                      string
+	MessageOrigin             string
+	InputData                 map[string]any
+	RuntimeConfig             map[string]any
+	ArtifactReferences        []UserArtifactReferenceInput
+	MessageContext            string
+	Destinations              []string
 	// DeferFrameActivation persists the input while leaving a terminal frame
 	// unchanged. Recovery flows use this to make the input durable before they
 	// publish a claimable resume dispatch.
@@ -381,11 +384,12 @@ type MemoryMutationInvocation struct {
 }
 
 type FinishRunnerInput struct {
-	Claim           RunnerClaim
-	ClientMessageID string
-	Status          string
-	PayloadJSON     []byte
-	Destinations    []string
+	contextCompactionBoundary bool
+	Claim                     RunnerClaim
+	ClientMessageID           string
+	Status                    string
+	PayloadJSON               []byte
+	Destinations              []string
 }
 
 type FinishReceipt struct {
@@ -397,6 +401,7 @@ type FinishReceipt struct {
 }
 
 type TerminalProjection struct {
+	Purpose            string
 	StreamUID          string
 	OwnerID            string
 	SessionID          string
@@ -416,12 +421,13 @@ type TerminalProjection struct {
 }
 
 type CancelRunnerInput struct {
-	StreamUID       string
-	OwnerID         string
-	ExpectedAttempt int64
-	ClientMessageID string
-	ReasonCode      string
-	Destinations    []string
+	contextCompaction *ContextCompactionRequest
+	StreamUID         string
+	OwnerID           string
+	ExpectedAttempt   int64
+	ClientMessageID   string
+	ReasonCode        string
+	Destinations      []string
 }
 
 type CancelRunnerResult struct {
@@ -717,7 +723,8 @@ type ListRunnerReplayInput struct {
 type RunnerReplayEvent struct {
 	Event               Event
 	ResolvedPayloadJSON []byte
-	ToolOutcome         *RunnerReplayToolOutcome `json:"-"`
+	ToolOutcome         *RunnerReplayToolOutcome        `json:"-"`
+	CompactionBoundary  *ContextCompactionBoundaryProof `json:"-"`
 }
 
 // RunnerReplayToolOutcome is read-side provenance for an original canonical

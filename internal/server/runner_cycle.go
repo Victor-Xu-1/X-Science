@@ -160,6 +160,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			transcriptAuthority, transcriptClaimed, _, err = s.claimTranscriptFrameRunner(
 				ctx, session.ID, options.RunnerID, options.LeaseTTL,
 				options.TranscriptResumeSource, options.TranscriptCheckpoint,
+				options.contextCompactionClaim,
 			)
 			if err != nil {
 				return result, err
@@ -290,6 +291,16 @@ func (s *Server) runSessionRunnerChatOnce(
 	defer s.settleSessionRunnerHeartbeatOnReturn(
 		preChatParentCtx, &result, transcriptAuthority, &cycleErr, stopHeartbeat,
 	)
+	if handled, maintenance, maintenanceErr := s.runContextCompaction(runCtx, session, chatRun, activeRun); handled || maintenanceErr != nil {
+		if handled {
+			result.Status = maintenance.State
+			if maintenance.State == "committed" {
+				result.Status = "completed"
+			}
+			result.FinishEventID = maintenance.TerminalEventID
+		}
+		return result, maintenanceErr
+	}
 	preChatStage := "resume_state"
 	preChatCtx, cancelPreChat := context.WithTimeoutCause(
 		runCtx, options.PreparationTimeout, errSessionRunnerPreparationDeadline,

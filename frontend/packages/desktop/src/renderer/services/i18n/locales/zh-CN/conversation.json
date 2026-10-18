@@ -33,6 +33,52 @@
     "queuedOriginal": "此编辑消息保留原队列中的 PDF 选择。",
     "useCurrent": "使用当前 PDF 选择"
   },
+  "manualCompaction": {
+    "capacityLimited": "上下文维护会话已达容量上限。请在原对话核对待定请求后重试。",
+    "retryCapacity": "重试上下文维护入口",
+    "submitting": "正在提交上下文维护",
+    "pending": "上下文维护待处理",
+    "unconfirmed": "上下文维护尚未确认",
+    "cancel": "取消上下文维护",
+    "compact": "压缩",
+    "compactLabel": "压缩上下文",
+    "compacting": "正在压缩…",
+    "compactingLabel": "正在压缩上下文",
+    "retryOriginal": "重试原压缩请求",
+    "retryCancel": "重试原取消请求",
+    "checkReceipt": "核对回执",
+    "waitingForPrompt": "正在等待原上下文维护允许下一条输入。尚未发送新消息。",
+    "archivePending": "上下文已提交；历史归档仍待完成。",
+    "reason": {
+      "idle": "可以压缩上下文",
+      "active": "当前执行仍在进行",
+      "queued": "需先处理已排队输入",
+      "waiting": "正在等待确认",
+      "archived": "此对话已归档",
+      "unavailable": "上下文维护不可用"
+    },
+    "state": {
+      "accepted": "已受理",
+      "compacting": "正在压缩",
+      "committed": "上下文已提交",
+      "cancelled": "已记录取消",
+      "failed": "维护失败",
+      "recovery_needed": "需要恢复"
+    },
+    "observation": {
+      "not_started": "尚未开始",
+      "active": "已观测到执行",
+      "draining": "等待执行清理",
+      "settled": "执行已收尾",
+      "unavailable": "无法观测物理执行状态"
+    },
+    "error": {
+      "read": "无法核对上下文维护。可重试读取；未启动新操作。",
+      "submit": "提交回执尚未确认。请核对回执或明确重试原请求。",
+      "cancel": "取消尚未确认。请核对回执或重试同一取消请求。",
+      "scope": "对话范围已变化或原请求发生冲突。未重新绑定或重启请求。"
+    }
+  },
   "manualNotebook": {
     "title": "Notebook",
     "targets": "实时内核目标",

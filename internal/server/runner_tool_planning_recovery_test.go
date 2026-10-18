@@ -124,6 +124,12 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 	if partialTool {
 		wantRequests = sessionrunner.MaxRecoveryStreak
 	}
+	if savedAllowance {
+		// Establish the known length observation separately from the short
+		// private-only recovery window. A header/decoder timeout is not proof
+		// that the client observed and retired the saved output allowance.
+		options.RequestTimeout = 5 * time.Second
+	}
 	for cycle := int64(1); cycle <= wantRequests; cycle++ {
 		if cycle == 2 {
 			// Reopen the actual runtime SQLite/settings authorities while the
@@ -138,6 +144,12 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 		result, err := srv.RunSessionRunnerChatOnce(ctx, options)
 		if err != nil {
 			t.Fatal(err)
+		}
+		if savedAllowance && cycle == 1 {
+			assertSavedPlanningLengthSeed(t, srv)
+			// All actual private-only recovery, process recreation and explicit
+			// resume assertions retain their original 100ms transport window.
+			options.RequestTimeout = 100 * time.Millisecond
 		}
 		if result.Status == "completed" {
 			t.Fatal("private reasoning was published as a completed answer")
@@ -212,4 +224,21 @@ func testToolPlanningPrivateOnlyRecovery(t *testing.T, savedAllowance, growingPr
 		options.SessionID = ""
 	}
 	t.Fatal("private-only generation did not reach a resumable parked state")
+}
+
+func assertSavedPlanningLengthSeed(t *testing.T, srv *Server) {
+	t.Helper()
+	entries, err := srv.runtimeStore.List(sessionRunnerModelAuditRuntimeNamespace)
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("initial saved-allowance seed lacks one client audit: count=%d err=%v", len(entries), err)
+	}
+	var audit struct {
+		Limited    bool `json:"outputTokenLimited"`
+		Requested  int  `json:"requestedOutputTokens"`
+		Completion int  `json:"completionTokens"`
+	}
+	raw, err := json.Marshal(entries[0].Value)
+	if err != nil || json.Unmarshal(raw, &audit) != nil || !audit.Limited || audit.Requested != 17 || audit.Completion != 17 {
+		t.Fatalf("initial saved-allowance seed was not a client-observed typed length: %+v err=%v", audit, err)
+	}
 }

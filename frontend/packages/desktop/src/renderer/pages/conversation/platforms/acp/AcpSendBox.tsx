@@ -1,9 +1,10 @@
 import { ipcBridge } from '@/common';
-import type { IConversationMcpStatus, TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
+import type { IConversationMcpStatus, TChatConversation } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError, resolveLocaleKey, uuid } from '@/common/utils';
 import XScienceModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
 import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
+import { useAcpSessionPermissionGrants } from './useAcpSessionPermissionGrants';
 import XScienceSendOptionsMenu, {
   type XScienceSendIntent,
 } from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
@@ -13,7 +14,7 @@ import OptimizePromptAction from '@/renderer/components/xScience/runtime/Optimiz
 import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
-import MobileActionSheet, { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
+import { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
 import { AcpComposerAttachments } from './AcpComposerAttachments';
 import { PdfReadingComposerPrefix } from '@/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix';
@@ -49,11 +50,7 @@ import {
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
-import {
-  markTerminalFailuresSuperseded,
-  restoreTerminalFailures,
-  type TerminalFailureRollback,
-} from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
+import type { TerminalFailureRollback } from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
@@ -93,6 +90,9 @@ import { useAcpComposerContextSelection } from './useAcpComposerContextSelection
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import { useAcpAsideController, type AsideQueueBridge } from './useAcpAsideController';
 import { useAcpConversationSkillController } from './useAcpConversationSkillController';
+import { useAcpContextCompaction } from './useAcpContextCompaction';
+import { stopAcpConversation } from './acpStopAction';
+import { useAcpRuntimeActions } from './useAcpRuntimeActions';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import { useAcpCommandAuthority } from './useAcpCommandAuthority';
 import './conversationQueueDock.css';
@@ -193,7 +193,13 @@ const AcpSendBox: React.FC<{
     pdfReadingAttachmentsDisabled,
     uploadFile.length > 0 || atPath.length > 0
   );
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const compaction = useAcpContextCompaction(isXScienceConversation, ownerId, conversation_id, initialConversation);
+  const { grantsController, setIsMobileSheetOpen, renderMobileSheet } = useAcpSessionPermissionGrants(
+    conversation_id,
+    ownerId,
+    initialConversation,
+    isXScienceConversation
+  );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const {
     options: xscienceSessionOptions,
@@ -255,10 +261,11 @@ const AcpSendBox: React.FC<{
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const mobileModeChangeInFlightRef = useRef(false);
-  const prepareRuntimeConfig = useCallback(async () => {}, []);
+  const frameIncarnationId =
+    initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
-    prepareRuntime: prepareRuntimeConfig,
+    frameIncarnationId,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -299,8 +306,8 @@ const AcpSendBox: React.FC<{
     selectModel,
   } = useAcpModelInfo({
     conversation_id,
+    frameIncarnationId,
     backend,
-    prepareRuntime: prepareRuntimeConfig,
     enabled: true,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -587,6 +594,12 @@ const AcpSendBox: React.FC<{
 
       try {
         if (readingContextInvalid) throw new Error(t('conversation.reading.invalidQueued'));
+        if (compaction.controller) {
+          const admitted = await compaction.controller.prepareForPrompt();
+          if (!compaction.controller.current()) return;
+          if (!admitted) throw new Error(t('conversation.manualCompaction.waitingForPrompt'));
+        }
+        if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) return;
         if (!turnIntent) void checkAndUpdateTitle(conversation_id, input);
         // A control command reserves the same runtime gate before resolving
         // branch authority. Ordinary commands reserve it here.
@@ -746,6 +759,7 @@ const AcpSendBox: React.FC<{
     [
       backend,
       checkAndUpdateTitle,
+      compaction.controller,
       conversation_id,
       resetState,
       resolveCommandExecutionAuthority,
@@ -817,6 +831,8 @@ const AcpSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     if (skillSave.isBlocking()) return;
+    if (compaction.controller?.getSnapshot().waitingForPrompt) return;
+    const origin = conversationAuthorityRef.current;
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = Array.from(new Set([...uploadFile, ...atPathFiles].filter(Boolean)));
     const normalizedMessage = message.trim() || t('conversation.sendbox.contextOnlyPrompt');
@@ -834,6 +850,23 @@ const AcpSendBox: React.FC<{
       planMode,
     });
     const retry = directCommandRetryRef.current?.signature === signature ? directCommandRetryRef.current : null;
+    let readingSnapshot: ReturnType<typeof reading.captureSend> | undefined;
+    try {
+      // Freeze the click before maintenance draining or PDF preparation yields.
+      // Exact retry and edited queue items already own their original selection.
+      if (!retry && queuedPdfInvalid) throw new Error(t('conversation.reading.invalidQueued'));
+      if (!retry && !queuedPdfSelection) readingSnapshot = reading.captureSend();
+    } catch (error) {
+      if (contentRef.current === '') setContent(normalizedMessage);
+      throw error;
+    }
+    const maintenance = compaction.controller ? await compaction.controller.preparePromptIntent() : undefined;
+    if (compaction.controller && !compaction.controller.current()) return;
+    if (!mountedRef.current || conversationAuthorityRef.current !== origin) return;
+    if (maintenance && !maintenance.safe) {
+      if (contentRef.current === '') setContent(normalizedMessage);
+      throw new Error(t('conversation.manualCompaction.waitingForPrompt'));
+    }
     if (retry) {
       try {
         await executeCommand(retry.item, retry.authority);
@@ -851,8 +884,7 @@ const AcpSendBox: React.FC<{
     directCommandRetryRef.current = null;
     let readingContext;
     try {
-      if (queuedPdfInvalid) throw new Error(t('conversation.reading.invalidQueued'));
-      readingContext = queuedPdfSelection ?? (await readingAttachments.prepare(reading.captureSend()));
+      readingContext = queuedPdfSelection ?? (await readingAttachments.prepare(readingSnapshot!));
     } catch (error) {
       if (contentRef.current === '') setContent(normalizedMessage);
       throw error;
@@ -861,7 +893,7 @@ const AcpSendBox: React.FC<{
     if (
       shouldEnqueueConversationCommand({
         enabled: isQueueingEnabled,
-        isBusy,
+        isBusy: isBusy && !maintenance?.preempted,
         hasPendingCommands,
       })
     ) {
@@ -998,6 +1030,7 @@ const AcpSendBox: React.FC<{
     currentMode,
     runtimeThoughtLevel,
     runtimeConfig,
+    grantsController,
     canSwitchModel,
     model_info,
     isModelListLoading,
@@ -1041,76 +1074,29 @@ const AcpSendBox: React.FC<{
     }
   });
 
-  // Pause conversation handler: the backend preserves the checkpoint through cancellation.
-  const handleStop = async (): Promise<void> => {
-    const requestAuthority = conversationAuthorityRef.current;
-    // X-Science's compatibility cancel endpoint is frame-authority based:
-    // the conversation id is the frame id and the legacy turn_id body field
-    // is not used by the server. A queued/resumed task can briefly have a live
-    // frame in the task center while the conversation runtime view has not yet
-    // received its turn id. Keep the real stop action available in that race;
-    // other ACP backends still fail closed when their turn authority is absent.
-    const isXScienceBackend = backend.trim().toLowerCase() === 'xscience';
-    const turnId = runtimeView.activeTurnId ?? (isXScienceBackend ? conversation_id : null);
-    if (!turnId) {
-      runtimeView.resetLocalGate('stop_missing_turn');
-      Message.error(t('conversation.xscienceRuntime.sendBox.stopMissingTurn'));
-      return;
-    }
-
-    runtimeView.markStopRequested(turnId);
-    try {
-      const result = await ipcBridge.conversation.stop.invoke({
-        conversation_id,
-        turn_id: turnId,
-      });
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      runtimeView.markStopAcknowledged(turnId, result.runtime);
-      resetActiveExecution('stop');
-      if (queuedCommands.length > 0) pauseCommandQueue('interrupted');
-
-      const stillProcessing = result.runtime.is_processing || result.runtime.state === 'cancelling';
-      setAiProcessing(stillProcessing);
-      if (!stillProcessing) {
-        resetState();
-      }
-    } catch (error) {
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      console.warn('[AcpSendBox] stop request failed', safeErrorDiagnostic(error));
-      runtimeView.resetLocalGate('stop_failed');
-      Message.error(t('conversation.xscienceRuntime.sendBox.stopFailed'));
-    }
-  };
-  const handleRuntimeUpdated = useCallback(
-    (turnId: string, runtime: TConversationRuntimeSummary, source: 'initial' | 'refresh' = 'refresh') => {
-      terminalFailureRollbackRef.current = [];
-      runtimeView.markSendAccepted(turnId, runtime);
-      emitter.emit('xscience.runtime.reconciled', conversation_id, runtime);
-      setAiProcessing(runtime.is_processing && runtime.state !== 'waiting_confirmation');
-      if (source !== 'initial') onRuntimeMutation?.();
-    },
-    [conversation_id, onRuntimeMutation, runtimeView, setAiProcessing]
-  );
-  const handleResumeStarted = useCallback(() => {
-    updateMessageList((messages) => {
-      const marked = markTerminalFailuresSuperseded(messages);
-      if (marked.rollback.length > 0) {
-        terminalFailureRollbackRef.current = marked.rollback;
-      }
-      return marked.messages;
+  const handleStop = () =>
+    stopAcpConversation({
+      backend,
+      conversationId: conversation_id,
+      compaction: compaction.controller,
+      authority: conversationAuthorityRef,
+      mounted: mountedRef,
+      runtime: runtimeView,
+      t,
+      resetQueueExecution: () => {
+        resetActiveExecution('stop');
+        if (queuedCommands.length > 0) pauseCommandQueue('interrupted');
+      },
+      setAiProcessing,
+      resetState,
     });
-    runtimeView.markSendStarted();
-  }, [runtimeView, updateMessageList]);
-  const handleResumeFailed = useCallback(
-    (reason: string) => {
-      const rollback = terminalFailureRollbackRef.current;
-      terminalFailureRollbackRef.current = [];
-      if (rollback.length > 0) {
-        updateMessageList((messages) => restoreTerminalFailures(messages, rollback));
-      }
-      runtimeView.markSendFailed(reason);
-    },
-    [runtimeView, updateMessageList]
+  const { handleRuntimeUpdated, handleResumeStarted, handleResumeFailed } = useAcpRuntimeActions(
+    conversation_id,
+    runtimeView,
+    updateMessageList,
+    terminalFailureRollbackRef,
+    setAiProcessing,
+    onRuntimeMutation
   );
   const sendBoxWidthClass = CHAT_SURFACE_WIDTH_CLASS;
   const taskCenterMetrics = useAcpTaskCenterMetrics(messageState.tokenUsage?.total_tokens);
@@ -1182,7 +1168,9 @@ const AcpSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={runtimeUnavailable || skillSave.inFlight || readingAttachments.preparing}
+        disabled={
+          runtimeUnavailable || skillSave.inFlight || readingAttachments.preparing || compaction.view.waitingForPrompt
+        }
         allowSendWhileLoading={!skillSave.inFlight}
         placeholder={t('acp.sendbox.placeholder', {
           backend: agent_name || 'X-Science',
@@ -1230,6 +1218,8 @@ const AcpSendBox: React.FC<{
                 disabled={!sessionOptionsReady || skillSave.inFlight}
               />
               <XSciencePermissionMenu
+                key={grantsController?.presentationKey ?? `${ownerId}:${conversation_id}`}
+                grantsController={grantsController}
                 option={runtimeMode}
                 setStatus={runtimeConfig.setStatus}
                 setConfigOption={runtimeConfig.setConfigOption}
@@ -1240,8 +1230,8 @@ const AcpSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {isXScienceConversation && (isBusy || content.trim() === '') ? (
-              <ContextUsagePanel conversationId={conversation_id} active={isBusy} />
+            {isXScienceConversation && (isBusy || content.trim() === '' || compaction.needsAttention) ? (
+              <ContextUsagePanel conversationId={conversation_id} active={isBusy} compaction={compaction} />
             ) : null}
             {isXScienceConversation && content.trim() !== '' && (
               <OptimizePromptAction
@@ -1254,6 +1244,7 @@ const AcpSendBox: React.FC<{
             )}
             <XScienceModelSelector
               conversation_id={conversation_id}
+              frameIncarnationId={frameIncarnationId}
               backend={backend}
               initialModelId={model_info?.current_model_id}
             />
@@ -1301,17 +1292,7 @@ const AcpSendBox: React.FC<{
         onCancel={() => setProjectFilesOpen(false)}
         onSelect={handleProjectArtifactsSelected}
       />
-      {isMobile && (
-        <>
-          <MobileActionSheet
-            open={isMobileSheetOpen}
-            onClose={() => setIsMobileSheetOpen(false)}
-            title={t('common.more')}
-            entries={sheetEntries}
-          />
-          {attachHiddenInput}
-        </>
-      )}
+      {renderMobileSheet(isMobile, sheetEntries, attachHiddenInput, t('common.more'))}
     </div>
   );
 };

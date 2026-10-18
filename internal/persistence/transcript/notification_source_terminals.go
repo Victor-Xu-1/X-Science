@@ -31,7 +31,7 @@ func notificationSourceTerminalHead(ctx context.Context, tx *sql.Tx, owner strin
 	if projection.FrameID != source.FrameID || projection.PublicationSeq > source.Through || projection.TerminalStatus != status {
 		return nil, ErrEventConflict
 	}
-	if projection.Superseded || projection.PublicationSeq <= activationThrough {
+	if projection.Purpose == ContextCompactionPurpose || projection.Superseded || projection.PublicationSeq <= activationThrough {
 		return nil, nil
 	}
 	return &projection, nil
@@ -75,7 +75,7 @@ func scanNotificationSourceHistory(ctx context.Context, tx *sql.Tx, owner string
 			for _, terminal := range source.Terminals {
 				known = known || terminal.EventID == event.id
 			}
-			if !known && !projection.Superseded {
+			if !known && !projection.Superseded && projection.Purpose != ContextCompactionPurpose {
 				source.Terminals = append(source.Terminals, projection)
 			}
 		}

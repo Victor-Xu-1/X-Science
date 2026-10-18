@@ -33,6 +33,52 @@
     "queuedOriginal": "This edited message keeps its original queued PDF selection.",
     "useCurrent": "Use current PDF selection"
   },
+  "manualCompaction": {
+    "capacityLimited": "Context maintenance session capacity reached. Reconcile pending requests in their original conversations, then retry.",
+    "retryCapacity": "Retry context maintenance access",
+    "submitting": "Submitting context maintenance",
+    "pending": "Context maintenance pending",
+    "unconfirmed": "Context maintenance unconfirmed",
+    "cancel": "Cancel context maintenance",
+    "compact": "Compact",
+    "compactLabel": "Compact context",
+    "compacting": "Compacting…",
+    "compactingLabel": "Compacting context",
+    "retryOriginal": "Retry original compaction",
+    "retryCancel": "Retry original cancellation",
+    "checkReceipt": "Check receipt",
+    "waitingForPrompt": "Waiting for the original context maintenance to allow the next input. No new prompt has been sent.",
+    "archivePending": "Context committed; its history archive is still pending.",
+    "reason": {
+      "idle": "Ready to compact context",
+      "active": "Current execution is active",
+      "queued": "A queued input must be handled first",
+      "waiting": "Waiting for confirmation",
+      "archived": "This conversation is archived",
+      "unavailable": "Context maintenance is unavailable"
+    },
+    "state": {
+      "accepted": "Accepted",
+      "compacting": "Compacting",
+      "committed": "Context committed",
+      "cancelled": "Cancellation recorded",
+      "failed": "Maintenance failed",
+      "recovery_needed": "Recovery required"
+    },
+    "observation": {
+      "not_started": "Not started",
+      "active": "Execution observed",
+      "draining": "Waiting for execution cleanup",
+      "settled": "Execution settled",
+      "unavailable": "Physical execution observation unavailable"
+    },
+    "error": {
+      "read": "Could not verify context maintenance. Retry the read; no new operation was started.",
+      "submit": "The submission reply is unconfirmed. Check the receipt or explicitly retry the original request.",
+      "cancel": "Cancellation is unconfirmed. Check the receipt or retry the same cancellation.",
+      "scope": "The conversation scope changed or the original request conflicted. No request was rebound or restarted."
+    }
+  },
   "manualNotebook": {
     "title": "Notebook",
     "targets": "Live kernel targets",

@@ -36,6 +36,7 @@ export interface XScienceModeSelectorProps {
   agentLogoIsFallback?: boolean;
   /** Conversation ID for mode switching / 用于切换模式的会话 ID */
   conversation_id?: string;
+  frameIncarnationId?: string;
   /** Compact mode: only show mode label + dropdown, no logo/name / 紧凑模式：仅显示模式标签和下拉 */
   compact?: boolean;
   /** Show agent logo in compact mode / 紧凑模式是否显示代理图标 */
@@ -78,6 +79,7 @@ const XScienceModeSelector: React.FC<XScienceModeSelectorProps> = ({
   agentLogoIsEmoji,
   agentLogoIsFallback,
   conversation_id,
+  frameIncarnationId,
   compact,
   showLogoInCompact = false,
   compactLabelType = 'mode',
@@ -97,6 +99,7 @@ const XScienceModeSelector: React.FC<XScienceModeSelectorProps> = ({
   const isMobile = Boolean(layout?.isMobile);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id: conversation_id ?? '',
+    frameIncarnationId,
     prepareRuntime: beforeRuntimeSync,
     enabled: Boolean(conversation_id),
   });

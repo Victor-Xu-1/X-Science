@@ -565,7 +565,7 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 	if stream.Kind != transcriptstore.StreamKindFrameRef || stream.SessionID == "" {
 		return transcriptstore.ErrTerminalProjectionUnavailable
 	}
-	if transcriptstore.IsRunnerInternalFact(claim.Event, claim.ResolvedPayloadJSON) {
+	if transcriptstore.IsRunnerInternalFact(claim.Event, claim.ResolvedPayloadJSON) && !transcriptstore.IsContextCompactionLifecycleEvent(claim.Event, claim.ResolvedPayloadJSON) {
 		return nil
 	}
 	switch claim.Event.Type {
@@ -615,6 +615,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(claim.ArtifactReferences))
 	baseID := fmt.Sprintf("transcript-web:%s:%d", stream.UID, claim.PublicationSeq)
 	createdAt := claim.Event.CreatedAt.UnixMilli()
+	if transcriptstore.IsContextCompactionLifecycleEvent(claim.Event, claim.ResolvedPayloadJSON) {
+		return s.publishContextCompactionDelivery(frameContext, baseID, payload, claim.Event.Type)
+	}
 	if richAskUser {
 		var source workspace.FrameEvent
 		if !askUser.Typed {
@@ -663,6 +666,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 		projectPDFReadingSnapshot(message, payload)
 		if err := s.publishWebFrameEvent(frameContext, baseID+":user", "message.userCreated", message); err != nil {
 			return err
+		}
+		if transcriptstore.HiddenConversationControlIntent(payload) == transcriptstore.ContextCompactionIntent {
+			return s.publishContextCompactionDelivery(frameContext, baseID, payload, claim.Event.Type)
 		}
 		if err := s.publishWebMessageStream(frameContext, baseID+":start", map[string]any{
 			"type": "start", "data": map[string]any{}, "msg_id": userID, "turn_id": stream.SessionID,
@@ -856,6 +862,9 @@ func (s *Server) publishTranscriptTerminal(
 	projection transcriptstore.TerminalProjection,
 	messageID string,
 ) error {
+	if projection.Purpose == transcriptstore.ContextCompactionPurpose {
+		return nil
+	}
 	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(projection.ArtifactReferences))
 	if projection.TerminalStatus == "completed" && !projection.Superseded {
 		rounds, err := s.transcriptStore.CompletedRoundArtifactReferences(ctx, projection.StreamUID, projection.OwnerID, []int64{projection.Attempt})

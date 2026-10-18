@@ -167,6 +167,38 @@ describe('X-Science ask_user runtime service', () => {
       ],
     });
   });
+  it('C6 sends canonical conversation approval through the existing exact resolve-input route', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            id: 'grant-child',
+            root_frame_id: 'grant-root',
+            status: 'processing',
+            output_data: {},
+          }),
+          { status: 200 }
+        )
+      );
+    await resolveXScienceInputRequest('grant-child', approvalRequest, 'allow', 'conversation', {
+      baseUrl: 'http://gateway.test',
+      fetchImpl,
+    });
+    expect(fetchImpl.mock.calls[0][0]).toBe('http://gateway.test/api/frames/grant-child/resolve-input');
+    expect(JSON.parse(String((fetchImpl.mock.calls[0][1] as RequestInit).body))).toEqual({
+      responses: [
+        {
+          requestId: 'request-exec-1',
+          tool_id: 'toolu_exec_1',
+          approved: true,
+          action: 'allow',
+          scope: 'conversation',
+        },
+      ],
+    });
+  });
 
   it('sends the exact persistent scope and omits it when denying', async () => {
     const projectFetch = vi

@@ -101,7 +101,8 @@ func TestPermissionCompatibilityAPIProjectsAndRevokesEffectiveStores(t *testing.
 		t.Fatal(err)
 	}
 	if _, _, _, err := store.ResolveKernelLocalExecApproval(context.Background(), workspace.KernelLocalExecApprovalResolutionInput{
-		OwnerUserID: request.OwnerUserID, ProjectID: request.ProjectID, FrameID: request.FrameID,
+		ApprovalSource: "user",
+		OwnerUserID:    request.OwnerUserID, ProjectID: request.ProjectID, FrameID: request.FrameID,
 		FrameIncarnationID: request.FrameIncarnationID, RootFrameID: request.RootFrameID,
 		RootIncarnationID: request.RootFrameIncarnationID, RequestID: request.RequestID,
 		Tool: request.Tool, Environment: request.Environment, InputSHA256: request.InputSHA256,

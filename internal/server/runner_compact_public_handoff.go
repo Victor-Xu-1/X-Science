@@ -120,6 +120,9 @@ func compactPublicConversation(entries []eventjournal.Entry, limit, lineRunes in
 }
 
 func compactPublicEntryRole(entry eventjournal.Entry) (string, bool) {
+	if isHiddenConversationControlPayload(entry.Message) {
+		return "", false
+	}
 	role := stringValue(entry.Message["role"])
 	if (role != "user" && role != "assistant") || boolValue(entry.Message["partial"], false) {
 		return "", false

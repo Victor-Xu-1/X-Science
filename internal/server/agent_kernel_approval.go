@@ -138,14 +138,18 @@ func (s *Server) resolveKernelLocalExecApprovalInputs(
 			scope = "once"
 		}
 		authority := authorities[index]
+		tool := stringValue(authority.item["tool"])
+		if authority.operation != nil {
+			tool = authority.operation.Tool
+		} else if authority.decision != nil {
+			tool = authority.decision.Tool
+		}
+		if !kernelLocalOperationApprovalScopeAllowed(tool, scope) {
+			return compatibilityResolveInputResult{}, true, resolveInputRequestError(http.StatusBadRequest,
+				"Software runtime approval is per operation and accepts only the once scope.")
+		}
 		if authority.operation != nil {
 			operation := *authority.operation
-			if !kernelLocalOperationApprovalScopeAllowed(operation.Tool, scope) {
-				return compatibilityResolveInputResult{}, true, resolveInputRequestError(
-					http.StatusBadRequest,
-					"Software runtime approval is per operation and accepts only the once scope.",
-				)
-			}
 			if operation.ProjectID != frame.ProjectID || operation.FrameID != frame.ID ||
 				operation.FrameIncarnationID != frame.IncarnationID || operation.RootFrameID != frame.RootFrameID ||
 				operation.ApprovalRequestID != id {
@@ -207,6 +211,7 @@ func (s *Server) resolveKernelLocalExecApprovalInputs(
 		if err != nil {
 			return compatibilityResolveInputResult{}, true, resolveInputRequestError(http.StatusConflict, err.Error())
 		}
+		resolution.ApprovalSource = compatibilityApprovalAuthorityFromContext(ctx, ownerID).Source
 		if approved && !s.kernelLocalExecWaiterIsActive(resolution) {
 			return compatibilityResolveInputResult{}, true, resolveInputRequestError(
 				http.StatusConflict, "Kernel local execution approval has no active execution waiter.",
@@ -587,6 +592,11 @@ func (s *Server) resolvePendingKernelLocalOperationPolicy(
 	if !approved {
 		reasonCode = "approval_policy_denied"
 	}
+	var grantProof *workspace.ApprovalPolicyGrantProof
+	mode := strings.ToLower(strings.TrimSpace(conversationMode))
+	if policy.Found && (policy.Tier == "deny" || (mode != "allow" && mode != "deny")) {
+		grantProof = policy.GrantProof
+	}
 	resolved, err := s.workspaceStore.ResolveKernelLocalOperationApproval(ctx,
 		workspace.ResolveKernelLocalOperationApprovalInput{
 			OwnerUserID: operation.OwnerUserID, OperationID: operation.OperationID,
@@ -594,8 +604,12 @@ func (s *Server) resolvePendingKernelLocalOperationPolicy(
 			Approved: approved, DecisionID: kernelLocalOperationDecisionID(
 				operation.OwnerUserID, operation.OperationID, operation.ApprovalRequestID, approved, "once",
 			), Scope: "once", Source: "policy", ActorID: "system", ReasonCode: reasonCode,
+			GrantProof:          grantProof,
 			AdmitRunnerRevision: false, CurrentClaim: claim,
 		})
+	if errors.Is(err, workspace.ErrApprovalPolicyGrantStale) {
+		return operation, "ask", nil
+	}
 	if err != nil {
 		return workspace.KernelLocalOperation{}, "", err
 	}

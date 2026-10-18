@@ -297,7 +297,7 @@ func projectionSnapshotTx(
 
 func projectionSnapshotForBranchTx(
 	ctx context.Context,
-	tx *sql.Tx,
+	tx transcriptQueryer,
 	streamUID, ownerID, requestedBranchID string,
 ) (string, string, ProjectionSnapshot, error) {
 	var storedOwnerID, kind, frameID, activeBranchID string

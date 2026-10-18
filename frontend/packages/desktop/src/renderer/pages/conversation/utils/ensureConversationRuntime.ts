@@ -4,8 +4,12 @@ import { registerRendererAccountReset, rendererAccountScopedKey } from '@/render
 
 const ensureRuntimeByConversation = new Map<string, Promise<EnsureConversationRuntimeResponse>>();
 
-export function ensureConversationRuntime(conversation_id: string): Promise<EnsureConversationRuntimeResponse> {
-  const key = rendererAccountScopedKey(conversation_id);
+export function ensureConversationRuntime(
+  conversation_id: string,
+  frameIncarnationId = '',
+  snapshotGeneration = 0
+): Promise<EnsureConversationRuntimeResponse> {
+  const key = rendererAccountScopedKey(JSON.stringify([conversation_id, frameIncarnationId, snapshotGeneration]));
   const existing = ensureRuntimeByConversation.get(key);
   if (existing) {
     return existing;

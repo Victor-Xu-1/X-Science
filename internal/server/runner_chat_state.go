@@ -14,6 +14,7 @@ import (
 )
 
 type SessionRunnerChatOptions struct {
+	contextCompactionClaim            *contextCompactionClaimTarget
 	SessionID                         string
 	RunnerID                          string
 	Endpoint                          string
