@@ -9,21 +9,17 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // PDF text uses the same serialized-budgeted line window as ordinary text.
 // The extractor streams its complete output; it does not discard a prefix's
 // tail before the reader can supply a continuation cursor.
-func readAgentWorkspacePDFTextWindow(ctx context.Context, source io.ReadSeeker, filename, contentType string, size int64, pages []int, input, metadata map[string]any) (map[string]any, error) {
+func readAgentWorkspacePDFTextWindow(ctx context.Context, path, filename, contentType string, size int64, pages []int, input, metadata map[string]any) (map[string]any, error) {
 	converter, err := exec.LookPath("pdftotext")
 	if err != nil {
 		return nil, errors.New("governed PDF text extractor is not installed")
 	}
-	path, cleanup, err := stageAgentWorkspacePDFSource(ctx, source, size)
-	if err != nil {
-		return nil, err
-	}
-	defer cleanup()
 	streamCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	reader, finished := streamAgentWorkspacePDFText(streamCtx, converter, path, pages)
@@ -100,6 +96,7 @@ func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pa
 			}
 			arguments = append(arguments, path, "-")
 			command := exec.CommandContext(ctx, converter, arguments...)
+			command.WaitDelay = time.Second
 			command.Stdout = writer
 			stderr := &agentWorkspaceBoundedCapture{limit: 4 << 10}
 			command.Stderr = stderr
