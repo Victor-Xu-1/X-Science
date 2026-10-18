@@ -169,6 +169,7 @@ type Server struct {
 	operations                            *registry.Registry
 	plugins                               *pluginhost.Host
 	fileRoot                              string
+	workspaceDirectorySyncer              workspaceDirectorySyncer
 	managedEndpointRuntime                compute.ManagedEndpointOwnerRuntime
 	runtimeAssetsDir                      string
 	settingsStore                         *settingsstore.Store

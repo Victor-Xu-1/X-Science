@@ -68,7 +68,7 @@ func (s *Server) materializeWebConversationInputFiles(
 	if !managed && !hasGrantedReference {
 		return append([]string(nil), files...), nil
 	}
-	taskRoot, taskDirectory, inputRoot, destinationCheck, err := s.prepareWebConversationInputDirectory(access.UserID, access.Frame.ProjectID, taskRoot, managed)
+	taskRoot, taskDirectory, inputRoot, destinationCheck, err := s.prepareWebConversationInputDirectory(ctx, access.UserID, access.Frame.ProjectID, taskRoot, managed)
 	if err != nil {
 		return nil, err
 	}
@@ -142,10 +142,10 @@ func (s *Server) materializeWebConversationInputFiles(
 		}
 
 		limit := min(maxWebConversationInputFileBytes, maxWebConversationInputTotalBytes-total)
-		relative, size, copyErr := copyWebConversationInputFile(ctx, sourceFile, filepath.Base(sourceAccess.Target), inputRoot, limit)
+		relative, size, copyErr := copyWebConversationInputFile(ctx, sourceFile, filepath.Base(sourceAccess.Target), inputRoot, limit, s.workspaceDirectorySyncer)
 		err = errors.Join(copyErr, sourceFile.Close())
 		if err != nil {
-			return nil, invalidWebConversationInputFile()
+			return nil, webInputPublicationError(err)
 		}
 		total += size
 		resolved[requested] = relative
@@ -154,7 +154,7 @@ func (s *Server) materializeWebConversationInputFiles(
 	return materialized, nil
 }
 
-func (s *Server) prepareWebConversationInputDirectory(ownerID, projectID, taskRoot string, managed bool) (string, *os.Root, *os.Root, func() error, error) {
+func (s *Server) prepareWebConversationInputNamespace(ownerID, projectID, taskRoot string, managed bool) (string, *os.Root, *os.Root, func() error, error) {
 	if !managed {
 		// Selection is not a write lease. Revalidate and prepare the first
 		// namespace under the existing grant-mutation lock, before any writes.
@@ -273,11 +273,11 @@ func relativePathWithin(root, target string) (string, bool) {
 	return filepath.ToSlash(relative), true
 }
 
-func copyWebConversationInputFile(ctx context.Context, source *os.File, name string, inputRoot *os.Root, maxBytes int64) (relative string, size int64, err error) {
-	return copyWebConversationInputFileWithCommit(ctx, source, name, inputRoot, maxBytes, nil)
+func copyWebConversationInputFile(ctx context.Context, source *os.File, name string, inputRoot *os.Root, maxBytes int64, syncers ...workspaceDirectorySyncer) (relative string, size int64, err error) {
+	return copyWebConversationInputFileWithCommit(ctx, source, name, inputRoot, maxBytes, nil, syncers...)
 }
 
-func copyWebConversationInputFileWithCommit(ctx context.Context, source *os.File, name string, inputRoot *os.Root, maxBytes int64, commit workspaceFileCommit) (relative string, size int64, err error) {
+func copyWebConversationInputFileWithCommit(ctx context.Context, source *os.File, name string, inputRoot *os.Root, maxBytes int64, commit workspaceFileCommit, syncers ...workspaceDirectorySyncer) (relative string, size int64, err error) {
 	if name != filepath.Base(name) || name == "." || name == ".." || strings.TrimSpace(name) == "" {
 		return "", 0, errors.New("invalid input filename")
 	}
@@ -285,7 +285,7 @@ func copyWebConversationInputFileWithCommit(ctx context.Context, source *os.File
 	if err != nil || !before.Mode().IsRegular() || before.Size() > maxBytes {
 		return "", 0, invalidWebConversationInputFile()
 	}
-	stage, err := stageWorkspaceFileWithCommit(ctx, inputRoot, source, maxBytes, commit)
+	stage, err := stageWorkspaceFileWithCommit(ctx, inputRoot, source, maxBytes, commit, syncers...)
 	if err != nil {
 		return "", 0, err
 	}
@@ -340,9 +340,9 @@ func (s *Server) materializeHostGrantFileReference(ctx context.Context, ownerID 
 				}
 				return action()
 			})
-		})
+		}, s.workspaceDirectorySyncer)
 	if err != nil && context.Cause(ctx) == nil {
-		return "", 0, invalidWebConversationInputFile()
+		return "", 0, webInputPublicationError(err)
 	}
 	return relative, size, err
 }

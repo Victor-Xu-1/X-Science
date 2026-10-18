@@ -22,10 +22,11 @@ var (
 // root. All families use the same bounded copy and no-overwrite publication;
 // each caller still owns its source authority, naming and capacity policy.
 type stagedWorkspaceFile struct {
-	root   *os.Root
-	name   string
-	size   int64
-	digest string
+	root            *os.Root
+	name            string
+	size            int64
+	digest          string
+	directorySyncer workspaceDirectorySyncer
 }
 
 type workspaceFileCommit func(func() error) error
@@ -34,7 +35,10 @@ func stageWorkspaceFile(ctx context.Context, root *os.Root, source io.Reader, ma
 	return stageWorkspaceFileWithCommit(ctx, root, source, maxBytes, nil)
 }
 
-func stageWorkspaceFileWithCommit(ctx context.Context, root *os.Root, source io.Reader, maxBytes int64, commit workspaceFileCommit) (*stagedWorkspaceFile, error) {
+func stageWorkspaceFileWithCommit(ctx context.Context, root *os.Root, source io.Reader, maxBytes int64, commit workspaceFileCommit, syncers ...workspaceDirectorySyncer) (*stagedWorkspaceFile, error) {
+	if len(syncers) > 1 {
+		return nil, errors.New("workspace publication requires a single directory-sync owner")
+	}
 	if root == nil || maxBytes < 0 || maxBytes == math.MaxInt64 {
 		return nil, errWorkspaceFileTooLarge
 	}
@@ -74,7 +78,11 @@ func stageWorkspaceFileWithCommit(ctx context.Context, root *os.Root, source io.
 	if err != nil {
 		return nil, errors.Join(err, root.Remove(name))
 	}
-	return &stagedWorkspaceFile{root: root, name: name, size: size, digest: hex.EncodeToString(hash.Sum(nil))}, nil
+	stage := &stagedWorkspaceFile{root: root, name: name, size: size, digest: hex.EncodeToString(hash.Sum(nil))}
+	if len(syncers) > 0 {
+		stage.directorySyncer = syncers[0]
+	}
+	return stage, nil
 }
 
 func (stage *stagedWorkspaceFile) close() error { return stage.root.Remove(stage.name) }
@@ -86,6 +94,12 @@ func (stage *stagedWorkspaceFile) publish(ctx context.Context, destination strin
 // Only namespace publication and the final identity check run inside commit.
 // Copying and hashing retain their bounded descriptor reads outside that guard.
 func (stage *stagedWorkspaceFile) publishWithCommit(ctx context.Context, destination string, commit workspaceFileCommit) error {
+	parent, parentPath, parentInfo, err := workspacePublicationParent(stage.root, destination)
+	if err != nil {
+		return err
+	}
+	defer parent.Close()
+	checkParent := func() error { return workspacePublicationParentMatches(stage.root, parentPath, parent, parentInfo) }
 	apply := func(action func() error) error {
 		if err := context.Cause(ctx); err != nil {
 			return errors.Join(ctx.Err(), err)
@@ -100,6 +114,9 @@ func (stage *stagedWorkspaceFile) publishWithCommit(ctx context.Context, destina
 	// directories. A symlink replacement cannot redirect the operation outside.
 	var linkErr error
 	if err := apply(func() error {
+		if err := checkParent(); err != nil {
+			return err
+		}
 		linkErr = stage.root.Link(stage.name, destination)
 		if errors.Is(linkErr, os.ErrExist) {
 			return nil
@@ -109,7 +126,11 @@ func (stage *stagedWorkspaceFile) publishWithCommit(ctx context.Context, destina
 		return err
 	}
 	if linkErr == nil {
-		return nil
+		before, err := stage.root.Lstat(stage.name)
+		if err != nil {
+			return err
+		}
+		return stage.confirmPublishedDirectory(ctx, destination, parent, checkParent, before, apply)
 	}
 	file, err := openRegularWorkspaceRootFile(stage.root, destination)
 	if err != nil {
@@ -130,10 +151,36 @@ func (stage *stagedWorkspaceFile) publishWithCommit(ctx context.Context, destina
 	if size != stage.size || digest != stage.digest {
 		return errWorkspaceFileConflict
 	}
-	return apply(func() error {
+	// Same bytes in an existing, different inode must be synced too; the
+	// private staged inode's Sync cannot attest another writer's data.
+	if err := file.Sync(); err != nil {
+		return &workspaceFileDurabilityError{cause: err, published: true}
+	}
+	if err := apply(func() error {
 		current, pathErr := stage.root.Lstat(destination)
 		after, statErr := file.Stat()
 		if pathErr != nil || statErr != nil || !sameWorkspaceFileSnapshot(before, current) || !sameWorkspaceFileSnapshot(before, after) {
+			return errWorkspaceFileConflict
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return stage.confirmPublishedDirectory(ctx, destination, parent, checkParent, before, apply)
+}
+
+func (stage *stagedWorkspaceFile) confirmPublishedDirectory(ctx context.Context, destination string, parent *os.File, checkParent func() error, before os.FileInfo, apply workspaceFileCommit) error {
+	// Potentially blocking I/O stays outside the grant/namespace commit guard.
+	// Failure retains the final file rather than erasing uncertain publication.
+	if err := syncWorkspaceDirectory(ctx, parent, stage.directorySyncer, true); err != nil {
+		return err
+	}
+	return apply(func() error {
+		if err := checkParent(); err != nil {
+			return err
+		}
+		current, err := stage.root.Lstat(destination)
+		if err != nil || !sameWorkspaceFileSnapshot(before, current) {
 			return errWorkspaceFileConflict
 		}
 		return nil

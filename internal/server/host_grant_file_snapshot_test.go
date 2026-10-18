@@ -42,6 +42,11 @@ func TestHostGrantFileSnapshotRechecksGrantAndRootAtPublication(t *testing.T) {
 				if commits == 1 {
 					return snapshot.commit(context.Background(), action)
 				}
+				if commits == 3 && change == "unchanged" {
+					// Directory sync is outside the guard; successful publication
+					// must revalidate the same grant once more after that I/O.
+					return snapshot.commit(context.Background(), action)
+				}
 				if commits != 2 {
 					t.Fatalf("unexpected publication guard call %d", commits)
 				}
@@ -76,8 +81,12 @@ func TestHostGrantFileSnapshotRechecksGrantAndRootAtPublication(t *testing.T) {
 				}
 				return snapshot.commit(context.Background(), action)
 			})
-			if commits != 2 {
-				t.Fatalf("publication guard was not reached after staging: %d", commits)
+			wantCommits := 2
+			if change == "unchanged" {
+				wantCommits = 3
+			}
+			if commits != wantCommits {
+				t.Fatalf("publication guard calls=%d want=%d", commits, wantCommits)
 			}
 			if change == "unchanged" {
 				if err != nil {
@@ -147,8 +156,12 @@ func TestWorkspaceFileGuardedPublicationRejectsChangedPostHashTarget(t *testing.
 				}
 				return action()
 			})
-			if commits != 2 {
-				t.Fatalf("commit calls=%d; existing-target hash was not outside the final commit", commits)
+			wantCommits := 2
+			if change == "unchanged" {
+				wantCommits = 3
+			}
+			if commits != wantCommits {
+				t.Fatalf("commit calls=%d want=%d; hashing/sync require their distinct final identity guards", commits, wantCommits)
 			}
 			want := "snapshot"
 			if change != "unchanged" {
