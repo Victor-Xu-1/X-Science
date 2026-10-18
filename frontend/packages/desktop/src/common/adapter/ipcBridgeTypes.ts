@@ -202,6 +202,9 @@ export type IConversationTurnCompletedEvent = ConversationTurnCompletedEvent;
 
 export interface IConversationListChangedEvent {
   presentation_changed?: true;
+  /** Read-only invalidation; the scoped permission-grants GET remains authoritative. */
+  permission_grants_changed?: true;
+  root_frame_incarnation_id?: string;
   conversation_id: string;
   action: 'created' | 'updated' | 'deleted';
   source?: string;

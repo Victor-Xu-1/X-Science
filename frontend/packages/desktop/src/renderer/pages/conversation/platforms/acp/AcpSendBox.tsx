@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError, resolveLocaleKey, uuid } from '@/common/utils';
 import XScienceModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
 import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
+import { useAcpSessionPermissionGrants } from './useAcpSessionPermissionGrants';
 import XScienceSendOptionsMenu, {
   type XScienceSendIntent,
 } from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
@@ -13,7 +14,7 @@ import OptimizePromptAction from '@/renderer/components/xScience/runtime/Optimiz
 import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
-import MobileActionSheet, { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
+import { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
 import SendBox from '@/renderer/components/chat/SendBox';
 import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
 import { buildAcceptedAcpUserMessage } from './acpAcceptedMessage';
@@ -174,7 +175,12 @@ const AcpSendBox: React.FC<{
   const isXScienceConversation =
     backend.trim().toLowerCase() === 'xscience' || workspacePath?.startsWith('x-science://') === true;
   const compaction = useAcpContextCompaction(isXScienceConversation, ownerId, conversation_id, initialConversation);
-  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const { grantsController, setIsMobileSheetOpen, renderMobileSheet } = useAcpSessionPermissionGrants(
+    conversation_id,
+    ownerId,
+    initialConversation,
+    isXScienceConversation
+  );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const {
     options: xscienceSessionOptions,
@@ -236,10 +242,11 @@ const AcpSendBox: React.FC<{
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const mobileModeChangeInFlightRef = useRef(false);
-  const prepareRuntimeConfig = useCallback(async () => {}, []);
+  const frameIncarnationId =
+    initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
-    prepareRuntime: prepareRuntimeConfig,
+    frameIncarnationId,
     enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
@@ -280,8 +287,8 @@ const AcpSendBox: React.FC<{
     selectModel,
   } = useAcpModelInfo({
     conversation_id,
+    frameIncarnationId,
     backend,
-    prepareRuntime: prepareRuntimeConfig,
     enabled: true,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
@@ -997,6 +1004,7 @@ const AcpSendBox: React.FC<{
     currentMode,
     runtimeThoughtLevel,
     runtimeConfig,
+    grantsController,
     canSwitchModel,
     model_info,
     isModelListLoading,
@@ -1182,6 +1190,8 @@ const AcpSendBox: React.FC<{
                 disabled={!sessionOptionsReady || skillSave.inFlight}
               />
               <XSciencePermissionMenu
+                key={grantsController?.presentationKey ?? `${ownerId}:${conversation_id}`}
+                grantsController={grantsController}
                 option={runtimeMode}
                 setStatus={runtimeConfig.setStatus}
                 setConfigOption={runtimeConfig.setConfigOption}
@@ -1206,6 +1216,7 @@ const AcpSendBox: React.FC<{
             )}
             <XScienceModelSelector
               conversation_id={conversation_id}
+              frameIncarnationId={frameIncarnationId}
               backend={backend}
               initialModelId={model_info?.current_model_id}
             />
@@ -1270,17 +1281,7 @@ const AcpSendBox: React.FC<{
         onCancel={() => setProjectFilesOpen(false)}
         onSelect={handleProjectArtifactsSelected}
       />
-      {isMobile && (
-        <>
-          <MobileActionSheet
-            open={isMobileSheetOpen}
-            onClose={() => setIsMobileSheetOpen(false)}
-            title={t('common.more')}
-            entries={sheetEntries}
-          />
-          {attachHiddenInput}
-        </>
-      )}
+      {renderMobileSheet(isMobile, sheetEntries, attachHiddenInput, t('common.more'))}
     </div>
   );
 };

@@ -75,9 +75,16 @@ func (s *Store) resolveKernelLocalOperationApprovalAndProject(
 		if err := validateKernelLocalOperationCurrentAuthority(ctx, tx, operation, true); err != nil {
 			return err
 		}
-		if input.Approved && input.Scope != "once" {
-			if err := upsertKernelLocalExecApprovalGrant(ctx, tx, KernelLocalExecApprovalResolutionInput{
+		if input.GrantProof != nil || input.Source == "remembered" || (input.Source == "policy" && input.Scope != "once") {
+			if err := validateApprovalPolicyGrantTx(ctx, tx, input.GrantProof, operation.OwnerUserID, operation.ProjectID,
+				operation.RootFrameID, operation.RootFrameIncarnationID, operation.Tool, input.Approved); err != nil {
+				return err
+			}
+		}
+		if input.Approved && input.Scope != "once" && input.Source == "user" && input.GrantProof == nil {
+			if err := s.upsertKernelLocalExecApprovalGrant(ctx, tx, KernelLocalExecApprovalResolutionInput{
 				OwnerUserID: operation.OwnerUserID, ProjectID: operation.ProjectID, FrameID: operation.FrameID,
+				FrameIncarnationID: operation.FrameIncarnationID, RootIncarnationID: operation.RootFrameIncarnationID,
 				RootFrameID: operation.RootFrameID, Tool: operation.Tool, Environment: operation.Environment,
 				Approved: true, Scope: input.Scope,
 			}, s.now().UTC()); err != nil {

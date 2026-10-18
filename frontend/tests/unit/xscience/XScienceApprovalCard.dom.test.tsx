@@ -21,6 +21,25 @@ const request = {
 };
 
 describe('XScienceApprovalCard', () => {
+  it('C6 explicitly chooses conversation scope on the existing canonical local-exec card', async () => {
+    const onAllow = vi.fn();
+    await renderWithI18n(
+      <XScienceApprovalCard
+        request={{ ...request, rememberable: true }}
+        queueIndex={1}
+        queueTotal={1}
+        busy={false}
+        onAllow={onAllow}
+        onDeny={vi.fn()}
+      />,
+      'en-US'
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Change allow scope' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Conversation Until this conversation ends' }));
+    expect(onAllow).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Allow Conversation' }));
+    expect(onAllow).toHaveBeenCalledExactlyOnceWith('conversation');
+  });
   it('never auto-allows and requires an explicit once-only click', async () => {
     vi.useFakeTimers();
     try {

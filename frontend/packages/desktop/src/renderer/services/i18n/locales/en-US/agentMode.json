@@ -23,5 +23,31 @@
   "fullAccess": "Full access",
   "fullAccessDescription": "Automatically approve every tool operation in the backend without approval prompts",
   "riskyOperationsDescription": "Automatically approve routine sandboxed work; ask before authority expansion, deletion, installation, or external operations",
-  "approvalRequiredDescription": "Ask before every tool operation that requires authorization"
+  "approvalRequiredDescription": "Ask before every tool operation that requires authorization",
+  "sessionGrants": {
+    "allow": "Allow this session",
+    "allowOnce": "Allow once",
+    "alwaysAllow": "Always allow",
+    "deny": "Deny",
+    "title": "Allowed this session",
+    "count": "{{count}} allowed this session",
+    "clear": "Clear all",
+    "clearLabel": "Clear all session grants",
+    "revokeLabel": "Revoke session grant for {{label}}",
+    "empty": "No active session grants.",
+    "loading": "Loading session grants…",
+    "revoking": "Revoking observed grants…",
+    "loadFailed": "Session grants could not be loaded. The previous list is retained.",
+    "uncertain": "Revocation was not confirmed. Retry sends only the original observed grant IDs.",
+    "scopeChanged": "This account or conversation identity is no longer available. Reopen the current conversation.",
+    "invalid": "The revocation request was rejected. No replacement request was sent.",
+    "changed": "Some grants were renewed after this list was shown and were not revoked. Review the updated list.",
+    "alreadyAbsent": "Some observed grants are already absent; this does not prove this request removed them.",
+    "incomplete": "Some session grants could not be listed. Clear all is unavailable; visible categories can still be revoked.",
+    "legacy": "{{count}} legacy unbound records are not active session grants.",
+    "stale": "{{count}} records belong to an older session identity and are not active grants.",
+    "boundary": "Revocation affects future authorization checks. Already-admitted work continues; project and global policies are unchanged.",
+    "retryRevoke": "Retry original revocation",
+    "refresh": "Refresh grants"
+  }
 }

@@ -31,6 +31,9 @@ func (s *Server) RunKernelLocalExecApprovalRecovery(ctx context.Context) error {
 		if context.Cause(ctx) != nil {
 			return nil
 		}
+		// Capture before reading policy so a revoke/renew commit between the
+		// read and final proof check cannot be lost when this loop waits.
+		wake := s.workspaceStore.KernelRetentionWake()
 		if err := s.ensureApprovedKernelLocalOperationResumeDispatches(ctx); err != nil {
 			return err
 		}
@@ -57,6 +60,9 @@ func (s *Server) RunKernelLocalExecApprovalRecovery(ctx context.Context) error {
 				}
 				if remembered, ok := rememberedKernelLocalExecApproval(candidate.Resolution, policy); ok {
 					_, event, created, resolveErr := s.workspaceStore.ResolveKernelLocalExecApproval(ctx, remembered)
+					if errors.Is(resolveErr, workspace.ErrApprovalPolicyGrantStale) {
+						continue
+					}
 					if resolveErr != nil {
 						return resolveErr
 					}
@@ -116,7 +122,7 @@ func (s *Server) RunKernelLocalExecApprovalRecovery(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-s.workspaceStore.KernelRetentionWake():
+		case <-wake:
 		case <-deadline:
 		}
 		if deadline != nil && !timer.Stop() {
@@ -137,6 +143,8 @@ func rememberedKernelLocalExecApproval(
 		return workspace.KernelLocalExecApprovalResolutionInput{}, false
 	}
 	resolution.Approved = true
+	resolution.ApprovalSource = "remembered"
+	resolution.GrantProof = policy.GrantProof
 	resolution.Scope = strings.ToLower(strings.TrimSpace(policy.Scope))
 	resolution.RequireStaleRunner = false
 	return resolution, resolution.Scope != ""

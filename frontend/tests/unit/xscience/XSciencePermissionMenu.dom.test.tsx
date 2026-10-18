@@ -27,7 +27,7 @@ const permissionOption = {
 describe('XSciencePermissionMenu', () => {
   it('renders one task-wide permission standard and persists the selected mode', async () => {
     const setConfigOption = vi.fn().mockResolvedValue([]);
-    await renderWithI18n(
+    const view = await renderWithI18n(
       <XSciencePermissionMenu
         option={permissionOption}
         setStatus={{ state: 'idle' }}
@@ -71,6 +71,16 @@ describe('XSciencePermissionMenu', () => {
 
     fireEvent.click(screen.getByTestId('x-science-permission-option-bypassPermissions'));
     await waitFor(() => expect(setConfigOption).toHaveBeenCalledWith('mode', 'bypassPermissions'));
+    // The write acknowledgement alone must not manufacture an observed mode.
+    expect(screen.getByTestId('x-science-permission-selector')).toHaveAttribute('data-current-permission', 'default');
+    view.rerender(
+      <XSciencePermissionMenu
+        option={{ ...permissionOption, currentValue: 'bypassPermissions' }}
+        setStatus={{ state: 'idle' }}
+        setConfigOption={setConfigOption}
+        includeStandardModes
+      />
+    );
     expect(
       screen.getByTestId('x-science-permission-selector').querySelector('[data-permission-icon="full"]')
     ).toBeInTheDocument();
