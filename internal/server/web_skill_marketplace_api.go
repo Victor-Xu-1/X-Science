@@ -36,14 +36,15 @@ var (
 )
 
 type webSkillMarketplaceSource struct {
-	Slug       string            `json:"slug"`
-	Repo       string            `json:"repo"`
-	SHA        string            `json:"sha"`
-	License    *string           `json:"license"`
-	Skills     []string          `json:"skills"`
-	ImportedAt string            `json:"imported_at"`
-	Removable  bool              `json:"removable"`
-	Hashes     map[string]string `json:"hashes,omitempty"`
+	Slug           string                                      `json:"slug"`
+	Repo           string                                      `json:"repo"`
+	SHA            string                                      `json:"sha"`
+	License        *string                                     `json:"license"`
+	Skills         []string                                    `json:"skills"`
+	ImportedAt     string                                      `json:"imported_at"`
+	Removable      bool                                        `json:"removable"`
+	Hashes         map[string]string                           `json:"hashes,omitempty"`
+	SkillRevisions map[string]webSkillMarketplaceSkillRevision `json:"skill_revisions,omitempty"`
 }
 
 type githubSkillRepository struct {
@@ -83,7 +84,7 @@ func (s *Server) handleWebSkillMarketplacePreview(w http.ResponseWriter, r *http
 		writeV11Detail(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	license, _ := s.resolveGitHubSkillLicense(ctx, repository)
+	license, _ := s.resolveGitHubSkillLicense(ctx, repository, sha)
 	items, cleanup, err := s.downloadGitHubSkillRepository(ctx, repository, sha)
 	if cleanup != nil {
 		defer cleanup()
@@ -215,13 +216,13 @@ func (s *Server) resolveGitHubSkillCommit(ctx context.Context, repository github
 	return payload.SHA, nil
 }
 
-func (s *Server) resolveGitHubSkillLicense(ctx context.Context, repository githubSkillRepository) (*string, error) {
+func (s *Server) resolveGitHubSkillLicense(ctx context.Context, repository githubSkillRepository, revision string) (*string, error) {
 	var payload struct {
 		License struct {
 			SPDXID string `json:"spdx_id"`
 		} `json:"license"`
 	}
-	path := fmt.Sprintf("/repos/%s/%s/license", url.PathEscape(repository.Owner), url.PathEscape(repository.Name))
+	path := fmt.Sprintf("/repos/%s/%s/license?ref=%s", url.PathEscape(repository.Owner), url.PathEscape(repository.Name), url.QueryEscape(revision))
 	if err := s.githubSkillJSON(ctx, path, &payload); err != nil {
 		return nil, err
 	}
