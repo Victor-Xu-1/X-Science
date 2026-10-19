@@ -108,7 +108,7 @@ func (s *Server) compatibilityFrameResponse(frame workspace.CompatibilityFrame, 
 	if frame.OutputData != nil || len(pendingInputs) > 0 || planArtifactID != "" {
 		projectedOutput := make(map[string]any, len(frame.OutputData)+3)
 		for key, value := range frame.OutputData {
-			if key != "pending_input_requests" && key != "plan_artifact_id" && key != "plan_version_id" {
+			if key != "pending_input_requests" && key != "plan_artifact_id" && key != "plan_version_id" && key != "plan_progress" {
 				projectedOutput[key] = value
 			}
 		}
@@ -117,6 +117,9 @@ func (s *Server) compatibilityFrameResponse(frame workspace.CompatibilityFrame, 
 		}
 		if planArtifactID != "" {
 			projectedOutput["plan_artifact_id"] = planArtifactID
+			if progress := compatibilityPlanProgress(frame.ContextData, planArtifactID, planVersionID); progress != nil {
+				projectedOutput["plan_progress"] = progress
+			}
 			if planVersionID != "" {
 				projectedOutput["plan_version_id"] = planVersionID
 			}

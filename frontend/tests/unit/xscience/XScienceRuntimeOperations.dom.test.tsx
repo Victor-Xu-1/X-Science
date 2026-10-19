@@ -755,7 +755,7 @@ describe('XScienceRuntimeOperations', () => {
     });
     await waitFor(() =>
       expect(runtimeMocks.loadPlan).toHaveBeenCalledWith(
-        'artifact-frame-owner-a',
+        { artifactId: 'artifact-frame-owner-a', versionId: 'version-frame-owner-a' },
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
@@ -2187,7 +2187,10 @@ describe('XScienceRuntimeOperations', () => {
       });
 
       expect(await screen.findByText('Current task plan')).toBeInTheDocument();
-      expect(runtimeMocks.loadPlan).toHaveBeenCalledWith('artifact-current-plan', abortOptions());
+      expect(runtimeMocks.loadPlan).toHaveBeenCalledWith(
+        { artifactId: 'artifact-current-plan', versionId: 'version-current-plan' },
+        abortOptions()
+      );
       expect(screen.queryByText(/这是历史计划，仅供查看/)).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: '丢弃计划并结束任务' })).not.toBeInTheDocument();

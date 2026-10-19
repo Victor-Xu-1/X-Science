@@ -12,6 +12,7 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import * as httpBridge from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
+import type { XSciencePlanReference } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
@@ -107,6 +108,7 @@ const runtimeOperationsProps = {
     onReviewActivityChange?: (active: boolean) => void;
     onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
     onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+    onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
     taskCenterMetrics?: {
       total: {
         tokenUsage: number | null;
@@ -307,6 +309,7 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', () =
     onReviewActivityChange?: (active: boolean) => void;
     onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
     onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+    onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
     taskCenterMetrics?: {
       total: {
         tokenUsage: number | null;
@@ -2838,7 +2841,16 @@ describe('AcpSendBox', () => {
     );
 
     const keys = mobileActionSheetEntries.current.map((entry) => entry.key);
-    expect(keys).toContain('view-plan');
+    expect(keys).not.toContain('view-plan');
+    expect(runtimeOperationsProps.current?.onPlanReferenceChange).toEqual(expect.any(Function));
+    act(() =>
+      runtimeOperationsProps.current?.onPlanReferenceChange?.('conv-1', {
+        artifactId: 'artifact-plan-1',
+        versionId: 'version-1',
+        progress: { completed: 0, total: 3 },
+      })
+    );
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')).toMatchObject({ meta: '0/3' });
     expect(keys).not.toContain('request-review');
     expect(keys).not.toContain('save-skill');
     expect(loadFramePlanMock).not.toHaveBeenCalled();
@@ -2852,9 +2864,7 @@ describe('AcpSendBox', () => {
 
     await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
 
-    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')?.onClick).toEqual(
-      expect.any(Function)
-    );
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')).toBeUndefined();
     expect(loadFramePlanMock).not.toHaveBeenCalled();
   });
 
@@ -2941,6 +2951,14 @@ describe('AcpSendBox', () => {
       createdAt: null,
     });
     await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
+    expect(fileAttachProps.current?.onViewPlan).toBeUndefined();
+    expect(runtimeOperationsProps.current?.onPlanReferenceChange).toEqual(expect.any(Function));
+    act(() =>
+      runtimeOperationsProps.current?.onPlanReferenceChange?.('conv-1', {
+        artifactId: 'artifact-plan-desktop',
+        versionId: null,
+      })
+    );
     const viewPlan = fileAttachProps.current?.onViewPlan as (() => void) | undefined;
     expect(viewPlan).toEqual(expect.any(Function));
     if (!viewPlan) throw new Error('Expected the current plan action');

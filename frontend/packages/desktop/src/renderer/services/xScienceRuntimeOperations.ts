@@ -183,10 +183,17 @@ export async function loadXScienceExecutionLogPage(
 }
 
 export async function loadXSciencePlanDocument(
-  artifactId: string,
+  reference: XSciencePlanReference,
   options: XScienceRuntimeGatewayOptions = {}
 ): Promise<XSciencePlanDocument> {
-  const payload = await requestJson<unknown>(`/api/artifacts/${encodeURIComponent(artifactId)}`, {}, options);
+  const artifactPath = `/api/artifacts/${encodeURIComponent(reference.artifactId)}`;
+  // Only genuinely versionless legacy references retain the latest route.
+  // An unavailable exact version must fail rather than display another body.
+  if (reference.versionId !== null && !reference.versionId.trim())
+    throw new Error('Invalid task plan version reference');
+  const path =
+    reference.versionId !== null ? `${artifactPath}/versions/${encodeURIComponent(reference.versionId)}` : artifactPath;
+  const payload = await requestJson<unknown>(path, {}, options);
   return normalizeXSciencePlanDocument(payload);
 }
 

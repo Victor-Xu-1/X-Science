@@ -80,6 +80,11 @@ const XSciencePlanReviewContent: React.FC<{
           </span>
         ) : null}
       </div>
+      {reference && !reference.versionId ? (
+        <p className='text-12px text-t-secondary'>
+          {t('conversation.xscienceRuntime.runtimeOperations.legacyPlanNotice')}
+        </p>
+      ) : null}
       <h3 className='x-science-plan-review__summary'>{document.taskSummary}</h3>
       {document.feasibility?.rationale ? (
         <p className='x-science-plan-review__rationale'>{document.feasibility.rationale}</p>

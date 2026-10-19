@@ -1522,6 +1522,7 @@
       "noPlan": "No task plan",
       "historicalPlanNotice": "This is a historical plan for reference only. The current task will not use this version.",
       "currentExecutionPlan": "Current execution plan",
+      "legacyPlanNotice": "Legacy plan: latest content; no fixed version is available.",
       "planRevision": "Revision {{revision}} of {{count}}",
       "planGeneratedAt": "Generated {{time}}",
       "planAssessment": {
