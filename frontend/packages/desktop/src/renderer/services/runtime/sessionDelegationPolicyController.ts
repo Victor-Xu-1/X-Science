@@ -49,16 +49,7 @@ export class SessionDelegationPolicyController {
   private dirty = false;
   private command: SessionDelegationCommand | null = null;
   private view: SessionDelegationView = { ...EMPTY_SESSION_DELEGATION_VIEW, available: true };
-  readonly presentationKey: string;
-  constructor(readonly identity: SessionDelegationIdentity) {
-    this.presentationKey = JSON.stringify([
-      this.account,
-      identity.ownerId,
-      identity.frameId,
-      identity.frameIncarnationId,
-      identity.rootFrameId,
-    ]);
-  }
+  constructor(readonly identity: SessionDelegationIdentity) {}
   getSnapshot = (): SessionDelegationView => this.view;
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
