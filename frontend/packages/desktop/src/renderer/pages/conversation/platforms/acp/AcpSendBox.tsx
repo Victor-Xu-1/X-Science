@@ -59,6 +59,7 @@ import {
   selectXScienceBranch,
 } from '@/renderer/services/xScienceConversationBranches';
 import { useAcpMobileComputeControls } from './useAcpMobileComputeControls';
+import { routeAcpSendOption } from './acpSendOptionRouting';
 import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
 import QueuedSpecialistNotice from '@/renderer/components/xScience/runtime/QueuedSpecialistNotice';
 import { SpecialistPreparationRequired } from '@/renderer/services/runtime/sessionSpecialistTypes';
@@ -908,34 +909,28 @@ const AcpSendBox: React.FC<{
 
   const handleSendOption = useCallback(
     (intent: XScienceSendIntent) => {
-      if (skillSave.isBlocking()) return;
-      const draft = contentRef.current;
-      if (!draft.trim()) return;
-
-      if (intent === 'plan_first') {
-        sendIntentRef.current = 'plan_first';
-        void onSendHandler(draft);
-        return;
-      }
-
-      if (
-        uploadFile.length > 0 ||
-        atPath.length > 0 ||
-        contextItems.length > 0 ||
-        queuedPdfSelection ||
-        queuedPdfInvalid ||
-        reading.view.context?.bindings.length
-      ) {
-        Message.warning(t('conversation.sendbox.structuredContextNormalSend'));
-        return;
-      }
-
-      if (intent === 'side_chat') {
-        void aside.sideDraft(draft);
-        return;
-      }
-
-      void aside.branchDraft(draft);
+      routeAcpSendOption(intent, {
+        blocked: skillSave.isBlocking(),
+        draft: contentRef.current,
+        structuredContext: Boolean(
+          uploadFile.length ||
+          atPath.length ||
+          contextItems.length ||
+          queuedPdfSelection ||
+          queuedPdfInvalid ||
+          reading.view.context?.bindings.length
+        ),
+        invalidSpecialist: queuedSpecialistInvalid,
+        queuedSpecialist: queuedSpecialistAuthority,
+        captureSpecialist: () => specialistControl.capture(getSelectedXScienceBranch(conversation_id)),
+        warnNormalSend: () => Message.warning(t('conversation.sendbox.structuredContextNormalSend')),
+        planFirst: (draft) => {
+          sendIntentRef.current = 'plan_first';
+          void onSendHandler(draft);
+        },
+        sideDraft: aside.sideDraft,
+        branchDraft: aside.branchDraft,
+      });
     },
     [
       atPath.length,
@@ -945,6 +940,10 @@ const AcpSendBox: React.FC<{
       onSendHandler,
       queuedPdfSelection,
       queuedPdfInvalid,
+      queuedSpecialistAuthority,
+      queuedSpecialistInvalid,
+      specialistControl,
+      conversation_id,
       reading.view.context?.bindings.length,
       skillSave.isBlocking,
       t,

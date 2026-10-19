@@ -21,6 +21,8 @@ import { pdfBinding, pdfContext } from './pdfReadingFixtures';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
+import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
+import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import {
   manualCompactionIdentity,
   manualCompactionTarget,
@@ -40,6 +42,14 @@ let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
 let queuedCommandSequence = 0;
 const realContextDropdown = { current: false };
+const specialistAsideFixture: SpecialistAsideFixture = {
+  active: false,
+  item: null,
+  draft: {},
+  capture: vi.fn<(branch?: string | null) => SpecialistSendAuthority>(() => ({})),
+  warning: vi.fn(),
+  remove: vi.fn(),
+};
 const compactionEnqueueMock = vi.fn();
 const sendBoxProps = {
   current: null as { allowSendWhileLoading?: boolean; bottomHint?: React.ReactNode } | null,
@@ -199,6 +209,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     disabled,
     allowSendWhileLoading,
     btwController,
+    sendButtonSuffix,
   }: {
     value?: string;
     onSend: (message: string) => Promise<void>;
@@ -213,6 +224,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     disabled?: boolean;
     allowSendWhileLoading?: boolean;
     btwController?: unknown;
+    sendButtonSuffix?: React.ReactNode;
   }) => (
     <div
       data-allow-send-while-loading={allowSendWhileLoading ? 'true' : 'false'}
@@ -221,6 +233,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
       {tools}
       {rightTools}
       {prefix}
+      {specialistAsideFixture.active ? sendButtonSuffix : null}
       <output data-testid='sendbox-draft'>{value}</output>
       <output data-testid='sendbox-placeholder'>{placeholder}</output>
       <output data-testid='sendbox-bottom-hint'>{bottomHint ?? ''}</output>
@@ -351,8 +364,41 @@ vi.mock('@/renderer/services/xScienceAnnotations', () => ({
   requestXScienceFrameAudit: (...args: unknown[]) => requestFrameAuditMock(...args),
 }));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({
-  default: () => null,
+  default: ({ onEdit }: { onEdit?: (item: NonNullable<SpecialistAsideFixture['item']>) => void }) =>
+    specialistAsideFixture.active && specialistAsideFixture.item ? (
+      <button type='button' onClick={() => onEdit?.(specialistAsideFixture.item!)}>
+        edit frozen queue
+      </button>
+    ) : null,
 }));
+vi.mock('@/renderer/hooks/xScience/runtime/useSessionSpecialist', async (original) => {
+  const actual = await original<typeof import('@/renderer/hooks/xScience/runtime/useSessionSpecialist')>();
+  return {
+    ...actual,
+    useSessionSpecialist: (...args: Parameters<typeof actual.useSessionSpecialist>) =>
+      specialistAsideFixture.active
+        ? {
+            applied: null,
+            desired: null,
+            choices: [],
+            pending: false,
+            available: true,
+            unavailable: false,
+            error: null,
+            retryable: false,
+            catalogLoading: false,
+            catalogError: false,
+            hasLiveAttempt: false,
+            prepared: false,
+            change: vi.fn(),
+            refresh: vi.fn(),
+            retry: vi.fn(),
+            current: () => true,
+            capture: specialistAsideFixture.capture,
+          }
+        : actual.useSessionSpecialist(...args),
+  };
+});
 vi.mock('@/renderer/components/chat/MobileActionSheet', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/components/chat/MobileActionSheet')>();
   return {
@@ -423,6 +469,7 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
     });
     const draftRef = React.useRef(draft);
     draftRef.current = draft;
+    if (specialistAsideFixture.active) specialistAsideFixture.draft = draft;
     return {
       saveFailed: false,
       retrySave: vi.fn(),
@@ -504,7 +551,11 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', a
       isInteractionLocked: false,
       hasPendingCommands: false,
       enqueue: compactionEnqueueMock,
-      remove: vi.fn(),
+      remove: (id: string) => {
+        specialistAsideFixture.remove(id);
+        specialistAsideFixture.item = null;
+        return true;
+      },
       clear: vi.fn(),
       reorder: vi.fn(),
       pause: vi.fn(),
@@ -535,33 +586,33 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (i
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
 }));
-vi.mock('@/renderer/services/xScienceSessionOptions', () => ({
-  createXScienceSessionDefaults: (targetAgent = 'OPERON') => ({
-    delegation: false,
-    autoReview: false,
-    memory: false,
-    targetAgent,
-    goalText: null,
-    asRoutine: false,
-  }),
-  loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
-  toXScienceMessageSessionOptions: (
-    value: Record<string, unknown>,
-    overrides?: {
-      planMode?: boolean;
-      targetBranchId?: string | null;
-      expectedBranchId?: string | null;
-      expectedGeneration?: number;
-    }
-  ) => ({
-    ...value,
-    ...(overrides?.planMode === undefined ? {} : { plan_mode: overrides.planMode }),
-    ...(overrides?.targetBranchId ? { target_branch_id: overrides.targetBranchId } : {}),
-    ...(overrides?.expectedBranchId ? { expected_branch_id: overrides.expectedBranchId } : {}),
-    ...(overrides?.expectedGeneration ? { expected_generation: overrides.expectedGeneration } : {}),
-  }),
-  updateXScienceSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
-}));
+vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
+  const actual = await original<typeof import('@/renderer/services/xScienceSessionOptions')>();
+  return {
+    createXScienceSessionDefaults: (targetAgent = 'OPERON') => ({
+      delegation: false,
+      autoReview: false,
+      memory: false,
+      targetAgent,
+      goalText: null,
+      asRoutine: false,
+    }),
+    loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
+    toXScienceMessageSessionOptions: (
+      ...[value, overrides]: Parameters<typeof actual.toXScienceMessageSessionOptions>
+    ) =>
+      specialistAsideFixture.active
+        ? actual.toXScienceMessageSessionOptions(value, overrides)
+        : {
+            ...value,
+            ...(overrides?.planMode === undefined ? {} : { plan_mode: overrides.planMode }),
+            ...(overrides?.targetBranchId ? { target_branch_id: overrides.targetBranchId } : {}),
+            ...(overrides?.expectedBranchId ? { expected_branch_id: overrides.expectedBranchId } : {}),
+            ...(overrides?.expectedGeneration ? { expected_generation: overrides.expectedGeneration } : {}),
+          },
+    updateXScienceSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
+  };
+});
 vi.mock('@/renderer/services/xScienceCatalog', async (original) => ({
   ...(await original<typeof import('@/renderer/services/xScienceCatalog')>()),
   loadXScienceAssistants: (...args: unknown[]) => loadAssistantsMock(...args),
@@ -632,7 +683,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       </>
     ),
     Dropdown: (props: React.ComponentProps<typeof actual.Dropdown>) =>
-      realContextDropdown.current ? (
+      realContextDropdown.current || specialistAsideFixture.active ? (
         <actual.Dropdown {...props} />
       ) : (
         <>
@@ -671,6 +722,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       </button>
     ),
     Message: {
+      warning: (...args: unknown[]) => specialistAsideFixture.warning(...args),
       success: (...args: unknown[]) => messageSuccessMock(...args),
       error: (...args: unknown[]) => messageErrorMock(...args),
       useMessage: () => [{ success: vi.fn(), error: vi.fn() }, null],
@@ -799,6 +851,20 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  registerSpecialistAsideCases({
+    fixture: specialistAsideFixture,
+    render,
+    messageState: makeMessageState,
+    asideAsk: askSideQuestionMock,
+    send: sendMessageInvokeMock,
+    prepare: () => {
+      sendBoxDraftSeed.current = 'synthetic frozen draft';
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      runtimeViewMock.state = 'idle';
+      runtimeViewMock.view.taskStatus = 'finished';
+    },
+  });
   it('C12 freezes the clicked reading page while its own new PDF link is preparing', async () => {
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
@@ -1030,6 +1096,10 @@ describe('AcpSendBox', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    specialistAsideFixture.active = false;
+    specialistAsideFixture.item = null;
+    specialistAsideFixture.draft = {};
+    specialistAsideFixture.capture.mockReset().mockReturnValue({});
     queuedCommandSequence = 0;
     realContextDropdown.current = false;
     sendBoxDraftSeed.current = '';
