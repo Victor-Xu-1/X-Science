@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e47052a98615a74f81171ba945aad06580ab73da6a265108b5af7acde9e8fe3f",
+  "adaptationFingerprintSHA256": "27e3ec9954484cd945f687cedfb5d9a338217c6c2632035cf8f144b2faa32e79",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "29999440c1170a7edf54ab674850db65d4925c802dd94f810507929533ce5cea",
   "summary": {
@@ -3169,8 +3169,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceCompute.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedCompute.ts",
       "sourceSHA256": "aa7268d47ba256aec5146ff8986ee1423771bc3a3d4dc7d99fffa0c233fcb74f",
-      "targetSHA256": "b332f5e5723927c1e27d881759dc8275cb325765bafb0b2989946dd6e6ec9d23",
-      "bytes": 31651,
+      "targetSHA256": "6a351e3f46232001e9b9b90b9a26af6674aafe6a99f0000b021d0f960198243e",
+      "bytes": 32011,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -5021,8 +5021,8 @@
       "path": "tests/unit/renderer/xScienceCompute.dom.test.ts",
       "originalPath": "tests/unit/renderer/synonBiomedCompute.dom.test.ts",
       "sourceSHA256": "7c5437924bdee7aea91671097da683679d887a00d2f3fd443fba1f95ce273fe4",
-      "targetSHA256": "206fe4dc0851124c96de02eedc064cca78004c94690ee19ce72f340cd05faeb5",
-      "bytes": 19794,
+      "targetSHA256": "ea4aef2c779494817a08161f49a6797509d9a019d1518ab8065404db1c200f14",
+      "bytes": 23921,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
