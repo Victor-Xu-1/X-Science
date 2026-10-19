@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "27b450758dd150c9b9e4cbb932d33f4091f68cc962cea3269940b500cbf96beb",
+  "adaptationFingerprintSHA256": "565ef15082b5c312e0e2d1579fb12ef8f1eab6debc9ba176151b3d1b2132f6bc",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ed55f77bb906ccdd02ebf2b8c6f68e8dd07293f04987561c53bb43291fa6c0b1",
+  "additionFingerprintSHA256": "8c00bfad87666b3a03eeadb85051734e427c619ee08c5f0f1c6990a0f3490c18",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1139
+    "addedFiles": 1140
   },
   "adaptations": [
     {
@@ -414,8 +414,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/MobileActionSheet/MobileActionSheet.tsx",
       "sourceSHA256": "8c2bed303da11e91ef241d477c46683be1bddb115ccfa70e6227320a13cb7574",
-      "targetSHA256": "9d7004c5c162713235f3d7fad95639f7999db27e353b4a1bece5bbfda67616ce",
-      "bytes": 10427,
+      "targetSHA256": "f9a18db5915d9337d28ed9a40c7036b8afb7895404eb131a2109fe7451b54b91",
+      "bytes": 10826,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -12425,6 +12425,12 @@
       "path": "tests/unit/renderer/MessageTextActions.dom.test.tsx",
       "sha256": "5613ade4062d290ae3ea07f7f74d8de342cce00fe245c12cb505f0fc42074263",
       "bytes": 4504,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/MobileActionSheetPane.dom.test.tsx",
+      "sha256": "8d8f1ab37e0214581c2f37e946591dcdf98c54a4fe8e543d0a10f2310cdccbb9",
+      "bytes": 4015,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
