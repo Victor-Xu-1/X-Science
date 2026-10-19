@@ -31,7 +31,7 @@ import { useXSciencePermissionControl, type XSciencePermissionControlInput } fro
 type Submenu = 'permission' | 'specialist' | 'compute' | null;
 
 export type XScienceSessionOptionsMenuProps = {
-  rootFrameId?: string;
+  rootFrameId?: string | null;
   value: XScienceSessionOptions;
   onChange: (next: XScienceSessionOptions) => void;
   onPersistentOptionChange?: (key: 'autoReview' | 'memory', value: boolean) => void | Promise<void>;
@@ -116,9 +116,11 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   // read readiness or makes another owner's cached provider labels current.
   const displayedComputeSelection = useMemo(
     () =>
-      computeSelection?.filter((provider) => provider !== 'local') ??
-      (hasComputeSnapshot ? enabledComputeProviders : undefined),
-    [computeSelection, hasComputeSnapshot, enabledComputeProviders]
+      rootFrameId === null
+        ? undefined
+        : (computeSelection?.filter((provider) => provider !== 'local') ??
+          (hasComputeSnapshot ? enabledComputeProviders : undefined)),
+    [rootFrameId, computeSelection, hasComputeSnapshot, enabledComputeProviders]
   );
   const submenuCloseTimerRef = useRef<number | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState<React.CSSProperties>();
@@ -168,7 +170,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   );
 
   useEffect(() => {
-    if (!visible) {
+    if (!visible || rootFrameId === null) {
       setSubmenu(null);
       return;
     }

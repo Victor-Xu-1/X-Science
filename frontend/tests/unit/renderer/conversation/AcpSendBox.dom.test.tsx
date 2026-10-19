@@ -23,6 +23,7 @@ import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScop
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
 import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
+import { computeRootProjection, registerComputeRootCases } from './acpComputeRootCases';
 import {
   manualCompactionIdentity,
   manualCompactionTarget,
@@ -851,6 +852,16 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  registerComputeRootCases({
+    render,
+    messageState: makeMessageState,
+    mobile: isMobileMock,
+    menu: sessionOptionsProps,
+    entries: mobileActionSheetEntries,
+    providers: loadComputeProvidersMock,
+    selection: loadSessionComputeProvidersMock,
+    write: setSessionComputeProviderMock,
+  });
   registerSpecialistAsideCases({
     fixture: specialistAsideFixture,
     render,
@@ -3865,6 +3876,7 @@ describe('AcpSendBox', () => {
 
   it('does not apply an old compute response to a replacement conversation', async () => {
     const pendingCompute = createDeferred<void>();
+    setRendererAccountOwner('compute-owner');
     isMobileMock.current = true;
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     loadAssistantsMock.mockResolvedValue([]);
@@ -3872,7 +3884,13 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockResolvedValue([]);
     setSessionComputeProviderMock.mockReturnValueOnce(pendingCompute.promise);
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
     );
     await waitFor(() =>
       expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeDefined()
@@ -3883,18 +3901,27 @@ describe('AcpSendBox', () => {
     loadAssistantsMock.mockImplementationOnce(() => new Promise(() => {}));
     loadComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
     loadSessionComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
+    view.rerender(
+      <AcpSendBox
+        conversation_id='conv-2'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-2', 'inc-2', 'root-2')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
 
     await act(async () => {
       pendingCompute.resolve();
       await pendingCompute.promise;
     });
 
-    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')?.meta).toBe('0');
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeUndefined();
   });
 
   it('does not expose an old compute failure after switching conversations', async () => {
     const pendingCompute = createDeferred<never>();
+    setRendererAccountOwner('compute-owner');
     isMobileMock.current = true;
     loadFramePlanMock.mockImplementation(() => new Promise(() => {}));
     loadAssistantsMock.mockResolvedValue([]);
@@ -3902,7 +3929,13 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockResolvedValue([]);
     setSessionComputeProviderMock.mockReturnValueOnce(pendingCompute.promise);
     const view = await render(
-      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
     );
     await waitFor(() =>
       expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeDefined()
@@ -3910,7 +3943,15 @@ describe('AcpSendBox', () => {
 
     mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')?.submenu?.onSelect?.('local-cpu');
     await act(async () => Promise.resolve());
-    view.rerender(<AcpSendBox conversation_id='conv-2' backend='xscience' messageState={makeMessageState()} />);
+    view.rerender(
+      <AcpSendBox
+        conversation_id='conv-2'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-2', 'inc-2', 'root-2')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
     messageErrorMock.mockClear();
 
     await act(async () => {
