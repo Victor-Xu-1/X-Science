@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/specialistBinding.ts": "Define the shared closed Specialist input-reference and frozen send-authority wire contract for IPC, queues and initial-message decoding; no execution or transport owner.",
     "packages/desktop/src/renderer/pages/conversation/components/DelegatedStopActions.tsx": "New React adapter for the reference compact separate selected-branch Stop/pending/error interaction; single-child Stop, receipt inspection and retry are X-Science extensions. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx. Single-child Stop and physical receipt recovery are X-Science additions, not copied reference controls.",
     "packages/desktop/src/renderer/pages/conversation/components/useDelegatedStop.ts": "Binds existing account lifecycle, selected branch and canonical wake events to the one Stop controller.",
     "packages/desktop/src/renderer/services/runtime/delegatedStopContract.ts": "Strict X-Science wire decoding, exact request/receipt checks and field-wise rendered intent coordinate comparison.",
@@ -679,9 +680,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "83331ae9478a3bf665aa67d4279428e36aee5a15a5aa8b3fe36bf50711cb29ec"
+APPROVED_ADAPTATION_FINGERPRINT = "90064a28bfc0a49f5c8d3b0e3138c4094d79c8f2462526b4df044e38b50f7edb"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "739ae092e5d5429ed9da39183073f8d1a920fbcc3b4d40effca16a0aadc24610"
+APPROVED_ADDITION_FINGERPRINT = "84daaaabfeb8f7056e6181dc32a62b81571893b70e6bb2a4e9b3ba12a63ad1b7"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
