@@ -31,6 +31,9 @@ func (s *Store) createKernelSupervisedChildrenTx(ctx context.Context, tx *transc
 	if owner != input.OwnerUserID {
 		return nil, errors.New("kernel delegation parent is unavailable")
 	}
+	if err := assertNewSessionDelegationAllowedTx(ctx, tx, owner, input.ParentFrameID); err != nil {
+		return nil, err
+	}
 	depth := 1
 	ancestorID := input.ParentFrameID
 	for {

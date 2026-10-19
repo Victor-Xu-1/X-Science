@@ -176,6 +176,10 @@ func (s *Server) handleFrameCompatibility(w http.ResponseWriter, r *http.Request
 		s.handleFrameExport(w, r)
 		return
 	}
+	if len(segments) == 2 && segments[1] == "delegation-policy" {
+		s.handleSessionDelegationPolicy(w, r, frameID)
+		return
+	}
 	frame, found, err := s.workspaceStore.GetCompatibilityFrame(frameID)
 	if err != nil {
 		writeV11StoreError(w, err)
