@@ -87,6 +87,9 @@ export function useXSciencePermissionControl(input?: XSciencePermissionControlIn
               : ('description' in item && item.description) || t('agentMode.approvalRequiredDescription'),
       }));
   }, [i18n, input?.includeStandardModes, input?.option?.options, t]);
+  useEffect(() => {
+    setConfirmation((current) => (current && !options.some((item) => item.value === current.value) ? null : current));
+  }, [options]);
   const unavailable =
     !input ||
     input.disabled ||
@@ -166,7 +169,10 @@ export function useXSciencePermissionControl(input?: XSciencePermissionControlIn
     confirm,
     cancelConfirmation: () => setConfirmation(null),
     confirmationVisible: Boolean(
-      confirmation && confirmation.owner === owner && isCurrent(owner, confirmation.generation)
+      confirmation &&
+      confirmation.owner === owner &&
+      options.some((item) => item.value === confirmation.value) &&
+      isCurrent(owner, confirmation.generation)
     ),
   };
 }

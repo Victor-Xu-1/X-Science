@@ -63,10 +63,12 @@ function Harness({
   withGrants = false,
   owner = 'a',
   readOnly = false,
+  modeAvailable = true,
 }: {
   withGrants?: boolean;
   owner?: string;
   readOnly?: boolean;
+  modeAvailable?: boolean;
 }) {
   const controller = useSessionPermissionGrantsController(withGrants ? sessionGrantIdentity : null);
   return (
@@ -78,7 +80,7 @@ function Harness({
         onClearGoal={mocks.clearGoal}
         disabled={readOnly}
         permissionControl={{
-          option,
+          option: modeAvailable ? option : null,
           setStatus: { state: 'idle' },
           setConfigOption: mocks.setMode,
           grantsController: controller,
@@ -227,6 +229,65 @@ describe('unified composer Agent controls', () => {
     await waitFor(() => expect(trigger).toHaveFocus());
     fireEvent.click(trigger);
     expect(await screen.findByTestId('session-config-row-permission')).toBeInTheDocument();
+    expect(mocks.setMode).not.toHaveBeenCalled();
+  });
+
+  it('does not offer an empty permission submenu when only existing grants are available', async () => {
+    await renderWithI18n(<Harness withGrants readOnly modeAvailable={false} />, 'en-US');
+    expect(await screen.findByLabelText('1 allowed this session')).toBeInTheDocument();
+    const trigger = screen.getByTestId('x-science-session-options-trigger');
+    expect(trigger).toBeEnabled();
+    fireEvent.click(trigger);
+    await screen.findByRole('menu', { name: 'Conversation options' });
+    expect(screen.queryByTestId('session-config-row-permission')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menu', { name: 'Permission Mode' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Auto review' })).toBeDisabled();
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear all session grants' }));
+    await waitFor(() =>
+      expect(mocks.httpRequest).toHaveBeenCalledWith(
+        'POST',
+        '/api/conversations/grant-child/permission-grants/revoke',
+        sessionGrantRevokeBody()
+      )
+    );
+    expect(mocks.setMode).not.toHaveBeenCalled();
+    expect(mocks.changeOptions).not.toHaveBeenCalled();
+  });
+
+  it('removes an invalid permission submenu and confirmation without losing grants or resurrecting a stale confirmation', async () => {
+    const view = await renderWithI18n(<Harness withGrants />, 'en-US');
+    const trigger = screen.getByTestId('x-science-session-options-trigger');
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const permission = await screen.findByTestId('session-config-row-permission');
+    fireEvent.keyDown(permission, { key: 'ArrowRight' });
+    await waitFor(() => expect(screen.getByTestId('x-science-permission-option-default')).toHaveFocus());
+    view.rerender(<Harness withGrants modeAvailable={false} />);
+    await waitFor(() => expect(screen.queryByRole('menu', { name: 'Permission Mode' })).not.toBeInTheDocument());
+    expect(screen.queryByTestId('session-config-row-permission')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: 'Auto review' })).toHaveFocus());
+    expect(screen.getByRole('button', { name: 'Clear all session grants' })).toBeEnabled();
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Conversation options' }), { key: 'Escape' });
+    await waitFor(() => expect(trigger).toHaveFocus());
+
+    view.rerender(<Harness withGrants />);
+    await openPermission();
+    fireEvent.click(await screen.findByTestId('x-science-permission-option-bypassPermissions'));
+    await screen.findByRole('dialog', { name: 'Enable Full access?' });
+    view.rerender(<Harness withGrants modeAvailable={false} />);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    view.rerender(<Harness withGrants />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mocks.setMode).not.toHaveBeenCalled();
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear all session grants' }));
+    await waitFor(() =>
+      expect(mocks.httpRequest).toHaveBeenCalledWith(
+        'POST',
+        '/api/conversations/grant-child/permission-grants/revoke',
+        sessionGrantRevokeBody()
+      )
+    );
     expect(mocks.setMode).not.toHaveBeenCalled();
   });
 });

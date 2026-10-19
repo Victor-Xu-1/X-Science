@@ -15,6 +15,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
+import { getMenuItems } from '@/renderer/utils/menuKeyboard';
 import XScienceAgentControlToggles from './XScienceAgentControlToggles';
 import XSciencePermissionIcon, { isWarningPermissionMode } from './XSciencePermissionIcon';
 import SessionPermissionGrants from './SessionPermissionGrants';
@@ -95,6 +96,12 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   // Optional session-option hydration must not withdraw the independent mode
   // and observed-grant capabilities that were already available to the user.
   const triggerDisabled = disabled && !permission.available;
+  const hasPermissionChoices = permission.options.length > 0;
+  useLayoutEffect(() => {
+    if (hasPermissionChoices || submenu !== 'permission') return;
+    setSubmenu(null);
+    (getMenuItems(menuSurfaceRef.current)[0] ?? triggerRef.current)?.focus();
+  }, [hasPermissionChoices, submenu]);
 
   const scheduleSubmenuClose = () => {
     cancelSubmenuClose();
@@ -270,143 +277,144 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     }
   };
 
-  const submenuPanel = submenu ? (
-    <div
-      ref={submenuRef}
-      className='app-overlay-menu composer-control-submenu absolute box-border overflow-y-auto rd-8px py-6px'
-      role='menu'
-      aria-label={
-        submenu === 'permission'
-          ? t('agentMode.switchMode')
-          : submenu === 'specialist'
-            ? t('conversation.xscienceRuntime.sessionOptions.expert')
-            : t('conversation.xscienceRuntime.sessionOptions.compute')
-      }
-      style={{
-        width: 'min(288px, calc(100vw - 24px))',
-        maxWidth: 'calc(100vw - 24px)',
-        maxHeight: 'calc(100vh - 24px)',
-        opacity: 1,
-        ...submenuPosition,
-      }}
-      onMouseEnter={cancelSubmenuClose}
-      onMouseLeave={scheduleSubmenuClose}
-      onKeyDown={keyboard.onSubmenuKeyDown}
-    >
-      {submenu === 'permission' ? (
-        <XSciencePermissionChoices control={permission} />
-      ) : submenu === 'specialist' ? (
-        <>
-          <button
-            type='button'
-            role='menuitemradio'
-            aria-checked={value.targetAgent === 'OPERON'}
-            aria-label={t('conversation.xscienceRuntime.sessionOptions.selectExpert', {
-              name: t('conversation.xscienceRuntime.sessionOptions.none'),
-            })}
-            className={rowClass}
-            disabled={disabled}
-            onClick={() => onChange({ ...value, targetAgent: 'OPERON' })}
-          >
-            <span className='inline-flex w-20px'>{value.targetAgent === 'OPERON' ? <Check size={14} /> : null}</span>
-            <span>{t('conversation.xscienceRuntime.sessionOptions.none')}</span>
-          </button>
-          {specialists.map((specialist) => (
+  const submenuPanel =
+    submenu && (submenu !== 'permission' || hasPermissionChoices) ? (
+      <div
+        ref={submenuRef}
+        className='app-overlay-menu composer-control-submenu absolute box-border overflow-y-auto rd-8px py-6px'
+        role='menu'
+        aria-label={
+          submenu === 'permission'
+            ? t('agentMode.switchMode')
+            : submenu === 'specialist'
+              ? t('conversation.xscienceRuntime.sessionOptions.expert')
+              : t('conversation.xscienceRuntime.sessionOptions.compute')
+        }
+        style={{
+          width: 'min(288px, calc(100vw - 24px))',
+          maxWidth: 'calc(100vw - 24px)',
+          maxHeight: 'calc(100vh - 24px)',
+          opacity: 1,
+          ...submenuPosition,
+        }}
+        onMouseEnter={cancelSubmenuClose}
+        onMouseLeave={scheduleSubmenuClose}
+        onKeyDown={keyboard.onSubmenuKeyDown}
+      >
+        {submenu === 'permission' ? (
+          <XSciencePermissionChoices control={permission} />
+        ) : submenu === 'specialist' ? (
+          <>
             <button
-              key={specialist.id}
               type='button'
               role='menuitemradio'
-              aria-checked={specialist.agentId === value.targetAgent}
+              aria-checked={value.targetAgent === 'OPERON'}
               aria-label={t('conversation.xscienceRuntime.sessionOptions.selectExpert', {
-                name: specialist.label,
+                name: t('conversation.xscienceRuntime.sessionOptions.none'),
               })}
               className={rowClass}
               disabled={disabled}
-              onClick={() => onChange({ ...value, targetAgent: specialist.agentId })}
+              onClick={() => onChange({ ...value, targetAgent: 'OPERON' })}
+            >
+              <span className='inline-flex w-20px'>{value.targetAgent === 'OPERON' ? <Check size={14} /> : null}</span>
+              <span>{t('conversation.xscienceRuntime.sessionOptions.none')}</span>
+            </button>
+            {specialists.map((specialist) => (
+              <button
+                key={specialist.id}
+                type='button'
+                role='menuitemradio'
+                aria-checked={specialist.agentId === value.targetAgent}
+                aria-label={t('conversation.xscienceRuntime.sessionOptions.selectExpert', {
+                  name: specialist.label,
+                })}
+                className={rowClass}
+                disabled={disabled}
+                onClick={() => onChange({ ...value, targetAgent: specialist.agentId })}
+              >
+                <span className='inline-flex w-20px'>
+                  {specialist.agentId === value.targetAgent ? <Check size={14} /> : null}
+                </span>
+                <span className='truncate'>{specialist.label}</span>
+              </button>
+            ))}
+            {!loading && specialists.length === 0 ? (
+              <div className='px-12px py-8px text-12px text-t-tertiary'>
+                {t('conversation.xscienceRuntime.sessionOptions.noExperts')}
+              </div>
+            ) : null}
+            <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
+            <button
+              type='button'
+              role='menuitem'
+              className={rowClass}
+              onClick={() => {
+                setVisible(false);
+                setSubmenu(null);
+                void navigate('/settings/experts?create=1');
+              }}
+            >
+              {t('conversation.xscienceRuntime.sessionOptions.createExpert')}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type='button'
+              role='menuitemradio'
+              aria-checked={enabledComputeProviders.length === 0}
+              className={`${rowClass} gap-10px`}
+              disabled={disabled || pendingProvider !== null}
+              onClick={() => void selectLocalCompute()}
             >
               <span className='inline-flex w-20px'>
-                {specialist.agentId === value.targetAgent ? <Check size={14} /> : null}
+                {enabledComputeProviders.length === 0 ? <Check size={14} /> : null}
               </span>
-              <span className='truncate'>{specialist.label}</span>
+              <span>{t('conversation.xscienceRuntime.sessionOptions.localMachine')}</span>
             </button>
-          ))}
-          {!loading && specialists.length === 0 ? (
-            <div className='px-12px py-8px text-12px text-t-tertiary'>
-              {t('conversation.xscienceRuntime.sessionOptions.noExperts')}
-            </div>
-          ) : null}
-          <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
-          <button
-            type='button'
-            role='menuitem'
-            className={rowClass}
-            onClick={() => {
-              setVisible(false);
-              setSubmenu(null);
-              void navigate('/settings/experts?create=1');
-            }}
-          >
-            {t('conversation.xscienceRuntime.sessionOptions.createExpert')}
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            type='button'
-            role='menuitemradio'
-            aria-checked={enabledComputeProviders.length === 0}
-            className={`${rowClass} gap-10px`}
-            disabled={disabled || pendingProvider !== null}
-            onClick={() => void selectLocalCompute()}
-          >
-            <span className='inline-flex w-20px'>
-              {enabledComputeProviders.length === 0 ? <Check size={14} /> : null}
-            </span>
-            <span>{t('conversation.xscienceRuntime.sessionOptions.localMachine')}</span>
-          </button>
-          {computeProviders.map((provider) => {
-            const checked = enabledComputeProviders.includes(provider.name);
-            return (
-              <div key={provider.name} role='none' className={`${rowClass} cursor-default gap-10px`}>
-                <span className='min-w-0 flex-1 truncate'>{provider.displayName}</span>
-                <Switch
-                  size='small'
-                  role='menuitemcheckbox'
-                  aria-checked={checked}
-                  aria-label={t('conversation.xscienceRuntime.sessionOptions.computeNamed', {
-                    name: provider.displayName,
-                  })}
-                  checked={checked}
-                  style={checked ? checkedSwitchStyle : undefined}
-                  loading={pendingProvider === provider.name}
-                  disabled={disabled || (pendingProvider !== null && pendingProvider !== provider.name)}
-                  onChange={(next) => void updateComputeProvider(provider.name, next)}
-                />
+            {computeProviders.map((provider) => {
+              const checked = enabledComputeProviders.includes(provider.name);
+              return (
+                <div key={provider.name} role='none' className={`${rowClass} cursor-default gap-10px`}>
+                  <span className='min-w-0 flex-1 truncate'>{provider.displayName}</span>
+                  <Switch
+                    size='small'
+                    role='menuitemcheckbox'
+                    aria-checked={checked}
+                    aria-label={t('conversation.xscienceRuntime.sessionOptions.computeNamed', {
+                      name: provider.displayName,
+                    })}
+                    checked={checked}
+                    style={checked ? checkedSwitchStyle : undefined}
+                    loading={pendingProvider === provider.name}
+                    disabled={disabled || (pendingProvider !== null && pendingProvider !== provider.name)}
+                    onChange={(next) => void updateComputeProvider(provider.name, next)}
+                  />
+                </div>
+              );
+            })}
+            {!loading && computeProviders.length === 0 ? (
+              <div className='px-12px py-8px text-12px leading-18px text-t-tertiary'>
+                {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
               </div>
-            );
-          })}
-          {!loading && computeProviders.length === 0 ? (
-            <div className='px-12px py-8px text-12px leading-18px text-t-tertiary'>
-              {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
-            </div>
-          ) : null}
-          <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
-          <button
-            type='button'
-            role='menuitem'
-            className={rowClass}
-            onClick={() => {
-              setVisible(false);
-              setSubmenu(null);
-              void navigate('/settings/compute');
-            }}
-          >
-            {t('conversation.xscienceRuntime.sessionOptions.manageCompute')}
-          </button>
-        </>
-      )}
-    </div>
-  ) : null;
+            ) : null}
+            <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
+            <button
+              type='button'
+              role='menuitem'
+              className={rowClass}
+              onClick={() => {
+                setVisible(false);
+                setSubmenu(null);
+                void navigate('/settings/compute');
+              }}
+            >
+              {t('conversation.xscienceRuntime.sessionOptions.manageCompute')}
+            </button>
+          </>
+        )}
+      </div>
+    ) : null;
 
   const dropdownContent = (
     <div
@@ -428,40 +436,42 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     >
       {permission.available ? (
         <>
-          <button
-            type='button'
-            role='menuitem'
-            aria-haspopup='menu'
-            aria-expanded={submenu === 'permission'}
-            data-testid='session-config-row-permission'
-            data-submenu='permission'
-            className={rowClass}
-            onMouseEnter={() => {
-              cancelSubmenuClose();
-              setSubmenu('permission');
-            }}
-            onMouseLeave={() => {
-              if (submenu === 'permission') scheduleSubmenuClose();
-            }}
-            onKeyDown={(event) => keyboard.onSubmenuTriggerKeyDown(event, 'permission')}
-            onClick={() => {
-              cancelSubmenuClose();
-              setSubmenu('permission');
-            }}
-          >
-            <Shield size={16} aria-hidden='true' className='shrink-0 text-t-secondary' />
-            <span className='min-w-0 flex-1 truncate'>{t('agentMode.switchMode')}</span>
-            <span
-              className='inline-flex shrink-0 items-center gap-4px rounded-full bg-fill-2 px-8px py-3px text-11px'
-              style={isWarningPermissionMode(permission.currentValue) ? { color: 'var(--warning)' } : undefined}
+          {hasPermissionChoices ? (
+            <button
+              type='button'
+              role='menuitem'
+              aria-haspopup='menu'
+              aria-expanded={submenu === 'permission'}
+              data-testid='session-config-row-permission'
+              data-submenu='permission'
+              className={rowClass}
+              onMouseEnter={() => {
+                cancelSubmenuClose();
+                setSubmenu('permission');
+              }}
+              onMouseLeave={() => {
+                if (submenu === 'permission') scheduleSubmenuClose();
+              }}
+              onKeyDown={(event) => keyboard.onSubmenuTriggerKeyDown(event, 'permission')}
+              onClick={() => {
+                cancelSubmenuClose();
+                setSubmenu('permission');
+              }}
             >
-              <XSciencePermissionIcon mode={permission.currentValue} size={12} />
-              <span className='max-w-112px truncate'>
-                {permission.selectedOption?.label ?? t('agentMode.permission')}
+              <Shield size={16} aria-hidden='true' className='shrink-0 text-t-secondary' />
+              <span className='min-w-0 flex-1 truncate'>{t('agentMode.switchMode')}</span>
+              <span
+                className='inline-flex shrink-0 items-center gap-4px rounded-full bg-fill-2 px-8px py-3px text-11px'
+                style={isWarningPermissionMode(permission.currentValue) ? { color: 'var(--warning)' } : undefined}
+              >
+                <XSciencePermissionIcon mode={permission.currentValue} size={12} />
+                <span className='max-w-112px truncate'>
+                  {permission.selectedOption?.label ?? t('agentMode.permission')}
+                </span>
+                <Right size={12} />
               </span>
-              <Right size={12} />
-            </span>
-          </button>
+            </button>
+          ) : null}
           {permission.controller ? <SessionPermissionGrants controller={permission.controller} open={visible} /> : null}
           <div role='separator' className='mx-8px my-4px h-1px bg-fill-3' />
         </>

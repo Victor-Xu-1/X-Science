@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7f413638ac7bc5f01f74a00780b3050d8f77d7226da6f0ada5df2aa640266390",
+  "adaptationFingerprintSHA256": "8c86375480b1b652d55f2e50a1cad7ae770981270c20e39f2d0dafbbad4efa57",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "b04aad17676ef3855aaed67327b8c1f4eb4ee821b9ed2d47759c2697952d1c3b",
+  "additionFingerprintSHA256": "4bd4078414eb56e319ccc75145bd565640b36ea6bbefaf150ad6d6877a372292",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "50359d941a51884dd0ba8152e625be424aa89402818a1599936db821b97f9090",
-      "bytes": 24946,
+      "targetSHA256": "eab9b72894ea5b439e807af45834b611b58e35b78f91612c40ebf78a872ed687",
+      "bytes": 25755,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -8277,8 +8277,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/useXSciencePermissionControl.ts",
-      "sha256": "98cc7ac2a60badbf8d4811402a2f5f25d0624f5f9119fcc59e3b01956cb79188",
-      "bytes": 7212,
+      "sha256": "104ba23fc0cd01a44cd288e8f1646eeceb84ee4063ac34cdc3b6c4a0df1bd71e",
+      "bytes": 7447,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12459,8 +12459,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceAgentControls.dom.test.tsx",
-      "sha256": "ebe07c1b5f09b40d4a6d1a28dc97a8bf382632ae09e5a5ea3d29af7f52fd1fe8",
-      "bytes": 10539,
+      "sha256": "3fa61da30f208bc46d1b12d25fedd679f43a2fe0721fb253db479c912144de6e",
+      "bytes": 13986,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
