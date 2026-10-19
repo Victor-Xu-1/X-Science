@@ -388,13 +388,17 @@ export async function loadXScienceSessionComputeProviders(
   rootFrameId: string,
   fetchImpl: FetchLike = fetch
 ): Promise<string[]> {
-  return stringArray(
-    await requestJson<unknown>(
-      `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(rootFrameId)}/enabled`,
-      undefined,
-      fetchImpl
-    )
+  const payload = await requestJson<unknown>(
+    `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(rootFrameId)}/enabled`,
+    undefined,
+    fetchImpl
   );
+  if (
+    !Array.isArray(payload) ||
+    !payload.every((value): value is string => typeof value === 'string' && value.length > 0)
+  )
+    throw new Error('X-Science returned an invalid session compute provider list');
+  return payload;
 }
 
 export async function setXScienceSessionComputeProvider(
@@ -412,8 +416,12 @@ export async function setXScienceSessionComputeProvider(
 
 export async function loadXScienceComputeProviders(fetchImpl: FetchLike = fetch): Promise<XScienceComputeProvider[]> {
   const payload = await requestJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
-  if (!Array.isArray(payload)) return [];
-  return payload.map(toComputeProvider).filter((provider): provider is XScienceComputeProvider => Boolean(provider));
+  if (!Array.isArray(payload)) throw new Error('X-Science returned an invalid compute provider list');
+  return payload.map((value) => {
+    const provider = toComputeProvider(value);
+    if (!provider) throw new Error('X-Science returned an invalid compute provider list');
+    return provider;
+  });
 }
 
 export async function loadXScienceComputeProvider(
