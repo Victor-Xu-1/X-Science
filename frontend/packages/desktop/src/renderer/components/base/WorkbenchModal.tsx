@@ -1,20 +1,8 @@
 import { Modal as ArcoModal, type ModalProps } from '@arco-design/web-react';
-import { Close } from '@icon-park/react';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { uuid } from '@/common/utils/utils';
 import { restoreScopedFocus } from '@/renderer/utils/focusScope';
-
-function LocalizedCloseIcon() {
-  const { t } = useTranslation();
-  // Arco owns the enclosing cancellation handler. Native activation bubbles
-  // to that handler once, including Enter/Space; no nested button-role parent.
-  return (
-    <button type='button' aria-label={t('common.close')} className='workbench-modal-close'>
-      <Close size={16} aria-hidden='true' />
-    </button>
-  );
-}
+import WorkbenchCloseButton from './WorkbenchCloseButton';
 
 /** Presentation adapter only; Arco remains the dialog/focus-lock authority. */
 function WorkbenchModal(props: React.PropsWithChildren<ModalProps>) {
@@ -50,7 +38,7 @@ function WorkbenchModal(props: React.PropsWithChildren<ModalProps>) {
     <ArcoModal
       {...props}
       data-workbench-modal-scope={scopeId}
-      closeIcon={props.closeIcon === undefined ? <LocalizedCloseIcon /> : props.closeIcon}
+      closeIcon={props.closeIcon === undefined ? <WorkbenchCloseButton /> : props.closeIcon}
       afterClose={() => {
         const root = document.querySelector(selector);
         const target = openerRef.current;
@@ -70,7 +58,7 @@ function presentImperativeModal(method: typeof ArcoModal.confirm): typeof ArcoMo
     const presented = {
       ...config,
       'data-workbench-modal-scope': scopeId,
-      closeIcon: config.closeIcon === undefined ? <LocalizedCloseIcon /> : config.closeIcon,
+      closeIcon: config.closeIcon === undefined ? <WorkbenchCloseButton /> : config.closeIcon,
       afterClose: () => {
         const root = document.querySelector<HTMLElement>(`[data-workbench-modal-scope="${scopeId}"]`);
         restoreScopedFocus(opener, root);

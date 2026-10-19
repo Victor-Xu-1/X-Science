@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f2b5ac7771a82ba8b7309c22d26cd429f5126fa22663f35c8b809ca87dba6cdb",
+  "adaptationFingerprintSHA256": "4498c66e064902328d25f1711216c303acc4b591d0c89cbb41bf61773fd9234f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "f62e4d48d806e5f055cec8daee13b2ec78858095bb339f3f1528e11583929d94",
+  "additionFingerprintSHA256": "6f05e6df34fae388bc7cbc1af1527cd761d60022b8ba42e8b4dbe6d02ec86ae8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1176
+    "addedFiles": 1178
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "f055a113523ab57e8213126edd4b6cf3e700ea0a5d1b4d67525813afb304cd32",
+      "targetSHA256": "75087b825b99f5573a74c48f8d6f5c5a0648c0887c928a1942318455fbe13204",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "baa2baec3bf569687a7fd98487368eceea13569a280e2ede1cf5738d6fa7bda9",
+      "targetSHA256": "38a1014f0653ceea5c68b27fb811659e51ad6c5a64b547d140c06e315882a787",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "9bd241293b5f4480e0f89195ee637a3506a4638c5a562d4db649a59f29f25ae9",
+      "sha256": "af1cc11ce797502a25ceaa31a925146ee2c3eaf21a6bce020c4475da0d27e3cc",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7748,9 +7748,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/base/WorkbenchCloseButton.tsx",
+      "sha256": "f3fdf77f59d912bfcce161021bfb940ea7c865cf89a9c8e323173ef7091e393b",
+      "bytes": 506,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/base/WorkbenchModal.tsx",
-      "sha256": "baeaa64e0100e8273ec0d55de39ded0ffedf77c15ab0ff60ffb20e8756e3fc9a",
-      "bytes": 3765,
+      "sha256": "6dd97ba92f5a08a4c96d461ace28bc7f5f351903201b8bffcc2c33d220186a79",
+      "bytes": 3345,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8193,8 +8199,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceRuntimeDrawers.tsx",
-      "sha256": "197e2687bcb01abc8daf4e719d9c95aa4ae4b455679339404db541b1f0758034",
-      "bytes": 3822,
+      "sha256": "887515f7e6669ebceed31be9926c53a483a158528815cd886c7e20571a5742dd",
+      "bytes": 4048,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13781,6 +13787,12 @@
       "path": "tests/unit/xscience/OptimizePromptAction.dom.test.tsx",
       "sha256": "6a1adea9f5102eb670f2c1674f410949ef727dbd4fc90065faee65d8ac477cac",
       "bytes": 10100,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/RuntimeDrawerClose.dom.test.tsx",
+      "sha256": "39b094f3d0168c509959d5b3cae040df61e2496c9f0fda2c5f82822721b8936f",
+      "bytes": 4941,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
