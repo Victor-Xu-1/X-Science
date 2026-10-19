@@ -1,4 +1,4 @@
-import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
+import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import type { XScienceSendIntent } from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
 
 type SendOptionContext = {
@@ -10,8 +10,8 @@ type SendOptionContext = {
   captureSpecialist: () => SpecialistSendAuthority;
   warnNormalSend: () => void;
   planFirst: (draft: string) => void;
-  sideDraft: (draft: string) => unknown;
-  branchDraft: (draft: string) => unknown;
+  sideDraft: (draft: string, authority?: SpecialistSendAuthority) => unknown;
+  branchDraft: (draft: string, authority?: SpecialistSendAuthority) => unknown;
 };
 
 /** Dispatch only: execution and immutable authority remain with their existing owners. */
@@ -25,18 +25,15 @@ export function routeAcpSendOption(intent: XScienceSendIntent, context: SendOpti
     context.warnNormalSend();
     return;
   }
-  // Atomic aside admission cannot yet transfer a scoped immutable definition.
   // An edited legacy {} is still its original captured intent, not the current selector.
+  let authority: SpecialistSendAuthority;
   try {
-    const authority = context.queuedSpecialist ?? context.captureSpecialist();
-    if (authority.reference) {
-      context.warnNormalSend();
-      return;
-    }
+    authority = decodeSpecialistSendAuthority(context.queuedSpecialist ?? context.captureSpecialist());
   } catch {
     context.warnNormalSend();
     return;
   }
-  if (intent === 'side_chat') void context.sideDraft(context.draft);
-  else void context.branchDraft(context.draft);
+  const send = intent === 'side_chat' ? context.sideDraft : context.branchDraft;
+  if (authority.reference) void send(context.draft, authority);
+  else void send(context.draft);
 }

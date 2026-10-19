@@ -11,6 +11,7 @@ import {
 } from '@/renderer/services/xScienceAside';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { getSelectedXScienceBranch, selectXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
+import { asideSourceSpecialist, asideChildSpecialist } from './asideSpecialistFixtures';
 
 const intent = {
   parentFrameId: 'parent/1',
@@ -48,6 +49,78 @@ describe('X-Science Aside receipt transport', () => {
   beforeEach(() => {
     resetRendererAccountScopeForTest();
     setRendererAccountOwner('aside-service-owner');
+  });
+
+  it('C404 atomic captures the source proof before the branch await and sends the original body', async () => {
+    const source = structuredClone({
+      ...asideSourceSpecialist,
+      scope: { ...asideSourceSpecialist.scope, frame_id: intent.parentFrameId, root_frame_id: intent.parentFrameId },
+    });
+    selectXScienceBranch(intent.parentFrameId, intent.sourceBranchId);
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () => {
+      source.snapshot_id = 'snapshot:newer';
+      return response(branchState);
+    });
+    const frozen = await captureXScienceAsideIntent(intent.parentFrameId, intent.request, {
+      sourceSpecialist: source,
+      intentId: intent.intentId,
+      fetchImpl,
+    });
+    expect(asideRequestBody(frozen)).toMatchObject({ source_specialist: { snapshot_id: 'snapshot:frozen' } });
+    expect(Object.isFrozen(frozen.sourceSpecialist?.scope)).toBe(true);
+  });
+
+  it.each([false, true])('C404 atomic verifies paired source and child authority, asSession=%s', async (asSession) => {
+    const source = {
+      ...asideSourceSpecialist,
+      scope: { ...asideSourceSpecialist.scope, frame_id: intent.parentFrameId, root_frame_id: intent.parentFrameId },
+    };
+    const frozen = { ...intent, asSession, sourceSpecialist: source };
+    const binding = asideChildSpecialist();
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        response({ ...receipt, as_session: asSession, source_specialist: source, specialist_binding: binding })
+      );
+    expect(await createXScienceAside(frozen, { fetchImpl })).toMatchObject({
+      sourceSpecialist: source,
+      specialistBinding: binding,
+    });
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body)).source_specialist).toEqual(source);
+    for (const invalid of [
+      {},
+      { source_specialist: source },
+      { source_specialist: { ...source, revision: source.revision + 1 }, specialist_binding: binding },
+      { source_specialist: source, specialist_binding: source },
+      { source_specialist: source, specialist_binding: { ...binding, snapshot_id: 'another-definition' } },
+    ]) {
+      const bad = vi.fn<typeof fetch>().mockResolvedValue(response({ ...receipt, as_session: asSession, ...invalid }));
+      await expect(createXScienceAside(frozen, { fetchImpl: bad })).rejects.toThrow('aside_receipt_unverified');
+    }
+  });
+
+  it('C404 atomic requires original source proof on a pre-admission cancellation and GET replay', async () => {
+    const source = {
+      ...asideSourceSpecialist,
+      scope: { ...asideSourceSpecialist.scope, frame_id: intent.parentFrameId, root_frame_id: intent.parentFrameId },
+    };
+    const frozen = { ...intent, sourceSpecialist: source };
+    const body = {
+      accepted: false,
+      intent_id: intent.intentId,
+      cancelled: true,
+      cancellation_status: 'cancelled_before_acceptance',
+    };
+    const missing = vi.fn<typeof fetch>().mockResolvedValue(response(body));
+    await expect(closeXScienceAside(frozen, undefined, { fetchImpl: missing })).rejects.toThrow(
+      'aside_close_unverified'
+    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockImplementation(async () => response({ ...body, source_specialist: source }));
+    expect(await closeXScienceAside(frozen, undefined, { fetchImpl })).toMatchObject({ sourceSpecialist: source });
+    expect(await lookupXScienceAside(frozen, { fetchImpl })).toMatchObject({ sourceSpecialist: source });
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body)).source_specialist).toEqual(source);
   });
 
   it('captures the selected source and generation once without altering its selection', async () => {

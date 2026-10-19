@@ -6,6 +6,8 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import { normalizeXScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { readAsidePresentation } from '@/renderer/services/runtime/asidePresentation';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { asideSourceSpecialist, asideChildSpecialist } from '../xscience/asideSpecialistFixtures';
+import { Message } from '@arco-design/web-react';
 
 const transport = vi.hoisted(() => ({
   capture: vi.fn(),
@@ -63,6 +65,12 @@ const receiptFor = (intent: XScienceAsideIntent) => ({
   throughPublicationSequence: 12,
   asSession: intent.asSession,
   replayed: false,
+  ...(intent.sourceSpecialist
+    ? {
+        sourceSpecialist: intent.sourceSpecialist,
+        specialistBinding: asideChildSpecialist(intent.asSession ? 'branch-child' : 'aside-child'),
+      }
+    : {}),
 });
 const deferred = <T,>() => {
   let resolve!: (value: T) => void;
@@ -97,6 +105,7 @@ describe('Aside lifecycle and exact composer consumption', () => {
         asSession: options.asSession,
         sourceBranchId: 'br_12345678',
         expectedGeneration: 3,
+        ...(options.sourceSpecialist ? { sourceSpecialist: options.sourceSpecialist } : {}),
       })
     );
     transport.create.mockImplementation(async (intent: XScienceAsideIntent) => receiptFor(intent));
@@ -113,6 +122,161 @@ describe('Aside lifecycle and exact composer consumption', () => {
     cleanup();
     vi.useRealTimers();
     resetRendererAccountScopeForTest();
+  });
+
+  it('C404 atomic retains one typed source and nonce across lost ACK, reload and explicit original retry', async () => {
+    const source = { reference: asideSourceSpecialist, targetAgent: 'FROZEN_AGENT' };
+    transport.create.mockRejectedValueOnce(new TypeError('response lost'));
+    const hook = renderHook(() => useBtwCommand('parent-1'));
+    await act(async () => {
+      expect(await hook.result.current.ask('Frozen question', null, source)).toBe(false);
+    });
+    const frozen = readAsidePresentation('parent-1', false)!.intent;
+    expect(frozen.sourceSpecialist).toEqual(source.reference);
+    expect(transport.capture.mock.calls[0][2]).toMatchObject({ sourceSpecialist: source.reference });
+    await act(async () => {
+      expect(
+        await hook.result.current.ask('Frozen question', null, { reference: { ...source.reference, revision: 5 } })
+      ).toBe(false);
+    });
+    expect(transport.create).toHaveBeenCalledOnce();
+    hook.unmount();
+    const restored = renderHook(() => useBtwCommand('parent-1'));
+    await waitFor(() => expect(restored.result.current.starting).toBe(false));
+    await act(async () => {
+      expect(await restored.result.current.retry()).toBe(true);
+    });
+    expect(transport.capture).toHaveBeenCalledOnce();
+    expect(transport.create.mock.calls.map(([request]) => request)).toEqual([frozen, frozen]);
+  });
+
+  it('C404 atomic does not consume an identical queued input whose source changed during acceptance', async () => {
+    const original = { ...item, specialistAuthority: { reference: asideSourceSpecialist } };
+    let current = original;
+    const creating = deferred<ReturnType<typeof receiptFor>>();
+    transport.create.mockReturnValueOnce(creating.promise);
+    const remove = vi.fn(() => true);
+    const bridge: AsideQueueBridge = {
+      get items() {
+        return [current];
+      },
+      remove,
+      getQueuedItem: () => current,
+    };
+    const hook = renderHook(() => {
+      const queue = useRef<AsideQueueBridge | null>(bridge);
+      return useAcpAsideController({
+        conversationId: 'parent-1',
+        ownerId: 'owner-1',
+        enabled: true,
+        modelId: null,
+        queue,
+        clearDraftIfUnchanged: vi.fn(),
+        navigate: vi.fn(),
+      });
+    });
+    let sent!: Promise<boolean>;
+    act(() => {
+      sent = hook.result.current.openQueued(original);
+    });
+    await waitFor(() => expect(transport.create).toHaveBeenCalledOnce());
+    const frozen = transport.create.mock.calls[0][0] as XScienceAsideIntent;
+    expect(frozen.sourceSpecialist).toEqual(asideSourceSpecialist);
+    current = { ...original, specialistAuthority: { reference: { ...asideSourceSpecialist, revision: 5 } } };
+    await act(async () => {
+      creating.resolve(receiptFor(frozen));
+      expect(await sent).toBe(true);
+    });
+    expect(remove).not.toHaveBeenCalled();
+    expect(hook.result.current.isQueueItemBlocked(current)).toBe(false);
+  });
+
+  it('C404 atomic keeps a same-text newer draft authority when its old source is accepted late', async () => {
+    let authority = { reference: asideSourceSpecialist };
+    const creating = deferred<ReturnType<typeof receiptFor>>();
+    transport.create.mockReturnValueOnce(creating.promise);
+    const clear = vi.fn();
+    const hook = renderHook(() => {
+      const queue = useRef<AsideQueueBridge | null>(null);
+      return useAcpAsideController({
+        conversationId: 'parent-1',
+        ownerId: 'owner-1',
+        enabled: true,
+        modelId: null,
+        queue,
+        clearDraftIfUnchanged: clear,
+        captureDraftSpecialist: () => authority,
+        navigate: vi.fn(),
+      });
+    });
+    let sent!: Promise<boolean>;
+    act(() => {
+      sent = hook.result.current.sideDraft('Same draft', authority);
+    });
+    await waitFor(() => expect(transport.create).toHaveBeenCalledOnce());
+    const frozen = transport.create.mock.calls[0][0] as XScienceAsideIntent;
+    authority = { reference: { ...asideSourceSpecialist, revision: 5 } };
+    await act(async () => {
+      creating.resolve(receiptFor(frozen));
+      expect(await sent).toBe(true);
+    });
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it('C404 atomic captures the real two-argument btw facade without losing its raw consumer or hiding an unconfirmed source', async () => {
+    const warning = vi.spyOn(Message, 'warning').mockImplementation(() => undefined as never);
+    const capture = vi.fn(() => ({ reference: asideSourceSpecialist }));
+    const creating = deferred<ReturnType<typeof receiptFor>>();
+    transport.create.mockReturnValueOnce(creating.promise);
+    const clear = vi.fn();
+    const hook = renderHook(() => {
+      const queue = useRef<AsideQueueBridge | null>(null);
+      return useAcpAsideController({
+        conversationId: 'parent-1',
+        ownerId: 'owner-1',
+        enabled: true,
+        modelId: null,
+        queue,
+        clearDraftIfUnchanged: clear,
+        captureDraftSpecialist: capture,
+        navigate: vi.fn(),
+      });
+    });
+    let sent!: Promise<boolean>;
+    act(() => {
+      sent = hook.result.current.sideQuestion.ask('Question', {
+        kind: 'draft',
+        id: 'parent-1',
+        content: '/btw Question',
+      });
+    });
+    await waitFor(() => expect(transport.create).toHaveBeenCalledOnce());
+    const frozen = transport.create.mock.calls[0][0] as XScienceAsideIntent;
+    expect(frozen.sourceSpecialist).toEqual(asideSourceSpecialist);
+    expect(readAsidePresentation('parent-1', false)?.consumer).toMatchObject({
+      content: '/btw Question',
+      sourceSpecialist: asideSourceSpecialist,
+    });
+    capture.mockImplementation(() => {
+      throw new Error('unconfirmed selection');
+    });
+    await act(async () => {
+      creating.resolve(receiptFor(frozen));
+      expect(await sent).toBe(true);
+    });
+    expect(clear).not.toHaveBeenCalled();
+    await act(async () => {
+      expect(
+        await hook.result.current.sideQuestion.ask('Next question', {
+          kind: 'draft',
+          id: 'parent-1',
+          content: '/btw Next question',
+        })
+      ).toBe(false);
+    });
+    expect(warning).toHaveBeenCalledWith('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed');
+    expect(transport.create).toHaveBeenCalledOnce();
+    warning.mockRestore();
   });
 
   it('binds source/model/request once, retains its child beyond 120 seconds and uses real Close', async () => {

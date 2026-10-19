@@ -4,6 +4,9 @@ import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwComma
 import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/runtime/asidePresentation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { ConversationCommandQueueItem } from '../useConversationCommandQueue';
+import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
+import { asideSourceMatches } from '@/renderer/services/asideSpecialist';
+import { Message } from '@arco-design/web-react';
 
 export type AsideQueueBridge = {
   items: ConversationCommandQueueItem[];
@@ -17,12 +20,15 @@ type Props = {
   modelId: string | null;
   queue: React.MutableRefObject<AsideQueueBridge | null>;
   clearDraftIfUnchanged: (text: string) => void;
+  captureDraftSpecialist?: () => SpecialistSendAuthority;
+  draftSpecialistInvalid?: boolean;
   navigate: (path: string) => void;
 };
 type Scope = { key: string; active: boolean };
 
 /** ACP composition only; admission, execution and cancellation have one shared owner chain. */
 export function useAcpAsideController(props: Props) {
+  const { t } = useTranslation();
   const latest = useRef(props);
   latest.current = props;
   const account = getRendererAccountScopeToken();
@@ -61,11 +67,28 @@ export function useAcpAsideController(props: Props) {
       const context = latest.current;
       if (consumer.kind === 'queue') {
         const item = context.queue.current?.getQueuedItem(consumer.id);
-        if (item && item.input === consumer.content && item.files.length === 0 && item.contextItems.length === 0) {
+        if (
+          item &&
+          item.input === consumer.content &&
+          item.files.length === 0 &&
+          item.contextItems.length === 0 &&
+          !item.readingContext &&
+          !item.readingContextInvalid &&
+          !item.specialistAuthorityInvalid &&
+          asideSourceMatches(item.specialistAuthority, consumer.sourceSpecialist)
+        ) {
           if (context.queue.current?.remove(item.id) !== true) return;
         }
       } else if (consumer.id === context.conversationId) {
-        context.clearDraftIfUnchanged(consumer.content);
+        try {
+          if (
+            !context.draftSpecialistInvalid &&
+            asideSourceMatches(context.captureDraftSpecialist?.(), consumer.sourceSpecialist)
+          )
+            context.clearDraftIfUnchanged(consumer.content);
+        } catch {
+          /* An unconfirmed new selection cannot be consumed by the old receipt. */
+        }
       }
       controller.acknowledgeConsumer();
     },
@@ -81,14 +104,18 @@ export function useAcpAsideController(props: Props) {
   }, [branch.acceptedConsumer, branch.receipt, consume, sideQuestion.acceptedConsumer, sideQuestion.receipt]);
 
   const sideDraft = useCallback(
-    async (text: string) => {
+    async (text: string, authority?: SpecialistSendAuthority) => {
       const scope = scopeRef.current;
       if (!scope || !isCurrent(scope)) return false;
-      const accepted = await sideQuestion.ask(text, {
+      const consumer: AsideConsumer = {
         kind: 'draft',
         id: latest.current.conversationId,
         content: text,
-      });
+        ...(authority?.reference ? { sourceSpecialist: authority.reference } : {}),
+      };
+      const accepted = authority?.reference
+        ? await sideQuestion.ask(text, consumer, authority)
+        : await sideQuestion.ask(text, consumer);
       if (accepted) consume(sideQuestion, scope);
       return accepted;
     },
@@ -96,10 +123,18 @@ export function useAcpAsideController(props: Props) {
   );
 
   const branchDraft = useCallback(
-    async (text: string) => {
+    async (text: string, authority?: SpecialistSendAuthority) => {
       const scope = scopeRef.current;
       if (!scope || !isCurrent(scope)) return false;
-      const accepted = await branch.ask(text, { kind: 'branch', id: latest.current.conversationId, content: text });
+      const consumer: AsideConsumer = {
+        kind: 'branch',
+        id: latest.current.conversationId,
+        content: text,
+        ...(authority?.reference ? { sourceSpecialist: authority.reference } : {}),
+      };
+      const accepted = authority?.reference
+        ? await branch.ask(text, consumer, authority)
+        : await branch.ask(text, consumer);
       if (!accepted || !isCurrent(scope)) return false;
       const receipt = branch.getReceipt();
       if (!receipt) return false;
@@ -130,14 +165,31 @@ export function useAcpAsideController(props: Props) {
         actual.input !== item.input ||
         actual.files.length ||
         actual.contextItems.length ||
+        actual.readingContext ||
+        actual.readingContextInvalid ||
+        actual.specialistAuthorityInvalid ||
+        !asideSourceMatches(item.specialistAuthority, actual.specialistAuthority?.reference) ||
         provisional.current
       )
         return false;
-      const consumer: AsideConsumer = { kind: 'queue', id: item.id, content: item.input };
+      let authority: SpecialistSendAuthority;
+      try {
+        authority = decodeSpecialistSendAuthority(actual.specialistAuthority ?? {});
+      } catch {
+        return false;
+      }
+      const consumer: AsideConsumer = {
+        kind: 'queue',
+        id: actual.id,
+        content: actual.input,
+        ...(authority.reference ? { sourceSpecialist: authority.reference } : {}),
+      };
       const pending = { scope, consumer };
       provisional.current = pending;
       try {
-        const accepted = await sideQuestion.ask(item.input, consumer);
+        const accepted = authority.reference
+          ? await sideQuestion.ask(actual.input, consumer, authority)
+          : await sideQuestion.ask(actual.input, consumer);
         if (accepted) consume(sideQuestion, scope);
         return accepted;
       } finally {
@@ -161,7 +213,9 @@ export function useAcpAsideController(props: Props) {
         consumer.id === item.id &&
         consumer.content === item.input &&
         item.files.length === 0 &&
-        item.contextItems.length === 0
+        item.contextItems.length === 0 &&
+        !item.specialistAuthorityInvalid &&
+        asideSourceMatches(item.specialistAuthority, consumer.sourceSpecialist)
       );
     },
     [
@@ -201,8 +255,32 @@ export function useAcpAsideController(props: Props) {
     if (await branch.retry()) openBranch();
   }, [branch.retry, branch.getReceipt, isCurrent, openBranch]);
 
+  // The shared /btw composer calls this facade with its original raw consumer
+  // text. Internal queue/draft paths keep using the same core owner directly.
+  const askDraft = useCallback(
+    (text: string, consumer: AsideConsumer | null = null) => {
+      const scope = scopeRef.current;
+      if (!scope || !isCurrent(scope)) return Promise.resolve(false);
+      try {
+        const context = latest.current;
+        if (context.draftSpecialistInvalid) throw new Error('aside_source_unavailable');
+        const authority = decodeSpecialistSendAuthority(context.captureDraftSpecialist?.() ?? {});
+        const frozenConsumer = consumer
+          ? { ...consumer, ...(authority.reference ? { sourceSpecialist: authority.reference } : {}) }
+          : null;
+        return authority.reference
+          ? sideQuestion.ask(text, frozenConsumer, authority)
+          : sideQuestion.ask(text, frozenConsumer);
+      } catch {
+        Message.warning(t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed'));
+        return Promise.resolve(false);
+      }
+    },
+    [isCurrent, sideQuestion.ask, t]
+  );
+
   return {
-    sideQuestion,
+    sideQuestion: { ...sideQuestion, ask: askDraft },
     sideDraft,
     branchDraft,
     openQueued,
