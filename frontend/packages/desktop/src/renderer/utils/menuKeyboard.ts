@@ -16,7 +16,61 @@ export function focusMenuSurface(menu: HTMLElement | null, position: 'first' | '
   const items = position === null ? [] : getMenuItems(menu);
   const target = position === null ? menu : position === 'last' ? items.at(-1) : items[0];
   target?.focus({ preventScroll: true });
-  return Boolean(target);
+  return Boolean(target && target.ownerDocument.activeElement === target);
+}
+
+/** Arco keeps cached menus mounted while their popup ancestor is display:none.
+ * Wait only for those already-hidden ancestors, and only for this opening. */
+function isHiddenMenuAncestor(node: HTMLElement): boolean {
+  const style = getComputedStyle(node);
+  return node.hidden || style.display === 'none' || style.visibility === 'hidden';
+}
+
+export function focusMenuSurfaceWhenVisible(
+  menu: HTMLElement,
+  position: 'first' | 'last' | null,
+  trigger: HTMLElement | null,
+  onFocused: () => void
+): () => void {
+  const hiddenAncestors: HTMLElement[] = [];
+  for (let node = menu.parentElement; node && node !== menu.ownerDocument.body; node = node.parentElement) {
+    if (isHiddenMenuAncestor(node)) hiddenAncestors.push(node);
+  }
+  let active = true;
+  let applyingFocus = false;
+  let observer: MutationObserver | undefined;
+  const cancel = () => {
+    active = false;
+    observer?.disconnect();
+    trigger?.removeEventListener('blur', onTriggerBlur);
+  };
+  const onTriggerBlur = () => {
+    if (!applyingFocus) cancel();
+  };
+  const apply = () => {
+    if (!active) return;
+    const focused = menu.ownerDocument.activeElement;
+    if (!menu.isConnected || (focused !== trigger && focused !== menu.ownerDocument.body && focused !== menu)) {
+      cancel();
+      return;
+    }
+    if (hiddenAncestors.some(isHiddenMenuAncestor)) return;
+    applyingFocus = true;
+    const succeeded = focusMenuSurface(menu, position);
+    applyingFocus = false;
+    if (active && succeeded) {
+      cancel();
+      onFocused();
+    }
+  };
+  if (hiddenAncestors.length) {
+    observer = new MutationObserver(apply);
+    for (const node of hiddenAncestors)
+      observer.observe(node, { attributes: true, attributeFilter: ['style', 'class', 'hidden'] });
+    trigger?.addEventListener('blur', onTriggerBlur);
+  }
+  apply();
+  return cancel;
 }
 
 export function handleMenuNavigation(event: React.KeyboardEvent<HTMLElement>): boolean {

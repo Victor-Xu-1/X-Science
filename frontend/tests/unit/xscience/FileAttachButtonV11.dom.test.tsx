@@ -1,5 +1,6 @@
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { focusMenuSurface, focusMenuSurfaceWhenVisible } from '@/renderer/utils/menuKeyboard';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
@@ -15,6 +16,7 @@ vi.mock('@/renderer/services/FileService', () => ({
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   processDroppedFilesMock.mockReset();
 });
 
@@ -243,6 +245,117 @@ describe('v1.1 add-to-message menu', () => {
     expect(outside).toHaveFocus();
     await user.click(trigger);
     await waitFor(() => expect(screen.getByRole('menu', { name: 'Add to message' })).toHaveFocus());
+  });
+
+  it.each(['ArrowDown', 'ArrowUp'])('focuses an action when %s reopens the cached plus menu', async (key) => {
+    // jsdom focuses display:none descendants, unlike a browser. Keep the real
+    // Arco wrapper and its lifecycle; adapt only this missing platform rule.
+    const domFocus = HTMLElement.prototype.focus;
+    vi.spyOn(HTMLElement.prototype, 'focus').mockImplementation(function (this: HTMLElement, options) {
+      if (getComputedStyle(this).display === 'none') return;
+      for (let node = this.parentElement; node; node = node.parentElement) {
+        if (getComputedStyle(node).display === 'none') return;
+      }
+      domFocus.call(this, options);
+    });
+    const user = userEvent.setup();
+    await renderMenu({ onViewPlan: vi.fn() }, 'en-US');
+    const trigger = screen.getByRole('button', { name: 'Add to message' });
+    await user.click(trigger);
+    await waitFor(() => expect(screen.getByRole('menu', { name: 'Add to message' })).toHaveFocus());
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu', { name: 'Add to message' })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+
+    await user.keyboard(`{${key}}`);
+
+    const target = screen.getByRole('menuitem', { name: key === 'ArrowUp' ? 'View plan' : 'Add file' });
+    await waitFor(() => expect(target).toHaveFocus());
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('reports focus success only when the requested menu target actually receives it', async () => {
+    await renderWithI18n(
+      <div role='menu' aria-label='Non-focusable action'>
+        <span role='menuitem'>Read-only label</span>
+      </div>
+    );
+    expect(focusMenuSurface(screen.getByRole('menu'), 'first')).toBe(false);
+  });
+
+  it.each(['close', 'user movement'])(
+    'cancels pending menu focus after %s before a late visible change',
+    async (reason) => {
+      await renderWithI18n(
+        <>
+          <button type='button'>Focus opener</button>
+          <div style={{ display: 'none' }} data-testid='cached-popup'>
+            <div role='menu' tabIndex={-1} data-testid='delayed-menu'>
+              <button type='button' role='menuitem'>
+                First action
+              </button>
+            </div>
+          </div>
+          <button type='button'>Outside focus</button>
+        </>
+      );
+      const opener = screen.getByRole('button', { name: 'Focus opener' });
+      const outside = screen.getByRole('button', { name: 'Outside focus' });
+      const onFocused = vi.fn();
+      opener.focus();
+      const cancel = focusMenuSurfaceWhenVisible(screen.getByTestId('delayed-menu'), 'first', opener, onFocused);
+      if (reason === 'close') cancel();
+      else outside.focus();
+
+      await act(async () => {
+        screen.getByTestId('cached-popup').style.display = 'block';
+      });
+
+      expect(reason === 'close' ? opener : outside).toHaveFocus();
+      expect(onFocused).not.toHaveBeenCalled();
+      cancel();
+    }
+  );
+
+  it('keeps only the current opening focus and disconnects before later submenu activity', async () => {
+    await renderWithI18n(
+      <>
+        <button type='button'>Focus opener</button>
+        <div style={{ display: 'none' }} data-testid='cached-popup'>
+          <div role='menu' tabIndex={-1} data-testid='delayed-menu'>
+            <button type='button' role='menuitem'>
+              First action
+            </button>
+            <button type='button' role='menuitem'>
+              Last action
+            </button>
+            <input aria-label='Submenu search' />
+          </div>
+        </div>
+      </>
+    );
+    const opener = screen.getByRole('button', { name: 'Focus opener' });
+    const menu = screen.getByTestId('delayed-menu');
+    const staleFocused = vi.fn();
+    const currentFocused = vi.fn();
+    opener.focus();
+    focusMenuSurfaceWhenVisible(menu, 'first', opener, staleFocused)();
+    const cancel = focusMenuSurfaceWhenVisible(menu, 'last', opener, currentFocused);
+    await act(async () => {
+      screen.getByTestId('cached-popup').style.display = 'block';
+    });
+    expect(screen.getByRole('menuitem', { name: 'Last action' })).toHaveFocus();
+    expect(staleFocused).not.toHaveBeenCalled();
+    expect(currentFocused).toHaveBeenCalledTimes(1);
+
+    const search = screen.getByRole('textbox', { name: 'Submenu search' });
+    search.focus();
+    await act(async () => {
+      screen.getByTestId('cached-popup').style.opacity = '1';
+    });
+    expect(search).toHaveFocus();
+    expect(currentFocused).toHaveBeenCalledTimes(1);
+    cancel();
   });
 
   it('renders the complete menu in English', async () => {
