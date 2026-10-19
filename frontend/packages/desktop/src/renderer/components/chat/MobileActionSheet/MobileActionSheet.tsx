@@ -66,10 +66,14 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
     if (activeSubKey) {
       setRenderedSubKey(activeSubKey);
       setSubPhase('enter');
+      let secondRaf: number | null = null;
       const raf = requestAnimationFrame(() => {
-        requestAnimationFrame(() => setSubPhase('shown'));
+        secondRaf = requestAnimationFrame(() => setSubPhase('shown'));
       });
-      return () => cancelAnimationFrame(raf);
+      return () => {
+        cancelAnimationFrame(raf);
+        if (secondRaf !== null) cancelAnimationFrame(secondRaf);
+      };
     }
     if (renderedSubKey) {
       setSubPhase('exit');
@@ -106,6 +110,7 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
   const activeSub: MobileActionSheetSubMenu | undefined = activeEntry?.submenu;
   const renderedSubEntry = renderedSubKey ? entries.find((e) => e.key === renderedSubKey) : null;
   const renderedSub: MobileActionSheetSubMenu | undefined = renderedSubEntry?.submenu;
+  const subPaneActive = open && activeSubKey !== null && activeSubKey === renderedSubKey && subPhase === 'shown';
 
   if (!mounted) {
     return null;
@@ -144,6 +149,8 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
         className={`${styles.sheet} ${visible ? styles.visible : ''}`}
         role='dialog'
         aria-modal='true'
+        aria-hidden={!open || undefined}
+        inert={!open || undefined}
         aria-label={title ? undefined : 'Actions'}
         aria-labelledby={title ? titleId : undefined}
         onClick={(e) => e.stopPropagation()}
@@ -151,8 +158,9 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
         <div className={styles.handle} aria-hidden='true' />
         <div className={styles.panes}>
           <div
-            className={`${styles.pane} ${styles.paneMain} ${subPhase === 'shown' ? styles.paneOutLeft : styles.paneActive}`}
-            aria-hidden={subPhase === 'shown'}
+            className={`${styles.pane} ${styles.paneMain} ${subPaneActive ? styles.paneOutLeft : styles.paneActive}`}
+            aria-hidden={subPaneActive}
+            inert={subPaneActive || undefined}
           >
             {title && (
               <div id={titleId} className={styles.header}>
@@ -198,8 +206,9 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
 
           {renderedSub && (
             <div
-              className={`${styles.pane} ${styles.paneSub} ${subPhase === 'shown' ? styles.paneActive : styles.paneOutRight}`}
-              aria-hidden={subPhase !== 'shown'}
+              className={`${styles.pane} ${styles.paneSub} ${subPaneActive ? styles.paneActive : styles.paneOutRight}`}
+              aria-hidden={!subPaneActive}
+              inert={!subPaneActive || undefined}
             >
               <div className={styles.subbar}>
                 <button className={styles.back} onClick={() => setActiveSubKey(null)} type='button'>
