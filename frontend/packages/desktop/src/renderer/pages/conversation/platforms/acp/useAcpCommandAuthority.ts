@@ -10,13 +10,15 @@ import {
   type XScienceSessionOptions,
 } from '@/renderer/services/xScienceSessionOptions';
 import type { CommandExecutionAuthority } from './acpCommandExecutionTypes';
+import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 
 /** Shared existing branch/session-option capture for ordinary and typed sends. */
 export function useAcpCommandAuthority(
   conversation_id: string,
   xscienceSessionOptions: XScienceSessionOptions,
   stagedSessionOptionsRef: RefObject<StagedSessionOptions | null>,
-  stagedPlanModeRef: RefObject<boolean>
+  stagedPlanModeRef: RefObject<boolean>,
+  delegationControl?: XScienceDelegationControl
 ) {
   return useCallback(
     async (planMode?: boolean, includeStaged = true, requireBranch = false): Promise<CommandExecutionAuthority> => {
@@ -51,6 +53,9 @@ export function useAcpCommandAuthority(
         targetBranchId,
         targetBranchRevision,
         sessionOptions: toXScienceMessageSessionOptions(effectiveSessionOptions, {
+          ...(delegationControl
+            ? { delegation: delegationControl.current() ? (delegationControl.enabled ?? null) : null }
+            : {}),
           planMode: planMode ?? (includeStaged && stagedPlanModeRef.current ? true : undefined),
           targetBranchId,
           expectedBranchId: branchState?.activeBranchId,
@@ -58,6 +63,6 @@ export function useAcpCommandAuthority(
         }),
       };
     },
-    [conversation_id, xscienceSessionOptions, stagedSessionOptionsRef, stagedPlanModeRef]
+    [conversation_id, xscienceSessionOptions, stagedSessionOptionsRef, stagedPlanModeRef, delegationControl]
   );
 }

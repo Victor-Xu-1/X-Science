@@ -7,6 +7,8 @@ import {
   type MobileActionSheetOption,
 } from '@/renderer/components/chat/MobileActionSheet';
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
+import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import XScienceDelegationControlRow from '@/renderer/components/xScience/runtime/XScienceDelegationControlRow';
 import { Message } from '@arco-design/web-react';
 import { Attention, Brain, MagicHat, SettingTwo, Shield } from '@icon-park/react';
 import type { TFunction, i18n as I18n } from 'i18next';
@@ -38,6 +40,7 @@ type UseAcpMobileActionSheetControllerArgs = {
   setXScienceSessionOptions: Dispatch<SetStateAction<XScienceSessionOptions>>;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
   memoryControl?: XScienceMemoryControl;
+  delegationControl?: XScienceDelegationControl;
   mobileSpecialists: Array<{ id: string; label: string; agentId: string }>;
   mobileComputeProviders: Array<{ name: string; label: string }>;
   mobileEnabledCompute: string[];
@@ -75,6 +78,7 @@ export const useAcpMobileActionSheetController = ({
   setXScienceSessionOptions,
   updatePersistentSessionOption,
   memoryControl,
+  delegationControl,
   mobileSpecialists,
   mobileComputeProviders,
   mobileEnabledCompute,
@@ -130,11 +134,12 @@ export const useAcpMobileActionSheetController = ({
 
     entries.push({
       key: 'session-options',
-      disabled: !sessionOptionsReady,
       icon: <SettingTwo theme='outline' size='16' />,
       label: t('conversation.xscienceRuntime.sessionOptions.title'),
       meta: [
-        xscienceSessionOptions.delegation ? t('conversation.xscienceRuntime.sessionOptions.delegation') : '',
+        delegationControl?.current() && delegationControl.enabled === false
+          ? t('conversation.xscienceRuntime.sessionOptions.delegation')
+          : '',
         xscienceSessionOptions.autoReview ? t('conversation.xscienceRuntime.sendBox.reviewShort') : '',
       ]
         .filter(Boolean)
@@ -143,27 +148,17 @@ export const useAcpMobileActionSheetController = ({
         title: t('conversation.xscienceRuntime.sessionOptions.title'),
         options: [
           {
-            key: 'delegation',
-            label: t('conversation.xscienceRuntime.sessionOptions.delegation'),
-            description: t('conversation.xscienceRuntime.sessionOptions.delegationDescription'),
-            active: xscienceSessionOptions.delegation,
-          },
-          {
             key: 'autoReview',
             label: t('conversation.xscienceRuntime.sessionOptions.autoReview'),
             description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
             active: xscienceSessionOptions.autoReview,
+            disabled: !sessionOptionsReady,
           },
           buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
         ],
         onSelect: (key) => {
           if (!sessionOptionsReady) return;
-          if (key === 'delegation') {
-            setXScienceSessionOptions((current) => ({
-              ...current,
-              delegation: !current.delegation,
-            }));
-          } else if (key === 'autoReview' || key === 'memory') {
+          if (key === 'autoReview' || key === 'memory') {
             if (key === 'memory' && !memoryControl?.canUpdate()) return;
             const nextValue = !xscienceSessionOptions[key];
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
@@ -172,6 +167,7 @@ export const useAcpMobileActionSheetController = ({
             });
           }
         },
+        footer: (active) => <XScienceDelegationControlRow control={delegationControl} active={active} />,
       },
     });
 
@@ -416,6 +412,7 @@ export const useAcpMobileActionSheetController = ({
     mobileEnabledCompute,
     mobileSpecialists,
     memoryControl,
+    delegationControl,
     model_info,
     modelListError,
     onSelectMcpServer,

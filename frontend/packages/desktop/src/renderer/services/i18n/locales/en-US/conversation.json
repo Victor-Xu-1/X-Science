@@ -1111,6 +1111,17 @@
       "providerCount": "{{count}} providers",
       "delegation": "Delegation",
       "delegationDescription": "Delegate from the next turn",
+      "delegationState": {
+        "allow": "Allow the main agent to create new subagents.",
+        "deny": "Block new subagents. Existing subagents are unaffected.",
+        "live": "Turning delegation off only blocks new subagents. Existing subagents continue running.",
+        "loading": "Reading the current delegation policy…",
+        "failed": "The delegation policy could not be read. Other controls remain available.",
+        "uncertain": "The update response was lost. Retry the same change to confirm its outcome.",
+        "conflict": "The policy changed elsewhere. Refresh before choosing a new change.",
+        "retry": "Retry",
+        "prepareFailed": "Delegation policy is not confirmed. Your draft is kept and the task has not been submitted."
+      },
       "autoReview": "Auto review",
       "autoReviewDescription": "Auto-review from the next turn",
       "memory": "Memory",

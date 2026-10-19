@@ -493,6 +493,9 @@ func classifyKernelHostError(err error) error {
 	if errors.As(err, &typed) {
 		return typed
 	}
+	if errors.Is(err, workspace.ErrSessionDelegationDisabled) {
+		return kernelruntime.NewHostCallError("permission_denied", "New delegated tasks are disabled for this session. Existing children continue and remain available to collect or manage.")
+	}
 	message := strings.TrimSpace(err.Error())
 	if strings.Contains(message, "not configured") || strings.Contains(message, "does not exist") {
 		return kernelruntime.NewHostCallError("not_found", message)

@@ -1,5 +1,5 @@
 import { Spin, Tooltip } from '@arco-design/web-react';
-import { BrainCircuit, GitFork, ScanEye } from 'lucide-react';
+import { BrainCircuit, ScanEye } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
@@ -7,8 +7,10 @@ import {
   sessionMemoryPresentation,
   type XScienceMemoryControl,
 } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
+import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import XScienceDelegationControlRow from './XScienceDelegationControlRow';
 
-type ToggleKey = 'autoReview' | 'memory' | 'delegation';
+type ToggleKey = 'autoReview' | 'memory';
 
 /** The row owns presentation only; session-option persistence remains in the
  * composer callback. Reference order: Auto-review, Memory, Delegation. */
@@ -18,12 +20,16 @@ export default function XScienceAgentControlToggles({
   onChange,
   disabled = false,
   memoryControl,
+  delegationControl,
+  active,
 }: {
   value: XScienceSessionOptions;
   pending: Exclude<ToggleKey, 'delegation'> | null;
   onChange: (key: ToggleKey, checked: boolean) => void;
   disabled?: boolean;
   memoryControl?: XScienceMemoryControl;
+  delegationControl?: XScienceDelegationControl;
+  active?: boolean;
 }) {
   const { t } = useTranslation();
   const memory = sessionMemoryPresentation(memoryControl, value.memory);
@@ -39,12 +45,6 @@ export default function XScienceAgentControlToggles({
       icon: BrainCircuit,
       label: t('conversation.xscienceRuntime.sessionOptions.memory'),
       description: t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
-    },
-    {
-      key: 'delegation',
-      icon: GitFork,
-      label: t('conversation.xscienceRuntime.sessionOptions.delegation'),
-      description: t('conversation.xscienceRuntime.sessionOptions.delegationDescription'),
     },
   ] as const;
   return (
@@ -91,6 +91,7 @@ export default function XScienceAgentControlToggles({
           </Tooltip>
         );
       })}
+      <XScienceDelegationControlRow control={delegationControl} active={active} />
     </>
   );
 }

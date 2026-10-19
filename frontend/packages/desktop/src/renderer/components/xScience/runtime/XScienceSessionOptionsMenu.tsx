@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
 import { getMenuItems } from '@/renderer/utils/menuKeyboard';
+import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import {
   sessionMemoryPresentation,
   type XScienceMemoryControl,
@@ -41,6 +42,7 @@ export type XScienceSessionOptionsMenuProps = {
   disabled?: boolean;
   permissionControl?: XSciencePermissionControlInput;
   memoryControl?: XScienceMemoryControl;
+  delegationControl?: XScienceDelegationControl;
 };
 
 const rowClass =
@@ -61,6 +63,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   disabled = false,
   permissionControl,
   memoryControl,
+  delegationControl,
 }) => {
   const { t, i18n } = useTranslation();
   const memoryPresentation = sessionMemoryPresentation(memoryControl, value.memory);
@@ -108,7 +111,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   });
   // Optional session-option hydration must not withdraw the independent mode
   // and observed-grant capabilities that were already available to the user.
-  const triggerDisabled = disabled && !permission.available;
+  const triggerDisabled = disabled && !permission.available && !delegationControl;
   const hasPermissionChoices = permission.options.length > 0;
   useLayoutEffect(() => {
     if (hasPermissionChoices || submenu !== 'permission') return;
@@ -271,12 +274,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     }
   };
 
-  const updateToggle = async (key: 'delegation' | 'autoReview' | 'memory', checked: boolean) => {
+  const updateToggle = async (key: 'autoReview' | 'memory', checked: boolean) => {
     if (disabled || (key === 'memory' && !memoryControl?.canUpdate())) return;
-    if (key === 'delegation') {
-      onChange({ ...value, delegation: checked });
-      return;
-    }
 
     setPendingOption(key);
     try {
@@ -491,6 +490,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       ) : null}
       <XScienceAgentControlToggles
         memoryControl={memoryControl}
+        delegationControl={delegationControl}
+        active={visible}
         value={value}
         pending={pendingOption}
         disabled={disabled}
@@ -614,7 +615,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           className='composer-icon-control relative'
         >
           <SettingConfig theme='outline' size={17} strokeWidth={3.6} />
-          {value.delegation ||
+          {(delegationControl?.current() && delegationControl.enabled === false) ||
           value.autoReview ||
           hasMemoryCustomization ||
           value.targetAgent !== 'OPERON' ||

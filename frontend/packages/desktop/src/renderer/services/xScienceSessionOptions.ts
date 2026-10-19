@@ -97,6 +97,7 @@ export async function updateXScienceSessionConfig(
 export function toXScienceMessageSessionOptions(
   options: XScienceSessionOptions,
   overrides: {
+    delegation?: boolean | null;
     planMode?: boolean;
     targetBranchId?: string | null;
     expectedBranchId?: string | null;
@@ -104,7 +105,8 @@ export function toXScienceMessageSessionOptions(
   } = {}
 ) {
   return {
-    ultra_mode: options.delegation,
+    // Compatibility guidance only; a live policy owner may omit an unknown value.
+    ultra_mode: overrides.delegation === null ? undefined : (overrides.delegation ?? options.delegation),
     verifier_mode: options.autoReview ? ('on' as const) : ('off' as const),
     memory_mode: options.memory ? ('on' as const) : ('off' as const),
     target_agent: options.targetAgent,

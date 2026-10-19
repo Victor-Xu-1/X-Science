@@ -65,7 +65,6 @@ import {
   setXScienceSessionComputeProvider,
 } from '@/renderer/services/xScienceCompute';
 import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
-import { updateXScienceSessionConfig } from '@/renderer/services/xScienceSessionOptions';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -233,7 +232,6 @@ const AcpSendBox: React.FC<{
   const [mobileEnabledCompute, setMobileEnabledCompute] = useState<string[]>([]);
   const [reviewInFlight, setReviewInFlight] = useState(false);
   const [reviewActive, setReviewActive] = useState(false);
-  const [goalClearInFlight, setGoalClearInFlight] = useState(false);
   const {
     canSelectProjectFiles,
     handleArtifactReferenceSelected,
@@ -295,7 +293,6 @@ const AcpSendBox: React.FC<{
   useEffect(() => {
     setReviewInFlight(false);
     setReviewActive(false);
-    setGoalClearInFlight(false);
     mobileModeChangeInFlightRef.current = false;
   }, [conversation_id]);
 
@@ -354,32 +351,21 @@ const AcpSendBox: React.FC<{
     };
   }, [conversation_id, isMobile, localeKey]);
 
-  const { memoryControl, updatePersistentSessionOption, openMobileControls } = useAcpSessionOptionControls(
+  const {
+    memoryControl,
+    delegationControl,
+    updatePersistentSessionOption,
+    openMobileControls,
+    handleClearGoal,
+    goalClearInFlight,
+  } = useAcpSessionOptionControls(
     conversation_id,
-    JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
+    initialConversation,
     conversationAuthorityRef,
     mountedRef,
     setXScienceSessionOptions,
     setIsMobileSheetOpen
   );
-
-  const handleClearGoal = useCallback(async () => {
-    if (goalClearInFlight) return;
-    const requestAuthority = conversationAuthorityRef.current;
-    setGoalClearInFlight(true);
-    try {
-      await updateXScienceSessionConfig(conversation_id, { goalText: null });
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      setXScienceSessionOptions((current) => ({ ...current, goalText: null }));
-      Message.success(t('conversation.xscienceRuntime.sendBox.goalCleared'));
-    } catch (error) {
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      console.error('[AcpSendBox] Failed to clear conversation goal', safeErrorDiagnostic(error));
-      Message.error(t('conversation.xscienceRuntime.sendBox.goalClearFailed'));
-    } finally {
-      if (mountedRef.current && conversationAuthorityRef.current === requestAuthority) setGoalClearInFlight(false);
-    }
-  }, [conversation_id, goalClearInFlight, t]);
 
   const handleSheetModeChange = useCallback(
     async (mode: string) => {
@@ -555,7 +541,8 @@ const AcpSendBox: React.FC<{
     conversation_id,
     xscienceSessionOptions,
     stagedSessionOptionsRef,
-    stagedPlanModeRef
+    stagedPlanModeRef,
+    delegationControl
   );
 
   const executeCommand = useCallback(
@@ -1034,6 +1021,7 @@ const AcpSendBox: React.FC<{
     setXScienceSessionOptions,
     updatePersistentSessionOption,
     memoryControl,
+    delegationControl,
     mobileSpecialists,
     mobileComputeProviders,
     mobileEnabledCompute,
@@ -1222,6 +1210,7 @@ const AcpSendBox: React.FC<{
                 onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
                 memoryControl={memoryControl}
+                delegationControl={delegationControl}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}
