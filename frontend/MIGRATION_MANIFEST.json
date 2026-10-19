@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4498c66e064902328d25f1711216c303acc4b591d0c89cbb41bf61773fd9234f",
+  "adaptationFingerprintSHA256": "e231fb7b739676a17369b6390cb431e5dad9f9c93971207de75440db3d728c83",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6f05e6df34fae388bc7cbc1af1527cd761d60022b8ba42e8b4dbe6d02ec86ae8",
+  "additionFingerprintSHA256": "62987955fc09aa364f5e072533e4b9cd48abb5e8742a99c467e9b9d6acfe28ab",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1178
+    "addedFiles": 1180
   },
   "adaptations": [
     {
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "9d39a41434a999242c884f7e12194892bd75b3bf5fec99a5281562d78a6a837b",
-      "bytes": 24056,
+      "targetSHA256": "53e56a317498ccc3cf89d2199504066bb4e2a65ba7896e1a2a71618046d2c555",
+      "bytes": 24352,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "2ba63015a1c541bbb028431772a2cd120f6cd089d54260bd211496e86c7e3664",
-      "bytes": 275675,
+      "targetSHA256": "f87b8020ceed238e7c74e8a13d74e0175abe705faa593841901dcf532ea7a373",
+      "bytes": 275954,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "67c438a6e306fc444eab01d0f92a775fdb764f53a613581888d1d2796289f6a3",
-      "bytes": 106094,
+      "targetSHA256": "b572f521fa64d43563818d707b65eaffa38e96e5c559eca852b7334b0388cc8a",
+      "bytes": 106345,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "180c0ae913d7f071c8ddfb7798f136fc0956594b51aeff9714393a115ebe6d35",
-      "bytes": 99894,
+      "targetSHA256": "54a4551c54532955946658756018dd94fa76565a4150997682abef3b6fd40ff4",
+      "bytes": 100124,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -8114,6 +8114,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceComputeChoices.tsx",
+      "sha256": "3acf9cf95e4a625d9a4053c0466608950698f1c512850e9f3414962151972df4",
+      "bytes": 4486,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceComputeRuntimePanel.css",
       "sha256": "f020d243f58c1a56ceff331f36089489c1d55a0d2e97e7aaea1a7b0d74eaf754",
       "bytes": 4151,
@@ -12611,6 +12617,12 @@
       "path": "tests/unit/renderer/XScienceAgentControls.dom.test.tsx",
       "sha256": "8b34333a78ea3827d2e3c8fd6fb4d19fa2bbea44d100856848a5019b56ffc6ed",
       "bytes": 14781,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/XScienceComputeCatalog.dom.test.tsx",
+      "sha256": "190181e8a87f98bcbaee55e96e9aecdf81eb0f6457daa183eb7e37f2ab4037a9",
+      "bytes": 11145,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
