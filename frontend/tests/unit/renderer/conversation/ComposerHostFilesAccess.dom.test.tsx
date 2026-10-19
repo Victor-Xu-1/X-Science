@@ -41,11 +41,9 @@ describe('composer host access actions', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     const selected = vi.fn();
-    await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={selected} />,
-      'en-US',
-      { wrapper: MemoryRouter }
-    );
+    await renderWithI18n(<FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={selected} />, 'en-US', {
+      wrapper: MemoryRouter,
+    });
     const dialog = await openFiles();
     await screen.findByText('No granted folders.');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Grant folder…' }));
@@ -80,11 +78,9 @@ describe('composer host access actions', () => {
       return response({ grants: revoked ? [] : [grant] });
     });
     vi.stubGlobal('fetch', fetchMock);
-    await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} />,
-      'en-US',
-      { wrapper: MemoryRouter }
-    );
+    await renderWithI18n(<FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} />, 'en-US', {
+      wrapper: MemoryRouter,
+    });
     await openFiles();
     fireEvent.click(await screen.findByRole('button', { name: 'Revoke access to Fixture' }));
     expect(await screen.findByText('No granted folders.')).toBeVisible();
@@ -105,7 +101,7 @@ describe('composer host access actions', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     const selected = vi.fn();
-    const element = () => <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={selected} />;
+    const element = () => <FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={selected} />;
     const view = await renderWithI18n(element(), 'en-US', { wrapper: MemoryRouter });
     await openFiles();
     fireEvent.click(await screen.findByRole('button', { name: 'Expand Fixture' }));

@@ -27,7 +27,7 @@ function renderMenu(
   language: 'zh-CN' | 'en-US' = 'zh-CN'
 ) {
   return renderWithI18n(
-    <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} {...options} />,
+    <FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} {...options} />,
     language,
     { wrapper: MemoryRouter }
   );
@@ -52,7 +52,6 @@ describe('v1.1 add-to-message menu', () => {
     const onSelectProjectFiles = vi.fn();
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={openFileSelector}
         onSelectProjectFiles={onSelectProjectFiles}
         onLocalFilesAdded={vi.fn()}
@@ -75,7 +74,7 @@ describe('v1.1 add-to-message menu', () => {
       { name: 'results.csv', path: '/uploads/results.csv', size: 8, type: 'text/csv', lastModified: 1 },
     ]);
     await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={openFileSelector} onLocalFilesAdded={onLocalFilesAdded} />,
+      <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={onLocalFilesAdded} />,
       'zh-CN',
       { wrapper: MemoryRouter }
     );
@@ -95,7 +94,7 @@ describe('v1.1 add-to-message menu', () => {
     const openFileSelector = vi.fn();
     const onLocalFilesSelected = vi.fn();
     await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={openFileSelector} onLocalFilesSelected={onLocalFilesSelected} />,
+      <FileAttachButton openFileSelector={openFileSelector} onLocalFilesSelected={onLocalFilesSelected} />,
       'zh-CN',
       { wrapper: MemoryRouter }
     );
@@ -119,7 +118,6 @@ describe('v1.1 add-to-message menu', () => {
     const onSaveSkill = vi.fn();
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={vi.fn()}
         onLocalFilesAdded={vi.fn()}
         onViewPlan={onViewPlan}
@@ -158,7 +156,6 @@ describe('v1.1 add-to-message menu', () => {
     const onSelectMcpServer = vi.fn();
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={vi.fn()}
         onLocalFilesAdded={vi.fn()}
         loadedSkills={['literature-review']}
@@ -224,7 +221,6 @@ describe('v1.1 add-to-message menu', () => {
     const onSaveSkill = vi.fn();
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={vi.fn()}
         onLocalFilesAdded={vi.fn()}
         onRequestReview={onRequestReview}
@@ -253,13 +249,7 @@ describe('v1.1 add-to-message menu', () => {
   it('labels the actual Skill task as running instead of waiting for an idle task', async () => {
     const onSaveSkill = vi.fn();
     await renderWithI18n(
-      <FileAttachButton
-        xScienceV11
-        openFileSelector={vi.fn()}
-        onSaveSkill={onSaveSkill}
-        saveAsSkillDisabled
-        saveAsSkillInFlight
-      />,
+      <FileAttachButton openFileSelector={vi.fn()} onSaveSkill={onSaveSkill} saveAsSkillDisabled saveAsSkillInFlight />,
       'zh-CN',
       { wrapper: MemoryRouter }
     );
@@ -281,7 +271,6 @@ describe('v1.1 add-to-message menu', () => {
     const onRequestReview = vi.fn();
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={vi.fn()}
         onLocalFilesAdded={vi.fn()}
         onRequestReview={onRequestReview}

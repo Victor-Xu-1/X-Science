@@ -41,11 +41,9 @@ async function renderFiles(onLocalFilesAdded = vi.fn()) {
     throw new Error(`unexpected fixture route: ${url.pathname}`);
   });
   vi.stubGlobal('fetch', fetchMock);
-  await renderWithI18n(
-    <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={onLocalFilesAdded} />,
-    'en-US',
-    { wrapper: MemoryRouter }
-  );
+  await renderWithI18n(<FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={onLocalFilesAdded} />, 'en-US', {
+    wrapper: MemoryRouter,
+  });
   return { fetchMock, onLocalFilesAdded };
 }
 

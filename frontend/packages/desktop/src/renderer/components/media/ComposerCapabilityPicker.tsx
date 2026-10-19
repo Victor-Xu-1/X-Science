@@ -19,6 +19,7 @@ import {
 import { iconColors } from '@/renderer/styles/colors';
 import { resolveLocaleKey } from '@/common/utils';
 import { resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
+import { useComposerSubmenu } from './useComposerSubmenu';
 
 type ComposerCapabilityPickerProps = {
   skillNames: string[];
@@ -30,6 +31,7 @@ type ComposerCapabilityPickerProps = {
   onSelectMcpServer?: (server: IConversationMcpStatus) => void;
   onOpenMcpSettings: () => void;
   onRequestClose?: () => void;
+  menuOpen?: boolean;
 };
 
 const statusClassName: Record<IConversationMcpStatusKind, string> = {
@@ -63,8 +65,11 @@ const CapabilityRow: React.FC<{
   suffix?: React.ReactNode;
   title?: string;
   onClick?: () => void;
-}> = ({ icon, label, checked, disabled = false, suffix, title, onClick }) => (
+  buttonRef?: React.Ref<HTMLButtonElement>;
+  buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
+}> = ({ icon, label, checked, disabled = false, suffix, title, onClick, buttonRef, buttonProps }) => (
   <button
+    ref={buttonRef}
     type='button'
     role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
     aria-checked={checked}
@@ -76,6 +81,7 @@ const CapabilityRow: React.FC<{
     }`}
     style={{ width: 'calc(100% - 12px)' }}
     onClick={disabled ? undefined : onClick}
+    {...buttonProps}
   >
     <span className='inline-flex w-18px flex-shrink-0 items-center justify-center color-#86909c'>{icon}</span>
     <span className='min-w-0 flex-1 truncate'>{label}</span>
@@ -83,11 +89,18 @@ const CapabilityRow: React.FC<{
   </button>
 );
 
-const SubmenuTriggerRow: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+const SubmenuTriggerRow: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  buttonRef: React.Ref<HTMLButtonElement>;
+  buttonProps: React.ButtonHTMLAttributes<HTMLButtonElement>;
+}> = ({ icon, label, buttonRef, buttonProps }) => (
   <CapabilityRow
     icon={icon}
     label={label}
     suffix={<Right theme='outline' size={12} strokeWidth={3} className='text-t-tertiary' />}
+    buttonRef={buttonRef}
+    buttonProps={buttonProps}
   />
 );
 
@@ -218,18 +231,38 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
   onSelectMcpServer,
   onOpenMcpSettings,
   onRequestClose,
+  menuOpen = true,
 }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const localeKey = resolveLocaleKey(i18n.language);
   const [skillsOpen, setSkillsOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
+  useEffect(() => {
+    if (!menuOpen) {
+      setSkillsOpen(false);
+      setMcpOpen(false);
+    }
+  }, [menuOpen]);
   const [skillQuery, setSkillQuery] = useState('');
   const [mcpQuery, setMcpQuery] = useState('');
   const [skillCatalog, setSkillCatalog] = useState<Map<string, CatalogEntry> | null>(null);
   const [skillCatalogEpoch, setSkillCatalogEpoch] = useState(0);
   const [skillCatalogState, setSkillCatalogState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [mcpCatalog, setMcpCatalog] = useState<Map<string, CatalogEntry> | null>(null);
+  const changeSkillsOpen = (next: boolean) => {
+    setSkillsOpen(next);
+    if (next) {
+      setMcpOpen(false);
+      if (!skillsOpen) setSkillCatalogEpoch((epoch) => epoch + 1);
+    }
+  };
+  const changeMcpOpen = (next: boolean) => {
+    setMcpOpen(next);
+    if (next) setSkillsOpen(false);
+  };
+  const skillsMenu = useComposerSubmenu(menuOpen && skillsOpen, changeSkillsOpen);
+  const mcpMenu = useComposerSubmenu(menuOpen && mcpOpen, changeMcpOpen);
 
   // Join the loaded names with the catalog descriptions so every row carries
   // its full blurb; failures only hide the descriptions. In zh the connector
@@ -317,6 +350,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
 
   const skillPanel = (
     <div
+      {...skillsMenu.panelProps}
       className='app-overlay-menu composer-control-submenu conversation-control-submenu flex flex-col'
       style={{ width: 'min(360px, calc(100vw - 24px))', maxHeight: 'min(45vh, 288px)' }}
       role='menu'
@@ -396,6 +430,7 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
 
   const mcpPanel = (
     <div
+      {...mcpMenu.panelProps}
       className='app-overlay-menu composer-control-submenu flex flex-col'
       style={{ width: 'min(360px, calc(100vw - 96px))', maxHeight: 'min(400px, calc(100vh - 220px))' }}
       role='menu'
@@ -453,11 +488,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
           popup={(): React.ReactNode => skillPanel}
           trigger='hover'
           position='rt'
-          popupVisible={skillsOpen}
-          onVisibleChange={(open) => {
-            setSkillsOpen(open);
-            if (open) setSkillCatalogEpoch((epoch) => epoch + 1);
-          }}
+          popupVisible={menuOpen && skillsOpen}
+          onVisibleChange={changeSkillsOpen}
           mouseEnterDelay={100}
           mouseLeaveDelay={150}
         >
@@ -465,6 +497,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
             <SubmenuTriggerRow
               icon={<Lightning theme='outline' size={15} fill={iconColors.primary} />}
               label={`${skillMenuLabel} · ${availableNames.length}`}
+              buttonRef={skillsMenu.triggerRef}
+              buttonProps={skillsMenu.triggerProps}
             />
           </div>
         </Trigger>
@@ -474,8 +508,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
           popup={(): React.ReactNode => mcpPanel}
           trigger='hover'
           position='rt'
-          popupVisible={mcpOpen}
-          onVisibleChange={setMcpOpen}
+          popupVisible={menuOpen && mcpOpen}
+          onVisibleChange={changeMcpOpen}
           mouseEnterDelay={100}
           mouseLeaveDelay={150}
         >
@@ -483,6 +517,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
             <SubmenuTriggerRow
               icon={<Briefcase theme='outline' size={15} fill={iconColors.primary} />}
               label={`${t('conversation.mcp.loaded')} · ${mcpStatuses.length}`}
+              buttonRef={mcpMenu.triggerRef}
+              buttonProps={mcpMenu.triggerProps}
             />
           </div>
         </Trigger>

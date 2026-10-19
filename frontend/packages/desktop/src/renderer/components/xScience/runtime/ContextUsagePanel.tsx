@@ -79,22 +79,48 @@ const UsageRing: React.FC<{
   );
 };
 
-type ContextUsagePanelProps = { conversationId: string; active?: boolean; compaction?: ContextCompactionPresentation };
+type ContextUsagePanelProps = {
+  conversationId: string;
+  active?: boolean;
+  compaction?: ContextCompactionPresentation;
+  /** Both composer entries address this single inspection/read owner. */
+  openRequest?: number;
+  triggerVisible?: boolean;
+  returnFocus?: HTMLButtonElement | null;
+};
 
 /** The server's latest main-agent request is the only usage authority. */
-const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, active = false, compaction }) => {
+const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({
+  conversationId,
+  active = false,
+  compaction,
+  openRequest = 0,
+  triggerVisible = true,
+  returnFocus,
+}) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [panelNode, setPanelNode] = useState<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const previousOpenRequest = useRef(openRequest);
+  const openSource = useRef<'ring' | 'menu'>('ring');
   const panelId = useId();
   const detailsId = useId();
+  useLayoutEffect(() => {
+    if (previousOpenRequest.current === openRequest) return;
+    previousOpenRequest.current = openRequest;
+    openSource.current = 'menu';
+    setVisible(true);
+  }, [openRequest]);
   useLayoutEffect(() => {
     if (visible && panelNode) focusableElements(panelNode)[0]?.focus({ preventScroll: true });
   }, [panelNode, visible]);
   const closePanel = () => {
     setVisible(false);
-    restoreScopedFocus(triggerRef.current, panelNode);
+    restoreScopedFocus(
+      openSource.current === 'menu' && returnFocus?.isConnected ? returnFocus : triggerRef.current,
+      panelNode
+    );
   };
   const { state, retry } = useContextUsage(conversationId, visible, active);
   const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
@@ -179,7 +205,10 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
       trigger='click'
       position='tl'
       popupVisible={visible}
-      onVisibleChange={setVisible}
+      onVisibleChange={(nextVisible) => {
+        if (nextVisible) openSource.current = 'ring';
+        setVisible(nextVisible);
+      }}
       droplist={
         <div
           id={panelId}
@@ -324,38 +353,42 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({ conversationId, a
         </div>
       }
     >
-      <button
-        type='button'
-        ref={triggerRef}
-        data-testid='x-science-context-usage-trigger'
-        aria-label={t('conversation.contextUsage.title')}
-        aria-expanded={visible}
-        aria-controls={visible ? panelId : undefined}
-        aria-haspopup='dialog'
-        title={
-          usage
-            ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%${
-                defaultBudgetNote ? ` · ${defaultBudgetNote}` : ''
-              }`
-            : t('conversation.contextUsage.unavailable')
-        }
-        data-usage-state={state.status}
-        className={styles.trigger}
-      >
-        {usage ? (
-          <UsageRing
-            usedTokens={usage.usedTokens}
-            limitTokens={displayWindow!.windowTokens}
-            threshold={policy?.enabled && policy.thresholdTokens > 0 ? policy.thresholdTokens : undefined}
-          />
-        ) : state.status === 'loading' ? (
-          <Spin size={16} />
-        ) : (
-          <span className={styles.unknown} aria-hidden='true'>
-            —
-          </span>
-        )}
-      </button>
+      {triggerVisible || visible ? (
+        <button
+          type='button'
+          ref={triggerRef}
+          data-testid='x-science-context-usage-trigger'
+          aria-label={t('conversation.contextUsage.title')}
+          aria-expanded={visible}
+          aria-controls={visible ? panelId : undefined}
+          aria-haspopup='dialog'
+          title={
+            usage
+              ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%${
+                  defaultBudgetNote ? ` · ${defaultBudgetNote}` : ''
+                }`
+              : t('conversation.contextUsage.unavailable')
+          }
+          data-usage-state={state.status}
+          className={styles.trigger}
+        >
+          {usage ? (
+            <UsageRing
+              usedTokens={usage.usedTokens}
+              limitTokens={displayWindow!.windowTokens}
+              threshold={policy?.enabled && policy.thresholdTokens > 0 ? policy.thresholdTokens : undefined}
+            />
+          ) : state.status === 'loading' ? (
+            <Spin size={16} />
+          ) : (
+            <span className={styles.unknown} aria-hidden='true'>
+              —
+            </span>
+          )}
+        </button>
+      ) : (
+        <span aria-hidden='true' style={{ width: 0, height: 0 }} />
+      )}
     </Dropdown>
   );
 };

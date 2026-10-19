@@ -42,7 +42,6 @@ describe('composer granted folder snapshots', () => {
     vi.stubGlobal('fetch', fetchMock);
     await renderWithI18n(
       <FileAttachButton
-        xScienceV11
         openFileSelector={vi.fn()}
         onSelectProjectFiles={onSelectProjectFiles}
         onLocalFilesAdded={onLocalFilesAdded}
@@ -75,11 +74,9 @@ describe('composer granted folder snapshots', () => {
       .mockResolvedValueOnce(fixtureResponse({ message: 'unavailable' }, 503))
       .mockResolvedValueOnce(fixtureResponse({ grants: [] }));
     vi.stubGlobal('fetch', fetchMock);
-    await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} />,
-      'en-US',
-      { wrapper: MemoryRouter }
-    );
+    await renderWithI18n(<FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={vi.fn()} />, 'en-US', {
+      wrapper: MemoryRouter,
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Add to message' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Your files' }));
     expect(await screen.findByText('Could not load granted folders.')).toBeVisible();
@@ -118,7 +115,7 @@ describe('composer granted folder snapshots', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     await renderWithI18n(
-      <FileAttachButton xScienceV11 openFileSelector={vi.fn()} onLocalFilesAdded={onLocalFilesAdded} />,
+      <FileAttachButton openFileSelector={vi.fn()} onLocalFilesAdded={onLocalFilesAdded} />,
       'en-US',
       { wrapper: MemoryRouter }
     );
