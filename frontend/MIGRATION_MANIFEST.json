@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4a359780b52bbfb2b169a7d5305b78d93e70f95aef4191a150f05ac318fc674e",
+  "adaptationFingerprintSHA256": "4c5212d4e0fce9b2b97ee4afd1798d436c30b5a59cb2463ba6b9a658a8580f6e",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "c1a83c38dfd85684a4fd109a65f1916e3b068c5e41fb53192b097bf6ea94f583",
+  "additionFingerprintSHA256": "905c63ed76e2bf078008b3f232252d579884750a32b340329035785ea54e1e11",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -582,8 +582,8 @@
     {
       "path": "packages/desktop/src/renderer/components/media/FileAttachButton.tsx",
       "sourceSHA256": "8ea1f58b4f1a4c9a5d5cb3674eba6c4b5cd0e924e25056d38004433420208d5e",
-      "targetSHA256": "eaf2d72d7d179e79214747c6bc597378fa78ac601ae9260f18381ed06578ff30",
-      "bytes": 17404,
+      "targetSHA256": "5d9f74809f2e27e7407608ac49d69412538c6fe4e08957d5839b3597f089db53",
+      "bytes": 17359,
       "reason": "Harden media selection, upload, diff, preview, and embedded-content states for the Go Web trust boundary."
     },
     {
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "53e56a317498ccc3cf89d2199504066bb4e2a65ba7896e1a2a71618046d2c555",
-      "bytes": 24352,
+      "targetSHA256": "ae945fca63dc9a579bb311942c540765f749a8754ea789ae7ba5b0fb53b27add",
+      "bytes": 24372,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -5338,8 +5338,8 @@
       "path": "tests/unit/xscience/FileAttachButtonV11.dom.test.tsx",
       "originalPath": "tests/unit/synonbiomed/FileAttachButtonV11.dom.test.tsx",
       "sourceSHA256": "e752754533d1f2b1542a4c62ce9c9b6cce72f8522d1c2aa968da028dfe83e61b",
-      "targetSHA256": "6489940f6ffbf032420e54314585dbeb9a43dd2fd39e429969e4f4e76f847563",
-      "bytes": 13116,
+      "targetSHA256": "df8c4c324fb7046be49cf4d22d09b175061c3ab8e724238579b5512d2660e55c",
+      "bytes": 15071,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8391,8 +8391,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/ui/useNestedMenuKeyboard.ts",
-      "sha256": "83cbe7370eceb34a408f669d713e392e57ecc115ed5dc61d99b65602548fad85",
-      "bytes": 3777,
+      "sha256": "574de546d59e98d63a89cb372c3cbede011253548d5de47c0843a436a5009743",
+      "bytes": 3768,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10911,8 +10911,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/utils/menuKeyboard.ts",
-      "sha256": "474612ac5adc80f04d9bb16efdbff27f78943342ad8d4f4b57f2ad453dbe1aed",
-      "bytes": 1405,
+      "sha256": "3c6a484b790284e0c7714e214cbfa3150f42b3667ade772776f47320f4291a44",
+      "bytes": 1822,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12669,8 +12669,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSessionOptionsMenu.dom.test.tsx",
-      "sha256": "aa3ea1cd06fc48c1a173801a5ec7edb8fa17615bd115afa24fb61babecaad3d8",
-      "bytes": 14057,
+      "sha256": "712afb94ef016fc4f032521d30ca1debe7ad6e5c98959ed124fae0be6c10f926",
+      "bytes": 15988,
       "reason": "Retain the imported session-options component regression under its exact component name without colliding with the service test on case-insensitive filesystems."
     },
     {
