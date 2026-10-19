@@ -23,6 +23,9 @@ type Props = {
   planReference: XSciencePlanReference | null;
   planLoading: boolean;
   planError: string | null;
+  planReplaced?: boolean;
+  planCanRetry?: boolean;
+  onOpenCurrentPlan?: () => void;
   planApprovalAvailable: boolean;
   planAction: 'approve' | 'discard' | null;
   returnPlanLabel: string;
@@ -49,6 +52,9 @@ const XScienceRuntimeDrawers = ({
   planReference,
   planLoading,
   planError,
+  planReplaced,
+  planCanRetry,
+  onOpenCurrentPlan,
   planApprovalAvailable,
   planAction,
   returnPlanLabel,
@@ -90,6 +96,9 @@ const XScienceRuntimeDrawers = ({
         reference={planReference}
         loading={planLoading}
         error={planError}
+        replaced={planReplaced}
+        canRetry={planCanRetry}
+        onOpenCurrent={onOpenCurrentPlan}
         onRetry={onRetryPlan}
       />
       {planDocument && !planError && !planLoading && planApprovalAvailable ? (

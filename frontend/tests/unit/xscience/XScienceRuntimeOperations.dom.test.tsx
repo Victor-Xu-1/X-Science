@@ -2010,7 +2010,7 @@ describe('XScienceRuntimeOperations', () => {
     expect(onResumed).toHaveBeenCalledWith('frame-plan', expect.objectContaining({ state: 'running' }));
   });
 
-  it('keeps plan review open across same-owner realtime refresh and rejects a changed plan', async () => {
+  it('keeps plan review open across same-owner realtime refresh and makes a replaced plan read-only', async () => {
     let invalidate: (() => void) | undefined;
     runtimeMocks.subscribeInvalidation.mockImplementation((_owner: string, listener: () => void) => {
       invalidate = listener;
@@ -2045,8 +2045,8 @@ describe('XScienceRuntimeOperations', () => {
         invalidate?.();
         await vi.advanceTimersByTimeAsync(80);
       });
-      expect(screen.queryByText('Stable reviewed plan')).not.toBeInTheDocument();
-      expect(screen.getByText('任务计划已更新。请重新加载并审阅当前计划后再操作。')).toBeInTheDocument();
+      expect(screen.getByText('Stable reviewed plan')).toBeInTheDocument();
+      expect(screen.getByText('此计划已被替换，仅供查看。')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
       expect(runtimeMocks.approvePlan).not.toHaveBeenCalled();
     } finally {

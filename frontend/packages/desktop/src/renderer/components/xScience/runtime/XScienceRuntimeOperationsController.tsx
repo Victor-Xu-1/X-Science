@@ -5,7 +5,6 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
   approveXSciencePlan,
   discardXSciencePlan,
-  loadXSciencePlanDocument,
   loadXScienceRuntimeSnapshot,
   resumeXScienceFrame,
   resolveXScienceAskUserRequest,
@@ -19,7 +18,6 @@ import { loadXScienceFrameVerification, type XScienceVerificationCheck } from '@
 import type {
   XScienceApprovalScope,
   XSciencePendingInputRequest,
-  XSciencePlanDocument,
   XSciencePlanReference,
   XScienceRuntimeSnapshot,
   XScienceRuntimeModelOption,
@@ -40,13 +38,13 @@ import type { XScienceTaskStatusError } from './XScienceTaskStatus';
 import type { XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
 import XScienceRuntimeDrawers from './XScienceRuntimeDrawers';
 import XScienceRuntimeStatusSurface from './XScienceRuntimeStatusSurface';
+import { useXSciencePlanPreview } from './useXSciencePlanPreview';
 import {
   ACTIVE_RUNTIME_SNAPSHOT_INTERVAL_MS,
   ACTIVE_RUNTIME_STATES,
   TERMINAL_RUNTIME_STATUSES,
   isRuntimePauseTransitionSettled,
   offlineRecoveryDelay,
-  planReferenceIdentity,
   projectAcceptedRuntimeStart,
   runtimeSummaryChanged,
 } from './runtimeOperationsControllerModel';
@@ -131,11 +129,6 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewTrigger, setReviewTrigger] = useState<'auto' | 'manual' | null>(null);
   const [reviewRepairing, setReviewRepairing] = useState(false);
-  const [planDrawerVisible, setPlanDrawerVisible] = useState(false);
-  const planOwnerRef = useRef<string | null>(null);
-  const planRequestRef = useRef(0);
-  const planControllerRef = useRef<AbortController | null>(null);
-  const loadedPlanIdentityRef = useRef<string | null>(null);
   const inputRequestRef = useRef(0);
   const inputControllerRef = useRef<AbortController | null>(null);
   const resumeRequestRef = useRef(0);
@@ -146,9 +139,10 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const [pauseInFlight, setPauseInFlight] = useState(false);
   const planActionRequestRef = useRef(0);
   const planActionControllerRef = useRef<AbortController | null>(null);
-  const [planDocument, setPlanDocument] = useState<XSciencePlanDocument | null>(null);
-  const [planLoading, setPlanLoading] = useState(false);
-  const [planError, setPlanError] = useState<string | null>(null);
+  const planPreview = useXSciencePlanPreview(
+    conversationId,
+    loadedConversationRef.current === conversationId ? (snapshot?.taskPlan ?? null) : null
+  );
   const [planAction, setPlanAction] = useState<'approve' | 'discard' | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const snapshotReportsActiveRuntime = doesXScienceRuntimeSnapshotNeedActiveRefresh(snapshot);
@@ -255,10 +249,6 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       publishedRuntimeRef.current = null;
       applySnapshot(null);
       setLoading(true);
-      planRequestRef.current += 1;
-      planControllerRef.current?.abort();
-      planControllerRef.current = null;
-      planOwnerRef.current = null;
       inputRequestRef.current += 1;
       inputControllerRef.current?.abort();
       inputControllerRef.current = null;
@@ -273,10 +263,6 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       setResumeInFlight(false);
       setPauseInFlight(false);
       setSnapshotError(null);
-      loadedPlanIdentityRef.current = null;
-      setPlanDrawerVisible(false);
-      setPlanDocument(null);
-      setPlanError(null);
     }
     void requestSnapshot(conversationId, snapshotRevision)
       .then((nextSnapshot) => {
@@ -312,24 +298,6 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       active = false;
     };
   }, [applyAuthoritativeSnapshot, applySnapshot, conversationId, requestSnapshot, snapshotRevision]);
-
-  const currentPlanIdentity = planReferenceIdentity(snapshot?.taskPlan);
-  useEffect(() => {
-    if (
-      !planDrawerVisible ||
-      planOwnerRef.current !== conversationId ||
-      loadedPlanIdentityRef.current === currentPlanIdentity
-    )
-      return;
-    // Refreshes keep a reviewed plan open; a new plan revision invalidates
-    // its content and actions instead of silently approving the replacement.
-    planRequestRef.current += 1;
-    planControllerRef.current?.abort();
-    planControllerRef.current = null;
-    setPlanDocument(null);
-    setPlanLoading(false);
-    setPlanError(t('conversation.xscienceRuntime.runtimeOperations.planChanged'));
-  }, [conversationId, currentPlanIdentity, planDrawerVisible, t]);
 
   useEffect(() => {
     if (!['offline', 'reconnecting', 'protocol-error'].includes(realtimeSnapshot.status)) return;
@@ -432,8 +400,6 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       snapshotRequestRef.current = null;
       reviewControllerRef.current?.abort();
       reviewControllerRef.current = null;
-      planControllerRef.current?.abort();
-      planControllerRef.current = null;
       inputControllerRef.current?.abort();
       inputControllerRef.current = null;
       resumeControllerRef.current?.abort();
@@ -736,57 +702,11 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   };
 
   const openPlanReview = () => {
-    const reference = snapshotRef.current?.taskPlan;
-    if (!reference?.artifactId) {
+    if (!planPreview.open()) {
       messageApi.info(t('conversation.xscienceRuntime.runtimeOperations.noPlanAvailable'));
-      return;
     }
-    const owner = conversationId;
-    const request = ++planRequestRef.current;
-    planControllerRef.current?.abort();
-    const controller = new AbortController();
-    planControllerRef.current = controller;
-    planOwnerRef.current = owner;
-    loadedPlanIdentityRef.current = planReferenceIdentity(reference);
-    setPlanDrawerVisible(true);
-    setPlanDocument(null);
-    setPlanLoading(true);
-    setPlanError(null);
-    void loadXSciencePlanDocument(reference, { signal: controller.signal })
-      .then((document) => {
-        if (
-          conversationAuthorityRef.current === owner &&
-          planRequestRef.current === request &&
-          loadedPlanIdentityRef.current === planReferenceIdentity(snapshotRef.current?.taskPlan)
-        )
-          setPlanDocument(document);
-      })
-      .catch((reason: unknown) => {
-        if (conversationAuthorityRef.current !== owner || planRequestRef.current !== request) return;
-        console.error(
-          `[${PRODUCT_NAME} RuntimeOperations] Failed to load plan document`,
-          redactErrorText(reason instanceof Error ? reason.message : String(reason))
-        );
-        setPlanError(t('conversation.xscienceRuntime.runtimeOperations.planLoadFailed'));
-      })
-      .finally(() => {
-        if (conversationAuthorityRef.current === owner && planRequestRef.current === request) {
-          if (planControllerRef.current === controller) planControllerRef.current = null;
-          setPlanLoading(false);
-        }
-      });
   };
   openPlanReviewRef.current = openPlanReview;
-  const closePlanReview = () => {
-    planRequestRef.current += 1;
-    planOwnerRef.current = null;
-    planControllerRef.current?.abort();
-    planControllerRef.current = null;
-    setPlanDrawerVisible(false);
-    setPlanDocument(null);
-    setPlanLoading(false);
-    setPlanError(null);
-  };
   useAddEventListener(
     'xscience.runtime.plan.open',
     (frameId) => {
@@ -797,12 +717,12 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
 
   const completePlanReview = async (action: 'approve' | 'discard') => {
     if (planActionControllerRef.current && !planActionControllerRef.current.signal.aborted) return;
-    if (
-      !snapshotRef.current?.planApproval ||
-      !planDocument ||
-      loadedPlanIdentityRef.current !== planReferenceIdentity(snapshotRef.current.taskPlan)
-    ) {
-      setPlanError(t('conversation.xscienceRuntime.runtimeOperations.planChanged'));
+    const reviewedReference = planPreview.captureDecision(
+      snapshotRef.current?.taskPlan,
+      snapshotRef.current?.planApproval
+    );
+    if (!reviewedReference) {
+      planPreview.setError(t('conversation.xscienceRuntime.runtimeOperations.planChanged'));
       return;
     }
     const owner = conversationId;
@@ -815,11 +735,11 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     try {
       const result =
         action === 'approve'
-          ? await approveXSciencePlan(conversationId, { signal: controller.signal }, snapshotRef.current.planApproval)
-          : await discardXSciencePlan(conversationId, { signal: controller.signal }, snapshotRef.current.planApproval);
+          ? await approveXSciencePlan(conversationId, { signal: controller.signal }, reviewedReference)
+          : await discardXSciencePlan(conversationId, { signal: controller.signal }, reviewedReference);
       if (conversationAuthorityRef.current !== owner || planActionRequestRef.current !== request) return;
       applyAuthoritativeSnapshot(result.snapshot, false);
-      setPlanDrawerVisible(false);
+      if (planPreview.ownsPreview(reviewedReference)) planPreview.close();
       onResumed(result.snapshot.rootFrameId, result.runtime);
       messageApi.success(
         action === 'approve'
@@ -834,12 +754,13 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       );
       onResumeFailed?.(reason instanceof Error ? reason.message : String(reason));
       messageApi.error(t('conversation.xscienceRuntime.runtimeOperations.planActionFailed'));
-      setPlanError(
+      planPreview.setError(
         t(
           isXScienceHttpError(reason) && reason.status === 409
             ? 'conversation.xscienceRuntime.runtimeOperations.planChanged'
             : 'conversation.xscienceRuntime.runtimeOperations.planActionFailed'
-        )
+        ),
+        reviewedReference
       );
       if (isXScienceHttpError(reason) && reason.status === 409) refreshRuntime();
     } finally {
@@ -963,17 +884,22 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         onRetryReview={openReviewFindings}
         onRepairAndRegenerate={onRepairAndRegenerate ? repairAndRegenerate : undefined}
         planTitle={t('conversation.xscienceRuntime.runtimeOperations.taskPlan')}
-        planVisible={planDrawerVisible && planOwnerRef.current === conversationId}
-        planDocument={planDocument}
-        planReference={visibleSnapshot?.taskPlan ?? null}
-        planLoading={planLoading}
-        planError={planError}
-        planApprovalAvailable={Boolean(snapshot?.planApproval)}
+        planVisible={planPreview.visible}
+        planDocument={planPreview.document}
+        planReference={planPreview.reference}
+        planLoading={planPreview.loading}
+        planError={planPreview.error}
+        planReplaced={planPreview.replaced}
+        planCanRetry={planPreview.canRetry}
+        onOpenCurrentPlan={planPreview.canOpenCurrent ? openPlanReview : undefined}
+        planApprovalAvailable={
+          planPreview.isSelected(snapshot?.planApproval) && planPreview.isSelected(snapshot?.taskPlan)
+        }
         planAction={planAction}
         returnPlanLabel={t('conversation.xscienceRuntime.runtimeOperations.returnPlan')}
         approvePlanLabel={t('conversation.xscienceRuntime.runtimeOperations.approveAndExecute')}
-        onClosePlan={closePlanReview}
-        onRetryPlan={openPlanReview}
+        onClosePlan={planPreview.close}
+        onRetryPlan={planPreview.retry}
         onCompletePlan={(action) => void completePlanReview(action)}
       />
     </>
