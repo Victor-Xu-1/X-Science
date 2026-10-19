@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "8c86375480b1b652d55f2e50a1cad7ae770981270c20e39f2d0dafbbad4efa57",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "4bd4078414eb56e319ccc75145bd565640b36ea6bbefaf150ad6d6877a372292",
+  "additionFingerprintSHA256": "60f2c5eaf781860f787b36dd757ee0b36f35ab2323da34b106f1775026d81d1b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -8277,8 +8277,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/useXSciencePermissionControl.ts",
-      "sha256": "104ba23fc0cd01a44cd288e8f1646eeceb84ee4063ac34cdc3b6c4a0df1bd71e",
-      "bytes": 7447,
+      "sha256": "5117fc2b1f7a54165cc184b08911ab6e9e19bf6e8414a5c11e15498607b7d847",
+      "bytes": 7603,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12459,8 +12459,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceAgentControls.dom.test.tsx",
-      "sha256": "3fa61da30f208bc46d1b12d25fedd679f43a2fe0721fb253db479c912144de6e",
-      "bytes": 13986,
+      "sha256": "9472e3ed2559b795d88416e9d3ef1717d4d4748a02d5d43a9cd9602573d23d1e",
+      "bytes": 14743,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

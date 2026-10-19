@@ -28,6 +28,8 @@ const STANDARD_MODES = [
   { value: 'bypassPermissions', label: 'Full access' },
 ];
 
+type PermissionChoice = { value: string; label: string; description: string };
+
 /** Presentation/admission adapter only: the existing runtime setter and grant
  * controller remain the sole mutation/observation owners in either menu shell. */
 export function useXSciencePermissionControl(input?: XSciencePermissionControlInput, closeMenu?: () => void) {
@@ -58,7 +60,7 @@ export function useXSciencePermissionControl(input?: XSciencePermissionControlIn
   const closeRef = useRef(closeMenu);
   closeRef.current = closeMenu;
   const currentValue = input?.option?.currentValue ?? 'default';
-  const options = useMemo(() => {
+  const options = useMemo<PermissionChoice[]>(() => {
     const seen = new Set<string>();
     return [...(input?.includeStandardModes ? STANDARD_MODES : []), ...(input?.option?.options ?? [])]
       .filter((item) => {
@@ -84,7 +86,8 @@ export function useXSciencePermissionControl(input?: XSciencePermissionControlIn
             ? t('agentMode.riskyOperationsDescription')
             : item.value === 'default'
               ? t('agentMode.approvalRequiredDescription')
-              : ('description' in item && item.description) || t('agentMode.approvalRequiredDescription'),
+              : ('description' in item && typeof item.description === 'string' && item.description) ||
+                t('agentMode.approvalRequiredDescription'),
       }));
   }, [i18n, input?.includeStandardModes, input?.option?.options, t]);
   useEffect(() => {

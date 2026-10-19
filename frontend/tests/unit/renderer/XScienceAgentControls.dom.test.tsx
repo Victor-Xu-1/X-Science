@@ -64,11 +64,13 @@ function Harness({
   owner = 'a',
   readOnly = false,
   modeAvailable = true,
+  modeOption = option,
 }: {
   withGrants?: boolean;
   owner?: string;
   readOnly?: boolean;
   modeAvailable?: boolean;
+  modeOption?: typeof option;
 }) {
   const controller = useSessionPermissionGrantsController(withGrants ? sessionGrantIdentity : null);
   return (
@@ -80,7 +82,7 @@ function Harness({
         onClearGoal={mocks.clearGoal}
         disabled={readOnly}
         permissionControl={{
-          option: modeAvailable ? option : null,
+          option: modeAvailable ? modeOption : null,
           setStatus: { state: 'idle' },
           setConfigOption: mocks.setMode,
           grantsController: controller,
@@ -108,6 +110,20 @@ describe('unified composer Agent controls', () => {
   afterEach(() => {
     cleanup();
     setRendererAccountOwner(null);
+  });
+
+  it('normalizes non-text runtime permission descriptions before presenting menu content', async () => {
+    const runtimeOption = {
+      ...option,
+      options: [{ value: 'fixture-custom', label: 'Fixture permission', description: { unexpected: true } }],
+    };
+    await renderWithI18n(<Harness modeOption={runtimeOption} />, 'en-US');
+    await openPermission();
+    const choice = await screen.findByRole('menuitemradio', {
+      name: 'Fixture permission: Ask before every tool operation that requires authorization',
+    });
+    expect(choice).toHaveAttribute('title', 'Ask before every tool operation that requires authorization');
+    expect(mocks.setMode).not.toHaveBeenCalled();
   });
 
   it('exposes permissions and the observed grants through one slider without a second shield trigger', async () => {
