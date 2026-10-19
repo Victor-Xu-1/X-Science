@@ -5,10 +5,10 @@ import {
   type XScienceComputeProvider,
 } from '@/renderer/services/xScienceCompute';
 import { X_SCIENCE_SESSION_DEFAULTS, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
-import { Dropdown, Message, Spin, Switch } from '@arco-design/web-react';
-import { Check, Right, SettingConfig } from '@icon-park/react';
+import { Dropdown, Message } from '@arco-design/web-react';
+import { Right, SettingConfig } from '@icon-park/react';
 import { Server, Shield, UserRound } from 'lucide-react';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
@@ -16,6 +16,8 @@ import { getMenuItems } from '@/renderer/utils/menuKeyboard';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import XScienceSpecialistChoices, { specialistControlLabel } from './XScienceSpecialistChoices';
+import XScienceComputeChoices, { computeSelectionLabel } from './XScienceComputeChoices';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import {
   sessionMemoryPresentation,
   type XScienceMemoryControl,
@@ -46,7 +48,6 @@ export type XScienceSessionOptionsMenuProps = {
 
 const rowClass =
   'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center gap-8px border-0 bg-transparent px-8px text-left font-inherit text-13px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
-const checkedSwitchStyle: React.CSSProperties = { backgroundColor: 'var(--workspace-accent)' };
 const clampToRange = (candidate: number, minimum: number, maximum: number) =>
   Math.min(Math.max(candidate, minimum), maximum);
 
@@ -82,12 +83,42 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     }
   }, [refreshMemory, refreshSpecialist, visible]);
   const [submenu, setSubmenu] = useState<Submenu>(null);
-  const [loading, setLoading] = useState(false);
-  const [pendingProvider, setPendingProvider] = useState<string | null>(null);
+  const account = getRendererAccountScopeToken();
+  const computeOwner = useMemo(
+    () => ({ account, rootFrameId, contextKey: permissionControl?.contextKey }),
+    [account, rootFrameId, permissionControl?.contextKey]
+  );
+  const currentComputeOwner = useRef(computeOwner);
+  currentComputeOwner.current = computeOwner;
+  const computeMenuOpen = useRef(visible);
+  computeMenuOpen.current = visible;
+  const isComputeOwnerCurrent = useCallback(
+    () => currentComputeOwner.current === computeOwner && getRendererAccountScopeToken() === account,
+    [account, computeOwner]
+  );
+  const [computeRead, setComputeRead] = useState<{
+    owner: typeof computeOwner;
+    status: 'loading' | 'ready' | 'error';
+    hasSnapshot: boolean;
+  } | null>(null);
+  const [computeRetry, setComputeRetry] = useState(0);
+  const hasComputeSnapshot = computeRead?.owner === computeOwner && computeRead.hasSnapshot;
+  const computeStatus = computeRead?.owner === computeOwner ? computeRead.status : 'loading';
+  const computeReady = computeRead?.owner === computeOwner && computeRead.status === 'ready';
+  const [pendingCompute, setPendingCompute] = useState<{ owner: typeof computeOwner; provider: string } | null>(null);
+  const pendingProvider = pendingCompute?.owner === computeOwner ? pendingCompute.provider : null;
   const [pendingOption, setPendingOption] = useState<'autoReview' | 'memory' | null>(null);
   const [computeProviders, setComputeProviders] = useState<XScienceComputeProvider[]>([]);
   const [enabledComputeProviders, setEnabledComputeProviders] = useState<string[]>(
     (computeSelection ?? []).filter((provider) => provider !== 'local')
+  );
+  // Controlled draft intent is known before a catalog read, but never grants
+  // read readiness or makes another owner's cached provider labels current.
+  const displayedComputeSelection = useMemo(
+    () =>
+      computeSelection?.filter((provider) => provider !== 'local') ??
+      (hasComputeSnapshot ? enabledComputeProviders : undefined),
+    [computeSelection, hasComputeSnapshot, enabledComputeProviders]
   );
   const submenuCloseTimerRef = useRef<number | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState<React.CSSProperties>();
@@ -142,27 +173,35 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       return;
     }
     let active = true;
-    setLoading(true);
+    setComputeRead((previous) => ({
+      owner: computeOwner,
+      status: 'loading',
+      hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
+    }));
     void Promise.all([
       loadXScienceComputeProviders(),
       rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(computeSelection ?? []),
     ])
       .then(([providers, enabledProviders]) => {
-        if (!active) return;
+        if (!active || !isComputeOwnerCurrent()) return;
         setComputeProviders(providers.filter((provider) => provider.checked && provider.name !== 'local'));
         setEnabledComputeProviders(enabledProviders.filter((provider) => provider !== 'local'));
+        setComputeRead({ owner: computeOwner, status: 'ready', hasSnapshot: true });
       })
       .catch((error) => {
+        if (!active || !isComputeOwnerCurrent()) return;
         console.error('Failed to load session options:', error);
-        if (active) Message.error(translationRef.current('conversation.xscienceRuntime.sessionOptions.loadFailed'));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
+        setComputeRead((previous) => ({
+          owner: computeOwner,
+          status: 'error',
+          hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
+        }));
+        Message.error(translationRef.current('conversation.xscienceRuntime.sessionOptions.computeState.read'));
       });
     return () => {
       active = false;
     };
-  }, [computeSelection, rootFrameId, visible]);
+  }, [computeSelection, rootFrameId, visible, computeOwner, computeRetry, isComputeOwnerCurrent]);
 
   useEffect(() => {
     if (computeSelection) setEnabledComputeProviders(computeSelection.filter((provider) => provider !== 'local'));
@@ -211,22 +250,14 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
 
   const activeSpecialistLabel = specialistControlLabel(specialistControl, t);
 
-  const computeLabel = useMemo(() => {
-    if (enabledComputeProviders.length === 0) return t('conversation.xscienceRuntime.sessionOptions.localMachine');
-    if (enabledComputeProviders.length === 1) {
-      const selected = computeProviders.find((provider) => provider.name === enabledComputeProviders[0]);
-      return selected?.displayName || enabledComputeProviders[0];
-    }
-    return t('conversation.xscienceRuntime.sessionOptions.providerCount', {
-      count: enabledComputeProviders.length,
-    });
-  }, [computeProviders, enabledComputeProviders, t]);
+  const computeLabel = computeSelectionLabel(displayedComputeSelection, hasComputeSnapshot ? computeProviders : [], t);
 
   const updateComputeProvider = async (providerName: string, checked: boolean) => {
-    if (disabled) return;
-    setPendingProvider(providerName);
+    if (disabled || !computeReady || pendingProvider !== null || !isComputeOwnerCurrent()) return;
+    setPendingCompute({ owner: computeOwner, provider: providerName });
     try {
       if (rootFrameId) await setXScienceSessionComputeProvider(rootFrameId, providerName, checked);
+      if (!isComputeOwnerCurrent()) return;
       setEnabledComputeProviders((current) => {
         const next = checked
           ? Array.from(new Set([...current, providerName]))
@@ -235,16 +266,24 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         return next;
       });
     } catch (error) {
+      if (!isComputeOwnerCurrent()) return;
       console.error('Failed to update session compute provider:', error);
       Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
     } finally {
-      setPendingProvider(null);
+      if (isComputeOwnerCurrent()) setPendingCompute(null);
     }
   };
 
   const selectLocalCompute = async () => {
-    if (disabled || enabledComputeProviders.length === 0 || pendingProvider !== null) return;
-    setPendingProvider('__local__');
+    if (
+      disabled ||
+      !computeReady ||
+      enabledComputeProviders.length === 0 ||
+      pendingProvider !== null ||
+      !isComputeOwnerCurrent()
+    )
+      return;
+    setPendingCompute({ owner: computeOwner, provider: '__local__' });
     try {
       if (rootFrameId) {
         await Promise.all(
@@ -253,13 +292,15 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           )
         );
       }
+      if (!isComputeOwnerCurrent()) return;
       setEnabledComputeProviders([]);
       onComputeSelectionChange?.([]);
     } catch (error) {
+      if (!isComputeOwnerCurrent()) return;
       console.error('Failed to restore local session compute:', error);
       Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
     } finally {
-      setPendingProvider(null);
+      if (isComputeOwnerCurrent()) setPendingCompute(null);
     }
   };
 
@@ -314,60 +355,26 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
             }}
           />
         ) : (
-          <>
-            <button
-              type='button'
-              role='menuitemradio'
-              aria-checked={enabledComputeProviders.length === 0}
-              className={`${rowClass} gap-10px`}
-              disabled={disabled || pendingProvider !== null}
-              onClick={() => void selectLocalCompute()}
-            >
-              <span className='inline-flex w-20px'>
-                {enabledComputeProviders.length === 0 ? <Check size={14} /> : null}
-              </span>
-              <span>{t('conversation.xscienceRuntime.sessionOptions.localMachine')}</span>
-            </button>
-            {computeProviders.map((provider) => {
-              const checked = enabledComputeProviders.includes(provider.name);
-              return (
-                <div key={provider.name} role='none' className={`${rowClass} cursor-default gap-10px`}>
-                  <span className='min-w-0 flex-1 truncate'>{provider.displayName}</span>
-                  <Switch
-                    size='small'
-                    role='menuitemcheckbox'
-                    aria-checked={checked}
-                    aria-label={t('conversation.xscienceRuntime.sessionOptions.computeNamed', {
-                      name: provider.displayName,
-                    })}
-                    checked={checked}
-                    style={checked ? checkedSwitchStyle : undefined}
-                    loading={pendingProvider === provider.name}
-                    disabled={disabled || (pendingProvider !== null && pendingProvider !== provider.name)}
-                    onChange={(next) => void updateComputeProvider(provider.name, next)}
-                  />
-                </div>
-              );
-            })}
-            {!loading && computeProviders.length === 0 ? (
-              <div className='px-12px py-8px text-12px leading-18px text-t-tertiary'>
-                {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
-              </div>
-            ) : null}
-            <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
-            <button
-              type='button'
-              role='menuitem'
-              className={rowClass}
-              onClick={() => {
-                setVisible(false);
-                setSubmenu(null);
-                void navigate('/settings/compute');
-              }}
-            >
-              {t('conversation.xscienceRuntime.sessionOptions.manageCompute')}
-            </button>
-          </>
+          <XScienceComputeChoices
+            providers={hasComputeSnapshot ? computeProviders : []}
+            enabled={displayedComputeSelection ?? []}
+            status={computeStatus}
+            hasSelection={displayedComputeSelection !== undefined}
+            disabled={disabled}
+            pending={pendingProvider}
+            retry={() => {
+              if (computeMenuOpen.current && isComputeOwnerCurrent() && computeStatus === 'error') {
+                setComputeRetry((attempt) => attempt + 1);
+              }
+            }}
+            selectLocal={() => void selectLocalCompute()}
+            change={(name, checked) => void updateComputeProvider(name, checked)}
+            manage={() => {
+              setVisible(false);
+              setSubmenu(null);
+              void navigate('/settings/compute');
+            }}
+          />
         )}
       </div>
     ) : null;
@@ -525,14 +532,6 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           <Right size={14} />
         </span>
       </button>
-      {loading ? (
-        <div
-          className='absolute inset-x-0 bottom-0 flex h-24px items-center justify-center'
-          aria-label={t('conversation.xscienceRuntime.sessionOptions.loading')}
-        >
-          <Spin size={14} />
-        </div>
-      ) : null}
       {submenuPanel}
     </div>
   );
@@ -564,7 +563,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           hasMemoryCustomization ||
           Boolean(specialistControl?.current() && specialistControl.applied && !specialistControl.applied.is_default) ||
           (permission.available && permission.currentValue !== 'default') ||
-          enabledComputeProviders.length > 0 ? (
+          Boolean(displayedComputeSelection?.length) ? (
             <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />
           ) : null}
           {permission.controller?.isCurrent() &&
