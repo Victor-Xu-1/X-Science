@@ -5,7 +5,7 @@ import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/r
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { ConversationCommandQueueItem } from '../useConversationCommandQueue';
 import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
-import { asideSourceMatches } from '@/renderer/services/asideSpecialist';
+import { asideSourceMatches } from '@/renderer/services/runtime/asideSpecialist';
 import { Message } from '@arco-design/web-react';
 
 export type AsideQueueBridge = {

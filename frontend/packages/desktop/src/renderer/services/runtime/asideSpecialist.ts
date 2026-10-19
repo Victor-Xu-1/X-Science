@@ -4,8 +4,8 @@ import {
   type SpecialistInputReference,
   type SpecialistSendAuthority,
 } from '@/common/adapter/specialistBinding';
-import { sameSpecialistBranch, sameSpecialistScope } from './runtime/sessionSpecialistTypes';
-import type { XScienceAsideIntent, XScienceAsideReceipt } from './xScienceAside';
+import { sameSpecialistBranch, sameSpecialistScope } from './sessionSpecialistTypes';
+import type { XScienceAsideIntent, XScienceAsideReceipt } from '../xScienceAside';
 
 export function sameAsideSpecialist(a?: SpecialistInputReference, b?: SpecialistInputReference): boolean {
   return a && b

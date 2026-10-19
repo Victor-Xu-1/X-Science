@@ -8,7 +8,7 @@ import {
 import { requestXScienceJson, type XScienceGatewayOptions } from './xScienceHttp';
 import { getRendererAccountScopeToken } from './rendererAccountScope';
 import type { SpecialistInputReference } from '@/common/adapter/specialistBinding';
-import { decodeAsideSpecialistProof, freezeAsideSpecialist } from './asideSpecialist';
+import { decodeAsideSpecialistProof, freezeAsideSpecialist } from './runtime/asideSpecialist';
 
 export type XScienceAsideIntent = Readonly<{
   parentFrameId: string;

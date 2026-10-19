@@ -1,7 +1,7 @@
 import { decodeSpecialistInputReference } from '@/common/adapter/specialistBinding';
 import { loadSessionSpecialist } from './sessionSpecialist';
 import { sameSpecialistBranch, SpecialistPreparationRequired } from './sessionSpecialistTypes';
-import { decodeAsideFollowupSpecialist } from '../asideSpecialist';
+import { decodeAsideFollowupSpecialist } from './asideSpecialist';
 import type { XScienceAsideIntent, XScienceAsideReceipt } from '../xScienceAside';
 
 /** Hidden asides cannot reconfigure: their verified receipt is immutable input authority. */

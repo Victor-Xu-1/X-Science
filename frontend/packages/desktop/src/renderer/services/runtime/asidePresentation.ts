@@ -7,7 +7,7 @@ import {
   type XScienceAsideReceipt,
 } from '../xScienceAside';
 import type { SpecialistInputReference } from '@/common/adapter/specialistBinding';
-import { decodeAsideFollowupSpecialist, freezeAsideSpecialist, sameAsideSpecialist } from '../asideSpecialist';
+import { decodeAsideFollowupSpecialist, freezeAsideSpecialist, sameAsideSpecialist } from './asideSpecialist';
 import {
   normalizeXScienceResumeTarget,
   type XScienceContinueInput,

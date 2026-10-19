@@ -7,7 +7,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAsideRuntimeView } from './useAsideRuntimeView';
 import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
-import { sameAsideSpecialist } from '@/renderer/services/asideSpecialist';
+import { sameAsideSpecialist } from '@/renderer/services/runtime/asideSpecialist';
 
 type Scope = {
   key: string;

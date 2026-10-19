@@ -23,7 +23,7 @@ import { loadXScienceSessionOptions, toXScienceMessageSessionOptions } from '../
 import { isXScienceHttpError, type XScienceGatewayOptions } from '../xScienceHttp';
 import { resumeXScienceFrame } from '../xScienceRuntimeOperations';
 import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
-import { freezeAsideSpecialist, sameAsideSpecialist } from '../asideSpecialist';
+import { freezeAsideSpecialist, sameAsideSpecialist } from './asideSpecialist';
 import { freezeAsideFollowupSpecialist } from './asideFollowupSpecialist';
 
 /** One UI action owner, not a task scheduler. Server ownership/receipts remain authoritative. */

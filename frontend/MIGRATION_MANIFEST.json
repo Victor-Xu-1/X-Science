@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "a49fca4ace571cf59f36d88ee1921e746949a7019a0205c79c10d00f690779bf",
+  "adaptationFingerprintSHA256": "c7057c1f9143876e3ea994f0dd3d53a0d6ad47973a9fcafe6193a794b0eadd86",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "49a3b429124b5be434bd341112fe2fca36c9e71b86776e4a50925524eabb8f99",
+  "additionFingerprintSHA256": "1fc7267095333056144e417549b3729d3b00985a12150b418d1260d1ffd2eea5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -386,8 +386,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts",
       "sourceSHA256": "14baafa4d2ae619ea46eaacb6e42a9ad86eff14609de3610b8e46f7094170921",
-      "targetSHA256": "7010457c73ff7443bdcab1992896d76b5a710ccda10eb15ed88f64e9f1346209",
-      "bytes": 16621,
+      "targetSHA256": "d7bb0522a9d5ddea2d52838bc05f74d62f0ff006d9e76adea7e7be96e0a9fecf",
+      "bytes": 16629,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -3145,8 +3145,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAside.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAside.ts",
       "sourceSHA256": "78245de61d5ed4af2ee1da16589fa98b56a22b1f76243762fd1b2c5f9e9b987a",
-      "targetSHA256": "c2c160dae03c68bce27aa227c41784d74c469fa45d5457eae84d2b8bdbcdfc6e",
-      "bytes": 15212,
+      "targetSHA256": "d6f15bc0fcf9cbb75320e94950120e88489e0d0a922bab9f1d2fcb6d638ef0b4",
+      "bytes": 15220,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -9549,8 +9549,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx",
-      "sha256": "db46d53a972a117ff0eaa100e1263cf8cddc7f8cffd7e20b1caf049360ebfc99",
-      "bytes": 12218,
+      "sha256": "04451c7dd716b86b528f4eed2874a668629c20d83611344be2d71e011f3b4b9a",
+      "bytes": 12226,
       "reason": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input."
     },
     {
@@ -10352,12 +10352,6 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/services/asideSpecialist.ts",
-      "sha256": "b8416af518a22027f8c120199bcf36735c7e2ea430b895e3efd48bc0705b2cf7",
-      "bytes": 3716,
-      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
-    },
-    {
       "path": "packages/desktop/src/renderer/services/authProviders.ts",
       "sha256": "1c8f05b4ed005275bb19b33d28ed970ecb584d8832c2f875b403e246850c247e",
       "bytes": 2747,
@@ -10581,21 +10575,27 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asideFollowupSpecialist.ts",
-      "sha256": "25ec53750b463144763b9fdec4c5d28d2a7c8f46eb5a835c39f49bff52274166",
-      "bytes": 1860,
+      "sha256": "9ff0daf829834b1f865ed2653ea28ac66a6f7aeafa6acb4978bd6641bceae2c0",
+      "bytes": 1859,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asideOperation.ts",
-      "sha256": "00ebbb90821d36662b7062d90eacc1d8a08c42feb2ad7b22ff731469f4393aab",
-      "bytes": 16024,
+      "sha256": "1c286e2623375cc7e568e10526fb66dc8ada29b2a99a7a287d99210701fc6424",
+      "bytes": 16023,
       "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asidePresentation.ts",
-      "sha256": "783a92986a1813498b29ce0bd955295386deca32f72b6f2dbf2ebe163d81b278",
-      "bytes": 9067,
+      "sha256": "278a286e610da99b43deae1aa1ecb519372519dbd2f398d7e31678125a31122a",
+      "bytes": 9066,
       "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/asideSpecialist.ts",
+      "sha256": "0d8080f13e001508f8d8318b96d4093c215e42092638a51e9d0565722a6e8cdb",
+      "bytes": 3709,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/conversationArchive.ts",
