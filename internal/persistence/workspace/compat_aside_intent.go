@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionagent"
 )
 
 var ErrCompatibilityAsideAcceptanceUnavailable = errors.New("aside acceptance binding is unavailable")
@@ -16,25 +17,31 @@ var ErrCompatibilityAsideAcceptanceUnavailable = errors.New("aside acceptance bi
 // Stored inside the existing durable intent envelope, in the same transaction
 // as its child, selected history and first input. It is not a second queue.
 type CompatibilityAsideAcceptance struct {
-	OwnerID             string `json:"owner_id"`
-	ParentRootFrameID   string `json:"parent_frame_id"`
-	ParentIncarnationID string `json:"parent_incarnation_id"`
-	IntentID            string `json:"intent_id"`
-	FrameID             string `json:"frame_id"`
-	InputMessageID      string `json:"input_message_id"`
-	SourceBranchID      string `json:"source_branch_id"`
-	SourceGeneration    int64  `json:"source_generation"`
-	ThroughPublication  int64  `json:"through_publication_sequence"`
-	PrefixLen           int    `json:"prefix_len"`
-	AsSession           bool   `json:"as_session"`
+	OwnerID             string                       `json:"owner_id"`
+	ParentRootFrameID   string                       `json:"parent_frame_id"`
+	ParentIncarnationID string                       `json:"parent_incarnation_id"`
+	IntentID            string                       `json:"intent_id"`
+	FrameID             string                       `json:"frame_id"`
+	InputMessageID      string                       `json:"input_message_id"`
+	SourceBranchID      string                       `json:"source_branch_id"`
+	SourceGeneration    int64                        `json:"source_generation"`
+	ThroughPublication  int64                        `json:"through_publication_sequence"`
+	PrefixLen           int                          `json:"prefix_len"`
+	AsSession           bool                         `json:"as_session"`
+	SourceSpecialist    *sessionagent.InputReference `json:"source_specialist,omitempty"`
+	SpecialistBinding   *sessionagent.InputReference `json:"specialist_binding,omitempty"`
 }
 
 func compatibilityAsideIntentPayload(input CompatibilityAsideInput, ownerID string) map[string]any {
-	return map[string]any{
+	payload := map[string]any{
 		"_aside_contract": 1, "owner_id": ownerID, "parent_frame_id": input.ParentRootFrameID,
 		"request": input.Request, "model": input.Model, "as_session": input.AsSession,
 		"source_branch_id": input.SourceBranchID, "expected_generation": input.ExpectedGeneration,
 	}
+	if input.SourceSpecialist != nil {
+		payload["source_specialist"] = compatibilityAsideSpecialistPayload(*input.SourceSpecialist)
+	}
+	return payload
 }
 
 func (s *Store) GetCompatibilityAsideAcceptance(ctx context.Context, ownerID, parentID, intentID string) (CompatibilityAsideResult, bool, error) {
@@ -127,6 +134,9 @@ func lookupCompatibilityAsideIntent(ctx context.Context, tx workspaceTransaction
 	}
 	if !found || frame.RootFrameID != frame.ID || frame.ParentFrameID != "" {
 		return CompatibilityAsideResult{}, false, ErrCompatibilityAsideAcceptanceUnavailable
+	}
+	if err := validateCompatibilityAsideSpecialistProof(ctx, tx, ownerID, frame, record.DedupePayload, accepted); err != nil {
+		return CompatibilityAsideResult{}, false, err
 	}
 	result := CompatibilityAsideResult{Frame: frame, PrefixLen: accepted.PrefixLen, Acceptance: &accepted, Replayed: true}
 	if frame.Status == "cancelled" {

@@ -14,17 +14,19 @@ import (
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sessionagent"
 )
 
 var compatibilityIntentUUIDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 type compatibilityAsideRequest struct {
-	Request            string  `json:"request"`
-	Model              *string `json:"model"`
-	IntentID           *string `json:"intent_id"`
-	AsSession          bool    `json:"as_session"`
-	SourceBranchID     string  `json:"source_branch_id"`
-	ExpectedGeneration int64   `json:"expected_generation"`
+	Request            string                       `json:"request"`
+	Model              *string                      `json:"model"`
+	IntentID           *string                      `json:"intent_id"`
+	AsSession          bool                         `json:"as_session"`
+	SourceBranchID     string                       `json:"source_branch_id"`
+	ExpectedGeneration int64                        `json:"expected_generation"`
+	SourceSpecialist   *sessionagent.InputReference `json:"source_specialist,omitempty"`
 }
 
 type compatibilityAsideError struct {
@@ -131,6 +133,7 @@ func (s *Server) createCompatibilityAside(
 		ID: uuid.NewString(), ParentRootFrameID: frame.ID,
 		Request: input.Request, Model: input.Model, IntentID: intentID, AsSession: input.AsSession,
 		SourceBranchID: input.SourceBranchID, ExpectedGeneration: input.ExpectedGeneration,
+		SourceSpecialist: input.SourceSpecialist,
 	}
 	// Resolve a durable acceptance before checking current model/agent/branch
 	// settings; none of those may rebind an already admitted operation.
@@ -141,13 +144,15 @@ func (s *Server) createCompatibilityAside(
 			return replay, nil
 		}
 	}
-	agentName := frame.AgentName
-	found, err := s.validateCompatibilityTargetAgent(r, &agentName)
-	if err != nil {
-		return workspace.CompatibilityAsideResult{}, err
-	}
-	if !found {
-		return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(http.StatusNotFound, "Agent "+frame.AgentName+" not found in registry", nil)
+	if input.SourceSpecialist == nil {
+		agentName := frame.AgentName
+		found, err := s.validateCompatibilityTargetAgent(r, &agentName)
+		if err != nil {
+			return workspace.CompatibilityAsideResult{}, err
+		}
+		if !found {
+			return workspace.CompatibilityAsideResult{}, newCompatibilityAsideError(http.StatusNotFound, "Agent "+frame.AgentName+" not found in registry", nil)
+		}
 	}
 
 	s.compatRequestMu.Lock()
@@ -156,6 +161,7 @@ func (s *Server) createCompatibilityAside(
 		messageID = uuid.NewString()
 	}
 	var result workspace.CompatibilityAsideResult
+	var err error
 	if s.transcriptStore != nil {
 		result, err = s.workspaceStore.CreateCompatibilityAsideWithTranscript(
 			r.Context(), asideInput, messageID, []string{transcriptWebDestination},

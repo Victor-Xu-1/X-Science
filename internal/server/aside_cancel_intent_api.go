@@ -42,7 +42,7 @@ func (s *Server) handleCompatibilityCancelAsideIntent(w http.ResponseWriter, r *
 		}
 		expected = strings.TrimSpace(expected)
 	}
-	input := workspace.CompatibilityAsideInput{ParentRootFrameID: parent.ID, IntentID: intent, Request: body.Request, Model: body.Model, AsSession: body.AsSession, SourceBranchID: body.SourceBranchID, ExpectedGeneration: body.ExpectedGeneration}
+	input := workspace.CompatibilityAsideInput{ParentRootFrameID: parent.ID, IntentID: intent, Request: body.Request, Model: body.Model, AsSession: body.AsSession, SourceBranchID: body.SourceBranchID, ExpectedGeneration: body.ExpectedGeneration, SourceSpecialist: body.SourceSpecialist}
 	s.compatRequestMu.Lock()
 	result, err := s.workspaceStore.CancelCompatibilityAsideIntent(r.Context(), compatAgentUserID(r), input)
 	s.compatRequestMu.Unlock()

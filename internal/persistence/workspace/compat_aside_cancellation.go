@@ -7,14 +7,16 @@ import (
 	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionagent"
 )
 
 type CompatibilityAsideCancellation struct {
-	OwnerID             string `json:"owner_id"`
-	ParentRootFrameID   string `json:"parent_frame_id"`
-	ParentIncarnationID string `json:"parent_incarnation_id"`
-	IntentID            string `json:"intent_id"`
-	BeforeAcceptance    bool   `json:"before_acceptance"`
+	OwnerID             string                       `json:"owner_id"`
+	ParentRootFrameID   string                       `json:"parent_frame_id"`
+	ParentIncarnationID string                       `json:"parent_incarnation_id"`
+	IntentID            string                       `json:"intent_id"`
+	BeforeAcceptance    bool                         `json:"before_acceptance"`
+	SourceSpecialist    *sessionagent.InputReference `json:"source_specialist,omitempty"`
 }
 
 // An absent intent is terminally reserved on the existing parent, without
@@ -27,6 +29,9 @@ func (s *Store) CancelCompatibilityAsideIntent(ctx context.Context, ownerID stri
 	input.ParentRootFrameID = strings.TrimSpace(input.ParentRootFrameID)
 	input.IntentID = strings.TrimSpace(input.IntentID)
 	input.SourceBranchID = strings.TrimSpace(input.SourceBranchID)
+	if err := normalizeCompatibilityAsideSpecialist(&input); err != nil {
+		return CompatibilityAsideResult{}, err
+	}
 	if ownerID == "" || input.ParentRootFrameID == "" || input.IntentID == "" || input.Request == "" ||
 		(input.SourceBranchID == "") != (input.ExpectedGeneration == 0) || input.ExpectedGeneration < 0 || input.SourceBranchID != "" && !transcriptstore.IsValidBranchID(input.SourceBranchID) {
 		return CompatibilityAsideResult{}, errors.New("complete frozen aside cancellation identity is required")
@@ -49,7 +54,16 @@ func (s *Store) CancelCompatibilityAsideIntent(ctx context.Context, ownerID stri
 		if incarnation == "" {
 			return ErrCompatibilityAsideAcceptanceUnavailable
 		}
-		cancelled := &CompatibilityAsideCancellation{OwnerID: ownerID, ParentRootFrameID: input.ParentRootFrameID, ParentIncarnationID: incarnation, IntentID: input.IntentID, BeforeAcceptance: true}
+		if input.SourceSpecialist != nil {
+			scope, err := sessionagent.ResolveScope(ctx, tx, ownerID, input.ParentRootFrameID)
+			if err != nil {
+				return err
+			}
+			if scope != input.SourceSpecialist.Scope {
+				return sessionagent.ErrScopeStale
+			}
+		}
+		cancelled := &CompatibilityAsideCancellation{OwnerID: ownerID, ParentRootFrameID: input.ParentRootFrameID, ParentIncarnationID: incarnation, IntentID: input.IntentID, BeforeAcceptance: true, SourceSpecialist: input.SourceSpecialist}
 		raw, err := marshalCompatibilityQueueEnvelope(compatibilityAsideIntentPayload(input, ownerID), map[string]any{"aside_cancellation": cancelled}, "")
 		if err != nil {
 			return err
@@ -84,6 +98,9 @@ func resolveCompatibilityAsideCancellation(record CompatibilityMessageIntent, ow
 		return CompatibilityAsideResult{}, false, ErrCompatibilityAsideAcceptanceUnavailable
 	}
 	if err := matchCompatibilityAsideIntentPayload(record, wanted, ownerID); err != nil {
+		return CompatibilityAsideResult{}, false, err
+	}
+	if err := validateCompatibilityAsideSourceProof(record.DedupePayload, cancelled.SourceSpecialist, parentID, parentIncarnation); err != nil {
 		return CompatibilityAsideResult{}, false, err
 	}
 	return CompatibilityAsideResult{Cancellation: &cancelled, Replayed: true}, true, nil
