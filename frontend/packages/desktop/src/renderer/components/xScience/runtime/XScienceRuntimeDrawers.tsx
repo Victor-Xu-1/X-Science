@@ -1,6 +1,7 @@
 import { Button, Drawer } from '@arco-design/web-react';
 import { CheckOne, CloseOne } from '@icon-park/react';
 import React from 'react';
+import WorkbenchCloseButton from '@/renderer/components/base/WorkbenchCloseButton';
 import type { XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import type { XSciencePlanDocument, XSciencePlanReference } from './runtimeOperationsModel';
 import XSciencePlanReviewContent from './XSciencePlanReviewContent';
@@ -72,6 +73,7 @@ const XScienceRuntimeDrawers = ({
       footer={null}
       unmountOnExit
       onCancel={onCloseReview}
+      closeIcon={<WorkbenchCloseButton style={{ margin: '-10px' }} />}
     >
       <XScienceReviewFindingsContent
         checks={reviewChecks}
@@ -90,6 +92,7 @@ const XScienceRuntimeDrawers = ({
       footer={null}
       unmountOnExit
       onCancel={onClosePlan}
+      closeIcon={<WorkbenchCloseButton style={{ margin: '-10px' }} />}
     >
       <XSciencePlanReviewContent
         document={planDocument}
