@@ -83,6 +83,7 @@ import { applyStagedDraft, makeDraftRestoreIssueNotifier, type StagedDraftPayloa
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import { useAcpSendBoxDraftController } from './useAcpSendBoxDraftController';
 import { useAcpMobileActionSheetController } from './useAcpMobileActionSheetController';
+import { useAcpSessionOptionControls } from './useAcpSessionOptionControls';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
@@ -353,19 +354,13 @@ const AcpSendBox: React.FC<{
     };
   }, [conversation_id, isMobile, localeKey]);
 
-  const updatePersistentSessionOption = useCallback(
-    async (key: 'autoReview' | 'memory', value: boolean) => {
-      const requestAuthority = conversationAuthorityRef.current;
-      try {
-        await updateXScienceSessionConfig(conversation_id, { [key]: value });
-      } catch (error) {
-        if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-        throw error;
-      }
-      if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-      setXScienceSessionOptions((current) => ({ ...current, [key]: value }));
-    },
-    [conversation_id]
+  const { memoryControl, updatePersistentSessionOption, openMobileControls } = useAcpSessionOptionControls(
+    conversation_id,
+    JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
+    conversationAuthorityRef,
+    mountedRef,
+    setXScienceSessionOptions,
+    setIsMobileSheetOpen
   );
 
   const handleClearGoal = useCallback(async () => {
@@ -1038,6 +1033,7 @@ const AcpSendBox: React.FC<{
     sessionOptionsReady,
     setXScienceSessionOptions,
     updatePersistentSessionOption,
+    memoryControl,
     mobileSpecialists,
     mobileComputeProviders,
     mobileEnabledCompute,
@@ -1125,7 +1121,7 @@ const AcpSendBox: React.FC<{
         onReviewActivityChange={setReviewActive}
         onRepairAndRegenerate={handleRepairAndRegenerate}
         taskCenterMetrics={taskCenterMetrics}
-        onChooseModel={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
+        onChooseModel={isMobile ? openMobileControls : undefined}
         modelInfo={
           model_info
             ? {
@@ -1162,7 +1158,7 @@ const AcpSendBox: React.FC<{
       {skillSurfaces}
 
       <SendBox
-        onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
+        onMobilePlusClick={isMobile ? openMobileControls : undefined}
         value={content}
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
@@ -1225,6 +1221,7 @@ const AcpSendBox: React.FC<{
                 value={xscienceSessionOptions}
                 onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
+                memoryControl={memoryControl}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}

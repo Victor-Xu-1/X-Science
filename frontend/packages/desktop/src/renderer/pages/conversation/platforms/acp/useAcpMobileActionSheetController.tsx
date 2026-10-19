@@ -15,6 +15,10 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import SessionPermissionGrants from '@/renderer/components/xScience/runtime/SessionPermissionGrants';
 import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
 import { useSessionPermissionGrantsView } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
+import {
+  buildSessionMemoryOption,
+  type XScienceMemoryControl,
+} from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 
 type UseAcpMobileActionSheetControllerArgs = {
   isMobile: boolean;
@@ -33,6 +37,7 @@ type UseAcpMobileActionSheetControllerArgs = {
   sessionOptionsReady: boolean;
   setXScienceSessionOptions: Dispatch<SetStateAction<XScienceSessionOptions>>;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
+  memoryControl?: XScienceMemoryControl;
   mobileSpecialists: Array<{ id: string; label: string; agentId: string }>;
   mobileComputeProviders: Array<{ name: string; label: string }>;
   mobileEnabledCompute: string[];
@@ -69,6 +74,7 @@ export const useAcpMobileActionSheetController = ({
   sessionOptionsReady,
   setXScienceSessionOptions,
   updatePersistentSessionOption,
+  memoryControl,
   mobileSpecialists,
   mobileComputeProviders,
   mobileEnabledCompute,
@@ -148,12 +154,7 @@ export const useAcpMobileActionSheetController = ({
             description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
             active: xscienceSessionOptions.autoReview,
           },
-          {
-            key: 'memory',
-            label: t('conversation.xscienceRuntime.sessionOptions.memory'),
-            description: t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
-            active: xscienceSessionOptions.memory,
-          },
+          buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
         ],
         onSelect: (key) => {
           if (!sessionOptionsReady) return;
@@ -163,6 +164,7 @@ export const useAcpMobileActionSheetController = ({
               delegation: !current.delegation,
             }));
           } else if (key === 'autoReview' || key === 'memory') {
+            if (key === 'memory' && !memoryControl?.canUpdate()) return;
             const nextValue = !xscienceSessionOptions[key];
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
               console.error('[AcpSendBox] Failed to update session option', safeErrorDiagnostic(error));
@@ -413,6 +415,7 @@ export const useAcpMobileActionSheetController = ({
     mobileComputeProviders,
     mobileEnabledCompute,
     mobileSpecialists,
+    memoryControl,
     model_info,
     modelListError,
     onSelectMcpServer,

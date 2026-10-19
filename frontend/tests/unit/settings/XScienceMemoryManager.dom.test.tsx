@@ -320,6 +320,22 @@ describe('XScienceMemoryManager', () => {
     await waitFor(() => expect(screen.getByTestId('memory-enabled-toggle')).toBeInTheDocument());
   });
 
+  it('rejects an unknown global-memory setting and recovers without displaying it as global-off', async () => {
+    const { fetchMock: healthyFetch } = createFetchMock();
+    let malformed = true;
+    vi.stubGlobal('fetch', (input: string | URL | Request, init?: RequestInit) =>
+      malformed && input === '/api/memory/enabled' && !init?.method
+        ? Promise.resolve(Response.json({ enabled: 'false' }))
+        : healthyFetch(input, init)
+    );
+    await renderWithI18n(<XScienceMemoryManager />, 'zh-CN');
+    expect(await screen.findByRole('alert')).toHaveTextContent('记忆数据暂时不可用。');
+    expect(screen.queryByTestId('memory-enabled-toggle')).not.toBeInTheDocument();
+    malformed = false;
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    await waitFor(() => expect(screen.getByTestId('memory-enabled-toggle')).toHaveAttribute('aria-checked', 'false'));
+  });
+
   it('toggles memory and creates a note through native X-Science write contracts', async () => {
     const { fetchMock, observed } = createFetchMock();
     vi.stubGlobal('fetch', fetchMock);

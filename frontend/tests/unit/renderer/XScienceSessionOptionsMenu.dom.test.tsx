@@ -57,6 +57,12 @@ const Harness = () => {
           value={value}
           onChange={setValue}
           onPersistentOptionChange={persistOption}
+          memoryControl={{
+            availability: { status: 'ready', enabled: true },
+            refresh: () => undefined,
+            current: () => true,
+            canUpdate: () => true,
+          }}
         />
         <output data-testid='session-value'>{JSON.stringify(value)}</output>
       </>
