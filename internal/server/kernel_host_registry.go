@@ -90,18 +90,7 @@ func (s *Server) handleKernelSkillHostCall(
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
-		skill, found, resolveErr := s.compatibilityAuthorSkill(name)
-		if resolveErr != nil {
-			return nil, kernelHostRegistryError(resolveErr)
-		}
-		if !found {
-			return nil, kernelruntime.NewHostCallError("not_found", fmt.Sprintf("skill %q was not found", name))
-		}
-		content, err := compatibilityCatalogSkillContent(skill, path)
-		if err != nil {
-			return nil, kernelHostRegistryError(err)
-		}
-		return map[string]any{"name": skill.Name, "path": path, "content": content}, nil
+		return s.kernelHostReadSkill(name, path)
 	case "host.skills.validate":
 		name, err := kernelHostSingleNameInput(args, kwargs, method)
 		if err != nil {
