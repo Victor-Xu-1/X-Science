@@ -10,6 +10,7 @@ import (
 
 	sessionstore "x-science/internal/persistence/sessions"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sessionagent"
 )
 
 func (s *Server) validateWebConversationSendInput(
@@ -20,7 +21,12 @@ func (s *Server) validateWebConversationSendInput(
 	if input == nil {
 		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "message input is required"}
 	}
-	record, err := s.webConversationAssistantRecord(userID, frame.ID, frame.AgentName)
+	reference,err:=sessionagent.InputReferenceFrom(input.SessionOptions)
+	if err!=nil || reference!=nil && input.TurnIntent!="" { return &webConversationRequestError{Status:http.StatusBadRequest,Detail:"specialist binding is invalid for this input"} }
+	snapshot,err:=s.workspaceStore.SessionSpecialistDefinition(context.Background(),userID,frame.ID,reference)
+	if err!=nil { return &webConversationRequestError{Status:http.StatusConflict,Detail:"specialist selection changed or is unavailable",Cause:err} }
+	record:=webAssistantRecord{}
+	if snapshot==nil { record,err=s.webConversationAssistantRecord(userID,frame.ID,frame.AgentName) } else { record=frozenSpecialistAssistant(*snapshot) }
 	if err != nil {
 		return err
 	}
@@ -75,6 +81,9 @@ func (s *Server) validateWebConversationSendInput(
 	}
 	for key, value := range input.SessionOptions {
 		switch key {
+		case sessionagent.InputReferenceKey:
+			// Parsed above and revalidated by canonical admission. This reference
+			// carries no caller-supplied definition or permission grant.
 		case "ultra_mode", "plan_mode":
 			if _, ok := value.(bool); !ok {
 				return &webConversationRequestError{Status: http.StatusBadRequest, Detail: key + " must be boolean"}
@@ -87,7 +96,9 @@ func (s *Server) validateWebConversationSendInput(
 			}
 		case "target_agent":
 			target, ok := value.(string)
-			if !ok || normalizeBundledAgentName(target) != normalizeBundledAgentName(frame.AgentName) {
+			expectedTarget:=frame.AgentName
+			if snapshot!=nil { expectedTarget=snapshot.SelectionName }
+			if !ok || normalizeBundledAgentName(target) != normalizeBundledAgentName(expectedTarget) {
 				return &webConversationRequestError{Status: http.StatusForbidden, Detail: "target_agent cannot exceed the conversation assistant authority"}
 			}
 		case "target_branch_id":
@@ -190,6 +201,7 @@ func webConversationRunnerSessionConfig(options map[string]any) map[string]any {
 }
 
 func (s *Server) webConversationAssistantRecord(userID, frameID, frameAgentName string) (webAssistantRecord, error) {
+	if snapshot,err:=s.workspaceStore.SessionSpecialistDefinition(context.Background(),userID,frameID,nil); err!=nil { return webAssistantRecord{},err } else if snapshot!=nil { return frozenSpecialistAssistant(*snapshot),nil }
 	assistantID := ""
 	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(frameID)
 	if err != nil {
@@ -431,48 +443,15 @@ func (s *Server) applyWebAssistantRuntimeOptions(
 	frameAgentName string,
 	options SessionRunnerChatOptions,
 ) (SessionRunnerChatOptions, string, error) {
-	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(session.ID)
-	if err != nil || !found {
-		return options, "", err
-	}
-	assistant, ok := metadata.ContextData["web_assistant"].(map[string]any)
-	if !ok {
-		return options, "", nil
-	}
-	assistantID := strings.TrimSpace(webString(assistant["id"]))
-	if assistantID == "" {
-		// A conversation-scoped model override is stored in the same metadata
-		// namespace even when no assistant was explicitly selected. Resolve that
-		// compatibility shape through the frame's existing agent authority instead
-		// of treating the model-only patch as a corrupt assistant selection.
-		assistantID = webAssistantID(frameAgentName)
-	}
-	record, found, err := s.webAssistantRecord(userID, assistantID)
-	if err != nil {
-		return options, "", err
-	}
-	if !found || !record.Agent.Enabled {
-		return options, "", fmt.Errorf("selected assistant %q is unavailable or disabled", assistantID)
-	}
-	runtimeAgent, err := s.resolveWebAssistantRuntimeAgent(userID, assistantID)
-	if err != nil {
-		return options, "", err
-	}
-	if normalizeBundledAgentName(runtimeAgent) != normalizeBundledAgentName(frameAgentName) {
-		return options, "", fmt.Errorf("assistant runtime agent does not match the conversation authority")
-	}
-
-	if prompt, promptFound, err := s.workspaceStore.GetCustomAgentPrompt(userID, record.Agent.Name); err != nil {
-		return options, "", err
-	} else if promptFound {
+	record, assistant, prompt, promptFound, found, err := s.sessionAssistantRuntimeSource(session, userID, frameAgentName, options.agentSnapshot)
+	if err != nil || !found { return options, "", err }
+	if promptFound {
 		if record.Bundled && strings.TrimSpace(options.SystemPrompt) != "" {
-			options.SystemPrompt = strings.TrimSpace(options.SystemPrompt) +
-				"\n\nAssistant-specific rules:\n" + strings.TrimSpace(prompt.PromptText)
+			options.SystemPrompt = strings.TrimSpace(options.SystemPrompt) + "\n\nAssistant-specific rules:\n" + strings.TrimSpace(prompt)
 		} else {
-			options.SystemPrompt = strings.TrimSpace(prompt.PromptText)
+			options.SystemPrompt = strings.TrimSpace(prompt)
 		}
 	}
-
 	overrides, _ := assistant["conversation_overrides"].(map[string]any)
 	allowed := s.webAssistantAllowedSkillNames(record)
 	excluded := appendUniqueFolded(record.Agent.SkillTombstones, record.Config.DisabledBuiltinSkills...)

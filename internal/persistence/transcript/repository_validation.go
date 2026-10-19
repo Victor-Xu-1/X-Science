@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"x-science/internal/sqliteutil"
+	"x-science/internal/sessionagent"
 )
 
 func (r *Repository) RunImmediate(ctx context.Context, fn func(*ImmediateTransaction) error) error {
@@ -90,6 +91,7 @@ func validateRunnerEventInput(input AppendEventInput) error {
 }
 
 func reservedRunnerEventType(eventType string) bool {
+	if sessionagent.ReservedEvent(eventType) { return true }
 	switch eventType {
 	case "user_message", "user_message_staged", "user_input_response", "runner_checkpoint", "runner_finished", "runner_reclaimed",
 		AskUserPromptEventType, AskUserResultEventType, memoryMutationReceiptEventType, RunnerPreparationAdmissionEventType, RunnerTimingResumeEventType,

@@ -407,8 +407,15 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		return result, err
 	}
+	if transcriptAuthority!=nil {
+		options.agentSnapshot,err=s.transcriptStore.ClaimedRunnerAgentSnapshot(ctx,transcriptAuthority.Claim)
+		if err!=nil { if handled,settleErr:=settlePreChatError(err); handled { return result,settleErr }; return result,err }
+	}
 	resolvedAgentOptions, _, agentErr := s.applySessionRunnerAgentModelAuthority(session, options)
 	if agentErr != nil {
+		if options.agentSnapshot!=nil && transcriptAuthority!=nil {
+			if err:=s.workspaceStore.RecordSessionSpecialistPreparation(ctx,transcriptAuthority.Claim,options.agentSnapshot.ID,false); err!=nil { return result,errors.Join(agentErr,err) }
+		}
 		if handled, settleErr := settlePreChatError(agentErr); handled {
 			return result, settleErr
 		}
@@ -422,6 +429,11 @@ func (s *Server) runSessionRunnerChatOnce(
 		return result, nil
 	}
 	options = resolvedAgentOptions
+	if options.agentSnapshot!=nil && transcriptAuthority!=nil {
+		if err:=s.workspaceStore.RecordSessionSpecialistPreparation(ctx,transcriptAuthority.Claim,options.agentSnapshot.ID,true); err!=nil {
+			if handled,settleErr:=settlePreChatError(err); handled { return result,settleErr }; return result,err
+		}
+	}
 	if err := checkpointPreChatStage("model_resolution"); err != nil {
 		if handled, settleErr := settlePreChatError(err); handled {
 			return result, settleErr

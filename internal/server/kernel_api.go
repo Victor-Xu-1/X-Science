@@ -30,6 +30,7 @@ func (s *Server) registerKernelRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/frames/{frameId}/kernel-exec", s.handleKernelTerminalExec)
 	s.registerManualNotebookRoutes(mux)
 	s.registerDelegatedStopRoutes(mux)
+	s.registerSessionSpecialistRoutes(mux)
 	s.registerStructureMinimizationRoutes(mux)
 	s.registerStructureInteractionDiagramRoutes(mux)
 	s.registerStructureElectrostaticMapRoutes(mux)

@@ -217,7 +217,7 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 			return s.handleKernelSkillHostCall(ctx, current, call.ID, call.Method, args, kwargs, bound)
 		}
 		if isKernelRegistryHostMethod(call.Method) {
-			return s.handleKernelRegistryHostCall(ctx, current, call.ID, call.Method, args, kwargs)
+			return s.handleKernelRegistryHostCall(ctx, current, call.ID, call.Method, args, kwargs,bound)
 		}
 		if isKernelMCPManagementHostMethod(call.Method) {
 			return s.handleKernelMCPManagementHostCall(ctx, current, call.ID, call.Method, args, kwargs)

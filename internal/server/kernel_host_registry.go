@@ -60,10 +60,12 @@ func (s *Server) handleKernelRegistryHostCall(
 	method string,
 	args []any,
 	kwargs map[string]any,
+	execution ...kernelHostExecutionIdentity,
 ) (any, error) {
 	if isKernelSkillHostMethod(method) {
 		return s.handleKernelSkillHostCall(ctx, access, callID, method, args, kwargs)
 	}
+	if len(execution)==1 { return s.handleKernelAgentHostCall(ctx,access,method,args,kwargs,kernelAgentSwitchOrigin{execution[0],callID}) }
 	return s.handleKernelAgentHostCall(ctx, access, method, args, kwargs)
 }
 
@@ -240,6 +242,7 @@ func (s *Server) handleKernelAgentHostCall(
 	method string,
 	args []any,
 	kwargs map[string]any,
+	origin ...kernelAgentSwitchOrigin,
 ) (any, error) {
 	if s == nil || s.workspaceStore == nil {
 		return nil, kernelruntime.NewHostCallError("unavailable", "agent registry is not configured")
@@ -340,49 +343,12 @@ func (s *Server) handleKernelAgentHostCall(
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
-		return s.kernelHostSwitchAgent(ctx, access, name)
+		return s.kernelHostSwitchAgent(ctx, access, name,origin...)
 	default:
 		return nil, kernelruntime.NewHostCallError("method_not_allowed", "host agent method is not allowed")
 	}
 }
 
-func (s *Server) kernelHostSwitchAgent(ctx context.Context, access workspace.KernelFrameAccess, name string) (any, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	target := normalizeBundledAgentName(name)
-	displayName := target
-	if s.agentCatalog != nil {
-		if definition, found := s.agentCatalog.Agent(target); found {
-			displayName = definition.DisplayName
-		} else if agent, found, err := s.workspaceStore.GetAgent(access.UserID, target); err != nil {
-			return nil, kernelHostRegistryError(err)
-		} else if found {
-			displayName = agent.DisplayName
-		} else {
-			return nil, kernelruntime.NewHostCallError("not_found", fmt.Sprintf("agent %q was not found", name))
-		}
-	} else if agent, found, err := s.workspaceStore.GetAgent(access.UserID, target); err != nil {
-		return nil, kernelHostRegistryError(err)
-	} else if found {
-		displayName = agent.DisplayName
-	} else {
-		return nil, kernelruntime.NewHostCallError("not_found", fmt.Sprintf("agent %q was not found", name))
-	}
-	result, err := s.workspaceStore.PatchCompatibilitySessionConfig(access.Frame.RootFrameID, map[string]any{"target_agent": target})
-	if err != nil {
-		return nil, kernelHostRegistryError(err)
-	}
-	if err := s.mergeRuntimeSessionConfig(result.RootFrameID, map[string]any{"target_agent": target}); err != nil {
-		return nil, kernelHostRegistryError(err)
-	}
-	if _, err := s.publishProjectEvent(access.Frame.ProjectID, "frame_update", map[string]any{
-		"action": "session_config_updated", "frame_id": result.RootFrameID, "root_frame_id": result.RootFrameID,
-	}); err != nil {
-		return nil, kernelHostRegistryError(err)
-	}
-	return map[string]any{"switched": true, "name": target, "displayName": displayName, "applies": "next_message"}, nil
-}
 
 func (s *Server) kernelHostListAgents(ctx context.Context, userID string) (any, error) {
 	if err := ctx.Err(); err != nil {
