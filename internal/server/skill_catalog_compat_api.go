@@ -59,7 +59,7 @@ func (s *Server) handleCompatibilitySkillCatalog(w http.ResponseWriter, r *http.
 	packagedDirectorySkills := 0
 	builtinPlatformSkills := 0
 	for _, skill := range s.skillCatalog.Skills() {
-		source := compatibilitySkillSource(skill)
+		source := s.compatibilitySkillSource(skill)
 		sourceCounts[source]++
 		if compatibilityRequiredPlatformSkill(skill) {
 			builtinPlatformSkills++
@@ -253,7 +253,16 @@ func compatibilityCatalogSkillContent(skill skills.Skill, requested string) (str
 	return "", fmt.Errorf("%w: skill file %q", os.ErrNotExist, requested)
 }
 
-func compatibilitySkillSource(skill skills.Skill) string {
+func (s *Server) compatibilitySkillSource(skill skills.Skill) string {
+	// The configured publisher root owns personal packages. Compatibility path
+	// labels must not override that ownership; this classification is not a
+	// substitute for the read, publication, or deletion filesystem fences.
+	if s != nil && !compatibilityRequiredPlatformSkill(skill) {
+		personal := personalSkillDirectory(s.fileRoot)
+		if personal != "" && pathWithinRoot(skill.Path, personal) {
+			return "personal"
+		}
+	}
 	normalizedPath := filepath.ToSlash(skill.Path)
 	if strings.HasPrefix(skill.Path, "builtin:") ||
 		strings.Contains(normalizedPath, "/runtime/assets/skills/") ||

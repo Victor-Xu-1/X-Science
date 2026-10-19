@@ -565,7 +565,7 @@ func (s *Server) upsertExternalWebSkills(items []skills.Skill) {
 }
 
 func webSkillBridgeSource(s *Server, skill skills.Skill) string {
-	if compatibilityRequiredPlatformSkill(skill) || compatibilitySkillSource(skill) == "x_science_llm" {
+	if compatibilityRequiredPlatformSkill(skill) || s.compatibilitySkillSource(skill) == "x_science_llm" {
 		return "builtin"
 	}
 	if s != nil && strings.TrimSpace(s.fileRoot) != "" {

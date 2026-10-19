@@ -25,7 +25,7 @@ func (s *Server) signedDiscoveryWithPersonalBindings(signed, bound []string) []s
 		if _, found := selected[strings.ToLower(strings.TrimSpace(skill.Name))]; !found {
 			continue
 		}
-		if compatibilitySkillSource(skill) == "personal" {
+		if s.compatibilitySkillSource(skill) == "personal" {
 			result = appendUniqueFolded(result, skill.Name)
 		}
 	}
