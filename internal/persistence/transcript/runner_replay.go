@@ -116,12 +116,17 @@ seed(event_id) AS (
 const runnerReplayLegacySelectionCTE = `WITH ` + runnerReplaySeedCTE + `,
 selected(event_id) AS (SELECT event_id FROM seed)`
 
+// Historical terminal batches remain read-only replay relations while their
+// source belongs to the active branch. Execution and open-batch discovery keep
+// their separate current-generation authority checks.
 const runnerReplayBatchSelectionCTE = `WITH ` + runnerReplaySeedCTE + `,
 active_batches(batch_id,source_event_id,call_count,state,branch_id) AS (
 	SELECT batch.batch_id,batch.source_event_id,batch.call_count,batch.state,batch.branch_id
 	FROM transcript_tool_call_batches batch
 	JOIN transcript_branch_state branch ON branch.stream_uid=batch.stream_uid
-		AND branch.active_branch_id=batch.branch_id AND branch.generation=batch.branch_generation
+		AND branch.active_branch_id=batch.branch_id
+		AND (branch.generation=batch.branch_generation OR
+			(batch.branch_generation<branch.generation AND batch.state IN ('settled','cancelled','outcome_unknown')))
 	JOIN transcript_branch_events source ON source.stream_uid=batch.stream_uid
 		AND source.branch_id=batch.branch_id AND source.event_id=batch.source_event_id
 	WHERE batch.stream_uid=?
