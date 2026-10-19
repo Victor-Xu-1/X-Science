@@ -23,9 +23,6 @@ const mocks = vi.hoisted(() => ({
   changeOptions: vi.fn(),
   clearGoal: vi.fn(),
 }));
-vi.mock('@/renderer/services/xScienceCatalog', () => ({
-  loadXScienceAssistants: async () => [{ id: 'fixture-expert', name: 'Fixture expert', agent_id: 'FIXTURE_EXPERT' }],
-}));
 vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceComputeProviders: async () => [
     { name: 'ssh:fixture', displayName: 'Fixture host', family: 'ssh', checked: true },
@@ -171,9 +168,11 @@ describe('unified composer Agent controls', () => {
     fireEvent.click(autoReview);
     expect(screen.getByRole('menuitem', { name: 'Clear goal' })).toBeDisabled();
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-specialist'));
-    const expert = await screen.findByRole('menuitemradio', { name: 'Select expert Fixture expert' });
-    expect(expert).toBeDisabled();
-    fireEvent.click(expert);
+    expect(screen.getByTestId('session-config-row-specialist')).toHaveTextContent('Not confirmed');
+    const specialist = await screen.findByRole('menuitemradio', { name: 'Select expert None' });
+    expect(specialist).toBeDisabled();
+    expect(screen.queryByRole('menuitemradio', { name: 'Select expert Fixture expert' })).not.toBeInTheDocument();
+    fireEvent.click(specialist);
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-compute'));
     const local = await screen.findByRole('menuitemradio', { name: 'Local' });
     expect(local).toBeDisabled();
