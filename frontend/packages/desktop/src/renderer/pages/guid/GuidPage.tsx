@@ -31,6 +31,7 @@ import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import { useXScienceMemoryAvailability } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
 import XScienceSendOptionsMenu, {
   type XScienceSendIntent,
@@ -72,6 +73,7 @@ const GuidPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const memoryControl = useXScienceMemoryAvailability(`guid:${user?.id ?? ''}`);
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const guidPlanModeRef = useRef(false);
   const [composerDocked, setComposerDocked] = useState(false);
@@ -682,6 +684,7 @@ const GuidPage: React.FC = () => {
       sessionOptionsNode={
         <XScienceSessionOptionsMenu
           value={sessionOptions}
+          memoryControl={memoryControl}
           onChange={setSessionOptions}
           computeSelection={sessionComputeProviders}
           onComputeSelectionChange={setSessionComputeProviders}

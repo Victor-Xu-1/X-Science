@@ -15,6 +15,10 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import SessionPermissionGrants from '@/renderer/components/xScience/runtime/SessionPermissionGrants';
 import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
 import { useSessionPermissionGrantsView } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
+import {
+  sessionMemoryPresentation,
+  type XScienceMemoryControl,
+} from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 
 type UseAcpMobileActionSheetControllerArgs = {
   isMobile: boolean;
@@ -33,6 +37,7 @@ type UseAcpMobileActionSheetControllerArgs = {
   sessionOptionsReady: boolean;
   setXScienceSessionOptions: Dispatch<SetStateAction<XScienceSessionOptions>>;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
+  memoryControl?: XScienceMemoryControl;
   mobileSpecialists: Array<{ id: string; label: string; agentId: string }>;
   mobileComputeProviders: Array<{ name: string; label: string }>;
   mobileEnabledCompute: string[];
@@ -69,6 +74,7 @@ export const useAcpMobileActionSheetController = ({
   sessionOptionsReady,
   setXScienceSessionOptions,
   updatePersistentSessionOption,
+  memoryControl,
   mobileSpecialists,
   mobileComputeProviders,
   mobileEnabledCompute,
@@ -121,6 +127,7 @@ export const useAcpMobileActionSheetController = ({
     const currentModeLabel = modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default');
 
     const entries: MobileActionSheetEntry[] = [];
+    const memory = sessionMemoryPresentation(memoryControl, xscienceSessionOptions.memory);
 
     entries.push({
       key: 'session-options',
@@ -151,8 +158,11 @@ export const useAcpMobileActionSheetController = ({
           {
             key: 'memory',
             label: t('conversation.xscienceRuntime.sessionOptions.memory'),
-            description: t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
-            active: xscienceSessionOptions.memory,
+            description: memory.reason
+              ? t(memory.reason)
+              : t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
+            active: memory.checked === true,
+            disabled: memory.disabled,
           },
         ],
         onSelect: (key) => {
@@ -163,6 +173,7 @@ export const useAcpMobileActionSheetController = ({
               delegation: !current.delegation,
             }));
           } else if (key === 'autoReview' || key === 'memory') {
+            if (key === 'memory' && !memoryControl?.canUpdate()) return;
             const nextValue = !xscienceSessionOptions[key];
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
               console.error('[AcpSendBox] Failed to update session option', safeErrorDiagnostic(error));
@@ -413,6 +424,7 @@ export const useAcpMobileActionSheetController = ({
     mobileComputeProviders,
     mobileEnabledCompute,
     mobileSpecialists,
+    memoryControl,
     model_info,
     modelListError,
     onSelectMcpServer,

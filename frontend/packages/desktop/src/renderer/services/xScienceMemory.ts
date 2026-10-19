@@ -98,7 +98,8 @@ export async function loadXScienceMemoryContext(
 
 export async function loadXScienceMemoryEnabled(options: XScienceMemoryOptions = {}): Promise<boolean> {
   const payload = asRecord(await requestJson('/api/memory/enabled', {}, options));
-  return payload?.enabled === true;
+  if (typeof payload?.enabled !== 'boolean') throw new Error('X-Science memory enabled response is invalid');
+  return payload.enabled;
 }
 
 export async function loadXScienceAutoMemoryEnabled(options: XScienceMemoryOptions = {}): Promise<boolean> {

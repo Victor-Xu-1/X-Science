@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
 import { getMenuItems } from '@/renderer/utils/menuKeyboard';
+import type { XScienceMemoryControl } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import XScienceAgentControlToggles from './XScienceAgentControlToggles';
 import XSciencePermissionIcon, { isWarningPermissionMode } from './XSciencePermissionIcon';
 import SessionPermissionGrants from './SessionPermissionGrants';
@@ -36,6 +37,7 @@ export type XScienceSessionOptionsMenuProps = {
   goalClearInFlight?: boolean;
   disabled?: boolean;
   permissionControl?: XSciencePermissionControlInput;
+  memoryControl?: XScienceMemoryControl;
 };
 
 const rowClass =
@@ -55,6 +57,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   goalClearInFlight = false,
   disabled = false,
   permissionControl,
+  memoryControl,
 }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
@@ -62,6 +65,10 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const translationRef = useRef(t);
   translationRef.current = t;
   const [visible, setVisible] = useState(false);
+  const refreshMemory = memoryControl?.refresh;
+  useEffect(() => {
+    if (visible) refreshMemory?.();
+  }, [refreshMemory, visible]);
   const [submenu, setSubmenu] = useState<Submenu>(null);
   const [loading, setLoading] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
@@ -259,7 +266,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   };
 
   const updateToggle = async (key: 'delegation' | 'autoReview' | 'memory', checked: boolean) => {
-    if (disabled) return;
+    if (disabled || (key === 'memory' && !memoryControl?.canUpdate())) return;
     if (key === 'delegation') {
       onChange({ ...value, delegation: checked });
       return;
@@ -477,6 +484,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         </>
       ) : null}
       <XScienceAgentControlToggles
+        memoryControl={memoryControl}
         value={value}
         pending={pendingOption}
         disabled={disabled}
