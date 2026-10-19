@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { loadXScienceMemoryEnabled } from '@/renderer/services/xScienceMemory';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
+import type { TFunction } from 'i18next';
+import type { MobileActionSheetOption } from '@/renderer/components/chat/MobileActionSheet/types';
 
 export type XScienceMemoryAvailability =
   | { status: 'loading' }
@@ -112,4 +114,19 @@ export function sessionMemoryPresentation(control: XScienceMemoryControl | undef
             ? 'conversation.xscienceRuntime.sessionOptions.memoryDisabledInSettings'
             : undefined,
   } as const;
+}
+
+export function buildSessionMemoryOption(
+  control: XScienceMemoryControl | undefined,
+  preference: boolean,
+  t: TFunction
+): MobileActionSheetOption {
+  const memory = sessionMemoryPresentation(control, preference);
+  return {
+    key: 'memory',
+    label: t('conversation.xscienceRuntime.sessionOptions.memory'),
+    description: memory.reason ? t(memory.reason) : t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
+    active: memory.checked === true,
+    disabled: memory.disabled,
+  };
 }

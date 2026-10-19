@@ -16,7 +16,7 @@ import SessionPermissionGrants from '@/renderer/components/xScience/runtime/Sess
 import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
 import { useSessionPermissionGrantsView } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
 import {
-  sessionMemoryPresentation,
+  buildSessionMemoryOption,
   type XScienceMemoryControl,
 } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 
@@ -127,7 +127,6 @@ export const useAcpMobileActionSheetController = ({
     const currentModeLabel = modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default');
 
     const entries: MobileActionSheetEntry[] = [];
-    const memory = sessionMemoryPresentation(memoryControl, xscienceSessionOptions.memory);
 
     entries.push({
       key: 'session-options',
@@ -155,15 +154,7 @@ export const useAcpMobileActionSheetController = ({
             description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
             active: xscienceSessionOptions.autoReview,
           },
-          {
-            key: 'memory',
-            label: t('conversation.xscienceRuntime.sessionOptions.memory'),
-            description: memory.reason
-              ? t(memory.reason)
-              : t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
-            active: memory.checked === true,
-            disabled: memory.disabled,
-          },
+          buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
         ],
         onSelect: (key) => {
           if (!sessionOptionsReady) return;
