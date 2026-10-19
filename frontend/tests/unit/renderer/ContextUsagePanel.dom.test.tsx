@@ -61,6 +61,92 @@ const usage = (usedTokens = 20, sessionId = 'conversation-1') => ({
 });
 
 describe('ContextUsagePanel', () => {
+  it('opens the same usage owner from the plus menu while its ring is hidden and restores the opener', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage(31)))));
+    const opener = document.createElement('button');
+    opener.textContent = 'Plus';
+    document.body.append(opener);
+    try {
+      const view = await renderWithI18n(
+        <ContextUsagePanel
+          conversationId='conversation-1'
+          triggerVisible={false}
+          openRequest={0}
+          returnFocus={opener}
+        />,
+        'en-US'
+      );
+      expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+      view.rerender(
+        <ContextUsagePanel
+          conversationId='conversation-1'
+          triggerVisible={false}
+          openRequest={1}
+          returnFocus={opener}
+        />
+      );
+      const panel = await screen.findByRole('dialog', { name: 'Context usage' });
+      await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('31.0%'));
+      const panelId = panel.id;
+      expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+      expect(opener).toHaveFocus();
+      view.rerender(
+        <ContextUsagePanel
+          conversationId='conversation-1'
+          triggerVisible={false}
+          openRequest={2}
+          returnFocus={opener}
+        />
+      );
+      expect((await screen.findByRole('dialog', { name: 'Context usage' })).id).toBe(panelId);
+    } finally {
+      opener.remove();
+    }
+  });
+
+  it('restores the latest entry when the ring is used after closing a menu-opened panel', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage()))));
+    const opener = document.createElement('button');
+    opener.textContent = 'Plus';
+    document.body.append(opener);
+    try {
+      const view = await renderWithI18n(
+        <ContextUsagePanel conversationId='conversation-1' openRequest={0} returnFocus={opener} />,
+        'en-US'
+      );
+      view.rerender(<ContextUsagePanel conversationId='conversation-1' openRequest={1} returnFocus={opener} />);
+      await screen.findByRole('dialog', { name: 'Context usage' });
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      const ring = screen.getByTestId('x-science-context-usage-trigger');
+      fireEvent.click(ring);
+      await screen.findByRole('dialog', { name: 'Context usage' });
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      expect(ring).toHaveFocus();
+    } finally {
+      opener.remove();
+    }
+  });
+
+  it('does not carry an old plus-open request into a replacement conversation owner', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage()))));
+    const view = await renderWithI18n(
+      <ContextUsagePanel key='owner-a' conversationId='conversation-1' triggerVisible={false} openRequest={0} />,
+      'en-US'
+    );
+    view.rerender(
+      <ContextUsagePanel key='owner-a' conversationId='conversation-1' triggerVisible={false} openRequest={1} />
+    );
+    await screen.findByRole('dialog', { name: 'Context usage' });
+    view.rerender(
+      <ContextUsagePanel key='owner-b' conversationId='conversation-2' triggerVisible={false} openRequest={1} />
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+  });
+
   it('exposes unscaled estimates, receipt delta and selectable near-full history', async () => {
     const current = usage(20);
     const peak = {

@@ -81,7 +81,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         <div className={styles.actionEntry}>
           <span className='flex items-center gap-4px lh-[1]'>
             <FileAttachButton
-              xScienceV11
               openFileSelector={openFileSelector}
               onSelectProjectFiles={onSelectProjectFiles}
               onLocalFilesAdded={handleLocalFilesAdded}

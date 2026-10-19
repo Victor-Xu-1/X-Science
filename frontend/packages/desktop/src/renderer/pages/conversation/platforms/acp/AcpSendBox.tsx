@@ -160,6 +160,7 @@ const AcpSendBox: React.FC<{
   }, [stagedSessionOptions]);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
+  const [contextWindow, setContextWindow] = useState({ sequence: 0, returnFocus: null as HTMLButtonElement | null });
   const conversationContext = useConversationContextSafe();
   const { data: composerCapabilities, mutate: mutateComposerCapabilities } = useSWR(
     conversation_id ? ['x-science-composer-capabilities', conversation_id] : null,
@@ -1201,8 +1202,14 @@ const AcpSendBox: React.FC<{
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectMcpServer={handleMcpSelected}
-                xScienceV11
                 onViewPlan={isXScienceConversation ? viewPlan : undefined}
+                onViewContextWindow={
+                  isXScienceConversation
+                    ? (returnFocus) => {
+                        setContextWindow((current) => ({ sequence: current.sequence + 1, returnFocus }));
+                      }
+                    : undefined
+                }
                 onRequestReview={handleRequestReview}
                 reviewLabelMode='manual'
                 reviewInFlight={reviewBusy}
@@ -1230,8 +1237,16 @@ const AcpSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {isXScienceConversation && (isBusy || content.trim() === '' || compaction.needsAttention) ? (
-              <ContextUsagePanel conversationId={conversation_id} active={isBusy} compaction={compaction} />
+            {isXScienceConversation ? (
+              <ContextUsagePanel
+                key={`${ownerId}:${conversation_id}:${frameIncarnationId ?? ''}`}
+                conversationId={conversation_id}
+                active={isBusy}
+                compaction={compaction}
+                openRequest={contextWindow.sequence}
+                returnFocus={contextWindow.returnFocus}
+                triggerVisible={isBusy || content.trim() === '' || compaction.needsAttention}
+              />
             ) : null}
             {isXScienceConversation && content.trim() !== '' && (
               <OptimizePromptAction

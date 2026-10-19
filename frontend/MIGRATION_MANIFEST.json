@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "bb52808bdab24f51d14b2e3e724c14ff0024ff7a06b0dec8a8a8b16690a7a15b",
+  "adaptationFingerprintSHA256": "38c0333ed2adfd9fa7647444c41b0fe1c1d5ff72c0a203b28b5e750ce0316d84",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "7d3ddd3948c8172370005a66d39f7eeabc3875b157b61743ac920e5df6a9d7a6",
+  "additionFingerprintSHA256": "44cacbd5e70be27af12897d085e25c9c98289fa6cd3b26edc6e9eadfe6958903",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1125
+    "addedFiles": 1127
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "a3efbba422c3e901eda26d275f2bc21882e1d5d3bbf83e2926a7d4cf49d46c2f",
+      "targetSHA256": "068b1e2b66779d756aed98f95e652227b35aada7b1b9331771e512feb6fdf5aa",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "39a43896d188ec86c09d93380876c9bfb4c79fd6525d840255397828dcc6c565",
+      "targetSHA256": "dac63b55e5a49057c6063b571ebe3c96028262ff0b1c033466383d2c4fc0fd6c",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -582,8 +582,8 @@
     {
       "path": "packages/desktop/src/renderer/components/media/FileAttachButton.tsx",
       "sourceSHA256": "8ea1f58b4f1a4c9a5d5cb3674eba6c4b5cd0e924e25056d38004433420208d5e",
-      "targetSHA256": "55eeb901b4b162ff7dc11162981e7dd073d37b944b4dcba1770ec9d4bb97e741",
-      "bytes": 17119,
+      "targetSHA256": "24254a9f601808653bd5768127074c621f53cd4103dac5bab091949dfe8f46cd",
+      "bytes": 17067,
       "reason": "Harden media selection, upload, diff, preview, and embedded-content states for the Go Web trust boundary."
     },
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "88561c3d2af668d93540d703c18b155c6be9f9c5f4b04851dc01d27281d67d3c",
-      "bytes": 53080,
+      "targetSHA256": "abcd2096a7e107b6d47eda24c2ed812ec22fd0c38723ea8faea129a421c86f8a",
+      "bytes": 53751,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2303,8 +2303,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/components/GuidActionRow.tsx",
       "sourceSHA256": "623d5d194504e32b12762099309e18d794401ad20c32312ff4efd80d73ce0707",
-      "targetSHA256": "5d3bbd1212bcecb973c97a10a7ba173474b0f48483763e33bcd4341325324a9c",
-      "bytes": 5396,
+      "targetSHA256": "1c877e0a4b596a9f488473b60333c5b19fd89273c1426e022c9a8a843e1fb909",
+      "bytes": 5370,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "69d12a8334a996a7f6bbc28fc1d542fac753894abab79966455c9c41c54130b5",
-      "bytes": 164046,
+      "targetSHA256": "efecf5807a0bb9c5988f5f3b46d24dfde9332a92287adaf7bad7bd46a17b652f",
+      "bytes": 165527,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5338,8 +5338,8 @@
       "path": "tests/unit/xscience/FileAttachButtonV11.dom.test.tsx",
       "originalPath": "tests/unit/synonbiomed/FileAttachButtonV11.dom.test.tsx",
       "sourceSHA256": "e752754533d1f2b1542a4c62ce9c9b6cce72f8522d1c2aa968da028dfe83e61b",
-      "targetSHA256": "707b55170a82e9e0b18c51565bd23c437cc41fcc9beca135585276c0b4a8c8b0",
-      "bytes": 13241,
+      "targetSHA256": "6c00a1b9b7ec6359bf3c17873c1b8b4752715402fa7c83016104bd09af03d012",
+      "bytes": 13047,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "6ff1baadd619f8a053c6fb5c2303f3a869486d40c10f376e2f690bc66a60297c",
+      "sha256": "455eaced1c630ab1c4accd4d18739790e861cda3ad588a595623c93cea8a5fce",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7953,8 +7953,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/media/ComposerCapabilityPicker.tsx",
-      "sha256": "b6ff0a1d6c066016e2cfb2f8f8a9658c16b4b37405deca8409003a0813c3b991",
-      "bytes": 18406,
+      "sha256": "442e1a7d1e21dd093ec7eb1c5a16cdfe7c59a074157ea095b628c7fde0fb7593",
+      "bytes": 19621,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7962,6 +7962,12 @@
       "sha256": "1e982436a43d7c6514b2adfd78d95ec97b1781b152043fc80ada8374de0db828",
       "bytes": 5486,
       "reason": "Scope source-aligned conversation menu sizing, icons and both appearance states without creating a global overlay authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/media/useComposerSubmenu.ts",
+      "sha256": "00e0ebacc47d8fa2f390f94fc4987214800b54824a3321ba7f0477647fb5f9db",
+      "bytes": 2910,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/notifications/NotificationBell.tsx",
@@ -8055,8 +8061,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.tsx",
-      "sha256": "d6fd84cc5f06339b725e562c6acf6450a51492f9da4e8c02cf0ab675c7687b5f",
-      "bytes": 14750,
+      "sha256": "99bfaa1d84195ccee4b56f9b730740974e3698e59ec7ae1dd26e65d51f804e3b",
+      "bytes": 15691,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12266,6 +12272,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/ComposerPlusKeyboard.dom.test.tsx",
+      "sha256": "529303971efc8b6e9017a32fffa6b9d922e31caef8f56780f7f946dafa11a62f",
+      "bytes": 7431,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ComputeSettings.dom.test.tsx",
       "sha256": "57eff4c389cff7862dff1405b3b586fb40cf42ea719c093358e51d9ae3a0fe12",
       "bytes": 3436,
@@ -12273,8 +12285,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextUsagePanel.dom.test.tsx",
-      "sha256": "42ea87002a2344d75bf1e2a478e05a51fe77cb002b2c73f5758d379fd9ef01c9",
-      "bytes": 22817,
+      "sha256": "d2d9ad707e399ae8b60b2f922fc8b7b05dbf91d556989a5a5616d3885f2c0745",
+      "bytes": 26570,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12519,20 +12531,20 @@
     },
     {
       "path": "tests/unit/renderer/conversation/ComposerHostFiles.dom.test.tsx",
-      "sha256": "8a3f3c0a4d957362104ec82e302a73fabf10755a70e800035df86ebe5bec66ed",
-      "bytes": 6698,
+      "sha256": "540cdb873ad6e064ffa58261c7627e64a0d06c1accf57bc86a6563edddcd8885",
+      "bytes": 6641,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/ComposerHostFilesAccess.dom.test.tsx",
-      "sha256": "3eb8d7e5bd06e1aefa6696f544673df79919975767341388f08ab73458868518",
-      "bytes": 6046,
+      "sha256": "9c2b293c92164fa2ac303cc48aef32fde12b9e3255a64350865cafc3d6dbe157",
+      "bytes": 5984,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/ComposerHostFilesSubmenu.dom.test.tsx",
-      "sha256": "bb92719f0b8a03294f9422c8383bc99dd04a44d8f65126486dda9715f053cb95",
-      "bytes": 7229,
+      "sha256": "f2b3becd1e6669ed46c1464d027591742419228ea5dd6a9f2470e1f247f8c0b8",
+      "bytes": 7208,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

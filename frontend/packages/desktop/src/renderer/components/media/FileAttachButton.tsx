@@ -6,17 +6,17 @@
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { Button, Message, Tooltip, Trigger } from '@arco-design/web-react';
-import { Check, FolderOpen, ListCheckbox, Paperclip, Plus, Shield } from '@icon-park/react';
-import { BookMarked, Loader2, Plus as ControlPlus } from 'lucide-react';
+import { Check, FolderOpen, ListCheckbox, Paperclip, Shield } from '@icon-park/react';
+import { BookMarked, ChartNoAxesCombined, Loader2, Plus as ControlPlus } from 'lucide-react';
 import ComposerCapabilityPicker from './ComposerCapabilityPicker';
 import ComposerHostFiles from '@/renderer/components/chat/SendBox/hostFiles/ComposerHostFiles';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
-import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { emitter } from '@/renderer/utils/emitter';
+import { getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -35,10 +35,10 @@ interface FileAttachButtonProps {
   onSelectSkill?: (name: string) => void;
   onEnableSkill?: (name: string) => void;
   onSelectMcpServer?: (server: IConversationMcpStatus) => void;
-  xScienceV11?: boolean;
   onViewPlan?: () => void;
   onRequestReview?: () => void;
   onSaveSkill?: () => void;
+  onViewContextWindow?: (returnFocus: HTMLButtonElement | null) => void;
   planEnabled?: boolean;
   reviewInFlight?: boolean;
   reviewDisabled?: boolean;
@@ -133,10 +133,10 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   onSelectSkill,
   onEnableSkill,
   onSelectMcpServer,
-  xScienceV11 = false,
   onViewPlan,
   onRequestReview,
   onSaveSkill,
+  onViewContextWindow,
   planEnabled,
   reviewInFlight = false,
   reviewDisabled = false,
@@ -151,9 +151,23 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const keyboardOpen = useRef<'first' | 'last' | null>(null);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
   const scopeId = useId();
+  const menuId = `${scopeId}-menu`;
+  const bindMenu = useCallback(
+    (node: HTMLDivElement | null) => {
+      menuRef.current = node;
+      if (!node || !open || !keyboardOpen.current) return;
+      const items = getMenuItems(node);
+      const target = keyboardOpen.current === 'last' ? items.at(-1) : items[0];
+      keyboardOpen.current = null;
+      target?.focus();
+    },
+    [open]
+  );
   const [accountScope, setAccountScope] = useState(getRendererAccountScopeToken);
   const hostFilesScope = useMemo(
     () => ({ account: accountScope, conversationId: conversationContext?.conversation_id }),
@@ -235,17 +249,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const isDesktop = isElectronDesktop();
   const hasSkills = skillNames.length > 0 || Boolean(onEnableSkill);
   const hasMcpServers = mcpStatuses.length > 0;
-  const plusIcon = xScienceV11 ? (
-    <ControlPlus size={16} strokeWidth={2} aria-hidden='true' />
-  ) : (
-    <Plus theme='outline' size={14} strokeWidth={2} fill={iconColors.primary} />
-  );
-
-  if (!xScienceV11 && isDesktop && !hasSkills && !hasMcpServers) {
-    return (
-      <Button type='secondary' shape='circle' icon={plusIcon} onClick={openFileSelector} data-testid={triggerTestId} />
-    );
-  }
+  const plusIcon = <ControlPlus size={16} strokeWidth={2} aria-hidden='true' />;
 
   const cardStyle: React.CSSProperties = {
     padding: '6px 0',
@@ -263,14 +267,18 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     queueMicrotask(() => triggerButtonRef.current?.focus());
   };
 
-  const v11Menu = (
+  const menu = (
     <div
+      ref={bindMenu}
+      id={menuId}
       className='app-overlay-menu composer-control-menu conversation-control-menu'
       style={{ ...cardStyle, minWidth: 'min(224px, calc(100vw - 24px))', width: 'min(224px, calc(100vw - 24px))' }}
       role='menu'
       aria-label={t('conversation.attachMenu.addToMessage')}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
+        if (handleMenuNavigation(event)) return;
+        if (event.target instanceof Element && event.target.closest('[role="menu"]') !== event.currentTarget) return;
         if (event.key !== 'Escape') return;
         event.preventDefault();
         event.stopPropagation();
@@ -289,6 +297,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
             onSelectMcpServer={onSelectMcpServer ? handleMcpClick : undefined}
             onOpenMcpSettings={handleOpenMcpSettings}
             onRequestClose={closeAndRestoreFocus}
+            menuOpen={open}
           />
           <div className='mx-12px my-4px h-1px bg-[var(--color-border-1)]' />
         </>
@@ -405,56 +414,18 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           </div>
         </>
       ) : null}
-    </div>
-  );
-
-  const menu = (
-    <div
-      className='app-overlay-menu'
-      style={cardStyle}
-      role='menu'
-      aria-label={t('conversation.attachMenu.addToMessage')}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Loaded items stay above file actions so the session snapshot is visible */}
-      {(hasMcpServers || hasSkills) && (
+      {onViewContextWindow ? (
         <>
-          <ComposerCapabilityPicker
-            skillNames={skillNames}
-            mcpStatuses={mcpStatuses}
-            selectedSkillNames={selectedSkillNames}
-            selectedMcpServerIds={selectedMcpServerIds}
-            onSelectSkill={handleSkillClick}
-            onEnableSkill={onEnableSkill}
-            onSelectMcpServer={onSelectMcpServer ? handleMcpClick : undefined}
-            onOpenMcpSettings={handleOpenMcpSettings}
-            onRequestClose={closeAndRestoreFocus}
-          />
-          <div style={{ margin: '4px 12px', height: 1, backgroundColor: 'var(--color-border-1, #e5e6eb)' }} />
+          <div className='mx-12px my-4px h-1px bg-[var(--color-border-1)]' />
+          <div className='px-6px'>
+            <MenuItem
+              icon={<ChartNoAxesCombined size={16} strokeWidth={2} aria-hidden='true' />}
+              label={t('conversation.contextUsage.title')}
+              onClick={() => closeAndRun(() => onViewContextWindow(triggerButtonRef.current))}
+            />
+          </div>
         </>
-      )}
-
-      {/* Keep the most common file actions nearest to the trigger. */}
-      <div className='px-6px'>
-        {!isDesktop && (
-          <MenuItem
-            icon={<FolderOpen theme='outline' size={15} strokeWidth={2.5} />}
-            label={t('common.fileAttach.myDevice')}
-            onClick={() => {
-              fileInputRef.current?.click();
-              setOpen(false);
-            }}
-          />
-        )}
-        <MenuItem
-          icon={<Paperclip theme='outline' size={15} strokeWidth={2.5} />}
-          label={t('common.fileAttach.addFiles')}
-          onClick={() => {
-            openFileSelector();
-            setOpen(false);
-          }}
-        />
-      </div>
+      ) : null}
     </div>
   );
 
@@ -463,7 +434,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
       {/* Cache ordinary closes, but dispose old portals when the account or conversation changes. */}
       <Trigger
         key={JSON.stringify(hostFilesScope)}
-        popup={() => (xScienceV11 ? v11Menu : menu)}
+        popup={() => menu}
         trigger='click'
         position='tl'
         popupVisible={open}
@@ -476,12 +447,27 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           ref={triggerButtonRef}
           type='secondary'
           shape='circle'
-          className={xScienceV11 ? 'composer-icon-control conversation-control-trigger' : undefined}
+          className='composer-icon-control conversation-control-trigger'
           icon={plusIcon}
           loading={uploading}
           disabled={uploading}
           data-testid={triggerTestId}
-          aria-label={xScienceV11 ? t('conversation.attachMenu.addToMessage') : undefined}
+          aria-label={t('conversation.attachMenu.addToMessage')}
+          aria-haspopup='menu'
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          onKeyDown={(event) => {
+            if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+            if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            keyboardOpen.current = event.key === 'ArrowUp' ? 'last' : 'first';
+            if (open) {
+              const items = getMenuItems(menuRef.current);
+              (keyboardOpen.current === 'last' ? items.at(-1) : items[0])?.focus();
+              keyboardOpen.current = null;
+            } else setOpen(true);
+          }}
         />
       </Trigger>
       <input

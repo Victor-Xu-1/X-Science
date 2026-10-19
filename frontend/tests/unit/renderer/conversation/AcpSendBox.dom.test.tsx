@@ -3999,6 +3999,28 @@ describe('AcpSendBox', () => {
     expect(messageErrorMock).not.toHaveBeenCalled();
   });
 
+  it('keeps plus-menu context access while typing without replacing the draft or submitting a task', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'change' })));
+    expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+    const openContext = fileAttachProps.current?.onViewContextWindow;
+    expect(openContext).toBeTypeOf('function');
+    const sends = sendMessageInvokeMock.mock.calls.length;
+    await act(async () => (openContext as (opener: HTMLButtonElement | null) => void)(null));
+    expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+    expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+    expect(sendMessageInvokeMock).toHaveBeenCalledTimes(sends);
+    fireEvent.click(screen.getByTestId('context-usage-close'));
+    expect(screen.queryByTestId('context-usage-panel')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+    await act(async () => (openContext as (opener: HTMLButtonElement | null) => void)(null));
+    expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+  });
+
   it('swaps the context-usage ring for the optimize-prompt action while typing', async () => {
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
