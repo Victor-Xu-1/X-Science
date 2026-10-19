@@ -69,7 +69,7 @@ func (s *Server) RunKernelIdleReaper(ctx context.Context) error {
 			closed, closeErr := s.kernelManager.CloseIdleCandidate(closeCtx, candidate)
 			cancel()
 			if closeErr != nil {
-				return closeErr
+				return kernelIdleReaperCloseError(ctx, closeErr)
 			}
 			closedAny = closedAny || closed
 		}
@@ -100,6 +100,15 @@ func (s *Server) RunKernelIdleReaper(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func kernelIdleReaperCloseError(ctx context.Context, closeErr error) error {
+	// Worker.Close returns this exact sentinel after a parent-requested stop.
+	// Do not use errors.Is: a joined cleanup failure must remain observable.
+	if parentErr := ctx.Err(); parentErr != nil && closeErr == parentErr {
+		return nil
+	}
+	return closeErr
 }
 
 type kernelRetentionPolicy struct {
