@@ -47,7 +47,7 @@ type Command struct {
 	ExpectedRevision int64  `json:"expected_revision"`
 	Branch           Branch `json:"branch"`
 	DesiredAgent     string `json:"desired_agent"`
-	UseDefault bool `json:"use_default,omitempty"`
+	UseDefault       bool   `json:"use_default,omitempty"`
 }
 
 type Branch struct {
@@ -56,36 +56,44 @@ type Branch struct {
 }
 
 type Selection struct {
-	AgentName  string `json:"agent_name"`
-	AssistantID string `json:"assistant_id"`
-	IsDefault bool `json:"is_default"`
-	SnapshotID string `json:"snapshot_id"`
-	Revision   int64  `json:"revision"`
+	AgentName     string `json:"agent_name"`
+	SelectionName string `json:"selection_name"`
+	AssistantID   string `json:"assistant_id"`
+	DisplayName   string `json:"display_name"`
+	IsDefault     bool   `json:"is_default"`
+	SnapshotID    string `json:"snapshot_id"`
+	Revision      int64  `json:"revision"`
 }
 
 // InputReference is an intent reference, never a caller-supplied definition.
 // Admission resolves it against the private prepared record in its own write
 // transaction, after accepted-input replay has already been checked.
 type InputReference struct {
-	Scope Scope `json:"scope"`
-	Branch Branch `json:"branch"`
-	Revision int64 `json:"revision"`
+	Scope      Scope  `json:"scope"`
+	Branch     Branch `json:"branch"`
+	Revision   int64  `json:"revision"`
 	SnapshotID string `json:"snapshot_id"`
 }
 
 type Readback struct {
-	Schema         string    `json:"schema"`
-	Scope          Scope     `json:"scope"`
-	Revision       int64     `json:"revision"`
-	Branch         Branch    `json:"branch"`
-	Desired        Selection `json:"desired"`
-	Applied        Selection `json:"applied"`
-	Phase          string    `json:"phase"`
-	HasLiveAttempt bool      `json:"has_live_attempt"`
-	PreparationError string `json:"preparation_error,omitempty"`
+	Schema             string    `json:"schema"`
+	Scope              Scope     `json:"scope"`
+	Revision           int64     `json:"revision"`
+	Branch             Branch    `json:"branch"`
+	PreparedBranch     Branch    `json:"prepared_branch"`
+	Desired            Selection `json:"desired"`
+	Applied            Selection `json:"applied"`
+	Phase              string    `json:"phase"`
+	HasLiveAttempt     bool      `json:"has_live_attempt"`
+	PreparationError   string    `json:"preparation_error,omitempty"`
+	AppliedUnavailable bool      `json:"applied_unavailable"`
 }
 
-type Preparation struct { Desired Snapshot; Fallback *Snapshot; FallbackUnavailable bool }
+type Preparation struct {
+	Desired             Snapshot
+	Fallback            *Snapshot
+	FallbackUnavailable bool
+}
 
 // An accepted receipt is immutable; actual runtime application is reported by
 // the separate current readback, not by overwriting this receipt on a retry.
@@ -108,18 +116,18 @@ type Mutation struct {
 // Models/connectors below are catalog IDs/references; their existing runtime
 // authority and approval owners still resolve and constrain their use.
 type Snapshot struct {
-	Schema       string              `json:"schema"`
-	ID           string              `json:"id"`
-	AgentName    string              `json:"agent_name"`
-	SelectionName string `json:"selection_name"`
-	IsDefault bool `json:"is_default"`
-	SelectionProfileID string `json:"selection_profile_id,omitempty"`
-	DefinitionID string              `json:"definition_id"`
-	AssistantID  string              `json:"assistant_id"`
-	DisplayName  string              `json:"display_name"`
-	Bundled      *BundledDefinition  `json:"bundled,omitempty"`
-	Profile      *PersonalDefinition `json:"profile,omitempty"`
-	Settings     Settings            `json:"settings"`
+	Schema             string              `json:"schema"`
+	ID                 string              `json:"id"`
+	AgentName          string              `json:"agent_name"`
+	SelectionName      string              `json:"selection_name"`
+	IsDefault          bool                `json:"is_default"`
+	SelectionProfileID string              `json:"selection_profile_id,omitempty"`
+	DefinitionID       string              `json:"definition_id"`
+	AssistantID        string              `json:"assistant_id"`
+	DisplayName        string              `json:"display_name"`
+	Bundled            *BundledDefinition  `json:"bundled,omitempty"`
+	Profile            *PersonalDefinition `json:"profile,omitempty"`
+	Settings           Settings            `json:"settings"`
 }
 
 type BundledDefinition struct {
@@ -131,8 +139,8 @@ type BundledDefinition struct {
 	SupportsPlanMode   bool     `json:"supports_plan_mode"`
 	Unrestricted       bool     `json:"unrestricted"`
 	EnableThinking     bool     `json:"enable_thinking"`
-	EnableWebSearch bool `json:"enable_web_search"`
-	EnableWebFetch bool `json:"enable_web_fetch"`
+	EnableWebSearch    bool     `json:"enable_web_search"`
+	EnableWebFetch     bool     `json:"enable_web_fetch"`
 	MaxToolResultChars int      `json:"max_tool_result_chars"`
 }
 
@@ -153,6 +161,6 @@ type Settings struct {
 	DefaultSkillsFixed    bool     `json:"default_skills_fixed"`
 	AllowedSkillNames     []string `json:"allowed_skill_names"`
 	AllowedMCPIDs         []string `json:"allowed_mcp_ids"`
-	AllowedModels []string `json:"allowed_models"`
-	CustomPrompt string `json:"custom_prompt"`
+	AllowedModels         []string `json:"allowed_models"`
+	CustomPrompt          string   `json:"custom_prompt"`
 }
