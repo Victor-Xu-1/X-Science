@@ -8,27 +8,34 @@ import (
 	"time"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionagent"
 )
 
 // Admission and retention use the same typed-envelope validity rule. A bare
 // marker does not make an ordinary transport receipt permanent.
 func isDurableAsideLifecycleRecord(record CompatibilityMessageIntent) bool {
 	var request struct {
-		Version        int     `json:"_aside_contract"`
-		OwnerID        string  `json:"owner_id"`
-		ParentID       string  `json:"parent_frame_id"`
-		Request        string  `json:"request"`
-		Model          *string `json:"model"`
-		AsSession      bool    `json:"as_session"`
-		SourceBranchID string  `json:"source_branch_id"`
-		Generation     int64   `json:"expected_generation"`
+		Version          int                          `json:"_aside_contract"`
+		OwnerID          string                       `json:"owner_id"`
+		ParentID         string                       `json:"parent_frame_id"`
+		Request          string                       `json:"request"`
+		Model            *string                      `json:"model"`
+		AsSession        bool                         `json:"as_session"`
+		SourceBranchID   string                       `json:"source_branch_id"`
+		Generation       int64                        `json:"expected_generation"`
+		SourceSpecialist *sessionagent.InputReference `json:"source_specialist,omitempty"`
 	}
 	raw, err := json.Marshal(record.DedupePayload)
 	if err != nil || json.Unmarshal(raw, &request) != nil || request.Version != 1 || request.OwnerID == "" || request.ParentID == "" || request.Request == "" || record.IntentID == "" ||
 		(request.SourceBranchID == "") != (request.Generation == 0) || request.Generation < 0 || request.SourceBranchID != "" && !transcriptstore.IsValidBranchID(request.SourceBranchID) {
 		return false
 	}
-	canonical, _ := json.Marshal(compatibilityAsideIntentPayload(CompatibilityAsideInput{ParentRootFrameID: request.ParentID, Request: request.Request, Model: request.Model, AsSession: request.AsSession, SourceBranchID: request.SourceBranchID, ExpectedGeneration: request.Generation}, request.OwnerID))
+	input := CompatibilityAsideInput{ParentRootFrameID: request.ParentID, Request: request.Request, Model: request.Model, AsSession: request.AsSession,
+		IntentID: record.IntentID, SourceBranchID: request.SourceBranchID, ExpectedGeneration: request.Generation, SourceSpecialist: request.SourceSpecialist}
+	if normalizeCompatibilityAsideSpecialist(&input) != nil || request.SourceSpecialist != nil && request.SourceSpecialist.Branch != (sessionagent.Branch{ID: request.SourceBranchID, Generation: request.Generation}) {
+		return false
+	}
+	canonical, _ := json.Marshal(compatibilityAsideIntentPayload(input, request.OwnerID))
 	if !bytes.Equal(raw, canonical) {
 		return false
 	}
@@ -38,13 +45,15 @@ func isDurableAsideLifecycleRecord(record CompatibilityMessageIntent) bool {
 		return err == nil && json.Unmarshal(raw, &accepted) == nil && accepted.OwnerID == request.OwnerID && accepted.ParentRootFrameID == request.ParentID && accepted.ParentIncarnationID != "" &&
 			accepted.IntentID == record.IntentID && accepted.FrameID == record.FrameID && accepted.FrameID != "" && accepted.FrameID != accepted.ParentRootFrameID && accepted.InputMessageID != "" &&
 			transcriptstore.IsValidBranchID(accepted.SourceBranchID) && accepted.SourceGeneration > 0 && accepted.ThroughPublication >= 0 && accepted.PrefixLen >= 0 && accepted.AsSession == request.AsSession && record.DeliveryPayload["aside_cancellation"] == nil &&
-			(request.SourceBranchID == "" || accepted.SourceBranchID == request.SourceBranchID && accepted.SourceGeneration == request.Generation)
+			(request.SourceBranchID == "" || accepted.SourceBranchID == request.SourceBranchID && accepted.SourceGeneration == request.Generation) &&
+			validateCompatibilityAsideSpecialistEnvelope(record.DedupePayload, accepted) == nil
 	}
 	if record.State == "retracted" {
 		var cancelled CompatibilityAsideCancellation
 		raw, err = json.Marshal(record.DeliveryPayload["aside_cancellation"])
 		return err == nil && json.Unmarshal(raw, &cancelled) == nil && cancelled.BeforeAcceptance && cancelled.OwnerID == request.OwnerID && cancelled.ParentRootFrameID == request.ParentID &&
-			cancelled.ParentIncarnationID != "" && cancelled.ParentRootFrameID == record.FrameID && cancelled.IntentID == record.IntentID && record.DeliveryPayload["aside_acceptance"] == nil
+			cancelled.ParentIncarnationID != "" && cancelled.ParentRootFrameID == record.FrameID && cancelled.IntentID == record.IntentID && record.DeliveryPayload["aside_acceptance"] == nil &&
+			validateCompatibilityAsideSourceProof(record.DedupePayload, cancelled.SourceSpecialist, cancelled.ParentRootFrameID, cancelled.ParentIncarnationID) == nil
 	}
 	return false
 }

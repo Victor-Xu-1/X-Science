@@ -11,6 +11,7 @@ const transport = vi.hoisted(() => ({
   branches: vi.fn(),
   session: vi.fn(),
   resume: vi.fn(),
+  specialist: vi.fn(),
 }));
 vi.mock('@/renderer/services/xScienceAside', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/renderer/services/xScienceAside')>()),
@@ -30,9 +31,15 @@ vi.mock('@/renderer/services/xScienceRuntimeOperations', async (importOriginal) 
   ...(await importOriginal<typeof import('@/renderer/services/xScienceRuntimeOperations')>()),
   resumeXScienceFrame: transport.resume,
 }));
+vi.mock('@/renderer/services/runtime/sessionSpecialist', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/runtime/sessionSpecialist')>()),
+  loadSessionSpecialist: transport.specialist,
+}));
 
 import { XScienceAsideOperation } from '@/renderer/services/runtime/asideOperation';
 import { readAsidePresentation } from '@/renderer/services/runtime/asidePresentation';
+import { asideSourceSpecialist, asideChildSpecialist } from './asideSpecialistFixtures';
+import { specialistSnapshot } from './sessionSpecialistFixtures';
 
 const intent = {
   parentFrameId: 'parent-1',
@@ -78,6 +85,95 @@ describe('aside action ownership', () => {
     transport.followup.mockImplementation(async (_frame, command) => ({
       msg_id: 'branch-continue:' + command.loadingId,
     }));
+  });
+
+  it('C404 atomic keeps the hidden immutable child binding through lost POST, DELETE and hydration', async () => {
+    const typed = { ...intent, sourceSpecialist: asideSourceSpecialist };
+    const child = asideChildSpecialist();
+    const accepted = { ...receipt, sourceSpecialist: asideSourceSpecialist, specialistBinding: child };
+    transport.create.mockResolvedValue(accepted);
+    transport.branches.mockResolvedValue({ activeBranchId: child.branch.id, generation: child.branch.generation });
+    transport.followup.mockRejectedValueOnce(new TypeError('POST response lost'));
+    transport.messageCancel.mockRejectedValueOnce(new TypeError('DELETE response lost'));
+    const operation = new XScienceAsideOperation(typed);
+    await operation.start();
+    operation.setDraft('Frozen followup');
+    await expect(operation.send('Frozen followup')).rejects.toThrow('POST response lost');
+    const command = operation.presentation.pendingFollowup!;
+    expect(command.sessionOptions).toMatchObject({ specialist_binding: child });
+    expect(command.sessionOptions).not.toHaveProperty('target_agent');
+    expect(transport.specialist).not.toHaveBeenCalled();
+    await expect(operation.close()).rejects.toThrow('DELETE response lost');
+    const hint = readAsidePresentation(intent.parentFrameId, false)!;
+    expect(hint.intent).toEqual(typed);
+    expect(hint.receipt).toMatchObject({ specialistBinding: child, sourceSpecialist: asideSourceSpecialist });
+    expect(hint.pendingFollowup).toEqual(command);
+    operation.retire();
+    transport.lookup.mockResolvedValue({ status: 'accepted', receipt: accepted });
+    const restored = new XScienceAsideOperation(hint.intent, hint);
+    await restored.reconcile();
+    transport.messageCancel.mockResolvedValue({
+      status: 'cancelled-before-acceptance',
+      frameId: 'child-1',
+      loadingId: command.loadingId,
+      requestSha256: 'a'.repeat(64),
+      replayed: true,
+      inputMessageId: null,
+    });
+    await restored.close();
+    expect(transport.messageCancel.mock.calls.map(([, body]) => body)).toEqual([command, command]);
+    expect(transport.followup).toHaveBeenCalledOnce();
+    expect(transport.specialist).not.toHaveBeenCalled();
+  });
+
+  it('C404 atomic rejects a hidden branch conflict without substituting the latest binding or dropping the draft', async () => {
+    const typed = { ...intent, sourceSpecialist: asideSourceSpecialist };
+    transport.create.mockResolvedValue({
+      ...receipt,
+      sourceSpecialist: asideSourceSpecialist,
+      specialistBinding: asideChildSpecialist(),
+    });
+    const operation = new XScienceAsideOperation(typed);
+    await operation.start();
+    operation.setDraft('Keep this followup');
+    await expect(operation.send('Keep this followup')).rejects.toThrow();
+    expect(operation.presentation.draft).toBe('Keep this followup');
+    expect(operation.presentation.pendingFollowup).toBeNull();
+    expect(transport.followup).not.toHaveBeenCalled();
+    expect(transport.specialist).not.toHaveBeenCalled();
+  });
+
+  it('C404 atomic freezes a visible child current-head read once and replays its pending input unchanged', async () => {
+    const child = asideChildSpecialist();
+    const typed = { ...intent, asSession: true, sourceSpecialist: asideSourceSpecialist };
+    transport.create.mockResolvedValue({
+      ...receipt,
+      asSession: true,
+      sourceSpecialist: asideSourceSpecialist,
+      specialistBinding: child,
+    });
+    transport.branches.mockResolvedValue({ activeBranchId: child.branch.id, generation: child.branch.generation });
+    transport.specialist.mockResolvedValue(
+      specialistSnapshot(2, 'NEXT_AGENT', { scope: child.scope, branch: child.branch, prepared_branch: child.branch })
+    );
+    transport.followup.mockRejectedValueOnce(new TypeError('response lost'));
+    const operation = new XScienceAsideOperation(typed);
+    await operation.start();
+    await expect(operation.send('Continue visible child')).rejects.toThrow('response lost');
+    const pending = operation.presentation.pendingFollowup!;
+    expect(pending.sessionOptions).toMatchObject({
+      target_agent: 'NEXT_AGENT',
+      specialist_binding: {
+        scope: child.scope,
+        branch: child.branch,
+        revision: 2,
+        snapshot_id: 'snapshot:NEXT_AGENT:2',
+      },
+    });
+    transport.specialist.mockRejectedValue(new Error('must not refresh a frozen pending command'));
+    expect(await operation.send('Continue visible child')).toBe(true);
+    expect(transport.specialist).toHaveBeenCalledOnce();
+    expect(transport.followup.mock.calls.map(([, body]) => body)).toEqual([pending, pending]);
   });
 
   it('reconciles a lost acceptance without minting another identity or rebinding controls', async () => {

@@ -6,6 +6,8 @@ import { toXScienceRuntimeSummary } from '@/renderer/components/xScience/runtime
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAsideRuntimeView } from './useAsideRuntimeView';
+import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
+import { sameAsideSpecialist } from '@/renderer/services/runtime/asideSpecialist';
 
 type Scope = {
   key: string;
@@ -156,16 +158,25 @@ export function useBtwCommand(
   summaryRef.current = summary;
 
   const ask = useCallback(
-    (rawText: string, consumer: AsideConsumer | null = null): Promise<boolean> => {
+    (rawText: string, consumer: AsideConsumer | null = null, authority?: SpecialistSendAuthority): Promise<boolean> => {
       const scope = scopeRef.current;
       const text = rawText.trim();
       if (!scope || !isCurrent(scope) || !eligible || !conversationId || !text) return Promise.resolve(false);
       if (scope.preparing) return Promise.resolve(false);
+      let sourceSpecialist: SpecialistSendAuthority['reference'];
+      try {
+        sourceSpecialist = decodeSpecialistSendAuthority(authority ?? {}).reference;
+      } catch {
+        return Promise.resolve(false);
+      }
       const existing = scope.operation;
       if (
         existing &&
         !existing.closed &&
-        (existing.receipt || existing.intent.request !== text || existing.closeRequested)
+        (existing.receipt ||
+          existing.intent.request !== text ||
+          existing.closeRequested ||
+          !sameAsideSpecialist(existing.intent.sourceSpecialist, sourceSpecialist))
       ) {
         sync(scope, { isOpen: true, errorKey: existing.closeRequested ? 'closePending' : 'alreadyRunning' });
         return Promise.resolve(false);
@@ -183,6 +194,7 @@ export function useBtwCommand(
               intentId,
               model: model.current,
               asSession,
+              ...(sourceSpecialist ? { sourceSpecialist } : {}),
             });
             if (!isCurrent(scope)) return false;
             owned = new XScienceAsideOperation(intent, undefined, { timeoutMs: 15_000 }, consumer);
@@ -371,7 +383,10 @@ export function useBtwCommand(
   }, [isCurrent]);
   const retry = useCallback(() => {
     const scope = scopeRef.current;
-    return ask(scope?.operation?.intent.request ?? current.question);
+    const original = scope?.operation;
+    return original?.intent.sourceSpecialist
+      ? ask(original.intent.request, original.presentation.consumer, { reference: original.intent.sourceSpecialist })
+      : ask(original?.intent.request ?? current.question);
   }, [ask, current.question]);
 
   const running = Boolean(

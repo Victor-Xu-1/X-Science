@@ -23,6 +23,8 @@ import { loadXScienceSessionOptions, toXScienceMessageSessionOptions } from '../
 import { isXScienceHttpError, type XScienceGatewayOptions } from '../xScienceHttp';
 import { resumeXScienceFrame } from '../xScienceRuntimeOperations';
 import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import { freezeAsideSpecialist, sameAsideSpecialist } from './asideSpecialist';
+import { freezeAsideFollowupSpecialist } from './asideFollowupSpecialist';
 
 /** One UI action owner, not a task scheduler. Server ownership/receipts remain authoritative. */
 export class XScienceAsideOperation {
@@ -49,7 +51,8 @@ export class XScienceAsideOperation {
     private options: XScienceGatewayOptions = {},
     consumer: AsideConsumer | null = null
   ) {
-    this.intent = Object.freeze({ ...intent });
+    const sourceSpecialist = freezeAsideSpecialist(intent.sourceSpecialist, intent.parentFrameId);
+    this.intent = Object.freeze({ ...intent, ...(sourceSpecialist ? { sourceSpecialist } : {}) });
     if (
       recovered &&
       (recovered.intent.intentId !== intent.intentId ||
@@ -58,7 +61,8 @@ export class XScienceAsideOperation {
         recovered.intent.model !== intent.model ||
         recovered.intent.asSession !== intent.asSession ||
         recovered.intent.sourceBranchId !== intent.sourceBranchId ||
-        recovered.intent.expectedGeneration !== intent.expectedGeneration)
+        recovered.intent.expectedGeneration !== intent.expectedGeneration ||
+        !sameAsideSpecialist(recovered.intent.sourceSpecialist, sourceSpecialist))
     )
       throw new Error('aside_presentation_replaced');
     this.value = recovered ?? {
@@ -252,6 +256,12 @@ export class XScienceAsideOperation {
         ]);
         this.assertOwner();
         if (this.closeRequested || !branches.activeBranchId) return false;
+        const specialist = await freezeAsideFollowupSpecialist(this.intent, receipt, this.owner!, {
+          id: branches.activeBranchId,
+          generation: branches.generation,
+        });
+        this.assertOwner();
+        if (this.closeRequested) return false;
         this.value = {
           ...this.value,
           pendingFollowup: Object.freeze({
@@ -262,6 +272,7 @@ export class XScienceAsideOperation {
                 targetBranchId: branches.activeBranchId,
                 expectedBranchId: branches.activeBranchId,
                 expectedGeneration: branches.generation,
+                ...specialist,
               }),
               ...(this.intent.model ? { model: this.intent.model } : {}),
             }),
@@ -367,7 +378,9 @@ export class XScienceAsideOperation {
         previous.sourceBranchId !== receipt.sourceBranchId ||
         previous.sourceGeneration !== receipt.sourceGeneration ||
         previous.asSession !== receipt.asSession ||
-        previous.throughPublicationSequence !== receipt.throughPublicationSequence)
+        previous.throughPublicationSequence !== receipt.throughPublicationSequence ||
+        !sameAsideSpecialist(previous.sourceSpecialist, receipt.sourceSpecialist) ||
+        !sameAsideSpecialist(previous.specialistBinding, receipt.specialistBinding))
     )
       throw new Error('aside_receipt_changed');
     this.verifiedReceipt = true;

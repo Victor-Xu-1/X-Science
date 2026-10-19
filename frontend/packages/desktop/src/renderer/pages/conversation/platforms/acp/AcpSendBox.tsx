@@ -406,6 +406,9 @@ const AcpSendBox: React.FC<{
     modelId: model_info?.current_model_id ?? null,
     queue: asideQueueRef,
     clearDraftIfUnchanged: (text) => replaceContentIfUnchanged(text, ''),
+    captureDraftSpecialist: () =>
+      queuedSpecialistAuthority ?? specialistControl.capture(getSelectedXScienceBranch(conversation_id)),
+    draftSpecialistInvalid: queuedSpecialistInvalid,
     navigate,
   });
 
@@ -983,7 +986,6 @@ const AcpSendBox: React.FC<{
         item.contextItems.length > 0 ||
         item.readingContext ||
         item.readingContextInvalid ||
-        item.specialistAuthority?.reference ||
         item.specialistAuthorityInvalid
       ) {
         Message.warning(t('conversation.commandQueue.sideChatAttachmentsUnsupported'));

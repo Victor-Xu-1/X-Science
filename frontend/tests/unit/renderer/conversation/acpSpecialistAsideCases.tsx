@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { expect, it, vi, type Mock } from 'vitest';
+import { expect, it, type Mock } from 'vitest';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
@@ -65,20 +65,32 @@ export function registerSpecialistAsideCases(args: {
     expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('synthetic frozen draft');
   };
   it.each(['侧聊', '在新会话中分支'])(
-    'C404 alternate blocks an edited typed queue from %s without losing its draft or reference',
+    'C404 atomic transfers an edited typed queue through the actual %s button with its original reference',
     async (label) => {
       await mount(item());
       await choose(label);
-      expectBlocked();
+      expect(args.asideAsk).toHaveBeenCalledWith(
+        'synthetic frozen draft',
+        expect.objectContaining({ kind: label === '侧聊' ? 'draft' : 'branch', sourceSpecialist: authority.reference }),
+        authority
+      );
+      expect(args.send).not.toHaveBeenCalled();
+      expect(fixture.warning).not.toHaveBeenCalled();
       expect(fixture.remove).toHaveBeenCalledWith('frozen-item');
       expect(fixture.draft.specialistQueuedAuthority).toEqual(authority);
     }
   );
-  it('C404 alternate captures an ordinary prepared selection before starting unsupported side-chat', async () => {
+  it('C404 atomic captures an ordinary prepared selection before the actual side-chat button dispatch', async () => {
     fixture.capture.mockReturnValue(authority);
     await mount();
     await choose('侧聊');
-    expectBlocked();
+    expect(args.asideAsk).toHaveBeenCalledWith(
+      'synthetic frozen draft',
+      expect.objectContaining({ kind: 'draft', sourceSpecialist: authority.reference }),
+      authority
+    );
+    expect(fixture.warning).not.toHaveBeenCalled();
+    expect(args.send).not.toHaveBeenCalled();
     expect(fixture.capture).toHaveBeenCalledWith(null);
   });
   it('C404 alternate rejects invalid recovered authority and preserves the recovery marker', async () => {

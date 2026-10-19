@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionagent"
 )
 
 var (
@@ -28,6 +29,7 @@ type CompatibilityAsideInput struct {
 	AsSession           bool
 	SourceBranchID      string
 	ExpectedGeneration  int64
+	SourceSpecialist    *sessionagent.InputReference
 	RuntimeConfig       map[string]any
 	canonicalSeed       bool
 	canonicalSeedCount  int
@@ -86,7 +88,7 @@ func (s *Store) CreateCompatibilityAside(input CompatibilityAsideInput) (Compati
 	if err != nil {
 		return CompatibilityAsideResult{}, err
 	}
-	if input.SourceBranchID != "" {
+	if input.SourceBranchID != "" || input.SourceSpecialist != nil {
 		return CompatibilityAsideResult{}, ErrCompatibilityAsideParentTranscriptMissing
 	}
 
@@ -113,6 +115,9 @@ func normalizeCompatibilityAsideInput(input CompatibilityAsideInput) (Compatibil
 	input.ParentRootFrameID = strings.TrimSpace(input.ParentRootFrameID)
 	input.IntentID = strings.TrimSpace(input.IntentID)
 	input.SourceBranchID = strings.TrimSpace(input.SourceBranchID)
+	if err := normalizeCompatibilityAsideSpecialist(&input); err != nil {
+		return CompatibilityAsideInput{}, err
+	}
 	if input.ID == "" || input.ParentRootFrameID == "" {
 		return CompatibilityAsideInput{}, errors.New("aside frame id and parent root frame id are required")
 	}

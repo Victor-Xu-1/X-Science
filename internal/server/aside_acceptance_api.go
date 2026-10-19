@@ -7,11 +7,16 @@ import (
 
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sessionagent"
 )
 
 func compatibilityAsideAcceptanceResponse(result workspace.CompatibilityAsideResult) map[string]any {
 	if cancelled := result.Cancellation; cancelled != nil {
-		return map[string]any{"intent_id": cancelled.IntentID, "accepted": false, "cancelled": true, "cancellation_status": "cancelled_before_acceptance", "replayed": result.Replayed}
+		response := map[string]any{"intent_id": cancelled.IntentID, "accepted": false, "cancelled": true, "cancellation_status": "cancelled_before_acceptance", "replayed": result.Replayed}
+		if cancelled.SourceSpecialist != nil {
+			response["source_specialist"] = cancelled.SourceSpecialist
+		}
+		return response
 	}
 	if result.Acceptance == nil {
 		// Legacy creation has no canonical acceptance envelope. Preserve its
@@ -26,6 +31,10 @@ func compatibilityAsideAcceptanceResponse(result workspace.CompatibilityAsideRes
 		response["source_generation"] = accepted.SourceGeneration
 		response["through_publication_sequence"] = accepted.ThroughPublication
 		response["as_session"] = accepted.AsSession
+		if accepted.SourceSpecialist != nil {
+			response["source_specialist"] = accepted.SourceSpecialist
+			response["specialist_binding"] = accepted.SpecialistBinding
+		}
 	}
 	if result.CancelledInputMessageID != "" {
 		response["cancelled"] = true
@@ -61,6 +70,18 @@ func writeCompatibilityAsideError(w http.ResponseWriter, err error) {
 	}
 	status, code, detail := 0, "", ""
 	switch {
+	case errors.Is(err, sessionagent.ErrInvalid):
+		status, code, detail = http.StatusBadRequest, sessionagent.ErrInvalid.Error(), "Invalid frozen specialist source"
+	case errors.Is(err, sessionagent.ErrRevisionConflict):
+		status, code, detail = http.StatusConflict, sessionagent.ErrRevisionConflict.Error(), "Specialist source changed before aside admission"
+	case errors.Is(err, sessionagent.ErrScopeStale):
+		status, code, detail = http.StatusConflict, sessionagent.ErrScopeStale.Error(), "Specialist source lifetime changed"
+	case errors.Is(err, sessionagent.ErrTargetUnavailable):
+		status, code, detail = http.StatusConflict, sessionagent.ErrTargetUnavailable.Error(), "Frozen specialist source is unavailable"
+	case errors.Is(err, workspace.ErrCompatibilityAsideSpecialistModel):
+		status, code, detail = http.StatusForbidden, "ASIDE_SPECIALIST_MODEL_FORBIDDEN", "Model exceeds the frozen specialist maximum"
+	case errors.Is(err, sessionagent.ErrUnavailable):
+		status, code, detail = http.StatusServiceUnavailable, sessionagent.ErrUnavailable.Error(), "Frozen specialist authority is unavailable"
 	case errors.Is(err, workspace.ErrFrameCancellationInputStale):
 		status, code, detail = http.StatusConflict, "CONVERSATION_CANCEL_INPUT_STALE", "Cancellation target is not the current owned input"
 	case errors.Is(err, workspace.ErrFrameCancellationInputUnavailable):

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/sessionagent"
 )
 
 // CreateCompatibilityAsideWithTranscript creates the child Frame, immutable
@@ -82,13 +83,20 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 		if !found {
 			parentConfig = map[string]any{}
 		}
+		input.RuntimeConfig = parentConfig
+		definition, err := resolveCompatibilityAsideSpecialist(ctx, tx, ownerID, &input)
+		if err != nil {
+			return err
+		}
 		stripThinking := input.Model != nil && !compatibilityAsideEqualScalar(*input.Model, parentConfig["model"])
+		if definition != nil && input.Model == nil {
+			stripThinking = !compatibilityAsideEqualScalar(input.RuntimeConfig["model"], parentConfig["model"])
+		}
 		input.canonicalSeedCount, err = tx.CountAsideHistory(ctx, parentStreamUID, ownerID, stripThinking, selection)
 		if err != nil {
 			return err
 		}
 		input.canonicalSeed = true
-		input.RuntimeConfig = parentConfig
 		result, err = s.createCompatibilityAsideInTransaction(ctx, tx, input)
 		if err != nil {
 			return err
@@ -109,11 +117,23 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 		}); err != nil {
 			return err
 		}
+		if err := prepareCompatibilityAsideSpecialist(ctx, tx, ownerID, input, &result, definition); err != nil {
+			return err
+		}
+		origin := ""
+		var inputData map[string]any
+		if definition != nil {
+			origin, inputData = "task_intent", result.InputData
+			if result.Acceptance.SpecialistBinding == nil || result.InputData[sessionagent.InputReferenceKey] == nil {
+				return ErrCompatibilityAsideAcceptanceUnavailable
+			}
+		}
 		_, _, created, err := tx.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
 			StreamUID: stream.UID, OwnerID: ownerID, ClientMessageID: messageID,
 			FrameEventID: "frame-message:" + result.Frame.ID + ":" + messageID,
 			MessageUUID:  messageID, Text: input.Request,
 			RuntimeConfig: compatibilityAsideTranscriptRuntimeConfig(result), Destinations: destinations,
+			MessageOrigin: origin, InputData: inputData,
 		})
 		if err != nil {
 			return err
@@ -121,7 +141,7 @@ func (s *Store) CreateCompatibilityAsideWithTranscript(
 		if !created {
 			return transcriptstore.ErrEventConflict
 		}
-		return nil
+		return writeCompatibilityAsideSpecialistProof(ctx, tx, ownerID, input, result)
 	})
 	if err != nil {
 		return CompatibilityAsideResult{}, err

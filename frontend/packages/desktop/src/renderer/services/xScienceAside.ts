@@ -7,6 +7,8 @@ import {
 } from './xScienceConversationBranches';
 import { requestXScienceJson, type XScienceGatewayOptions } from './xScienceHttp';
 import { getRendererAccountScopeToken } from './rendererAccountScope';
+import type { SpecialistInputReference } from '@/common/adapter/specialistBinding';
+import { decodeAsideSpecialistProof, freezeAsideSpecialist } from './runtime/asideSpecialist';
 
 export type XScienceAsideIntent = Readonly<{
   parentFrameId: string;
@@ -16,6 +18,7 @@ export type XScienceAsideIntent = Readonly<{
   asSession: boolean;
   sourceBranchId: string;
   expectedGeneration: number;
+  sourceSpecialist?: SpecialistInputReference;
 }>;
 
 export type XScienceAsideReceipt = Readonly<{
@@ -27,15 +30,17 @@ export type XScienceAsideReceipt = Readonly<{
   throughPublicationSequence: number;
   asSession: boolean;
   replayed: boolean;
+  sourceSpecialist?: SpecialistInputReference;
+  specialistBinding?: SpecialistInputReference;
 }>;
 
 export type XScienceAsideLookup =
   | { status: 'absent' }
-  | { status: 'cancelled-before-acceptance'; intentId: string }
+  | { status: 'cancelled-before-acceptance'; intentId: string; sourceSpecialist?: SpecialistInputReference }
   | { status: 'accepted'; receipt: XScienceAsideReceipt; cancelledInputMessageId?: string };
 
 export type XScienceAsideClose =
-  | { status: 'cancelled-before-acceptance'; intentId: string }
+  | { status: 'cancelled-before-acceptance'; intentId: string; sourceSpecialist?: SpecialistInputReference }
   | { status: 'cancelled' | 'already-terminal'; receipt: XScienceAsideReceipt; inputMessageId: string };
 
 export type XScienceAsideFollowup = Readonly<{
@@ -61,6 +66,13 @@ const validId = (value: unknown): value is string =>
 
 export function isXScienceAsideIntent(value: unknown): value is XScienceAsideIntent {
   if (!isRecord(value)) return false;
+  try {
+    const source = freezeAsideSpecialist(value.sourceSpecialist, String(value.parentFrameId));
+    if (source && (source.branch.id !== value.sourceBranchId || source.branch.generation !== value.expectedGeneration))
+      return false;
+  } catch {
+    return false;
+  }
   return (
     validId(value.parentFrameId) &&
     typeof value.intentId === 'string' &&
@@ -80,9 +92,16 @@ export function isXScienceAsideIntent(value: unknown): value is XScienceAsideInt
 export async function captureXScienceAsideIntent(
   parentFrameId: string,
   text: string,
-  options: { model?: string | null; asSession?: boolean; intentId?: string; fetchImpl?: typeof fetch } = {}
+  options: {
+    model?: string | null;
+    asSession?: boolean;
+    intentId?: string;
+    fetchImpl?: typeof fetch;
+    sourceSpecialist?: SpecialistInputReference;
+  } = {}
 ): Promise<XScienceAsideIntent> {
   if (!validId(parentFrameId) || !text.trim()) throw new Error('aside_request_invalid');
+  const sourceSpecialist = freezeAsideSpecialist(options.sourceSpecialist, parentFrameId);
   const selectedBranch = getSelectedXScienceBranch(parentFrameId);
   const selectedRevision = getXScienceBranchSelectionRevision(parentFrameId);
   const branches = await loadXScienceAsideBranches(parentFrameId, { fetchImpl: options.fetchImpl });
@@ -100,6 +119,7 @@ export async function captureXScienceAsideIntent(
     asSession: options.asSession === true,
     sourceBranchId: sourceBranchId ?? '',
     expectedGeneration: branches.generation,
+    ...(sourceSpecialist ? { sourceSpecialist } : {}),
   };
   if (!isXScienceAsideIntent(intent) || !branches.branches.some((branch) => branch.id === sourceBranchId)) {
     throw new Error('aside_source_unavailable');
@@ -128,6 +148,7 @@ export function asideRequestBody(intent: XScienceAsideIntent) {
     intent_id: intent.intentId,
     source_branch_id: intent.sourceBranchId,
     expected_generation: intent.expectedGeneration,
+    ...(intent.sourceSpecialist ? { source_specialist: intent.sourceSpecialist } : {}),
   };
 }
 
@@ -155,7 +176,15 @@ export async function lookupXScienceAside(
   if (!isRecord(value) || value.intent_id !== intent.intentId) throw new Error('aside_lookup_unverified');
   if (value.accepted === false) {
     if (value.cancelled === true && value.cancellation_status === 'cancelled_before_acceptance') {
-      return { status: 'cancelled-before-acceptance', intentId: intent.intentId };
+      try {
+        return {
+          status: 'cancelled-before-acceptance',
+          intentId: intent.intentId,
+          ...decodeAsideSpecialistProof(value, intent),
+        };
+      } catch {
+        throw new Error('aside_lookup_unverified');
+      }
     }
     if (value.cancelled === true || value.cancellation_status !== undefined) throw new Error('aside_lookup_unverified');
     return { status: 'absent' };
@@ -193,7 +222,15 @@ export async function closeXScienceAside(
     value.cancelled === true &&
     value.cancellation_status === 'cancelled_before_acceptance'
   ) {
-    return { status: 'cancelled-before-acceptance', intentId: intent.intentId };
+    try {
+      return {
+        status: 'cancelled-before-acceptance',
+        intentId: intent.intentId,
+        ...decodeAsideSpecialistProof(value, intent),
+      };
+    } catch {
+      throw new Error('aside_close_unverified');
+    }
   }
   const receipt = requireXScienceAsideReceipt(value, intent);
   const expected = inputMessageId ?? receipt.inputMessageId;
@@ -330,6 +367,12 @@ export function requireXScienceAsideReceipt(value: unknown, intent: XScienceAsid
     typeof value.replayed !== 'boolean'
   )
     throw new Error('aside_receipt_unverified');
+  let proof: Pick<XScienceAsideReceipt, 'sourceSpecialist' | 'specialistBinding'>;
+  try {
+    proof = decodeAsideSpecialistProof(value, intent, value.frame_id);
+  } catch {
+    throw new Error('aside_receipt_unverified');
+  }
   return Object.freeze({
     frameId: value.frame_id,
     intentId: intent.intentId,
@@ -339,6 +382,7 @@ export function requireXScienceAsideReceipt(value: unknown, intent: XScienceAsid
     throughPublicationSequence: Number(value.through_publication_sequence),
     asSession: value.as_session,
     replayed: value.replayed,
+    ...proof,
   });
 }
 

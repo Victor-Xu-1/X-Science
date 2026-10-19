@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e13e5223f4b9d121927f6526fd0e88c8bf6b79505aad55f916ac1ff37b85f952",
+  "adaptationFingerprintSHA256": "c7057c1f9143876e3ea994f0dd3d53a0d6ad47973a9fcafe6193a794b0eadd86",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "b2290ea856c1134d20e35460f6b34319bab3394d83a699cc9ddd2d6f7452ee40",
+  "additionFingerprintSHA256": "1fc7267095333056144e417549b3729d3b00985a12150b418d1260d1ffd2eea5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1170
+    "addedFiles": 1173
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "2d0d8af86a97443bfdb21937090d3ee993a8e2da760f7d436da21bca1d2f0017",
+      "targetSHA256": "c7dfba23bfb58c6e7333ccfb06a52fb6e1c90a49e823f3931e7642de69b674c3",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "bd73fb4c5c3d7b6f579ac7b33abcde0aaf07dda5a44d9d57b0169404ada275c5",
+      "targetSHA256": "406239e50fce34b36d838985da86ff792c7de294e8f92881d369608c34644ab3",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -386,8 +386,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts",
       "sourceSHA256": "14baafa4d2ae619ea46eaacb6e42a9ad86eff14609de3610b8e46f7094170921",
-      "targetSHA256": "2a2e097e016a61bd7f3f45590bb697fe04bfeb3021d1268f539861ff49851a33",
-      "bytes": 15807,
+      "targetSHA256": "d7bb0522a9d5ddea2d52838bc05f74d62f0ff006d9e76adea7e7be96e0a9fecf",
+      "bytes": 16629,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "daaccf5dfbdfed0aecf875bb6bf0f6d9b2af5eb1a1438216ea62718f7ad7f510",
-      "bytes": 52867,
+      "targetSHA256": "8a98ae4c95baea55d9a095d97692cdb8bdb1697c6f2228fe8f218d89320d8d74",
+      "bytes": 53013,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3145,8 +3145,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAside.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAside.ts",
       "sourceSHA256": "78245de61d5ed4af2ee1da16589fa98b56a22b1f76243762fd1b2c5f9e9b987a",
-      "targetSHA256": "e06f757b3ee6da282fbac2967b7d64fea5603e33a8f7a01277ac4072218f4c97",
-      "bytes": 13656,
+      "targetSHA256": "d6f15bc0fcf9cbb75320e94950120e88489e0d0a922bab9f1d2fcb6d638ef0b4",
+      "bytes": 15220,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3963,8 +3963,8 @@
     {
       "path": "tests/unit/chat/useBtwCommand.dom.test.tsx",
       "sourceSHA256": "fdbc85af8c8850ee24c219569fcbab3ca3589d3f5d58373fbfd3f94d9caf5cbc",
-      "targetSHA256": "552610615d02393d3fd232a2aabe2345fc0cf21b811ba71c98fa578dd507083d",
-      "bytes": 16926,
+      "targetSHA256": "566a4fa1693e23311c3145c12f3e21696cb5222fe30c901b7f7f02a2706eee77",
+      "bytes": 23684,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5378,8 +5378,8 @@
       "path": "tests/unit/xscience/asideService.test.ts",
       "originalPath": "tests/unit/synonbiomed/asideService.test.ts",
       "sourceSHA256": "43adc8d30edc6de8aea8486c0646177560709b3f771c43d3d6aac4307d57eaf8",
-      "targetSHA256": "d25e9aea5dea0c1ff146823c21e65ef745c9eca9ac5c9de0cb15fc6aabee7b50",
-      "bytes": 13175,
+      "targetSHA256": "7fafdc6824559e01e7b4f696f14f5f162b7be683d34ef265430272070a1439fc",
+      "bytes": 16844,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "f8c48de156268dbb94e4337a84992d4f33eecdcbe8cf6136f9cb671cec0eb5cf",
+      "sha256": "ac708f01eced6a55f3abf1fd1c13958d6298fea311c8f067a0190890db74cfda",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9525,8 +9525,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/acpSendOptionRouting.ts",
-      "sha256": "1f2660465d0730229a28a002459cad30b4919df8d7fe2223c10db70b3d5a4aff",
-      "bytes": 1527,
+      "sha256": "438620d2b0b239f4041b36d4d76980f67b6aa64ede3c8fe4122fdf852dc9ebbd",
+      "bytes": 1598,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9549,8 +9549,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx",
-      "sha256": "091ae56ca871fcd4e507990784cd9650fe9fac2a2d2817b9a1d7b5dabb3a1fc1",
-      "bytes": 8836,
+      "sha256": "04451c7dd716b86b528f4eed2874a668629c20d83611344be2d71e011f3b4b9a",
+      "bytes": 12226,
       "reason": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input."
     },
     {
@@ -10574,16 +10574,28 @@
       "reason": "Implement the browser-side single composer intent lifecycle over Go CAS endpoints, exact durable retry feedback, account fences and click-time selection preparation; not a second binding authority."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/asideFollowupSpecialist.ts",
+      "sha256": "9ff0daf829834b1f865ed2653ea28ac66a6f7aeafa6acb4978bd6641bceae2c0",
+      "bytes": 1859,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/asideOperation.ts",
-      "sha256": "b3a7e6dfe493c37d38f4ae33b48e2ffdf9f60846c40a9403ad975a71ed3a5ff1",
-      "bytes": 15161,
+      "sha256": "1c286e2623375cc7e568e10526fb66dc8ada29b2a99a7a287d99210701fc6424",
+      "bytes": 16023,
       "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asidePresentation.ts",
-      "sha256": "642ab66cabca6c0050a62dcf266952d32c6a7c1033ac13213601abea3996ee53",
-      "bytes": 7456,
+      "sha256": "278a286e610da99b43deae1aa1ecb519372519dbd2f398d7e31678125a31122a",
+      "bytes": 9066,
       "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/asideSpecialist.ts",
+      "sha256": "0d8080f13e001508f8d8318b96d4093c215e42092638a51e9d0565722a6e8cdb",
+      "bytes": 3709,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/conversationArchive.ts",
@@ -12765,8 +12777,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/acpSpecialistAsideCases.tsx",
-      "sha256": "a00ef40bd88c9a17136950db21610190dbde98809f894bae5b23bfec48e2329e",
-      "bytes": 5453,
+      "sha256": "6c05bcf2818b321cb2fa3aca1763debdee7fc0fa15b845515ba39348f733188a",
+      "bytes": 6045,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13875,8 +13887,14 @@
     },
     {
       "path": "tests/unit/xscience/asideOperation.dom.test.ts",
-      "sha256": "c81b15b79120ad2479684d2bc026ec7e5478b14e5b1632ac3d41897db6bcd267",
-      "bytes": 11955,
+      "sha256": "ae9c1b27364ac6333391558f3e2c0bc636bc7a54695d49d08898c2a80c6bdf3b",
+      "bytes": 17018,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/asideSpecialistFixtures.ts",
+      "sha256": "3f48b14aabbd70972ca17ad24b1e93a6f52f69791367328e611f3ddf2331ed5e",
+      "bytes": 753,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
