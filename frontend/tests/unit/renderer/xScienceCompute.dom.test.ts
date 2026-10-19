@@ -36,6 +36,98 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('compute GET collection boundary', () => {
+  const provider = { name: 'ssh:fixture-host', displayName: 'Fixture host', family: 'ssh', checked: true };
+  const reads = [
+    {
+      name: 'catalog',
+      read: loadXScienceComputeProviders,
+      error: 'invalid compute provider list',
+    },
+    {
+      name: 'session',
+      read: (fetchImpl: typeof fetch) => loadXScienceSessionComputeProviders('fixture-root', fetchImpl),
+      error: 'invalid session compute provider list',
+    },
+  ];
+  const nonArrays: Array<{ label: string; payload: unknown }> = [
+    { label: 'object wrapper', payload: { providers: [] } },
+    { label: 'null', payload: null },
+    { label: 'number', payload: 42 },
+    { label: 'encoded array string', payload: '["ssh:fixture-host"]' },
+    { label: 'empty response body', payload: undefined },
+  ];
+
+  for (const { name, read, error } of reads) {
+    it.each(nonArrays)(`${name} rejects a successful $label instead of an empty list`, async ({ payload }) => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(payload)));
+      await expect(read(fetchMock)).rejects.toThrow(error);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it(`${name} preserves a legitimate empty array`, async () => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json([]));
+      await expect(read(fetchMock)).resolves.toEqual([]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it(`${name} retains the original HTTP status and error detail`, async () => {
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(Response.json({ detail: 'synthetic unavailable' }, { status: 503 }));
+      await expect(read(fetchMock)).rejects.toMatchObject({ status: 503, message: 'synthetic unavailable' });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it(`${name} retains the original invalid JSON error`, async () => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('{'));
+      await expect(read(fetchMock)).rejects.toThrow('compute API returned invalid JSON');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it.each([null, 42, {}, { name: '' }, { name: 7 }])(
+    'catalog rejects an adapter-invalid member %j without returning a partial list',
+    async (invalid) => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json([provider, invalid]));
+      await expect(loadXScienceComputeProviders(fetchMock)).rejects.toThrow('invalid compute provider list');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it.each([null, 42, ''])('session rejects an invalid member %j without returning a partial list', async (invalid) => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json(['ssh:fixture-host', invalid]));
+    await expect(loadXScienceSessionComputeProviders('fixture-root', fetchMock)).rejects.toThrow(
+      'invalid session compute provider list'
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains current provider adaptation and optional-field string-array compatibility', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json([provider, { name: 'extension:fixture', dataRoots: '["/fixture-data"]' }]));
+    await expect(loadXScienceComputeProviders(fetchMock)).resolves.toMatchObject([
+      provider,
+      {
+        name: 'extension:fixture',
+        displayName: 'fixture',
+        family: 'extension',
+        checked: false,
+        dataRoots: ['/fixture-data'],
+      },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains enabled identity order, duplicates and unknown providers without a new policy', async () => {
+    const values = ['extension:fixture-b', 'ssh:fixture-host', 'ssh:fixture-host'];
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json(values));
+    await expect(loadXScienceSessionComputeProviders('fixture-root', fetchMock)).resolves.toEqual(values);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('X-Science compute service', () => {
   it('loads provider summaries, details and SSH aliases from the native compute API', async () => {
     const fetchMock = vi
