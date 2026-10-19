@@ -3,6 +3,7 @@ import {
   type ComposerContextItem,
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
+import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import {
   decodePdfReadingPending,
   decodePdfReadingSelection,
@@ -28,6 +29,8 @@ export type StagedSessionOptions = {
 };
 
 export type AcpSendBoxDraft = {
+  specialistQueuedAuthority?: SpecialistSendAuthority;
+  specialistQueuedInvalid?: true;
   pdfReadingMutation?: PdfReadingPendingMutation;
   pdfReadingAttachmentsDisabled?: true;
   pdfReadingQueuedSelection?: PdfReadingSelection;
@@ -147,7 +150,9 @@ function isEmptyDraft(draft: AcpSendBoxDraft): boolean {
     draft.contextItems.length === 0 &&
     draft.pdfReadingMutation === undefined &&
     draft.pdfReadingQueuedSelection === undefined &&
-    draft.pdfReadingQueuedInvalid !== true
+    draft.pdfReadingQueuedInvalid !== true &&
+    draft.specialistQueuedAuthority === undefined &&
+    draft.specialistQueuedInvalid !== true
   );
 }
 
@@ -177,11 +182,24 @@ function normalizeAcpSendBoxDraft(value: unknown): AcpSendBoxDraft | null {
     ...(value.planMode === true ? { planMode: true as const } : {}),
     ...(value.pdfReadingAttachmentsDisabled === true ? { pdfReadingAttachmentsDisabled: true as const } : {}),
     ...normalizeFrozenPdfDraft(value),
+    ...normalizeFrozenSpecialistDraft(value),
     ...normalizeStagedSessionOptions(value.stagedSessionOptions),
     ...(decodePdfReadingPending(value.pdfReadingMutation)
       ? { pdfReadingMutation: decodePdfReadingPending(value.pdfReadingMutation) }
       : {}),
   };
+}
+
+function normalizeFrozenSpecialistDraft(
+  value: Record<string, unknown>
+): Pick<AcpSendBoxDraft, 'specialistQueuedAuthority' | 'specialistQueuedInvalid'> {
+  if (value.specialistQueuedInvalid === true) return { specialistQueuedInvalid: true };
+  if (value.specialistQueuedAuthority === undefined) return {};
+  try {
+    return { specialistQueuedAuthority: decodeSpecialistSendAuthority(value.specialistQueuedAuthority) };
+  } catch {
+    return { specialistQueuedInvalid: true };
+  }
 }
 
 function normalizeFrozenPdfDraft(

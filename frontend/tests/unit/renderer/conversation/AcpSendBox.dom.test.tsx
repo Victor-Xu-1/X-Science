@@ -562,7 +562,8 @@ vi.mock('@/renderer/services/xScienceSessionOptions', () => ({
   }),
   updateXScienceSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
 }));
-vi.mock('@/renderer/services/xScienceCatalog', () => ({
+vi.mock('@/renderer/services/xScienceCatalog', async (original) => ({
+  ...(await original<typeof import('@/renderer/services/xScienceCatalog')>()),
   loadXScienceAssistants: (...args: unknown[]) => loadAssistantsMock(...args),
 }));
 vi.mock('@/renderer/services/xScienceCompute', () => ({

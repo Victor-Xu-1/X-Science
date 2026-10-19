@@ -9,10 +9,15 @@ import {
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import XScienceDelegationControlRow from '@/renderer/components/xScience/runtime/XScienceDelegationControlRow';
+import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
+import XScienceSpecialistChoices, {
+  specialistControlLabel,
+  specialistChoiceRows,
+} from '@/renderer/components/xScience/runtime/XScienceSpecialistChoices';
 import { Message } from '@arco-design/web-react';
 import { Attention, Brain, MagicHat, SettingTwo, Shield } from '@icon-park/react';
 import type { TFunction, i18n as I18n } from 'i18next';
-import React, { useMemo, type Dispatch, type SetStateAction } from 'react';
+import React, { useMemo } from 'react';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
 import SessionPermissionGrants from '@/renderer/components/xScience/runtime/SessionPermissionGrants';
 import type { SessionPermissionGrantsController } from '@/renderer/services/runtime/sessionPermissionGrantsController';
@@ -37,11 +42,10 @@ type UseAcpMobileActionSheetControllerArgs = {
   selectModel: (modelId: string) => void;
   xscienceSessionOptions: XScienceSessionOptions;
   sessionOptionsReady: boolean;
-  setXScienceSessionOptions: Dispatch<SetStateAction<XScienceSessionOptions>>;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
-  mobileSpecialists: Array<{ id: string; label: string; agentId: string }>;
+  specialistControl?: XScienceSpecialistControl;
   mobileComputeProviders: Array<{ name: string; label: string }>;
   mobileEnabledCompute: string[];
   handleSessionComputeChange: (providerName: string, checked: boolean) => Promise<void>;
@@ -75,11 +79,10 @@ export const useAcpMobileActionSheetController = ({
   selectModel,
   xscienceSessionOptions,
   sessionOptionsReady,
-  setXScienceSessionOptions,
   updatePersistentSessionOption,
   memoryControl,
   delegationControl,
-  mobileSpecialists,
+  specialistControl,
   mobileComputeProviders,
   mobileEnabledCompute,
   handleSessionComputeChange,
@@ -171,40 +174,21 @@ export const useAcpMobileActionSheetController = ({
       },
     });
 
-    if (mobileSpecialists.length > 0) {
-      entries.push({
-        key: 'specialist',
-        icon: <Brain theme='outline' size='16' />,
-        label: t('conversation.xscienceRuntime.sessionOptions.expert'),
-        meta:
-          xscienceSessionOptions.targetAgent === 'OPERON'
-            ? t('conversation.xscienceRuntime.sessionOptions.none')
-            : mobileSpecialists.find((item) => item.agentId === xscienceSessionOptions.targetAgent)?.label ||
-              xscienceSessionOptions.targetAgent,
-        submenu: {
-          title: t('conversation.xscienceRuntime.sessionOptions.expert'),
-          options: [
-            {
-              key: 'OPERON',
-              label: t('conversation.xscienceRuntime.sessionOptions.none'),
-              active: xscienceSessionOptions.targetAgent === 'OPERON',
-            },
-            ...mobileSpecialists
-              .filter((specialist) => specialist.agentId !== 'OPERON')
-              .map((specialist) => ({
-                key: specialist.agentId,
-                label: specialist.label,
-                active: specialist.agentId === xscienceSessionOptions.targetAgent,
-              })),
-          ],
-          onSelect: (agentId) =>
-            setXScienceSessionOptions((current) => ({
-              ...current,
-              targetAgent: agentId,
-            })),
+    entries.push({
+      key: 'specialist',
+      icon: <Brain theme='outline' size='16' />,
+      label: t('conversation.xscienceRuntime.sessionOptions.expert'),
+      meta: specialistControlLabel(specialistControl, t),
+      submenu: {
+        title: t('conversation.xscienceRuntime.sessionOptions.expert'),
+        options: specialistChoiceRows(specialistControl, t),
+        onSelect: (key) => {
+          const choice = specialistChoiceRows(specialistControl, t).find((row) => row.key === key);
+          if (choice && !choice.disabled) void specialistControl?.change(choice.name);
         },
-      });
-    }
+        footer: (active) => <XScienceSpecialistChoices control={specialistControl} active={active} statusOnly />,
+      },
+    });
 
     if (mobileComputeProviders.length > 0) {
       entries.push({
@@ -410,7 +394,7 @@ export const useAcpMobileActionSheetController = ({
     librarySkillNames,
     mobileComputeProviders,
     mobileEnabledCompute,
-    mobileSpecialists,
+    specialistControl,
     memoryControl,
     delegationControl,
     model_info,

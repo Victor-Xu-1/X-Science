@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   setSessionProvider: vi.fn(),
   persistOption: vi.fn(),
   persistPolicy: vi.fn(),
+  prepareSpecialist: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }));
@@ -45,6 +47,7 @@ const initialValue: XScienceSessionOptions = {
 };
 
 const Harness = () => {
+  const { i18n } = useTranslation();
   const [value, setValue] = useState(initialValue);
   const [delegation, setDelegation] = useState(true);
   const persistOption = async (key: 'autoReview' | 'memory', checked: boolean) => {
@@ -59,6 +62,39 @@ const Harness = () => {
           value={value}
           onChange={setValue}
           onPersistentOptionChange={persistOption}
+          specialistControl={{
+            applied: {
+              agent_name: 'DEFAULT_RUNTIME',
+              selection_name: 'DEFAULT_LOGICAL',
+              assistant_id: 'default',
+              display_name: 'Main',
+              is_default: true,
+              snapshot_id: '',
+              revision: 0,
+            },
+            desired: null,
+            choices: [
+              {
+                id: 'expert',
+                name: 'AIDD_EXPERT',
+                label: i18n.language === 'en-US' ? 'AI Drug Discovery Expert' : 'AI 药物研发专家',
+              },
+            ],
+            pending: false,
+            available: true,
+            unavailable: false,
+            error: null,
+            retryable: false,
+            catalogLoading: false,
+            catalogError: false,
+            hasLiveAttempt: false,
+            prepared: false,
+            change: mocks.prepareSpecialist,
+            refresh: () => {},
+            retry: () => {},
+            current: () => true,
+            capture: () => ({}),
+          }}
           delegationControl={{
             enabled: delegation,
             pending: false,
@@ -194,13 +230,14 @@ describe('XScienceSessionOptionsMenu component', () => {
     expect(screen.queryByRole('menuitem', { name: '继续任务' })).not.toBeInTheDocument();
   });
 
-  it('selects a specialist and changes a compute provider through real service boundaries', async () => {
+  it('prepares a specialist through its owner and changes a compute provider through its service', async () => {
     await renderWithI18n(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
 
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-specialist'));
     fireEvent.click((await screen.findByText('AI 药物研发专家')).closest('[role="menuitemradio"]')!);
-    expect(screen.getByTestId('session-value')).toHaveTextContent('"targetAgent":"AIDD_EXPERT"');
+    expect(mocks.prepareSpecialist).toHaveBeenCalledWith('AIDD_EXPERT');
+    expect(screen.getByTestId('session-value')).toHaveTextContent('"targetAgent":"OPERON"');
 
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-compute'));
     const computeToggle = (await screen.findByText('HPC A')).parentElement?.querySelector('[role="menuitemcheckbox"]');

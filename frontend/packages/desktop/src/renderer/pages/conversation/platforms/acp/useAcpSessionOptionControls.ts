@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { useXScienceMemoryAvailability } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import { useSessionDelegationPolicy } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import { useSessionSpecialist } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import { updateXScienceSessionConfig, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { safeErrorDiagnostic } from './acpSendBoxDiagnostics';
 
@@ -24,6 +25,7 @@ export function useAcpSessionOptionControls(
     JSON.stringify([ownerId, conversationId, extra?.frame_incarnation_id])
   );
   const delegationControl = useSessionDelegationPolicy(ownerId, conversationId, extra);
+  const specialistControl = useSessionSpecialist(ownerId, conversationId, extra);
   const { t } = useTranslation();
   const [goalClearInFlight, setGoalClearInFlight] = useState(false);
   useEffect(() => setGoalClearInFlight(false), [conversationId]);
@@ -66,6 +68,7 @@ export function useAcpSessionOptionControls(
   return {
     memoryControl,
     delegationControl,
+    specialistControl,
     updatePersistentSessionOption,
     openMobileControls,
     handleClearGoal,

@@ -4,10 +4,7 @@ import {
   setXScienceSessionComputeProvider,
   type XScienceComputeProvider,
 } from '@/renderer/services/xScienceCompute';
-import { resolveLocaleKey } from '@/common/utils';
-import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
 import { X_SCIENCE_SESSION_DEFAULTS, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
-import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { Dropdown, Message, Spin, Switch } from '@arco-design/web-react';
 import { Check, Right, SettingConfig } from '@icon-park/react';
 import { Server, Shield, UserRound } from 'lucide-react';
@@ -17,6 +14,8 @@ import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
 import { getMenuItems } from '@/renderer/utils/menuKeyboard';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
+import XScienceSpecialistChoices, { specialistControlLabel } from './XScienceSpecialistChoices';
 import {
   sessionMemoryPresentation,
   type XScienceMemoryControl,
@@ -27,7 +26,6 @@ import SessionPermissionGrants from './SessionPermissionGrants';
 import { XScienceFullAccessConfirmation, XSciencePermissionChoices } from './XSciencePermissionChoices';
 import { useXSciencePermissionControl, type XSciencePermissionControlInput } from './useXSciencePermissionControl';
 
-type SpecialistOption = { id: string; label: string; agentId: string };
 type Submenu = 'permission' | 'specialist' | 'compute' | null;
 
 export type XScienceSessionOptionsMenuProps = {
@@ -43,6 +41,7 @@ export type XScienceSessionOptionsMenuProps = {
   permissionControl?: XSciencePermissionControlInput;
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
+  specialistControl?: XScienceSpecialistControl;
 };
 
 const rowClass =
@@ -64,25 +63,28 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   permissionControl,
   memoryControl,
   delegationControl,
+  specialistControl,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const memoryPresentation = sessionMemoryPresentation(memoryControl, value.memory);
   const hasMemoryCustomization =
     !memoryPresentation.disabled && memoryPresentation.checked !== X_SCIENCE_SESSION_DEFAULTS.memory;
-  const localeKey = resolveLocaleKey(i18n.language);
   const navigate = useNavigate();
   const translationRef = useRef(t);
   translationRef.current = t;
   const [visible, setVisible] = useState(false);
   const refreshMemory = memoryControl?.refresh;
+  const refreshSpecialist = specialistControl?.refresh;
   useEffect(() => {
-    if (visible) refreshMemory?.();
-  }, [refreshMemory, visible]);
+    if (visible) {
+      refreshMemory?.();
+      void refreshSpecialist?.();
+    }
+  }, [refreshMemory, refreshSpecialist, visible]);
   const [submenu, setSubmenu] = useState<Submenu>(null);
   const [loading, setLoading] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<string | null>(null);
   const [pendingOption, setPendingOption] = useState<'autoReview' | 'memory' | null>(null);
-  const [specialists, setSpecialists] = useState<SpecialistOption[]>([]);
   const [computeProviders, setComputeProviders] = useState<XScienceComputeProvider[]>([]);
   const [enabledComputeProviders, setEnabledComputeProviders] = useState<string[]>(
     (computeSelection ?? []).filter((provider) => provider !== 'local')
@@ -142,21 +144,11 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     let active = true;
     setLoading(true);
     void Promise.all([
-      loadXScienceAssistants(),
       loadXScienceComputeProviders(),
       rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(computeSelection ?? []),
     ])
-      .then(([assistants, providers, enabledProviders]) => {
+      .then(([providers, enabledProviders]) => {
         if (!active) return;
-        setSpecialists(
-          assistants
-            .map((assistant) => ({
-              id: assistant.id,
-              label: resolveAssistantName(assistant, localeKey, assistant.name),
-              agentId: assistant.agent_id || assistant.name,
-            }))
-            .filter((assistant) => assistant.agentId && assistant.agentId !== 'OPERON')
-        );
         setComputeProviders(providers.filter((provider) => provider.checked && provider.name !== 'local'));
         setEnabledComputeProviders(enabledProviders.filter((provider) => provider !== 'local'));
       })
@@ -170,7 +162,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     return () => {
       active = false;
     };
-  }, [computeSelection, localeKey, rootFrameId, visible]);
+  }, [computeSelection, rootFrameId, visible]);
 
   useEffect(() => {
     if (computeSelection) setEnabledComputeProviders(computeSelection.filter((provider) => provider !== 'local'));
@@ -217,10 +209,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     };
   }, [submenu]);
 
-  const activeSpecialistLabel =
-    value.targetAgent === 'OPERON'
-      ? t('conversation.xscienceRuntime.sessionOptions.none')
-      : specialists.find((specialist) => specialist.agentId === value.targetAgent)?.label || value.targetAgent;
+  const activeSpecialistLabel = specialistControlLabel(specialistControl, t);
 
   const computeLabel = useMemo(() => {
     if (enabledComputeProviders.length === 0) return t('conversation.xscienceRuntime.sessionOptions.localMachine');
@@ -316,59 +305,14 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         {submenu === 'permission' ? (
           <XSciencePermissionChoices control={permission} />
         ) : submenu === 'specialist' ? (
-          <>
-            <button
-              type='button'
-              role='menuitemradio'
-              aria-checked={value.targetAgent === 'OPERON'}
-              aria-label={t('conversation.xscienceRuntime.sessionOptions.selectExpert', {
-                name: t('conversation.xscienceRuntime.sessionOptions.none'),
-              })}
-              className={rowClass}
-              disabled={disabled}
-              onClick={() => onChange({ ...value, targetAgent: 'OPERON' })}
-            >
-              <span className='inline-flex w-20px'>{value.targetAgent === 'OPERON' ? <Check size={14} /> : null}</span>
-              <span>{t('conversation.xscienceRuntime.sessionOptions.none')}</span>
-            </button>
-            {specialists.map((specialist) => (
-              <button
-                key={specialist.id}
-                type='button'
-                role='menuitemradio'
-                aria-checked={specialist.agentId === value.targetAgent}
-                aria-label={t('conversation.xscienceRuntime.sessionOptions.selectExpert', {
-                  name: specialist.label,
-                })}
-                className={rowClass}
-                disabled={disabled}
-                onClick={() => onChange({ ...value, targetAgent: specialist.agentId })}
-              >
-                <span className='inline-flex w-20px'>
-                  {specialist.agentId === value.targetAgent ? <Check size={14} /> : null}
-                </span>
-                <span className='truncate'>{specialist.label}</span>
-              </button>
-            ))}
-            {!loading && specialists.length === 0 ? (
-              <div className='px-12px py-8px text-12px text-t-tertiary'>
-                {t('conversation.xscienceRuntime.sessionOptions.noExperts')}
-              </div>
-            ) : null}
-            <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
-            <button
-              type='button'
-              role='menuitem'
-              className={rowClass}
-              onClick={() => {
-                setVisible(false);
-                setSubmenu(null);
-                void navigate('/settings/experts?create=1');
-              }}
-            >
-              {t('conversation.xscienceRuntime.sessionOptions.createExpert')}
-            </button>
-          </>
+          <XScienceSpecialistChoices
+            control={specialistControl}
+            onCreate={() => {
+              setVisible(false);
+              setSubmenu(null);
+              void navigate('/settings/experts?create=1');
+            }}
+          />
         ) : (
           <>
             <button
@@ -618,7 +562,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           {(delegationControl?.current() && delegationControl.enabled === false) ||
           value.autoReview ||
           hasMemoryCustomization ||
-          value.targetAgent !== 'OPERON' ||
+          Boolean(specialistControl?.current() && specialistControl.applied && !specialistControl.applied.is_default) ||
           (permission.available && permission.currentValue !== 'default') ||
           enabledComputeProviders.length > 0 ? (
             <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />

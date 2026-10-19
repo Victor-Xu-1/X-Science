@@ -5,6 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import {
+  decodeSpecialistInputReference,
+  decodeSpecialistSendAuthority,
+  type SpecialistSendAuthority,
+} from '@/common/adapter/specialistBinding';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { decodeArtifactReferences, type ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
@@ -32,6 +37,8 @@ type DraftStagedSessionOptions = {
 };
 
 type DraftPrefillPayload = {
+  specialistAuthority?: SpecialistSendAuthority;
+  specialistAuthorityInvalid?: true;
   input: string;
   files: string[];
   artifactRefs: ArtifactReferenceWire[];
@@ -227,6 +234,19 @@ export const useAcpInitialMessage = ({
           }
         : null;
       const planMode = rawSessionOptions?.plan_mode === true;
+      let specialistAuthority: SpecialistSendAuthority | undefined, specialistAuthorityInvalid: true | undefined;
+      if (rawSessionOptions?.specialist_binding !== undefined) {
+        try {
+          specialistAuthority = decodeSpecialistSendAuthority({
+            reference: rawSessionOptions.specialist_binding,
+            ...(typeof rawSessionOptions.target_agent === 'string'
+              ? { targetAgent: rawSessionOptions.target_agent }
+              : {}),
+          });
+        } catch {
+          specialistAuthorityInvalid = true;
+        }
+      }
       const computeProviders = Array.isArray(parsed.compute_providers)
         ? parsed.compute_providers.filter(
             (provider: unknown): provider is string => typeof provider === 'string' && provider.trim().length > 0
@@ -241,6 +261,8 @@ export const useAcpInitialMessage = ({
         injectMcpServerIds,
         sessionOptions,
         planMode,
+        specialistAuthority,
+        specialistAuthorityInvalid,
       });
 
       if (computeProviders.length === 0) {
@@ -311,7 +333,12 @@ export const useAcpInitialMessage = ({
               target_agent:
                 typeof rawSessionOptions.target_agent === 'string' && rawSessionOptions.target_agent.trim()
                   ? rawSessionOptions.target_agent
-                  : 'OPERON',
+                  : undefined,
+              ...(rawSessionOptions.specialist_binding === undefined
+                ? {}
+                : {
+                    specialist_binding: decodeSpecialistInputReference(rawSessionOptions.specialist_binding),
+                  }),
               model:
                 typeof rawSessionOptions.model === 'string' && rawSessionOptions.model.trim()
                   ? rawSessionOptions.model.trim()
