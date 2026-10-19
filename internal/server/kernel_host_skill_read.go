@@ -11,9 +11,13 @@ import (
 // Bare names retain the authoring draft-first view. An explicit catalog identity
 // selects only the published package in its declared source namespace.
 func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
+	path, err := normalizeKernelSkillReadPath(path)
+	if err != nil {
+		return nil, kernelHostRegistryError(err)
+	}
 	namespace, name, publishedReference := strings.Cut(reference, ":")
 	var skill skills.Skill
-	var found bool
+	var found, draftRead bool
 	if publishedReference {
 		if (namespace != "local" && namespace != "bundled") || !importedSkillNamePattern.MatchString(name) || name == "." || name == ".." {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", "Skill catalog reference is invalid")
@@ -32,16 +36,20 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 			found = namespace == expected && name == skill.Name
 		}
 	} else {
-		var err error
-		skill, found, err = s.compatibilityAuthorSkill(reference)
+		skill, found, err = s.findCompatibilitySkillDraft(reference)
 		if err != nil {
 			return nil, kernelHostRegistryError(err)
+		}
+		draftRead = found
+		if !found {
+			skill, found = findCatalogSkill(s.skillCatalog, reference)
 		}
 	}
 	if !found {
 		return nil, kernelruntime.NewHostCallError("not_found", fmt.Sprintf("skill %q was not found", reference))
 	}
 	var content string
+	var files []string
 	read := func() error {
 		if publishedReference && namespace == "local" {
 			// Under the existing snapshot lock, retain the same regular-root and
@@ -51,19 +59,33 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 			}
 		}
 		var err error
-		content, err = compatibilityCatalogSkillContent(skill, path)
+		content, files, err = readKernelSkillSource(skill, path)
 		return err
 	}
-	var err error
-	if publishedReference {
+	if !draftRead {
 		// Reuse the publication lock/identity fence so a replacement cannot mix
 		// cached catalog identity with different package bytes during readback.
 		err = s.withPublishedRuntimeSkillSnapshot(skill, read)
 	} else {
+		// Draft edits and publication share this mutex. Revalidate after joining
+		// it, without silently changing a selected draft into a published read.
+		s.skillMutationMu.Lock()
+		defer s.skillMutationMu.Unlock()
+		current, found, resolveErr := s.findCompatibilitySkillDraft(reference)
+		if resolveErr != nil {
+			return nil, kernelHostRegistryError(resolveErr)
+		}
+		if !found || current.Name != skill.Name || !sameCleanPath(current.Path, skill.Path) {
+			return nil, kernelruntime.NewHostCallError("not_found", "Selected Skill draft changed before reading")
+		}
 		err = read()
 	}
 	if err != nil {
 		return nil, kernelHostRegistryError(err)
 	}
-	return map[string]any{"name": skill.Name, "path": path, "content": content}, nil
+	result := map[string]any{"name": skill.Name, "path": path, "content": content}
+	if path == "SKILL.md" {
+		result["files"] = files
+	}
+	return result, nil
 }
