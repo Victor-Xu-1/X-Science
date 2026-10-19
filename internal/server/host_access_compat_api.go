@@ -170,7 +170,7 @@ func (s *Server) handleCompatibilityHostBrowse(w http.ResponseWriter, r *http.Re
 	}
 	userID := compatAgentUserID(r)
 	values, present := r.URL.Query()["path"]
-	if !present || len(values) == 0 || strings.Contains(values[0], "..") {
+	if !present || len(values) == 0 || strings.Contains("/"+filepath.ToSlash(values[0])+"/", "/../") {
 		writeV11Detail(w, http.StatusBadRequest, "absolute path required")
 		return
 	}
