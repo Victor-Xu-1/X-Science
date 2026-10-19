@@ -78,4 +78,25 @@ describe('XSciencePlanReviewContent', () => {
       expect(element.className).not.toMatch(/(?:^|\s)border-l-2(?:\s|$)/);
     }
   });
+
+  it('C397 pinned labels an English historical preview and makes opening current explicit', async () => {
+    const open = vi.fn();
+    await renderWithI18n(
+      <XSciencePlanReviewContent
+        document={document}
+        reference={reference}
+        loading={false}
+        error={null}
+        onRetry={vi.fn()}
+        replaced
+        onOpenCurrent={open}
+      />,
+      'en-US'
+    );
+    expect(screen.getByText('Historical execution plan')).toBeInTheDocument();
+    expect(screen.getByText('This plan has been replaced and is read-only.')).toBeInTheDocument();
+    expect(screen.queryByText('Current execution plan')).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'View current plan' }).click();
+    expect(open).toHaveBeenCalledOnce();
+  });
 });

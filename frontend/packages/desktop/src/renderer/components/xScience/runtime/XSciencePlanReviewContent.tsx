@@ -12,23 +12,48 @@ const XSciencePlanReviewContent: React.FC<{
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-}> = ({ document, reference, loading, error, onRetry }) => {
+  replaced?: boolean;
+  canRetry?: boolean;
+  onOpenCurrent?: () => void;
+}> = ({ document, reference, loading, error, onRetry, replaced = false, canRetry = true, onOpenCurrent }) => {
   const { t, i18n } = useTranslation();
+  const notice = replaced ? (
+    <div className='px-12px py-8px text-12px text-t-secondary flex items-center justify-between gap-8px' role='status'>
+      <span>{t('conversation.xscienceRuntime.runtimeOperations.planReplaced')}</span>
+      {onOpenCurrent ? (
+        <Button size='small' onClick={onOpenCurrent}>
+          {t('conversation.xscienceRuntime.runtimeOperations.openCurrentPlan')}
+        </Button>
+      ) : null}
+    </div>
+  ) : null;
   if (loading) {
     return (
-      <div className='h-240px flex-center'>
-        <Spin tip={t('conversation.xscienceRuntime.runtimeOperations.loadingPlan')} />
-      </div>
+      <>
+        {notice}
+        <div className='h-240px flex-center'>
+          <Spin tip={t('conversation.xscienceRuntime.runtimeOperations.loadingPlan')} />
+        </div>
+      </>
     );
   }
   if (error) {
     return (
-      <div className='px-12px py-20px flex flex-col items-center gap-10px text-12px text-danger-6'>
-        <span>{error}</span>
-        <Button size='small' icon={<Redo theme='outline' size={14} />} onClick={onRetry}>
-          {t('conversation.xscienceRuntime.runtimeOperations.reloadPlan')}
-        </Button>
-      </div>
+      <>
+        {notice}
+        <div className='px-12px py-20px flex flex-col items-center gap-10px text-12px text-danger-6'>
+          <span>{error}</span>
+          {canRetry ? (
+            <Button size='small' icon={<Redo theme='outline' size={14} />} onClick={onRetry}>
+              {t('conversation.xscienceRuntime.runtimeOperations.reloadPlan')}
+            </Button>
+          ) : onOpenCurrent ? (
+            <Button size='small' onClick={onOpenCurrent}>
+              {t('conversation.xscienceRuntime.runtimeOperations.openCurrentPlan')}
+            </Button>
+          ) : null}
+        </div>
+      </>
     );
   }
   if (!document) return <Empty description={t('conversation.xscienceRuntime.runtimeOperations.noPlan')} />;
@@ -53,9 +78,14 @@ const XSciencePlanReviewContent: React.FC<{
           : confidence;
   return (
     <div className='x-science-plan-review' data-testid='x-science-plan-review'>
+      {notice}
       <div className='x-science-plan-review__meta'>
         <span className='font-[500] text-t-secondary'>
-          {t('conversation.xscienceRuntime.runtimeOperations.currentExecutionPlan')}
+          {t(
+            replaced
+              ? 'conversation.xscienceRuntime.runtimeOperations.historicalExecutionPlan'
+              : 'conversation.xscienceRuntime.runtimeOperations.currentExecutionPlan'
+          )}
         </span>
         {revisionNumber && revisionCount ? (
           <span>
