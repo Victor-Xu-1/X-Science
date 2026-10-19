@@ -17,7 +17,7 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { emitter } from '@/renderer/utils/emitter';
-import { getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
+import { focusMenuSurface, getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -160,11 +160,10 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const bindMenu = useCallback(
     (node: HTMLDivElement | null) => {
       menuRef.current = node;
-      if (!node || !open || !keyboardOpen.current) return;
-      const items = getMenuItems(node);
-      const target = keyboardOpen.current === 'last' ? items.at(-1) : items[0];
+      if (!node || !open) return;
+      const position = keyboardOpen.current;
       keyboardOpen.current = null;
-      target?.focus();
+      focusMenuSurface(node, position);
     },
     [open]
   );
@@ -274,6 +273,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
       className='app-overlay-menu composer-control-menu conversation-control-menu'
       style={{ ...cardStyle, minWidth: 'min(224px, calc(100vw - 24px))', width: 'min(224px, calc(100vw - 24px))' }}
       role='menu'
+      tabIndex={-1}
       aria-label={t('conversation.attachMenu.addToMessage')}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {

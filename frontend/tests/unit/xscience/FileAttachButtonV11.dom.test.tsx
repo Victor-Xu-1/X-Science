@@ -199,6 +199,52 @@ describe('v1.1 add-to-message menu', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('focuses the menu container after pointer opening without selecting the first action', async () => {
+    const user = userEvent.setup();
+    await renderMenu();
+    await user.click(screen.getByRole('button', { name: '添加到消息' }));
+
+    const menu = screen.getByRole('menu', { name: '添加到消息' });
+    await waitFor(() => expect(menu).toHaveFocus());
+    expect(menu).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('menuitem', { name: '添加文件' })).not.toHaveFocus();
+  });
+
+  it('closes with Escape after a pointer click and restores the original trigger focus', async () => {
+    const user = userEvent.setup();
+    await renderMenu();
+    const trigger = screen.getByRole('button', { name: '添加到消息' });
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
+    await waitFor(() => expect(screen.queryByRole('menu', { name: '添加到消息' })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('preserves outside-click focus and focuses the cached menu on the next pointer opening', async () => {
+    const user = userEvent.setup();
+    await renderWithI18n(
+      <>
+        <FileAttachButton openFileSelector={vi.fn()} />
+        <button type='button'>Outside action</button>
+      </>,
+      'en-US',
+      { wrapper: MemoryRouter }
+    );
+    const trigger = screen.getByRole('button', { name: 'Add to message' });
+    const outside = screen.getByRole('button', { name: 'Outside action' });
+    await user.click(trigger);
+    await user.click(outside);
+
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
+    expect(outside).toHaveFocus();
+    await user.click(trigger);
+    await waitFor(() => expect(screen.getByRole('menu', { name: 'Add to message' })).toHaveFocus());
+  });
+
   it('renders the complete menu in English', async () => {
     await renderMenu({ onViewPlan: vi.fn(), onRequestReview: vi.fn(), onSaveSkill: vi.fn() }, 'en-US');
     fireEvent.click(screen.getByRole('button', { name: 'Add to message' }));

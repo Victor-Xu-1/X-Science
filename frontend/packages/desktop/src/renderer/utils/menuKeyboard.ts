@@ -11,6 +11,14 @@ export function getMenuItems(menu: HTMLElement | null): HTMLElement[] {
   );
 }
 
+/** Root menus focus their surface for pointer opens, and an item for keyboard opens. */
+export function focusMenuSurface(menu: HTMLElement | null, position: 'first' | 'last' | null): boolean {
+  const items = position === null ? [] : getMenuItems(menu);
+  const target = position === null ? menu : position === 'last' ? items.at(-1) : items[0];
+  target?.focus({ preventScroll: true });
+  return Boolean(target);
+}
+
 export function handleMenuNavigation(event: React.KeyboardEvent<HTMLElement>): boolean {
   if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return false;
   if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return false;
