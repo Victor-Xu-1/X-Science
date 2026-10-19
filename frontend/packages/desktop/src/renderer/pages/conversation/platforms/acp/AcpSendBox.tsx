@@ -3,7 +3,6 @@ import type { IConversationMcpStatus, TChatConversation } from '@/common/config/
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError, resolveLocaleKey, uuid } from '@/common/utils';
 import XScienceModelSelector from '@/renderer/components/xScience/runtime/XScienceModelSelector';
-import XSciencePermissionMenu from '@/renderer/components/xScience/runtime/XSciencePermissionMenu';
 import { useAcpSessionPermissionGrants } from './useAcpSessionPermissionGrants';
 import XScienceSendOptionsMenu, {
   type XScienceSendIntent,
@@ -1223,14 +1222,14 @@ const AcpSendBox: React.FC<{
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}
-              />
-              <XSciencePermissionMenu
-                key={grantsController?.presentationKey ?? `${ownerId}:${conversation_id}`}
-                grantsController={grantsController}
-                option={runtimeMode}
-                setStatus={runtimeConfig.setStatus}
-                setConfigOption={runtimeConfig.setConfigOption}
-                disabled={runtimeUnavailable || skillSave.inFlight}
+                permissionControl={{
+                  contextKey: JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
+                  grantsController,
+                  option: runtimeMode,
+                  setStatus: runtimeConfig.setStatus,
+                  setConfigOption: runtimeConfig.setConfigOption,
+                  disabled: runtimeUnavailable || skillSave.inFlight,
+                }}
               />
             </div>
           )

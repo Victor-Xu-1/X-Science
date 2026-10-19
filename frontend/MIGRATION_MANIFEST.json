@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "38c0333ed2adfd9fa7647444c41b0fe1c1d5ff72c0a203b28b5e750ce0316d84",
+  "adaptationFingerprintSHA256": "8c86375480b1b652d55f2e50a1cad7ae770981270c20e39f2d0dafbbad4efa57",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "44cacbd5e70be27af12897d085e25c9c98289fa6cd3b26edc6e9eadfe6958903",
+  "additionFingerprintSHA256": "60f2c5eaf781860f787b36dd757ee0b36f35ab2323da34b106f1775026d81d1b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1127
+    "addedFiles": 1131
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "068b1e2b66779d756aed98f95e652227b35aada7b1b9331771e512feb6fdf5aa",
+      "targetSHA256": "ea33f7479b4e544b5d92cea86b582a92e18d8517087351fdce0f6764a8e6d3a2",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "dac63b55e5a49057c6063b571ebe3c96028262ff0b1c033466383d2c4fc0fd6c",
+      "targetSHA256": "a70845bab8677922dae38d5a3dc0f6af924032acd20adf434ddfa08faf6ec0fa",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "6a265fc6849df3e3126cb0b76af5602009da07d44e74f4a68d240eec05a91a8c",
-      "bytes": 23262,
+      "targetSHA256": "eab9b72894ea5b439e807af45834b611b58e35b78f91612c40ebf78a872ed687",
+      "bytes": 25755,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "abcd2096a7e107b6d47eda24c2ed812ec22fd0c38723ea8faea129a421c86f8a",
-      "bytes": 53751,
+      "targetSHA256": "66743c88c8aa2b29acb92d48f3034fe506f2eb3ad15c94ea5b33f9b0d76c749b",
+      "bytes": 53647,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "80a3c1eb34ff90ed72756b15b4b5c2ef6d1c6966ef81868d6c72206c604f7aae",
-      "bytes": 273259,
+      "targetSHA256": "08b3a0e88994536949d115cf7d92c2a7009a503b92b9e712e33e3437ecfcfdfc",
+      "bytes": 273383,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/agentMode.json",
       "sourceSHA256": "f38e793e1dd482b3b5f95e490bc04e0c8eaceca57acd1fdab235afe641ac8ec1",
-      "targetSHA256": "d085dc76d00b203cd471b37f6bc0d4198cc71a3fc63cf3cbf1f661f8ca244ad9",
-      "bytes": 2689,
+      "targetSHA256": "07bf4200b8a13d25914330c7b36b6ea840d39b9e3179e7d5c5aaec4b8a180da8",
+      "bytes": 2998,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2959,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/agentMode.json",
       "sourceSHA256": "1e5391daa816eba6e0160aa66ac6e2e0320c3ee85f64030ba63f7d4249388c97",
-      "targetSHA256": "d045b5cbe22db3022568e5bebd39780ab8d87f858ea34afc22d1e8b84ba730d4",
-      "bytes": 2540,
+      "targetSHA256": "84323b247d8ccd2ecf4f26eeac450116f6271cc8a06a1ef5932e0606be47980b",
+      "bytes": 2845,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "efecf5807a0bb9c5988f5f3b46d24dfde9332a92287adaf7bad7bd46a17b652f",
-      "bytes": 165527,
+      "targetSHA256": "74ef564605e7700c07da49de8a0a9718d407824c1bf451e23194c040839a4a49",
+      "bytes": 166350,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "455eaced1c630ab1c4accd4d18739790e861cda3ad588a595623c93cea8a5fce",
+      "sha256": "f911f5c41fbbb8888a8378d90277831874ae2b94c3a6d5ffb46c7b7f2d7affcc",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8090,6 +8090,12 @@
       "reason": "Render compact observed grant categories with exact revocation, uncertainty, conflicts and readback."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceAgentControlToggles.tsx",
+      "sha256": "fd0247ab5d4801a89bc6023b886b422ce78a1a6e2867eb7dffb93fe2fa9dab67",
+      "bytes": 3454,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceComputeRuntimePanel.css",
       "sha256": "f020d243f58c1a56ceff331f36089489c1d55a0d2e97e7aaea1a7b0d74eaf754",
       "bytes": 4151,
@@ -8114,6 +8120,12 @@
       "reason": "Render bounded structured execution logs without exposing raw runtime failures."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/XSciencePermissionChoices.tsx",
+      "sha256": "1b31e0ee777c45aecc59a704ca2e17d7223e2f83532867221ecdf6ee0f352f17",
+      "bytes": 2803,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XSciencePermissionIcon.tsx",
       "sha256": "47fba0ee2e7bec8112bddb427d3e56998167704d571478d586434dc4ca3d1a7e",
       "bytes": 2836,
@@ -8121,8 +8133,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XSciencePermissionMenu.tsx",
-      "sha256": "d306ab5fe4eb435491afd6b3f15c2af3426d05236abc0e73533225c7cbcbf773",
-      "bytes": 9973,
+      "sha256": "65ffa86df0132bb74c9b10367988f9416c24f6a4576494448cc02d838ea98738",
+      "bytes": 3692,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8261,6 +8273,12 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/useTaskCapsulePlacement.ts",
       "sha256": "047d24ff7b0d5a335d970e09d515fa7a4fe7043f9a7a6c9da90f47a164ad3f84",
       "bytes": 9593,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/useXSciencePermissionControl.ts",
+      "sha256": "5117fc2b1f7a54165cc184b08911ab6e9e19bf6e8414a5c11e15498607b7d847",
+      "bytes": 7603,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12440,6 +12458,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/XScienceAgentControls.dom.test.tsx",
+      "sha256": "9472e3ed2559b795d88416e9d3ef1717d4d4748a02d5d43a9cd9602573d23d1e",
+      "bytes": 14743,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/XScienceIdentity.test.ts",
       "sha256": "d4512aaa53cd4035f30f042f4456d0adb7c5541912aa68ea229109d0ad15c987",
       "bytes": 5389,
@@ -12465,7 +12489,7 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSessionOptionsMenu.dom.test.tsx",
-      "sha256": "576069fde23a3e9f7c9306c1020222c1d40a8f3bf959e2622453198761701094",
+      "sha256": "12fa2c6372af7e595fa7f2ddcbb625bf1715479bc5c108ebfade7bf489d8d162",
       "bytes": 11856,
       "reason": "Retain the imported session-options component regression under its exact component name without colliding with the service test on case-insensitive filesystems."
     },
@@ -13593,8 +13617,8 @@
     },
     {
       "path": "tests/unit/xscience/XSciencePermissionMenu.dom.test.tsx",
-      "sha256": "89b2a279e740fe9871baf403da455a0b8be76fca69735fe6b709de761bc31a0d",
-      "bytes": 4143,
+      "sha256": "6f97d6fdff8c760c19bd1baf87e0d1aa3592d43207468dfc41c0da2913aa7634",
+      "bytes": 4366,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13605,8 +13629,8 @@
     },
     {
       "path": "tests/unit/xscience/XSciencePermissionMenu.mode-owner.dom.test.tsx",
-      "sha256": "cee3a80cdf9b684c7a3d38dd52699a9a51d604c1cc753665872acfeffce925af",
-      "bytes": 6280,
+      "sha256": "6f7c7ff73d5da7adda2ca0c1454097f1173d8df72665b8682a59027488249f34",
+      "bytes": 6428,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
