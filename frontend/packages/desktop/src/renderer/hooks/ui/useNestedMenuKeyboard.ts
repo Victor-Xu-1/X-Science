@@ -1,6 +1,6 @@
 import { useCallback, useId, useLayoutEffect, useRef } from 'react';
 import type React from 'react';
-import { getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
+import { focusMenuSurface, getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
 
 /** Keyboard presentation for a controlled menu. The owner retains selection,
  * request authority and hover timing; this hook never changes an option. */
@@ -24,18 +24,16 @@ export function useNestedMenuKeyboard<T extends string>({
   const focusRequest = useRef<'first' | 'last' | null>(null);
   const submenuFocusRequest = useRef(false);
   const applyFocusRequest = useCallback((menu: HTMLElement | null) => {
-    if (!focusRequest.current) return;
-    const items = getMenuItems(menu);
-    const item = focusRequest.current === 'last' ? items.at(-1) : items[0];
-    if (item) {
+    if (focusRequest.current && focusMenuSurface(menu, focusRequest.current)) {
       focusRequest.current = null;
-      item.focus();
     }
   }, []);
   const bindMenu = useCallback(
     (menu: HTMLDivElement | null) => {
       menuRef.current = menu;
-      if (open) applyFocusRequest(menu);
+      if (!open) return;
+      if (focusRequest.current) applyFocusRequest(menu);
+      else focusMenuSurface(menu, null);
     },
     [applyFocusRequest, open]
   );

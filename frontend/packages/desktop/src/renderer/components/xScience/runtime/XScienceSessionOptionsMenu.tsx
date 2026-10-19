@@ -385,6 +385,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       className='app-overlay-menu composer-control-menu relative box-border overflow-visible rd-8px py-6px'
       role='menu'
       id={menuId}
+      tabIndex={-1}
       aria-label={t('conversation.xscienceRuntime.sessionOptions.title')}
       onClick={(event) => event.stopPropagation()}
       onMouseEnter={cancelSubmenuClose}

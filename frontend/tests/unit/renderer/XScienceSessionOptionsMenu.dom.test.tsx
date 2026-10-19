@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
@@ -307,5 +308,49 @@ describe('XScienceSessionOptionsMenu component', () => {
     fireEvent.keyDown(menu, { key: 'Escape' });
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('focuses the menu container after pointer opening without selecting the first option', async () => {
+    const user = userEvent.setup();
+    await renderWithI18n(<Harness />);
+    await user.click(screen.getByRole('button', { name: '会话选项' }));
+
+    const menu = screen.getByRole('menu', { name: '会话选项' });
+    await waitFor(() => expect(menu).toHaveFocus());
+    expect(menu).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('menuitemcheckbox', { name: '自动审阅' })).not.toHaveFocus();
+  });
+
+  it('closes with Escape after a pointer click on the session-options trigger', async () => {
+    const user = userEvent.setup();
+    await renderWithI18n(<Harness />);
+    const trigger = screen.getByRole('button', { name: '会话选项' });
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
+    await waitFor(() => expect(screen.queryByRole('menu', { name: '会话选项' })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it('preserves outside-click focus and focuses the session-options menu on reopening', async () => {
+    const user = userEvent.setup();
+    await renderWithI18n(
+      <>
+        <Harness />
+        <button type='button'>Outside action</button>
+      </>
+    );
+    const trigger = screen.getByRole('button', { name: '会话选项' });
+    const outside = screen.getByRole('button', { name: 'Outside action' });
+    await user.click(trigger);
+    await user.click(outside);
+
+    await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'false'));
+    expect(outside).toHaveFocus();
+    await user.click(trigger);
+    await waitFor(() => expect(screen.getByRole('menu', { name: '会话选项' })).toHaveFocus());
   });
 });
