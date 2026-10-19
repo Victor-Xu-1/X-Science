@@ -104,7 +104,7 @@ describe('XScienceSessionOptionsMenu component', () => {
       maxWidth: 'calc(100vw - 24px)',
       maxHeight: 'calc(100vh - 24px)',
     });
-    expect(menu).toHaveTextContent('委派自动审阅记忆专家无计算');
+    expect(menu).toHaveTextContent('自动审阅记忆委派专家无计算');
     expect(screen.queryByTestId('session-config-row-control-center')).not.toBeInTheDocument();
     expect(screen.queryByText('对话能力中枢')).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: '手动审阅' })).not.toBeInTheDocument();
@@ -218,7 +218,7 @@ describe('XScienceSessionOptionsMenu component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Conversation options' }));
 
     const menu = await screen.findByRole('menu', { name: 'Conversation options' });
-    expect(menu).toHaveTextContent('DelegationAuto reviewMemoryExpertNoneComputeLocal');
+    expect(menu).toHaveTextContent('Auto reviewMemoryDelegationExpertNoneComputeLocal');
     expect(screen.getByRole('menuitemcheckbox', { name: 'Delegation' })).toBeInTheDocument();
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-specialist'));
     expect(await screen.findByText('AI Drug Discovery Expert')).toBeInTheDocument();
@@ -230,9 +230,9 @@ describe('XScienceSessionOptionsMenu component', () => {
     trigger.focus();
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
     const menu = await screen.findByRole('menu', { name: '会话选项' });
-    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: '委派' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: '自动审阅' })).toHaveFocus());
     fireEvent.keyDown(menu, { key: 'ArrowDown' });
-    expect(screen.getByRole('menuitemcheckbox', { name: '自动审阅' })).toHaveFocus();
+    expect(screen.getByRole('menuitemcheckbox', { name: '记忆' })).toHaveFocus();
     fireEvent.keyDown(menu, { key: 'End' });
     const compute = screen.getByTestId('session-config-row-compute');
     expect(compute).toHaveFocus();

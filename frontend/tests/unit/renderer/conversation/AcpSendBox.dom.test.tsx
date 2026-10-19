@@ -123,6 +123,7 @@ const runtimeOperationsProps = {
 };
 const mobileActionSheetOpen = { current: false };
 const realMobileActionSheet = { current: false };
+const realAgentControls = { current: false };
 const runtimeViewMock = {
   activeTurnId: 'turn-1' as string | null,
   markStopRequested: vi.fn(),
@@ -280,12 +281,16 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceModelSelector', () => ({
     </button>
   ),
 }));
-vi.mock('@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu', () => ({
-  default: (props: Record<string, unknown>) => {
-    sessionOptionsProps.current = props;
-    return null;
-  },
-}));
+vi.mock('@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu')>();
+  return {
+    default: (props: React.ComponentProps<typeof actual.default>) => {
+      sessionOptionsProps.current = props;
+      return realAgentControls.current ? <actual.default {...props} /> : null;
+    },
+  };
+});
 vi.mock('@/renderer/components/xScience/runtime/XScienceBranchMenu', () => ({
   default: ({ rootFrameId }: { rootFrameId: string }) => (
     <button data-testid='branch-menu' data-root-frame-id={rootFrameId}>
@@ -1029,6 +1034,7 @@ describe('AcpSendBox', () => {
     mobileActionSheetEntries.current = [];
     mobileActionSheetOpen.current = false;
     realMobileActionSheet.current = false;
+    realAgentControls.current = false;
     fileAttachProps.current = null;
     draftContextItemsMock.current = [];
     sessionOptionsProps.current = null;
@@ -1724,6 +1730,9 @@ describe('AcpSendBox', () => {
   it.each([false, true])('C6 scoped grants stay revocable from the running composer, mobile=%s', async (mobile) => {
     isMobileMock.current = mobile;
     realMobileActionSheet.current = mobile;
+    realAgentControls.current = !mobile;
+    realContextDropdown.current = !mobile;
+    if (!mobile) loadSessionOptionsMock.mockRejectedValueOnce(new Error('optional session options unavailable'));
     setRendererAccountOwner(sessionGrantIdentity.ownerId);
     const modeSetter = vi.fn();
     useAcpConfigOptionsMock.mockReturnValue({
@@ -1795,7 +1804,9 @@ describe('AcpSendBox', () => {
         fireEvent.click(permissionEntry);
       } else {
         expect(await screen.findByLabelText('本会话已授权 1 项')).toHaveTextContent('1');
-        fireEvent.click(screen.getByTestId('x-science-permission-selector'));
+        expect(screen.queryByTestId('x-science-permission-selector')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
+        expect(await screen.findByRole('menuitemcheckbox', { name: '自动审阅' })).toBeDisabled();
       }
       expect(grantReads()).toHaveLength(1);
       fireEvent.click(await screen.findByRole('button', { name: '撤销本会话对 Python execution 的授权' }));
@@ -1812,12 +1823,14 @@ describe('AcpSendBox', () => {
       if (mobile) {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
       } else {
-        expect(screen.getByTestId('x-science-permission-menu')).toBeInTheDocument();
+        expect(screen.getByTestId('session-config-row-permission')).toBeInTheDocument();
       }
     } finally {
       transport.mockRestore();
       setRendererAccountOwner(null);
       realMobileActionSheet.current = false;
+      realAgentControls.current = false;
+      realContextDropdown.current = false;
     }
   });
 

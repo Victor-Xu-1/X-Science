@@ -22,6 +22,9 @@
   "helpApprove": "Help me approve",
   "fullAccess": "Full access",
   "fullAccessDescription": "Automatically approve every tool operation in the backend without approval prompts",
+  "fullAccessConfirmTitle": "Enable Full access?",
+  "fullAccessConfirmDescription": "The agent can run commands, change files, execute notebook code, and make network requests without asking first. Authentication failures and execution errors can still stop the run.",
+  "fullAccessConfirmEnable": "Enable",
   "riskyOperationsDescription": "Automatically approve routine sandboxed work; ask before authority expansion, deletion, installation, or external operations",
   "approvalRequiredDescription": "Ask before every tool operation that requires authorization",
   "sessionGrants": {

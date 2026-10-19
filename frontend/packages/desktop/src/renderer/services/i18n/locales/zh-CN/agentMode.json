@@ -22,6 +22,9 @@
   "helpApprove": "帮我批准",
   "fullAccess": "完全访问权限",
   "fullAccessDescription": "后台自动批准所有工具操作，不显示权限弹窗",
+  "fullAccessConfirmTitle": "启用完全访问？",
+  "fullAccessConfirmDescription": "智能体可以直接运行命令、更改文件、执行 Notebook 代码及发起网络请求，不再逐项询问。身份验证失败和执行错误仍可能中断运行。",
+  "fullAccessConfirmEnable": "启用",
   "riskyOperationsDescription": "自动批准常规沙盒操作，仅在权限扩展、删除、安装或外部操作前询问",
   "approvalRequiredDescription": "所有需要授权的工具操作均先询问",
   "sessionGrants": {

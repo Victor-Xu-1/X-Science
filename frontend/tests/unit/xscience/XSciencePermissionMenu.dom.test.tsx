@@ -70,6 +70,9 @@ describe('XSciencePermissionMenu', () => {
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('x-science-permission-option-bypassPermissions'));
+    expect(await screen.findByRole('dialog', { name: '启用完全访问？' })).toBeInTheDocument();
+    expect(setConfigOption).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '启用' }));
     await waitFor(() => expect(setConfigOption).toHaveBeenCalledWith('mode', 'bypassPermissions'));
     // The write acknowledgement alone must not manufacture an observed mode.
     expect(screen.getByTestId('x-science-permission-selector')).toHaveAttribute('data-current-permission', 'default');

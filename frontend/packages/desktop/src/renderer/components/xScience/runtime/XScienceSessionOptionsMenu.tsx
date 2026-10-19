@@ -8,15 +8,21 @@ import { resolveLocaleKey } from '@/common/utils';
 import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
-import { Dropdown, Message, Spin, Switch, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Message, Spin, Switch } from '@arco-design/web-react';
 import { Check, Right, SettingConfig } from '@icon-park/react';
+import { Server, Shield, UserRound } from 'lucide-react';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
+import XScienceAgentControlToggles from './XScienceAgentControlToggles';
+import XSciencePermissionIcon, { isWarningPermissionMode } from './XSciencePermissionIcon';
+import SessionPermissionGrants from './SessionPermissionGrants';
+import { XScienceFullAccessConfirmation, XSciencePermissionChoices } from './XSciencePermissionChoices';
+import { useXSciencePermissionControl, type XSciencePermissionControlInput } from './useXSciencePermissionControl';
 
 type SpecialistOption = { id: string; label: string; agentId: string };
-type Submenu = 'specialist' | 'compute' | null;
+type Submenu = 'permission' | 'specialist' | 'compute' | null;
 
 export type XScienceSessionOptionsMenuProps = {
   rootFrameId?: string;
@@ -28,10 +34,11 @@ export type XScienceSessionOptionsMenuProps = {
   onClearGoal?: () => void | Promise<void>;
   goalClearInFlight?: boolean;
   disabled?: boolean;
+  permissionControl?: XSciencePermissionControlInput;
 };
 
 const rowClass =
-  'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center border-0 bg-transparent px-12px text-left font-inherit text-14px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
+  'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center gap-8px border-0 bg-transparent px-8px text-left font-inherit text-13px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
 const checkedSwitchStyle: React.CSSProperties = { backgroundColor: 'var(--workspace-accent)' };
 const clampToRange = (candidate: number, minimum: number, maximum: number) =>
   Math.min(Math.max(candidate, minimum), maximum);
@@ -46,6 +53,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   onClearGoal,
   goalClearInFlight = false,
   disabled = false,
+  permissionControl,
 }) => {
   const { t, i18n } = useTranslation();
   const localeKey = resolveLocaleKey(i18n.language);
@@ -79,6 +87,14 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     cancelHoverClose: cancelSubmenuClose,
   });
   const { menuRef: menuSurfaceRef, submenuRef, triggerRef, menuId } = keyboard;
+  const permission = useXSciencePermissionControl(permissionControl, () => {
+    setVisible(false);
+    setSubmenu(null);
+    triggerRef.current?.focus();
+  });
+  // Optional session-option hydration must not withdraw the independent mode
+  // and observed-grant capabilities that were already available to the user.
+  const triggerDisabled = disabled && !permission.available;
 
   const scheduleSubmenuClose = () => {
     cancelSubmenuClose();
@@ -195,6 +211,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   }, [computeProviders, enabledComputeProviders, t]);
 
   const updateComputeProvider = async (providerName: string, checked: boolean) => {
+    if (disabled) return;
     setPendingProvider(providerName);
     try {
       if (rootFrameId) await setXScienceSessionComputeProvider(rootFrameId, providerName, checked);
@@ -214,7 +231,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   };
 
   const selectLocalCompute = async () => {
-    if (enabledComputeProviders.length === 0 || pendingProvider !== null) return;
+    if (disabled || enabledComputeProviders.length === 0 || pendingProvider !== null) return;
     setPendingProvider('__local__');
     try {
       if (rootFrameId) {
@@ -235,6 +252,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   };
 
   const updateToggle = async (key: 'delegation' | 'autoReview' | 'memory', checked: boolean) => {
+    if (disabled) return;
     if (key === 'delegation') {
       onChange({ ...value, delegation: checked });
       return;
@@ -252,44 +270,20 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     }
   };
 
-  const toggleRows: Array<{
-    key: 'delegation' | 'autoReview' | 'memory';
-    label: string;
-    description: string;
-    checked: boolean;
-  }> = [
-    {
-      key: 'delegation',
-      label: t('conversation.xscienceRuntime.sessionOptions.delegation'),
-      description: t('conversation.xscienceRuntime.sessionOptions.delegationDescription'),
-      checked: value.delegation,
-    },
-    {
-      key: 'autoReview',
-      label: t('conversation.xscienceRuntime.sessionOptions.autoReview'),
-      description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
-      checked: value.autoReview,
-    },
-    {
-      key: 'memory',
-      label: t('conversation.xscienceRuntime.sessionOptions.memory'),
-      description: t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
-      checked: value.memory,
-    },
-  ];
-
   const submenuPanel = submenu ? (
     <div
       ref={submenuRef}
       className='app-overlay-menu composer-control-submenu absolute box-border overflow-y-auto rd-8px py-6px'
       role='menu'
       aria-label={
-        submenu === 'specialist'
-          ? t('conversation.xscienceRuntime.sessionOptions.expert')
-          : t('conversation.xscienceRuntime.sessionOptions.compute')
+        submenu === 'permission'
+          ? t('agentMode.switchMode')
+          : submenu === 'specialist'
+            ? t('conversation.xscienceRuntime.sessionOptions.expert')
+            : t('conversation.xscienceRuntime.sessionOptions.compute')
       }
       style={{
-        width: 'min(300px, calc(100vw - 24px))',
+        width: 'min(288px, calc(100vw - 24px))',
         maxWidth: 'calc(100vw - 24px)',
         maxHeight: 'calc(100vh - 24px)',
         opacity: 1,
@@ -299,7 +293,9 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       onMouseLeave={scheduleSubmenuClose}
       onKeyDown={keyboard.onSubmenuKeyDown}
     >
-      {submenu === 'specialist' ? (
+      {submenu === 'permission' ? (
+        <XSciencePermissionChoices control={permission} />
+      ) : submenu === 'specialist' ? (
         <>
           <button
             type='button'
@@ -309,6 +305,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
               name: t('conversation.xscienceRuntime.sessionOptions.none'),
             })}
             className={rowClass}
+            disabled={disabled}
             onClick={() => onChange({ ...value, targetAgent: 'OPERON' })}
           >
             <span className='inline-flex w-20px'>{value.targetAgent === 'OPERON' ? <Check size={14} /> : null}</span>
@@ -324,6 +321,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
                 name: specialist.label,
               })}
               className={rowClass}
+              disabled={disabled}
               onClick={() => onChange({ ...value, targetAgent: specialist.agentId })}
             >
               <span className='inline-flex w-20px'>
@@ -358,7 +356,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
             role='menuitemradio'
             aria-checked={enabledComputeProviders.length === 0}
             className={`${rowClass} gap-10px`}
-            disabled={pendingProvider !== null}
+            disabled={disabled || pendingProvider !== null}
             onClick={() => void selectLocalCompute()}
           >
             <span className='inline-flex w-20px'>
@@ -381,7 +379,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
                   checked={checked}
                   style={checked ? checkedSwitchStyle : undefined}
                   loading={pendingProvider === provider.name}
-                  disabled={pendingProvider !== null && pendingProvider !== provider.name}
+                  disabled={disabled || (pendingProvider !== null && pendingProvider !== provider.name)}
                   onChange={(next) => void updateComputeProvider(provider.name, next)}
                 />
               </div>
@@ -422,52 +420,60 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       onMouseLeave={scheduleSubmenuClose}
       onKeyDown={keyboard.onMenuKeyDown}
       style={{
-        width: 'min(210px, calc(100vw - 24px))',
+        width: 'min(288px, calc(100vw - 24px))',
         maxWidth: 'calc(100vw - 24px)',
         maxHeight: 'calc(100vh - 24px)',
         opacity: 1,
       }}
     >
-      {toggleRows.map((option) => {
-        const optionPending = option.key !== 'delegation' && pendingOption === option.key;
-        return (
-          <Tooltip key={option.key} content={option.description} position='left'>
-            <button
-              type='button'
-              role='menuitemcheckbox'
-              aria-checked={option.checked}
-              data-testid={`session-config-row-${option.key}`}
-              className={`${rowClass} justify-between`}
-              disabled={pendingOption !== null}
-              onClick={() => void updateToggle(option.key, !option.checked)}
+      {permission.available ? (
+        <>
+          <button
+            type='button'
+            role='menuitem'
+            aria-haspopup='menu'
+            aria-expanded={submenu === 'permission'}
+            data-testid='session-config-row-permission'
+            data-submenu='permission'
+            className={rowClass}
+            onMouseEnter={() => {
+              cancelSubmenuClose();
+              setSubmenu('permission');
+            }}
+            onMouseLeave={() => {
+              if (submenu === 'permission') scheduleSubmenuClose();
+            }}
+            onKeyDown={(event) => keyboard.onSubmenuTriggerKeyDown(event, 'permission')}
+            onClick={() => {
+              cancelSubmenuClose();
+              setSubmenu('permission');
+            }}
+          >
+            <Shield size={16} aria-hidden='true' className='shrink-0 text-t-secondary' />
+            <span className='min-w-0 flex-1 truncate'>{t('agentMode.switchMode')}</span>
+            <span
+              className='inline-flex shrink-0 items-center gap-4px rounded-full bg-fill-2 px-8px py-3px text-11px'
+              style={isWarningPermissionMode(permission.currentValue) ? { color: 'var(--warning)' } : undefined}
             >
-              <span>{option.label}</span>
-              <span
-                aria-hidden='true'
-                className={`relative inline-flex h-20px w-36px shrink-0 items-center rounded-full transition-colors ${
-                  option.checked ? 'bg-[var(--workspace-accent)]' : 'bg-fill-4'
-                } ${pendingOption !== null ? 'opacity-60' : ''}`}
-              >
-                {optionPending ? (
-                  <span className='absolute inset-0 flex items-center justify-center'>
-                    <Spin size={12} />
-                  </span>
-                ) : (
-                  <span
-                    className='h-16px w-16px rounded-full transition-transform'
-                    style={{
-                      transform: `translateX(${option.checked ? 18 : 2}px)`,
-                      backgroundColor: option.checked
-                        ? 'var(--workspace-accent-contrast)'
-                        : 'var(--workspace-overlay-surface)',
-                    }}
-                  />
-                )}
+              <XSciencePermissionIcon mode={permission.currentValue} size={12} />
+              <span className='max-w-112px truncate'>
+                {permission.selectedOption?.label ?? t('agentMode.permission')}
               </span>
-            </button>
-          </Tooltip>
-        );
-      })}
+              <Right size={12} />
+            </span>
+          </button>
+          {permission.controller ? <SessionPermissionGrants controller={permission.controller} open={visible} /> : null}
+          <div role='separator' className='mx-8px my-4px h-1px bg-fill-3' />
+        </>
+      ) : null}
+      <XScienceAgentControlToggles
+        value={value}
+        pending={pendingOption}
+        disabled={disabled}
+        onChange={(key, next) => {
+          void updateToggle(key, next);
+        }}
+      />
       {value.goalText ? (
         <div className='px-12px py-6px'>
           <div className='truncate text-12px text-t-secondary' title={value.goalText}>
@@ -478,7 +484,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
               type='button'
               role='menuitem'
               className='mt-4px border-0 bg-transparent p-0 text-12px text-primary disabled:opacity-50'
-              disabled={goalClearInFlight}
+              disabled={disabled || goalClearInFlight}
               onClick={() => void onClearGoal()}
             >
               {goalClearInFlight
@@ -515,7 +521,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           setSubmenu('specialist');
         }}
       >
-        <span>{t('conversation.xscienceRuntime.sessionOptions.expert')}</span>
+        <UserRound size={16} aria-hidden='true' className='shrink-0 text-t-secondary' />
+        <span className='min-w-0 flex-1'>{t('conversation.xscienceRuntime.sessionOptions.expert')}</span>
         <span className='flex min-w-0 items-center gap-8px text-t-tertiary'>
           <span className='max-w-88px truncate'>{activeSpecialistLabel}</span>
           <Right size={14} />
@@ -542,7 +549,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           setSubmenu('compute');
         }}
       >
-        <span>{t('conversation.xscienceRuntime.sessionOptions.compute')}</span>
+        <Server size={16} aria-hidden='true' className='shrink-0 text-t-secondary' />
+        <span className='min-w-0 flex-1'>{t('conversation.xscienceRuntime.sessionOptions.compute')}</span>
         <span className='flex min-w-0 items-center gap-8px text-t-tertiary'>
           <span className='max-w-88px truncate'>{computeLabel}</span>
           <Right size={14} />
@@ -561,35 +569,49 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   );
 
   return (
-    <Dropdown
-      trigger='click'
-      position='tl'
-      popupVisible={visible}
-      onVisibleChange={(next) => !disabled && setVisible(next)}
-      droplist={dropdownContent}
-    >
-      <button
-        ref={triggerRef}
-        type='button'
-        aria-label={t('conversation.xscienceRuntime.sessionOptions.title')}
-        data-testid='x-science-session-options-trigger'
-        aria-haspopup='menu'
-        aria-expanded={visible}
-        aria-controls={visible ? menuId : undefined}
-        onKeyDown={(event) => keyboard.onTriggerKeyDown(event, disabled)}
-        disabled={disabled}
-        className='composer-icon-control relative'
+    <>
+      <Dropdown
+        trigger='click'
+        position='tl'
+        popupVisible={visible}
+        onVisibleChange={(next) => !triggerDisabled && setVisible(next)}
+        droplist={dropdownContent}
       >
-        <SettingConfig theme='outline' size={17} strokeWidth={3.6} />
-        {value.delegation ||
-        value.autoReview ||
-        value.memory ||
-        value.targetAgent !== 'OPERON' ||
-        enabledComputeProviders.length > 0 ? (
-          <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />
-        ) : null}
-      </button>
-    </Dropdown>
+        <button
+          ref={triggerRef}
+          type='button'
+          aria-label={t('conversation.xscienceRuntime.sessionOptions.title')}
+          data-testid='x-science-session-options-trigger'
+          aria-haspopup='menu'
+          aria-expanded={visible}
+          aria-controls={visible ? menuId : undefined}
+          onKeyDown={(event) => keyboard.onTriggerKeyDown(event, triggerDisabled)}
+          disabled={triggerDisabled}
+          className='composer-icon-control relative'
+        >
+          <SettingConfig theme='outline' size={17} strokeWidth={3.6} />
+          {value.delegation ||
+          value.autoReview ||
+          value.memory ||
+          value.targetAgent !== 'OPERON' ||
+          (permission.available && permission.currentValue !== 'default') ||
+          enabledComputeProviders.length > 0 ? (
+            <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />
+          ) : null}
+          {permission.controller?.isCurrent() &&
+          permission.grants.available &&
+          Boolean(permission.grants.snapshot?.grants.length) ? (
+            <span
+              className='absolute -right-4px -top-4px rounded-full bg-fill-3 px-3px text-10px leading-14px'
+              aria-label={t('agentMode.sessionGrants.count', { count: permission.grants.snapshot!.grants.length })}
+            >
+              {permission.grants.snapshot!.grants.length}
+            </span>
+          ) : null}
+        </button>
+      </Dropdown>
+      <XScienceFullAccessConfirmation control={permission} />
+    </>
   );
 };
 

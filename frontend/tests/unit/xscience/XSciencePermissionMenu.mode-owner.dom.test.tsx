@@ -100,6 +100,7 @@ it('C6 desktop ignores a late observed ACK from the previous live mode owner aft
   await waitFor(() => expect(screen.getByTestId('live-mode-owner')).toHaveTextContent('default'));
   fireEvent.click(screen.getByTestId('x-science-permission-selector'));
   fireEvent.click(await screen.findByTestId('x-science-permission-option-bypassPermissions'));
+  fireEvent.click(await screen.findByRole('button', { name: 'Enable' }));
   await waitFor(() =>
     expect(setConfigOption).toHaveBeenCalledWith({
       conversation_id: identityA.frameId,
@@ -133,6 +134,7 @@ it('C6 desktop does not report a late live mode acknowledgement after the consum
   await waitFor(() => expect(screen.getByTestId('live-mode-owner')).toHaveTextContent('default'));
   fireEvent.click(screen.getByTestId('x-science-permission-selector'));
   fireEvent.click(await screen.findByTestId('x-science-permission-option-bypassPermissions'));
+  fireEvent.click(await screen.findByRole('button', { name: 'Enable' }));
   await waitFor(() => expect(setConfigOption).toHaveBeenCalledTimes(1));
   view.unmount();
   await act(async () => {
