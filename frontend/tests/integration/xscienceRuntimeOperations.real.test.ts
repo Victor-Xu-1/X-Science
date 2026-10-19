@@ -131,7 +131,9 @@ describe('X-Science runtime operations gateway', () => {
         feasibility: { confidence: 'high', rationale: 'Fixture inputs are available.' },
       }),
     });
-    expect(await loadXSciencePlanDocument(artifactFixture.artifactId, gatewayOptions)).toMatchObject({
+    expect(
+      await loadXSciencePlanDocument({ artifactId: artifactFixture.artifactId, versionId: null }, gatewayOptions)
+    ).toMatchObject({
       version: 3,
       taskSummary: expect.stringContaining('extremophile protein'),
       feasibility: { confidence: 'high' },

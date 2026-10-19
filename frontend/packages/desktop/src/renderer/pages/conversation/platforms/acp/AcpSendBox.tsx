@@ -463,11 +463,6 @@ const AcpSendBox: React.FC<{
     !runtimeUnavailable &&
     (isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage);
   const reviewBusy = reviewInFlight || reviewActive;
-  const viewPlan = useCallback(() => {
-    if (conversationAuthorityRef.current.conversationId === conversation_id) {
-      emitter.emit('xscience.runtime.plan.open', conversation_id);
-    }
-  }, [conversation_id]);
   const asideQueueRef = useRef<AsideQueueBridge | null>(null);
   const aside = useAcpAsideController({
     conversationId: conversation_id,
@@ -1059,7 +1054,7 @@ const AcpSendBox: React.FC<{
               meta: planPresentation.reference.progress
                 ? `${planPresentation.reference.progress.completed}/${planPresentation.reference.progress.total}`
                 : undefined,
-              onClick: viewPlan,
+              onClick: planPresentation.openPlan,
             },
           ]
         : attachEntries,
@@ -1209,7 +1204,9 @@ const AcpSendBox: React.FC<{
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectMcpServer={handleMcpSelected}
-                onViewPlan={isXScienceConversation && planPresentation.reference ? viewPlan : undefined}
+                onViewPlan={
+                  isXScienceConversation && planPresentation.reference ? planPresentation.openPlan : undefined
+                }
                 planProgress={planPresentation.reference?.progress}
                 onViewContextWindow={
                   isXScienceConversation

@@ -240,4 +240,57 @@ describe('single-owner View plan projection', () => {
     );
     expect(result.current.reference?.artifactId).toBe('current-plan');
   });
+
+  it('opens only the current plan owner across navigation, identity return and incarnation changes', () => {
+    const emit = vi.spyOn(emitter, 'emit');
+    const { result, rerender, unmount } = renderHook(
+      ({ owner, frame, incarnation }) => useAcpPlanPresentation(owner, frame, incarnation),
+      { initialProps: { owner: 'owner-a', frame: 'frame-a', incarnation: 'one' } }
+    );
+    try {
+      const original = result.current.openPlan;
+      original();
+      expect(emit).toHaveBeenLastCalledWith('xscience.runtime.plan.open', 'frame-a');
+      emit.mockClear();
+      rerender({ owner: 'owner-b', frame: 'frame-b', incarnation: 'two' });
+      original();
+      expect(emit).not.toHaveBeenCalled();
+      result.current.openPlan();
+      expect(emit).toHaveBeenLastCalledWith('xscience.runtime.plan.open', 'frame-b');
+      emit.mockClear();
+      rerender({ owner: 'owner-a', frame: 'frame-a', incarnation: 'one' });
+      original();
+      expect(emit).not.toHaveBeenCalled();
+      const previousIncarnation = result.current.openPlan;
+      rerender({ owner: 'owner-a', frame: 'frame-a', incarnation: 'new' });
+      previousIncarnation();
+      expect(emit).not.toHaveBeenCalled();
+      const current = result.current.openPlan;
+      current();
+      expect(emit).toHaveBeenLastCalledWith('xscience.runtime.plan.open', 'frame-a');
+      emit.mockClear();
+      unmount();
+      current();
+      expect(emit).not.toHaveBeenCalled();
+    } finally {
+      emit.mockRestore();
+    }
+  });
+
+  it('does not open a plan for an account replaced before the next render', () => {
+    setRendererAccountOwner('account-a');
+    const emit = vi.spyOn(emitter, 'emit');
+    const { result, rerender } = renderHook(() => useAcpPlanPresentation('owner', 'frame', 'incarnation'));
+    try {
+      const original = result.current.openPlan;
+      setRendererAccountOwner('account-b');
+      original();
+      expect(emit).not.toHaveBeenCalled();
+      rerender();
+      result.current.openPlan();
+      expect(emit).toHaveBeenLastCalledWith('xscience.runtime.plan.open', 'frame');
+    } finally {
+      emit.mockRestore();
+    }
+  });
 });

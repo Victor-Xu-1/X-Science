@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { XSciencePlanReference } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { emitter } from '@/renderer/utils/emitter';
 
 /** Read-only relay from the existing snapshot owner, not a second plan reader. */
 export function useAcpPlanPresentation(ownerId: string, conversationId: string, incarnationId?: string) {
@@ -36,9 +37,14 @@ export function useAcpPlanPresentation(ownerId: string, conversationId: string, 
     },
     [authority, conversationId, account]
   );
+  const openPlan = useCallback(() => {
+    if (!authority.active || authorityRef.current !== authority || getRendererAccountScopeToken() !== account) return;
+    emitter.emit('xscience.runtime.plan.open', conversationId);
+  }, [authority, conversationId, account]);
   return {
     key,
     reference: view?.authority === authority ? view.reference : null,
     onPlanReferenceChange,
+    openPlan,
   };
 }
