@@ -197,7 +197,7 @@ func (s *Server) kernelHostListSkills() ([]map[string]any, error) {
 		if !strings.HasPrefix(skill.Path, "builtin:") && unpublishedManagedSkillPath(skill.Path, s.fileRoot) {
 			continue
 		}
-		origin := compatibilitySkillSource(skill)
+		origin := s.compatibilitySkillSource(skill)
 		items = append(items, map[string]any{
 			"name": skill.Name, "origin": origin, "description": skill.Description,
 		})

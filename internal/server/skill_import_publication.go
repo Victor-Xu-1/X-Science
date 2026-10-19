@@ -156,7 +156,7 @@ func (s *Server) preparedSkillDestination(prepared *preparedSkillImport) (skills
 		return skills.Skill{}, "", false, errors.New("prepared Skill package identity changed before publication")
 	}
 	if current, found := findCatalogSkill(s.skillCatalog, skill.Name); found {
-		if strings.HasPrefix(current.Path, "builtin:") || compatibilitySkillSource(current) == "x_science_llm" {
+		if strings.HasPrefix(current.Path, "builtin:") || s.compatibilitySkillSource(current) == "x_science_llm" {
 			return skills.Skill{}, "", false, fmt.Errorf("%w: skill %q conflicts with a bundled read-only catalog entry", os.ErrExist, skill.Name)
 		}
 		if sameCleanPath(filepath.Dir(current.Path), filepath.Join(installRoot, skill.Name)) && !prepared.replace {

@@ -30,7 +30,7 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 			personal := personalSkillDirectory(s.fileRoot)
 			if personal != "" && pathWithinRoot(skill.Path, personal) {
 				expected = "local"
-			} else if compatibilitySkillSource(skill) == "x_science_llm" {
+			} else if s.compatibilitySkillSource(skill) == "x_science_llm" {
 				expected = "bundled"
 			}
 			found = namespace == expected && name == skill.Name

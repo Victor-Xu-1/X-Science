@@ -21,13 +21,14 @@ func TestLoadSkillCatalogIncludesPersonalRootWithExplicitDirectories(t *testing.
 		t.Fatalf("loaded directories = %#v", directories)
 	}
 
+	server := &Server{fileRoot: filepath.Join(root, "data")}
 	var bundled, personal bool
 	for _, skill := range catalog.Skills() {
 		switch skill.Name {
 		case "bundled-workflow":
-			bundled = compatibilitySkillSource(skill) == "x_science_llm"
+			bundled = server.compatibilitySkillSource(skill) == "x_science_llm"
 		case "personal-workflow":
-			personal = compatibilitySkillSource(skill) == "personal"
+			personal = server.compatibilitySkillSource(skill) == "personal"
 		}
 	}
 	if !bundled || !personal {

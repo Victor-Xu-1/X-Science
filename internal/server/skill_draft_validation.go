@@ -127,7 +127,7 @@ func (s *Server) kernelHostValidateSkill(name string) (any, error) {
 	if !found {
 		return nil, os.ErrNotExist
 	}
-	origin := compatibilitySkillSource(skill)
+	origin := s.compatibilitySkillSource(skill)
 	if regularDraftFile(filepath.Join(filepath.Dir(skill.Path), compatibilitySkillDraftMarker)) {
 		origin = "draft"
 	}
