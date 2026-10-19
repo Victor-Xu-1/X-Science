@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -49,11 +50,27 @@ func validateCompatibilitySkillResourceDepth(relative string, directory bool) er
 // Borrow the caller's directory capability. Only filesystem/sidecar safety is
 // checked here; incomplete or invalid SKILL.md metadata remains repairable.
 func validateCompatibilitySkillDraftResources(directory *os.Root) error {
+	_, err := inspectCompatibilitySkillResources(directory, func(file *os.File, relative string) error {
+		if err := validateCompatibilitySkillDraftResource(file, relative); err != nil {
+			return err
+		}
+		if err := skills.ValidatePresentationSidecar(directory, relative); err != nil {
+			return skillValidationError("invalid_presentation_sidecar", "Skill presentation sidecar failed its JSON/schema safety checks", err)
+		}
+		return nil
+	})
+	return err
+}
+
+// Inspect one borrowed directory capability. Reading a package needs the same
+// structural safety and bounds as authoring, not publishable frontmatter.
+func inspectCompatibilitySkillResources(directory *os.Root, inspect func(*os.File, string) error) ([]string, error) {
 	if directory == nil {
-		return skillValidationError("unreadable_package_root", "Skill resource root is unavailable", nil)
+		return nil, skillValidationError("unreadable_package_root", "Skill resource root is unavailable", nil)
 	}
 	files, bytes := 0, int64(0)
-	return fs.WalkDir(directory.FS(), ".", func(relative string, entry fs.DirEntry, walkErr error) error {
+	paths := make([]string, 0)
+	err := fs.WalkDir(directory.FS(), ".", func(relative string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return skillValidationError("unreadable_resource", "Skill package resources could not be inspected safely", walkErr)
 		}
@@ -83,20 +100,32 @@ func validateCompatibilitySkillDraftResources(directory *os.Root) error {
 			return skillValidationError("resource_budget_exceeded", "Skill package exceeds its file-count or total-byte budget", nil)
 		}
 		bytes += info.Size()
-		if filepath.Base(relative) == "SKILL.md" {
-			raw, readErr := io.ReadAll(io.LimitReader(file, maxSkillArchiveBytes+1))
-			if readErr != nil {
-				return skillValidationError("unreadable_skill_document", "Skill manifest could not be read safely", readErr)
-			}
-			if len(raw) > maxSkillArchiveBytes || !utf8.Valid(raw) || strings.IndexByte(string(raw), 0) >= 0 {
-				return skillValidationError("invalid_manifest_text", "Skill draft manifest must be bounded UTF-8 text without NUL", nil)
+		if inspect != nil {
+			if err := inspect(file, relative); err != nil {
+				return err
 			}
 		}
-		if err := skills.ValidatePresentationSidecar(directory, relative); err != nil {
-			return skillValidationError("invalid_presentation_sidecar", "Skill presentation sidecar failed its JSON/schema safety checks", err)
-		}
+		paths = append(paths, filepath.ToSlash(relative))
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(paths)
+	return paths, nil
+}
+
+func validateCompatibilitySkillDraftResource(file *os.File, relative string) error {
+	if filepath.Base(relative) == "SKILL.md" {
+		raw, readErr := io.ReadAll(io.LimitReader(file, maxSkillArchiveBytes+1))
+		if readErr != nil {
+			return skillValidationError("unreadable_skill_document", "Skill manifest could not be read safely", readErr)
+		}
+		if len(raw) > maxSkillArchiveBytes || !utf8.Valid(raw) || strings.IndexByte(string(raw), 0) >= 0 {
+			return skillValidationError("invalid_manifest_text", "Skill draft manifest must be bounded UTF-8 text without NUL", nil)
+		}
+	}
+	return nil
 }
 
 func validateCompatibilitySkillDraftDirectory(root string) error {
