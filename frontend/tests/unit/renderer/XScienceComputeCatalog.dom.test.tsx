@@ -29,7 +29,7 @@ function Harness({
   draft = false,
   selection,
 }: {
-  root?: string;
+  root?: string | null;
   incarnation?: string;
   owner?: string;
   draft?: boolean;
@@ -73,6 +73,16 @@ describe('C394 Compute catalog read state', () => {
     cleanup();
     setRendererAccountOwner(null);
     vi.unstubAllGlobals();
+  });
+
+  it('C394 root bridge does not treat an unresolved conversation root as a known Local draft', async () => {
+    api.fetch.mockImplementation(async () => response([provider()]));
+    await renderWithI18n(<Harness root={null} />, 'en-US');
+    await openCompute();
+    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeDisabled();
+    expect(api.fetch.mock.calls.every(([url]) => !String(url).includes('/api/compute/session/'))).toBe(true);
+    expect(screen.queryByText('No additional compute is configured.')).not.toBeInTheDocument();
   });
 
   it.each([

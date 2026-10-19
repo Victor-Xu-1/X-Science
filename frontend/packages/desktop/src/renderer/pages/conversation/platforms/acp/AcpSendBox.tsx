@@ -312,16 +312,16 @@ const AcpSendBox: React.FC<{
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
   }, [runtimeMode?.currentValue]);
-  const { mobileComputeProviders, mobileEnabledCompute, handleSessionComputeChange } = useAcpMobileComputeControls(
+  const mobileCompute = useAcpMobileComputeControls(
     conversation_id,
     isMobile,
     localeKey,
     ownerId,
     conversationAuthorityRef,
     mountedRef,
-    t
+    t,
+    initialConversation
   );
-
   const {
     memoryControl,
     delegationControl,
@@ -1031,9 +1031,9 @@ const AcpSendBox: React.FC<{
     memoryControl,
     delegationControl,
     specialistControl,
-    mobileComputeProviders,
-    mobileEnabledCompute,
-    handleSessionComputeChange,
+    mobileComputeProviders: mobileCompute.mobileComputeProviders,
+    mobileEnabledCompute: mobileCompute.mobileEnabledCompute,
+    handleSessionComputeChange: mobileCompute.handleSessionComputeChange,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
     attachEntries:
@@ -1218,7 +1218,7 @@ const AcpSendBox: React.FC<{
                 reviewDisabled={isBusy}
               />
               <XScienceSessionOptionsMenu
-                rootFrameId={conversation_id}
+                rootFrameId={mobileCompute.rootFrameId}
                 value={xscienceSessionOptions}
                 onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
