@@ -1106,6 +1106,12 @@
       "loadFailed": "无法加载会话选项。",
       "updateFailed": "会话选项更新失败。",
       "computeUpdateFailed": "计算会话设置失败。",
+      "computeState": {
+        "unknown": "尚未确认",
+        "loading": "正在加载计算资源…",
+        "read": "无法加载计算资源，当前选择尚未确认。",
+        "retry": "重试计算资源"
+      },
       "none": "无",
       "localMachine": "本机",
       "providerCount": "{{count}} 个",

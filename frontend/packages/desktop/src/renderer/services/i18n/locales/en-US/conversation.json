@@ -1106,6 +1106,12 @@
       "loadFailed": "Unable to load conversation options.",
       "updateFailed": "Failed to update the conversation options.",
       "computeUpdateFailed": "Failed to update conversation compute.",
+      "computeState": {
+        "unknown": "Not confirmed",
+        "loading": "Loading compute resources…",
+        "read": "Compute resources could not be loaded. The current selection is not confirmed.",
+        "retry": "Retry compute"
+      },
       "none": "None",
       "localMachine": "Local",
       "providerCount": "{{count}} providers",
