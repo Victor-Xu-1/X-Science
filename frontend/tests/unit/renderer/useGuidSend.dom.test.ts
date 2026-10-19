@@ -512,7 +512,6 @@ describe('useGuidSend', () => {
         ultra_mode: true,
         verifier_mode: 'off',
         memory_mode: 'on',
-        target_agent: 'AIDD_EXPERT',
         model: 'xscience-default',
         subagent_model: 'delegate-model',
         effort: 'high',

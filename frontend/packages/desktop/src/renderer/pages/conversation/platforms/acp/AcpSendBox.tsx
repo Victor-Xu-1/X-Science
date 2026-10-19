@@ -52,20 +52,17 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import type { TerminalFailureRollback } from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
-import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
 import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import {
   getSelectedXScienceBranch,
   getXScienceBranchSelectionRevision,
   selectXScienceBranch,
 } from '@/renderer/services/xScienceConversationBranches';
-import {
-  loadXScienceComputeProviders,
-  loadXScienceSessionComputeProviders,
-  setXScienceSessionComputeProvider,
-} from '@/renderer/services/xScienceCompute';
+import { useAcpMobileComputeControls } from './useAcpMobileComputeControls';
+import { routeAcpSendOption } from './acpSendOptionRouting';
 import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
-import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
+import QueuedSpecialistNotice from '@/renderer/components/xScience/runtime/QueuedSpecialistNotice';
+import { SpecialistPreparationRequired } from '@/renderer/services/runtime/sessionSpecialistTypes';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -137,6 +134,9 @@ const AcpSendBox: React.FC<{
     queuedPdfSelection,
     queuedPdfInvalid,
     setQueuedPdfSelection,
+    queuedSpecialistAuthority,
+    queuedSpecialistInvalid,
+    setQueuedSpecialistAuthority,
     setContextItems,
     stagedPlanMode,
     setStagedPlanMode,
@@ -215,7 +215,6 @@ const AcpSendBox: React.FC<{
       delegation: staged.delegation,
       autoReview: staged.autoReview,
       memory: staged.memory,
-      targetAgent: staged.targetAgent.trim() || current.targetAgent,
     }));
   }, [setXScienceSessionOptions]);
   // The runtime session-options load resolves asynchronously for a fresh
@@ -227,9 +226,6 @@ const AcpSendBox: React.FC<{
       applyStagedSessionOptions();
     }
   }, [applyStagedSessionOptions, sessionOptionsLoad]);
-  const [mobileSpecialists, setMobileSpecialists] = useState<Array<{ id: string; label: string; agentId: string }>>([]);
-  const [mobileComputeProviders, setMobileComputeProviders] = useState<Array<{ name: string; label: string }>>([]);
-  const [mobileEnabledCompute, setMobileEnabledCompute] = useState<string[]>([]);
   const [reviewInFlight, setReviewInFlight] = useState(false);
   const [reviewActive, setReviewActive] = useState(false);
   const {
@@ -316,44 +312,20 @@ const AcpSendBox: React.FC<{
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
   }, [runtimeMode?.currentValue]);
-  useEffect(() => {
-    if (!isMobile) return;
-    let active = true;
-    void Promise.all([
-      loadXScienceAssistants(),
-      loadXScienceComputeProviders(),
-      loadXScienceSessionComputeProviders(conversation_id),
-    ])
-      .then(([assistants, providers, enabledProviders]) => {
-        if (!active) return;
-        setMobileSpecialists(
-          assistants.map((assistant) => ({
-            id: assistant.id,
-            label: resolveAssistantName(assistant, localeKey, assistant.name),
-            agentId: assistant.agent_id || assistant.name,
-          }))
-        );
-        setMobileComputeProviders(
-          providers
-            .filter((provider) => provider.checked)
-            .map((provider) => ({
-              name: provider.name,
-              label: provider.displayName,
-            }))
-        );
-        setMobileEnabledCompute(enabledProviders);
-      })
-      .catch((error) =>
-        console.warn('[AcpSendBox] Failed to load mobile session controls', safeErrorDiagnostic(error))
-      );
-    return () => {
-      active = false;
-    };
-  }, [conversation_id, isMobile, localeKey]);
+  const { mobileComputeProviders, mobileEnabledCompute, handleSessionComputeChange } = useAcpMobileComputeControls(
+    conversation_id,
+    isMobile,
+    localeKey,
+    ownerId,
+    conversationAuthorityRef,
+    mountedRef,
+    t
+  );
 
   const {
     memoryControl,
     delegationControl,
+    specialistControl,
     updatePersistentSessionOption,
     openMobileControls,
     handleClearGoal,
@@ -389,24 +361,6 @@ const AcpSendBox: React.FC<{
       }
     },
     [runtimeConfig, runtimeMode, t]
-  );
-
-  const handleSessionComputeChange = useCallback(
-    async (providerName: string, checked: boolean) => {
-      const requestAuthority = conversationAuthorityRef.current;
-      try {
-        await setXScienceSessionComputeProvider(conversation_id, providerName, checked);
-        if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-        setMobileEnabledCompute((current) =>
-          checked ? Array.from(new Set([...current, providerName])) : current.filter((name) => name !== providerName)
-        );
-      } catch (error) {
-        if (!mountedRef.current || conversationAuthorityRef.current !== requestAuthority) return;
-        console.error('[AcpSendBox] Failed to update session compute', safeErrorDiagnostic(error));
-        Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
-      }
-    },
-    [conversation_id, t]
   );
 
   const { setSendBoxHandler } = usePreviewContext();
@@ -506,6 +460,7 @@ const AcpSendBox: React.FC<{
           setContextItems,
           setStagedSessionOptions,
           setStagedPlanMode,
+          setQueuedSpecialistAuthority,
         },
         {
           onStagedSessionOptions: (options) => {
@@ -515,7 +470,15 @@ const AcpSendBox: React.FC<{
         }
       );
     },
-    [setContent, setUploadFile, setContextItems, setStagedSessionOptions, setStagedPlanMode, applyStagedSessionOptions]
+    [
+      setContent,
+      setUploadFile,
+      setContextItems,
+      setStagedSessionOptions,
+      setStagedPlanMode,
+      setQueuedSpecialistAuthority,
+      applyStagedSessionOptions,
+    ]
   );
   const notifyDraftRestoreIssue = useMemo(() => makeDraftRestoreIssueNotifier(t), [t]);
   const initialSend = useAcpInitialMessage({
@@ -542,7 +505,8 @@ const AcpSendBox: React.FC<{
     xscienceSessionOptions,
     stagedSessionOptionsRef,
     stagedPlanModeRef,
-    delegationControl
+    delegationControl,
+    specialistControl
   );
 
   const executeCommand = useCallback(
@@ -556,9 +520,18 @@ const AcpSendBox: React.FC<{
         turnIntent,
         readingContext,
         readingContextInvalid,
+        specialistAuthority,
+        specialistAuthorityInvalid,
       }: Pick<
         ConversationCommandQueueItem,
-        'id' | 'input' | 'files' | 'contextItems' | 'readingContext' | 'readingContextInvalid'
+        | 'id'
+        | 'input'
+        | 'files'
+        | 'contextItems'
+        | 'readingContext'
+        | 'readingContextInvalid'
+        | 'specialistAuthority'
+        | 'specialistAuthorityInvalid'
       > & {
         planMode?: boolean;
         turnIntent?: 'save-as-skill';
@@ -573,6 +546,8 @@ const AcpSendBox: React.FC<{
 
       try {
         if (readingContextInvalid) throw new Error(t('conversation.reading.invalidQueued'));
+        if (specialistAuthorityInvalid)
+          throw new Error(t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed'));
         if (compaction.controller) {
           const admitted = await compaction.controller.prepareForPrompt();
           if (!compaction.controller.current()) return;
@@ -604,7 +579,9 @@ const AcpSendBox: React.FC<{
             },
             true
           );
-        const commandAuthority = preparedAuthority ?? (await resolveCommandExecutionAuthority(planMode, !turnIntent));
+        const commandAuthority =
+          preparedAuthority ??
+          (await resolveCommandExecutionAuthority(planMode, !turnIntent, false, specialistAuthority ?? {}));
         const pendingRetry = directCommandRetryRef.current;
         if (pendingRetry?.item.id === id && pendingRetry.authority === undefined) {
           directCommandRetryRef.current = {
@@ -825,18 +802,28 @@ const AcpSendBox: React.FC<{
       contextItems: commandContextItems,
       branchId: getSelectedXScienceBranch(conversation_id),
       branchRevision: getXScienceBranchSelectionRevision(conversation_id),
-      sessionOptions: xscienceSessionOptions,
+      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined },
+      queuedSpecialistAuthority,
       planMode,
     });
     const retry = directCommandRetryRef.current?.signature === signature ? directCommandRetryRef.current : null;
     let readingSnapshot: ReturnType<typeof reading.captureSend> | undefined;
+    let specialistAuthority = retry?.item.specialistAuthority;
     try {
       // Freeze the click before maintenance draining or PDF preparation yields.
       // Exact retry and edited queue items already own their original selection.
       if (!retry && queuedPdfInvalid) throw new Error(t('conversation.reading.invalidQueued'));
+      if (!retry && queuedSpecialistInvalid) throw new SpecialistPreparationRequired();
+      if (!retry)
+        specialistAuthority =
+          queuedSpecialistAuthority ?? specialistControl.capture(getSelectedXScienceBranch(conversation_id));
       if (!retry && !queuedPdfSelection) readingSnapshot = reading.captureSend();
     } catch (error) {
       if (contentRef.current === '') setContent(normalizedMessage);
+      if (error instanceof SpecialistPreparationRequired)
+        throw new Error(t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed'), {
+          cause: error,
+        });
       throw error;
     }
     const maintenance = compaction.controller ? await compaction.controller.preparePromptIntent() : undefined;
@@ -853,6 +840,7 @@ const AcpSendBox: React.FC<{
         clearFiles();
         setContextItems([]);
         setQueuedPdfSelection();
+        setQueuedSpecialistAuthority();
         emitter.emit('acp.selected.file.clear');
         return;
       } catch (error) {
@@ -882,10 +870,12 @@ const AcpSendBox: React.FC<{
         contextItems: commandContextItems,
         planMode,
         readingContext,
+        specialistAuthority,
       });
       clearFiles();
       setContextItems([]);
       setQueuedPdfSelection();
+      setQueuedSpecialistAuthority();
       emitter.emit('acp.selected.file.clear');
       return;
     }
@@ -896,6 +886,7 @@ const AcpSendBox: React.FC<{
       contextItems: commandContextItems,
       planMode,
       readingContext,
+      specialistAuthority,
     });
     directCommandRetryRef.current = { signature, item };
     try {
@@ -904,6 +895,7 @@ const AcpSendBox: React.FC<{
       clearFiles();
       setContextItems([]);
       setQueuedPdfSelection();
+      setQueuedSpecialistAuthority();
       emitter.emit('acp.selected.file.clear');
     } catch (error) {
       if (contentRef.current === '') setContent(item.input);
@@ -917,34 +909,28 @@ const AcpSendBox: React.FC<{
 
   const handleSendOption = useCallback(
     (intent: XScienceSendIntent) => {
-      if (skillSave.isBlocking()) return;
-      const draft = contentRef.current;
-      if (!draft.trim()) return;
-
-      if (intent === 'plan_first') {
-        sendIntentRef.current = 'plan_first';
-        void onSendHandler(draft);
-        return;
-      }
-
-      if (
-        uploadFile.length > 0 ||
-        atPath.length > 0 ||
-        contextItems.length > 0 ||
-        queuedPdfSelection ||
-        queuedPdfInvalid ||
-        reading.view.context?.bindings.length
-      ) {
-        Message.warning(t('conversation.sendbox.structuredContextNormalSend'));
-        return;
-      }
-
-      if (intent === 'side_chat') {
-        void aside.sideDraft(draft);
-        return;
-      }
-
-      void aside.branchDraft(draft);
+      routeAcpSendOption(intent, {
+        blocked: skillSave.isBlocking(),
+        draft: contentRef.current,
+        structuredContext: Boolean(
+          uploadFile.length ||
+          atPath.length ||
+          contextItems.length ||
+          queuedPdfSelection ||
+          queuedPdfInvalid ||
+          reading.view.context?.bindings.length
+        ),
+        invalidSpecialist: queuedSpecialistInvalid,
+        queuedSpecialist: queuedSpecialistAuthority,
+        captureSpecialist: () => specialistControl.capture(getSelectedXScienceBranch(conversation_id)),
+        warnNormalSend: () => Message.warning(t('conversation.sendbox.structuredContextNormalSend')),
+        planFirst: (draft) => {
+          sendIntentRef.current = 'plan_first';
+          void onSendHandler(draft);
+        },
+        sideDraft: aside.sideDraft,
+        branchDraft: aside.branchDraft,
+      });
     },
     [
       atPath.length,
@@ -954,6 +940,10 @@ const AcpSendBox: React.FC<{
       onSendHandler,
       queuedPdfSelection,
       queuedPdfInvalid,
+      queuedSpecialistAuthority,
+      queuedSpecialistInvalid,
+      specialistControl,
+      conversation_id,
       reading.view.context?.bindings.length,
       skillSave.isBlocking,
       t,
@@ -970,15 +960,32 @@ const AcpSendBox: React.FC<{
       setUploadFile(Array.from(new Set(item.files)));
       setContextItems(item.contextItems);
       setQueuedPdfSelection(item.readingContext, item.readingContextInvalid);
+      setQueuedSpecialistAuthority(item.specialistAuthority ?? {}, item.specialistAuthorityInvalid);
       setAtPath([]);
       emitter.emit('acp.selected.file.clear');
     },
-    [remove, setAtPath, setContent, setContextItems, setUploadFile, setQueuedPdfSelection, skillSave.isBlocking]
+    [
+      remove,
+      setAtPath,
+      setContent,
+      setContextItems,
+      setUploadFile,
+      setQueuedPdfSelection,
+      setQueuedSpecialistAuthority,
+      skillSave.isBlocking,
+    ]
   );
 
   const handleOpenQueuedCommandInSideChat = useCallback(
     (item: ConversationCommandQueueItem) => {
-      if (item.files.length > 0 || item.contextItems.length > 0 || item.readingContext || item.readingContextInvalid) {
+      if (
+        item.files.length > 0 ||
+        item.contextItems.length > 0 ||
+        item.readingContext ||
+        item.readingContextInvalid ||
+        item.specialistAuthority?.reference ||
+        item.specialistAuthorityInvalid
+      ) {
         Message.warning(t('conversation.commandQueue.sideChatAttachmentsUnsupported'));
         return;
       }
@@ -1018,11 +1025,10 @@ const AcpSendBox: React.FC<{
     selectModel,
     xscienceSessionOptions,
     sessionOptionsReady,
-    setXScienceSessionOptions,
     updatePersistentSessionOption,
     memoryControl,
     delegationControl,
-    mobileSpecialists,
+    specialistControl,
     mobileComputeProviders,
     mobileEnabledCompute,
     handleSessionComputeChange,
@@ -1126,6 +1132,11 @@ const AcpSendBox: React.FC<{
         <ThoughtDisplay running={aiProcessing && !hasThinkingMessage && runtimeView.state !== 'waiting_confirmation'} />
       ) : null}
 
+      <QueuedSpecialistNotice
+        authority={queuedSpecialistAuthority}
+        invalid={queuedSpecialistInvalid}
+        onClear={() => setQueuedSpecialistAuthority()}
+      />
       <CommandQueuePanel
         items={queuedCommands}
         isInterrupted={isCommandQueueInterrupted}
@@ -1211,6 +1222,7 @@ const AcpSendBox: React.FC<{
                 onPersistentOptionChange={updatePersistentSessionOption}
                 memoryControl={memoryControl}
                 delegationControl={delegationControl}
+                specialistControl={specialistControl}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}

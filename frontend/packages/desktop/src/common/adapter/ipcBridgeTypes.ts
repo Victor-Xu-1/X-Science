@@ -37,7 +37,8 @@ export interface ISendMessageParams {
     ultra_mode: boolean;
     verifier_mode: 'on' | 'off';
     memory_mode: 'on' | 'off';
-    target_agent: string;
+    target_agent?: string;
+    specialist_binding?: import('./specialistBinding').SpecialistInputReference;
     model?: string;
     subagent_model?: string;
     effort?: 'low' | 'medium' | 'high';
@@ -213,6 +214,8 @@ export interface IConversationListChangedEvent {
   /** Invalidation only; the scoped delegation-policy GET remains authoritative. */
   delegation_policy_changed?: true;
   delegation_policy_revision?: number;
+  specialist_changed?: true;
+  specialist_revision?: number;
   root_incarnation_id?: string;
   conversation_id: string;
   action: 'created' | 'updated' | 'deleted';

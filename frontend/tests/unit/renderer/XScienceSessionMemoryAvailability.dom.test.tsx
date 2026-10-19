@@ -17,7 +17,10 @@ import { useTranslation } from 'react-i18next';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const mocks = vi.hoisted(() => ({ persist: vi.fn(), refresh: vi.fn() }));
-vi.mock('@/renderer/services/xScienceCatalog', () => ({ loadXScienceAssistants: async () => [] }));
+vi.mock('@/renderer/services/xScienceCatalog', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/xScienceCatalog')>()),
+  loadXScienceAssistants: async () => [],
+}));
 vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceComputeProviders: async () => [],
   loadXScienceSessionComputeProviders: async () => [],

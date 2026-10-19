@@ -11,7 +11,7 @@ import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router';
 import { useSWRConfig } from 'swr';
@@ -37,7 +37,16 @@ import type { GuidLocalFile } from './useGuidInput';
 import { suggestPdfReading, type PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
 import { useComposerLifetime } from '@/renderer/hooks/chat/useComposerLifetime';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import { GuidDelegationPreparationError, useGuidDelegationHandoff } from './useGuidDelegationHandoff';
+import {
+  GuidDelegationPreparationError,
+  useGuidDelegationHandoff,
+  type GuidSpecialistIntent,
+} from './useGuidDelegationHandoff';
+import { SpecialistPreparationRequired } from '@/renderer/services/runtime/sessionSpecialistTypes';
+import {
+  EMPTY_SPECIALIST_VIEW,
+  type SessionSpecialistView,
+} from '@/renderer/services/runtime/sessionSpecialistController';
 import type { DelegationPolicy } from '@/renderer/services/runtime/sessionDelegationPolicy';
 import {
   buildComposerCapabilityPayload,
@@ -81,6 +90,7 @@ export type GuidSendDeps = {
   assistantDefaultMcpIds?: string[];
   sessionOptions: XScienceSessionOptions;
   delegationPolicyOverride?: DelegationPolicy;
+  specialistIntent?: GuidSpecialistIntent;
   draftGeneration?: number;
   sessionDefaults: XScienceSessionDefaults;
   sessionComputeProviders: string[];
@@ -100,6 +110,9 @@ export type GuidSendDeps = {
 };
 
 export type GuidSendResult = {
+  specialistView: SessionSpecialistView;
+  retrySpecialist: () => Promise<void>;
+  refreshSpecialist: () => Promise<void>;
   handleSend: () => Promise<boolean>;
   sendMessageHandler: () => Promise<boolean>;
   isButtonDisabled: boolean;
@@ -286,9 +299,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     deps.pdfReadingEnabled,
     deps.pdfReadingPosition,
     deps.delegationPolicyOverride,
+    deps.specialistIntent,
   ]);
   const captureLifetime = useComposerLifetime(ownerId, creationLifetime);
   const delegationHandoff = useGuidDelegationHandoff(ownerId, deps.draftGeneration);
+  const specialistView = useSyncExternalStore(
+    delegationHandoff.subscribe,
+    delegationHandoff.getSpecialistSnapshot,
+    () => EMPTY_SPECIALIST_VIEW
+  );
   const uploadedAttachmentCacheRef = useRef(new WeakMap<File, OnboardingArtifactCacheEntry>());
   const pendingAttachmentUploadsRef = useRef(new WeakMap<File, OnboardingPendingUpload>());
 
@@ -466,6 +485,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         Message.error(t('conversation.createFailed'));
         return false;
       }
+      const specialistAuthority = await delegationHandoff.prepareSpecialist(deps.specialistIntent, isCurrent);
+      ensureCurrent();
 
       if (isCustomWorkspace) {
         updateWorkspaceTime(finalWorkspace);
@@ -505,6 +526,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         session_options: {
           ...toXScienceMessageSessionOptions(sessionOptions, {
             delegation: deps.delegationPolicyOverride !== 'deny',
+            targetAgent: specialistAuthority.targetAgent ?? null,
+            specialistBinding: specialistAuthority.reference,
             ...(planModeRef?.current ? { planMode: true } : {}),
           }),
           model: assistantOverrideModel,
@@ -557,6 +580,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     captureLifetime,
     delegationHandoff,
     deps.delegationPolicyOverride,
+    deps.specialistIntent,
     dir,
     selectedAssistantId,
     selectedAssistantBackend,
@@ -609,7 +633,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       Message.error(
         error instanceof GuidDelegationPreparationError
           ? t('conversation.xscienceRuntime.sessionOptions.delegationState.prepareFailed')
-          : getConversationCreateErrorMessage(error, t)
+          : error instanceof SpecialistPreparationRequired
+            ? t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed')
+            : getConversationCreateErrorMessage(error, t)
       );
       return false;
     } finally {
@@ -640,6 +666,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const isButtonDisabled = loading || !hasMessageInput || !selectedAssistantId;
 
   return {
+    specialistView,
+    retrySpecialist: delegationHandoff.retrySpecialist,
+    refreshSpecialist: delegationHandoff.refreshSpecialist,
     handleSend,
     sendMessageHandler,
     isButtonDisabled,

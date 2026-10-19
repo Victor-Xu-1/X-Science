@@ -1,4 +1,5 @@
 import { uuid } from '@/common/utils';
+import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import { decodePdfReadingSelection, type PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
@@ -17,6 +18,8 @@ import {
 } from '@/renderer/services/rendererAccountScope';
 
 export type ConversationCommandQueueItem = {
+  specialistAuthority?: SpecialistSendAuthority;
+  specialistAuthorityInvalid?: true;
   readingContext?: PdfReadingSelection;
   readingContextInvalid?: true;
   id: string;
@@ -127,6 +130,18 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     ...(candidate.pausedReason === 'send_failed' ? { pausedReason: 'send_failed' as const } : {}),
     created_at: candidate.created_at,
   };
+  if (candidate.specialistAuthority !== undefined) {
+    try {
+      normalizedItem.specialistAuthority = decodeSpecialistSendAuthority(candidate.specialistAuthority);
+    } catch {
+      normalizedItem.specialistAuthorityInvalid = true;
+      normalizedItem.pausedReason = 'send_failed';
+    }
+  }
+  if (candidate.specialistAuthorityInvalid === true) {
+    normalizedItem.specialistAuthorityInvalid = true;
+    normalizedItem.pausedReason = 'send_failed';
+  }
   if (candidate.readingContext !== undefined) {
     try {
       normalizedItem.readingContext = decodePdfReadingSelection(candidate.readingContext);
@@ -194,7 +209,8 @@ export const createQueuedCommandItem = ({
   contextItems = [],
   planMode,
   readingContext,
-}: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode' | 'readingContext'> & {
+  specialistAuthority,
+}: Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode' | 'readingContext' | 'specialistAuthority'> & {
   contextItems?: ComposerContextItem[];
 }): ConversationCommandQueueItem => ({
   id: uuid(),
@@ -203,6 +219,7 @@ export const createQueuedCommandItem = ({
   contextItems: normalizeComposerContextItems(contextItems),
   ...(planMode === true ? { planMode: true } : {}),
   ...(readingContext ? { readingContext: decodePdfReadingSelection(readingContext) } : {}),
+  ...(specialistAuthority ? { specialistAuthority: decodeSpecialistSendAuthority(specialistAuthority) } : {}),
   created_at: Date.now(),
 });
 
@@ -449,7 +466,10 @@ type UseConversationCommandQueueOptions = {
   isItemBlocked?: (item: ConversationCommandQueueItem) => boolean;
 };
 
-type EnqueueCommandInput = Pick<ConversationCommandQueueItem, 'input' | 'files' | 'planMode' | 'readingContext'> & {
+type EnqueueCommandInput = Pick<
+  ConversationCommandQueueItem,
+  'input' | 'files' | 'planMode' | 'readingContext' | 'specialistAuthority'
+> & {
   contextItems?: ComposerContextItem[];
 };
 
@@ -615,13 +635,20 @@ export const useConversationCommandQueue = ({
   );
 
   const enqueue = useCallback(
-    ({ input, files, contextItems = [], planMode, readingContext }: EnqueueCommandInput) => {
+    ({ input, files, contextItems = [], planMode, readingContext, specialistAuthority }: EnqueueCommandInput) => {
       if (!enabled) {
         return null;
       }
 
       const currentState = normalizeQueueState(stateRef.current);
-      const item = createQueuedCommandItem({ input, files, contextItems, planMode, readingContext });
+      const item = createQueuedCommandItem({
+        input,
+        files,
+        contextItems,
+        planMode,
+        readingContext,
+        specialistAuthority,
+      });
       const validation = validateQueuedCommandItem(item, currentState);
 
       if (isQueueValidationFailure(validation)) {

@@ -11,6 +11,8 @@ import {
 } from '@/renderer/services/xScienceSessionOptions';
 import type { CommandExecutionAuthority } from './acpCommandExecutionTypes';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
+import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 
 /** Shared existing branch/session-option capture for ordinary and typed sends. */
 export function useAcpCommandAuthority(
@@ -18,11 +20,20 @@ export function useAcpCommandAuthority(
   xscienceSessionOptions: XScienceSessionOptions,
   stagedSessionOptionsRef: RefObject<StagedSessionOptions | null>,
   stagedPlanModeRef: RefObject<boolean>,
-  delegationControl?: XScienceDelegationControl
+  delegationControl?: XScienceDelegationControl,
+  specialistControl?: XScienceSpecialistControl
 ) {
   return useCallback(
-    async (planMode?: boolean, includeStaged = true, requireBranch = false): Promise<CommandExecutionAuthority> => {
+    async (
+      planMode?: boolean,
+      includeStaged = true,
+      requireBranch = false,
+      capturedSpecialist?: SpecialistSendAuthority
+    ): Promise<CommandExecutionAuthority> => {
       const selectedBranchId = getSelectedXScienceBranch(conversation_id);
+      const specialist = includeStaged
+        ? (capturedSpecialist ?? specialistControl?.capture(selectedBranchId))
+        : undefined;
       const targetBranchRevision = getXScienceBranchSelectionRevision(conversation_id);
       const branchState =
         selectedBranchId || requireBranch ? await loadXScienceConversationBranches(conversation_id) : null;
@@ -46,7 +57,6 @@ export function useAcpCommandAuthority(
               delegation: stagedSessionOptionsRef.current.delegation,
               autoReview: stagedSessionOptionsRef.current.autoReview,
               memory: stagedSessionOptionsRef.current.memory,
-              targetAgent: stagedSessionOptionsRef.current.targetAgent.trim() || xscienceSessionOptions.targetAgent,
             }
           : xscienceSessionOptions;
       return {
@@ -60,9 +70,18 @@ export function useAcpCommandAuthority(
           targetBranchId,
           expectedBranchId: branchState?.activeBranchId,
           expectedGeneration: branchState?.generation,
+          ...(specialistControl || capturedSpecialist ? { targetAgent: specialist?.targetAgent ?? null } : {}),
+          ...(specialist?.reference ? { specialistBinding: specialist.reference } : {}),
         }),
       };
     },
-    [conversation_id, xscienceSessionOptions, stagedSessionOptionsRef, stagedPlanModeRef, delegationControl]
+    [
+      conversation_id,
+      xscienceSessionOptions,
+      stagedSessionOptionsRef,
+      stagedPlanModeRef,
+      delegationControl,
+      specialistControl,
+    ]
   );
 }

@@ -52,6 +52,7 @@ import {
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useGuidSessionOptions } from './hooks/useGuidSessionOptions';
+import { useGuidSpecialistDraft, useGuidSpecialistPresentation } from './hooks/useGuidSpecialistDraft';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { ConfigProvider } from '@arco-design/web-react';
 import type { AcpDerivedOption } from '@/renderer/hooks/xScience/runtime/useAcpConfigOptions';
@@ -195,6 +196,12 @@ const GuidPage: React.FC = () => {
     ownerId: user?.id ?? '',
     pending: guidInput.loading,
   });
+  const specialistDraft = useGuidSpecialistDraft(
+    user?.id ?? '',
+    draftGeneration,
+    selectedAssistantId,
+    guidInput.loading
+  );
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
     async (): Promise<AssistantDetail | null> =>
@@ -343,6 +350,7 @@ const GuidPage: React.FC = () => {
     assistantDefaultMcpIds: resolvedAssistantDefaults.mcpIds,
     sessionOptions,
     delegationPolicyOverride,
+    specialistIntent: specialistDraft.intent,
     draftGeneration,
     sessionDefaults: agentSelection.sessionDefaults,
     sessionComputeProviders,
@@ -362,6 +370,12 @@ const GuidPage: React.FC = () => {
   });
 
   // --- Coordinated handlers (depend on multiple hooks) ---
+  const specialistControl = useGuidSpecialistPresentation(
+    specialistDraft.control,
+    send.specialistView,
+    send.retrySpecialist,
+    send.refreshSpecialist
+  );
   const handleInputChange = useCallback(
     (value: string) => {
       guidInput.setInput(value);
@@ -697,6 +711,7 @@ const GuidPage: React.FC = () => {
           value={sessionOptions}
           memoryControl={memoryControl}
           delegationControl={delegationControl}
+          specialistControl={specialistControl}
           onChange={setSessionOptions}
           computeSelection={sessionComputeProviders}
           onComputeSelectionChange={setSessionComputeProviders}

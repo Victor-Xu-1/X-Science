@@ -1,4 +1,5 @@
 import { invalidateXScienceFrameReads, loadCachedXScienceFrame } from './xScienceFrameReads';
+import type { SpecialistInputReference } from '@/common/adapter/specialistBinding';
 
 export type XScienceSessionOptions = {
   delegation: boolean;
@@ -102,6 +103,8 @@ export function toXScienceMessageSessionOptions(
     targetBranchId?: string | null;
     expectedBranchId?: string | null;
     expectedGeneration?: number;
+    targetAgent?: string | null;
+    specialistBinding?: SpecialistInputReference;
   } = {}
 ) {
   return {
@@ -109,7 +112,8 @@ export function toXScienceMessageSessionOptions(
     ultra_mode: overrides.delegation === null ? undefined : (overrides.delegation ?? options.delegation),
     verifier_mode: options.autoReview ? ('on' as const) : ('off' as const),
     memory_mode: options.memory ? ('on' as const) : ('off' as const),
-    target_agent: options.targetAgent,
+    ...(overrides.targetAgent === null ? {} : { target_agent: overrides.targetAgent ?? options.targetAgent }),
+    ...(overrides.specialistBinding ? { specialist_binding: overrides.specialistBinding } : {}),
     ...(overrides.planMode === undefined ? {} : { plan_mode: overrides.planMode }),
     ...(overrides.targetBranchId ? { target_branch_id: overrides.targetBranchId } : {}),
     ...(overrides.expectedBranchId ? { expected_branch_id: overrides.expectedBranchId } : {}),

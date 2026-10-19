@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import { useAcpMobileActionSheetController } from '@/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
+import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import { renderWithI18n } from '../../i18nTestUtils';
 
 const change = vi.fn(),
@@ -24,7 +25,15 @@ const control = (patch: Partial<XScienceDelegationControl> = {}): XScienceDelega
   current: () => true,
   ...patch,
 });
-function Harness({ delegationControl, open = true }: { delegationControl: XScienceDelegationControl; open?: boolean }) {
+function Harness({
+  delegationControl = control(),
+  specialistControl,
+  open = true,
+}: {
+  delegationControl?: XScienceDelegationControl;
+  specialistControl?: XScienceSpecialistControl;
+  open?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const entries = useAcpMobileActionSheetController({
     isMobile: true,
@@ -39,10 +48,9 @@ function Harness({ delegationControl, open = true }: { delegationControl: XScien
     selectModel: vi.fn(),
     xscienceSessionOptions: { delegation: false, autoReview: false, memory: true, targetAgent: 'OPERON' },
     sessionOptionsReady: false,
-    setXScienceSessionOptions: localChange,
     updatePersistentSessionOption: vi.fn(),
     delegationControl,
-    mobileSpecialists: [],
+    specialistControl,
     mobileComputeProviders: [],
     mobileEnabledCompute: [],
     handleSessionComputeChange: vi.fn(),
@@ -95,6 +103,65 @@ describe('actual mobile delegation control', () => {
     view.rerender(<Harness delegationControl={value} open={false} />);
     view.rerender(<Harness delegationControl={value} open />);
     fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-options'));
+    await waitFor(() => expect(refresh.mock.calls.length).toBeGreaterThanOrEqual(2));
+  });
+});
+const specialist = (patch: Partial<XScienceSpecialistControl> = {}): XScienceSpecialistControl => ({
+  applied: {
+    agent_name: 'ENGINE',
+    selection_name: 'AGENT_B',
+    assistant_id: 'assistant-b',
+    display_name: 'Beta',
+    is_default: false,
+    snapshot_id: 'definition-b',
+    revision: 1,
+  },
+  desired: null,
+  choices: [{ id: 'assistant-b', name: 'AGENT_B', label: 'Beta' }],
+  pending: false,
+  available: true,
+  unavailable: false,
+  error: null,
+  retryable: false,
+  catalogLoading: false,
+  catalogError: false,
+  hasLiveAttempt: false,
+  prepared: false,
+  change,
+  refresh,
+  retry,
+  current: () => true,
+  capture: () => ({}),
+  ...patch,
+});
+describe('actual mobile specialist control', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(cleanup);
+  it('projects the same checked specialist and invokes its owner rather than a local target setter', async () => {
+    await renderWithI18n(<Harness specialistControl={specialist()} />, 'en-US');
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-specialist'));
+    const choice = await screen.findByRole('menuitemradio', { name: 'Beta' });
+    expect(choice).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(choice);
+    expect(change).toHaveBeenCalledWith('AGENT_B');
+    expect(localChange).not.toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('keeps only the unresolved specialist row disabled, not permissions', async () => {
+    await renderWithI18n(<Harness specialistControl={specialist({ pending: true })} />, 'en-US');
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-specialist'));
+    expect(await screen.findByRole('menuitemradio', { name: 'Beta' })).toBeDisabled();
+    expect(screen.getByTestId('mobile-action-sheet-send-mode')).not.toBeDisabled();
+  });
+  it('offers same-command retry and refresh on reopen without erasing a live selection', async () => {
+    const value = specialist({ error: 'uncertain', retryable: true, hasLiveAttempt: true });
+    const view = await renderWithI18n(<Harness specialistControl={value} />, 'en-US');
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-specialist'));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Retry / refresh' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    view.rerender(<Harness specialistControl={value} open={false} />);
+    view.rerender(<Harness specialistControl={value} open />);
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-specialist'));
     await waitFor(() => expect(refresh.mock.calls.length).toBeGreaterThanOrEqual(2));
   });
 });

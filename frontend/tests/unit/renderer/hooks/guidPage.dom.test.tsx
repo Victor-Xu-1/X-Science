@@ -129,6 +129,8 @@ const {
     handleSend: vi.fn(),
     sendMessageHandler: vi.fn(),
     isButtonDisabled: false,
+    retrySpecialist: vi.fn(async () => {}),
+    refreshSpecialist: vi.fn(async () => {}),
   },
   navigateMock: vi.fn(),
 }));
@@ -197,11 +199,14 @@ vi.mock('@/renderer/pages/guid/hooks/useGuidSend', async () => {
   const actual = await vi.importActual<typeof import('@/renderer/pages/guid/hooks/useGuidSend')>(
     '@/renderer/pages/guid/hooks/useGuidSend'
   );
+  const { EMPTY_SPECIALIST_VIEW } = await vi.importActual<
+    typeof import('@/renderer/services/runtime/sessionSpecialistController')
+  >('@/renderer/services/runtime/sessionSpecialistController');
   return {
     ...actual,
     useGuidSend: (deps: Record<string, unknown>) => {
       capturedGuidSendDeps.push(deps);
-      return sendMock;
+      return { ...sendMock, specialistView: EMPTY_SPECIALIST_VIEW };
     },
   };
 });
@@ -328,6 +333,8 @@ describe('GuidPage', () => {
     sendMock.sendMessageHandler.mockReset();
     sendMock.sendMessageHandler.mockResolvedValue(true);
     sendMock.isButtonDisabled = false;
+    sendMock.retrySpecialist.mockClear();
+    sendMock.refreshSpecialist.mockClear();
     swrMock.useSWRMock.mockReturnValue({ data: null });
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
@@ -744,7 +751,9 @@ describe('GuidPage', () => {
   });
 
   it('applies a X-Science assistant default model through runtime model metadata', async () => {
-    swrMock.useSWRMock.mockReturnValue({ data: assistantDetailFixture });
+    swrMock.useSWRMock.mockImplementation((key: unknown) => ({
+      data: typeof key === 'string' && key.startsWith('guid.assistant.detail.') ? assistantDetailFixture : null,
+    }));
     resolveGuidAssistantDefaultsMock.mockReturnValue({
       modelId: 'xscience-deep-research',
       disabledBuiltinSkillIds: [],

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import type {
   PdfReadingPendingAccess,
   PdfReadingPendingResult,
@@ -113,6 +114,16 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     },
     [mutate]
   );
+  const setQueuedSpecialistAuthority = useCallback(
+    (authority?: SpecialistSendAuthority, invalid = false) => {
+      mutate((previous) => ({
+        ...previous,
+        specialistQueuedAuthority: authority,
+        specialistQueuedInvalid: invalid ? true : undefined,
+      }));
+    },
+    [mutate]
+  );
 
   return {
     atPath,
@@ -137,5 +148,8 @@ export const useAcpSendBoxDraftController = (conversationId: string, ownerId?: s
     queuedPdfSelection: data?.pdfReadingQueuedSelection,
     queuedPdfInvalid: data?.pdfReadingQueuedInvalid === true,
     setQueuedPdfSelection,
+    queuedSpecialistAuthority: data?.specialistQueuedAuthority,
+    queuedSpecialistInvalid: data?.specialistQueuedInvalid === true,
+    setQueuedSpecialistAuthority,
   };
 };
