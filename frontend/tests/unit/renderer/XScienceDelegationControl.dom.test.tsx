@@ -1,14 +1,14 @@
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
-import React from "react";
-import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import XScienceSessionOptionsMenu from "@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu";
-import { renderWithI18n } from "../i18nTestUtils";
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import { MemoryRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import { renderWithI18n } from '../i18nTestUtils';
 
-vi.mock("@/renderer/services/xScienceCatalog", () => ({
+vi.mock('@/renderer/services/xScienceCatalog', () => ({
   loadXScienceAssistants: vi.fn().mockResolvedValue([]),
 }));
-vi.mock("@/renderer/services/xScienceCompute", () => ({
+vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceComputeProviders: vi.fn().mockResolvedValue([]),
   loadXScienceSessionComputeProviders: vi.fn().mockResolvedValue([]),
 }));
@@ -17,7 +17,7 @@ const value = {
   delegation: false,
   autoReview: false,
   memory: false,
-  targetAgent: "OPERON",
+  targetAgent: 'OPERON',
   goalText: null,
   asRoutine: false,
 };
@@ -44,37 +44,36 @@ async function open(overrides: Record<string, unknown> = {}) {
   };
   await renderWithI18n(
     <MemoryRouter>
-      <XScienceSessionOptionsMenu
-        rootFrameId="delegation-root"
-        value={value}
-        onChange={localChange}
-        {...props}
-      />
+      <XScienceSessionOptionsMenu rootFrameId='delegation-root' value={value} onChange={localChange} {...props} />
     </MemoryRouter>
   );
-  fireEvent.click(screen.getByRole("button", { name: "会话选项" }));
-  return screen.findByTestId("session-config-row-delegation");
+  fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
+  return screen.findByTestId('session-config-row-delegation');
 }
 
-describe("authoritative delegation menu control", () => {
+describe('authoritative delegation menu control', () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(cleanup);
-  it("renders the current policy instead of a late legacy session option", async () => {
+  it('renders the current policy instead of a late legacy session option', async () => {
     const row = await open();
-    expect(row).toHaveAttribute("aria-checked", "true");
+    expect(row).toHaveAttribute('aria-checked', 'true');
     expect(refresh).toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '会话选项' }).querySelector('.bg-primary')).toBeNull();
   });
-  it("submits only through the policy owner rather than flipping the local option", async () => {
+  it('submits only through the policy owner rather than flipping the local option', async () => {
     fireEvent.click(await open());
     await waitFor(() => expect(change).toHaveBeenCalledWith(false));
     expect(localChange).not.toHaveBeenCalled();
   });
-  it("keeps an unknown policy indeterminate and disables only that control", async () => {
+  it('keeps an unknown policy indeterminate and disables only that control', async () => {
     const row = await open({ enabled: undefined, pending: true });
-    expect(row).toHaveAttribute("aria-checked", "mixed");
+    expect(row).toHaveAttribute('aria-checked', 'mixed');
     expect(row).toBeDisabled();
-    expect(
-      screen.getByTestId("session-config-row-autoReview")
-    ).not.toBeDisabled();
+    expect(screen.getByTestId('session-config-row-autoReview')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: '会话选项' }).querySelector('.bg-primary')).toBeNull();
+  });
+  it('marks an explicit durable deny as customized instead of marking default allow', async () => {
+    expect(await open({ enabled: false })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('button', { name: '会话选项' }).querySelector('.bg-primary')).not.toBeNull();
   });
 });

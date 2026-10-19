@@ -180,12 +180,21 @@ const GuidPage: React.FC = () => {
     selectedAssistantId ? `guid.assistant.composer-capabilities.${selectedAssistantId}` : null,
     () => loadXScienceAssistantComposerCapabilities(selectedAssistantId!)
   );
-  const { sessionOptions, setSessionOptions, sessionComputeProviders, setSessionComputeProviders } =
-    useGuidSessionOptions({
-      baseAgentName: selectedAssistantAgentId,
-      navigationKey: location.key,
-      resetRequested: resetAssistantRequested,
-    });
+  const {
+    sessionOptions,
+    setSessionOptions,
+    sessionComputeProviders,
+    setSessionComputeProviders,
+    delegationPolicyOverride,
+    delegationControl,
+    draftGeneration,
+  } = useGuidSessionOptions({
+    baseAgentName: selectedAssistantAgentId,
+    navigationKey: location.key,
+    resetRequested: resetAssistantRequested,
+    ownerId: user?.id ?? '',
+    pending: guidInput.loading,
+  });
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
     async (): Promise<AssistantDetail | null> =>
@@ -333,6 +342,8 @@ const GuidPage: React.FC = () => {
     selectedMcpServerIds: guidSelectedMcpServerIds,
     assistantDefaultMcpIds: resolvedAssistantDefaults.mcpIds,
     sessionOptions,
+    delegationPolicyOverride,
+    draftGeneration,
     sessionDefaults: agentSelection.sessionDefaults,
     sessionComputeProviders,
     planModeRef: guidPlanModeRef,
@@ -685,6 +696,7 @@ const GuidPage: React.FC = () => {
         <XScienceSessionOptionsMenu
           value={sessionOptions}
           memoryControl={memoryControl}
+          delegationControl={delegationControl}
           onChange={setSessionOptions}
           computeSelection={sessionComputeProviders}
           onComputeSelectionChange={setSessionComputeProviders}

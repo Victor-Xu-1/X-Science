@@ -36,6 +36,9 @@ import {
 import type { GuidLocalFile } from './useGuidInput';
 import { suggestPdfReading, type PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
 import { useComposerLifetime } from '@/renderer/hooks/chat/useComposerLifetime';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { GuidDelegationPreparationError, useGuidDelegationHandoff } from './useGuidDelegationHandoff';
+import type { DelegationPolicy } from '@/renderer/services/runtime/sessionDelegationPolicy';
 import {
   buildComposerCapabilityPayload,
   normalizeComposerContextItems,
@@ -77,6 +80,8 @@ export type GuidSendDeps = {
   selectedMcpServerIds: string[] | undefined;
   assistantDefaultMcpIds?: string[];
   sessionOptions: XScienceSessionOptions;
+  delegationPolicyOverride?: DelegationPolicy;
+  draftGeneration?: number;
   sessionDefaults: XScienceSessionDefaults;
   sessionComputeProviders: string[];
   planModeRef?: { current: boolean };
@@ -250,8 +255,40 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
     localeKey,
   } = deps;
-  const sendingRef = useRef(false);
-  const captureLifetime = useComposerLifetime(ownerId);
+  const sendingRef = useRef<{ ownerKey: string } | null>(null);
+  const sendOwnerKey = JSON.stringify([getRendererAccountScopeToken(), ownerId, deps.draftGeneration]);
+  const captureDraftLifetime = useComposerLifetime(ownerId, deps.draftGeneration);
+  const creationLifetime = JSON.stringify([
+    deps.draftGeneration,
+    dir,
+    selectedAssistantId,
+    selectedAssistantBackend,
+    selectedMode,
+    selectedAcpModel,
+    currentAcpCachedModelInfo?.current_model_id,
+    selectedThoughtLevelValue,
+    selectedMcpServerIds,
+    availableMcpServers.filter((server) => (selectedMcpServerIds ?? assistantDefaultMcpIds ?? []).includes(server.id)),
+    guidEnabledSkills,
+    guidDisabledBuiltinSkills,
+    assistantDefaultSkillIds,
+    assistantDefaultDisabledBuiltinSkillIds,
+    assistantDefaultMcpIds,
+    assistantDefaultSkillMode,
+    localeKey,
+    input,
+    files,
+    localFiles.map(({ id }) => id),
+    contextItems,
+    sessionOptions,
+    sessionDefaults,
+    sessionComputeProviders,
+    deps.pdfReadingEnabled,
+    deps.pdfReadingPosition,
+    deps.delegationPolicyOverride,
+  ]);
+  const captureLifetime = useComposerLifetime(ownerId, creationLifetime);
+  const delegationHandoff = useGuidDelegationHandoff(ownerId, deps.draftGeneration);
   const uploadedAttachmentCacheRef = useRef(new WeakMap<File, OnboardingArtifactCacheEntry>());
   const pendingAttachmentUploadsRef = useRef(new WeakMap<File, OnboardingPendingUpload>());
 
@@ -383,7 +420,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         uploadedArtifacts.push(artifact);
       }
 
-      const conversation = await ipcBridge.conversation.create.invoke({
+      const createInput = {
         name: buildXScienceConversationTitle(messageInput),
         assistant: {
           id: assistantConversationId,
@@ -417,7 +454,13 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
               }
             : {}),
         },
-      });
+      };
+      const conversation = await delegationHandoff.materialize(
+        JSON.stringify({ assistant: createInput.assistant, extra: createInput.extra }),
+        () => ipcBridge.conversation.create.invoke(createInput),
+        deps.delegationPolicyOverride,
+        isCurrent
+      );
       ensureCurrent();
       if (!conversation || !conversation.id) {
         Message.error(t('conversation.createFailed'));
@@ -460,7 +503,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         inject_mcp_server_ids:
           capabilityPayload.injectMcpServerIds.length > 0 ? capabilityPayload.injectMcpServerIds : undefined,
         session_options: {
-          ...toXScienceMessageSessionOptions(sessionOptions, planModeRef?.current ? { planMode: true } : {}),
+          ...toXScienceMessageSessionOptions(sessionOptions, {
+            delegation: deps.delegationPolicyOverride !== 'deny',
+            ...(planModeRef?.current ? { planMode: true } : {}),
+          }),
           model: assistantOverrideModel,
           subagent_model: sessionDefaults.subagentModelId,
           effort,
@@ -469,7 +515,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         // Send is the user's execution intent. The conversation's existing
         // initial-message controller submits it once when realtime is ready.
       };
-      sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+      delegationHandoff.storeMessage(conversation.id, initialMessage, (value) =>
+        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, value)
+      );
 
       // The create response is the authoritative first conversation snapshot.
       // Hand it to the route before navigation so the new chat paints directly
@@ -479,6 +527,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       ensureCurrent();
       await navigate(`/conversation/${conversation.id}`);
       if (!isCurrent()) return true;
+      delegationHandoff.dispose();
 
       // The new conversation is already authoritative once create returns.
       // Cache revalidation and sidebar refresh must not sit on the critical
@@ -506,6 +555,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     deps.pdfReadingEnabled,
     deps.pdfReadingPosition,
     captureLifetime,
+    delegationHandoff,
+    deps.delegationPolicyOverride,
     dir,
     selectedAssistantId,
     selectedAssistantBackend,
@@ -532,9 +583,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   const sendMessageHandler = useCallback(async (): Promise<boolean> => {
-    if (loading || sendingRef.current) return false;
+    if (loading || sendingRef.current?.ownerKey === sendOwnerKey) return false;
     const isCurrent = captureLifetime();
-    sendingRef.current = true;
+    const isDraftCurrent = captureDraftLifetime();
+    const request = { ownerKey: sendOwnerKey };
+    sendingRef.current = request;
     setLoading(true);
     try {
       const sent = await handleSend();
@@ -553,16 +606,22 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     } catch (error) {
       if (!isCurrent()) return false;
       console.error('Failed to send message:', error);
-      Message.error(getConversationCreateErrorMessage(error, t));
+      Message.error(
+        error instanceof GuidDelegationPreparationError
+          ? t('conversation.xscienceRuntime.sessionOptions.delegationState.prepareFailed')
+          : getConversationCreateErrorMessage(error, t)
+      );
       return false;
     } finally {
-      sendingRef.current = false;
-      if (isCurrent()) setLoading(false);
+      if (sendingRef.current === request) sendingRef.current = null;
+      if (isDraftCurrent()) setLoading(false);
     }
   }, [
     loading,
     handleSend,
     captureLifetime,
+    captureDraftLifetime,
+    sendOwnerKey,
     setLoading,
     setInput,
     setMentionOpen,

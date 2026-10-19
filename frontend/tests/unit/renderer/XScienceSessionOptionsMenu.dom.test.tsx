@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   loadSessionProviders: vi.fn(),
   setSessionProvider: vi.fn(),
   persistOption: vi.fn(),
+  persistPolicy: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }));
@@ -45,6 +46,7 @@ const initialValue: XScienceSessionOptions = {
 
 const Harness = () => {
   const [value, setValue] = useState(initialValue);
+  const [delegation, setDelegation] = useState(true);
   const persistOption = async (key: 'autoReview' | 'memory', checked: boolean) => {
     await mocks.persistOption(key, checked);
     setValue((current) => ({ ...current, [key]: checked }));
@@ -57,6 +59,21 @@ const Harness = () => {
           value={value}
           onChange={setValue}
           onPersistentOptionChange={persistOption}
+          delegationControl={{
+            enabled: delegation,
+            pending: false,
+            available: true,
+            hasLiveAttempts: false,
+            error: null,
+            retryable: false,
+            change: async (enabled) => {
+              await mocks.persistPolicy(enabled);
+              setDelegation(enabled);
+            },
+            retry: () => {},
+            refresh: () => {},
+            current: () => true,
+          }}
           memoryControl={{
             availability: { status: 'ready', enabled: true },
             refresh: () => undefined,
@@ -114,7 +131,7 @@ describe('XScienceSessionOptionsMenu component', () => {
     expect(screen.queryByTestId('session-config-row-control-center')).not.toBeInTheDocument();
     expect(screen.queryByText('对话能力中枢')).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: '手动审阅' })).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemcheckbox', { name: '委派' })).not.toBeChecked();
+    expect(screen.getByRole('menuitemcheckbox', { name: '委派' })).toBeChecked();
     const autoReviewOption = screen.getByRole('menuitemcheckbox', { name: '自动审阅' });
     expect(autoReviewOption).not.toBeChecked();
     expect(autoReviewOption).toHaveClass('session-options-menu__row');
@@ -133,12 +150,14 @@ describe('XScienceSessionOptionsMenu component', () => {
     expect(screen.getByRole('menuitem', { name: '管理计算资源...' })).toBeInTheDocument();
   });
 
-  it('updates delegation locally and persists reviewer and memory changes before committing UI state', async () => {
+  it('uses the authoritative delegation control and persists reviewer and memory changes before committing UI state', async () => {
     await renderWithI18n(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
 
     fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: '委派' }));
-    expect(screen.getByTestId('session-value')).toHaveTextContent('"delegation":true');
+    await waitFor(() => expect(mocks.persistPolicy).toHaveBeenCalledWith(false));
+    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: '委派' })).not.toBeChecked());
+    expect(screen.getByTestId('session-value')).toHaveTextContent('"delegation":false');
 
     fireEvent.click(screen.getByRole('menuitemcheckbox', { name: '自动审阅' }));
     await waitFor(() => expect(mocks.persistOption).toHaveBeenCalledWith('autoReview', true));

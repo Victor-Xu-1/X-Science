@@ -1111,6 +1111,17 @@
       "providerCount": "{{count}} 个",
       "delegation": "委派",
       "delegationDescription": "下一轮起并行调用子专家",
+      "delegationState": {
+        "allow": "允许主智能体创建新的子智能体。",
+        "deny": "阻止创建新的子智能体，已有子智能体不受影响。",
+        "live": "关闭委派只会阻止新的子智能体，已有子智能体将继续运行。",
+        "loading": "正在读取当前委派策略…",
+        "failed": "无法读取委派策略，其他控件仍可使用。",
+        "uncertain": "更新响应丢失。重试同一项修改以确认实际结果。",
+        "conflict": "策略已在其他位置发生变化，请刷新后重新选择。",
+        "retry": "重试",
+        "prepareFailed": "尚未确认委派策略。草稿已保留，任务尚未提交。"
+      },
       "autoReview": "自动审阅",
       "autoReviewDescription": "下一轮起自动审阅结果",
       "memory": "记忆",
