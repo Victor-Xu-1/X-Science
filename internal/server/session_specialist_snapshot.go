@@ -144,7 +144,7 @@ func frozenSpecialistAssistant(snapshot sessionagent.Snapshot) webAssistantRecor
 	// assistants: re-expanding today's mutable catalog would widen this input.
 	return webAssistantRecord{Agent: workspace.Agent{ID: snapshot.DefinitionID, Name: snapshot.SelectionName, DisplayName: snapshot.DisplayName, Enabled: true,
 		SkillNames: snapshot.Settings.AllowedSkillNames, SkillTombstones: snapshot.Settings.DisabledBuiltinSkills}, RuntimeID: snapshot.AssistantID,
-		Config: webAssistantStoredConfig{Models: append([]string(nil), snapshot.Settings.AllowedModels...)}}
+		Config: webAssistantStoredConfig{Models: append([]string(nil), snapshot.Settings.AllowedModels...)}, modelSelectionFrozen: true}
 }
 
 func specialistRuntimeTarget(snapshot *sessionagent.Snapshot, fallback string) string {

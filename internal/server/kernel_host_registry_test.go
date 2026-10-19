@@ -33,8 +33,13 @@ func TestKernelHostSkillsAndAgentsRegistryBridge(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx, run := newKernelHostRegistryTestRunner(t, store, app, identity)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	code := `
 import host, json
+registry_bridge_runs = globals().get("registry_bridge_runs", 0) + 1
+assert registry_bridge_runs == 1, "approval re-executed the original REPL"
+print("registry-bridge-once")
 listed = [item for item in host.skills.list() if item["name"] == "host_saved_skill"]
 print(json.dumps(listed, sort_keys=True))
 print(json.dumps(host.skills.read("host_saved_skill"), sort_keys=True))
@@ -55,10 +60,76 @@ updated = host.agents.update("HOST_BRIDGE_TEST", {"description": "Updated host b
 print(json.dumps(updated, sort_keys=True))
 print(json.dumps(host.agents.attach_skill("HOST_BRIDGE_TEST", "host_saved_skill"), sort_keys=True))
 print(json.dumps(host.agents.detach_skill("HOST_BRIDGE_TEST", "host_saved_skill"), sort_keys=True))
-print(json.dumps(host.agents.switch("HOST_BRIDGE_TEST"), sort_keys=True))
+switched = host.agents.switch("HOST_BRIDGE_TEST")
+assert switched["status"] == "prepared" and switched["switched"] is False
+assert switched["applies"] == "next_fresh_user_input"
+assert switched["snapshot"]["desired"]["selection_name"] == "HOST_BRIDGE_TEST"
+assert switched["snapshot"]["applied"]["selection_name"] != "HOST_BRIDGE_TEST"
+assert switched["receipt"]["command"]["desired_agent"] == "HOST_BRIDGE_TEST"
+assert switched["receipt"]["command"]["scope"] == switched["snapshot"]["scope"]
+assert switched["receipt"]["snapshot_id"] == switched["snapshot"]["desired"]["snapshot_id"]
+print(json.dumps(switched, sort_keys=True))
 print(json.dumps(host.agents.delete("HOST_BRIDGE_TEST"), sort_keys=True))
 `
-	result := runKernelHostRegistryTestCell(t, store, app, identity, ctx, run, code)
+	call, operation, admittedInput := prepareKernelHostRegistryTestCell(t, store, app, identity, ctx, run, code)
+	events, unsubscribe := app.compatEvents.Subscribe()
+	defer unsubscribe()
+	returned := make(chan kernelHostCellReturn, 1)
+	go func() {
+		result, err := app.executeAgentKernelToolWithApproval(ctx, identity, call, operation.Tool, admittedInput, defaultSessionRunnerOutputLimitBytes)
+		returned <- kernelHostCellReturn{result: result, err: err}
+	}()
+	approvalID := ""
+	for approvalID == "" {
+		select {
+		case _, open := <-events:
+			if !open {
+				t.Fatal("confirmation publication channel closed")
+			}
+			metadata, found, err := store.GetFrameRuntimeMetadata(identity.access.Frame.ID)
+			if err != nil || !found {
+				t.Fatalf("approval metadata found=%t err=%v", found, err)
+			}
+			for _, pending := range compatibilityServerPendingInputs(metadata.ContextData) {
+				if pending["approval_source"] == kernelSpecialistApprovalSource {
+					approvalID = compatibilityServerPendingInputID(pending)
+					if pending["rememberable"] != false || pending["tool"] != "host.agents.switch" {
+						t.Fatalf("specialist approval is not one-shot: %#v", pending)
+					}
+				}
+			}
+		case completed := <-returned:
+			t.Fatalf("registry execution ended before its user decision: result=%#v err=%v", completed.result, completed.err)
+		case <-ctx.Done():
+			t.Fatalf("specialist approval was not published: %v", ctx.Err())
+		}
+	}
+	approval, found, err := app.runtimeStore.Get(agentRuntimeApprovalNamespace, approvalID)
+	if err != nil || !found {
+		t.Fatalf("specialist approval found=%t err=%v", found, err)
+	}
+	value := mapValue(approval.Value)
+	if !isKernelHostWaitOnlyApprovalSource(stringValue(value["approvalSource"])) || value["status"] != "pending" ||
+		value["operationId"] != operation.OperationID || value["streamUid"] != run.Transcript.Stream.UID ||
+		mapValue(value["input"])["desired_agent"] != "HOST_BRIDGE_TEST" {
+		t.Fatalf("specialist approval lost its original execution: %#v", value)
+	}
+	resolved := memoryCompatJSON(t, app.Handler(), http.MethodPost, "/api/frames/"+identity.access.Frame.ID+"/resolve-input",
+		map[string]any{"responses": []any{map[string]any{"tool_id": approvalID, "action": "allow", "scope": "once"}}},
+		identity.access.UserID, http.StatusOK)
+	if resolved["remaining"] != float64(0) {
+		t.Fatalf("specialist approval remained visible: %#v", resolved)
+	}
+	var result map[string]any
+	select {
+	case completed := <-returned:
+		if completed.err != nil {
+			t.Fatal(completed.err)
+		}
+		result = completed.result
+	case <-ctx.Done():
+		t.Fatalf("approved registry execution did not resume: %v", ctx.Err())
+	}
 	if result["ok"] != true {
 		t.Fatalf("registry bridge result=%#v", result)
 	}
@@ -66,9 +137,23 @@ print(json.dumps(host.agents.delete("HOST_BRIDGE_TEST"), sort_keys=True))
 	if !strings.Contains(stdout, `"origin": "draft"`) ||
 		!strings.Contains(stdout, `"valid": true`) || !strings.Contains(stdout, "validate-name-type-rejected") ||
 		!strings.Contains(stdout, `"name": "HOST_BRIDGE_TEST"`) ||
-		!strings.Contains(stdout, `"switched": true`) ||
+		!strings.Contains(stdout, `"switched": false`) || !strings.Contains(stdout, `"status": "prepared"`) ||
+		!strings.Contains(stdout, `"applies": "next_fresh_user_input"`) || strings.Count(stdout, "registry-bridge-once") != 1 ||
 		!strings.Contains(stdout, `"deleted": "HOST_BRIDGE_TEST"`) {
 		t.Fatalf("registry bridge stdout=%s", stdout)
+	}
+	approval, found, err = app.runtimeStore.Get(agentRuntimeApprovalNamespace, approvalID)
+	value = mapValue(approval.Value)
+	if err != nil || !found || value["status"] != "approved" || value["executedInput"] != nil || value["rememberedApproval"] != nil {
+		t.Fatalf("one-shot decision dispatched another REPL or persisted consent: value=%#v found=%t err=%v", value, found, err)
+	}
+	metadata, found, err := store.GetFrameRuntimeMetadata(identity.access.Frame.ID)
+	if err != nil || !found || len(compatibilityServerPendingInputs(metadata.ContextData)) != 0 {
+		t.Fatalf("specialist approval cleanup: metadata=%#v found=%t err=%v", metadata.ContextData, found, err)
+	}
+	confirmations, err := app.webConversationPendingConfirmations(identity.access.Frame.ID)
+	if err != nil || len(confirmations) != 0 {
+		t.Fatalf("completed registry confirmations=%#v err=%v", confirmations, err)
 	}
 	if _, found, err := store.GetAgent(identity.access.UserID, "HOST_BRIDGE_TEST"); err != nil || found {
 		t.Fatalf("deleted host bridge agent found=%t err=%v", found, err)

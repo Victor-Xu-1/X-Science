@@ -156,7 +156,7 @@ func (s *Server) validateWebConversationSendInput(
 			if err != nil {
 				return err
 			}
-			if len(allowedModels) > 0 {
+			if record.modelSelectionFrozen || len(allowedModels) > 0 {
 				if _, allowed := normalizedSkillNameSet(allowedModels)[strings.ToLower(model)]; !allowed {
 					return &webConversationRequestError{Status: http.StatusForbidden, Detail: key + " is unavailable for the selected assistant"}
 				}
@@ -287,7 +287,7 @@ func (s *Server) normalizeWebAssistantConversationOverrides(
 		if err != nil {
 			return nil, err
 		}
-		if len(allowedModels) > 0 {
+		if record.modelSelectionFrozen || len(allowedModels) > 0 {
 			if _, allowed := normalizedSkillNameSet(allowedModels)[strings.ToLower(model)]; !allowed {
 				return nil, &webConversationRequestError{Status: http.StatusBadRequest, Detail: "assistant model override is unavailable"}
 			}
@@ -357,6 +357,9 @@ func (s *Server) normalizeWebAssistantConversationOverrides(
 
 func (s *Server) webAssistantAllowedModels(userID string, record webAssistantRecord) ([]string, error) {
 	models := appendUniqueFolded(nil, record.Config.Models...)
+	if record.modelSelectionFrozen {
+		return models, nil
+	}
 	option, found, err := s.webConversationModelOption(userID)
 	if err != nil {
 		return nil, err
