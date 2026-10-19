@@ -22,12 +22,18 @@ func StableSessionID(spec SessionSpec) (string, error) {
 		spec.Language == "" || spec.Environment == "" || spec.WorkspaceDir == "" {
 		return "", errors.New("owner, project, frame, frame incarnation, root frame, root incarnation, kernel kind, language, environment, and workspace are required for stable kernel identity")
 	}
-	sum := sha256.Sum256([]byte(strings.Join([]string{
+	identity := []string{
 		spec.OwnerID, spec.ProjectID, spec.RootFrameID, spec.RootFrameIncarnationID,
 		spec.FrameID, spec.FrameIncarnationID,
 		spec.AgentName, spec.DelegateName, spec.KernelKind, spec.Language, spec.Environment,
 		spec.RuntimeGeneration, spec.WorkspaceDir,
-	}, "\x00")))
+	}
+	// Preserve every legacy ID byte-for-byte. Only an actual frozen definition
+	// creates a distinct kernel; environment generations remain environment-only.
+	if spec.AgentDefinitionID != "" {
+		identity = append(identity, "agent-definition", spec.AgentDefinitionID)
+	}
+	sum := sha256.Sum256([]byte(strings.Join(identity, "\x00")))
 	return "kernel-" + hex.EncodeToString(sum[:12]), nil
 }
 

@@ -234,7 +234,18 @@ func readback(head Head) Readback {
 	if head.Applied.SnapshotID != "" && head.Applied == head.Desired {
 		phase = "applied"
 	}
-	return Readback{Schema: Schema, Scope: head.Scope, Branch: head.Branch, PreparedBranch: head.Branch, Revision: head.Revision, Desired: head.Desired, Applied: head.Applied, Phase: phase, PreparationError: head.PreparationError}
+	applied := head.Applied
+	unavailable := false
+	if head.Revision > 0 && applied.SnapshotID == "" {
+		// The frozen first fallback describes the prior conversation identity,
+		// not evidence that an existing worker loaded this newly captured record.
+		applied = head.Fallback
+		applied.SnapshotID = ""
+		unavailable = head.FallbackUnavailable
+	}
+	return Readback{Schema: Schema, Scope: head.Scope, Branch: head.Branch, PreparedBranch: head.Branch,
+		Revision: head.Revision, Desired: head.Desired, Applied: applied, Phase: phase,
+		PreparationError: head.PreparationError, AppliedUnavailable: unavailable}
 }
 
 func ReadbackHead(head Head) Readback { return readback(head) }

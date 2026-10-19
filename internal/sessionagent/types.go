@@ -153,14 +153,18 @@ type PersonalDefinition struct {
 }
 
 type Settings struct {
-	Model                 string   `json:"model"`
-	ThoughtLevel          string   `json:"thought_level"`
-	CustomSkillNames      []string `json:"custom_skill_names"`
-	DisabledBuiltinSkills []string `json:"disabled_builtin_skills"`
-	DefaultSkillNames     []string `json:"default_skill_names"`
-	DefaultSkillsFixed    bool     `json:"default_skills_fixed"`
-	AllowedSkillNames     []string `json:"allowed_skill_names"`
-	AllowedMCPIDs         []string `json:"allowed_mcp_ids"`
-	AllowedModels         []string `json:"allowed_models"`
-	CustomPrompt          string   `json:"custom_prompt"`
+	Model                   string              `json:"model"`
+	ThoughtLevel            string              `json:"thought_level"`
+	CustomSkillNames        []string            `json:"custom_skill_names"`
+	DisabledBuiltinSkills   []string            `json:"disabled_builtin_skills"`
+	DefaultSkillNames       []string            `json:"default_skill_names"`
+	DefaultSkillsFixed      bool                `json:"default_skills_fixed"`
+	AllowedSkillNames       []string            `json:"allowed_skill_names"`
+	AllowedMCPIDs           []string            `json:"allowed_mcp_ids"`
+	MCPSourceKinds          map[string]string   `json:"mcp_source_kinds,omitempty"`
+	DefaultMCPIDs           []string            `json:"default_mcp_ids"`
+	DefaultMCPsFixed        bool                `json:"default_mcps_fixed"`
+	ConnectorToolExclusions map[string][]string `json:"connector_tool_exclusions,omitempty"`
+	AllowedModels           []string            `json:"allowed_models"`
+	CustomPrompt            string              `json:"custom_prompt"`
 }

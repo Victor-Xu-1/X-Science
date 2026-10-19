@@ -438,7 +438,9 @@ func appendFrameUserEventConn(
 			return err
 		}
 		if !existingFound {
-			if err:=admitSessionAgentInputConn(ctx,conn,stream,input.ClientMessageID,messageOrigin,input.InputData,now); err!=nil { return err }
+			if err := admitSessionAgentInputConn(ctx, conn, stream, input.ClientMessageID, messageOrigin, input.InputData, now); err != nil {
+				return err
+			}
 		}
 		if messageIntent != nil {
 			messagePayload["messageIntent"] = messageIntent

@@ -65,7 +65,9 @@ func (s *Server) handleKernelRegistryHostCall(
 	if isKernelSkillHostMethod(method) {
 		return s.handleKernelSkillHostCall(ctx, access, callID, method, args, kwargs)
 	}
-	if len(execution)==1 { return s.handleKernelAgentHostCall(ctx,access,method,args,kwargs,kernelAgentSwitchOrigin{execution[0],callID}) }
+	if len(execution) == 1 {
+		return s.handleKernelAgentHostCall(ctx, access, method, args, kwargs, kernelAgentSwitchOrigin{execution[0], callID})
+	}
 	return s.handleKernelAgentHostCall(ctx, access, method, args, kwargs)
 }
 
@@ -339,16 +341,15 @@ func (s *Server) handleKernelAgentHostCall(
 		}
 		return s.kernelHostListConnectors(ctx, userID, connectorName)
 	case "host.agents.switch":
-		name, err := kernelHostSingleNameInput(args, kwargs, method)
+		name, err := kernelHostSpecialistTargetInput(args, kwargs)
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
-		return s.kernelHostSwitchAgent(ctx, access, name,origin...)
+		return s.kernelHostSwitchAgent(ctx, access, name, origin...)
 	default:
 		return nil, kernelruntime.NewHostCallError("method_not_allowed", "host agent method is not allowed")
 	}
 }
-
 
 func (s *Server) kernelHostListAgents(ctx context.Context, userID string) (any, error) {
 	if err := ctx.Err(); err != nil {

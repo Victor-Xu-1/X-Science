@@ -26,6 +26,7 @@ func (s *Server) requireKernelSpecialistApproval(ctx context.Context, origin ker
 	claimDigest := sha256.Sum256([]byte(binding.claim.ClaimToken))
 	input := map[string]any{"command_id": command.CommandID, "desired_agent": command.DesiredAgent, "snapshot_id": definition.ID}
 	metadata := map[string]any{"approvalType": "specialist_switch", "frameId": access.Frame.ID, "projectId": access.Frame.ProjectID,
+		"sessionId": access.Frame.ID, "branchId": command.Branch.ID, "branchGeneration": command.Branch.Generation,
 		"frameIncarnationId": command.Scope.FrameIncarnationID, "rootFrameId": command.Scope.RootFrameID, "rootIncarnationId": command.Scope.RootIncarnationID,
 		"streamUid": binding.stream.UID, "streamEpoch": binding.stream.Epoch, "runnerId": binding.claim.RunnerID, "runnerAttempt": binding.claim.Attempt,
 		"claimedInputRevision": binding.claim.ClaimedInputRevision, "runnerClaimHash": hex.EncodeToString(claimDigest[:]), "operationId": binding.operationID,
@@ -71,7 +72,7 @@ func (s *Server) requireKernelSpecialistApproval(ctx context.Context, origin ker
 
 // Used by the existing task-input decision endpoint before recording consent.
 // It cannot wake a new worker or approve a stale request after restart.
-func (s *Server) validateSpecialistApprovalOrigin(ctx context.Context, frame workspace.CompatibilityFrame, value map[string]any) error {
+func (s *Server) validateSpecialistApprovalOrigin(ctx context.Context, frame workspace.Frame, value map[string]any) error {
 	owner, ownerFound, err := s.workspaceStore.ProjectOwnerIDContext(ctx, frame.ProjectID)
 	if err != nil {
 		return err
@@ -85,17 +86,24 @@ func (s *Server) validateSpecialistApprovalOrigin(ctx context.Context, frame wor
 	}
 	attempt, ok := webPositiveSafeInteger(value["runnerAttempt"])
 	epoch, epochOK := webPositiveSafeInteger(value["streamEpoch"])
-	if !found || !ok || !epochOK || operation.FrameID != frame.ID || operation.ProjectID != frame.ProjectID || operation.OwnerUserID == "" ||
+	inputRevision, inputOK := webPositiveSafeInteger(value["claimedInputRevision"])
+	kernelGeneration, kernelOK := webPositiveSafeInteger(value["kernelGeneration"])
+	branchGeneration, branchOK := webPositiveSafeInteger(value["branchGeneration"])
+	if !found || !ok || !epochOK || !inputOK || !kernelOK || !branchOK || operation.FrameID != frame.ID || operation.ProjectID != frame.ProjectID || operation.OwnerUserID == "" ||
 		operation.FrameIncarnationID != value["frameIncarnationId"] || operation.RootFrameID != value["rootFrameId"] || operation.RootFrameIncarnationID != value["rootIncarnationId"] ||
-		operation.StreamUID != value["streamUid"] || operation.RunnerAttempt != attempt || operation.RunnerID != value["runnerId"] || operation.RunnerClaimSHA256 != value["runnerClaimHash"] || operation.State != "running" {
+		operation.StreamUID != value["streamUid"] || operation.RunnerAttempt != attempt || operation.RunnerID != value["runnerId"] || operation.RunnerClaimSHA256 != value["runnerClaimHash"] || operation.State != workspace.KernelLocalOperationStateStarted ||
+		operation.AdmittedInputRevision <= 0 || operation.AdmittedInputRevision > inputRevision || operation.KernelID != stringValue(value["kernelId"]) || operation.KernelGeneration != kernelGeneration ||
+		operation.BranchID != stringValue(value["branchId"]) || operation.BranchGeneration != branchGeneration ||
+		stringValue(mapValue(value["input"])["snapshot_id"]) != stringValue(value["snapshotId"]) {
 		return sessionagent.ErrScopeStale
 	}
 	var live bool
 	err = s.transcriptStore.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 		return tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM transcript_runner_attempts r JOIN transcript_frame_authority a ON a.active_stream_uid=r.stream_uid
 			JOIN transcript_streams st ON st.stream_uid=r.stream_uid AND st.epoch=a.active_epoch AND st.owner_id=a.owner_id
+			JOIN transcript_branch_state b ON b.stream_uid=st.stream_uid
 			WHERE a.owner_id=? AND a.session_id=? AND a.active_epoch=? AND r.attempt=? AND r.runner_id=? AND r.status='running' AND r.expires_at>?
-			AND lower(hex(r.claim_token_sha256))=?)`, operation.OwnerUserID, frame.ID, epoch, attempt, operation.RunnerID, time.Now().UTC(), operation.RunnerClaimSHA256).Scan(&live)
+			AND lower(hex(r.claim_token_sha256))=? AND r.claimed_input_revision=? AND b.active_branch_id=? AND b.generation=?)`, operation.OwnerUserID, frame.ID, epoch, attempt, operation.RunnerID, time.Now().UTC(), operation.RunnerClaimSHA256, inputRevision, operation.BranchID, operation.BranchGeneration).Scan(&live)
 	})
 	if err != nil {
 		return err

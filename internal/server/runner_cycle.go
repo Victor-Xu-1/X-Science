@@ -407,14 +407,25 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		return result, err
 	}
-	if transcriptAuthority!=nil {
-		options.agentSnapshot,err=s.transcriptStore.ClaimedRunnerAgentSnapshot(ctx,transcriptAuthority.Claim)
-		if err!=nil { if handled,settleErr:=settlePreChatError(err); handled { return result,settleErr }; return result,err }
+	if transcriptAuthority != nil {
+		options.agentSnapshot, err = s.transcriptStore.ClaimedRunnerAgentSnapshot(ctx, transcriptAuthority.Claim)
+		if err != nil {
+			if handled, settleErr := settlePreChatError(err); handled {
+				return result, settleErr
+			}
+			return result, err
+		}
 	}
+	// Recovered operations retain their original source profile. Keep the
+	// caller's unfiltered policy ceiling for that existing resolver, rather than
+	// trying to undo a later specialist's already-filtered tool/Skill settings.
+	recoveryProfileBase := options
 	resolvedAgentOptions, _, agentErr := s.applySessionRunnerAgentModelAuthority(session, options)
 	if agentErr != nil {
-		if options.agentSnapshot!=nil && transcriptAuthority!=nil {
-			if err:=s.workspaceStore.RecordSessionSpecialistPreparation(ctx,transcriptAuthority.Claim,options.agentSnapshot.ID,false); err!=nil { return result,errors.Join(agentErr,err) }
+		if options.agentSnapshot != nil && transcriptAuthority != nil {
+			if err := s.workspaceStore.RecordSessionSpecialistPreparation(ctx, transcriptAuthority.Claim, options.agentSnapshot.ID, false); err != nil {
+				return result, errors.Join(agentErr, err)
+			}
 		}
 		if handled, settleErr := settlePreChatError(agentErr); handled {
 			return result, settleErr
@@ -429,11 +440,6 @@ func (s *Server) runSessionRunnerChatOnce(
 		return result, nil
 	}
 	options = resolvedAgentOptions
-	if options.agentSnapshot!=nil && transcriptAuthority!=nil {
-		if err:=s.workspaceStore.RecordSessionSpecialistPreparation(ctx,transcriptAuthority.Claim,options.agentSnapshot.ID,true); err!=nil {
-			if handled,settleErr:=settlePreChatError(err); handled { return result,settleErr }; return result,err
-		}
-	}
 	if err := checkpointPreChatStage("model_resolution"); err != nil {
 		if handled, settleErr := settlePreChatError(err); handled {
 			return result, settleErr
@@ -442,6 +448,9 @@ func (s *Server) runSessionRunnerChatOnce(
 	}
 	resolvedOptions, resolutionErr := s.resolveSessionRunnerModelAuthority(ctx, session, options, result.Attempt)
 	if resolutionErr != nil {
+		if options.agentSnapshot != nil && transcriptAuthority != nil {
+			resolutionErr = errors.Join(resolutionErr, s.workspaceStore.RecordSessionSpecialistPreparation(ctx, transcriptAuthority.Claim, options.agentSnapshot.ID, false))
+		}
 		if handled, settleErr := settlePreChatError(resolutionErr); handled {
 			return result, settleErr
 		}
@@ -564,6 +573,9 @@ func (s *Server) runSessionRunnerChatOnce(
 	if transcriptAuthority != nil {
 		toolAuthority, authorityErr := s.bindSessionRunnerToolAuthority(withTranscriptRunnerChatRun(ctx, chatRun), session, options)
 		if authorityErr != nil {
+			if options.agentSnapshot != nil {
+				authorityErr = errors.Join(authorityErr, s.workspaceStore.RecordSessionSpecialistPreparation(ctx, transcriptAuthority.Claim, options.agentSnapshot.ID, false))
+			}
 			if handled, settleErr := settlePreChatError(authorityErr); handled {
 				return result, settleErr
 			}
@@ -587,9 +599,19 @@ func (s *Server) runSessionRunnerChatOnce(
 		// from the admitted timeout_seconds instead of inheriting a fixed 10m
 		// deadline that can repeatedly cancel a slow but healthy installation.
 		finishPreChat()
-		_, resumeErr = s.resumeApprovedAgentKernelOperations(runCtx, options, chatRun)
+		_, resumeErr = s.resumeApprovedAgentKernelOperations(runCtx, options, chatRun, recoveryProfileBase)
 		if handled, settleErr := settlePreChatError(resumeErr); handled {
 			return result, settleErr
+		}
+	}
+	if resumeErr == nil && options.agentSnapshot != nil && transcriptAuthority != nil {
+		// Application means this runner has resolved its model/tool authority and
+		// settled preceding recovery work, not merely accepted a menu command.
+		if err := s.workspaceStore.RecordSessionSpecialistPreparation(runCtx, transcriptAuthority.Claim, options.agentSnapshot.ID, true); err != nil {
+			if handled, settleErr := settlePreChatError(err); handled {
+				return result, settleErr
+			}
+			return result, err
 		}
 	}
 

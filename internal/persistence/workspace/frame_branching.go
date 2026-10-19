@@ -212,7 +212,9 @@ func branchSourceEvents(ctx context.Context, tx *sql.Tx, frameID string) ([]Fram
 		if err := rows.Scan(&event.ID, &event.FrameID, &event.Sequence, &event.Type, &rawPayload, &event.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan source branch event: %w", err)
 		}
-		if sessionagent.ReservedEvent(event.Type) { continue }
+		if sessionagent.ReservedEvent(event.Type) {
+			continue
+		}
 		if err := json.Unmarshal([]byte(rawPayload), &event.Payload); err != nil {
 			return nil, fmt.Errorf("decode source branch event: %w", err)
 		}

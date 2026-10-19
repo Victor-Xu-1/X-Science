@@ -15,7 +15,7 @@ import (
 )
 
 type SessionRunnerChatOptions struct {
-	agentSnapshot *sessionagent.Snapshot
+	agentSnapshot                     *sessionagent.Snapshot
 	expectedInputClaim                *runnerInputClaimTarget
 	SessionID                         string
 	RunnerID                          string

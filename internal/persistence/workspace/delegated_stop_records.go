@@ -19,7 +19,9 @@ func delegatedRecordID(kind string, values ...string) string {
 }
 
 func reservedDelegatedControlEvent(kind string) bool {
-	if sessionagent.ReservedEvent(kind) { return true }
+	if sessionagent.ReservedEvent(kind) {
+		return true
+	}
 	switch kind {
 	case DelegatedStopReceiptEventType, delegationAdmissionEventType, delegationOriginEventType, delegationFenceEventType,
 		sessionDelegationPolicyEventType, sessionDelegationCommandEventType:

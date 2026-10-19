@@ -21,12 +21,20 @@ func (s *Server) validateWebConversationSendInput(
 	if input == nil {
 		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "message input is required"}
 	}
-	reference,err:=sessionagent.InputReferenceFrom(input.SessionOptions)
-	if err!=nil || reference!=nil && input.TurnIntent!="" { return &webConversationRequestError{Status:http.StatusBadRequest,Detail:"specialist binding is invalid for this input"} }
-	snapshot,err:=s.workspaceStore.SessionSpecialistDefinition(context.Background(),userID,frame.ID,reference)
-	if err!=nil { return &webConversationRequestError{Status:http.StatusConflict,Detail:"specialist selection changed or is unavailable",Cause:err} }
-	record:=webAssistantRecord{}
-	if snapshot==nil { record,err=s.webConversationAssistantRecord(userID,frame.ID,frame.AgentName) } else { record=frozenSpecialistAssistant(*snapshot) }
+	reference, err := sessionagent.InputReferenceFrom(input.SessionOptions)
+	if err != nil || reference != nil && input.TurnIntent != "" {
+		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "specialist binding is invalid for this input"}
+	}
+	snapshot, err := s.workspaceStore.SessionSpecialistDefinition(context.Background(), userID, frame.ID, reference)
+	if err != nil {
+		return &webConversationRequestError{Status: http.StatusConflict, Detail: "specialist selection changed or is unavailable", Cause: err}
+	}
+	record := webAssistantRecord{}
+	if snapshot == nil {
+		record, err = s.webConversationAssistantRecord(userID, frame.ID, frame.AgentName)
+	} else {
+		record = frozenSpecialistAssistant(*snapshot)
+	}
 	if err != nil {
 		return err
 	}
@@ -55,12 +63,23 @@ func (s *Server) validateWebConversationSendInput(
 	if err != nil {
 		return &webConversationRequestError{Status: http.StatusBadRequest, Detail: "MCP selection: " + err.Error()}
 	}
-	allowedMCPIDs, err := s.webAssistantAllowedMCPIDs(userID, record)
+	var allowedMCPIDs []string
+	if snapshot != nil {
+		allowedMCPIDs = append([]string(nil), snapshot.Settings.AllowedMCPIDs...)
+	} else {
+		allowedMCPIDs, err = s.webAssistantAllowedMCPIDs(userID, record)
+	}
 	if err != nil {
 		return err
 	}
 	allowedMCPSet := normalizedSkillNameSet(allowedMCPIDs)
-	configuredMCPIDs, mcpConstrained, err := s.webAssistantConfiguredMCPSelection(userID, frame.ID)
+	var configuredMCPIDs []string
+	var mcpConstrained bool
+	if snapshot != nil {
+		configuredMCPIDs, mcpConstrained = snapshot.Settings.DefaultMCPIDs, snapshot.Settings.DefaultMCPsFixed
+	} else {
+		configuredMCPIDs, mcpConstrained, err = s.webAssistantConfiguredMCPSelection(userID, frame.ID)
+	}
 	if err != nil {
 		return err
 	}
@@ -96,8 +115,10 @@ func (s *Server) validateWebConversationSendInput(
 			}
 		case "target_agent":
 			target, ok := value.(string)
-			expectedTarget:=frame.AgentName
-			if snapshot!=nil { expectedTarget=snapshot.SelectionName }
+			expectedTarget := frame.AgentName
+			if snapshot != nil {
+				expectedTarget = snapshot.SelectionName
+			}
 			if !ok || normalizeBundledAgentName(target) != normalizeBundledAgentName(expectedTarget) {
 				return &webConversationRequestError{Status: http.StatusForbidden, Detail: "target_agent cannot exceed the conversation assistant authority"}
 			}
@@ -201,7 +222,11 @@ func webConversationRunnerSessionConfig(options map[string]any) map[string]any {
 }
 
 func (s *Server) webConversationAssistantRecord(userID, frameID, frameAgentName string) (webAssistantRecord, error) {
-	if snapshot,err:=s.workspaceStore.SessionSpecialistDefinition(context.Background(),userID,frameID,nil); err!=nil { return webAssistantRecord{},err } else if snapshot!=nil { return frozenSpecialistAssistant(*snapshot),nil }
+	if snapshot, err := s.workspaceStore.SessionSpecialistDefinition(context.Background(), userID, frameID, nil); err != nil {
+		return webAssistantRecord{}, err
+	} else if snapshot != nil {
+		return frozenSpecialistAssistant(*snapshot), nil
+	}
 	assistantID := ""
 	metadata, found, err := s.workspaceStore.GetFrameRuntimeMetadata(frameID)
 	if err != nil {
@@ -357,21 +382,32 @@ func (s *Server) webAssistantAllowedModels(userID string, record webAssistantRec
 }
 
 func (s *Server) webAssistantAllowedMCPIDs(userID string, record webAssistantRecord) ([]string, error) {
+	return s.webAssistantAllowedMCPIDsWithContext(context.Background(), userID, record)
+}
+
+func (s *Server) webAssistantAllowedMCPIDsWithContext(ctx context.Context, userID string, record webAssistantRecord) ([]string, error) {
 	runtimeAgent, err := s.webAssistantRuntimeAgentForRecord(userID, record)
 	if err != nil {
 		return nil, err
 	}
-	return s.webAssistantAllowedMCPIDsForRuntimeAgent(userID, runtimeAgent)
+	return s.webAssistantAllowedMCPIDsForRuntimeAgentContext(ctx, userID, runtimeAgent)
 }
 
 func (s *Server) webAssistantAllowedMCPIDsForRuntimeAgent(userID, runtimeAgent string) ([]string, error) {
+	return s.webAssistantAllowedMCPIDsForRuntimeAgentContext(context.Background(), userID, runtimeAgent)
+}
+
+func (s *Server) webAssistantAllowedMCPIDsForRuntimeAgentContext(ctx context.Context, userID, runtimeAgent string) ([]string, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	profile, found, err := s.workspaceStore.GetAgent(userID, runtimeAgent)
 	if err != nil {
 		return nil, err
 	}
 	var ids []string
 	if strings.EqualFold(runtimeAgent, "OPERON") || (found && profile.Unrestricted) {
-		connectors, _, err := s.workspaceMCPRuntimeConnectors(userID, runtimeAgent, profile, found)
+		connectors, _, err := s.workspaceMCPRuntimeConnectorsWithContext(ctx, userID, runtimeAgent, profile, found)
 		if err != nil {
 			return nil, err
 		}
@@ -393,7 +429,7 @@ func (s *Server) webAssistantAllowedMCPIDsForRuntimeAgent(userID, runtimeAgent s
 		return nil, err
 	}
 	for _, attachment := range attachments {
-		connector, resolved, err := s.workspaceMCPRuntimeConnectorFromAttachment(userID, attachment)
+		connector, resolved, err := s.workspaceMCPRuntimeConnectorFromAttachmentWithContext(ctx, userID, attachment)
 		if err != nil {
 			return nil, err
 		}
@@ -444,7 +480,9 @@ func (s *Server) applyWebAssistantRuntimeOptions(
 	options SessionRunnerChatOptions,
 ) (SessionRunnerChatOptions, string, error) {
 	record, assistant, prompt, promptFound, found, err := s.sessionAssistantRuntimeSource(session, userID, frameAgentName, options.agentSnapshot)
-	if err != nil || !found { return options, "", err }
+	if err != nil || !found {
+		return options, "", err
+	}
 	if promptFound {
 		if record.Bundled && strings.TrimSpace(options.SystemPrompt) != "" {
 			options.SystemPrompt = strings.TrimSpace(options.SystemPrompt) + "\n\nAssistant-specific rules:\n" + strings.TrimSpace(prompt)
@@ -582,7 +620,17 @@ func (s *Server) webAssistantRuntimeMCPSelection(
 	userID string,
 	frameID string,
 ) ([]string, bool, error) {
-	configured, constrained, err := s.webAssistantConfiguredMCPSelection(userID, frameID)
+	snapshot, err := s.claimedSessionSpecialistForFrame(ctx, userID, frameID)
+	if err != nil {
+		return nil, false, err
+	}
+	var configured []string
+	var constrained bool
+	if snapshot != nil {
+		configured, constrained = snapshot.Settings.DefaultMCPIDs, snapshot.Settings.DefaultMCPsFixed
+	} else {
+		configured, constrained, err = s.webAssistantConfiguredMCPSelection(userID, frameID)
+	}
 	if err != nil {
 		return configured, constrained, err
 	}
@@ -591,6 +639,11 @@ func (s *Server) webAssistantRuntimeMCPSelection(
 		return configured, constrained, err
 	}
 	injected := appendUniqueFolded(nil, webAssistantStringValues(inputData["inject_mcp_server_ids"])...)
+	if snapshot != nil {
+		if err := validateFrozenSpecialistMCPSelection(injected, snapshot.Settings.AllowedMCPIDs); err != nil {
+			return nil, false, err
+		}
+	}
 	if len(injected) == 0 {
 		return configured, constrained, nil
 	}

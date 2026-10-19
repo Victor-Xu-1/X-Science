@@ -207,7 +207,7 @@ func (s *Server) resolveKernelCapabilityInstallApprovalInputs(
 
 func isKernelHostWaitOnlyApprovalSource(source string) bool {
 	source = strings.TrimSpace(source)
-	return source == "kernel-host-mcp" || source == kernelCapabilityInstallApprovalSource || source == kernelArtifactDeleteApprovalSource
+	return source == "kernel-host-mcp" || source == kernelCapabilityInstallApprovalSource || source == kernelArtifactDeleteApprovalSource || source == kernelSpecialistApprovalSource
 }
 
 func (s *Server) waitForKernelHostApproval(ctx context.Context, approvalID, subject string) (waitErr error) {

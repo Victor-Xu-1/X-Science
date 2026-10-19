@@ -111,6 +111,11 @@ func (s *Server) agentKernelHostCallPolicy(
 	executionBindings ...kernelTranscriptExecutionBinding,
 ) *kernelruntime.HostCallPolicy {
 	bound := kernelHostExecutionIdentity{access: access, allowedTools: chatRunnerAllowedToolSet(allowedTools), fresh: fresh}
+	if ctx != nil {
+		if source, ok := ctx.Value(specialistExecutionSourceContextKey{}).(specialistExecutionSource); ok {
+			bound.specialistSource = &source
+		}
+	}
 	if len(executionBindings) > 0 {
 		bound.transcriptExecution = executionBindings[0]
 	}
@@ -182,6 +187,7 @@ type kernelHostExecutionIdentity struct {
 	allowedTools        map[string]struct{}
 	fresh               bool
 	transcriptExecution kernelTranscriptExecutionBinding
+	specialistSource    *specialistExecutionSource
 }
 
 func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, messageBudgets *kernelMessageBudgets) kernelruntime.HostCallHandler {
@@ -192,6 +198,12 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 		current, err := s.validateKernelHostIdentity(ctx, bound.access)
 		if err != nil {
 			return nil, err
+		}
+		if bound.transcriptExecution.claim.StreamUID != "" {
+			ctx = context.WithValue(ctx, kernelTranscriptClaimContextKey{}, bound.transcriptExecution.claim)
+		}
+		if bound.specialistSource != nil {
+			ctx = context.WithValue(ctx, specialistExecutionSourceContextKey{}, *bound.specialistSource)
 		}
 		args, kwargs, err := normalizeKernelHostArguments(call.Args, call.Kwargs)
 		if err != nil {
@@ -217,7 +229,7 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 			return s.handleKernelSkillHostCall(ctx, current, call.ID, call.Method, args, kwargs, bound)
 		}
 		if isKernelRegistryHostMethod(call.Method) {
-			return s.handleKernelRegistryHostCall(ctx, current, call.ID, call.Method, args, kwargs,bound)
+			return s.handleKernelRegistryHostCall(ctx, current, call.ID, call.Method, args, kwargs, bound)
 		}
 		if isKernelMCPManagementHostMethod(call.Method) {
 			return s.handleKernelMCPManagementHostCall(ctx, current, call.ID, call.Method, args, kwargs)

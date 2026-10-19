@@ -14,14 +14,18 @@ const MaxRevision int64 = 1<<53 - 1
 
 const InputReferenceKey = "specialist_binding"
 
-func InputReferenceFrom(data map[string]any) (*InputReference,error) {
-	value,exists:=data[InputReferenceKey]
-	if !exists { return nil,nil }
-	raw,err:=json.Marshal(value)
+func InputReferenceFrom(data map[string]any) (*InputReference, error) {
+	value, exists := data[InputReferenceKey]
+	if !exists {
+		return nil, nil
+	}
+	raw, err := json.Marshal(value)
 	var reference InputReference
-	if err!=nil || DecodeRecord(raw,&reference)!=nil || !ValidScope(reference.Scope) || reference.Revision<1 || reference.Revision>MaxRevision || reference.SnapshotID=="" ||
-		reference.Branch.Generation<0 || (reference.Branch.ID=="")!=(reference.Branch.Generation==0) { return nil,ErrInvalid }
-	return &reference,nil
+	if err != nil || DecodeRecord(raw, &reference) != nil || !ValidScope(reference.Scope) || reference.Revision < 1 || reference.Revision > MaxRevision || reference.SnapshotID == "" ||
+		reference.Branch.Generation < 0 || (reference.Branch.ID == "") != (reference.Branch.Generation == 0) {
+		return nil, ErrInvalid
+	}
+	return &reference, nil
 }
 
 func validText(value string, limit int) bool {
@@ -35,7 +39,7 @@ func ValidScope(scope Scope) bool {
 
 func ValidateCommand(command Command) error {
 	if command.Schema != CommandSchema || !validText(command.CommandID, 256) || !ValidScope(command.Scope) ||
-		command.ExpectedRevision < 0 || command.ExpectedRevision >= MaxRevision || (!command.UseDefault && !validText(command.DesiredAgent, 128)) || command.UseDefault && command.DesiredAgent!="" ||
+		command.ExpectedRevision < 0 || command.ExpectedRevision >= MaxRevision || (!command.UseDefault && !validText(command.DesiredAgent, 128)) || command.UseDefault && command.DesiredAgent != "" ||
 		command.Branch.Generation < 0 || (command.Branch.ID == "") != (command.Branch.Generation == 0) ||
 		command.Branch.ID != "" && !validText(command.Branch.ID, 512) {
 		return ErrInvalid
@@ -54,6 +58,7 @@ func SealSnapshot(input Snapshot) (Snapshot, error) {
 	}
 	var result Snapshot
 	if DecodeRecord(raw, &result) != nil || !validText(result.AgentName, 128) ||
+		!validText(result.SelectionName, 128) ||
 		!validText(result.DefinitionID, 512) || !validText(result.AssistantID, 256) ||
 		result.Bundled == nil && result.Profile == nil {
 		return Snapshot{}, ErrInvalid

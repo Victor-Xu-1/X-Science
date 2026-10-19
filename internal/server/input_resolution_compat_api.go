@@ -160,6 +160,9 @@ func (s *Server) resolveCompatibilityInput(
 	if result, handled, err := s.resolveKernelArtifactApprovalInputs(r.Context(), current, pendingByID, input.Responses); handled {
 		return result, err
 	}
+	if result, handled, err := s.resolveKernelSpecialistApprovalInputs(r.Context(), current, pendingByID, input.Responses); handled {
+		return result, err
+	}
 	if result, handled, err := s.resolveKernelLocalExecApprovalInputs(r.Context(), current, pendingByID, input.Responses); handled {
 		return result, err
 	}
