@@ -1,18 +1,32 @@
 import { Check } from '@icon-park/react';
 import { Spin, Switch } from '@arco-design/web-react';
 import React from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { XScienceComputeProvider } from '@/renderer/services/xScienceCompute';
 
 const rowClass =
   'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full items-center gap-8px border-0 bg-transparent px-8px text-left font-inherit text-13px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
 
+export function computeSelectionLabel(
+  selection: string[] | undefined,
+  providers: XScienceComputeProvider[],
+  t: TFunction
+) {
+  if (!selection) return t('conversation.xscienceRuntime.sessionOptions.computeState.unknown');
+  if (selection.length === 0) return t('conversation.xscienceRuntime.sessionOptions.localMachine');
+  if (selection.length === 1) {
+    return providers.find((provider) => provider.name === selection[0])?.displayName || selection[0];
+  }
+  return t('conversation.xscienceRuntime.sessionOptions.providerCount', { count: selection.length });
+}
+
 /** Presentation only. The parent menu retains the single read/mutation owner. */
 export default function XScienceComputeChoices({
   providers,
   enabled,
   status,
-  hasSnapshot,
+  hasSelection,
   disabled,
   pending,
   retry,
@@ -23,7 +37,7 @@ export default function XScienceComputeChoices({
   providers: XScienceComputeProvider[];
   enabled: string[];
   status: 'loading' | 'ready' | 'error';
-  hasSnapshot: boolean;
+  hasSelection: boolean;
   disabled: boolean;
   pending: string | null;
   retry: () => void;
@@ -33,7 +47,7 @@ export default function XScienceComputeChoices({
 }) {
   const { t } = useTranslation();
   const readOnly = disabled || status !== 'ready';
-  const local = hasSnapshot && enabled.length === 0;
+  const local = hasSelection && enabled.length === 0;
   return (
     <>
       {status === 'loading' ? (

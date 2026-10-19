@@ -7,7 +7,7 @@ import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScop
 import { createXScienceSessionDefaults } from '@/renderer/services/xScienceSessionOptions';
 import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
 
-const api = vi.hoisted(() => ({ fetch: vi.fn(), error: vi.fn() }));
+const api = vi.hoisted(() => ({ fetch: vi.fn(), error: vi.fn(), changeSelection: vi.fn() }));
 vi.mock('@arco-design/web-react', async (original) => {
   const actual = await original<typeof import('@arco-design/web-react')>();
   return { ...actual, Message: { ...actual.Message, error: api.error } };
@@ -22,19 +22,37 @@ const provider = (name = 'fixture') => ({
 const response = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const noMode = async () => undefined;
-function Harness({ root = 'frame-fixture', incarnation = 'first', owner = 'owner-fixture' } = {}) {
+function Harness({
+  root = 'frame-fixture',
+  incarnation = 'first',
+  owner = 'owner-fixture',
+  draft = false,
+  selection,
+}: {
+  root?: string;
+  incarnation?: string;
+  owner?: string;
+  draft?: boolean;
+  selection?: string[];
+} = {}) {
   return (
     <MemoryRouter>
       <XScienceSessionOptionsMenu
-        rootFrameId={root}
+        rootFrameId={draft ? undefined : root}
+        computeSelection={selection}
+        onComputeSelectionChange={draft ? api.changeSelection : undefined}
         value={createXScienceSessionDefaults()}
         onChange={() => {}}
-        permissionControl={{
-          option: null,
-          setStatus: { state: 'idle' },
-          setConfigOption: noMode,
-          contextKey: JSON.stringify([owner, root, incarnation]),
-        }}
+        permissionControl={
+          draft
+            ? undefined
+            : {
+                option: null,
+                setStatus: { state: 'idle' },
+                setConfigOption: noMode,
+                contextKey: JSON.stringify([owner, root, incarnation]),
+              }
+        }
       />
     </MemoryRouter>
   );
@@ -205,6 +223,31 @@ describe('C394 Compute catalog read state', () => {
         '/api/compute/providers',
         `/api/compute/session/${next.root}/enabled`,
       ]);
+    }
+  );
+
+  it.each([
+    { label: 'explicit nondefault', selection: ['ssh:controlled'], summary: 'ssh:controlled' },
+    { label: 'explicit Local', selection: [], summary: 'Local' },
+  ])(
+    'C394 controlled draft $label keeps its known display without treating props as a successful read',
+    async ({ selection, summary }) => {
+      api.fetch.mockResolvedValue(response({ error: 'synthetic provider read failure' }, 503));
+      await renderWithI18n(<Harness draft selection={selection} />, 'en-US');
+      const dot = screen.getByTestId('x-science-session-options-trigger').querySelector('span.bg-primary');
+      if (selection.length) expect(dot).toBeInTheDocument();
+      else expect(dot).not.toBeInTheDocument();
+      expect(api.fetch).not.toHaveBeenCalled();
+      await openCompute();
+      await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
+      expect(screen.getByTestId('session-config-row-compute')).toHaveTextContent(summary);
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      const local = screen.getByRole('menuitemradio', { name: 'Local' });
+      expect(local).toHaveAttribute('aria-checked', String(selection.length === 0));
+      expect(local).toBeDisabled();
+      fireEvent.click(local);
+      expect(api.changeSelection).not.toHaveBeenCalled();
+      expect(api.fetch.mock.calls.map(([url]) => url)).toEqual(['/api/compute/providers']);
     }
   );
 });

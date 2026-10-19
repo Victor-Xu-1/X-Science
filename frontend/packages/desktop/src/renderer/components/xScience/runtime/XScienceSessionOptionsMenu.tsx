@@ -16,7 +16,7 @@ import { getMenuItems } from '@/renderer/utils/menuKeyboard';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import XScienceSpecialistChoices, { specialistControlLabel } from './XScienceSpecialistChoices';
-import XScienceComputeChoices from './XScienceComputeChoices';
+import XScienceComputeChoices, { computeSelectionLabel } from './XScienceComputeChoices';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import {
   sessionMemoryPresentation,
@@ -111,6 +111,14 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const [computeProviders, setComputeProviders] = useState<XScienceComputeProvider[]>([]);
   const [enabledComputeProviders, setEnabledComputeProviders] = useState<string[]>(
     (computeSelection ?? []).filter((provider) => provider !== 'local')
+  );
+  // Controlled draft intent is known before a catalog read, but never grants
+  // read readiness or makes another owner's cached provider labels current.
+  const displayedComputeSelection = useMemo(
+    () =>
+      computeSelection?.filter((provider) => provider !== 'local') ??
+      (hasComputeSnapshot ? enabledComputeProviders : undefined),
+    [computeSelection, hasComputeSnapshot, enabledComputeProviders]
   );
   const submenuCloseTimerRef = useRef<number | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState<React.CSSProperties>();
@@ -242,17 +250,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
 
   const activeSpecialistLabel = specialistControlLabel(specialistControl, t);
 
-  const computeLabel = useMemo(() => {
-    if (!hasComputeSnapshot) return t('conversation.xscienceRuntime.sessionOptions.computeState.unknown');
-    if (enabledComputeProviders.length === 0) return t('conversation.xscienceRuntime.sessionOptions.localMachine');
-    if (enabledComputeProviders.length === 1) {
-      const selected = computeProviders.find((provider) => provider.name === enabledComputeProviders[0]);
-      return selected?.displayName || enabledComputeProviders[0];
-    }
-    return t('conversation.xscienceRuntime.sessionOptions.providerCount', {
-      count: enabledComputeProviders.length,
-    });
-  }, [computeProviders, enabledComputeProviders, hasComputeSnapshot, t]);
+  const computeLabel = computeSelectionLabel(displayedComputeSelection, hasComputeSnapshot ? computeProviders : [], t);
 
   const updateComputeProvider = async (providerName: string, checked: boolean) => {
     if (disabled || !computeReady || pendingProvider !== null || !isComputeOwnerCurrent()) return;
@@ -359,9 +357,9 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         ) : (
           <XScienceComputeChoices
             providers={hasComputeSnapshot ? computeProviders : []}
-            enabled={hasComputeSnapshot ? enabledComputeProviders : []}
+            enabled={displayedComputeSelection ?? []}
             status={computeStatus}
-            hasSnapshot={hasComputeSnapshot}
+            hasSelection={displayedComputeSelection !== undefined}
             disabled={disabled}
             pending={pendingProvider}
             retry={() => {
@@ -565,7 +563,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           hasMemoryCustomization ||
           Boolean(specialistControl?.current() && specialistControl.applied && !specialistControl.applied.is_default) ||
           (permission.available && permission.currentValue !== 'default') ||
-          (hasComputeSnapshot && enabledComputeProviders.length > 0) ? (
+          Boolean(displayedComputeSelection?.length) ? (
             <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />
           ) : null}
           {permission.controller?.isCurrent() &&
