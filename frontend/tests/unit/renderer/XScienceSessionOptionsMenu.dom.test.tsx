@@ -353,4 +353,45 @@ describe('XScienceSessionOptionsMenu component', () => {
     await user.click(trigger);
     await waitFor(() => expect(screen.getByRole('menu', { name: '会话选项' })).toHaveFocus());
   });
+
+  it('focuses an option when ArrowDown reopens the session-options menu', async () => {
+    const user = userEvent.setup();
+    await renderWithI18n(<Harness />);
+    const trigger = screen.getByRole('button', { name: '会话选项' });
+    await user.click(trigger);
+    await waitFor(() => expect(screen.getByRole('menu', { name: '会话选项' })).toHaveFocus());
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu', { name: '会话选项' })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+
+    await user.keyboard('{ArrowDown}');
+
+    await waitFor(() => expect(screen.getByRole('menuitemcheckbox', { name: '自动审阅' })).toHaveFocus());
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('does not reclaim submenu focus when an asynchronous catalog finishes', async () => {
+    let finishCatalog!: (providers: unknown[]) => void;
+    mocks.loadProviders.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishCatalog = resolve;
+      })
+    );
+    const user = userEvent.setup();
+    await renderWithI18n(<Harness />);
+    await user.click(screen.getByRole('button', { name: '会话选项' }));
+    const expertTrigger = screen.getByTestId('session-config-row-specialist');
+    expertTrigger.focus();
+    fireEvent.keyDown(expertTrigger, { key: 'ArrowRight' });
+    const submenu = await screen.findByRole('menu', { name: '专家' });
+    const choice = submenu.querySelector<HTMLElement>('[role="menuitemradio"]')!;
+    await waitFor(() => expect(choice).toHaveFocus());
+
+    await act(async () => {
+      finishCatalog([]);
+    });
+
+    expect(choice).toHaveFocus();
+    expect(screen.getByRole('menu', { name: '会话选项' })).not.toHaveFocus();
+  });
 });

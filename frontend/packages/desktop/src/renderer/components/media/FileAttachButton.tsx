@@ -17,8 +17,8 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { emitter } from '@/renderer/utils/emitter';
-import { focusMenuSurface, getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { focusMenuSurfaceWhenVisible, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import './conversationControlMenu.css';
@@ -153,20 +153,26 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const keyboardOpen = useRef<'first' | 'last' | null>(null);
+  const cancelMenuFocus = useRef<(() => void) | null>(null);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
   const scopeId = useId();
   const menuId = `${scopeId}-menu`;
   const bindMenu = useCallback(
     (node: HTMLDivElement | null) => {
+      cancelMenuFocus.current?.();
       menuRef.current = node;
       if (!node || !open) return;
-      const position = keyboardOpen.current;
-      keyboardOpen.current = null;
-      focusMenuSurface(node, position);
+      const trigger = triggerButtonRef.current;
+      cancelMenuFocus.current = focusMenuSurfaceWhenVisible(node, keyboardOpen.current, trigger, () => {
+        keyboardOpen.current = null;
+      });
     },
     [open]
   );
+  useLayoutEffect(() => {
+    if (!open) keyboardOpen.current = null;
+  }, [open]);
   const [accountScope, setAccountScope] = useState(getRendererAccountScopeToken);
   const hostFilesScope = useMemo(
     () => ({ account: accountScope, conversationId: conversationContext?.conversation_id }),
@@ -472,11 +478,8 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
             event.preventDefault();
             event.stopPropagation();
             keyboardOpen.current = event.key === 'ArrowUp' ? 'last' : 'first';
-            if (open) {
-              const items = getMenuItems(menuRef.current);
-              (keyboardOpen.current === 'last' ? items.at(-1) : items[0])?.focus();
-              keyboardOpen.current = null;
-            } else setOpen(true);
+            if (open) bindMenu(menuRef.current);
+            else setOpen(true);
           }}
         />
       </Trigger>

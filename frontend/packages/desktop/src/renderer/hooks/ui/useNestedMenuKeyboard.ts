@@ -1,6 +1,6 @@
 import { useCallback, useId, useLayoutEffect, useRef } from 'react';
 import type React from 'react';
-import { focusMenuSurface, getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
+import { focusMenuSurfaceWhenVisible, getMenuItems, handleMenuNavigation } from '@/renderer/utils/menuKeyboard';
 
 /** Keyboard presentation for a controlled menu. The owner retains selection,
  * request authority and hover timing; this hook never changes an option. */
@@ -22,24 +22,22 @@ export function useNestedMenuKeyboard<T extends string>({
   const menuRef = useRef<HTMLDivElement>(null);
   const submenuRef = useRef<HTMLDivElement>(null);
   const focusRequest = useRef<'first' | 'last' | null>(null);
+  const cancelMenuFocus = useRef<(() => void) | null>(null);
   const submenuFocusRequest = useRef(false);
-  const applyFocusRequest = useCallback((menu: HTMLElement | null) => {
-    if (focusRequest.current && focusMenuSurface(menu, focusRequest.current)) {
-      focusRequest.current = null;
-    }
-  }, []);
   const bindMenu = useCallback(
     (menu: HTMLDivElement | null) => {
+      cancelMenuFocus.current?.();
       menuRef.current = menu;
-      if (!open) return;
-      if (focusRequest.current) applyFocusRequest(menu);
-      else focusMenuSurface(menu, null);
+      if (!menu || !open) return;
+      cancelMenuFocus.current = focusMenuSurfaceWhenVisible(menu, focusRequest.current, triggerRef.current, () => {
+        focusRequest.current = null;
+      });
     },
-    [applyFocusRequest, open]
+    [open]
   );
   useLayoutEffect(() => {
-    if (open) applyFocusRequest(menuRef.current);
-  }, [applyFocusRequest, open]);
+    if (!open) focusRequest.current = null;
+  }, [open]);
   useLayoutEffect(() => {
     if (submenu && submenuFocusRequest.current) {
       const item = getMenuItems(submenuRef.current)[0];
@@ -51,6 +49,7 @@ export function useNestedMenuKeyboard<T extends string>({
   }, [submenu]);
   const close = () => {
     cancelHoverClose();
+    cancelMenuFocus.current?.();
     focusRequest.current = null;
     submenuFocusRequest.current = false;
     setOpen(false);
@@ -62,7 +61,7 @@ export function useNestedMenuKeyboard<T extends string>({
     event.preventDefault();
     if (disabled) return;
     focusRequest.current = event.key === 'ArrowUp' ? 'last' : 'first';
-    if (open) applyFocusRequest(menuRef.current);
+    if (open) bindMenu(menuRef.current);
     else setOpen(true);
   };
   const onMenuKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
