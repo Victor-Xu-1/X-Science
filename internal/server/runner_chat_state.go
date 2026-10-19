@@ -10,10 +10,12 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 	"x-science/internal/sciencecapability"
+	"x-science/internal/sessionagent"
 	runnermachine "x-science/internal/sessionrunner"
 )
 
 type SessionRunnerChatOptions struct {
+	agentSnapshot                     *sessionagent.Snapshot
 	expectedInputClaim                *runnerInputClaimTarget
 	SessionID                         string
 	RunnerID                          string

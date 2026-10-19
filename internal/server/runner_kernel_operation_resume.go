@@ -21,9 +21,10 @@ func (s *Server) resumeApprovedAgentKernelOperations(
 	ctx context.Context,
 	options SessionRunnerChatOptions,
 	run *sessionRunnerChatRun,
+	profileBases ...SessionRunnerChatOptions,
 ) (bool, error) {
 	return s.resumeApprovedAgentKernelOperationsWithPreparationBudget(ctx, options, run,
-		defaultSessionRunnerKernelRecoveryTimeout)
+		defaultSessionRunnerKernelRecoveryTimeout, profileBases...)
 }
 
 // The caller supplies only the host preparation budget. Software-runtime work
@@ -33,6 +34,7 @@ func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
 	options SessionRunnerChatOptions,
 	run *sessionRunnerChatRun,
 	ordinaryPreparationBudget time.Duration,
+	profileBases ...SessionRunnerChatOptions,
 ) (bool, error) {
 	if ordinaryPreparationBudget <= 0 {
 		return false, errors.New("kernel recovery preparation budget must be positive")
@@ -143,12 +145,16 @@ func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
 			}
 			var result map[string]any
 			if operation.State == workspace.KernelLocalOperationStateApproved {
+				sourceCtx, operationOptions, sourceErr := s.specialistRecoveryAuthority(ctx, run, operation, options, profileBases...)
+				if sourceErr != nil {
+					return resumed, sourceErr
+				}
 				// Recovery is driven by the durable operation, not by the
 				// in-memory/session alias that happened to create it. A resumed
 				// Frame can legitimately have a different session identifier after
 				// a restart; the operation's Frame authority is the canonical
 				// boundary for re-establishing the kernel identity.
-				identity := s.resolveAgentKernelContext(ctx, operation.FrameID)
+				identity := s.resolveAgentKernelContext(sourceCtx, operation.FrameID)
 				if identity == nil {
 					return resumed, errors.New("kernel operation resume identity is unavailable")
 				}
@@ -167,20 +173,20 @@ func (s *Server) resumeApprovedAgentKernelOperationsWithPreparationBudget(
 				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
 					recoveryTimeout = ordinaryPreparationBudget
 				}
-				operationCtx := ctx
+				operationCtx := sourceCtx
 				cancelOperation := func() {}
 				if strings.TrimSpace(operation.Tool) != softwareRuntimeToolName {
-					operationCtx, cancelOperation = withKernelRecoveryPreparationBudget(ctx, recoveryTimeout)
+					operationCtx, cancelOperation = withKernelRecoveryPreparationBudget(sourceCtx, recoveryTimeout)
 				} else if recoveryTimeout > 0 {
 					operationCtx, cancelOperation = context.WithTimeoutCause(
-						ctx, recoveryTimeout, errSessionRunnerKernelRecoveryDeadline,
+						sourceCtx, recoveryTimeout, errSessionRunnerKernelRecoveryDeadline,
 					)
 				}
 				recoveryCtx := withTranscriptRunnerChatRun(operationCtx, run)
 				result, err = observeRecoveredKernelTool(recoveryCtx, call, batchItem.ArgumentsJSON,
 					func(executionCtx context.Context) (map[string]any, error) {
 						return s.executeAgentKernelToolWithApproval(executionCtx, identity, call, operation.Tool, input,
-							options.OutputLimitBytes, options.AllowedTools)
+							operationOptions.OutputLimitBytes, operationOptions.AllowedTools)
 					}, func(event agentruntime.Event) error {
 						return sessionRunnerToolProgressPersistenceBestEffort(event,
 							s.checkpointSessionRunnerToolEvent(recoveryCtx, options, run, event))

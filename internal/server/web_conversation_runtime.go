@@ -16,6 +16,7 @@ import (
 
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/sessionagent"
 )
 
 func (s *Server) handleWebConversationActiveCount(w http.ResponseWriter, r *http.Request) {
@@ -445,7 +446,14 @@ func writeWebConversationError(w http.ResponseWriter, err error) {
 		return
 	}
 	var requestErr *webConversationRequestError
-	if errors.As(err, &requestErr) {
+	if !errors.As(err, &requestErr) && errors.Is(err, sessionagent.ErrRevisionConflict) {
+		// Canonical admission repeats the specialist CAS after web preflight.
+		requestErr = &webConversationRequestError{
+			Status: http.StatusConflict, Code: sessionagent.ErrRevisionConflict.Error(),
+			Detail: sessionagent.ErrRevisionConflict.Error(), Cause: err,
+		}
+	}
+	if requestErr != nil {
 		payload := map[string]any{"message": requestErr.Detail}
 		if requestErr.Code != "" {
 			w.Header().Set(webErrorCodeHeader, requestErr.Code)

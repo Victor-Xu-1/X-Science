@@ -460,15 +460,8 @@ func (s *Server) executeAgentKernelToolInternal(
 		executionBinding := kernelTranscriptExecutionBindingFromContext(
 			ctx, outerToolUseID, session.ID, expectedGeneration, session.Worker,
 		)
-		// A foreground wait may detach without cancelling the already-authorized
-		// execution. Host-call authority therefore belongs to the execution
-		// identity, not to the caller's shorter foreground wait context.
-		policyContext := context.Background()
-		if reviewerScope := sessionReviewerEvidenceScopeFromContext(ctx); reviewerScope != nil {
-			policyContext = withSessionReviewerEvidenceScope(policyContext, reviewerScope)
-		}
-		hostCalls = s.agentKernelHostCallPolicy(
-			policyContext, access, identity.workspaceDir, allowedTools, fresh, executionBinding,
+		hostCalls = s.agentKernelExecutionHostPolicy(
+			ctx, access, identity.workspaceDir, allowedTools, fresh, executionBinding,
 		)
 	} else if publicName == "python" {
 		hostCalls = s.kernelHostCallPolicy(context.Background(), access, identity.workspaceDir)

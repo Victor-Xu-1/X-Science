@@ -48,11 +48,19 @@ func (s *Server) agentKernelSessionSpec(
 	if err != nil {
 		return kernelruntime.SessionSpec{}, err
 	}
+	agentName, definitionID := access.Frame.AgentName, ""
+	snapshot, err := s.claimedSessionSpecialistForFrame(ctx, access.UserID, access.Frame.ID)
+	if err != nil {
+		return kernelruntime.SessionSpec{}, err
+	}
+	if snapshot != nil {
+		agentName, definitionID = snapshot.AgentName, snapshot.ID
+	}
 	return kernelruntime.SessionSpec{
 		OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
 		FrameID: access.Frame.ID, FrameIncarnationID: access.Frame.IncarnationID,
 		RootFrameID: access.Frame.RootFrameID, RootFrameIncarnationID: access.RootFrameIncarnationID,
-		AgentName: access.Frame.AgentName, DelegateName: access.DelegateName,
+		AgentName: agentName, AgentDefinitionID: definitionID, DelegateName: access.DelegateName,
 		KernelKind: runtime.Kind, Language: runtime.Language,
 		Environment: runtime.Environment, RuntimeGeneration: runtime.RuntimeGeneration,
 		WorkspaceDir: workspaceDir, Mounts: mounts, ProtectedPaths: protectedPaths,

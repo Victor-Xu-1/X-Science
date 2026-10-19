@@ -37,19 +37,22 @@ type SessionSpec struct {
 	RootFrameID            string
 	RootFrameIncarnationID string
 	AgentName              string
-	DelegateName           string
-	KernelKind             string
-	Language               string
-	Environment            string
-	RuntimeGeneration      string
-	WorkspaceDir           string
-	Mounts                 []WorkerMount
-	ProtectedPaths         []string
-	EgressAllowedDomains   []string
-	EgressDeniedDomains    []string
-	CABundle               string
-	UpstreamProxy          string
-	Fresh                  bool
+	// Host-only definition identity. Durable detached specs keep their closed
+	// V1 shape: the derived KernelID already carries this discriminator.
+	AgentDefinitionID    string
+	DelegateName         string
+	KernelKind           string
+	Language             string
+	Environment          string
+	RuntimeGeneration    string
+	WorkspaceDir         string
+	Mounts               []WorkerMount
+	ProtectedPaths       []string
+	EgressAllowedDomains []string
+	EgressDeniedDomains  []string
+	CABundle             string
+	UpstreamProxy        string
+	Fresh                bool
 }
 
 type WorkerMount struct {
@@ -452,6 +455,7 @@ func normalizeSessionSpec(spec SessionSpec) SessionSpec {
 		spec.RootFrameID = spec.FrameID
 	}
 	spec.AgentName = strings.TrimSpace(spec.AgentName)
+	spec.AgentDefinitionID = strings.TrimSpace(spec.AgentDefinitionID)
 	if spec.AgentName == "" {
 		spec.AgentName = "OPERON"
 	}
@@ -551,6 +555,9 @@ func validateSessionSpec(spec SessionSpec) error {
 	if spec.RuntimeGeneration != "" && !ValidEnvironmentName(spec.RuntimeGeneration) {
 		return errors.New("kernel runtime generation must be a bounded path-free identifier")
 	}
+	if len(spec.AgentDefinitionID) > 256 || strings.ContainsAny(spec.AgentDefinitionID, "\x00\r\n") {
+		return errors.New("kernel Agent definition identity is invalid")
+	}
 	if spec.WorkspaceDir == "" || !filepath.IsAbs(spec.WorkspaceDir) {
 		return errors.New("kernel workspace must be an absolute directory")
 	}
@@ -613,7 +620,7 @@ func sameSessionSpec(left, right SessionSpec) bool {
 		left.Language == right.Language &&
 		left.Environment == right.Environment && left.RuntimeGeneration == right.RuntimeGeneration &&
 		left.WorkspaceDir == right.WorkspaceDir &&
-		left.KernelKind == right.KernelKind && left.AgentName == right.AgentName && left.DelegateName == right.DelegateName &&
+		left.KernelKind == right.KernelKind && left.AgentName == right.AgentName && left.AgentDefinitionID == right.AgentDefinitionID && left.DelegateName == right.DelegateName &&
 		left.Fresh == right.Fresh && sameWorkerMounts(left.Mounts, right.Mounts) &&
 		sameProtectedPaths(left.ProtectedPaths, right.ProtectedPaths) &&
 		sameProtectedPaths(left.EgressAllowedDomains, right.EgressAllowedDomains) &&

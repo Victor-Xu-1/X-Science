@@ -595,6 +595,9 @@ func (r *Repository) claimRunnerConn(
 			return result, err
 		}
 	}
+	if err := bindSessionAgentClaimConn(ctx, conn, stream, input, attempt, latestAttempt, latestClaimedRevision, claimedRevision, now); err != nil {
+		return result, err
+	}
 	if _, err := conn.ExecContext(ctx, `
 		INSERT INTO transcript_runner_attempts(
 			stream_uid,attempt,runner_id,claim_token_sha256,claimed_input_revision,

@@ -64,6 +64,11 @@ func (s *Server) resolveAgentRuntimeApprovalMessage(ctx context.Context, to stri
 		}, nil
 	}
 	approvalSource := strings.TrimSpace(stringValue(value["approvalSource"]))
+	if approvalSource == kernelSpecialistApprovalSource {
+		if err := s.validateSpecialistUserConsent(ctx, approvalID, value, message); err != nil {
+			return nil, err
+		}
+	}
 	if approvalSource == kernelArtifactDeleteApprovalSource && !kernelArtifactApprovalUserAuthorized(ctx) {
 		return nil, errors.New("artifact deletion approval requires an authenticated user response")
 	}

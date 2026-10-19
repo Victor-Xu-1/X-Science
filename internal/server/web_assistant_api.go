@@ -60,6 +60,10 @@ type webAssistantRecord struct {
 	Config    webAssistantStoredConfig
 	RuntimeID string
 	Deletable bool
+
+	// Only server-derived immutable snapshots set this marker. An empty frozen
+	// list is an empty maximum, not the legacy live-catalog default.
+	modelSelectionFrozen bool
 }
 
 func (s *Server) handleWebAssistants(w http.ResponseWriter, r *http.Request) {

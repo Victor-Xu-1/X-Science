@@ -36,11 +36,27 @@ func (s *Server) projectClaimedRunnerInputData(
 }
 
 func (s *Server) runtimeComposerInputData(ctx context.Context, frameID string) (map[string]any, error) {
+	if source, ok := ctx.Value(specialistExecutionSourceContextKey{}).(specialistExecutionSource); ok {
+		if _, err := s.claimedSessionSpecialistForFrame(ctx, source.OwnerID, frameID); err != nil {
+			return nil, err
+		}
+		return copyMapAny(source.Source.InputData), nil
+	}
 	if run, found := transcriptRunnerChatRunFromContext(ctx); found {
 		if run.Transcript.Stream.SessionID != frameID {
 			return nil, transcriptstore.ErrOwnerMismatch
 		}
 		return s.transcriptStore.ClaimedRunnerInputData(ctx, run.Transcript.Claim)
+	}
+	if claim, found := kernelTranscriptClaimFromContext(ctx); found {
+		stream, err := s.transcriptStore.ValidateLiveRunnerClaim(ctx, claim)
+		if err != nil {
+			return nil, err
+		}
+		if stream.FrameID != frameID {
+			return nil, transcriptstore.ErrOwnerMismatch
+		}
+		return s.transcriptStore.ClaimedRunnerInputData(ctx, claim)
 	}
 	if _, canonical, err := s.resolveTranscriptFrameStream(ctx, frameID); err != nil || canonical {
 		// Catalog/UI discovery has no claimed turn. Never borrow an old session's

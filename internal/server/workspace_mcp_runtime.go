@@ -125,6 +125,14 @@ func (s *Server) workspaceMCPRuntimeContextWithContext(ctx context.Context, sess
 		return workspaceMCPRuntimeContext{}, found, err
 	}
 	userID := strings.TrimSpace(frameContext.UserID)
+	snapshot, err := s.claimedSessionSpecialistForFrame(ctx, userID, frameContext.Frame.ID)
+	if err != nil {
+		return workspaceMCPRuntimeContext{}, false, err
+	}
+	if snapshot != nil {
+		frozen, err := s.frozenSpecialistMCPRuntime(ctx, userID, frameContext.Frame.ID, *snapshot)
+		return frozen, err == nil, err
+	}
 	agentName := strings.TrimSpace(frameContext.Frame.AgentName)
 	agent, agentFound, err := s.workspaceStore.GetAgent(userID, agentName)
 	if err != nil {

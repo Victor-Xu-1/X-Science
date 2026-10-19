@@ -285,11 +285,13 @@ func (s *Server) applySessionRunnerBundledAgent(
 	options SessionRunnerChatOptions,
 	runtimeToolUniverse ...[]string,
 ) (SessionRunnerChatOptions, string) {
-	if s == nil || s.agentCatalog == nil || s.agentCatalogError != nil {
+	if s == nil || options.agentSnapshot == nil && (s.agentCatalog == nil || s.agentCatalogError != nil) {
 		return options, ""
 	}
 	agentName := ""
-	if s.workspaceStore != nil {
+	if options.agentSnapshot != nil {
+		agentName = options.agentSnapshot.AgentName
+	} else if s.workspaceStore != nil {
 		if frame, found, err := s.workspaceStore.GetFrame(session.ID); err == nil && found {
 			agentName = frame.AgentName
 		}
@@ -297,7 +299,10 @@ func (s *Server) applySessionRunnerBundledAgent(
 	if strings.TrimSpace(agentName) == "" {
 		agentName = sessionConfiguredAgentName(session)
 	}
-	agent, found := s.agentCatalog.Agent(agentName)
+	agent, found := frozenBundledAgent(options.agentSnapshot)
+	if options.agentSnapshot == nil {
+		agent, found = s.agentCatalog.Agent(agentName)
+	}
 	if !found {
 		return options, ""
 	}
@@ -385,8 +390,11 @@ func (s *Server) applySessionRunnerAgentProfile(
 		return options, selected, nil
 	}
 	userID := strings.TrimSpace(frameContext.UserID)
-	agentName := strings.TrimSpace(frameContext.Frame.AgentName)
-	profile, profileFound, err := s.workspaceStore.GetAgent(userID, agentName)
+	agentName := specialistRuntimeTarget(options.agentSnapshot, frameContext.Frame.AgentName)
+	profile, profileFound := frozenPersonalAgent(options.agentSnapshot)
+	if options.agentSnapshot == nil {
+		profile, profileFound, err = s.workspaceStore.GetAgent(userID, agentName)
+	}
 	if err != nil {
 		return options, selected, err
 	}

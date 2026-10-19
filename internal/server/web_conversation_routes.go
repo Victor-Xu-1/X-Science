@@ -288,7 +288,7 @@ func (s *Server) resolveWebConversationAssistant(
 	assistant *webConversationAssistantInput,
 ) (string, map[string]any, error) {
 	if assistant == nil {
-		agentName, err := s.resolveWebAssistantRuntimeAgent(userID, webAssistantID("OPERON"))
+		agentName, err := s.resolveWebAssistantRuntimeAgent(userID, defaultWebConversationAssistantID())
 		return agentName, nil, err
 	}
 	value := strings.TrimSpace(assistant.ID)
