@@ -23,7 +23,8 @@ const SESSION_REQUEST_TIMEOUT_MS = 8_000;
 export const X_SCIENCE_SESSION_DEFAULTS: Readonly<XScienceSessionOptions> = Object.freeze({
   delegation: false,
   autoReview: false,
-  memory: false,
+  // The global/user Memory authority remains separate; retain an explicit session opt-out below.
+  memory: true,
   targetAgent: 'OPERON',
   goalText: null,
   asRoutine: false,

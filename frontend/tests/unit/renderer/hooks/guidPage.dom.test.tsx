@@ -448,7 +448,7 @@ describe('GuidPage', () => {
     expect(toggle(guidInputMock.contextItems).map((item) => item.kind)).toEqual(['artifact', 'mcp']);
   });
 
-  it('starts every new conversation from the shared local, optional-features-off defaults', async () => {
+  it('starts every new conversation from the shared local defaults with inherited Memory enabled', async () => {
     await renderGuidPage();
 
     await vi.waitFor(() => {
@@ -458,7 +458,7 @@ describe('GuidPage', () => {
       expect(sessionOptionsProps.value).toMatchObject({
         delegation: false,
         autoReview: false,
-        memory: false,
+        memory: true,
         targetAgent: 'AIDD_EXPERT',
       });
     });
@@ -479,7 +479,7 @@ describe('GuidPage', () => {
         ...initialProps.value,
         delegation: true,
         autoReview: true,
-        memory: true,
+        memory: false,
         targetAgent: 'STRUCTURAL_BIOLOGY_EXPERT',
       });
       initialProps.onComputeSelectionChange(['openfold3-service']);
@@ -499,7 +499,7 @@ describe('GuidPage', () => {
       expect(resetProps.value).toMatchObject({
         delegation: false,
         autoReview: false,
-        memory: false,
+        memory: true,
         targetAgent: 'AIDD_EXPERT',
       });
       expect(capturedGuidSendDeps.at(-1)?.sessionComputeProviders).toEqual([]);

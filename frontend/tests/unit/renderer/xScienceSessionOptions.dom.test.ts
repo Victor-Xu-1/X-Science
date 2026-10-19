@@ -13,20 +13,20 @@ afterEach(() => {
 });
 
 describe('X-Science session options service', () => {
-  it('owns one immutable optional-features-off default and returns isolated draft copies', () => {
+  it('owns one immutable default with inherited Memory and returns isolated draft copies', () => {
     const first = createXScienceSessionDefaults('AIDD_EXPERT');
     const second = createXScienceSessionDefaults('AIDD_EXPERT');
 
     expect(X_SCIENCE_SESSION_DEFAULTS).toMatchObject({
       delegation: false,
       autoReview: false,
-      memory: false,
+      memory: true,
       targetAgent: 'OPERON',
     });
     expect(first).toEqual({
       delegation: false,
       autoReview: false,
-      memory: false,
+      memory: true,
       targetAgent: 'AIDD_EXPERT',
       goalText: null,
       asRoutine: false,
@@ -71,7 +71,7 @@ describe('X-Science session options service', () => {
     );
   });
 
-  it('keeps every optional module off without a persisted override', async () => {
+  it('uses inherited Memory without a persisted override and retains opt-in Reviewer', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -86,7 +86,7 @@ describe('X-Science session options service', () => {
     await expect(loadXScienceSessionOptions('frame-stat6', fetchMock)).resolves.toMatchObject({
       delegation: false,
       autoReview: false,
-      memory: false,
+      memory: true,
       targetAgent: 'OPERON',
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);

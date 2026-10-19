@@ -6,7 +6,7 @@ import {
 } from '@/renderer/services/xScienceCompute';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadXScienceAssistants } from '@/renderer/services/xScienceCatalog';
-import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
+import { X_SCIENCE_SESSION_DEFAULTS, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { resolveAssistantName } from '@/renderer/utils/model/assistantDisplay';
 import { Dropdown, Message, Spin, Switch } from '@arco-design/web-react';
 import { Check, Right, SettingConfig } from '@icon-park/react';
@@ -16,7 +16,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
 import { getMenuItems } from '@/renderer/utils/menuKeyboard';
-import type { XScienceMemoryControl } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
+import {
+  sessionMemoryPresentation,
+  type XScienceMemoryControl,
+} from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import XScienceAgentControlToggles from './XScienceAgentControlToggles';
 import XSciencePermissionIcon, { isWarningPermissionMode } from './XSciencePermissionIcon';
 import SessionPermissionGrants from './SessionPermissionGrants';
@@ -60,6 +63,9 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   memoryControl,
 }) => {
   const { t, i18n } = useTranslation();
+  const memoryPresentation = sessionMemoryPresentation(memoryControl, value.memory);
+  const hasMemoryCustomization =
+    !memoryPresentation.disabled && memoryPresentation.checked !== X_SCIENCE_SESSION_DEFAULTS.memory;
   const localeKey = resolveLocaleKey(i18n.language);
   const navigate = useNavigate();
   const translationRef = useRef(t);
@@ -610,7 +616,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           <SettingConfig theme='outline' size={17} strokeWidth={3.6} />
           {value.delegation ||
           value.autoReview ||
-          value.memory ||
+          hasMemoryCustomization ||
           value.targetAgent !== 'OPERON' ||
           (permission.available && permission.currentValue !== 'default') ||
           enabledComputeProviders.length > 0 ? (
