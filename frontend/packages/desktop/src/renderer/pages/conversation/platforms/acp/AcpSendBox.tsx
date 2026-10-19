@@ -87,6 +87,7 @@ import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnost
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
+import { useAcpPlanPresentation } from './useAcpPlanPresentation';
 import { useAcpAsideController, type AsideQueueBridge } from './useAcpAsideController';
 import { useAcpConversationSkillController } from './useAcpConversationSkillController';
 import { useAcpContextCompaction } from './useAcpContextCompaction';
@@ -263,6 +264,7 @@ const AcpSendBox: React.FC<{
   const mobileModeChangeInFlightRef = useRef(false);
   const frameIncarnationId =
     initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
+  const planPresentation = useAcpPlanPresentation(ownerId, conversation_id, frameIncarnationId);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     frameIncarnationId,
@@ -461,11 +463,6 @@ const AcpSendBox: React.FC<{
     !runtimeUnavailable &&
     (isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage);
   const reviewBusy = reviewInFlight || reviewActive;
-  const viewPlan = useCallback(() => {
-    if (conversationAuthorityRef.current.conversationId === conversation_id) {
-      emitter.emit('xscience.runtime.plan.open', conversation_id);
-    }
-  }, [conversation_id]);
   const asideQueueRef = useRef<AsideQueueBridge | null>(null);
   const aside = useAcpAsideController({
     conversationId: conversation_id,
@@ -1047,16 +1044,20 @@ const AcpSendBox: React.FC<{
     handleSessionComputeChange,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
-    attachEntries: isXScienceConversation
-      ? [
-          ...attachEntries,
-          {
-            key: 'view-plan',
-            label: t('conversation.attachMenu.viewPlan'),
-            onClick: viewPlan,
-          },
-        ]
-      : attachEntries,
+    attachEntries:
+      isXScienceConversation && planPresentation.reference
+        ? [
+            ...attachEntries,
+            {
+              key: 'view-plan',
+              label: t('conversation.attachMenu.viewPlan'),
+              meta: planPresentation.reference.progress
+                ? `${planPresentation.reference.progress.completed}/${planPresentation.reference.progress.total}`
+                : undefined,
+              onClick: planPresentation.openPlan,
+            },
+          ]
+        : attachEntries,
     ...mobileSkillProps,
     loadedMcpStatuses,
     selectedSkillNames,
@@ -1109,6 +1110,7 @@ const AcpSendBox: React.FC<{
       <BtwOverlay controller={aside.sideQuestion} parentTaskRunning={isBusy} />
       {aside.branchStatus}
       <XScienceRuntimeOperations
+        key={planPresentation.key}
         conversationId={conversation_id}
         runtimeState={runtimeView.state}
         terminalProjectionPending={runtimeView.view.terminalProjectionPending}
@@ -1116,6 +1118,7 @@ const AcpSendBox: React.FC<{
         onResumeFailed={handleResumeFailed}
         onResumed={handleRuntimeUpdated}
         onRuntimeUpdated={handleRuntimeUpdated}
+        onPlanReferenceChange={planPresentation.onPlanReferenceChange}
         runtimeAuthorityUnavailable={Boolean(runtimeView.hydrationError)}
         onRetryRuntimeAuthority={runtimeView.retryHydration}
         onStop={handleStop}
@@ -1201,7 +1204,10 @@ const AcpSendBox: React.FC<{
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectMcpServer={handleMcpSelected}
-                onViewPlan={isXScienceConversation ? viewPlan : undefined}
+                onViewPlan={
+                  isXScienceConversation && planPresentation.reference ? planPresentation.openPlan : undefined
+                }
+                planProgress={planPresentation.reference?.progress}
                 onViewContextWindow={
                   isXScienceConversation
                     ? (returnFocus) => {

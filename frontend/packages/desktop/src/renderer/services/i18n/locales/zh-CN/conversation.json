@@ -1522,6 +1522,7 @@
       "noPlan": "暂无任务计划",
       "historicalPlanNotice": "这是历史计划，仅供查看；当前任务不会再使用此版本。",
       "currentExecutionPlan": "当前执行计划",
+      "legacyPlanNotice": "旧版计划：显示最新内容，尚无固定版本。",
       "planRevision": "修订 {{revision}} / {{count}}",
       "planGeneratedAt": "生成于 {{time}}",
       "planAssessment": {

@@ -5,8 +5,9 @@
  */
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
+import type { XSciencePlanProgress } from '@/renderer/components/xScience/runtime/planProgressModel';
 import { Button, Message, Tooltip, Trigger } from '@arco-design/web-react';
-import { Check, FolderOpen, ListCheckbox, Paperclip, Shield } from '@icon-park/react';
+import { FolderOpen, ListCheckbox, Paperclip, Shield } from '@icon-park/react';
 import { BookMarked, ChartNoAxesCombined, Loader2, Plus as ControlPlus } from 'lucide-react';
 import ComposerCapabilityPicker from './ComposerCapabilityPicker';
 import ComposerHostFiles from '@/renderer/components/chat/SendBox/hostFiles/ComposerHostFiles';
@@ -39,7 +40,7 @@ interface FileAttachButtonProps {
   onRequestReview?: () => void;
   onSaveSkill?: () => void;
   onViewContextWindow?: (returnFocus: HTMLButtonElement | null) => void;
-  planEnabled?: boolean;
+  planProgress?: XSciencePlanProgress;
   reviewInFlight?: boolean;
   reviewDisabled?: boolean;
   saveAsSkillDisabled?: boolean;
@@ -52,20 +53,20 @@ interface FileAttachButtonProps {
 const MenuItem: React.FC<{
   icon: React.ReactNode;
   label: React.ReactNode;
+  ariaLabel?: string;
   description?: React.ReactNode;
   suffix?: React.ReactNode;
   onClick?: () => void;
-  checked?: boolean;
   disabled?: boolean;
   busy?: boolean;
   keepDisabledFocusable?: boolean;
 }> = ({
   icon,
   label,
+  ariaLabel,
   description,
   suffix,
   onClick,
-  checked,
   disabled = false,
   busy,
   keepDisabledFocusable = false,
@@ -73,9 +74,8 @@ const MenuItem: React.FC<{
   const menuItem = (
     <button
       type='button'
-      role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
-      aria-label={typeof label === 'string' ? label : undefined}
-      aria-checked={checked}
+      role='menuitem'
+      aria-label={ariaLabel ?? (typeof label === 'string' ? label : undefined)}
       aria-disabled={disabled || undefined}
       aria-busy={busy || undefined}
       tabIndex={onClick && (!disabled || keepDisabledFocusable) ? 0 : -1}
@@ -137,7 +137,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   onRequestReview,
   onSaveSkill,
   onViewContextWindow,
-  planEnabled,
+  planProgress,
   reviewInFlight = false,
   reviewDisabled = false,
   saveAsSkillDisabled = false,
@@ -342,9 +342,19 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
             <MenuItem
               icon={<ListCheckbox theme='outline' size={15} />}
               label={t('conversation.attachMenu.viewPlan')}
+              ariaLabel={
+                planProgress
+                  ? `${t('conversation.attachMenu.viewPlan')} ${planProgress.completed}/${planProgress.total}`
+                  : undefined
+              }
               description={t('conversation.attachMenu.viewPlanDescription')}
-              checked={planEnabled}
-              suffix={planEnabled ? <Check theme='outline' size={15} className='text-primary' /> : undefined}
+              suffix={
+                planProgress ? (
+                  <span>
+                    {planProgress.completed}/{planProgress.total}
+                  </span>
+                ) : undefined
+              }
               onClick={() => closeAndRun(onViewPlan)}
               disabled={!onViewPlan}
             />

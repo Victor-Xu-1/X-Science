@@ -1,5 +1,6 @@
 import type { TChatConversationStatus, TConversationRuntimeSummary } from '@/common/config/storage';
 import { normalizeXScienceResumeTarget, type XScienceResumeTarget } from './resumeCommandIntent';
+import { normalizeXSciencePlanProgress, type XSciencePlanProgress } from './planProgressModel';
 
 export type XScienceTaskMetricScope = {
   inputTokens: number | null;
@@ -148,6 +149,7 @@ export type XScienceRuntimeModelOption = {
 export type XSciencePlanReference = {
   artifactId: string;
   versionId: string | null;
+  progress?: XSciencePlanProgress;
   revisionNumber?: number | null;
   revisionCount?: number | null;
   contentVersion?: number | null;
@@ -462,7 +464,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
   const planRevisionCount = output ? nonNegativeInteger(output.plan_revision_count) : null;
   const planContentVersion = output ? nonNegativeInteger(output.plan_content_version) : null;
   const planGeneratedAt = output ? timestampValue(output.plan_generated_at) : null;
-  const taskPlan = planArtifactId
+  const taskPlan: XSciencePlanReference | null = planArtifactId
     ? {
         artifactId: planArtifactId,
         versionId: output ? nullableString(output.plan_version_id) : null,
@@ -472,6 +474,10 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
         ...(planGeneratedAt !== null ? { generatedAt: planGeneratedAt } : {}),
       }
     : null;
+  if (taskPlan) {
+    const progress = normalizeXSciencePlanProgress(output?.plan_progress, taskPlan);
+    if (progress) taskPlan.progress = progress;
+  }
   const planApproval = status === 'awaiting_plan_approval' && taskPlan ? taskPlan : null;
   const runtimeStage = normalizeRuntimeStage(value.runtime_stage);
   const reviewTriggerValue = stringValue(value.runtime_review_trigger).toLowerCase();

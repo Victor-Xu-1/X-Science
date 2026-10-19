@@ -1729,6 +1729,7 @@ export type I18nKey =
   | 'conversation.xscienceRuntime.runtimeOperations.historicalPlanNotice'
   | 'conversation.xscienceRuntime.runtimeOperations.historicalResponseIncomplete'
   | 'conversation.xscienceRuntime.runtimeOperations.later'
+  | 'conversation.xscienceRuntime.runtimeOperations.legacyPlanNotice'
   | 'conversation.xscienceRuntime.runtimeOperations.loadingExecutionLog'
   | 'conversation.xscienceRuntime.runtimeOperations.loadingPlan'
   | 'conversation.xscienceRuntime.runtimeOperations.loadingReviewResult'

@@ -20,6 +20,7 @@ import type {
   XScienceApprovalScope,
   XSciencePendingInputRequest,
   XSciencePlanDocument,
+  XSciencePlanReference,
   XScienceRuntimeSnapshot,
   XScienceRuntimeModelOption,
 } from './runtimeOperationsModel';
@@ -58,6 +59,7 @@ type XScienceRuntimeOperationsProps = {
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
   onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary, source: 'initial' | 'refresh') => void;
+  onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
   runtimeAuthorityUnavailable?: boolean;
   onRetryRuntimeAuthority?: () => void;
   onStop?: () => void | Promise<void>;
@@ -79,6 +81,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   onResumeFailed,
   onResumed,
   onRuntimeUpdated,
+  onPlanReferenceChange,
   runtimeAuthorityUnavailable = false,
   onRetryRuntimeAuthority,
   onStop,
@@ -98,6 +101,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const previousRuntimeAuthorityRef = useRef({ conversationId, runtimeState });
   const onRuntimeUpdatedRef = useRef(onRuntimeUpdated);
   onRuntimeUpdatedRef.current = onRuntimeUpdated;
+  const onPlanReferenceChangeRef = useRef(onPlanReferenceChange);
+  onPlanReferenceChangeRef.current = onPlanReferenceChange;
   const onReviewActivityChangeRef = useRef(onReviewActivityChange);
   onReviewActivityChangeRef.current = onReviewActivityChange;
   const conversationAuthorityRef = useRef(conversationId);
@@ -151,6 +156,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const applySnapshot = useCallback((nextSnapshot: XScienceRuntimeSnapshot | null) => {
     snapshotRef.current = nextSnapshot;
     setSnapshot(nextSnapshot);
+    onPlanReferenceChangeRef.current?.(conversationAuthorityRef.current, nextSnapshot?.taskPlan ?? null);
     onReviewActivityChangeRef.current?.(
       nextSnapshot?.runtimeStage === 'reviewing' || nextSnapshot?.runtimeStage === 'scientific_reviewing'
     );
@@ -731,8 +737,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
 
   const openPlanReview = () => {
     const reference = snapshotRef.current?.taskPlan;
-    const artifactId = reference?.artifactId;
-    if (!artifactId) {
+    if (!reference?.artifactId) {
       messageApi.info(t('conversation.xscienceRuntime.runtimeOperations.noPlanAvailable'));
       return;
     }
@@ -747,7 +752,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     setPlanDocument(null);
     setPlanLoading(true);
     setPlanError(null);
-    void loadXSciencePlanDocument(artifactId, { signal: controller.signal })
+    void loadXSciencePlanDocument(reference, { signal: controller.signal })
       .then((document) => {
         if (
           conversationAuthorityRef.current === owner &&

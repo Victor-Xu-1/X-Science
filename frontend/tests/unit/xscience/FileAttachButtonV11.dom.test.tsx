@@ -121,7 +121,7 @@ describe('v1.1 add-to-message menu', () => {
         openFileSelector={vi.fn()}
         onLocalFilesAdded={vi.fn()}
         onViewPlan={onViewPlan}
-        planEnabled
+        planProgress={{ completed: 2, total: 3 }}
         onRequestReview={onRequestReview}
         reviewLabelMode='manual'
         onSaveSkill={onSaveSkill}
@@ -130,9 +130,10 @@ describe('v1.1 add-to-message menu', () => {
       { wrapper: MemoryRouter }
     );
     fireEvent.click(screen.getByRole('button', { name: '添加到消息' }));
-    const planItem = screen.getByRole('menuitemcheckbox', { name: '查看计划' });
+    const planItem = screen.getByRole('menuitem', { name: '查看计划 2/3' });
     const reviewItem = screen.getByRole('menuitem', { name: '手动审阅' });
-    expect(planItem).toHaveAttribute('aria-checked', 'true');
+    expect(planItem).not.toHaveAttribute('aria-checked');
+    expect(planItem).toHaveTextContent('2/3');
     expect(reviewItem).not.toHaveAttribute('aria-checked');
     expect(screen.queryByText('检查当前会话')).not.toBeInTheDocument();
     const reviewTooltipTrigger = reviewItem.parentElement;
