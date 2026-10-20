@@ -31,6 +31,14 @@ vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceSessionComputeProviders: async () => ['ssh:fixture'],
   setXScienceSessionComputeProvider: mocks.setCompute,
 }));
+vi.mock('@/renderer/services/runtime/computeSessionState', () => ({
+  loadXScienceSessionComputeState: async () => ({
+    enabled: ['ssh:fixture'],
+    configured: true,
+    selectionSource: 'explicit',
+    softwareRuntime: { kind: 'remote_unsupported', providerName: 'ssh:fixture' },
+  }),
+}));
 vi.mock('@/common/adapter/httpBridge', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/common/adapter/httpBridge')>()),
   httpRequest: mocks.httpRequest,

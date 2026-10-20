@@ -5,6 +5,7 @@ import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { XScienceComputeProvider } from '@/renderer/services/xScienceCompute';
 import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
+import type { SessionComputeState } from '@/renderer/services/runtime/computeSessionState';
 import type { MobileActionSheetEntry, MobileActionSheetOption } from '@/renderer/components/chat/MobileActionSheet';
 
 const rowClass =
@@ -23,6 +24,42 @@ export function computeSelectionLabel(
   return t('conversation.xscienceRuntime.sessionOptions.providerCount', { count: selection.length });
 }
 
+function ComputeSoftwarePolicy({
+  state,
+  draft,
+  status,
+}: {
+  state?: SessionComputeState;
+  draft: boolean;
+  status: 'loading' | 'ready' | 'error';
+}) {
+  const { t } = useTranslation();
+  const policy = status === 'ready' ? state?.softwareRuntime : undefined;
+  return (
+    <div data-testid='compute-software-policy' className='px-12px py-8px text-11px leading-16px text-t-secondary'>
+      <div className='font-medium'>{t('conversation.xscienceRuntime.sessionOptions.computePolicy.title')}</div>
+      <div>
+        {draft
+          ? t('conversation.xscienceRuntime.sessionOptions.computePolicy.draft')
+          : policy
+            ? t(`conversation.xscienceRuntime.sessionOptions.computePolicy.${policy.kind}`)
+            : t('conversation.xscienceRuntime.sessionOptions.computeState.unknown')}
+        {policy?.providerName ? <span className='ml-4px'>{policy.providerName}</span> : null}
+      </div>
+      {status === 'ready' && state ? (
+        <div>
+          {t(
+            state.selectionSource === 'inherited'
+              ? 'conversation.xscienceRuntime.sessionOptions.computePolicy.inherited'
+              : 'conversation.xscienceRuntime.sessionOptions.computePolicy.explicit'
+          )}
+        </div>
+      ) : null}
+      <p className='mb-0 mt-4px'>{t('conversation.xscienceRuntime.sessionOptions.computePolicy.scope')}</p>
+    </div>
+  );
+}
+
 /** Presentation only. Both layouts use the same conversation-owned read/mutation control. */
 export default function XScienceComputeChoices({
   providers,
@@ -35,6 +72,8 @@ export default function XScienceComputeChoices({
   selectLocal,
   change,
   manage,
+  state,
+  draft = false,
 }: {
   providers: XScienceComputeProvider[];
   enabled: string[];
@@ -46,12 +85,17 @@ export default function XScienceComputeChoices({
   selectLocal: () => void;
   change: (name: string, checked: boolean) => void;
   manage: () => void;
+  state?: SessionComputeState;
+  draft?: boolean;
 }) {
   const { t } = useTranslation();
   const readOnly = disabled || status !== 'ready';
   const local = hasSelection && enabled.length === 0;
   return (
     <>
+      <div className='px-12px py-6px text-11px font-medium text-t-secondary'>
+        {t('conversation.xscienceRuntime.sessionOptions.computePolicy.enabledResources')}
+      </div>
       {status === 'loading' ? (
         <div role='status' className='flex items-center gap-8px px-8px py-6px text-11px text-t-secondary'>
           <Spin size={14} />
@@ -100,6 +144,7 @@ export default function XScienceComputeChoices({
           {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
         </div>
       ) : null}
+      <ComputeSoftwarePolicy state={state} draft={draft} status={status} />
       <div role='separator' className='mx-12px my-5px h-1px bg-fill-3' />
       <button type='button' role='menuitem' className={`${rowClass} cursor-pointer`} onClick={manage}>
         {t('conversation.xscienceRuntime.sessionOptions.manageCompute')}
@@ -136,7 +181,7 @@ export function buildMobileComputeEntry(control: SessionComputeControl, t: TFunc
     label: t('conversation.xscienceRuntime.sessionOptions.compute'),
     meta: computeSelectionLabel(control.selection, control.providers, t),
     submenu: {
-      title: t('conversation.xscienceRuntime.sessionOptions.compute'),
+      title: t('conversation.xscienceRuntime.sessionOptions.computePolicy.enabledResources'),
       options,
       onSelect: (name) => {
         if (name === '__retry__') {
@@ -151,23 +196,31 @@ export function buildMobileComputeEntry(control: SessionComputeControl, t: TFunc
         if (control.providers.some((provider) => provider.name === name))
           void control.change(name, !control.enabled.includes(name));
       },
-      footer: () =>
-        control.status !== 'ready' ? (
-          <div
-            role={control.status === 'error' ? 'alert' : 'status'}
-            className='px-12px py-8px text-12px text-t-secondary'
-          >
-            {t(
-              control.status === 'error'
-                ? 'conversation.xscienceRuntime.sessionOptions.computeState.read'
-                : 'conversation.xscienceRuntime.sessionOptions.computeState.loading'
-            )}
-          </div>
-        ) : control.providers.length === 0 ? (
-          <div className='px-12px py-8px text-12px text-t-secondary'>
-            {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
-          </div>
-        ) : null,
+      footer: () => (
+        <>
+          {control.status !== 'ready' ? (
+            <div
+              role={control.status === 'error' ? 'alert' : 'status'}
+              className='px-12px py-8px text-12px text-t-secondary'
+            >
+              {t(
+                control.status === 'error'
+                  ? 'conversation.xscienceRuntime.sessionOptions.computeState.read'
+                  : 'conversation.xscienceRuntime.sessionOptions.computeState.loading'
+              )}
+            </div>
+          ) : control.providers.length === 0 ? (
+            <div className='px-12px py-8px text-12px text-t-secondary'>
+              {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
+            </div>
+          ) : null}
+          <ComputeSoftwarePolicy
+            state={control.sessionState}
+            draft={control.rootFrameId === undefined}
+            status={control.status}
+          />
+        </>
+      ),
     },
   };
 }

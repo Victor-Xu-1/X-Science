@@ -646,6 +646,22 @@ vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceSessionComputeProviders: (...args: unknown[]) => loadSessionComputeProvidersMock(...args),
   setXScienceSessionComputeProvider: (...args: unknown[]) => setSessionComputeProviderMock(...args),
 }));
+vi.mock('@/renderer/services/runtime/computeSessionState', () => ({
+  loadXScienceSessionComputeState: async (...args: unknown[]) => {
+    const enabled = (await loadSessionComputeProvidersMock(...args)) as string[];
+    return {
+      enabled,
+      configured: true,
+      selectionSource: 'explicit',
+      softwareRuntime:
+        enabled.length === 0
+          ? { kind: 'local_explicit' }
+          : enabled.length > 1
+            ? { kind: 'invalid_selection' }
+            : { kind: 'remote_unsupported', providerName: enabled[0] },
+    };
+  },
+}));
 vi.mock('@/renderer/utils/emitter', () => ({
   emitter: {
     emit: (...args: unknown[]) => emitterEmitMock(...args),

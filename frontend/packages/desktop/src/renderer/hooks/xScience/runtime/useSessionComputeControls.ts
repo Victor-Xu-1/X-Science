@@ -6,10 +6,13 @@ import { getRendererAccountOwnerId, getRendererAccountScopeToken } from '@/rende
 import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
 import {
   loadXScienceComputeProviders,
-  loadXScienceSessionComputeProviders,
   setXScienceSessionComputeProvider,
   type XScienceComputeProvider,
 } from '@/renderer/services/xScienceCompute';
+import {
+  loadXScienceSessionComputeState,
+  type SessionComputeState,
+} from '@/renderer/services/runtime/computeSessionState';
 
 function computeFailureDiagnostic(error: unknown): { kind: 'http' | 'unknown'; status?: number } {
   if (!isXScienceHttpError(error)) return { kind: 'unknown' };
@@ -37,6 +40,7 @@ export type SessionComputeControl = {
   selection: string[] | undefined;
   status: 'loading' | 'ready' | 'error';
   hasSnapshot: boolean;
+  sessionState?: SessionComputeState;
   pending: string | null;
   disabled: boolean;
   inspect: () => () => void;
@@ -90,6 +94,7 @@ export function useSessionComputeControls({
     hasSnapshot: boolean;
     providers: XScienceComputeProvider[];
     enabled: string[];
+    sessionState?: SessionComputeState;
   } | null>(null);
   const [pending, setPending] = useState<{ owner: typeof owner; provider: string } | null>(null);
   const write = useRef<{ owner: typeof owner; settled: Promise<void> } | null>(null);
@@ -120,6 +125,7 @@ export function useSessionComputeControls({
       hasSnapshot: previous?.owner === owner && previous.hasSnapshot,
       providers: previous?.owner === owner ? previous.providers : [],
       enabled: previous?.owner === owner ? previous.enabled : [],
+      sessionState: previous?.owner === owner ? previous.sessionState : undefined,
     }));
     const pendingWrite = write.current;
     const settled = pendingWrite?.owner === owner ? pendingWrite.settled : Promise.resolve();
@@ -128,18 +134,22 @@ export function useSessionComputeControls({
         if (!valid()) return;
         return Promise.all([
           loadXScienceComputeProviders(),
-          rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(draft.current ?? []),
-        ]);
+          rootFrameId ? loadXScienceSessionComputeState(rootFrameId) : Promise.resolve(null),
+        ] as const);
       })
       .then((snapshot) => {
         if (!snapshot || !valid()) return;
-        const [providers, enabled] = snapshot;
+        const [providers, sessionState] = snapshot;
+        if (rootFrameId && !sessionState) throw new Error('Session compute state is unavailable');
         setView({
           owner,
           status: 'ready',
           hasSnapshot: true,
           providers: providers.filter((provider) => provider.checked && provider.name !== 'local'),
-          enabled: enabled.filter((name) => name !== 'local'),
+          enabled: (rootFrameId ? sessionState!.enabled : (draft.current ?? [])).filter(
+            (name: string) => name !== 'local'
+          ),
+          sessionState: sessionState ?? undefined,
         });
       })
       .catch((error) => {
@@ -151,6 +161,7 @@ export function useSessionComputeControls({
           hasSnapshot: previous?.owner === owner && previous.hasSnapshot,
           providers: previous?.owner === owner ? previous.providers : [],
           enabled: previous?.owner === owner ? previous.enabled : [],
+          sessionState: previous?.owner === owner ? previous.sessionState : undefined,
         }));
         Message.error(translation.current('conversation.xscienceRuntime.sessionOptions.computeState.read'));
       });
@@ -221,6 +232,7 @@ export function useSessionComputeControls({
             : undefined,
     status,
     hasSnapshot,
+    sessionState: hasSnapshot ? owned?.sessionState : undefined,
     pending: pendingProvider,
     disabled,
     inspect,

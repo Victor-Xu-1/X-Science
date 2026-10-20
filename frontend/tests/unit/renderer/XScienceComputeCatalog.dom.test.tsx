@@ -26,6 +26,19 @@ const provider = (name = 'fixture') => ({
 });
 const response = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+// These existing recovery fixtures model explicit persisted resource settings.
+const stateResponse = (enabled: string[]) =>
+  response({
+    enabled,
+    configured: true,
+    selectionSource: 'explicit',
+    softwareRuntime:
+      enabled.length === 0
+        ? { kind: 'local_explicit' }
+        : enabled.length > 1
+          ? { kind: 'invalid_selection' }
+          : { kind: 'remote_unsupported', providerName: enabled[0] },
+  });
 const noMode = async () => undefined;
 function Harness({
   root = 'frame-fixture',
@@ -89,10 +102,51 @@ describe('C394 Compute catalog read state', () => {
     vi.unstubAllGlobals();
   });
 
+  it('C394 state projection separates inherited resource enablement from the Local software runtime policy', async () => {
+    const state = {
+      enabled: ['ssh:fixture'],
+      configured: false,
+      selectionSource: 'inherited',
+      softwareRuntime: { kind: 'local_default' },
+    };
+    api.fetch.mockImplementation(async (url: string) =>
+      response(url === '/api/compute/providers' ? [provider()] : url.endsWith('/state') ? state : state.enabled)
+    );
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Enabled resources')).toBeInTheDocument();
+    expect(screen.getByTestId('compute-software-policy')).toHaveTextContent('Software runtime');
+    expect(screen.getByTestId('compute-software-policy')).toHaveTextContent('Local (default)');
+    expect(api.fetch.mock.calls.filter(([url]) => String(url).endsWith('/state'))).toHaveLength(1);
+    expect(api.fetch.mock.calls.some(([url]) => String(url).endsWith('/enabled'))).toBe(false);
+  });
+
+  it('C394 state projection shows an explicit unsupported remote policy on the real mobile menu without a Local fallback', async () => {
+    const state = {
+      enabled: ['ssh:fixture'],
+      configured: true,
+      selectionSource: 'explicit',
+      softwareRuntime: { kind: 'remote_unsupported', providerName: 'ssh:fixture' },
+    };
+    api.fetch.mockImplementation(async (url: string) =>
+      response(url === '/api/compute/providers' ? [provider()] : url.endsWith('/state') ? state : state.enabled)
+    );
+    await renderWithI18n(<MobileComputeHarness />, 'en-US');
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-compute'));
+    const checkbox = await screen.findByRole('menuitemcheckbox', { name: 'Compute fixture' });
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(checkbox).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByTestId('compute-software-policy')).toHaveTextContent('Remote adapter unavailable');
+    expect(screen.getByTestId('compute-software-policy')).toHaveTextContent('ssh:fixture');
+    expect(api.fetch.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+  });
+
   it('C394 shared compute presents real mobile checkbox state and a plain GET Retry action', async () => {
     api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method === 'PUT') throw new TypeError('synthetic ACK lost');
-      return response(url === '/api/compute/providers' ? [provider()] : ['ssh:fixture']);
+      return url === '/api/compute/providers' ? response([provider()]) : stateResponse(['ssh:fixture']);
     });
     await renderWithI18n(<MobileComputeHarness />, 'en-US');
     fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-compute'));
@@ -131,7 +185,7 @@ describe('C394 Compute catalog read state', () => {
       }
       if (url === '/api/compute/providers') return response([provider()]);
       if (mode === 'read-timeout') return pending(init);
-      return response(stored);
+      return stateResponse(stored);
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -201,7 +255,7 @@ describe('C394 Compute catalog read state', () => {
       api.fetch.mockImplementation(async (url: string) =>
         url === '/api/compute/providers'
           ? response(failed ? { error: 'synthetic catalog failure' } : [provider()], failed ? 503 : 200)
-          : response(['ssh:fixture'])
+          : stateResponse(['ssh:fixture'])
       );
       await renderWithI18n(<Harness />, language as TestLanguage);
       await openCompute();
@@ -216,7 +270,7 @@ describe('C394 Compute catalog read state', () => {
       await waitFor(() => expect(submenu.getByRole('menuitemcheckbox')).toBeEnabled());
       expect(submenu.getByRole('menuitemcheckbox')).toHaveAttribute('aria-checked', 'true');
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-      expect(api.fetch.mock.calls.filter(([url]) => url === '/api/compute/session/frame-fixture/enabled')).toHaveLength(
+      expect(api.fetch.mock.calls.filter(([url]) => url === '/api/compute/session/frame-fixture/state')).toHaveLength(
         2
       );
       expect(api.fetch.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
@@ -240,7 +294,7 @@ describe('C394 Compute catalog read state', () => {
       api.fetch.mockImplementation(async (url: string) => {
         if (url === '/api/compute/providers') return response([provider()]);
         if (failed) throw failure;
-        return response(['ssh:fixture']);
+        return stateResponse(['ssh:fixture']);
       });
       await renderWithI18n(<Harness />, 'en-US');
       await openCompute();
@@ -285,7 +339,7 @@ describe('C394 Compute catalog read state', () => {
           stored = [];
           throw failure;
         }
-        return response(url === '/api/compute/providers' ? [provider()] : stored);
+        return url === '/api/compute/providers' ? response([provider()]) : stateResponse(stored);
       });
       await renderWithI18n(<Harness />, 'en-US');
       await openCompute();
@@ -301,7 +355,7 @@ describe('C394 Compute catalog read state', () => {
       expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'true');
       expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
       expect(
-        api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+        api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/state') && !init?.method)
       ).toHaveLength(2);
       expect(consoleError).toHaveBeenCalledWith('Session compute write outcome could not be confirmed:', {
         kind: 'http',
@@ -320,9 +374,9 @@ describe('C394 Compute catalog read state', () => {
         written = true;
         return new Response(null, { status: 204 });
       }
-      return response(
-        url === '/api/compute/providers' ? [provider(), provider('other')] : [written ? 'ssh:other' : 'ssh:fixture']
-      );
+      return url === '/api/compute/providers'
+        ? response([provider(), provider('other')])
+        : stateResponse([written ? 'ssh:other' : 'ssh:fixture']);
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -331,9 +385,9 @@ describe('C394 Compute catalog read state', () => {
     await waitFor(() => expect(toggle('other')).toHaveAttribute('aria-checked', 'true'));
     expect(toggle()).toHaveAttribute('aria-checked', 'false');
     expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
-    expect(
-      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
-    ).toHaveLength(2);
+    expect(api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/state') && !init?.method)).toHaveLength(
+      2
+    );
   });
 
   it('C394 mutation successful PUT with failed readback freezes its observed snapshot and retries only GET', async () => {
@@ -347,7 +401,7 @@ describe('C394 Compute catalog read state', () => {
       if (url === '/api/compute/providers') return response([provider()]);
       return written && readFailed
         ? response({ error: 'synthetic readback failure' }, 503)
-        : response(written ? [] : ['ssh:fixture']);
+        : stateResponse(written ? [] : ['ssh:fixture']);
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -373,9 +427,9 @@ describe('C394 Compute catalog read state', () => {
         if (url.endsWith('ssh%3Afixture')) throw new TypeError('synthetic first write failed');
         return second;
       }
-      return response(
-        url === '/api/compute/providers' ? [provider(), provider('other')] : ['ssh:fixture', 'ssh:other']
-      );
+      return url === '/api/compute/providers'
+        ? response([provider(), provider('other')])
+        : stateResponse(['ssh:fixture', 'ssh:other']);
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -406,7 +460,7 @@ describe('C394 Compute catalog read state', () => {
         written = true;
         return new Response(null, { status: 204 });
       }
-      return response(url === '/api/compute/providers' ? [provider()] : written ? [] : ['ssh:fixture']);
+      return url === '/api/compute/providers' ? response([provider()]) : stateResponse(written ? [] : ['ssh:fixture']);
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -418,9 +472,9 @@ describe('C394 Compute catalog read state', () => {
     );
     await openCompute();
     expect(toggle()).toBeDisabled();
-    expect(
-      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
-    ).toHaveLength(1);
+    expect(api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/state') && !init?.method)).toHaveLength(
+      1
+    );
     await act(async () => {
       settle(new Response(null, { status: 204 }));
     });
@@ -440,11 +494,9 @@ describe('C394 Compute catalog read state', () => {
       let next = false;
       api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
         if (init?.method === 'PUT') return pending;
-        return response(
-          url === '/api/compute/providers'
-            ? [provider(next ? 'current' : 'fixture')]
-            : [next ? 'ssh:current' : 'ssh:fixture']
-        );
+        return url === '/api/compute/providers'
+          ? response([provider(next ? 'current' : 'fixture')])
+          : stateResponse([next ? 'ssh:current' : 'ssh:fixture']);
       });
       const rendered = await renderWithI18n(<Harness />, 'en-US');
       await openCompute();
@@ -480,7 +532,7 @@ describe('C394 Compute catalog read state', () => {
     });
     api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
       if (init?.method === 'PUT') return pending;
-      return response(url === '/api/compute/providers' ? [provider()] : ['ssh:fixture']);
+      return url === '/api/compute/providers' ? response([provider()]) : stateResponse(['ssh:fixture']);
     });
     const rendered = await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -492,9 +544,9 @@ describe('C394 Compute catalog read state', () => {
     });
     expect(api.error).not.toHaveBeenCalled();
     expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
-    expect(
-      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
-    ).toHaveLength(1);
+    expect(api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/state') && !init?.method)).toHaveLength(
+      1
+    );
   });
 
   it('C394 closed read cannot overwrite a reopened successful snapshot or its next retry', async () => {
@@ -508,7 +560,7 @@ describe('C394 Compute catalog read state', () => {
         batch += 1;
         return Promise.resolve(response([provider(batch === 1 ? 'old' : 'current')]));
       }
-      return batch === 1 ? old : Promise.resolve(response(['ssh:current']));
+      return batch === 1 ? old : Promise.resolve(stateResponse(['ssh:current']));
     });
     await renderWithI18n(<Harness />, 'en-US');
     await openCompute();
@@ -544,7 +596,7 @@ describe('C394 Compute catalog read state', () => {
         return batch === 1
           ? old
           : Promise.resolve(
-              response(failCurrent ? { error: 'current read failure' } : ['ssh:current'], failCurrent ? 503 : 200)
+              failCurrent ? response({ error: 'current read failure' }, 503) : stateResponse(['ssh:current'])
             );
       });
       const rendered = await renderWithI18n(<Harness />, 'en-US');
@@ -562,7 +614,7 @@ describe('C394 Compute catalog read state', () => {
       await openCompute();
       await waitFor(() => expect(toggle('current')).toBeEnabled());
       await act(async () => {
-        settleOld(response(['ssh:old']));
+        settleOld(stateResponse(['ssh:old']));
       });
       expect(toggle('current')).toHaveAttribute('aria-checked', 'true');
       expect(screen.queryByText('Compute old')).not.toBeInTheDocument();
@@ -580,7 +632,7 @@ describe('C394 Compute catalog read state', () => {
       await waitFor(() => expect(toggle('current')).toBeEnabled());
       expect(api.fetch.mock.calls.slice(beforeRetry).map(([url]) => url)).toEqual([
         '/api/compute/providers',
-        `/api/compute/session/${next.root}/enabled`,
+        `/api/compute/session/${next.root}/state`,
       ]);
     }
   );

@@ -226,6 +226,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           />
         ) : (
           <XScienceComputeChoices
+            state={computeControl?.sessionState}
+            draft={!!computeControl && computeControl.rootFrameId === undefined}
             providers={computeControl?.providers ?? []}
             enabled={computeControl?.enabled ?? []}
             status={computeControl?.status ?? 'loading'}

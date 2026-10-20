@@ -1124,6 +1124,19 @@
         "read": "Compute resources could not be loaded. The current selection is not confirmed.",
         "retry": "Retry compute"
       },
+      "computePolicy": {
+        "enabledResources": "Enabled resources",
+        "title": "Software runtime",
+        "local_default": "Local (default)",
+        "local_explicit": "Local (explicit)",
+        "remote_unsupported": "Remote adapter unavailable",
+        "invalid_selection": "Software runtime requires one valid resource",
+        "unavailable": "Selected resource unavailable",
+        "inherited": "Inherited resource settings",
+        "explicit": "Explicit resource settings",
+        "draft": "Draft intent; no session policy observed",
+        "scope": "Resource enablement is not a universal tool permission or target. Local Python/Bash and explicit remote jobs retain their own execution rules."
+      },
       "none": "None",
       "localMachine": "Local",
       "providerCount": "{{count}} providers",

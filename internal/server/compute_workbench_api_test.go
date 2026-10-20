@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,155 @@ import (
 	compute "x-science/internal/compute"
 	workspace "x-science/internal/persistence/workspace"
 )
+
+func TestComputeSessionStateSeparatesEnabledResourcesFromSoftwarePolicy(t *testing.T) {
+	for _, fixture := range []struct {
+		name       string
+		selected   []string
+		configured bool
+		kind       string
+		provider   string
+	}{
+		{name: "untouched", kind: "local_default"},
+		{name: "explicit_empty", configured: true, kind: "local_explicit"},
+		{name: "multiple", selected: []string{"ssh:a", "ssh:b"}, configured: true, kind: "invalid_selection"},
+		{name: "single_ssh", selected: []string{"ssh:a"}, configured: true, kind: "remote_unsupported", provider: "ssh:a"},
+		{name: "single_byoc", selected: []string{"byoc:modal"}, configured: true, kind: "remote_unsupported", provider: "byoc:modal"},
+		{name: "missing_provider", selected: []string{"ssh:missing"}, configured: true, kind: "unavailable"},
+		{name: "foreign_provider", selected: []string{"ssh:foreign"}, configured: true, kind: "unavailable"},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer store.Close()
+			if _, err = store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "owner", Name: "State fixture"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = store.CreateFrame(workspace.CreateFrameInput{ID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+				t.Fatal(err)
+			}
+			for _, name := range []string{"ssh:a", "ssh:b"} {
+				if _, err = store.UpsertSSHProvider(workspace.ComputeProviderInput{Name: name, UserID: "owner"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err = store.UpsertSSHProvider(workspace.ComputeProviderInput{Name: "ssh:foreign", UserID: "other"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = store.SetBYOCEnabled("modal", "owner", fixture.name == "single_byoc"); err != nil {
+				t.Fatal(err)
+			}
+			if fixture.configured {
+				if err = store.SetSessionComputeProvider("owner", "root", "ssh:a", false); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, name := range fixture.selected {
+				if err = store.SetSessionComputeProvider("owner", "root", name, true); err != nil {
+					t.Fatal(err)
+				}
+			}
+			server := New(Options{Workspace: store})
+			mux := http.NewServeMux()
+			server.registerComputeWorkbenchRoutes(mux)
+			oldEnabled := requestJSON(t, mux, http.MethodGet, "/api/compute/session/root/enabled", nil, "owner", http.StatusOK)
+			state := requestJSON(t, mux, http.MethodGet, "/api/compute/session/root/state", nil, "owner", http.StatusOK).(map[string]any)
+			oldBytes, _ := json.Marshal(oldEnabled)
+			newBytes, _ := json.Marshal(state["enabled"])
+			if string(oldBytes) != string(newBytes) {
+				t.Fatalf("legacy enabled=%s state=%s", oldBytes, newBytes)
+			}
+			source := "inherited"
+			if fixture.configured {
+				source = "explicit"
+			}
+			if state["configured"] != fixture.configured || state["selectionSource"] != source {
+				t.Fatalf("state=%#v", state)
+			}
+			policy, ok := state["softwareRuntime"].(map[string]any)
+			if !ok || policy["kind"] != fixture.kind {
+				t.Fatalf("policy=%#v want=%s", policy, fixture.kind)
+			}
+			if fixture.provider != "" {
+				if policy["providerName"] != fixture.provider {
+					t.Fatalf("policy provider=%#v", policy)
+				}
+			} else if _, found := policy["providerName"]; found {
+				t.Fatalf("unexpected provider metadata=%#v", policy)
+			}
+			selected, resolveErr := server.resolveSelectedComputeProvider(context.Background(), "owner", "root")
+			switch fixture.kind {
+			case "local_default", "local_explicit":
+				if resolveErr != nil || selected != localComputeProviderID {
+					t.Fatalf("local resolver=%q err=%v", selected, resolveErr)
+				}
+			case "remote_unsupported":
+				if resolveErr != nil || selected != fixture.provider {
+					t.Fatalf("remote resolver=%q err=%v", selected, resolveErr)
+				}
+				if _, err = softwareRuntimeProviderForComputeSelection(selected); err == nil {
+					t.Fatal("remote selection silently fell back to Local")
+				}
+			default:
+				if resolveErr == nil || selected != "" {
+					t.Fatalf("invalid/unavailable resolved=%q err=%v", selected, resolveErr)
+				}
+			}
+		})
+	}
+}
+
+func TestComputeSessionStateRequiresRealOwnedRootAndPreservesStorageFailure(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "workspace.db")
+	store, err := workspace.Open(databasePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if _, err = store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "owner", Name: "State fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.CreateFrame(workspace.CreateFrameInput{ID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.CreateFrame(workspace.CreateFrameInput{ID: "child", ParentFrameID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	server := New(Options{Workspace: store})
+	mux := http.NewServeMux()
+	server.registerComputeWorkbenchRoutes(mux)
+	for _, key := range []string{"child", "missing", "draft-tab"} {
+		if response := requestCompute(t, mux, http.MethodGet, "/api/compute/session/"+key+"/state", nil, "owner"); response.Code != http.StatusNotFound {
+			t.Fatalf("%s status=%d", key, response.Code)
+		}
+	}
+	if response := requestCompute(t, mux, http.MethodGet, "/api/compute/session/root/state", nil, "other"); response.Code != http.StatusNotFound {
+		t.Fatalf("foreign root status=%d", response.Code)
+	}
+	// Corrupt only a synthetic selection value, preserving the owned root and store lifecycle.
+	if err = store.SetSessionComputeProvider("owner", "root", "ssh:storage-fault", false); err != nil {
+		t.Fatal(err)
+	}
+	faultDB, err := sql.Open("sqlite", databasePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer faultDB.Close()
+	if _, err = faultDB.Exec("UPDATE compute_session_enabled SET checked='not-a-bool' WHERE owner_user_id='owner' AND root_frame_id='root'"); err != nil {
+		t.Fatal(err)
+	}
+	if owned, ownErr := store.ComputeRootOwnedBy("owner", "root"); ownErr != nil || !owned {
+		t.Fatalf("fault invalidated ownership: owned=%v err=%v", owned, ownErr)
+	}
+	if _, _, selectionErr := store.SessionComputeProviderSelection("owner", "root"); selectionErr == nil {
+		t.Fatal("expected a real selection row scan failure")
+	}
+	if response := requestCompute(t, mux, http.MethodGet, "/api/compute/session/root/state", nil, "owner"); response.Code != http.StatusInternalServerError {
+		t.Fatalf("storage failure became default status=%d body=%s", response.Code, response.Body.String())
+	}
+}
 
 func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))

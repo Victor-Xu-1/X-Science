@@ -1124,6 +1124,19 @@
         "read": "无法加载计算资源，当前选择尚未确认。",
         "retry": "重试计算资源"
       },
+      "computePolicy": {
+        "enabledResources": "已启用资源",
+        "title": "软件运行时",
+        "local_default": "本机（默认）",
+        "local_explicit": "本机（明确选择）",
+        "remote_unsupported": "远端适配器尚不可用",
+        "invalid_selection": "软件运行时需要一个有效资源",
+        "unavailable": "所选资源不可用",
+        "inherited": "继承的资源设置",
+        "explicit": "明确指定的资源设置",
+        "draft": "草稿意图，尚未读取会话策略",
+        "scope": "启用资源不代表所有工具的通用权限或执行目标。本机 Python/Bash 与显式远端作业仍遵循各自的执行规则。"
+      },
       "none": "无",
       "localMachine": "本机",
       "providerCount": "{{count}} 个",
