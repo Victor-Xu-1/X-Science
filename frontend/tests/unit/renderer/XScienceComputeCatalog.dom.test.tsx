@@ -75,6 +75,65 @@ describe('C394 Compute catalog read state', () => {
     vi.unstubAllGlobals();
   });
 
+  it('C394 deadline composes with read-only GET retry and an unknown PUT without replay', async () => {
+    let mode: 'ready' | 'read-timeout' | 'write-timeout' = 'ready';
+    let stored = ['ssh:fixture'];
+    const pending = (init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+      });
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        stored = [];
+        return pending(init);
+      }
+      if (url === '/api/compute/providers') return response([provider()]);
+      if (mode === 'read-timeout') return pending(init);
+      return response(stored);
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
+    mode = 'read-timeout';
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
+      fireEvent.mouseEnter(screen.getByTestId('session-config-row-compute'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await screen.findByRole('alert');
+    expect(toggle()).toBeDisabled();
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    mode = 'ready';
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    mode = 'write-timeout';
+    vi.useFakeTimers();
+    try {
+      fireEvent.click(toggle());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(15_000);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await screen.findByRole('alert');
+    expect(toggle()).toBeDisabled();
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+    mode = 'ready';
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'true');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+  });
+
   it('C394 root bridge does not treat an unresolved conversation root as a known Local draft', async () => {
     api.fetch.mockImplementation(async () => response([provider()]));
     await renderWithI18n(<Harness root={null} />, 'en-US');

@@ -36,6 +36,112 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('C394 control deadline', () => {
+  const controls = [
+    { label: 'catalog', call: (fetchImpl: typeof fetch) => loadXScienceComputeProviders(fetchImpl) },
+    {
+      label: 'session',
+      call: (fetchImpl: typeof fetch) => loadXScienceSessionComputeProviders('fixture-root', fetchImpl),
+    },
+    {
+      label: 'selection PUT',
+      call: (fetchImpl: typeof fetch) =>
+        setXScienceSessionComputeProvider('fixture-root', 'ssh:fixture', true, fetchImpl),
+    },
+  ];
+  for (const control of controls) {
+    it.each(['fetch', 'body'] as const)(`${control.label} bounds a pending %s without replay`, async (phase) => {
+      vi.useFakeTimers();
+      let release!: () => void;
+      let outcome: unknown = 'pending';
+      const fetchMock = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
+        const pending = new Promise<Response | string>((resolve, reject) => {
+          release = () => resolve(phase === 'fetch' ? new Response('[]') : '[]');
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+        });
+        return phase === 'fetch'
+          ? (pending as Promise<Response>)
+          : Promise.resolve({ ok: true, status: 200, text: () => pending as Promise<string> } as Response);
+      });
+      const operation = control.call(fetchMock).then(
+        (value) => {
+          outcome = value;
+        },
+        (error: unknown) => {
+          outcome = error;
+        }
+      );
+      try {
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(outcome).toMatchObject({ name: 'TimeoutError' });
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(true);
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        release();
+        await operation;
+        vi.useRealTimers();
+      }
+    });
+    it(`${control.label} cleans a completed request deadline without changing its result`, async () => {
+      vi.useFakeTimers();
+      try {
+        const fetchMock = vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            control.label === 'selection PUT' ? new Response(null, { status: 204 }) : Response.json([])
+          );
+        await expect(control.call(fetchMock)).resolves.toEqual(control.label === 'selection PUT' ? undefined : []);
+        const init = fetchMock.mock.calls[0][1];
+        expect(init).toMatchObject({
+          credentials: 'include',
+          headers: expect.objectContaining({ Accept: 'application/json' }),
+        });
+        expect(init?.signal).toBeInstanceOf(AbortSignal);
+        expect(init?.signal?.aborted).toBe(false);
+        expect(vi.getTimerCount()).toBe(0);
+        await vi.advanceTimersByTimeAsync(16_000);
+        expect(init?.signal?.aborted).toBe(false);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  }
+  it.each(['HTTP', 'invalid JSON'] as const)(
+    'cleans the deadline after %s failure and keeps a safe summary',
+    async (kind) => {
+      vi.useFakeTimers();
+      try {
+        const fetchMock = vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            kind === 'HTTP'
+              ? Response.json({ detail: 'PRIVATE_COMPUTE_DETAIL' }, { status: 503 })
+              : new Response('{PRIVATE_COMPUTE_PARSE_TEXT')
+          );
+        const error = await loadXScienceComputeProviders(fetchMock).catch((failure: unknown) => failure);
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).not.toContain('PRIVATE_COMPUTE');
+        if (kind === 'HTTP')
+          expect(error).toMatchObject({
+            status: 503,
+            backendMessage: 'PRIVATE_COMPUTE_DETAIL',
+            body: { detail: 'PRIVATE_COMPUTE_DETAIL' },
+          });
+        else
+          expect((error as Error).message).toBe('X-Science compute API returned invalid JSON: /api/compute/providers');
+        expect(vi.getTimerCount()).toBe(0);
+        await vi.advanceTimersByTimeAsync(16_000);
+        expect(fetchMock.mock.calls[0][1]?.signal?.aborted).toBe(false);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    }
+  );
+});
+
 describe('compute GET collection boundary', () => {
   const provider = { name: 'ssh:fixture-host', displayName: 'Fixture host', family: 'ssh', checked: true };
   const reads = [
@@ -71,11 +177,20 @@ describe('compute GET collection boundary', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it(`${name} retains the original HTTP status and error detail`, async () => {
+    it(`${name} retains HTTP status and structured detail without leaking it through the summary`, async () => {
       const fetchMock = vi
         .fn<typeof fetch>()
         .mockResolvedValue(Response.json({ detail: 'synthetic unavailable' }, { status: 503 }));
-      await expect(read(fetchMock)).rejects.toMatchObject({ status: 503, message: 'synthetic unavailable' });
+      const request = read(fetchMock);
+      await expect(request).rejects.toMatchObject({
+        status: 503,
+        backendMessage: 'synthetic unavailable',
+        body: { detail: 'synthetic unavailable' },
+      });
+      await request.catch((error: Error) => {
+        expect(error.message).not.toContain('synthetic unavailable');
+        expect(error.message).toContain('failed (503)');
+      });
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
