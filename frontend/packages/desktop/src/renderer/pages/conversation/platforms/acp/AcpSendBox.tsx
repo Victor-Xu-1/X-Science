@@ -30,7 +30,6 @@ import { useAcpModelInfo } from '@/renderer/hooks/xScience/runtime/useAcpModelIn
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import type { FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { retireStagedMemory as withoutStagedMemory } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
@@ -53,7 +52,6 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import type { TerminalFailureRollback } from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
-import { getRendererAccountOwnerId } from '@/renderer/services/rendererAccountScope';
 import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import {
   getSelectedXScienceBranch,
@@ -81,9 +79,8 @@ import { applyStagedDraft, makeDraftRestoreIssueNotifier, type StagedDraftPayloa
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import { useAcpSendBoxDraftController } from './useAcpSendBoxDraftController';
 import { useAcpMobileActionSheetController } from './useAcpMobileActionSheetController';
-import { useAcpSessionOptionControls } from './useAcpSessionOptionControls';
+import { useAcpComposerSessionOptions, useAcpSessionOptionControls } from './useAcpSessionOptionControls';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
-import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import { useAcpPlanPresentation } from './useAcpPlanPresentation';
@@ -205,53 +202,21 @@ const AcpSendBox: React.FC<{
     isXScienceConversation
   );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
-  const frameProjection =
+  const frameIncarnationId =
     initialConversation?.type === 'acp' && initialConversation.id === conversation_id
-      ? initialConversation.extra
+      ? initialConversation.extra.frame_incarnation_id
       : undefined;
-  const frameIncarnationId = frameProjection?.frame_incarnation_id;
-  const projectedMemoryRoot =
-    ownerId === getRendererAccountOwnerId() && frameIncarnationId ? frameProjection?.root_frame_id : undefined;
-  const retireStagedMemory = useCallback(() => {
-    // A user mutation is new intent even if readback retains the same value.
-    // Background observations must not retire the captured retry authority.
-    directCommandRetryRef.current = null;
-    const staged = stagedSessionOptionsRef.current;
-    if (!staged || staged.memory === undefined) return;
-    const remaining = withoutStagedMemory(staged);
-    stagedSessionOptionsRef.current = remaining;
-    setStagedSessionOptions(remaining);
-  }, [setStagedSessionOptions]);
   const {
     options: xscienceSessionOptions,
     setOptions: setXScienceSessionOptions,
     loadState: sessionOptionsLoad,
     memory: sessionMemory,
-  } = useXScienceSessionOptionsState(conversation_id, agent_name, {
-    ownerId,
-    frameIncarnationId,
-    expectedRootFrameId: projectedMemoryRoot,
-    projectId: projectedMemoryRoot ? frameProjection?.project_id : undefined,
-    onMutationStarted: retireStagedMemory,
+    applyStagedSessionOptions,
+  } = useAcpComposerSessionOptions(conversation_id, agent_name, initialConversation, ownerId, frameIncarnationId, {
+    stagedSessionOptionsRef,
+    setStagedSessionOptions,
+    directCommandRetryRef,
   });
-  const applyStagedSessionOptions = useCallback(() => {
-    const staged = stagedSessionOptionsRef.current;
-    if (!staged) return;
-    setXScienceSessionOptions((current) => ({
-      ...current,
-      delegation: staged.delegation,
-      autoReview: staged.autoReview,
-    }));
-  }, [setXScienceSessionOptions]);
-  // The runtime session-options load resolves asynchronously for a fresh
-  // conversation; replay the staged selection once it settles so the loaded
-  // defaults cannot silently replace the requesting page's choices.
-  useEffect(() => {
-    if (sessionOptionsLoad.conversationId !== conversation_id) return;
-    if (sessionOptionsLoad.status === 'ready' || sessionOptionsLoad.status === 'retrying') {
-      applyStagedSessionOptions();
-    }
-  }, [applyStagedSessionOptions, sessionOptionsLoad]);
   const [reviewInFlight, setReviewInFlight] = useState(false);
   const [reviewActive, setReviewActive] = useState(false);
   const {

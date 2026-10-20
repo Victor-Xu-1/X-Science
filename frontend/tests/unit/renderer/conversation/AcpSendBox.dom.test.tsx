@@ -2152,6 +2152,45 @@ describe('AcpSendBox', () => {
     }
   });
 
+  it.each(['ready', 'retrying'] as const)(
+    'Memory406 R4 preserves staged replay after %s legacy hydration without overriding observed Memory',
+    async (status) => {
+      realMemoryAuthority.current = true;
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: false });
+      if (status === 'retrying')
+        loadSessionOptionsMock.mockRejectedValue(new Error('synthetic legacy hydration failure'));
+      memoryRetryDraft.initial = { delegation: true, autoReview: true, memory: true, targetAgent: 'OPERON' };
+      sendMessageInvokeMock.mockReset().mockResolvedValueOnce({
+        msg_id: 'memory-staged-replay',
+        turn_id: 'memory-staged-replay',
+        runtime: { state: 'running', is_processing: true },
+      });
+      const view = await render(
+        <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+      );
+      try {
+        await waitFor(() =>
+          expect(sessionOptionsProps.current?.value).toMatchObject({
+            delegation: true,
+            autoReview: true,
+            memory: false,
+          })
+        );
+        expect(sessionOptionsProps.current?.disabled).toBe(status === 'retrying');
+        fireEvent.click(screen.getByRole('button', { name: 'send' }));
+        await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+        expect(sendMessageInvokeMock.mock.calls[0][0].session_options).toMatchObject({
+          verifier_mode: 'on',
+          memory_mode: 'on',
+        });
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
   it('keeps the core composer available and retries when optional session settings fail', async () => {
     loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: true });
     vi.useFakeTimers();
