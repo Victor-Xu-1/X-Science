@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b793f53e94116ade4e64c8b6f875e608ccbaa59d04fbee836828932c99e5e110",
+  "adaptationFingerprintSHA256": "e04676ead73c810f39a06a9c510fbbf62b6014378533d2258b7b3b95e343e1ae",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "407bd083dc4b5683cd766bd8a193f75bdcca65555b2328680b41218b004013be",
+  "additionFingerprintSHA256": "e6746169af929d0ba48070c05932c2775adef97401d759a7501b7e54c335f691",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "c9dd61a392951370cce8090d3584bcce17446889ece0e59ea99d11d7f70b2190",
-      "bytes": 196903,
+      "targetSHA256": "8ec2b18febc3f7d8e3527b163b1d41c36ab77233bcfef481422311ca4bae533c",
+      "bytes": 197196,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -12669,8 +12669,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSessionMemoryAvailability.dom.test.tsx",
-      "sha256": "ded60dd1ac5bc60bf712aed27c3cd42bb55c484950f84d85b6698481d36770a0",
-      "bytes": 28078,
+      "sha256": "5f185330957b616e63acf6445e290932bb6326328f415dad3c2000eb458b5ccc",
+      "bytes": 28103,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

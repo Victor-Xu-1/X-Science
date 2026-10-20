@@ -1948,7 +1948,11 @@ describe('AcpSendBox', () => {
         expect(await screen.findByLabelText('本会话已授权 1 项')).toHaveTextContent('1');
         expect(screen.queryByTestId('x-science-permission-selector')).not.toBeInTheDocument();
         fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
-        expect(await screen.findByRole('menuitemcheckbox', { name: '自动审阅' })).toBeDisabled();
+        const review = await screen.findByRole('menuitemcheckbox', { name: '自动审阅' });
+        await waitFor(() => expect(review).toBeEnabled());
+        expect(loadSessionReviewMock.mock.calls.some(([id]) => id === sessionGrantIdentity.frameId)).toBe(true);
+        expect(review).toHaveAttribute('aria-checked', 'false');
+        expect(updateSessionConfigMock).not.toHaveBeenCalled();
       }
       expect(grantReads()).toHaveLength(1);
       fireEvent.click(await screen.findByRole('button', { name: '撤销本会话对 Python execution 的授权' }));

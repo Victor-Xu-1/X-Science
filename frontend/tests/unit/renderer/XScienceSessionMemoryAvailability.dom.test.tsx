@@ -119,7 +119,7 @@ function SharedComposerHarness({
           onChange={setValue}
           memoryControl={memoryControl}
           autoReviewControl={sessionReview}
-          autoReviewDisabled={false}
+          autoReviewDisabled={!sessionReview && !legacyReady}
           computeControl={computeControl}
           disabled={!legacyReady}
           memoryDisabled={false}
