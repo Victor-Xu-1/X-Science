@@ -155,6 +155,22 @@ inventory, start from the integrated revision, and verify fresh SQLite creation,
 foreign-key integrity, API health, browser navigation, task execution, restart,
 and a post-restart lifecycle sweep. Source files are never part of that reset.
 
+## Preparation failure presentation
+
+The trusted runner preparation boundary attaches a private, cause-preserving
+identity only to otherwise generic preparation errors. The public terminal
+reason is `runner_history_preparation_failed` for the trusted history replay,
+history preparation and context replay stages, or `runner_preparation_failed`
+for other preparation stages. Stage identity is not inferred from diagnostic
+text; a history-preparation failure does not prove compaction occurred.
+
+Both reasons use fixed localized explanations through the existing settlement,
+live/history sanitizer and task-status/detail surfaces. Private errors, paths
+and credentials are not interpolated into that copy. Existing cancellation,
+deadline, correction, provider and timeout priorities remain unchanged; these
+identities grant no new retry, automatic recovery or permission. Older terminal
+records are not reclassified or backfilled.
+
 ## Context usage projection
 
 The composer reads `GET /api/conversations/{id}/context-usage` through the

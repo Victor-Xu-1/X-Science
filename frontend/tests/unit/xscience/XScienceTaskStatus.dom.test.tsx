@@ -73,6 +73,56 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it.each([
+    [
+      'runner_history_preparation_failed',
+      'en-US',
+      'Conversation history preparation failed',
+      'Conversation history could not be prepared for this run.',
+    ],
+    ['runner_history_preparation_failed', 'zh-CN', '对话历史准备失败', '本次运行未能完成对话历史准备。'],
+    ['runner_preparation_failed', 'en-US', 'Task preparation failed', 'Task preparation did not finish.'],
+    ['runner_preparation_failed', 'zh-CN', '任务准备失败', '任务准备未完成。'],
+  ] as const)('430 renders safe preparation %s in %s', async (reason, language, label, detail) => {
+    const onResume = vi.fn();
+    await renderWithI18n(
+      <XScienceTaskStatus
+        {...defaultProps}
+        snapshot={snapshot('failed', {
+          failureReason: reason,
+          error: 'PRIVATE_PREPARATION_SECRET /private/path?token=secret',
+          statusDescription: 'history_compaction PRIVATE_DESCRIPTION',
+        })}
+        onResume={onResume}
+      />,
+      language
+    );
+    expect(screen.getByTestId('x-science-task-failure-reason')).toHaveTextContent(label);
+    fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+    expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent(detail);
+    expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent(
+      language === 'en-US' ? 'Existing progress and results were preserved' : '已有进度和结果已保留'
+    );
+    expect(document.body).not.toHaveTextContent(/PRIVATE_|history_compaction|token=secret/);
+    expect(onResume).not.toHaveBeenCalled();
+  });
+
+  it('430 leaves an untyped historical failure generic rather than guessing a preparation stage', async () => {
+    await renderWithI18n(
+      <XScienceTaskStatus
+        {...defaultProps}
+        snapshot={snapshot('failed', {
+          failureReason: 'runner_execution_failed',
+          error: 'history_replay runner_history_preparation_failed PRIVATE_PREPARATION_SECRET',
+        })}
+      />,
+      'en-US'
+    );
+    fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+    expect(screen.getByTestId('x-science-task-center-failure-detail')).toHaveTextContent('Task failed');
+    expect(document.body).not.toHaveTextContent(/Conversation history preparation failed|PRIVATE_PREPARATION_SECRET/);
+  });
+
   it.each(['en-US', 'zh-CN'] as const)(
     '443 explains stopped manual review safely without failing or retrying the completed task in %s',
     async (language) => {

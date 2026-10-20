@@ -157,6 +157,8 @@ const failureReasonKeys: Record<string, string> = {
   runner_stop_hook_failed: 'conversation.xscienceRuntime.runtimeOperations.failureFinalization',
   runner_cleanup_failed: 'conversation.xscienceRuntime.runtimeOperations.failureCleanup',
   runner_response_persistence_failed: 'conversation.xscienceRuntime.runtimeOperations.failurePersistence',
+  runner_history_preparation_failed: 'conversation.xscienceRuntime.runtimeOperations.failureHistoryPreparation',
+  runner_preparation_failed: 'conversation.xscienceRuntime.runtimeOperations.failurePreparation',
 };
 
 const reviewStopKeys: Record<XScienceReviewStopReason, string> = {
@@ -291,9 +293,19 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   // logic, but are not user-facing copy. The capsule presents the closed,
   // localized failure category from the authoritative runtime projection.
   const presentationFailure = snapshot?.failureReason === 'response_language_mismatch';
+  const preparationDetailKey =
+    snapshot?.status === 'failed'
+      ? snapshot.failureReason === 'runner_history_preparation_failed'
+        ? 'conversation.xscienceRuntime.runtimeOperations.failureHistoryPreparationDetail'
+        : snapshot.failureReason === 'runner_preparation_failed'
+          ? 'conversation.xscienceRuntime.runtimeOperations.failurePreparationDetail'
+          : null
+      : null;
   const failureDetailSource = presentationFailure
     ? t('conversation.xscienceRuntime.runtimeOperations.failurePresentationDetail')
-    : (guidedFailureDetail ?? publicFailureLabel);
+    : preparationDetailKey
+      ? t(preparationDetailKey)
+      : (guidedFailureDetail ?? publicFailureLabel);
   const failureDetail = failureDetailSource ? redactErrorText(failureDetailSource).trim().slice(0, 500) || null : null;
   const unsupported = Boolean(snapshot && projected && !projected.ok);
   const busy = loading && !snapshot;
