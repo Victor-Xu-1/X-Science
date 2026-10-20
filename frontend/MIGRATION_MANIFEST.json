@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "007e9e8f0b224f34d82800d83c4ac3396adf6dd0611941101282d3e05c1166a2",
+  "adaptationFingerprintSHA256": "196464e0d276addb5ed0e862815e28e3c2954ab005a7232de945e8c7de1cd2aa",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1901922c4e17461a38e20c2159809f3c5e991e4505d43c416ad6fde664f8f5c3",
+  "additionFingerprintSHA256": "8c2e838caa5a2cd1ded897f9dc960ba9abd6b36c8a43fe610846e746401715a4",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -3169,8 +3169,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceCompute.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedCompute.ts",
       "sourceSHA256": "aa7268d47ba256aec5146ff8986ee1423771bc3a3d4dc7d99fffa0c233fcb74f",
-      "targetSHA256": "6a351e3f46232001e9b9b90b9a26af6674aafe6a99f0000b021d0f960198243e",
-      "bytes": 32011,
+      "targetSHA256": "fc662c9849a88fb45c65093c7bab2ea66941a33d690540be2d130daeaf47b973",
+      "bytes": 32744,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -5021,8 +5021,8 @@
       "path": "tests/unit/renderer/xScienceCompute.dom.test.ts",
       "originalPath": "tests/unit/renderer/synonBiomedCompute.dom.test.ts",
       "sourceSHA256": "7c5437924bdee7aea91671097da683679d887a00d2f3fd443fba1f95ce273fe4",
-      "targetSHA256": "ea4aef2c779494817a08161f49a6797509d9a019d1518ab8065404db1c200f14",
-      "bytes": 23921,
+      "targetSHA256": "a15d3e7495f753bb7e775cf759a4fa41d83003c1b01ab37addd849de8e62e331",
+      "bytes": 28487,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -12621,8 +12621,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceComputeCatalog.dom.test.tsx",
-      "sha256": "0efa1d6f657011dea222759cafb0eb05ee48aec098dde135dbec31e4bfc46989",
-      "bytes": 21436,
+      "sha256": "c9f3fde3a69090a94d02e0ee8a4ee714b29e9709c5c262c60086c1182c48d528",
+      "bytes": 23942,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
