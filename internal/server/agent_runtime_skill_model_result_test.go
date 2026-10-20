@@ -33,6 +33,57 @@ func TestAgentRuntimeSkillModelResultUsesOneReadableContract(t *testing.T) {
 	}
 }
 
+func TestSkillModelProjectionPreservesSourceAndRenderedHashes(t *testing.T) {
+	const source = "source-contract-opaque-digest"
+	const rendered = "rendered-prompt-different-digest"
+	const body = "Execute this current contract once."
+	payload := map[string]any{
+		"skill":  map[string]any{"name": "analysis-workflow", "source_body_hash": source, "body_hash": rendered},
+		"prompt": body, "data": map[string]any{"loaded": true, "executed": false},
+	}
+	projected := agentRuntimeSkillModelResult(payload).(string)
+	header := strings.SplitN(projected, "\n", 2)[0]
+	for _, field := range []string{`source_body_hash="` + source + `"`, `body_hash="` + rendered + `"`} {
+		if !strings.Contains(header, field) {
+			t.Errorf("current receipt lost distinct producer hash %q: %q", field, header)
+		}
+	}
+	if strings.Count(projected, body) != 1 {
+		t.Fatalf("projection duplicated the authoritative contract: %q", projected)
+	}
+	legacy := agentRuntimeLegacySkillModelResult(projected).(string)
+	compacted := compactProviderVisibleSkillResultBodies([]chatCompletionMessage{{Role: "tool", Content: projected}})[0].Content
+	for label, receipt := range map[string]string{"legacy": legacy, "compacted": compacted} {
+		if !strings.Contains(receipt, `source_body_hash="`+source+`"`) || !strings.Contains(receipt, `body_hash="`+rendered+`"`) || strings.Contains(receipt, body) {
+			t.Errorf("%s lost hash facts or replayed old body: %q", label, receipt)
+		}
+		if name, found := providerSkillResultName(receipt); !found || name != "analysis-workflow" {
+			t.Errorf("%s receipt lost its existing parsed identity: %q", label, receipt)
+		}
+	}
+}
+
+func TestSkillModelProjectionOmitsInvalidHashMetadata(t *testing.T) {
+	for _, value := range []any{nil, 42, true, []string{"digest"}, "", "   ", strings.Repeat("x", 129)} {
+		projected := agentRuntimeSkillModelResult(map[string]any{
+			"skill":  map[string]any{"name": "analysis-workflow", "source_body_hash": value, "body_hash": value},
+			"prompt": "Contract",
+		}).(string)
+		header := strings.SplitN(projected, "\n", 2)[0]
+		if strings.Contains(header, "body_hash=") {
+			t.Errorf("invalid hash value became a fact: %q", header)
+		}
+	}
+	projected := agentRuntimeSkillModelResult(map[string]any{
+		"skill":  map[string]any{"name": "analysis-workflow", "source_body_hash": `opaque-"quoted"`, "body_hash": 42},
+		"prompt": "Contract",
+	}).(string)
+	header := strings.SplitN(projected, "\n", 2)[0]
+	if !strings.Contains(header, `source_body_hash="opaque-\"quoted\""`) || strings.Contains(header, ` body_hash=`) || strings.Count(header, "\n") != 0 {
+		t.Fatalf("typed sibling or safe quoting was lost: %q", header)
+	}
+}
+
 func TestProviderVisibleSkillResultsBecomeReceiptsForSystemContext(t *testing.T) {
 	messages := []chatCompletionMessage{
 		{Role: "system", Content: "system"},

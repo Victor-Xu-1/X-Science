@@ -62,6 +62,7 @@ func TestSkillLoadReceiptSurvivesRealLargeResultStorage(t *testing.T) {
 	fixture.server.skillCatalog.AddSkill(skills.Skill{
 		Name: "analysis-workflow", Path: "builtin:analysis-workflow",
 		Description: "Load an analysis contract", Body: strings.Repeat("Contract detail.\n", 1400),
+		BodyHash: "opaque-source-contract-hash",
 	})
 	payload, err := fixture.server.executeSkillToolWithRuntimeSkillsAndPolicy(
 		ctx, map[string]any{"skill": "analysis-workflow"}, nil, runtimeSkillPolicyAuthority{}, nil,
@@ -74,6 +75,12 @@ func TestSkillLoadReceiptSurvivesRealLargeResultStorage(t *testing.T) {
 		t.Fatalf("loader did not produce the expected receipt: %#v", data)
 	}
 	projected := agentRuntimeSkillModelResult(payload)
+	skill := mapValue(mapValue(payload)["skill"])
+	sourceHash := stringValue(skill["source_body_hash"])
+	renderedHash := stringValue(skill["body_hash"])
+	if sourceHash != "opaque-source-contract-hash" || renderedHash != serverStringHash(stringValue(mapValue(payload)["prompt"])) || sourceHash == renderedHash {
+		t.Fatalf("producer hash meanings are not distinct: %#v", skill)
+	}
 	raw, err := json.Marshal(projected)
 	if err != nil {
 		t.Fatal(err)
@@ -99,6 +106,11 @@ func TestSkillLoadReceiptSurvivesRealLargeResultStorage(t *testing.T) {
 	if !strings.Contains(preview, `loaded="true" executed="false"`) {
 		t.Fatalf("externalization hid the load-only receipt: %s", descriptor.Preview)
 	}
+	for _, field := range []string{`source_body_hash="` + sourceHash + `"`, `body_hash="` + renderedHash + `"`} {
+		if !strings.Contains(preview, field) {
+			t.Errorf("immutable leading preview lost hash fact %q: %s", field, descriptor.Preview)
+		}
+	}
 	if !bytes.HasPrefix(raw, []byte(descriptor.Preview)) {
 		if err := (runnerLargeToolResultAuthority{}).ValidatePreview(ctx, agentruntime.LargeToolResultInput{
 			ToolCall: call, RawJSON: raw, Outcome: agentruntime.ToolResultSucceeded, MaxInlineBytes: engine.MaxToolResultBytes,
@@ -113,5 +125,8 @@ func TestSkillLoadReceiptSurvivesRealLargeResultStorage(t *testing.T) {
 	}
 	if !strings.Contains(replayed, "loaded") || !strings.Contains(replayed, "executed") {
 		t.Fatalf("replay lost load-only receipt: %s", replayed)
+	}
+	if !strings.Contains(replayed, sourceHash) || !strings.Contains(replayed, renderedHash) {
+		t.Errorf("large-result replay lost distinct hash facts: %s", replayed)
 	}
 }
