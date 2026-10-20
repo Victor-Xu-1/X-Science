@@ -8,6 +8,7 @@ import {
 import {
   toXScienceMessageSessionOptions,
   type XScienceSessionOptions,
+  type XScienceSessionMemoryControl,
 } from '@/renderer/services/xScienceSessionOptions';
 import type { CommandExecutionAuthority } from './acpCommandExecutionTypes';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
@@ -21,7 +22,8 @@ export function useAcpCommandAuthority(
   stagedSessionOptionsRef: RefObject<StagedSessionOptions | null>,
   stagedPlanModeRef: RefObject<boolean>,
   delegationControl?: XScienceDelegationControl,
-  specialistControl?: XScienceSpecialistControl
+  specialistControl?: XScienceSpecialistControl,
+  sessionMemory?: XScienceSessionMemoryControl
 ) {
   return useCallback(
     async (
@@ -30,7 +32,11 @@ export function useAcpCommandAuthority(
       requireBranch = false,
       capturedSpecialist?: SpecialistSendAuthority
     ): Promise<CommandExecutionAuthority> => {
+      if (includeStaged && sessionMemory && !sessionMemory.current()) throw new Error('session_memory_owner_changed');
       const selectedBranchId = getSelectedXScienceBranch(conversation_id);
+      // Capture before branch loading yields. Exact retries reuse the captured authority.
+      const stagedMemory = includeStaged ? stagedSessionOptionsRef.current?.memory : undefined;
+      const memory = includeStaged && sessionMemory ? (stagedMemory ?? sessionMemory.capture()) : undefined;
       const specialist = includeStaged
         ? (capturedSpecialist ?? specialistControl?.capture(selectedBranchId))
         : undefined;
@@ -38,6 +44,7 @@ export function useAcpCommandAuthority(
       const branchState =
         selectedBranchId || requireBranch ? await loadXScienceConversationBranches(conversation_id) : null;
       const targetBranchId = selectedBranchId ?? (requireBranch ? (branchState?.activeBranchId ?? null) : null);
+      if (includeStaged && sessionMemory && !sessionMemory.current()) throw new Error('session_memory_owner_changed');
       if (
         (selectedBranchId || requireBranch) &&
         (getXScienceBranchSelectionRevision(conversation_id) !== targetBranchRevision ||
@@ -56,13 +63,16 @@ export function useAcpCommandAuthority(
               ...xscienceSessionOptions,
               delegation: stagedSessionOptionsRef.current.delegation,
               autoReview: stagedSessionOptionsRef.current.autoReview,
-              memory: stagedSessionOptionsRef.current.memory,
+              ...(stagedSessionOptionsRef.current.memory === undefined
+                ? {}
+                : { memory: stagedSessionOptionsRef.current.memory }),
             }
           : xscienceSessionOptions;
       return {
         targetBranchId,
         targetBranchRevision,
         sessionOptions: toXScienceMessageSessionOptions(effectiveSessionOptions, {
+          ...(memory === undefined ? {} : { memory }),
           ...(delegationControl
             ? { delegation: delegationControl.current() ? (delegationControl.enabled ?? null) : null }
             : {}),
@@ -82,6 +92,7 @@ export function useAcpCommandAuthority(
       stagedPlanModeRef,
       delegationControl,
       specialistControl,
+      sessionMemory,
     ]
   );
 }

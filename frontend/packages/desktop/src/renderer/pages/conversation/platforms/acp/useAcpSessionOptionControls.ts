@@ -5,7 +5,11 @@ import type { TChatConversation } from '@/common/config/storage';
 import { useXScienceMemoryAvailability } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import { useSessionDelegationPolicy } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import { useSessionSpecialist } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
-import { updateXScienceSessionConfig, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
+import {
+  updateXScienceSessionConfig,
+  type XScienceSessionOptions,
+  type XScienceSessionMemoryControl,
+} from '@/renderer/services/xScienceSessionOptions';
 import { safeErrorDiagnostic } from './acpSendBoxDiagnostics';
 
 type ConversationOwner = { conversationId: string; ownerId: string };
@@ -17,13 +21,30 @@ export function useAcpSessionOptionControls(
   authority: RefObject<ConversationOwner>,
   mounted: RefObject<boolean>,
   setOptions: Dispatch<SetStateAction<XScienceSessionOptions>>,
-  setMobileOpen: (open: boolean) => void
+  setMobileOpen: (open: boolean) => void,
+  sessionMemory?: XScienceSessionMemoryControl,
+  stagedMemory?: boolean
 ) {
   const ownerId = authority.current.ownerId;
   const extra = conversation?.type === 'acp' && conversation.id === conversationId ? conversation.extra : undefined;
-  const memoryControl = useXScienceMemoryAvailability(
+  const availabilityControl = useXScienceMemoryAvailability(
     JSON.stringify([ownerId, conversationId, extra?.frame_incarnation_id])
   );
+  const refreshGlobalMemory = availabilityControl.refresh;
+  const refreshSessionMemory = sessionMemory?.refresh;
+  const refreshMemory = useCallback(() => {
+    refreshGlobalMemory();
+    refreshSessionMemory?.();
+  }, [refreshGlobalMemory, refreshSessionMemory]);
+  const memoryControl = {
+    ...availabilityControl,
+    preference: sessionMemory,
+    stagedMemory,
+    refresh: refreshMemory,
+    canUpdate: () =>
+      availabilityControl.canUpdate() &&
+      (!sessionMemory || (sessionMemory.current() && sessionMemory.status === 'ready')),
+  };
   const delegationControl = useSessionDelegationPolicy(ownerId, conversationId, extra);
   const specialistControl = useSessionSpecialist(ownerId, conversationId, extra);
   const { t } = useTranslation();
@@ -33,6 +54,7 @@ export function useAcpSessionOptionControls(
     async (key: 'autoReview' | 'memory', value: boolean) => {
       const requestOwner = authority.current;
       if (key === 'memory' && !memoryControl.canUpdate()) return;
+      if (key === 'memory' && sessionMemory) return sessionMemory.update(value);
       try {
         await updateXScienceSessionConfig(conversationId, { [key]: value });
       } catch (error) {
@@ -42,7 +64,7 @@ export function useAcpSessionOptionControls(
       if (!mounted.current || authority.current !== requestOwner || !memoryControl.current()) return;
       setOptions((current) => ({ ...current, [key]: value }));
     },
-    [authority, conversationId, memoryControl, mounted, setOptions]
+    [authority, conversationId, memoryControl, mounted, setOptions, sessionMemory]
   );
   const openMobileControls = () => {
     memoryControl.refresh();

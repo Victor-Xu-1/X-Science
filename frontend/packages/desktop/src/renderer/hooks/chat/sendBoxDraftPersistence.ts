@@ -24,9 +24,15 @@ const MAX_CONVERSATION_ID_LENGTH = 512;
 export type StagedSessionOptions = {
   delegation: boolean;
   autoReview: boolean;
-  memory: boolean;
+  memory?: boolean;
   targetAgent: string;
 };
+
+/** Retire only the explicit Memory intent; other staged options remain durable. */
+export function retireStagedMemory(options: StagedSessionOptions): StagedSessionOptions {
+  const { memory: _retired, ...remaining } = options;
+  return remaining;
+}
 
 export type AcpSendBoxDraft = {
   specialistQueuedAuthority?: SpecialistSendAuthority;
@@ -223,13 +229,15 @@ function normalizeStagedSessionOptions(value: unknown): { stagedSessionOptions?:
   if (
     typeof delegation !== 'boolean' ||
     typeof autoReview !== 'boolean' ||
-    typeof memory !== 'boolean' ||
+    (memory !== undefined && typeof memory !== 'boolean') ||
     typeof targetAgent !== 'string' ||
     targetAgent.length > 256
   ) {
     return {};
   }
-  return { stagedSessionOptions: { delegation, autoReview, memory, targetAgent } };
+  return {
+    stagedSessionOptions: { delegation, autoReview, ...(typeof memory === 'boolean' ? { memory } : {}), targetAgent },
+  };
 }
 
 function normalizeAtPath(value: unknown): Array<string | FileOrFolderItem> | null {

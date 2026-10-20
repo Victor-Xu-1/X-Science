@@ -94,6 +94,8 @@ const resumeFrameMock = vi.fn();
 const requestFrameAuditMock = vi.fn();
 const notifyRuntimeInvalidationMock = vi.fn();
 const loadSessionOptionsMock = vi.fn();
+const loadSessionMemoryMock = vi.fn();
+const realMemoryAuthority = { current: false };
 const updateSessionConfigMock = vi.fn();
 const loadAssistantsMock = vi.fn();
 const saveConversationAsSkillMock = vi.fn();
@@ -599,10 +601,11 @@ vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
       asRoutine: false,
     }),
     loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
+    loadXScienceSessionMemoryPreference: (...args: unknown[]) => loadSessionMemoryMock(...args),
     toXScienceMessageSessionOptions: (
       ...[value, overrides]: Parameters<typeof actual.toXScienceMessageSessionOptions>
     ) =>
-      specialistAsideFixture.active
+      specialistAsideFixture.active || realMemoryAuthority.current
         ? actual.toXScienceMessageSessionOptions(value, overrides)
         : {
             ...value,
@@ -1142,6 +1145,8 @@ describe('AcpSendBox', () => {
       asRoutine: false,
     };
     loadSessionOptionsMock.mockReturnValue(defaultSessionOptions.promise);
+    realMemoryAuthority.current = false;
+    loadSessionMemoryMock.mockImplementation(async (id: string) => ({ rootFrameId: id, memory: false }));
     settleDefaultSessionOptions = async () => {
       defaultSessionOptions.resolve(defaultSessionOptionsValue);
       await defaultSessionOptions.promise;
@@ -1995,7 +2000,26 @@ describe('AcpSendBox', () => {
     expect(screen.queryByRole('alert', { name: '运行状态不可用' })).not.toBeInTheDocument();
   });
 
+  it('Memory406 keeps ordinary Send available with unknown Memory and omits a stale override', async () => {
+    realMemoryAuthority.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    loadSessionMemoryMock.mockRejectedValue(new Error('synthetic preference unavailable'));
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      expect(screen.getByRole('button', { name: 'send' })).toBeEnabled();
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0].session_options).not.toHaveProperty('memory_mode');
+    } finally {
+      view.unmount();
+    }
+  });
+
   it('keeps the core composer available and retries when optional session settings fail', async () => {
+    loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: true });
     vi.useFakeTimers();
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
@@ -2033,6 +2057,7 @@ describe('AcpSendBox', () => {
   });
 
   it('does not apply stale session options after switching conversations', async () => {
+    loadSessionMemoryMock.mockImplementation(async (id: string) => ({ rootFrameId: id, memory: id === 'conv-2' }));
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
     const stale = createDeferred<Record<string, unknown>>();

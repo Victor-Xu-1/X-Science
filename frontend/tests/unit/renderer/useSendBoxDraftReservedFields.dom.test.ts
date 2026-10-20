@@ -1,7 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { getSendBoxDraftHook } from '@/renderer/hooks/chat/useSendBoxDraft';
-import { clearSendBoxDraft, loadSendBoxDraft, saveSendBoxDraft } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
+import {
+  clearSendBoxDraft,
+  loadSendBoxDraft,
+  saveSendBoxDraft,
+  retireStagedMemory,
+  sendBoxDraftStorageKey,
+} from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 
 const initial = { _type: 'acp' as const, content: '', atPath: [], uploadFile: [], contextItems: [] };
 const useDraft = getSendBoxDraftHook('acp', initial);
@@ -20,6 +26,32 @@ const pendingFor = (ownerId: string, frameId: string) => ({
 });
 
 describe('ordinary draft reserved fields', () => {
+  it('Memory406 persists only Memory intent retirement and rejects a present invalid replacement', () => {
+    const staged = { delegation: true, autoReview: true, memory: false, targetAgent: 'OPERON' };
+    saveSendBoxDraft('owner-memory406', 'frame-memory406', {
+      ...initial,
+      content: 'synthetic staged task',
+      stagedSessionOptions: staged,
+    });
+    expect(loadSendBoxDraft('owner-memory406', 'frame-memory406')?.stagedSessionOptions).toEqual(staged);
+    const remaining = retireStagedMemory(staged);
+    saveSendBoxDraft('owner-memory406', 'frame-memory406', {
+      ...initial,
+      content: 'synthetic staged task',
+      stagedSessionOptions: remaining,
+    });
+    expect(loadSendBoxDraft('owner-memory406', 'frame-memory406')?.stagedSessionOptions).toEqual({
+      delegation: true,
+      autoReview: true,
+      targetAgent: 'OPERON',
+    });
+    const key = sendBoxDraftStorageKey('owner-memory406', 'frame-memory406')!;
+    const stored = JSON.parse(localStorage.getItem(key)!);
+    stored.draft.stagedSessionOptions.memory = 'off';
+    localStorage.setItem(key, JSON.stringify(stored));
+    expect(loadSendBoxDraft('owner-memory406', 'frame-memory406')?.stagedSessionOptions).toBeUndefined();
+    clearSendBoxDraft('owner-memory406', 'frame-memory406');
+  });
   it('does not resurrect cached pending A after durable absence on ordinary save', async () => {
     const ownerId = 'owner-ordinary-absence';
     const frameId = 'frame-ordinary-absence';

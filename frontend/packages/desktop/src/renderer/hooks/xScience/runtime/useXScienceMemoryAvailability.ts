@@ -3,6 +3,7 @@ import { loadXScienceMemoryEnabled } from '@/renderer/services/xScienceMemory';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import type { TFunction } from 'i18next';
 import type { MobileActionSheetOption } from '@/renderer/components/chat/MobileActionSheet/types';
+import type { XScienceSessionMemoryControl } from '@/renderer/services/xScienceSessionOptions';
 
 export type XScienceMemoryAvailability =
   | { status: 'loading' }
@@ -14,6 +15,8 @@ export type XScienceMemoryControl = {
   refresh: () => void;
   current: () => boolean;
   canUpdate: () => boolean;
+  preference?: XScienceSessionMemoryControl;
+  stagedMemory?: boolean;
 };
 
 const loading: XScienceMemoryAvailability = { status: 'loading' };
@@ -102,17 +105,27 @@ export function useXScienceMemoryAvailability(ownerKey: string): XScienceMemoryC
 /** Both presentations derive effective display without ever replacing the retained preference. */
 export function sessionMemoryPresentation(control: XScienceMemoryControl | undefined, preference: boolean) {
   const availability = control?.availability ?? loading;
+  const session = control?.preference;
+  const sessionKnown = !session || (session.current() && session.status === 'ready');
+  const staged = control?.stagedMemory;
+  const observed = sessionKnown || typeof staged === 'boolean';
   return {
-    checked: availability.status === 'ready' ? availability.enabled && preference : undefined,
-    disabled: availability.status !== 'ready' || !availability.enabled,
+    checked: availability.status === 'ready' && observed ? availability.enabled && (staged ?? preference) : undefined,
+    disabled: availability.status !== 'ready' || !availability.enabled || !sessionKnown,
+    pending: session?.pending === true,
+    retry: session?.status === 'unknown' && session.current() ? session.refresh : undefined,
     reason:
       availability.status === 'loading'
         ? 'conversation.xscienceRuntime.sessionOptions.memoryAvailabilityLoading'
         : availability.status === 'unavailable'
           ? 'conversation.xscienceRuntime.sessionOptions.memoryAvailabilityUnavailable'
-          : !availability.enabled
-            ? 'conversation.xscienceRuntime.sessionOptions.memoryDisabledInSettings'
-            : undefined,
+          : !sessionKnown
+            ? session?.status === 'unknown'
+              ? 'conversation.xscienceRuntime.sessionOptions.memoryPreferenceUnknown'
+              : 'conversation.xscienceRuntime.sessionOptions.memoryPreferenceLoading'
+            : !availability.enabled
+              ? 'conversation.xscienceRuntime.sessionOptions.memoryDisabledInSettings'
+              : undefined,
   } as const;
 }
 

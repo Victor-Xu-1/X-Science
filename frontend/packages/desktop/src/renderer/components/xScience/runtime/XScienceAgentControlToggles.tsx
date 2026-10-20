@@ -19,6 +19,7 @@ export default function XScienceAgentControlToggles({
   pending,
   onChange,
   disabled = false,
+  memoryDisabled = disabled,
   memoryControl,
   delegationControl,
   active,
@@ -27,6 +28,7 @@ export default function XScienceAgentControlToggles({
   pending: Exclude<ToggleKey, 'delegation'> | null;
   onChange: (key: ToggleKey, checked: boolean) => void;
   disabled?: boolean;
+  memoryDisabled?: boolean;
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
   active?: boolean;
@@ -52,7 +54,8 @@ export default function XScienceAgentControlToggles({
       {rows.map(({ key, icon: Icon, label, description }) => {
         const checked = key === 'memory' ? memory.checked : value[key];
         const reason = key === 'memory' && memory.reason ? t(memory.reason) : description;
-        const locked = disabled || pending !== null || (key === 'memory' && memory.disabled);
+        const locked =
+          (key === 'memory' ? memoryDisabled : disabled) || pending !== null || (key === 'memory' && memory.disabled);
         return (
           <Tooltip key={key} content={reason} position='left'>
             <button
@@ -63,7 +66,7 @@ export default function XScienceAgentControlToggles({
               data-testid={`session-config-row-${key}`}
               className='composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center gap-8px border-0 bg-transparent px-8px text-left font-inherit text-13px text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50'
               disabled={locked}
-              onClick={() => onChange(key, !value[key])}
+              onClick={() => onChange(key, !(key === 'memory' ? memory.checked : value[key]))}
             >
               <Icon size={16} strokeWidth={2} aria-hidden='true' className='shrink-0 text-t-secondary' />
               <span className='min-w-0 flex-1 truncate'>{label}</span>
@@ -91,6 +94,17 @@ export default function XScienceAgentControlToggles({
           </Tooltip>
         );
       })}
+      {memory.retry && (
+        <button
+          type='button'
+          role='menuitem'
+          className='composer-control-menu__row session-options-menu__row box-border flex h-32px w-full cursor-pointer items-center border-0 bg-transparent px-8px text-left font-inherit text-13px text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50'
+          onClick={memory.retry}
+          disabled={memoryDisabled || memory.pending}
+        >
+          {t('conversation.xscienceRuntime.sessionOptions.memoryPreferenceRetry')}
+        </button>
+      )}
       <XScienceDelegationControlRow control={delegationControl} active={active} />
     </>
   );

@@ -40,6 +40,7 @@ export type XScienceSessionOptionsMenuProps = {
   onClearGoal?: () => void | Promise<void>;
   goalClearInFlight?: boolean;
   disabled?: boolean;
+  memoryDisabled?: boolean;
   permissionControl?: XSciencePermissionControlInput;
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
@@ -61,6 +62,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   onClearGoal,
   goalClearInFlight = false,
   disabled = false,
+  memoryDisabled = disabled,
   permissionControl,
   memoryControl,
   delegationControl,
@@ -155,7 +157,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   });
   // Optional session-option hydration must not withdraw the independent mode
   // and observed-grant capabilities that were already available to the user.
-  const triggerDisabled = disabled && !permission.available && !delegationControl;
+  const triggerDisabled =
+    disabled && !permission.available && !delegationControl && !memoryControl?.preference?.current();
   const hasPermissionChoices = permission.options.length > 0;
   useLayoutEffect(() => {
     if (hasPermissionChoices || submenu !== 'permission') return;
@@ -359,9 +362,11 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   };
 
   const updateToggle = async (key: 'autoReview' | 'memory', checked: boolean) => {
-    if (disabled || (key === 'memory' && !memoryControl?.canUpdate())) return;
+    if ((key === 'memory' ? memoryDisabled : disabled) || (key === 'memory' && !memoryControl?.canUpdate())) return;
 
-    setPendingOption(key);
+    // The session owner owns Memory operation identity across close/reopen and account changes.
+    const ownedMemory = key === 'memory' && memoryControl?.preference;
+    if (!ownedMemory) setPendingOption(key);
     try {
       await onPersistentOptionChange?.(key, checked);
       if (!onPersistentOptionChange) onChange({ ...value, [key]: checked });
@@ -369,7 +374,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       console.error('Failed to update session option:', error);
       Message.error(t('conversation.xscienceRuntime.sessionOptions.updateFailed'));
     } finally {
-      setPendingOption(null);
+      if (!ownedMemory) setPendingOption(null);
     }
   };
 
@@ -499,8 +504,9 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         delegationControl={delegationControl}
         active={visible}
         value={value}
-        pending={pendingOption}
+        pending={memoryPresentation.pending ? 'memory' : pendingOption}
         disabled={disabled}
+        memoryDisabled={memoryDisabled}
         onChange={(key, next) => {
           void updateToggle(key, next);
         }}

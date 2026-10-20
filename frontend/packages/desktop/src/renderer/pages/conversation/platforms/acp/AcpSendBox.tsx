@@ -30,6 +30,7 @@ import { useAcpModelInfo } from '@/renderer/hooks/xScience/runtime/useAcpModelIn
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import type { FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { retireStagedMemory as withoutStagedMemory } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
@@ -52,6 +53,7 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import type { TerminalFailureRollback } from '@/renderer/pages/conversation/runtime/terminalFailureMessagesModel';
 import { CHAT_SURFACE_WIDTH_CLASS } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { getRendererAccountOwnerId } from '@/renderer/services/rendererAccountScope';
 import { requestXScienceFrameAudit, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import {
   getSelectedXScienceBranch,
@@ -202,11 +204,32 @@ const AcpSendBox: React.FC<{
     isXScienceConversation
   );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
+  const frameProjection =
+    initialConversation?.type === 'acp' && initialConversation.id === conversation_id
+      ? initialConversation.extra
+      : undefined;
+  const frameIncarnationId = frameProjection?.frame_incarnation_id;
+  const projectedMemoryRoot =
+    ownerId === getRendererAccountOwnerId() && frameIncarnationId ? frameProjection?.root_frame_id : undefined;
+  const retireStagedMemory = useCallback(() => {
+    const staged = stagedSessionOptionsRef.current;
+    if (!staged || staged.memory === undefined) return;
+    const remaining = withoutStagedMemory(staged);
+    stagedSessionOptionsRef.current = remaining;
+    setStagedSessionOptions(remaining);
+  }, [setStagedSessionOptions]);
   const {
     options: xscienceSessionOptions,
     setOptions: setXScienceSessionOptions,
     loadState: sessionOptionsLoad,
-  } = useXScienceSessionOptionsState(conversation_id, agent_name);
+    memory: sessionMemory,
+  } = useXScienceSessionOptionsState(conversation_id, agent_name, {
+    ownerId,
+    frameIncarnationId,
+    expectedRootFrameId: projectedMemoryRoot,
+    projectId: projectedMemoryRoot ? frameProjection?.project_id : undefined,
+    onMutationStarted: retireStagedMemory,
+  });
   const applyStagedSessionOptions = useCallback(() => {
     const staged = stagedSessionOptionsRef.current;
     if (!staged) return;
@@ -214,7 +237,6 @@ const AcpSendBox: React.FC<{
       ...current,
       delegation: staged.delegation,
       autoReview: staged.autoReview,
-      memory: staged.memory,
     }));
   }, [setXScienceSessionOptions]);
   // The runtime session-options load resolves asynchronously for a fresh
@@ -257,8 +279,6 @@ const AcpSendBox: React.FC<{
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const mobileModeChangeInFlightRef = useRef(false);
-  const frameIncarnationId =
-    initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
   const planPresentation = useAcpPlanPresentation(ownerId, conversation_id, frameIncarnationId);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
@@ -336,7 +356,9 @@ const AcpSendBox: React.FC<{
     conversationAuthorityRef,
     mountedRef,
     setXScienceSessionOptions,
-    setIsMobileSheetOpen
+    setIsMobileSheetOpen,
+    sessionMemory,
+    stagedSessionOptions?.memory
   );
 
   const handleSheetModeChange = useCallback(
@@ -509,7 +531,8 @@ const AcpSendBox: React.FC<{
     stagedSessionOptionsRef,
     stagedPlanModeRef,
     delegationControl,
-    specialistControl
+    specialistControl,
+    sessionMemory
   );
 
   const executeCommand = useCallback(
@@ -1228,6 +1251,7 @@ const AcpSendBox: React.FC<{
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}
+                memoryDisabled={skillSave.inFlight}
                 permissionControl={{
                   contextKey: JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
                   grantsController,

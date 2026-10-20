@@ -5,8 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
 import { loadXScienceMemoryEnabled } from '@/renderer/services/xScienceMemory';
 import { createXScienceSessionDefaults } from '@/renderer/services/xScienceSessionOptions';
+import type { XScienceSessionMemoryControl } from '@/renderer/services/xScienceSessionOptions';
 import {
   useXScienceMemoryAvailability,
+  sessionMemoryPresentation,
   type XScienceMemoryAvailability,
 } from '@/renderer/hooks/xScience/runtime/useXScienceMemoryAvailability';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
@@ -14,6 +16,8 @@ import { useAcpSessionOptionControls } from '@/renderer/pages/conversation/platf
 import { useAcpMobileActionSheetController } from '@/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import { useTranslation } from 'react-i18next';
+import { useXScienceSessionOptionsState } from '@/renderer/pages/conversation/platforms/acp/useXScienceSessionOptionsState';
+import { clearXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const mocks = vi.hoisted(() => ({ persist: vi.fn(), refresh: vi.fn() }));
@@ -50,7 +54,10 @@ function MenuHarness({ availability }: { availability: XScienceMemoryAvailabilit
   );
 }
 
-function SharedComposerHarness() {
+function SharedComposerHarness({
+  sessionMemory,
+  legacyReady = true,
+}: { sessionMemory?: XScienceSessionMemoryControl; legacyReady?: boolean } = {}) {
   const { t, i18n } = useTranslation();
   const [value, setValue] = useState({ ...createXScienceSessionDefaults(), memory: true });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -62,7 +69,8 @@ function SharedComposerHarness() {
     owner,
     mounted,
     setValue,
-    setMobileOpen
+    setMobileOpen,
+    sessionMemory
   );
   const entries = useAcpMobileActionSheetController({
     isMobile: true,
@@ -76,7 +84,7 @@ function SharedComposerHarness() {
     retryModelList: async () => undefined,
     selectModel: () => undefined,
     xscienceSessionOptions: value,
-    sessionOptionsReady: true,
+    sessionOptionsReady: legacyReady,
     setXScienceSessionOptions: setValue,
     updatePersistentSessionOption,
     memoryControl,
@@ -104,6 +112,8 @@ function SharedComposerHarness() {
           value={value}
           onChange={setValue}
           memoryControl={memoryControl}
+          disabled={!legacyReady}
+          memoryDisabled={false}
           onPersistentOptionChange={updatePersistentSessionOption}
         />
       )}
@@ -120,15 +130,183 @@ function SharedComposerHarness() {
 }
 
 describe('session Memory availability', () => {
+  it('Memory406 treats an unknown session readback as unknown despite globally available Memory', () => {
+    const control = {
+      availability: { status: 'ready', enabled: true },
+      refresh: vi.fn(),
+      current: () => true,
+      canUpdate: () => true,
+      preference: { status: 'unknown', pending: false, refresh: vi.fn(), current: () => true },
+    } as unknown as Parameters<typeof sessionMemoryPresentation>[0];
+    expect(sessionMemoryPresentation(control, true)).toMatchObject({ checked: undefined, disabled: true });
+  });
   beforeEach(() => {
     mocks.persist.mockResolvedValue(undefined);
   });
   afterEach(() => {
+    clearXScienceFrameReads();
     cleanup();
     vi.clearAllMocks();
     vi.unstubAllGlobals();
     vi.useRealTimers();
     resetRendererAccountScopeForTest();
+  });
+
+  it('Memory406 leaves a lost-ACK write unknown and retries only the fresh read', async () => {
+    let mode = 'on';
+    const started = vi.fn();
+    const transport = vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === 'POST') {
+        mode = 'off';
+        throw new TypeError('synthetic ACK lost');
+      }
+      return Response.json({
+        id: 'root',
+        root_frame_id: 'root',
+        parent_frame_id: null,
+        project_id: 'project',
+        input_data: { memory_mode: mode },
+      });
+    });
+    vi.stubGlobal('fetch', transport);
+    const hook = renderHook(() =>
+      useXScienceSessionOptionsState('root', undefined, {
+        ownerId: 'owner',
+        frameIncarnationId: 'inc',
+        onMutationStarted: started,
+      })
+    );
+    await waitFor(() => expect(hook.result.current.memory.status).toBe('ready'));
+    await act(async () => {
+      await expect(hook.result.current.memory.update(false)).rejects.toThrow('ACK lost');
+    });
+    expect(started).toHaveBeenCalledTimes(1);
+    expect(hook.result.current.memory.status).toBe('unknown');
+    expect(hook.result.current.options.memory).toBe(true);
+    expect(hook.result.current.memory.capture()).toBe(null);
+    expect(hook.result.current.memory.pending).toBe(false);
+    act(() => hook.result.current.memory.refresh());
+    await waitFor(() => expect(hook.result.current.memory.status).toBe('ready'));
+    expect(hook.result.current.memory.capture()).toBe(false);
+    expect(transport.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+    hook.unmount();
+  });
+
+  it.each(['incarnation', 'account'])(
+    'Memory406 ignores old-%s ACK/finally while a new owner write is pending',
+    async (boundary) => {
+      setRendererAccountOwner('account-a');
+      const writes: Array<(response: Response) => void> = [];
+      const transport = vi.fn<typeof fetch>(async (_url, init) => {
+        if (init?.method === 'POST') return new Promise<Response>((done) => writes.push(done));
+        return Response.json({
+          id: 'root',
+          root_frame_id: 'root',
+          parent_frame_id: null,
+          project_id: 'project',
+          input_data: { memory_mode: 'on' },
+        });
+      });
+      vi.stubGlobal('fetch', transport);
+      const hook = renderHook(
+        ({ incarnation }) =>
+          useXScienceSessionOptionsState('root', undefined, { ownerId: 'owner', frameIncarnationId: incarnation }),
+        { initialProps: { incarnation: 'old' } }
+      );
+      await waitFor(() => expect(hook.result.current.memory.status).toBe('ready'));
+      let old!: Promise<void>;
+      act(() => {
+        old = hook.result.current.memory.update(false);
+      });
+      if (boundary === 'account')
+        act(() => {
+          setRendererAccountOwner('account-b');
+        });
+      hook.rerender({ incarnation: boundary === 'incarnation' ? 'new' : 'old' });
+      await waitFor(() => expect(hook.result.current.memory.status).toBe('ready'));
+      let fresh!: Promise<void>;
+      act(() => {
+        fresh = hook.result.current.memory.update(false);
+      });
+      expect(hook.result.current.memory.pending).toBe(true);
+      await act(async () => {
+        writes[0](Response.json({ status: 'ok' }));
+        await old;
+      });
+      expect(hook.result.current.memory.status).toBe('writing');
+      expect(hook.result.current.memory.pending).toBe(true);
+      await act(async () => {
+        writes[1](Response.json({ status: 'ok' }));
+        await fresh;
+      });
+      expect(hook.result.current.memory.status).toBe('ready');
+      hook.unmount();
+    }
+  );
+
+  it('Memory406 does not let the legacy session loader overwrite a newer fresh Memory observation', async () => {
+    let finishLegacy!: (response: Response) => void;
+    let reads = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => {
+        if (++reads === 2)
+          return new Promise<Response>((done) => {
+            finishLegacy = done;
+          });
+        return Response.json({
+          id: 'root',
+          root_frame_id: 'root',
+          parent_frame_id: null,
+          project_id: 'project',
+          input_data: { memory_mode: 'off' },
+        });
+      })
+    );
+    const hook = renderHook(() => useXScienceSessionOptionsState('root', undefined, { ownerId: 'owner' }));
+    await waitFor(() => expect(hook.result.current.memory.capture()).toBe(false));
+    await act(async () => {
+      finishLegacy(Response.json({ id: 'root', input_data: { memory_mode: 'on', verifier_mode: 'on' } }));
+    });
+    await waitFor(() => expect(hook.result.current.loadState.status).toBe('ready'));
+    expect(hook.result.current.options.autoReview).toBe(true);
+    expect(hook.result.current.memory.capture()).toBe(false);
+    hook.unmount();
+  });
+
+  it('Memory406 shows the same unknown and read-only Retry in desktop and the real mobile sheet', async () => {
+    const refresh = vi.fn(),
+      update = vi.fn();
+    const preference: XScienceSessionMemoryControl = {
+      status: 'unknown',
+      pending: false,
+      current: () => true,
+      capture: () => null,
+      refresh,
+      update,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => Response.json({ enabled: true }))
+    );
+    await renderWithI18n(<SharedComposerHarness sessionMemory={preference} legacyReady={false} />, 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation options' }));
+    const desktop = await screen.findByTestId('session-config-row-memory');
+    await waitFor(() => expect(desktop).toHaveAttribute('aria-checked', 'mixed'));
+    expect(desktop).toBeDisabled();
+    expect(screen.getByTestId('session-config-row-autoReview')).toBeDisabled();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Refresh Memory preference' }));
+    const beforeMobile = refresh.mock.calls.length;
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Conversation options' }), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile controls' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-options'));
+    const mobile = await screen.findByTestId('mobile-action-sheet-option-memory');
+    expect(mobile).toBeDisabled();
+    expect(screen.getByTestId('mobile-action-sheet-option-autoReview')).toBeDisabled();
+    expect(mobile).toHaveTextContent('Memory preference is unconfirmed');
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-option-memory-retry'));
+    expect(refresh.mock.calls.length).toBeGreaterThan(beforeMobile);
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('disables globally unavailable Memory without rewriting the retained session preference', async () => {

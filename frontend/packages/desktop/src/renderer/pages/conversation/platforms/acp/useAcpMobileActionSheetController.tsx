@@ -158,12 +158,21 @@ export const useAcpMobileActionSheetController = ({
             disabled: !sessionOptionsReady,
           },
           buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
+          ...(memoryControl?.preference?.status === 'unknown'
+            ? [{ key: 'memory-retry', label: t('conversation.xscienceRuntime.sessionOptions.memoryPreferenceRetry') }]
+            : []),
         ],
         onSelect: (key) => {
-          if (!sessionOptionsReady) return;
+          if (key === 'memory-retry') {
+            memoryControl?.preference?.refresh();
+            return;
+          }
+          if (key !== 'memory' && !sessionOptionsReady) return;
           if (key === 'autoReview' || key === 'memory') {
             if (key === 'memory' && !memoryControl?.canUpdate()) return;
-            const nextValue = !xscienceSessionOptions[key];
+            const nextValue = !(key === 'memory'
+              ? (memoryControl?.stagedMemory ?? xscienceSessionOptions.memory)
+              : xscienceSessionOptions[key]);
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
               console.error('[AcpSendBox] Failed to update session option', safeErrorDiagnostic(error));
               Message.error(t('conversation.xscienceRuntime.sessionOptions.updateFailed'));
