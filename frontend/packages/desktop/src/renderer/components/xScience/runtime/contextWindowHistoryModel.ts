@@ -6,9 +6,32 @@
 
 import {
   projectContextUsage,
+  CONTEXT_CALL_FIELDS,
   type ContextUsageHistory,
   type ContextUsageSnapshot,
 } from '@/renderer/services/contextUsage';
+
+/** Selected receipt evidence, never reconstructed from occupancy or billed totals. */
+export function contextRequestCallDetails(snapshot: ContextUsageSnapshot) {
+  const usage = snapshot.callUsage;
+  return {
+    recorded: Boolean(usage),
+    presenceRecorded: Boolean(usage?.reported),
+    cacheAdditive: usage?.cache_tokens_additive === true,
+    cacheReported: Boolean(usage?.reported?.cache_read || usage?.reported?.cache_write),
+    rows: CONTEXT_CALL_FIELDS.map((field) => ({
+      field,
+      status: !usage?.reported
+        ? ('unrecorded' as const)
+        : usage.invalid_fields?.[field]
+          ? ('invalid' as const)
+          : usage.reported[field]
+            ? ('reported' as const)
+            : ('absent' as const),
+      tokens: usage?.[`${field}_tokens`] ?? 0,
+    })),
+  };
+}
 
 const DEFAULT_CONTEXT_DISPLAY_WINDOW_TOKENS = 1_000_000;
 

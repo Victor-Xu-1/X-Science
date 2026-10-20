@@ -6,14 +6,49 @@
 
 import React, { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type ContextUsageHistory } from '@/renderer/services/contextUsage';
+import { type ContextUsageHistory, type ContextUsageSnapshot } from '@/renderer/services/contextUsage';
 import {
   contextDisplayWindow,
   contextWindowChart,
   formatContextTokens,
   summarizeContextWindowHistory,
+  contextRequestCallDetails,
 } from './contextWindowHistoryModel';
 import styles from './ContextUsagePanel.module.css';
+
+function ContextRequestDetails({ sample }: { sample: ContextUsageSnapshot }) {
+  const { t } = useTranslation();
+  const detail = contextRequestCallDetails(sample);
+  const prefix = 'conversation.contextUsage.';
+  return (
+    <section data-testid='context-call-details' aria-label={t(`${prefix}requestDetails`)}>
+      <strong>{t(`${prefix}requestDetails`)}</strong>
+      {!detail.recorded || !detail.presenceRecorded ? (
+        <div className={styles.historyMeta}>
+          {t(`${prefix}${detail.recorded ? 'callPresenceUnrecorded' : 'callDetailsUnrecorded'}`)}
+        </div>
+      ) : (
+        <>
+          {detail.rows.map((row) => (
+            <div key={row.field} className={styles.policy} data-testid={`context-call-${row.field}`}>
+              <span>{t(`${prefix}call_${row.field}`)}</span>
+              <span>
+                {row.status === 'reported'
+                  ? String(row.tokens)
+                  : t(`${prefix}${row.status === 'invalid' ? 'callInvalid' : 'callNotReported'}`)}
+              </span>
+            </div>
+          ))}
+          {detail.cacheReported && (
+            <div className={styles.historyMeta}>
+              {t(`${prefix}${detail.cacheAdditive ? 'callCacheAdditional' : 'callCacheIncluded'}`)}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
 
 /** Compact numeric history, with each receipt bound to its own model/window. */
 export default function ContextWindowHistory({
@@ -57,6 +92,7 @@ export default function ContextWindowHistory({
         {t(`${prefix}${history.coverage === 'latest_only' ? 'legacyHistoryShort' : 'recordedRequests'}`, {
           count: history.totalObserved,
         })}
+        <ContextRequestDetails sample={point.sample} />
       </div>
     );
   }
@@ -172,6 +208,7 @@ export default function ContextWindowHistory({
               )}
               {truncated && <span>{t(`${prefix}historyTruncated`, { count: history.samples.length })}</span>}
             </div>
+            <ContextRequestDetails sample={point.sample} />
           </>
         )}
       </div>
