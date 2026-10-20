@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import type { i18n } from 'i18next';
+import { I18nextProvider } from 'react-i18next';
+import { createTestI18n } from '../i18nTestUtils';
 import type { GuidLocalFile } from '@/renderer/pages/guid/hooks/useGuidInput';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 
@@ -24,6 +27,11 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 import GuidInputCard from '@/renderer/pages/guid/components/GuidInputCard';
+
+let testI18n: i18n;
+beforeAll(async () => {
+  testI18n = await createTestI18n('en-US');
+});
 
 const renderComposer = (
   isFileDragging = false,
@@ -58,7 +66,8 @@ const renderComposer = (
       onRemoveLocalFile={onRemoveLocalFile}
       onRemoveContextItem={onRemoveContextItem}
       actionRow={<div>actions</div>}
-    />
+    />,
+    { wrapper: ({ children }) => <I18nextProvider i18n={testI18n}>{children}</I18nextProvider> }
   );
   return { onFocus, onInputChange, onRemoveLocalFile, onRemoveContextItem };
 };
