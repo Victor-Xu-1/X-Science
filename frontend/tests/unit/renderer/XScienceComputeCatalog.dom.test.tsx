@@ -148,6 +148,217 @@ describe('C394 Compute catalog read state', () => {
     expect(api.fetch.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
   });
 
+  it('C394 mutation lost ACK freezes the last snapshot until a read-only retry without replaying the write', async () => {
+    let stored = ['ssh:fixture'];
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        stored = [];
+        throw new TypeError('synthetic ACK lost after persistence');
+      }
+      return response(url === '/api/compute/providers' ? [provider()] : stored);
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('alert')).toHaveTextContent('The current selection is not confirmed.');
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    expect(toggle()).toBeDisabled();
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
+    await waitFor(() => expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeEnabled());
+    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'true');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+    expect(
+      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+    ).toHaveLength(2);
+  });
+
+  it('C394 mutation success uses authoritative readback instead of appending or filtering the old selection', async () => {
+    let written = false;
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        written = true;
+        return new Response(null, { status: 204 });
+      }
+      return response(
+        url === '/api/compute/providers' ? [provider(), provider('other')] : [written ? 'ssh:other' : 'ssh:fixture']
+      );
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    await waitFor(() => expect(toggle('other')).toHaveAttribute('aria-checked', 'true'));
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+    expect(
+      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+    ).toHaveLength(2);
+  });
+
+  it('C394 mutation successful PUT with failed readback freezes its observed snapshot and retries only GET', async () => {
+    let written = false;
+    let readFailed = true;
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        written = true;
+        return new Response(null, { status: 204 });
+      }
+      if (url === '/api/compute/providers') return response([provider()]);
+      return written && readFailed
+        ? response({ error: 'synthetic readback failure' }, 503)
+        : response(written ? [] : ['ssh:fixture']);
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    await screen.findByRole('alert');
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    expect(toggle()).toBeDisabled();
+    readFailed = false;
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+  });
+
+  it('C394 mutation Local partial failure waits for all issued writes and never presents an atomic clear', async () => {
+    let settleSecond!: (value: Response) => void;
+    const second = new Promise<Response>((resolve) => {
+      settleSecond = resolve;
+    });
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        if (url.endsWith('ssh%3Afixture')) throw new TypeError('synthetic first write failed');
+        return second;
+      }
+      return response(
+        url === '/api/compute/providers' ? [provider(), provider('other')] : ['ssh:fixture', 'ssh:other']
+      );
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Local' }));
+    await waitFor(() => expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(2));
+    expect(toggle()).toBeDisabled();
+    expect(api.error).not.toHaveBeenCalled();
+    await act(async () => {
+      settleSecond(new Response(null, { status: 204 }));
+    });
+    await screen.findByRole('alert');
+    expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    expect(toggle('other')).toHaveAttribute('aria-checked', 'true');
+    expect(toggle()).toBeDisabled();
+    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('C394 mutation closed and reopened menu waits for its pending write then reads without late ACK projection', async () => {
+    let settle!: (value: Response) => void;
+    const pending = new Promise<Response>((resolve) => {
+      settle = resolve;
+    });
+    let written = false;
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') {
+        await pending;
+        written = true;
+        return new Response(null, { status: 204 });
+      }
+      return response(url === '/api/compute/providers' ? [provider()] : written ? [] : ['ssh:fixture']);
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
+    await waitFor(() =>
+      expect(screen.getByTestId('x-science-session-options-trigger')).toHaveAttribute('aria-expanded', 'false')
+    );
+    await openCompute();
+    expect(toggle()).toBeDisabled();
+    expect(
+      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+    ).toHaveLength(1);
+    await act(async () => {
+      settle(new Response(null, { status: 204 }));
+    });
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+    expect(api.error).not.toHaveBeenCalled();
+  });
+
+  it.each(['conversation', 'incarnation', 'account'] as const)(
+    'C394 mutation %s replacement ignores old ACK while the new owner reads its authority',
+    async (kind) => {
+      let rejectOld!: (reason: unknown) => void;
+      const pending = new Promise<Response>((_, reject) => {
+        rejectOld = reject;
+      });
+      let next = false;
+      api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'PUT') return pending;
+        return response(
+          url === '/api/compute/providers'
+            ? [provider(next ? 'current' : 'fixture')]
+            : [next ? 'ssh:current' : 'ssh:fixture']
+        );
+      });
+      const rendered = await renderWithI18n(<Harness />, 'en-US');
+      await openCompute();
+      await waitFor(() => expect(toggle()).toBeEnabled());
+      fireEvent.click(toggle());
+      next = true;
+      const replacement = {
+        root: kind === 'conversation' ? 'frame-next' : 'frame-fixture',
+        incarnation: 'second',
+        owner: kind === 'account' ? 'owner-next' : 'owner-fixture',
+      };
+      if (kind === 'account') setRendererAccountOwner(replacement.owner);
+      rendered.rerender(<Harness {...replacement} />);
+      await waitFor(() =>
+        expect(screen.getByTestId('x-science-session-options-trigger')).toHaveAttribute('aria-expanded', 'false')
+      );
+      await openCompute();
+      await waitFor(() => expect(toggle('current')).toBeEnabled());
+      await act(async () => {
+        rejectOld(new TypeError('old owner ACK unknown'));
+      });
+      expect(toggle('current')).toBeEnabled();
+      expect(toggle('current')).toHaveAttribute('aria-checked', 'true');
+      expect(api.error).not.toHaveBeenCalled();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    }
+  );
+
+  it('C394 mutation unmount suppresses its late unknown outcome without replaying the write', async () => {
+    let rejectOld!: (reason: unknown) => void;
+    const pending = new Promise<Response>((_, reject) => {
+      rejectOld = reject;
+    });
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') return pending;
+      return response(url === '/api/compute/providers' ? [provider()] : ['ssh:fixture']);
+    });
+    const rendered = await renderWithI18n(<Harness />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    rendered.unmount();
+    await act(async () => {
+      rejectOld(new TypeError('unmounted ACK unknown'));
+    });
+    expect(api.error).not.toHaveBeenCalled();
+    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+    expect(
+      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+    ).toHaveLength(1);
+  });
+
   it('C394 closed read cannot overwrite a reopened successful snapshot or its next retry', async () => {
     let settleOld!: (value: Response) => void;
     const old = new Promise<Response>((resolve) => {

@@ -106,6 +106,15 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const computeStatus = computeRead?.owner === computeOwner ? computeRead.status : 'loading';
   const computeReady = computeRead?.owner === computeOwner && computeRead.status === 'ready';
   const [pendingCompute, setPendingCompute] = useState<{ owner: typeof computeOwner; provider: string } | null>(null);
+  const computeGeneration = useRef(0);
+  const computeWrite = useRef<{ owner: typeof computeOwner; settled: Promise<void> } | null>(null);
+  const computeMounted = useRef(true);
+  useLayoutEffect(() => {
+    computeMounted.current = true;
+    return () => {
+      computeMounted.current = false;
+    };
+  }, []);
   const pendingProvider = pendingCompute?.owner === computeOwner ? pendingCompute.provider : null;
   const [pendingOption, setPendingOption] = useState<'autoReview' | 'memory' | null>(null);
   const [computeProviders, setComputeProviders] = useState<XScienceComputeProvider[]>([]);
@@ -175,23 +184,32 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       return;
     }
     let active = true;
+    const generation = ++computeGeneration.current;
+    const current = () => active && generation === computeGeneration.current && isComputeOwnerCurrent();
     setComputeRead((previous) => ({
       owner: computeOwner,
       status: 'loading',
       hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
     }));
-    void Promise.all([
-      loadXScienceComputeProviders(),
-      rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(computeSelection ?? []),
-    ])
-      .then(([providers, enabledProviders]) => {
-        if (!active || !isComputeOwnerCurrent()) return;
+    const write = computeWrite.current;
+    const settled = write?.owner === computeOwner ? write.settled : Promise.resolve();
+    void settled
+      .then(() => {
+        if (!current()) return;
+        return Promise.all([
+          loadXScienceComputeProviders(),
+          rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(computeSelection ?? []),
+        ]);
+      })
+      .then((snapshot) => {
+        if (!snapshot || !current()) return;
+        const [providers, enabledProviders] = snapshot;
         setComputeProviders(providers.filter((provider) => provider.checked && provider.name !== 'local'));
         setEnabledComputeProviders(enabledProviders.filter((provider) => provider !== 'local'));
         setComputeRead({ owner: computeOwner, status: 'ready', hasSnapshot: true });
       })
       .catch((error) => {
-        if (!active || !isComputeOwnerCurrent()) return;
+        if (!current()) return;
         console.error('Failed to load session options:', error);
         setComputeRead((previous) => ({
           owner: computeOwner,
@@ -202,6 +220,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       });
     return () => {
       active = false;
+      computeGeneration.current++;
     };
   }, [computeSelection, rootFrameId, visible, computeOwner, computeRetry, isComputeOwnerCurrent]);
 
@@ -254,26 +273,62 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
 
   const computeLabel = computeSelectionLabel(displayedComputeSelection, hasComputeSnapshot ? computeProviders : [], t);
 
+  // A missing ACK does not prove rollback. Keep the last observation read-only;
+  // only a fresh GET can confirm selection, and no retry here replays a PUT.
+  const persistComputeChange = async (provider: string, write: () => Promise<void>) => {
+    if (computeWrite.current?.owner === computeOwner) return;
+    const generation = ++computeGeneration.current;
+    let settle!: () => void;
+    const operation = {
+      owner: computeOwner,
+      settled: new Promise<void>((resolve) => {
+        settle = resolve;
+      }),
+    };
+    computeWrite.current = operation;
+    setPendingCompute({ owner: computeOwner, provider });
+    setComputeRead((previous) => ({
+      owner: computeOwner,
+      status: 'loading',
+      hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
+    }));
+    const current = () =>
+      isComputeOwnerCurrent() && computeMenuOpen.current && generation === computeGeneration.current;
+    try {
+      await write();
+      if (current()) setComputeRetry((attempt) => attempt + 1);
+    } catch (error) {
+      if (current()) {
+        console.error('Session compute write outcome could not be confirmed:', error);
+        setComputeRead((previous) => ({
+          owner: computeOwner,
+          status: 'error',
+          hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
+        }));
+        Message.error(translationRef.current('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
+      }
+    } finally {
+      settle();
+      if (computeWrite.current === operation) {
+        computeWrite.current = null;
+        if (computeMounted.current && isComputeOwnerCurrent()) setPendingCompute(null);
+      }
+    }
+  };
+
   const updateComputeProvider = async (providerName: string, checked: boolean) => {
     if (disabled || !computeReady || pendingProvider !== null || !isComputeOwnerCurrent()) return;
-    setPendingCompute({ owner: computeOwner, provider: providerName });
-    try {
-      if (rootFrameId) await setXScienceSessionComputeProvider(rootFrameId, providerName, checked);
-      if (!isComputeOwnerCurrent()) return;
-      setEnabledComputeProviders((current) => {
-        const next = checked
-          ? Array.from(new Set([...current, providerName]))
-          : current.filter((name) => name !== providerName);
-        onComputeSelectionChange?.(next);
-        return next;
-      });
-    } catch (error) {
-      if (!isComputeOwnerCurrent()) return;
-      console.error('Failed to update session compute provider:', error);
-      Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
-    } finally {
-      if (isComputeOwnerCurrent()) setPendingCompute(null);
+    if (rootFrameId) {
+      await persistComputeChange(providerName, () =>
+        setXScienceSessionComputeProvider(rootFrameId, providerName, checked)
+      );
+      return;
     }
+    const next = checked
+      ? Array.from(new Set([...enabledComputeProviders, providerName]))
+      : enabledComputeProviders.filter((name) => name !== providerName);
+    setEnabledComputeProviders(next);
+    onComputeSelectionChange?.(next);
   };
 
   const selectLocalCompute = async () => {
@@ -285,25 +340,22 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       !isComputeOwnerCurrent()
     )
       return;
-    setPendingCompute({ owner: computeOwner, provider: '__local__' });
-    try {
-      if (rootFrameId) {
-        await Promise.all(
+    if (rootFrameId) {
+      await persistComputeChange('__local__', async () => {
+        // All already-issued writes must settle before readback/retry. This is
+        // not an atomic clear; a partial failure remains an uncertain outcome.
+        const results = await Promise.allSettled(
           enabledComputeProviders.map((providerName) =>
             setXScienceSessionComputeProvider(rootFrameId, providerName, false)
           )
         );
-      }
-      if (!isComputeOwnerCurrent()) return;
-      setEnabledComputeProviders([]);
-      onComputeSelectionChange?.([]);
-    } catch (error) {
-      if (!isComputeOwnerCurrent()) return;
-      console.error('Failed to restore local session compute:', error);
-      Message.error(t('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
-    } finally {
-      if (isComputeOwnerCurrent()) setPendingCompute(null);
+        const failed = results.find((result) => result.status === 'rejected');
+        if (failed?.status === 'rejected') throw failed.reason;
+      });
+      return;
     }
+    setEnabledComputeProviders([]);
+    onComputeSelectionChange?.([]);
   };
 
   const updateToggle = async (key: 'autoReview' | 'memory', checked: boolean) => {
