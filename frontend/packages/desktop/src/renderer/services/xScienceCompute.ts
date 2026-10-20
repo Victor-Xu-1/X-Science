@@ -1,4 +1,5 @@
 import { readXScienceFileImportResponse } from './xScienceFileImportError';
+import { requestXScienceJson } from './xScienceHttp';
 
 export type XScienceComputeCredentialStatus = {
   name: string;
@@ -388,7 +389,7 @@ export async function loadXScienceSessionComputeProviders(
   rootFrameId: string,
   fetchImpl: FetchLike = fetch
 ): Promise<string[]> {
-  const payload = await requestJson<unknown>(
+  const payload = await requestComputeControlJson<unknown>(
     `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(rootFrameId)}/enabled`,
     undefined,
     fetchImpl
@@ -407,7 +408,7 @@ export async function setXScienceSessionComputeProvider(
   checked: boolean,
   fetchImpl: FetchLike = fetch
 ): Promise<void> {
-  await requestJson(
+  await requestComputeControlJson(
     `${COMPUTE_SESSION_ENDPOINT}/${encodeURIComponent(rootFrameId)}/enabled/${encodeURIComponent(providerName)}`,
     jsonRequest('PUT', { checked }),
     fetchImpl
@@ -415,7 +416,7 @@ export async function setXScienceSessionComputeProvider(
 }
 
 export async function loadXScienceComputeProviders(fetchImpl: FetchLike = fetch): Promise<XScienceComputeProvider[]> {
-  const payload = await requestJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
+  const payload = await requestComputeControlJson<unknown>(COMPUTE_PROVIDERS_ENDPOINT, undefined, fetchImpl);
   if (!Array.isArray(payload)) throw new Error('X-Science returned an invalid compute provider list');
   return payload.map((value) => {
     const provider = toComputeProvider(value);
@@ -613,6 +614,24 @@ function hostFileUrl(baseUrl: string, endpoint: string, query: Record<string, st
 
 function providerEndpoint(name: string, suffix = ''): string {
   return `${COMPUTE_PROVIDERS_ENDPOINT}/${encodeURIComponent(name)}${suffix}`;
+}
+
+// Metadata/selection calls are bounded independently of long provisioning and
+// probes. A timed-out write has an unknown outcome, never an automatic retry.
+async function requestComputeControlJson<T = unknown>(
+  endpoint: string,
+  init: RequestInit | undefined,
+  fetchImpl: FetchLike
+): Promise<T> {
+  try {
+    return await requestXScienceJson<T>(endpoint, init ?? {}, {
+      timeoutMs: 15_000,
+      fetchImpl: (_input, request) => fetchImpl(endpoint, request),
+    });
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error(`X-Science compute API returned invalid JSON: ${endpoint}`);
+    throw error;
+  }
 }
 
 async function requestJson<T = unknown>(
