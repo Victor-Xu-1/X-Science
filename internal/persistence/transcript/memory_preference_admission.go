@@ -25,7 +25,7 @@ func hasMemoryOverride(data map[string]any) bool {
 }
 
 func freezeMemoryPreference(data, config map[string]any, mode string) (map[string]any, map[string]any) {
-	inputCopy, configCopy := make(map[string]any, len(data)+1), make(map[string]any, len(config)+1)
+	inputCopy, configCopy := make(map[string]any, len(data)), make(map[string]any, len(config))
 	for key, value := range data {
 		inputCopy[key] = value
 	}
