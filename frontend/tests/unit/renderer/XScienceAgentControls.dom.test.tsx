@@ -73,7 +73,6 @@ function Harness({
   return (
     <MemoryRouter>
       <XScienceSessionOptionsMenu
-        rootFrameId={`frame-${owner}`}
         value={{ ...createXScienceSessionDefaults(), goalText: readOnly ? 'Fixture goal' : null }}
         onChange={mocks.changeOptions}
         onClearGoal={mocks.clearGoal}
