@@ -400,6 +400,7 @@ func prepareClaimedWorkspaceMemoryTool(
 		if _, _, created, err := repo.AppendFrameUserEvent(context.Background(), transcriptstore.AppendFrameUserEventInput{
 			StreamUID: stream.UID, OwnerID: stream.OwnerID, ClientMessageID: "memory-task", FrameEventID: "memory-task-event",
 			MessageUUID: "memory-task-message", Text: "Use memory tools.", Destinations: []string{"ws"},
+			RuntimeConfig: map[string]any{"memory_mode": "on"},
 		}); err != nil || !created {
 			t.Fatalf("append input created=%t err=%v", created, err)
 		}
