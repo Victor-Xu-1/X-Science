@@ -6,6 +6,7 @@ import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import { useAcpMobileActionSheetController } from '@/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { renderWithI18n } from '../../i18nTestUtils';
 
 const change = vi.fn(),
@@ -35,6 +36,7 @@ function Harness({
   open?: boolean;
 }) {
   const { t, i18n } = useTranslation();
+  const computeControl = useSessionComputeControls({ rootFrameId: null });
   const entries = useAcpMobileActionSheetController({
     isMobile: true,
     runtimeMode: { id: 'mode', currentValue: 'send', options: [{ value: 'send', label: 'Send' }] } as never,
@@ -51,9 +53,7 @@ function Harness({
     updatePersistentSessionOption: vi.fn(),
     delegationControl,
     specialistControl,
-    mobileComputeProviders: [],
-    mobileEnabledCompute: [],
-    handleSessionComputeChange: vi.fn(),
+    computeControl,
     handleSheetModeChange: vi.fn(),
     handleThoughtLevelSetOption: vi.fn(),
     attachEntries: [],

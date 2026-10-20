@@ -3,8 +3,13 @@ import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
+import { buildMobileComputeEntry } from '@/renderer/components/xScience/runtime/XScienceComputeChoices';
+import { useTranslation } from 'react-i18next';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { createXScienceSessionDefaults } from '@/renderer/services/xScienceSessionOptions';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
+import { XScienceHttpError } from '@/renderer/services/xScienceHttp';
 import { renderWithI18n, type TestLanguage } from '../i18nTestUtils';
 
 const api = vi.hoisted(() => ({ fetch: vi.fn(), error: vi.fn(), changeSelection: vi.fn() }));
@@ -35,12 +40,16 @@ function Harness({
   draft?: boolean;
   selection?: string[];
 } = {}) {
+  const computeControl = useSessionComputeControls({
+    rootFrameId: draft ? undefined : root,
+    contextKey: JSON.stringify([owner, root, incarnation]),
+    selection,
+    onSelectionChange: draft ? api.changeSelection : undefined,
+  });
   return (
     <MemoryRouter>
       <XScienceSessionOptionsMenu
-        rootFrameId={draft ? undefined : root}
-        computeSelection={selection}
-        onComputeSelectionChange={draft ? api.changeSelection : undefined}
+        computeControl={computeControl}
         value={createXScienceSessionDefaults()}
         onChange={() => {}}
         permissionControl={
@@ -62,6 +71,11 @@ async function openCompute() {
   fireEvent.mouseEnter(await screen.findByTestId('session-config-row-compute'));
 }
 const toggle = (name = 'fixture') => screen.getByRole('menuitemcheckbox', { name: `Compute Compute ${name}` });
+function MobileComputeHarness() {
+  const { t } = useTranslation();
+  const control = useSessionComputeControls({ rootFrameId: 'frame-fixture', active: true });
+  return <MobileActionSheet open onClose={() => {}} entries={[buildMobileComputeEntry(control, t)]} />;
+}
 
 describe('C394 Compute catalog read state', () => {
   beforeEach(() => {
@@ -73,6 +87,34 @@ describe('C394 Compute catalog read state', () => {
     cleanup();
     setRendererAccountOwner(null);
     vi.unstubAllGlobals();
+  });
+
+  it('C394 shared compute presents real mobile checkbox state and a plain GET Retry action', async () => {
+    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (init?.method === 'PUT') throw new TypeError('synthetic ACK lost');
+      return response(url === '/api/compute/providers' ? [provider()] : ['ssh:fixture']);
+    });
+    await renderWithI18n(<MobileComputeHarness />, 'en-US');
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-compute'));
+    const checkbox = await screen.findByRole('menuitemcheckbox', { name: 'Compute fixture' });
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(checkbox).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(checkbox);
+    await waitFor(() => expect(checkbox).toBeDisabled());
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-session-compute'));
+    const retry = await screen.findByRole('menuitem', { name: 'Retry compute' });
+    expect(retry).not.toHaveAttribute('aria-checked');
+    expect(screen.queryByRole('menuitemradio', { name: 'Retry compute' })).not.toBeInTheDocument();
+  });
+
+  it('C394 shared compute draft selection changes only the controlled intent and never sends a session PUT', async () => {
+    api.fetch.mockResolvedValue(response([provider()]));
+    await renderWithI18n(<Harness draft selection={[]} />, 'en-US');
+    await openCompute();
+    await waitFor(() => expect(toggle()).toBeEnabled());
+    fireEvent.click(toggle());
+    expect(api.changeSelection).toHaveBeenCalledWith(['ssh:fixture']);
+    expect(api.fetch.mock.calls.map(([url]) => url)).toEqual(['/api/compute/providers']);
   });
 
   it('C394 deadline composes with read-only GET retry and an unknown PUT without replay', async () => {
@@ -182,56 +224,93 @@ describe('C394 Compute catalog read state', () => {
   );
 
   it('C394 failed refresh keeps the observed selection but freezes its old provider controls', async () => {
-    let failed = false;
-    api.fetch.mockImplementation(async (url: string) =>
-      url === '/api/compute/providers'
-        ? response([provider()])
-        : response(failed ? { error: 'synthetic selection failure' } : ['ssh:fixture'], failed ? 503 : 200)
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secret = 'COMPUTE_READ_PRIVATE_SENTINEL';
+    const failure = Object.assign(
+      new XScienceHttpError({
+        method: 'GET',
+        path: `/private/${secret}`,
+        status: 503,
+        body: { code: secret, error: secret, details: { private: secret }, provider: secret },
+      }),
+      { cause: new Error(secret) }
     );
-    await renderWithI18n(<Harness />, 'en-US');
-    await openCompute();
-    await waitFor(() => expect(toggle()).toBeEnabled());
-    expect(toggle()).toHaveAttribute('aria-checked', 'true');
-    fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
-    await waitFor(() =>
-      expect(screen.getByTestId('x-science-session-options-trigger')).toHaveAttribute('aria-expanded', 'false')
-    );
-    failed = true;
-    await openCompute();
-    await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('alert')).toHaveTextContent('The current selection is not confirmed.');
-    expect(toggle()).toHaveAttribute('aria-checked', 'true');
-    expect(toggle()).toBeDisabled();
-    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeDisabled();
-    fireEvent.click(toggle());
-    expect(api.fetch.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+    try {
+      let failed = false;
+      api.fetch.mockImplementation(async (url: string) => {
+        if (url === '/api/compute/providers') return response([provider()]);
+        if (failed) throw failure;
+        return response(['ssh:fixture']);
+      });
+      await renderWithI18n(<Harness />, 'en-US');
+      await openCompute();
+      await waitFor(() => expect(toggle()).toBeEnabled());
+      expect(toggle()).toHaveAttribute('aria-checked', 'true');
+      fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
+      await waitFor(() =>
+        expect(screen.getByTestId('x-science-session-options-trigger')).toHaveAttribute('aria-expanded', 'false')
+      );
+      failed = true;
+      await openCompute();
+      await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
+      expect(screen.getByRole('alert')).toHaveTextContent('The current selection is not confirmed.');
+      expect(toggle()).toHaveAttribute('aria-checked', 'true');
+      expect(toggle()).toBeDisabled();
+      expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeDisabled();
+      fireEvent.click(toggle());
+      expect(api.fetch.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+      expect(consoleError).toHaveBeenCalledWith('Failed to load session compute:', { kind: 'http', status: 503 });
+      expect(JSON.stringify(consoleError.mock.calls)).not.toContain(secret);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('C394 mutation lost ACK freezes the last snapshot until a read-only retry without replaying the write', async () => {
-    let stored = ['ssh:fixture'];
-    api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (init?.method === 'PUT') {
-        stored = [];
-        throw new TypeError('synthetic ACK lost after persistence');
-      }
-      return response(url === '/api/compute/providers' ? [provider()] : stored);
-    });
-    await renderWithI18n(<Harness />, 'en-US');
-    await openCompute();
-    await waitFor(() => expect(toggle()).toBeEnabled());
-    fireEvent.click(toggle());
-    await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('alert')).toHaveTextContent('The current selection is not confirmed.');
-    expect(toggle()).toHaveAttribute('aria-checked', 'true');
-    expect(toggle()).toBeDisabled();
-    fireEvent.click(toggle());
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
-    await waitFor(() => expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeEnabled());
-    expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'true');
-    expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
-    expect(
-      api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
-    ).toHaveLength(2);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const secret = 'COMPUTE_WRITE_PRIVATE_SENTINEL';
+    const failure = Object.assign(
+      new XScienceHttpError({
+        method: 'PUT',
+        path: `/private/${secret}`,
+        status: 503,
+        body: { code: secret, error: secret, details: { private: secret }, provider: secret },
+      }),
+      { cause: new Error(secret) }
+    );
+    try {
+      let stored = ['ssh:fixture'];
+      api.fetch.mockImplementation(async (url: string, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          stored = [];
+          throw failure;
+        }
+        return response(url === '/api/compute/providers' ? [provider()] : stored);
+      });
+      await renderWithI18n(<Harness />, 'en-US');
+      await openCompute();
+      await waitFor(() => expect(toggle()).toBeEnabled());
+      fireEvent.click(toggle());
+      await waitFor(() => expect(api.error).toHaveBeenCalledTimes(1));
+      expect(screen.getByRole('alert')).toHaveTextContent('The current selection is not confirmed.');
+      expect(toggle()).toHaveAttribute('aria-checked', 'true');
+      expect(toggle()).toBeDisabled();
+      fireEvent.click(toggle());
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Retry compute' }));
+      await waitFor(() => expect(screen.getByRole('menuitemradio', { name: 'Local' })).toBeEnabled());
+      expect(screen.getByRole('menuitemradio', { name: 'Local' })).toHaveAttribute('aria-checked', 'true');
+      expect(api.fetch.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(1);
+      expect(
+        api.fetch.mock.calls.filter(([url, init]) => String(url).endsWith('/enabled') && !init?.method)
+      ).toHaveLength(2);
+      expect(consoleError).toHaveBeenCalledWith('Session compute write outcome could not be confirmed:', {
+        kind: 'http',
+        status: 503,
+      });
+      expect(JSON.stringify(consoleError.mock.calls)).not.toContain(secret);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('C394 mutation success uses authoritative readback instead of appending or filtering the old selection', async () => {

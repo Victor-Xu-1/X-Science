@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { renderWithI18n } from '../i18nTestUtils';
 
@@ -51,6 +52,7 @@ const Harness = () => {
   const { i18n } = useTranslation();
   const [value, setValue] = useState(initialValue);
   const [delegation, setDelegation] = useState(true);
+  const computeControl = useSessionComputeControls({ rootFrameId: 'frame-stat6' });
   const persistOption = async (key: 'autoReview' | 'memory', checked: boolean) => {
     await mocks.persistOption(key, checked);
     setValue((current) => ({ ...current, [key]: checked }));
@@ -59,7 +61,7 @@ const Harness = () => {
     <MemoryRouter>
       <>
         <XScienceSessionOptionsMenu
-          rootFrameId='frame-stat6'
+          computeControl={computeControl}
           value={value}
           onChange={setValue}
           onPersistentOptionChange={persistOption}

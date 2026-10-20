@@ -9,7 +9,10 @@ import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScop
 type Entry = {
   key: string;
   meta?: string;
-  submenu?: { options?: Array<{ key: string; active?: boolean }>; onSelect?: (key: string) => void };
+  submenu?: {
+    options?: Array<{ key: string; active?: boolean; disabled?: boolean }>;
+    onSelect?: (key: string) => void;
+  };
 };
 const projection = (id = 'compute-child', incarnation = 'compute-inc', root: string | undefined = 'compute-root') =>
   ({
@@ -62,7 +65,7 @@ export function registerComputeRootCases(args: {
   it('C394 root bridge supplies the current child projection root to the desktop menu', async () => {
     prepare();
     await args.render(node());
-    expect(args.menu.current?.rootFrameId).toBe('compute-root');
+    expect((args.menu.current?.computeControl as { rootFrameId?: string })?.rootFrameId).toBe('compute-root');
   });
 
   it('C394 root bridge reads and writes the projected root on mobile, never the child route', async () => {
@@ -87,11 +90,14 @@ export function registerComputeRootCases(args: {
       );
       if (kind === 'missing-root' && current.type === 'acp') delete current.extra.root_frame_id;
       const view = await args.render(node(current, 'compute-child', kind === 'missing-owner' ? '' : 'compute-owner'));
-      expect(args.menu.current?.rootFrameId).toBeNull();
+      expect((args.menu.current?.computeControl as { rootFrameId?: string })?.rootFrameId).toBeNull();
       args.mobile.current = true;
       view.rerender(node(current, 'compute-child', kind === 'missing-owner' ? '' : 'compute-owner'));
       expect(args.selection).not.toHaveBeenCalled();
-      expect(entry()).toBeUndefined();
+      expect(entry()?.submenu?.options?.find((row) => row.key === '__local__')).toMatchObject({
+        active: false,
+        disabled: true,
+      });
       expect(args.write).not.toHaveBeenCalled();
     }
   );
@@ -113,12 +119,12 @@ export function registerComputeRootCases(args: {
         )
       );
       await waitFor(() => expect(args.selection).toHaveBeenCalledTimes(2));
-      await waitFor(() => expect(entry()?.meta).toBe('0'));
+      await waitFor(() => expect(entry()?.meta).toBe('本机'));
       await act(async () => {
         old.resolve(['ssh:fixture']);
         await old.promise;
       });
-      expect(entry()?.meta).toBe('0');
+      expect(entry()?.meta).toBe('本机');
     }
   );
 
@@ -135,12 +141,12 @@ export function registerComputeRootCases(args: {
     });
     view.rerender(node(projection('compute-child', 'new-inc')));
     await waitFor(() => expect(args.selection).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(entry()?.meta).toBe('0'));
+    await waitFor(() => expect(entry()?.meta).toBe('本机'));
     await act(async () => {
       old.resolve();
       await old.promise;
     });
-    expect(entry()?.meta).toBe('0');
+    expect(entry()?.meta).toBe('本机');
     await act(async () => {
       oldSelect?.('ssh:fixture');
     });

@@ -52,6 +52,7 @@ import {
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useGuidSessionOptions } from './hooks/useGuidSessionOptions';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { useGuidSpecialistDraft, useGuidSpecialistPresentation } from './hooks/useGuidSpecialistDraft';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { ConfigProvider } from '@arco-design/web-react';
@@ -195,6 +196,12 @@ const GuidPage: React.FC = () => {
     resetRequested: resetAssistantRequested,
     ownerId: user?.id ?? '',
     pending: guidInput.loading,
+  });
+  const computeControl = useSessionComputeControls({
+    contextKey: JSON.stringify([user?.id, draftGeneration]),
+    selection: sessionComputeProviders,
+    onSelectionChange: setSessionComputeProviders,
+    disabled: guidInput.loading,
   });
   const specialistDraft = useGuidSpecialistDraft(
     user?.id ?? '',
@@ -713,8 +720,7 @@ const GuidPage: React.FC = () => {
           delegationControl={delegationControl}
           specialistControl={specialistControl}
           onChange={setSessionOptions}
-          computeSelection={sessionComputeProviders}
-          onComputeSelectionChange={setSessionComputeProviders}
+          computeControl={computeControl}
           disabled={guidInput.loading}
         />
       }

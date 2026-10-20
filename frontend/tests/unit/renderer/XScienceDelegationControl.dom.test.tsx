@@ -44,7 +44,7 @@ async function open(overrides: Record<string, unknown> = {}) {
   };
   await renderWithI18n(
     <MemoryRouter>
-      <XScienceSessionOptionsMenu rootFrameId='delegation-root' value={value} onChange={localChange} {...props} />
+      <XScienceSessionOptionsMenu value={value} onChange={localChange} {...props} />
     </MemoryRouter>
   );
   fireEvent.click(screen.getByRole('button', { name: '会话选项' }));

@@ -1,14 +1,8 @@
-import {
-  loadXScienceComputeProviders,
-  loadXScienceSessionComputeProviders,
-  setXScienceSessionComputeProvider,
-  type XScienceComputeProvider,
-} from '@/renderer/services/xScienceCompute';
 import { X_SCIENCE_SESSION_DEFAULTS, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import { Dropdown, Message } from '@arco-design/web-react';
 import { Right, SettingConfig } from '@icon-park/react';
 import { Server, Shield, UserRound } from 'lucide-react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useNestedMenuKeyboard } from '@/renderer/hooks/ui/useNestedMenuKeyboard';
@@ -17,7 +11,7 @@ import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtim
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import XScienceSpecialistChoices, { specialistControlLabel } from './XScienceSpecialistChoices';
 import XScienceComputeChoices, { computeSelectionLabel } from './XScienceComputeChoices';
-import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import {
   sessionMemoryPresentation,
   type XScienceMemoryControl,
@@ -31,12 +25,10 @@ import { useXSciencePermissionControl, type XSciencePermissionControlInput } fro
 type Submenu = 'permission' | 'specialist' | 'compute' | null;
 
 export type XScienceSessionOptionsMenuProps = {
-  rootFrameId?: string | null;
   value: XScienceSessionOptions;
   onChange: (next: XScienceSessionOptions) => void;
   onPersistentOptionChange?: (key: 'autoReview' | 'memory', value: boolean) => void | Promise<void>;
-  computeSelection?: string[];
-  onComputeSelectionChange?: (providers: string[]) => void;
+  computeControl?: SessionComputeControl;
   onClearGoal?: () => void | Promise<void>;
   goalClearInFlight?: boolean;
   disabled?: boolean;
@@ -53,12 +45,10 @@ const clampToRange = (candidate: number, minimum: number, maximum: number) =>
   Math.min(Math.max(candidate, minimum), maximum);
 
 const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
-  rootFrameId,
   value,
   onChange,
   onPersistentOptionChange,
-  computeSelection,
-  onComputeSelectionChange,
+  computeControl,
   onClearGoal,
   goalClearInFlight = false,
   disabled = false,
@@ -73,8 +63,6 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const hasMemoryCustomization =
     !memoryPresentation.disabled && memoryPresentation.checked !== X_SCIENCE_SESSION_DEFAULTS.memory;
   const navigate = useNavigate();
-  const translationRef = useRef(t);
-  translationRef.current = t;
   const [visible, setVisible] = useState(false);
   const refreshMemory = memoryControl?.refresh;
   const refreshSpecialist = specialistControl?.refresh;
@@ -85,54 +73,12 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     }
   }, [refreshMemory, refreshSpecialist, visible]);
   const [submenu, setSubmenu] = useState<Submenu>(null);
-  const account = getRendererAccountScopeToken();
-  const computeOwner = useMemo(
-    () => ({ account, rootFrameId, contextKey: permissionControl?.contextKey }),
-    [account, rootFrameId, permissionControl?.contextKey]
-  );
-  const currentComputeOwner = useRef(computeOwner);
-  currentComputeOwner.current = computeOwner;
-  const computeMenuOpen = useRef(visible);
-  computeMenuOpen.current = visible;
-  const isComputeOwnerCurrent = useCallback(
-    () => currentComputeOwner.current === computeOwner && getRendererAccountScopeToken() === account,
-    [account, computeOwner]
-  );
-  const [computeRead, setComputeRead] = useState<{
-    owner: typeof computeOwner;
-    status: 'loading' | 'ready' | 'error';
-    hasSnapshot: boolean;
-  } | null>(null);
-  const [computeRetry, setComputeRetry] = useState(0);
-  const hasComputeSnapshot = computeRead?.owner === computeOwner && computeRead.hasSnapshot;
-  const computeStatus = computeRead?.owner === computeOwner ? computeRead.status : 'loading';
-  const computeReady = computeRead?.owner === computeOwner && computeRead.status === 'ready';
-  const [pendingCompute, setPendingCompute] = useState<{ owner: typeof computeOwner; provider: string } | null>(null);
-  const computeGeneration = useRef(0);
-  const computeWrite = useRef<{ owner: typeof computeOwner; settled: Promise<void> } | null>(null);
-  const computeMounted = useRef(true);
-  useLayoutEffect(() => {
-    computeMounted.current = true;
-    return () => {
-      computeMounted.current = false;
-    };
-  }, []);
-  const pendingProvider = pendingCompute?.owner === computeOwner ? pendingCompute.provider : null;
+  useEffect(() => {
+    if (!visible) setSubmenu(null);
+  }, [visible]);
   const [pendingOption, setPendingOption] = useState<'autoReview' | 'memory' | null>(null);
-  const [computeProviders, setComputeProviders] = useState<XScienceComputeProvider[]>([]);
-  const [enabledComputeProviders, setEnabledComputeProviders] = useState<string[]>(
-    (computeSelection ?? []).filter((provider) => provider !== 'local')
-  );
-  // Controlled draft intent is known before a catalog read, but never grants
-  // read readiness or makes another owner's cached provider labels current.
-  const displayedComputeSelection = useMemo(
-    () =>
-      rootFrameId === null
-        ? undefined
-        : (computeSelection?.filter((provider) => provider !== 'local') ??
-          (hasComputeSnapshot ? enabledComputeProviders : undefined)),
-    [rootFrameId, computeSelection, hasComputeSnapshot, enabledComputeProviders]
-  );
+  const inspectCompute = computeControl?.inspect;
+  useEffect(() => (visible ? inspectCompute?.() : undefined), [visible, inspectCompute]);
   const submenuCloseTimerRef = useRef<number | null>(null);
   const [submenuPosition, setSubmenuPosition] = useState<React.CSSProperties>();
 
@@ -181,56 +127,6 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
     []
   );
 
-  useEffect(() => {
-    if (!visible || rootFrameId === null) {
-      setSubmenu(null);
-      return;
-    }
-    let active = true;
-    const generation = ++computeGeneration.current;
-    const current = () => active && generation === computeGeneration.current && isComputeOwnerCurrent();
-    setComputeRead((previous) => ({
-      owner: computeOwner,
-      status: 'loading',
-      hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
-    }));
-    const write = computeWrite.current;
-    const settled = write?.owner === computeOwner ? write.settled : Promise.resolve();
-    void settled
-      .then(() => {
-        if (!current()) return;
-        return Promise.all([
-          loadXScienceComputeProviders(),
-          rootFrameId ? loadXScienceSessionComputeProviders(rootFrameId) : Promise.resolve(computeSelection ?? []),
-        ]);
-      })
-      .then((snapshot) => {
-        if (!snapshot || !current()) return;
-        const [providers, enabledProviders] = snapshot;
-        setComputeProviders(providers.filter((provider) => provider.checked && provider.name !== 'local'));
-        setEnabledComputeProviders(enabledProviders.filter((provider) => provider !== 'local'));
-        setComputeRead({ owner: computeOwner, status: 'ready', hasSnapshot: true });
-      })
-      .catch((error) => {
-        if (!current()) return;
-        console.error('Failed to load session options:', error);
-        setComputeRead((previous) => ({
-          owner: computeOwner,
-          status: 'error',
-          hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
-        }));
-        Message.error(translationRef.current('conversation.xscienceRuntime.sessionOptions.computeState.read'));
-      });
-    return () => {
-      active = false;
-      computeGeneration.current++;
-    };
-  }, [computeSelection, rootFrameId, visible, computeOwner, computeRetry, isComputeOwnerCurrent]);
-
-  useEffect(() => {
-    if (computeSelection) setEnabledComputeProviders(computeSelection.filter((provider) => provider !== 'local'));
-  }, [computeSelection]);
-
   useLayoutEffect(() => {
     if (!submenu) return;
 
@@ -274,92 +170,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
 
   const activeSpecialistLabel = specialistControlLabel(specialistControl, t);
 
-  const computeLabel = computeSelectionLabel(displayedComputeSelection, hasComputeSnapshot ? computeProviders : [], t);
-
-  // A missing ACK does not prove rollback. Keep the last observation read-only;
-  // only a fresh GET can confirm selection, and no retry here replays a PUT.
-  const persistComputeChange = async (provider: string, write: () => Promise<void>) => {
-    if (computeWrite.current?.owner === computeOwner) return;
-    const generation = ++computeGeneration.current;
-    let settle!: () => void;
-    const operation = {
-      owner: computeOwner,
-      settled: new Promise<void>((resolve) => {
-        settle = resolve;
-      }),
-    };
-    computeWrite.current = operation;
-    setPendingCompute({ owner: computeOwner, provider });
-    setComputeRead((previous) => ({
-      owner: computeOwner,
-      status: 'loading',
-      hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
-    }));
-    const current = () =>
-      isComputeOwnerCurrent() && computeMenuOpen.current && generation === computeGeneration.current;
-    try {
-      await write();
-      if (current()) setComputeRetry((attempt) => attempt + 1);
-    } catch (error) {
-      if (current()) {
-        console.error('Session compute write outcome could not be confirmed:', error);
-        setComputeRead((previous) => ({
-          owner: computeOwner,
-          status: 'error',
-          hasSnapshot: previous?.owner === computeOwner && previous.hasSnapshot,
-        }));
-        Message.error(translationRef.current('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
-      }
-    } finally {
-      settle();
-      if (computeWrite.current === operation) {
-        computeWrite.current = null;
-        if (computeMounted.current && isComputeOwnerCurrent()) setPendingCompute(null);
-      }
-    }
-  };
-
-  const updateComputeProvider = async (providerName: string, checked: boolean) => {
-    if (disabled || !computeReady || pendingProvider !== null || !isComputeOwnerCurrent()) return;
-    if (rootFrameId) {
-      await persistComputeChange(providerName, () =>
-        setXScienceSessionComputeProvider(rootFrameId, providerName, checked)
-      );
-      return;
-    }
-    const next = checked
-      ? Array.from(new Set([...enabledComputeProviders, providerName]))
-      : enabledComputeProviders.filter((name) => name !== providerName);
-    setEnabledComputeProviders(next);
-    onComputeSelectionChange?.(next);
-  };
-
-  const selectLocalCompute = async () => {
-    if (
-      disabled ||
-      !computeReady ||
-      enabledComputeProviders.length === 0 ||
-      pendingProvider !== null ||
-      !isComputeOwnerCurrent()
-    )
-      return;
-    if (rootFrameId) {
-      await persistComputeChange('__local__', async () => {
-        // All already-issued writes must settle before readback/retry. This is
-        // not an atomic clear; a partial failure remains an uncertain outcome.
-        const results = await Promise.allSettled(
-          enabledComputeProviders.map((providerName) =>
-            setXScienceSessionComputeProvider(rootFrameId, providerName, false)
-          )
-        );
-        const failed = results.find((result) => result.status === 'rejected');
-        if (failed?.status === 'rejected') throw failed.reason;
-      });
-      return;
-    }
-    setEnabledComputeProviders([]);
-    onComputeSelectionChange?.([]);
-  };
+  const computeLabel = computeSelectionLabel(computeControl?.selection, computeControl?.providers ?? [], t);
 
   const updateToggle = async (key: 'autoReview' | 'memory', checked: boolean) => {
     if ((key === 'memory' ? memoryDisabled : disabled) || (key === 'memory' && !memoryControl?.canUpdate())) return;
@@ -415,19 +226,15 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           />
         ) : (
           <XScienceComputeChoices
-            providers={hasComputeSnapshot ? computeProviders : []}
-            enabled={displayedComputeSelection ?? []}
-            status={computeStatus}
-            hasSelection={displayedComputeSelection !== undefined}
-            disabled={disabled}
-            pending={pendingProvider}
-            retry={() => {
-              if (computeMenuOpen.current && isComputeOwnerCurrent() && computeStatus === 'error') {
-                setComputeRetry((attempt) => attempt + 1);
-              }
-            }}
-            selectLocal={() => void selectLocalCompute()}
-            change={(name, checked) => void updateComputeProvider(name, checked)}
+            providers={computeControl?.providers ?? []}
+            enabled={computeControl?.enabled ?? []}
+            status={computeControl?.status ?? 'loading'}
+            hasSelection={computeControl?.selection !== undefined}
+            disabled={disabled || !computeControl || computeControl.disabled}
+            pending={computeControl?.pending ?? null}
+            retry={() => computeControl?.retry()}
+            selectLocal={() => void computeControl?.selectLocal()}
+            change={(name, checked) => void computeControl?.change(name, checked)}
             manage={() => {
               setVisible(false);
               setSubmenu(null);
@@ -624,7 +431,7 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
           hasMemoryCustomization ||
           Boolean(specialistControl?.current() && specialistControl.applied && !specialistControl.applied.is_default) ||
           (permission.available && permission.currentValue !== 'default') ||
-          Boolean(displayedComputeSelection?.length) ? (
+          Boolean(computeControl?.selection?.length) ? (
             <span className='absolute right-5px top-4px h-5px w-5px rounded-full bg-primary' aria-hidden='true' />
           ) : null}
           {permission.controller?.isCurrent() &&

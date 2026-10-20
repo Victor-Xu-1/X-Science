@@ -14,6 +14,7 @@ import {
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { useAcpSessionOptionControls } from '@/renderer/pages/conversation/platforms/acp/useAcpSessionOptionControls';
 import { useAcpMobileActionSheetController } from '@/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import { useTranslation } from 'react-i18next';
 import { useXScienceSessionOptionsState } from '@/renderer/pages/conversation/platforms/acp/useXScienceSessionOptionsState';
@@ -61,6 +62,7 @@ function SharedComposerHarness({
   const { t, i18n } = useTranslation();
   const [value, setValue] = useState({ ...createXScienceSessionDefaults(), memory: true });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const computeControl = useSessionComputeControls({ rootFrameId: null });
   const mounted = useRef(true);
   const owner = useRef({ conversationId: 'synthetic-frame', ownerId: 'synthetic-owner' });
   const { memoryControl, updatePersistentSessionOption, openMobileControls } = useAcpSessionOptionControls(
@@ -85,13 +87,9 @@ function SharedComposerHarness({
     selectModel: () => undefined,
     xscienceSessionOptions: value,
     sessionOptionsReady: legacyReady,
-    setXScienceSessionOptions: setValue,
     updatePersistentSessionOption,
     memoryControl,
-    mobileSpecialists: [],
-    mobileComputeProviders: [],
-    mobileEnabledCompute: [],
-    handleSessionComputeChange: async () => undefined,
+    computeControl,
     handleSheetModeChange: async () => undefined,
     handleThoughtLevelSetOption: async () => true,
     attachEntries: [],
@@ -112,6 +110,7 @@ function SharedComposerHarness({
           value={value}
           onChange={setValue}
           memoryControl={memoryControl}
+          computeControl={computeControl}
           disabled={!legacyReady}
           memoryDisabled={false}
           onPersistentOptionChange={updatePersistentSessionOption}

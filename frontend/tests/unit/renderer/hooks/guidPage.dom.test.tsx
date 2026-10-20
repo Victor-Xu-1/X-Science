@@ -6,8 +6,20 @@
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
+import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const computeGateway = vi.hoisted(() => ({
+  providers: vi.fn(async () => [{ name: 'openfold3-service', displayName: 'Fixture compute', checked: true }]),
+  selection: vi.fn(),
+  write: vi.fn(),
+}));
+vi.mock('@/renderer/services/xScienceCompute', () => ({
+  loadXScienceComputeProviders: computeGateway.providers,
+  loadXScienceSessionComputeProviders: computeGateway.selection,
+  setXScienceSessionComputeProvider: computeGateway.write,
+}));
 
 const {
   agentSelectionMock,
@@ -478,9 +490,10 @@ describe('GuidPage', () => {
     if (!React.isValidElement(initialNode)) throw new Error('Expected session options node');
     const initialProps = initialNode.props as {
       onChange: (value: Record<string, unknown>) => void;
-      onComputeSelectionChange: (providers: string[]) => void;
+      computeControl: SessionComputeControl;
       value: Record<string, unknown>;
     };
+    let closeCompute!: () => void;
     act(() => {
       initialProps.onChange({
         ...initialProps.value,
@@ -489,8 +502,21 @@ describe('GuidPage', () => {
         memory: false,
         targetAgent: 'STRUCTURAL_BIOLOGY_EXPERT',
       });
-      initialProps.onComputeSelectionChange(['openfold3-service']);
+      closeCompute = initialProps.computeControl.inspect();
     });
+    const currentCompute = () => {
+      const node = capturedGuidActionRowProps.at(-1)?.sessionOptionsNode;
+      if (!React.isValidElement<{ computeControl: SessionComputeControl }>(node)) {
+        throw new Error('Expected current draft Compute control');
+      }
+      return node.props.computeControl;
+    };
+    await vi.waitFor(() => expect(currentCompute().status).toBe('ready'));
+    await act(async () => currentCompute().change('openfold3-service', true));
+    expect(capturedGuidSendDeps.at(-1)?.sessionComputeProviders).toEqual(['openfold3-service']);
+    expect(computeGateway.selection).not.toHaveBeenCalled();
+    expect(computeGateway.write).not.toHaveBeenCalled();
+    act(() => closeCompute());
 
     locationMock.key = 'guid-new-conversation';
     locationMock.state = { resetAssistant: true };
