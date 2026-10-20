@@ -42,6 +42,69 @@ func TestKernelSkillReadPublishedReceiptKeepsNamespaceAndDraftIsolation(t *testi
 	assertKernelSkillReadback(t, fixture, name, "references/guide.md", "Unpublished reference.")
 }
 
+func TestKernelSkillReadOriginFollowsSelectedPublicationSnapshot(t *testing.T) {
+	fixture := newKernelSkillDraftFixture(t)
+	const name = "origin-readback-fixture"
+	manifest := kernelSkillManifestForTest(name, "Published origin workflow.")
+	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", manifest); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.call("host.skills.edit", name, "references/guide.md", "Published origin reference."); err != nil {
+		t.Fatal(err)
+	}
+	assertOrigin := func(reference, path, wantOrigin, wantContent string) {
+		t.Helper()
+		result, err := fixture.call("host.skills.read", reference, path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		read := mapValue(result)
+		if read["origin"] != wantOrigin || read["name"] != name || read["path"] != path || read["content"] != wantContent {
+			t.Errorf("read %q/%q returned %#v; want origin=%q and selected package content", reference, path, read, wantOrigin)
+		}
+		if path == "SKILL.md" && len(anySliceValue(read["files"])) == 0 {
+			t.Fatalf("manifest origin read lost its package inventory: %#v", read)
+		}
+	}
+	assertOrigin(name, "SKILL.md", "draft", manifest)
+	assertOrigin(name, "references/guide.md", "draft", "Published origin reference.")
+	published, err := fixture.call("host.skills.publish", name, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := stringValue(mapValue(published)["skill_id"])
+	if id != "local:"+name {
+		t.Fatalf("unexpected publication identity: %#v", published)
+	}
+	assertOrigin(id, "SKILL.md", "personal", manifest)
+	assertOrigin(id, "references/guide.md", "personal", "Published origin reference.")
+	assertOrigin(name, "SKILL.md", "personal", manifest)
+	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", "Draft origin revision.", "Published origin workflow."); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.call("host.skills.edit", name, "references/guide.md", "Draft origin reference.", "Published origin reference."); err != nil {
+		t.Fatal(err)
+	}
+	// Origin follows the package actually read, not the bare name or the presence
+	// of a same-name unpublished draft beside a selected publication.
+	assertOrigin(name, "SKILL.md", "draft", strings.Replace(manifest, "Published origin workflow.", "Draft origin revision.", 1))
+	assertOrigin(name, "references/guide.md", "draft", "Draft origin reference.")
+	assertOrigin(id, "SKILL.md", "personal", manifest)
+	assertOrigin(id, "references/guide.md", "personal", "Published origin reference.")
+	const builtin = "builtin-origin-fixture"
+	fixture.server.skillCatalog.AddSkill(skills.Skill{Name: builtin, Path: "builtin:" + builtin, Body: "Built-in origin workflow."})
+	for _, reference := range []string{builtin, "bundled:" + builtin} {
+		result, err := fixture.call("host.skills.read", reference, "SKILL.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		read := mapValue(result)
+		if read["origin"] != "x_science_llm" || read["content"] != "Built-in origin workflow." {
+			t.Errorf("built-in origin does not match the selected catalog source: %#v", read)
+		}
+	}
+}
+
 func TestKernelSkillReadPublishedReferenceRejectsWrongNamespaceAndUnsafeResource(t *testing.T) {
 	fixture := newKernelSkillDraftFixture(t)
 	const personal, builtin = "personal-readback-fixture", "builtin-readback-fixture"

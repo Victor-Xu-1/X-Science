@@ -50,6 +50,7 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 	}
 	var content string
 	var files []string
+	var origin string
 	read := func() error {
 		if publishedReference && namespace == "local" {
 			// Under the existing snapshot lock, retain the same regular-root and
@@ -60,6 +61,14 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 		}
 		var err error
 		content, files, err = readKernelSkillSource(skill, path)
+		if err == nil {
+			// Classify the same package selected by this protected read, never
+			// a separate catalog lookup or a same-name authoring draft.
+			origin = "draft"
+			if !draftRead {
+				origin = s.compatibilitySkillSource(skill)
+			}
+		}
 		return err
 	}
 	if !draftRead {
@@ -83,7 +92,7 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 	if err != nil {
 		return nil, kernelHostRegistryError(err)
 	}
-	result := map[string]any{"name": skill.Name, "path": path, "content": content}
+	result := map[string]any{"name": skill.Name, "origin": origin, "path": path, "content": content}
 	if path == "SKILL.md" {
 		result["files"] = files
 	}
