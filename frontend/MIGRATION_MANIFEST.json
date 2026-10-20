@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e97caa21ba27ebf0a4b9098b17722ecaa8ad1c37fb6770041beb23f1d2c02959",
+  "adaptationFingerprintSHA256": "0e15ebdf0a35bd1e420e8a8cdea0d63e1ab3992ac59b4232a4623a055879175e",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e3be8ed7de52c74e607a95a12b9cfdeca60b46fd6344873e6f1112812764cdc1",
+  "additionFingerprintSHA256": "c43a5f7e353bc3fd794e6eecdc84f415584c22482cc8bee5fc130ee9fe8c9187",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "4f113e53325eb4cec2450fb63c89f7ee5d4a2cddde4368d1c0994780cf77ffaf",
-      "bytes": 19079,
+      "targetSHA256": "63e612bf0444ee6d19a2764587b1a4dac889e6e454fdb8cae7a76d8edbc9fc9e",
+      "bytes": 19955,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "8793cb4bb28368b0fb88fd5d6e6788f7230764c62d369a0184e0eee99ce2a8bd",
-      "bytes": 52583,
+      "targetSHA256": "099ec071d9e105a183dbb035d7fe781bab106cd6db9761d5f52a1b4fad0fd87a",
+      "bytes": 53078,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "323efba7f90a738d38c73400730842ebbd78712727e8bb5d41d9455209f55f14",
-      "bytes": 279713,
+      "targetSHA256": "15663b15455575d72c7c6075e3742b007fb59b996453c8b49faa995bf265da5c",
+      "bytes": 279867,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "606bca7e7b0da925a90eebe961a4682ea6bd1964c1c59c0a60c9da07889580ac",
-      "bytes": 110192,
+      "targetSHA256": "e86dadb260d6ac83a3041f2e02c228dd77a4e0baace9953710c5da21cacabedb",
+      "bytes": 110465,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "f749b3417be331c4bf1dba3ec25210ca136f5279c59060a9d6f03f4cd69b1ff8",
-      "bytes": 103764,
+      "targetSHA256": "3d00ee6a1aae95ecc99d3eef805dfc8ab09a45a8fb2c6326725a022bc794c174",
+      "bytes": 103997,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3289,8 +3289,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceSessionOptions.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedSessionOptions.ts",
       "sourceSHA256": "085924004d0d8cd9631accc96daa42f460d837c65934322e78b302b648e73868",
-      "targetSHA256": "efcb2ffb31d5d2094923aa346315c98994042cf1135ab9286a8060d8e84c6415",
-      "bytes": 11086,
+      "targetSHA256": "8f88f68a6153d0db054630625cd9f6575f57f0fe49041f1086339ff043e959fe",
+      "bytes": 13004,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "1000bf2a352765f273a320e749b61cfc51f3e1d41ba0bf946403a10289f0d94d",
-      "bytes": 189506,
+      "targetSHA256": "c9dd61a392951370cce8090d3584bcce17446889ece0e59ea99d11d7f70b2190",
+      "bytes": 196903,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5053,8 +5053,8 @@
       "path": "tests/unit/renderer/xScienceSessionOptions.dom.test.ts",
       "originalPath": "tests/unit/renderer/synonBiomedSessionOptions.dom.test.ts",
       "sourceSHA256": "9b12cccebeaf52af8f7a6712b4754b366f249d9e5e0d5b749a450e690c4f147b",
-      "targetSHA256": "8ec512d9c30e231c21fb38ef34656663755314af2314a22d2ed51d581b9cb386",
-      "bytes": 10188,
+      "targetSHA256": "758eb4394ec57fcef2c0d9f3bad14a6a4a02ca1c059788f13f521fb6eddd163c",
+      "bytes": 15187,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7587,8 +7587,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/ipcBridgeTypes.ts",
-      "sha256": "fc609746a9024f354689c2e2b2c480f0d17f0b38c95579479cf843de55cf1ccb",
-      "bytes": 7396,
+      "sha256": "9b412ddeaf471eea8be5abb6087923428210717221cde940385ad9ea99516e92",
+      "bytes": 7397,
       "reason": "Define shared typed IPC facade contracts without creating a second transport authority."
     },
     {
@@ -8109,8 +8109,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceAgentControlToggles.tsx",
-      "sha256": "29a5bade82f7dd932d046277bfe019887a59f074e3670439db287b1ba0f8fca6",
-      "bytes": 5042,
+      "sha256": "81631f56686b77f0fce352cc8771487e3bdcb0f3200a99ab3900381cc0532a69",
+      "bytes": 7843,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8355,8 +8355,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/chat/sendBoxDraftPersistence.ts",
-      "sha256": "1059f6726e4aa4f905f477c73f283e9ecb0dec864c1330ceb2a3f7294f22eacc",
-      "bytes": 11155,
+      "sha256": "92871a749b16269ae34cd056a8d4508fd88f1b875d6ebf9928089eab6ccc1cf6",
+      "bytes": 11522,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9579,8 +9579,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandAuthority.ts",
-      "sha256": "909031203ed49b1e6ae43e3b947b2f3250a7b585f3f0883974b7e8e38ee73571",
-      "bytes": 4774,
+      "sha256": "a72d231b4ebb950ca58709dda47f12cf725e1aff819e323a863b6287eab0106d",
+      "bytes": 5476,
       "reason": "Extract the existing X-Science branch/session-option authority capture from AcpSendBox so ordinary and typed sends retain one implementation. Preserve the original imported/adapted ancestry of the extracted target code."
     },
     {
@@ -9609,8 +9609,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpMobileActionSheetController.tsx",
-      "sha256": "ea81fe876c67d41b40ca012b8329a6e05458bd01b339e2bfad4c67bd24f8e3b8",
-      "bytes": 15645,
+      "sha256": "22523894f54e77b95c416be556ef3460b160394c4449e0de434d2a51383a65f2",
+      "bytes": 16354,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9633,8 +9633,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpSessionOptionControls.ts",
-      "sha256": "ba177634648369d882bd48ab7f770d4bdc80b033b3812dd8797eb4dc30156b6b",
-      "bytes": 7656,
+      "sha256": "da0d36cadcd945ce29d5a383f716c37aed3adfe1a9fff5dbc9d45dc1077493ed",
+      "bytes": 8408,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9663,8 +9663,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useXScienceSessionOptionsState.ts",
-      "sha256": "7a6e8aceaee227e200bb4ac5907c31154e9e171e48e9e90fe52a7c1d605441a4",
-      "bytes": 8319,
+      "sha256": "397eb350d62275691d54e5f7a2ba107e9d56e39166e819201330fbc350b589d0",
+      "bytes": 9611,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12669,8 +12669,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSessionMemoryAvailability.dom.test.tsx",
-      "sha256": "9bdcceee057c13c016a88d3c885107421d5708622744768d7650eae496f928c7",
-      "bytes": 23779,
+      "sha256": "ded60dd1ac5bc60bf712aed27c3cd42bb55c484950f84d85b6698481d36770a0",
+      "bytes": 28078,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
