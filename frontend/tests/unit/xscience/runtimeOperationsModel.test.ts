@@ -197,6 +197,7 @@ describe('X-Science runtime operations model', () => {
       reviewProfile: null,
       reviewFrameId: null,
       reviewDescription: null,
+      reviewStopReason: 'unknown',
       reviewTrigger: null,
       reviewVerdict: null,
       reviewIssueCount: 0,

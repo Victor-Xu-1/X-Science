@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "094cc66d9fda8dc7dcf7c6412f2fea6451d0139f2a1d969520b7d4c07cc9fff7",
+  "adaptationFingerprintSHA256": "bed874c0e393aa15d6a998f4ee6dab025d336e88e3130693ecae051d74e71064",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "a50fcf96da5173ba9c9d58248b63bc40d7a1eb90f2281d83cde109ec4ea5287e",
   "summary": {
@@ -5466,8 +5466,8 @@
       "path": "tests/unit/xscience/runtimeOperationsModel.test.ts",
       "originalPath": "tests/unit/synonbiomed/runtimeOperationsModel.test.ts",
       "sourceSHA256": "dd65ca1857a1dbc8a12e86afed81e3f497f43ab61d91f220a5617b414f903d1b",
-      "targetSHA256": "19ff64e725d956fc1a6e9e60db167957cd5f8f43ecc2804e127ed1039088f81c",
-      "bytes": 34137,
+      "targetSHA256": "17bc8eb9c0df0419424e02092f5abddeb7d8468b5599283e721bb09eb1dc33f7",
+      "bytes": 34172,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
