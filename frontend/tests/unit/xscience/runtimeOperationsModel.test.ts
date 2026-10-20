@@ -13,6 +13,37 @@ import { describe, expect, it } from 'vitest';
 import { projectAcceptedRuntimeStart } from '@/renderer/components/xScience/runtime/runtimeOperationsControllerModel';
 
 describe('X-Science runtime operations model', () => {
+  it('443 decodes only closed review stop reasons without changing completed task authority', () => {
+    const base = {
+      id: 'review-root',
+      status: 'completed',
+      runtime_review_status: 'failed',
+      runtime_review_trigger: 'manual',
+    };
+    for (const reason of [
+      'no_progress',
+      'source_changed',
+      'cancelled',
+      'model_protocol',
+      'provider_unavailable',
+      'unknown',
+    ]) {
+      const value = normalizeXScienceRuntimeSnapshot({ ...base, runtime_review_stop_reason: reason });
+      expect(value).toMatchObject({
+        status: 'completed',
+        reviewStopReason: reason,
+        canResume: false,
+        canCancel: false,
+      });
+      expect(toXScienceRuntimeSummary(value)).toMatchObject({ state: 'idle', is_processing: false });
+    }
+    for (const reason of [undefined, null, 'PRIVATE_SENTINEL', 'NO_PROGRESS', { no_progress: true }]) {
+      expect(normalizeXScienceRuntimeSnapshot({ ...base, runtime_review_stop_reason: reason })).toMatchObject({
+        reviewStopReason: 'unknown',
+      });
+    }
+  });
+
   it('keeps only the closed provider failure category without treating it as execution authority', () => {
     for (const kind of ['configuration_missing', 'subscription', 'authentication', 'access_denied', 'unavailable']) {
       const snapshot = normalizeXScienceRuntimeSnapshot({
@@ -166,6 +197,7 @@ describe('X-Science runtime operations model', () => {
       reviewProfile: null,
       reviewFrameId: null,
       reviewDescription: null,
+      reviewStopReason: 'unknown',
       reviewTrigger: null,
       reviewVerdict: null,
       reviewIssueCount: 0,

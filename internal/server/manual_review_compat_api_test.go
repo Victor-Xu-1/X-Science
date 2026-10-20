@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -16,7 +18,110 @@ import (
 	"x-science/internal/agentruntime"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
+
+func TestManualReviewSafeStopDescriptionUsesTypedEvidence(t *testing.T) {
+	noProgress := &agentruntime.ToolRoundNoProgressError{Limit: 3, SourceRepetition: true}
+	for _, test := range []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"typed no progress", fmt.Errorf("PRIVATE_WRAPPER: %w", noProgress), "repeated work made no progress"},
+		{"typed submission protocol", &sessionReviewerSubmissionProtocolError{Detail: "PRIVATE_PROTOCOL"}, "invalid structured data"},
+		{"untrusted protocol prose", errors.New("PRIVATE_SENTINEL invalid json malformed tool-call protocol"), "reason is unavailable"},
+		{"untrusted provider prose", errors.New("PRIVATE_SENTINEL model not found overload"), "reason is unavailable"},
+		{"mixed persistence cause", errors.Join(noProgress, errors.New("PRIVATE_PERSISTENCE")), "reason is unavailable"},
+		{"stage failure", &sessionRunnerReviewStageError{Cause: noProgress}, "reason is unavailable"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			description := manualReviewFailureDescription(test.err)
+			if !strings.Contains(description, test.want) || strings.Contains(description, "PRIVATE_") {
+				t.Fatalf("safe stop description=%q want fragment %q", description, test.want)
+			}
+		})
+	}
+}
+
+func TestManualReviewSafeStopLocalAuthorityDoesNotBorrowModelCategories(t *testing.T) {
+	protocol := &sessionReviewerSubmissionProtocolError{Detail: "PRIVATE_PROTOCOL"}
+	for _, test := range []struct {
+		name                      string
+		err                       error
+		modelReason, sourceReason transcriptstore.PublicStopReason
+	}{
+		{"EOF", io.EOF, transcriptstore.PublicStopProviderUnavailable, transcriptstore.PublicStopUnknown},
+		{"stage_heartbeat_eof", &sessionRunnerReviewStageError{Cause: io.EOF}, transcriptstore.PublicStopUnknown, transcriptstore.PublicStopUnknown},
+		{"wrapped EOF", fmt.Errorf("PRIVATE_LOCAL: %w", io.EOF), transcriptstore.PublicStopProviderUnavailable, transcriptstore.PublicStopUnknown},
+		{"typed protocol", protocol, transcriptstore.PublicStopModelProtocol, transcriptstore.PublicStopUnknown},
+		{"wrapped protocol", fmt.Errorf("PRIVATE_LOCAL: %w", protocol), transcriptstore.PublicStopModelProtocol, transcriptstore.PublicStopUnknown},
+		{"mixed source and storage", errors.Join(errManualReviewSourceChanged, io.EOF), transcriptstore.PublicStopUnknown, transcriptstore.PublicStopUnknown},
+		{"source changed", fmt.Errorf("PRIVATE_LOCAL: %w", errManualReviewSourceChanged), transcriptstore.PublicStopSourceChanged, transcriptstore.PublicStopSourceChanged},
+		{"cancelled", context.Canceled, transcriptstore.PublicStopCancelled, transcriptstore.PublicStopCancelled},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := manualReviewStopReason(test.err); got != test.modelReason {
+				t.Fatalf("model boundary changed: %s want %s", got, test.modelReason)
+			}
+			if test.name == "stage_heartbeat_eof" && (test.err.Error() != io.EOF.Error() || !errors.Is(test.err, io.EOF)) {
+				t.Fatal("local stage wrapper changed error text or unwrapping")
+			}
+			outcome := manualReviewSourceFailureOutcome(test.err)
+			if outcome.status != "failed" || outcome.stopReason != test.sourceReason || outcome.description != manualReviewStopDescription(test.sourceReason) || strings.Contains(outcome.description, "PRIVATE_") {
+				t.Fatalf("local authority borrowed a model category or changed disposition: %#v", outcome)
+			}
+		})
+	}
+}
+
+func TestManualReviewSafeStopReasonClassifiesClosedEvidenceAndMixedCauses(t *testing.T) {
+	noProgress := &agentruntime.ToolRoundNoProgressError{Limit: 2}
+	for _, test := range []struct {
+		name string
+		err  error
+		want transcriptstore.PublicStopReason
+	}{
+		{"wrapped no progress", fmt.Errorf("private wrapper: %w", noProgress), transcriptstore.PublicStopNoProgress},
+		{"source changed", fmt.Errorf("wrapped: %w", errManualReviewSourceChanged), transcriptstore.PublicStopSourceChanged},
+		{"cancelled", context.Canceled, transcriptstore.PublicStopCancelled},
+		{"draining", ErrRuntimeDraining, transcriptstore.PublicStopCancelled},
+		{"stopped", ErrGenerationStopped, transcriptstore.PublicStopCancelled},
+		{"protocol", &sessionReviewerSubmissionProtocolError{Detail: "PRIVATE"}, transcriptstore.PublicStopModelProtocol},
+		{"batch protocol", &agentruntime.ToolCallBatchValidationError{Code: "PRIVATE"}, transcriptstore.PublicStopModelProtocol},
+		{"same joined reason", errors.Join(noProgress, fmt.Errorf("wrapped: %w", noProgress)), transcriptstore.PublicStopNoProgress},
+		{"mixed known reasons", errors.Join(noProgress, context.Canceled), transcriptstore.PublicStopUnknown},
+		{"unknown joined", fmt.Errorf("wrapped: %w", errors.Join(noProgress, errors.New("private persistence failure"))), transcriptstore.PublicStopUnknown},
+		{"stage", &sessionRunnerReviewStageError{Cause: noProgress}, transcriptstore.PublicStopUnknown},
+		{"round limit is not no progress", &agentruntime.ToolRoundLimitError{Limit: 2}, transcriptstore.PublicStopUnknown},
+		{"untrusted description", errors.New("invalid json provider HTTP 503 no progress"), transcriptstore.PublicStopUnknown},
+		{"absent", nil, transcriptstore.PublicStopUnknown},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := manualReviewStopReason(test.err); got != test.want {
+				t.Fatalf("reason=%s want=%s", got, test.want)
+			}
+		})
+	}
+	// A real provider decoder supplies the typed error; the private body cannot
+	// manufacture a public class merely by mentioning it in arbitrary prose.
+	model := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error":{"message":"PRIVATE_SENTINEL"}}`))
+	}))
+	defer model.Close()
+	client, err := providers.NewRuntimeModelClient(providers.ModelProfile{
+		Provider: providers.ProviderProfile{Protocol: providers.ProtocolOpenAICompatible, Endpoint: model.URL}, Model: "fixture-model",
+	}, model.Client(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, providerErr := client.Complete(t.Context(), agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "fixture"}}})
+	if providerErr == nil || manualReviewStopReason(providerErr) != transcriptstore.PublicStopProviderUnavailable ||
+		strings.Contains(manualReviewFailureDescription(providerErr), "PRIVATE_SENTINEL") {
+		t.Fatalf("provider stop reason not safe: %v", providerErr)
+	}
+}
 
 func TestManualFrameAuditRunsOnceAfterAskUserWithoutEnablingAutoReview(t *testing.T) {
 	var mainCalls atomic.Int32
@@ -608,7 +713,7 @@ func TestManualFrameAuditProtocolFailureDoesNotFailCompletedTask(t *testing.T) {
 	waitForManualReviewerStatus(t, store, reviewerFrameID, "failed")
 	projection := compatJSONRequest(t, server.Handler(), http.MethodGet, "/api/frames/root", "owner", nil, http.StatusOK)
 	if projection["runtime_stage"] != "review_failed" || projection["runtime_review_status"] != "failed" ||
-		projection["runtime_active"] != false {
+		projection["runtime_active"] != false || projection["runtime_review_stop_reason"] != "no_progress" {
 		t.Fatalf("failed manual review projection=%#v", projection)
 	}
 	root, found, err := store.GetFrame("root")

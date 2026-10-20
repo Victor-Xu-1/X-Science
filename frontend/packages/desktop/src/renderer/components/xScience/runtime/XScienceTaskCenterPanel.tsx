@@ -40,6 +40,7 @@ type XScienceTaskCenterPanelProps = {
   recoveryAvailable?: boolean;
   recoveryResumeLabel?: string | null;
   failureDetail?: string | null;
+  reviewStopDetail?: string | null;
   onClose: () => void;
   onRefresh?: () => void;
   onResume?: () => void;
@@ -149,6 +150,7 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
   recoveryAvailable = false,
   recoveryResumeLabel = null,
   failureDetail = null,
+  reviewStopDetail = null,
   onClose,
   onRefresh,
   onResume,
@@ -299,6 +301,23 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
             />
           </dl>
         </div>
+
+        {phase === 'completed' && reviewStopDetail ? (
+          <section
+            className='x-science-task-center-panel__section x-science-task-center-panel__section--attention'
+            aria-labelledby='x-science-task-center-review-stop'
+          >
+            <h3 id='x-science-task-center-review-stop'>
+              {t('conversation.xscienceRuntime.runtimeOperations.taskCompletedReviewInterrupted')}
+            </h3>
+            <p
+              className='m-0 break-words text-12px leading-19px text-t-secondary'
+              data-testid='x-science-task-center-review-stop-detail'
+            >
+              {reviewStopDetail}
+            </p>
+          </section>
+        ) : null}
 
         {(phase === 'failed' || phase === 'paused') && failureDetail ? (
           <section

@@ -3,10 +3,89 @@ package transcript
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 )
+
+func TestTerminalFramePublicStopReasonKeepsLegacyBytesAndReceiptEquality(t *testing.T) {
+	for _, reason := range []PublicStopReason{"", PublicStopNoProgress, PublicStopSourceChanged, PublicStopCancelled,
+		PublicStopModelProtocol, PublicStopProviderUnavailable, PublicStopUnknown} {
+		t.Run(string(reason), func(t *testing.T) {
+			fixture := newTerminalFrameRunnerFixture(t)
+			var first Event
+			var receipt FinishReceipt
+			finish := func(options ...FrameRunnerTerminalOptions) (created bool, err error) {
+				err = fixture.repository.RunImmediate(t.Context(), func(tx *ImmediateTransaction) error {
+					var event Event
+					var next FinishReceipt
+					event, next, created, err = tx.FinishLatestFrameRunner(t.Context(), fixture.claim.OwnerID,
+						"frame-terminal-fence", "failed", "Review stopped", nil, options...)
+					if err == nil {
+						if first.EventID == 0 {
+							first, receipt = event, next
+						} else if event.EventID != first.EventID || next != receipt {
+							t.Fatal("terminal retry changed the canonical event or receipt")
+						}
+					}
+					return err
+				})
+				return
+			}
+			var options []FrameRunnerTerminalOptions
+			if reason != "" {
+				options = []FrameRunnerTerminalOptions{{PublicStopReason: reason}}
+			}
+			if created, err := finish(options...); err != nil || !created {
+				t.Fatalf("finish created=%t err=%v", created, err)
+			}
+			if reason == "" && string(first.PayloadJSON) != `{"detail":"Review stopped","status":"failed"}` {
+				t.Fatalf("legacy payload bytes changed: %s", first.PayloadJSON)
+			}
+			var payload map[string]string
+			if err := json.Unmarshal(first.PayloadJSON, &payload); err != nil || payload["public_stop_reason"] != string(reason) {
+				t.Fatalf("stored reason=%#v err=%v", payload, err)
+			}
+			if created, err := finish(options...); err != nil || created {
+				t.Fatalf("retry created=%t err=%v", created, err)
+			}
+			other := PublicStopUnknown
+			if reason == other {
+				other = PublicStopNoProgress
+			}
+			if _, err := finish(FrameRunnerTerminalOptions{PublicStopReason: other}); !errors.Is(err, ErrEventConflict) {
+				t.Fatalf("contradictory reason weakened receipt equality: %v", err)
+			}
+			stored, found, err := fixture.repository.GetEventByClientMessageID(t.Context(), first.StreamUID, fixture.claim.OwnerID, first.ClientMessageID)
+			if err != nil || !found || string(stored.PayloadJSON) != string(first.PayloadJSON) {
+				t.Fatalf("original terminal was changed: %#v %v", stored, err)
+			}
+			if _, _, err := fixture.repository.GetEventByClientMessageID(t.Context(), first.StreamUID, "another-owner", first.ClientMessageID); !errors.Is(err, ErrOwnerMismatch) {
+				t.Fatalf("terminal reader leaked across owner: %v", err)
+			}
+		})
+	}
+}
+
+func TestTerminalFramePublicStopReasonRejectsInvalidBeforeMutation(t *testing.T) {
+	fixture := newTerminalFrameRunnerFixture(t)
+	for _, options := range [][]FrameRunnerTerminalOptions{
+		{{PublicStopReason: "PRIVATE_SENTINEL"}}, {{PublicStopReason: "NO_PROGRESS"}},
+		{{PublicStopReason: PublicStopNoProgress}, {PublicStopReason: PublicStopCancelled}},
+	} {
+		if err := fixture.repository.RunImmediate(t.Context(), func(tx *ImmediateTransaction) error {
+			_, _, _, err := tx.FinishLatestFrameRunner(t.Context(), fixture.claim.OwnerID, "frame-terminal-fence", "failed", "Review stopped", nil, options...)
+			return err
+		}); err == nil {
+			t.Fatalf("invalid options accepted: %#v", options)
+		}
+	}
+	state, found, err := fixture.repository.GetLatestRunnerRuntimeState(t.Context(), fixture.claim.StreamUID, fixture.claim.OwnerID)
+	if err != nil || !found || state.Status != "running" || state.FinishedEventID != 0 {
+		t.Fatalf("invalid reason mutated runner: %#v %v", state, err)
+	}
+}
 
 type terminalFrameRunnerFixture struct {
 	repository *Repository

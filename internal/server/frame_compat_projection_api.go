@@ -581,6 +581,12 @@ func (s *Server) compatibilityFrameReviewProjection(
 		stage = "review_failed"
 		projectedStatus = "failed"
 	}
+	stopReason := transcriptstore.PublicStopReason("")
+	if stage == "review_failed" {
+		if stopReason, err = s.sessionReviewerPublicStopReason(ctx, full); err != nil {
+			return nil, err
+		}
+	}
 	return map[string]any{
 		"runtime_stage":                       stage,
 		"runtime_review_status":               projectedStatus,
@@ -589,6 +595,7 @@ func (s *Server) compatibilityFrameReviewProjection(
 		"runtime_review_frame_id":             full.ID,
 		"runtime_review_description":          nullableCompatibilityString(full.StatusDescription),
 		"runtime_review_trigger":              stringValue(selected.metadata.InputData["review_trigger"]),
+		"runtime_review_stop_reason":          nullableCompatibilityString(string(stopReason)),
 		"runtime_review_verdict":              nullableCompatibilityString(reviewVerdict),
 		"runtime_review_issue_count":          reviewIssueCount,
 		"runtime_review_blocking_issue_count": reviewBlockingIssueCount,

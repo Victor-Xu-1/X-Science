@@ -14,6 +14,7 @@ import (
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 var errManualReviewSourceChanged = errors.New("manual review source changed")
@@ -39,6 +40,7 @@ type manualSessionReviewJob struct {
 type manualSessionReviewOutcome struct {
 	status      string
 	description string
+	stopReason  transcriptstore.PublicStopReason
 }
 
 func (s *Server) handleCompatibilityFrameAudit(w http.ResponseWriter, r *http.Request, frame workspace.CompatibilityFrame) {
@@ -90,7 +92,8 @@ func (s *Server) handleCompatibilityFrameAudit(w http.ResponseWriter, r *http.Re
 		if errors.Is(err, ErrRuntimeDraining) {
 			status = "cancelled"
 		}
-		_ = s.finishSessionReviewerFrame(job.reviewerFrame.ID, status, manualReviewFailureDescription(err), job.reviewIndex)
+		_ = s.finishSessionReviewerFrame(job.reviewerFrame.ID, status, manualReviewFailureDescription(err), job.reviewIndex,
+			transcriptstore.FrameRunnerTerminalOptions{PublicStopReason: manualReviewStopReason(err)})
 		if errors.Is(err, ErrRuntimeDraining) {
 			writeV11Detail(w, http.StatusServiceUnavailable, "Runtime is restarting; manual review can be retried")
 			return
@@ -337,11 +340,11 @@ func (s *Server) runManualSessionReview(
 	job manualSessionReviewJob,
 ) {
 	defer cleanup()
-	outcome := manualSessionReviewOutcome{status: "failed", description: "Manual review was interrupted; retry is available"}
+	outcome := manualSessionReviewOutcome{status: "failed", description: manualReviewFailureDescription(nil), stopReason: transcriptstore.PublicStopUnknown}
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			fmt.Fprintf(os.Stderr, "[manual-review] panic for %s: %v\n", job.reviewerFrame.ID, recovered)
-			outcome = manualSessionReviewOutcome{status: "failed", description: "Manual review was interrupted; retry is available"}
+			outcome = manualSessionReviewOutcome{status: "failed", description: manualReviewFailureDescription(nil), stopReason: transcriptstore.PublicStopUnknown}
 		}
 		if err := s.settleManualSessionReview(ctx, activeRun, job, outcome); err != nil {
 			fmt.Fprintf(os.Stderr, "[manual-review] settle %s: %v\n", job.reviewerFrame.ID, err)
@@ -353,22 +356,22 @@ func (s *Server) runManualSessionReview(
 	reviewerCtx, bindErr = s.bindSessionReviewerRun(reviewerCtx, job.reviewerFrame, job.reviewerClaim)
 	if bindErr != nil {
 		_ = stopReviewerHeartbeat()
-		outcome.description = manualReviewFailureDescription(bindErr)
 		return
 	}
 	review, verifiedBinding, err := s.executeManualSessionReview(reviewerCtx, job)
 	if heartbeatErr := stopReviewerHeartbeat(); err == nil && heartbeatErr != nil {
-		err = heartbeatErr
+		err = &sessionRunnerReviewStageError{Cause: heartbeatErr}
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "[manual-review] review %s failed: %v\n", job.reviewerFrame.ID, err)
 		outcome.status = sessionReviewerFailureStatus(ctx, err)
 		outcome.description = manualReviewFailureDescription(err)
+		outcome.stopReason = manualReviewStopReason(err)
 		return
 	}
 	if err := s.validateManualReviewSource(ctx, job); err != nil {
 		fmt.Fprintf(os.Stderr, "[manual-review] source %s changed: %v\n", job.reviewerFrame.ID, err)
-		outcome.description = manualReviewFailureDescription(err)
+		outcome = manualReviewSourceFailureOutcome(err)
 		return
 	}
 	reviewerModel := sessionReviewerModelFromVerifiedBinding(verifiedBinding, job.options.Model)
@@ -377,10 +380,11 @@ func (s *Server) runManualSessionReview(
 		job.result.FinalMessage.Content, review, job.reviewIndex, verifiedBinding,
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "[manual-review] persist %s failed: %v\n", job.reviewerFrame.ID, err)
-		outcome.description = manualReviewFailureDescription(err)
+		outcome.description = manualReviewFailureDescription(nil)
 		return
 	}
 	outcome.status = "completed"
+	outcome.stopReason = ""
 	if review.Verdict == "pass" {
 		outcome.description = "Manual review completed"
 	} else {
@@ -457,9 +461,11 @@ func (s *Server) settleManualSessionReview(
 		errors.Is(context.Cause(ctx), context.Canceled) || errors.Is(context.Cause(ctx), ErrGenerationStopped) {
 		outcome.status = "cancelled"
 		outcome.description = "Manual review was cancelled; the completed task result is unchanged"
+		outcome.stopReason = transcriptstore.PublicStopCancelled
 	}
 	if err := s.finishSessionReviewerFrame(
 		job.reviewerFrame.ID, outcome.status, outcome.description, job.reviewIndex,
+		transcriptstore.FrameRunnerTerminalOptions{PublicStopReason: outcome.stopReason},
 	); err != nil {
 		return err
 	}
@@ -468,20 +474,74 @@ func (s *Server) settleManualSessionReview(
 }
 
 func manualReviewFailureDescription(err error) string {
-	if errors.Is(err, errManualReviewSourceChanged) {
+	return manualReviewStopDescription(manualReviewStopReason(err))
+}
+
+// Source validation is a local authority/persistence boundary, not model
+// execution. Only its explicit source-change or cancellation evidence escapes.
+func manualReviewSourceFailureOutcome(err error) manualSessionReviewOutcome {
+	reason := manualReviewStopReason(err)
+	if reason != transcriptstore.PublicStopSourceChanged && reason != transcriptstore.PublicStopCancelled {
+		reason = transcriptstore.PublicStopUnknown
+	}
+	return manualSessionReviewOutcome{status: "failed", description: manualReviewStopDescription(reason), stopReason: reason}
+}
+
+func manualReviewStopDescription(reason transcriptstore.PublicStopReason) string {
+	switch reason {
+	case transcriptstore.PublicStopNoProgress:
+		return "Manual review stopped because repeated work made no progress; the completed task result is unchanged"
+	case transcriptstore.PublicStopSourceChanged:
 		return "Manual review stopped because the task or its artifacts changed; start a new review for the current result"
+	case transcriptstore.PublicStopCancelled:
+		return "Manual review was cancelled; the completed task result is unchanged"
+	case transcriptstore.PublicStopModelProtocol:
+		return "Reviewer model returned invalid structured data; the completed task result is unchanged"
+	case transcriptstore.PublicStopProviderUnavailable:
+		return "Reviewer service is unavailable; check the selected model before starting a new manual review"
+	default:
+		return "Manual review stopped but its reason is unavailable; the completed task result is unchanged"
+	}
+}
+
+// Classify typed evidence only. Mixed or integrity failures cannot borrow a
+// nested model/provider category, and this metadata never changes disposition.
+func manualReviewStopReason(err error) transcriptstore.PublicStopReason {
+	var stage *sessionRunnerReviewStageError
+	if err == nil || errors.As(err, &stage) {
+		return transcriptstore.PublicStopUnknown
+	}
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		if joined, ok := current.(interface{ Unwrap() []error }); ok {
+			reason := transcriptstore.PublicStopUnknown
+			for index, cause := range joined.Unwrap() {
+				next := manualReviewStopReason(cause)
+				if next == transcriptstore.PublicStopUnknown || index > 0 && next != reason {
+					return transcriptstore.PublicStopUnknown
+				}
+				reason = next
+			}
+			return reason
+		}
 	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, ErrGenerationStopped) || errors.Is(err, ErrRuntimeDraining) {
-		return "Manual review was cancelled; the completed task result is unchanged"
+		return transcriptstore.PublicStopCancelled
 	}
-	detail := strings.ToLower(strings.TrimSpace(err.Error()))
-	switch {
-	case strings.Contains(detail, "invalid json"), strings.Contains(detail, "malformed"),
-		strings.Contains(detail, "tool-call protocol"), strings.Contains(detail, "invalid tool"):
-		return "Reviewer model returned invalid structured tool data after bounded retries; switch models or retry manual review"
-	case strings.Contains(detail, "model") && (strings.Contains(detail, "not found") || strings.Contains(detail, "overload")):
-		return "Reviewer model is unavailable; switch models or retry manual review"
-	default:
-		return "Manual review was interrupted; the completed task result is unchanged and review can be retried"
+	if errors.Is(err, errManualReviewSourceChanged) {
+		return transcriptstore.PublicStopSourceChanged
 	}
+	var noProgress *agentruntime.ToolRoundNoProgressError
+	if errors.As(err, &noProgress) {
+		return transcriptstore.PublicStopNoProgress
+	}
+	var protocol *sessionReviewerSubmissionProtocolError
+	var batch *agentruntime.ToolCallBatchValidationError
+	if errors.As(err, &protocol) || errors.As(err, &batch) || providers.IsRetryableModelProtocolError(err) {
+		return transcriptstore.PublicStopModelProtocol
+	}
+	if _, found := providers.HTTPStatus(err); found || providers.IsRecoverableStreamInterruption(err) ||
+		providers.IsRetryableProviderTransportFailure(err) || providers.IsContinuationSafeStreamFailure(err) {
+		return transcriptstore.PublicStopProviderUnavailable
+	}
+	return transcriptstore.PublicStopUnknown
 }

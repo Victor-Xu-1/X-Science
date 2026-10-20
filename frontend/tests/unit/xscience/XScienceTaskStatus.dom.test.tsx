@@ -5,7 +5,10 @@
  */
 
 import XScienceTaskStatus from '@/renderer/components/xScience/runtime/XScienceTaskStatus';
-import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import {
+  normalizeXScienceRuntimeSnapshot,
+  type XScienceRuntimeSnapshot,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -70,6 +73,75 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    '443 explains stopped manual review safely without failing or retrying the completed task in %s',
+    async (language) => {
+      const onResume = vi.fn();
+      const onRefresh = vi.fn();
+      const value = normalizeXScienceRuntimeSnapshot({
+        id: 'review-root',
+        status: 'completed',
+        runtime_active: false,
+        runtime_review_frame_id: 'completion-review-current',
+        runtime_review_status: 'failed',
+        runtime_review_trigger: 'manual',
+        runtime_stage: 'review_failed',
+        runtime_review_stop_reason: 'no_progress',
+        runtime_review_description: 'PRIVATE_REVIEW_DIAGNOSTIC',
+      });
+      await renderWithI18n(
+        <XScienceTaskStatus {...defaultProps} snapshot={value} onResume={onResume} onRefresh={onRefresh} />,
+        language
+      );
+      const capsule = screen.getByTestId('x-science-task-status-indicator');
+      expect(capsule).toHaveAttribute('role', 'status');
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute(
+        'data-state',
+        'completed-review-interrupted'
+      );
+      fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+      const detail = screen.getByTestId('x-science-task-center-review-stop-detail');
+      expect(detail).toHaveTextContent(
+        language === 'en-US' ? /repeated work made no progress/i : /重复操作未产生新进展/
+      );
+      expect(detail).toHaveTextContent(language === 'en-US' ? /completed task.*unchanged/i : /已完成任务.*不变/);
+      expect(detail).toHaveTextContent(language === 'en-US' ? /Manual review/ : /手动审阅/);
+      expect(document.body).not.toHaveTextContent('PRIVATE_REVIEW_DIAGNOSTIC');
+      expect(screen.queryByTestId('x-science-task-center-failure-detail')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('x-science-task-status-spinner')).not.toBeInTheDocument();
+      expect(onResume).not.toHaveBeenCalled();
+      expect(onRefresh).not.toHaveBeenCalled();
+    }
+  );
+
+  it('443 keeps missing or malformed historical reasons unknown and clears the old explanation on owner replacement', async () => {
+    const old = normalizeXScienceRuntimeSnapshot({
+      id: 'old-root',
+      status: 'completed',
+      runtime_review_status: 'failed',
+      runtime_review_stop_reason: { private: 'no_progress' },
+      runtime_review_description: 'PRIVATE_NO_PROGRESS',
+    });
+    const view = await renderWithI18n(<XScienceTaskStatus {...defaultProps} snapshot={old} />, 'en-US');
+    expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent('Review stop reason unavailable');
+    fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+    expect(screen.getByTestId('x-science-task-center-review-stop-detail')).toHaveTextContent('no reliable stop reason');
+    expect(document.body).not.toHaveTextContent('PRIVATE_NO_PROGRESS');
+    const next = normalizeXScienceRuntimeSnapshot({
+      id: 'new-owner-root',
+      status: 'completed',
+      runtime_stage: 'reviewing',
+      runtime_review_status: 'processing',
+      runtime_review_trigger: 'manual',
+    });
+    view.rerender(<XScienceTaskStatus {...defaultProps} snapshot={next} />);
+    await waitFor(expectDetailsSurfaceClosed);
+    expect(screen.getByTestId('x-science-task-status-indicator')).toHaveTextContent('Manual review in progress');
+    fireEvent.click(screen.getByTestId('x-science-task-details-trigger'));
+    expect(screen.queryByTestId('x-science-task-center-review-stop-detail')).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent('no reliable stop reason');
+  });
+
   it('C419 return focus hands Plan the task center persistent opener before disposing its temporary action', async () => {
     let handedFocus: Element | null = null;
     const onOpenPlan = vi.fn(() => {

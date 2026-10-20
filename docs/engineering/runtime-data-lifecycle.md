@@ -74,6 +74,26 @@ then deletion rechecks the exact row identity, payload, state and cutoff.
 Explicit frame/project deletion retains its existing scoped foreign-key and
 data-removal semantics; deployment never uses it to make a paused task vanish.
 
+### Manual-review terminal receipts
+
+A reviewer can stop without changing the already completed task result. Its
+existing finished-event receipt may carry the optional closed
+`public_stop_reason`: `no_progress`, `source_changed`, `cancelled`,
+`model_protocol`, `provider_unavailable`, or `unknown`. The reason is committed
+with the same runner terminal compare-and-swap and operation receipt; a retry
+cannot rewrite an earlier terminal reason. Missing reasons keep the historical
+payload unchanged and are not backfilled from logs or model prose.
+
+The public reviewer projection accepts a reason only from the matching owner's
+reviewer stream, claimed input revision, attempt and finished-event identity.
+Malformed, absent or unprovable historical reasons display as unknown; storage
+read errors remain errors, not invented diagnoses. The UI translates only this
+closed code, never private exception text or provider responses. It distinguishes
+an unfinished additional review from failure of the completed task, preserving
+its results. A new review remains an explicit Add → Manual review action; this
+metadata does not auto-retry, auto-approve or create a second execution authority.
+No database schema or retention change is introduced.
+
 ## Snapshot reference query indexes
 
 Schema 74 adds two separate, non-unique indexes on

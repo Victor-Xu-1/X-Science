@@ -15,7 +15,11 @@ import {
   type XScienceLongTaskPhase,
   type XScienceLongTaskStatus,
 } from './longTaskStatusModel';
-import type { XScienceRuntimeFailureKind, XScienceRuntimeSnapshot } from './runtimeOperationsModel';
+import type {
+  XScienceReviewStopReason,
+  XScienceRuntimeFailureKind,
+  XScienceRuntimeSnapshot,
+} from './runtimeOperationsModel';
 import XScienceTaskCenterPanel, { type XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
 import { useTaskCapsulePlacement } from './useTaskCapsulePlacement';
 import { runtimePausePresentation } from './runtimePausePresentation';
@@ -153,6 +157,15 @@ const failureReasonKeys: Record<string, string> = {
   runner_stop_hook_failed: 'conversation.xscienceRuntime.runtimeOperations.failureFinalization',
   runner_cleanup_failed: 'conversation.xscienceRuntime.runtimeOperations.failureCleanup',
   runner_response_persistence_failed: 'conversation.xscienceRuntime.runtimeOperations.failurePersistence',
+};
+
+const reviewStopKeys: Record<XScienceReviewStopReason, string> = {
+  no_progress: 'reviewStopNoProgress',
+  source_changed: 'reviewStopSourceChanged',
+  cancelled: 'reviewStopCancelled',
+  model_protocol: 'reviewStopModelProtocol',
+  provider_unavailable: 'reviewStopProviderUnavailable',
+  unknown: 'reviewStopUnknown',
 };
 
 const failureKindKeys: Partial<Record<NonNullable<XScienceRuntimeFailureKind>, string>> = {
@@ -324,6 +337,15 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const reviewInterrupted = Boolean(
     status?.taskCompleted && ['failed', 'cancelled', 'canceled'].includes(status.reviewStatus ?? '')
   );
+  const reviewStopKey = reviewStopKeys[status?.reviewStopReason ?? 'unknown'];
+  const reviewStopLabel =
+    reviewInterrupted && !authorityPending
+      ? t(`conversation.xscienceRuntime.runtimeOperations.${reviewStopKey}`)
+      : null;
+  const reviewStopDetail =
+    reviewInterrupted && !authorityPending
+      ? `${t(`conversation.xscienceRuntime.runtimeOperations.${reviewStopKey}Detail`)} ${t('conversation.xscienceRuntime.runtimeOperations.reviewStopResultRetained')}`
+      : null;
   const reviewHasFindings = Boolean(
     status?.taskCompleted && status.reviewStatus === 'completed' && status.reviewVerdict === 'revise'
   );
@@ -444,11 +466,13 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const secondaryLabelCandidate =
     attentionCount > 0
       ? t('conversation.xscienceRuntime.runtimeOperations.taskPendingCount', { count: attentionCount })
-      : phase === 'failed' && publicFailureLabel
-        ? specializedFailure
-          ? elapsedLabel
-          : publicFailureLabel
-        : elapsedLabel;
+      : reviewStopLabel
+        ? reviewStopLabel
+        : phase === 'failed' && publicFailureLabel
+          ? specializedFailure
+            ? elapsedLabel
+            : publicFailureLabel
+          : elapsedLabel;
   const secondaryLabel = secondaryLabelCandidate === title ? null : secondaryLabelCandidate;
   const taskCenterAvailable = !busy && Boolean(status || unsupported || authorityPending || failure);
 
@@ -542,6 +566,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
                 recoveryAvailable={failure || authorityPending || unsupported || providerPaused}
                 recoveryResumeLabel={resumableRun ? recoveryResumeLabel : null}
                 failureDetail={failureDetail}
+                reviewStopDetail={reviewStopDetail}
                 onClose={() => setDetailsOpen(false)}
                 onRefresh={onRefresh}
                 onResume={resumableRun ? onResume : undefined}
