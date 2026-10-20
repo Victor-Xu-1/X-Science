@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "c39f7f468fd94c903bd0f622f9164a079bbc7e5019cc4fd226cdad0db42a36e3",
+  "adaptationFingerprintSHA256": "c0326d989a3058a76c3f40828b66367e76b25c266e3935bbb43ac3bc95da7e68",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "135cb66f4a851c210ff4647cb6bf07eadaa88ad8172a81c2b73a61d9e7254bbc",
+  "additionFingerprintSHA256": "d4c9298a0fa34a96613a6ad7b54ac685236a7dd9f72fcde13d77e6f2e48c3170",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -858,8 +858,8 @@
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSessionOptionsMenu.tsx",
       "originalPath": "packages/desktop/src/renderer/components/synonBiomed/runtime/SynonBiomedSessionOptionsMenu.tsx",
       "sourceSHA256": "e6d92abb7a652b4420978bc90eba22ec5da7c30db8295d82bb167980e7d38626",
-      "targetSHA256": "1a090f5818cc1620aa7f3310e98ff76c168404d45ca1530331eb35a8b3ee85f6",
-      "bytes": 24473,
+      "targetSHA256": "db180406bb4acff00baee10bcd376bfe237d5e27c43be47226fe9d8548ed76df",
+      "bytes": 26482,
       "reason": "Move genuine imported source to the current X-Science namespace. Project authoritative Go files, notes, approvals, models, kernels, sessions, and runtime operations into the migrated workbench."
     },
     {
@@ -12621,8 +12621,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceComputeCatalog.dom.test.tsx",
-      "sha256": "4151658fdbe4deba61d641815d2007f2ca213890a18ed3e4c6edd7facc02f7aa",
-      "bytes": 11817,
+      "sha256": "0efa1d6f657011dea222759cafb0eb05ee48aec098dde135dbec31e4bfc46989",
+      "bytes": 21436,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
