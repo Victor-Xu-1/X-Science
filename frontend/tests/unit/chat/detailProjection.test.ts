@@ -1,4 +1,4 @@
-import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
+import { normalizeAcpToolCall, normalizeToolCall, type NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 import { describe, expect, it } from 'vitest';
 import { buildToolPublicDetailPresentation } from '@/renderer/pages/conversation/Messages/toolDetails/detailProjection';
 
@@ -18,6 +18,170 @@ const tool = (overrides: Partial<NormalizedToolCall> = {}): NormalizedToolCall =
 });
 
 describe('tool detail projection', () => {
+  it('Skill353 projects a complete encoded native receipt without changing history evidence', () => {
+    const body =
+      '# Public method\n\nCritical constraints:\n- Keep matched controls.\n\n```python\nprint("fixture")\n```';
+    const receipt =
+      '<skill-metadata name="example-guide" loaded="true" executed="false" description="A \\"quoted\\" guide" />';
+    const lifecycle =
+      'This capability is now active for the current task. Continue with the requested work; do not reload the same capability unless its arguments or the task change.';
+    const output = JSON.stringify(`${receipt}\n\n${body}\n\n${lifecycle}`)
+      .replaceAll('<', '\\u003c')
+      .replaceAll('>', '\\u003e');
+    const normalized = normalizeToolCall({
+      id: 'history-skill',
+      conversation_id: 'fixture-conversation',
+      type: 'tool_call',
+      content: {
+        call_id: 'fixture-load',
+        name: 'load_skill',
+        status: 'completed',
+        args: { skill: 'example-guide' },
+        output,
+      },
+    })!;
+    const detail = buildToolPublicDetailPresentation(normalized, 'en-US', null);
+    expect(detail.inputBlocks).toEqual([expect.objectContaining({ content: body, variant: 'markdown' })]);
+    expect(detail.outputTree).toBeNull();
+    expect(detail.narrative).toEqual([]);
+    expect(detail.notices).toContain('Loading guidance does not mean the workflow was executed.');
+    expect(JSON.stringify(detail)).not.toContain('skill-metadata');
+    expect(JSON.stringify(detail)).not.toContain('do not reload');
+    expect(normalized.output).toBe(output);
+    expect(normalized.status).toBe('completed');
+  });
+
+  it('Skill353 projects structured compatibility guidance once, not its private envelope', () => {
+    const detail = buildToolPublicDetailPresentation(
+      tool({
+        name: 'skill',
+        input: '{}',
+        output: JSON.stringify({
+          data: { loaded: true, executed: false },
+          skill: {
+            name: 'example-guide',
+            body: '# Method\n\nKeep the comparison paired.',
+            body_hash: 'opaque-rendered',
+          },
+          prompt: '# Method\n\nKeep the comparison paired.',
+        }),
+      }),
+      'en-US',
+      null
+    );
+    expect(detail.inputBlocks).toEqual([
+      expect.objectContaining({ content: '# Method\n\nKeep the comparison paired.' }),
+    ]);
+    expect(detail.outputTree).toBeNull();
+    expect(detail.narrative).toEqual([]);
+    expect(JSON.stringify(detail)).not.toContain('opaque-rendered');
+  });
+
+  it('Skill353 uses the same bounded guide for native live text and a second JSON string layer', () => {
+    const receipt = '<skill-metadata name="example-guide" loaded="true" executed="false" />';
+    const body = '# Method\n\nUse matched samples.';
+    const raw = `${receipt}\n\n${body}`;
+    const live = normalizeAcpToolCall({
+      id: 'live-skill',
+      conversation_id: 'fixture-conversation',
+      type: 'acp_tool_call',
+      content: {
+        sessionId: 'fixture-session',
+        update: {
+          sessionUpdate: 'tool_call_update',
+          tool_call_id: 'fixture-load',
+          status: 'completed',
+          title: 'skill',
+          kind: 'other',
+          content: [{ type: 'content', content: { type: 'text', text: raw } }],
+        },
+      },
+    })!;
+    for (const candidate of [
+      live,
+      tool({ name: 'load_skill', input: '{}', output: JSON.stringify(JSON.stringify(raw)) }),
+    ]) {
+      const detail = buildToolPublicDetailPresentation(candidate, 'en-US', null);
+      expect(detail.inputBlocks.map((block) => block.content)).toEqual([body]);
+      expect(detail.outputTree).toBeNull();
+    }
+    expect(live.output).toBe(raw);
+    expect(live.status).toBe('completed');
+  });
+
+  it('Skill353 validates Go quoted metadata including escaped delimiters and Unicode scalars', () => {
+    const header = String.raw`<skill-metadata name="example\x2dguide" loaded="tr\u0075e" executed="false" description="a\a\b\f\n\r\t\v \"quote\" \\ \x41 \u03b1 \U0001f9ec" source_body_hash="source-digest" body_hash="rendered-digest" />`;
+    const detail = buildToolPublicDetailPresentation(
+      tool({ name: 'skill', input: '{}', output: `${header}\n\n# Valid method` }),
+      'en-US',
+      null
+    );
+    expect(detail.inputBlocks.map((block) => block.content)).toEqual(['# Valid method']);
+    expect(detail.notices).toContain('Loading guidance does not mean the workflow was executed.');
+  });
+
+  it.each([
+    '<skill-metadata replay="legacy" name="example-guide" loaded="true" executed="false" />\n\nThe capability was loaded earlier in this logical task. Follow only the current runtime contract supplied by the system.',
+    '<skill-metadata name="example-guide" />\n\nThe current task-scoped capability contract is supplied once in system context.',
+    '<skill-metadata name="example-guide" />\n\nThis historical dedicated capability is inactive because a later exact user answer selected another implementation. Follow only the current matching or implementation-agnostic capability contract.',
+  ])('Skill353 keeps an identity-only receipt out of guidance: %s', (output) => {
+    const detail = buildToolPublicDetailPresentation(tool({ name: 'load_skill', input: '{}', output }), 'zh-CN', null);
+    expect(detail.inputBlocks).toEqual([]);
+    expect(detail.outputTree).toBeNull();
+    expect(detail.narrative).toEqual([]);
+    expect(detail.notices).toEqual(['此 Skill 加载记录不含方法正文，也不代表工作流已执行。']);
+  });
+
+  it.each([
+    '<skill-metadata name="first" name="second" />',
+    '<skill-metadata name="example" unknown="value" />',
+    '<skill-metadata name="example" loaded="yes" />',
+    String.raw`<skill-metadata name="bad\U00110000" />`,
+    String.raw`<skill-metadata name="bad\ud800" />`,
+    String.raw`<skill-metadata name="bad\x2" />`,
+    '<skill-metadata name="truncated"',
+  ])('Skill353 leaves malformed or unfamiliar metadata unchanged: %s', (header) => {
+    const output = `${header}\n\n# Keep this literal`;
+    const detail = buildToolPublicDetailPresentation(tool({ name: 'skill', input: '{}', output }), 'en-US', null);
+    expect(detail.inputBlocks.map((block) => block.content)).toEqual([output]);
+    expect(detail.notices).toEqual([]);
+  });
+
+  it('Skill353 does not decode unrelated literals, embedded examples or a third representation layer', () => {
+    const header = '<skill-metadata name="example-guide" />';
+    const raw = `${header}\n\n# Method`;
+    const literal = '# Example\n\n```xml\n' + header + '\n```\n\nKeep literal \\n and \\alpha.';
+    for (const [name, output] of [
+      ['skill', literal],
+      ['skill', JSON.stringify(JSON.stringify(JSON.stringify(raw)))],
+      ['custom_skill', JSON.stringify(raw)],
+      ['python', JSON.stringify(raw)],
+    ]) {
+      const detail = buildToolPublicDetailPresentation(tool({ name, input: '{}', output }), 'en-US', null);
+      const blocks = [...detail.inputBlocks, ...detail.outputBlocks];
+      expect(blocks.map((block) => block.content)).toEqual([output]);
+      expect(detail.notices).toEqual([]);
+    }
+  });
+
+  it('Skill353 preserves quoted lifecycle text and an unmarked method contract', () => {
+    const lifecycle =
+      'This capability is now active for the current task. Continue with the requested work; do not reload the same capability unless its arguments or the task change.';
+    const body = '# Method\n\nCritical constraints:\n- Keep the real method.\n\n```text\n' + lifecycle + '\n```';
+    const detail = buildToolPublicDetailPresentation(
+      tool({ name: 'skill', input: '{}', output: '<skill-metadata name="example" />\n\n' + body + '\n\n' + lifecycle }),
+      'en-US',
+      null
+    );
+    expect(detail.inputBlocks.map((block) => block.content)).toEqual([body]);
+    const unclosed = body.slice(0, -4) + '\n\n' + lifecycle;
+    const quoted = buildToolPublicDetailPresentation(
+      tool({ name: 'skill', input: '{}', output: '<skill-metadata name="example" />\n\n' + unclosed }),
+      'en-US',
+      null
+    );
+    expect(quoted.inputBlocks.map((block) => block.content)).toEqual([unclosed]);
+  });
   it('retains redacted terminal installer diagnostics without stale progress', () => {
     const detail = buildToolPublicDetailPresentation(
       tool({

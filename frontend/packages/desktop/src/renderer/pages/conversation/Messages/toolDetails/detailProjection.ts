@@ -51,12 +51,13 @@ export function buildToolPublicDetailPresentation(
   const detailKind = policy.detailKind;
   const input = parseStructured(tool.input);
   const output = parseStructured(tool.output);
-  const outputSources = output ? [output, ...collectEmbeddedTaskStructures(output)] : [];
   const inputProjection = input
     ? buildToolDetailInputProjection(input, chinese, detailKind, tool.name.toLowerCase() === 'web_fetch')
     : { rows: [], collections: [] };
 
   const detailBlocks = buildToolPublicDetailBlocks(tool, input, output, chinese);
+  const outputSources =
+    output && !detailBlocks.skillProjection ? [output, ...collectEmbeddedTaskStructures(output)] : [];
   const inputBlocks =
     detailKind === 'method' ? [...detailBlocks.inputBlocks, ...detailBlocks.outputBlocks] : detailBlocks.inputBlocks;
   const outputBlocks = detailKind === 'method' ? [] : detailBlocks.outputBlocks;
@@ -78,6 +79,7 @@ export function buildToolPublicDetailPresentation(
     narrative.length === 0 &&
     outputSources.length === 0 &&
     detailBlocks.outputBlocks.length === 0 &&
+    !detailBlocks.skillProjection &&
     tool.status === 'completed'
   ) {
     narrative.push(...collectPlainSafeHighlights(tool.output));
@@ -105,11 +107,19 @@ export function buildToolPublicDetailPresentation(
           byteLimit: tool.name.toLowerCase() === 'web_fetch',
         })
       : null,
-    outputTree: output
-      ? projectToolDetailValue(output, { chinese, detailKind, label: treeLabel, source: 'output' })
-      : null,
+    outputTree:
+      output && !detailBlocks.skillProjection
+        ? projectToolDetailValue(output, { chinese, detailKind, label: treeLabel, source: 'output' })
+        : null,
     narrative: [...new Set(narrative)],
-    notices: retrievalReceiptPresentation(tool.name, input, output, chinese).notices,
+    notices: detailBlocks.skillProjection
+      ? [
+          toolPublicDetailText(
+            chinese,
+            detailBlocks.skillProjection.kind === 'guide' ? 'skillLoadNotice' : 'skillReceiptOnlyNotice'
+          ),
+        ]
+      : retrievalReceiptPresentation(tool.name, input, output, chinese).notices,
     planDocument: detailKind === 'plan' && input ? buildToolPlanDocument(input, chinese) : null,
     planAssessment: detailKind === 'plan' && input ? buildPlanAssessment(input, chinese) : null,
     showIdentity: policy.showIdentity,

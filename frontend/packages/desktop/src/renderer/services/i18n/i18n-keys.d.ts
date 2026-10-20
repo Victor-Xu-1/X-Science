@@ -2883,6 +2883,8 @@ export type I18nKey =
   | 'messages.toolPublicDetail.showMore'
   | 'messages.toolPublicDetail.showMoreCount'
   | 'messages.toolPublicDetail.showOutput'
+  | 'messages.toolPublicDetail.skillLoadNotice'
+  | 'messages.toolPublicDetail.skillReceiptOnlyNotice'
   | 'messages.toolPublicDetail.sourceChangedNote'
   | 'messages.toolPublicDetail.sourceMismatch'
   | 'messages.toolPublicDetail.sourceMismatchNote'
