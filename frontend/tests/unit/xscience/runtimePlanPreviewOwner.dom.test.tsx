@@ -22,7 +22,7 @@ function PreviewOwner({ reference }: { reference: XSciencePlanReference }) {
   );
 }
 
-it('C397 progress contract updates only matching-version presentation without rebinding its retry source', async () => {
+it('C397 updates current progress but hides historical progress without rebinding its retry source', async () => {
   load.mockResolvedValue({ version: 1, taskSummary: 'Synthetic immutable A', phases: [], feasibility: null });
   const source = { artifactId: 'plan', versionId: 'version-A', progress: { completed: 1, total: 3 } };
   const view = await renderWithI18n(<PreviewOwner reference={source} />);
@@ -34,7 +34,7 @@ it('C397 progress contract updates only matching-version presentation without re
   view.rerender(
     <PreviewOwner reference={{ ...source, versionId: 'version-B', progress: { completed: 3, total: 3 } }} />
   );
-  expect(screen.getByTestId('progress-contract')).toHaveTextContent('2');
+  expect(screen.getByTestId('progress-contract')).toHaveTextContent('unknown');
   expect(screen.getByTestId('version-contract')).toHaveTextContent('version-A');
   expect(screen.getByTestId('replaced-contract')).toHaveTextContent('true');
   fireEvent.click(screen.getByRole('button', { name: 'Retry' }));

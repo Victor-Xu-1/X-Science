@@ -197,6 +197,40 @@ export async function loadXSciencePlanDocument(
   return normalizeXSciencePlanDocument(payload);
 }
 
+export type XSciencePlanContentVersion = {
+  artifactId: string;
+  versionId: string;
+  contentVersion: number;
+};
+
+export async function loadXSciencePlanVersions(
+  artifactId: string,
+  options: XScienceRuntimeGatewayOptions = {}
+): Promise<XSciencePlanContentVersion[]> {
+  if (!artifactId.trim()) throw new Error('Invalid task plan artifact reference');
+  const payload = await requestJson<unknown>(`/api/artifacts/${encodeURIComponent(artifactId)}/versions`, {}, options);
+  if (!Array.isArray(payload)) throw new Error('Invalid task plan content versions');
+  const ids = new Set<string>();
+  const numbers = new Set<number>();
+  return payload.map((value: unknown) => {
+    const row = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+    if (
+      row?.artifact_id !== artifactId ||
+      typeof row.version_id !== 'string' ||
+      !row.version_id.trim() ||
+      typeof row.version_number !== 'number' ||
+      !Number.isSafeInteger(row.version_number) ||
+      row.version_number <= 0 ||
+      ids.has(row.version_id) ||
+      numbers.has(row.version_number)
+    )
+      throw new Error('Invalid task plan content version');
+    ids.add(row.version_id);
+    numbers.add(row.version_number);
+    return { artifactId, versionId: row.version_id, contentVersion: row.version_number };
+  });
+}
+
 export async function resumeXScienceFrame(
   frameId: string,
   input: XScienceResumeInput,

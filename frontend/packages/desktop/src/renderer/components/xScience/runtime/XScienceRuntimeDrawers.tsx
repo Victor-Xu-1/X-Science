@@ -1,14 +1,25 @@
 import { Button, Drawer } from '@arco-design/web-react';
 import { CheckOne, CloseOne } from '@icon-park/react';
 import React, { useLayoutEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { restoreScopedFocus } from '@/renderer/utils/focusScope';
 import WorkbenchCloseButton from '@/renderer/components/base/WorkbenchCloseButton';
 import type { XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
+import type { XSciencePlanContentVersion } from '@/renderer/services/xScienceRuntimeOperations';
 import type { XSciencePlanDocument, XSciencePlanReference } from './runtimeOperationsModel';
 import XSciencePlanReviewContent from './XSciencePlanReviewContent';
 import XScienceReviewFindingsContent from './XScienceReviewFindingsContent';
 
-type Props = {
+type PlanVersionsProps = {
+  planVersions?: XSciencePlanContentVersion[] | null;
+  planVersionsLoading?: boolean;
+  planVersionsError?: string | null;
+  planCanLoadVersions?: boolean;
+  onLoadPlanVersions?: () => void;
+  onSelectPlanVersion?: (versionId: string) => void;
+};
+
+type Props = PlanVersionsProps & {
   mobile: boolean;
   reviewTitle: string;
   reviewVisible: boolean;
@@ -37,6 +48,74 @@ type Props = {
   onCompletePlan: (action: 'approve' | 'discard') => void;
 };
 
+function PlanContentVersions({
+  planVersions,
+  planVersionsLoading,
+  planVersionsError,
+  planCanLoadVersions,
+  onLoadPlanVersions,
+  onSelectPlanVersion,
+  reference,
+}: PlanVersionsProps & { reference: XSciencePlanReference | null }) {
+  const { t } = useTranslation();
+  if (!planCanLoadVersions || !onLoadPlanVersions) return null;
+  const label = (
+    key:
+      | 'planContentVersions'
+      | 'planContentVersion'
+      | 'loadingPlanVersions'
+      | 'noPlanVersions'
+      | 'refreshPlanVersions'
+      | 'retryPlanVersions'
+      | 'unlistedPlanContentVersion'
+  ) => t(`conversation.xscienceRuntime.runtimeOperations.${key}`);
+  const listed = planVersions?.some((item) => item.versionId === reference?.versionId);
+  return (
+    <div className='px-12px py-8px flex flex-wrap items-center gap-8px text-12px border-b border-solid border-[var(--color-border-2)]'>
+      {planVersions ? (
+        planVersions.length ? (
+          <select
+            aria-label={label('planContentVersion')}
+            value={listed ? (reference?.versionId ?? '') : ''}
+            className='max-w-full rounded-6px px-8px py-4px bg-base text-t-primary border border-solid border-[var(--color-border-2)]'
+            onChange={(event) => onSelectPlanVersion?.(event.target.value)}
+          >
+            {!listed ? (
+              <option value='' disabled>
+                {label('unlistedPlanContentVersion')}
+              </option>
+            ) : null}
+            {planVersions.map((item) => (
+              <option key={item.versionId} value={item.versionId}>
+                {t('conversation.xscienceRuntime.runtimeOperations.planContentVersionNumber', {
+                  version: item.contentVersion,
+                })}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span role='status' className='text-t-secondary'>
+            {label('noPlanVersions')}
+          </span>
+        )
+      ) : null}
+      {planVersionsLoading ? (
+        <span role='status' className='text-t-secondary'>
+          {label('loadingPlanVersions')}
+        </span>
+      ) : null}
+      {planVersionsError ? (
+        <span role='alert' className='text-danger-6'>
+          {planVersionsError}
+        </span>
+      ) : null}
+      <Button size='small' disabled={planVersionsLoading} onClick={onLoadPlanVersions}>
+        {label(planVersionsError ? 'retryPlanVersions' : planVersions ? 'refreshPlanVersions' : 'planContentVersions')}
+      </Button>
+    </div>
+  );
+}
+
 const XScienceRuntimeDrawers = ({
   mobile,
   reviewTitle,
@@ -56,6 +135,12 @@ const XScienceRuntimeDrawers = ({
   planError,
   planReplaced,
   planCanRetry,
+  planVersions,
+  planVersionsLoading,
+  planVersionsError,
+  planCanLoadVersions,
+  onLoadPlanVersions,
+  onSelectPlanVersion,
   onOpenCurrentPlan,
   planApprovalAvailable,
   planAction,
@@ -133,6 +218,17 @@ const XScienceRuntimeDrawers = ({
           canRetry={planCanRetry}
           onOpenCurrent={onOpenCurrentPlan}
           onRetry={onRetryPlan}
+          versionSelector={
+            <PlanContentVersions
+              reference={planReference}
+              planVersions={planVersions}
+              planVersionsLoading={planVersionsLoading}
+              planVersionsError={planVersionsError}
+              planCanLoadVersions={planCanLoadVersions}
+              onLoadPlanVersions={onLoadPlanVersions}
+              onSelectPlanVersion={onSelectPlanVersion}
+            />
+          }
         />
         {planDocument && !planError && !planLoading && planApprovalAvailable ? (
           <div className='sticky bottom-0 mt-16px px-12px py-12px flex justify-end gap-8px border-t border-solid border-[var(--color-border-2)] bg-base'>
