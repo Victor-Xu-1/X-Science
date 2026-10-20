@@ -74,6 +74,20 @@ then deletion rechecks the exact row identity, payload, state and cutoff.
 Explicit frame/project deletion retains its existing scoped foreign-key and
 data-removal semantics; deployment never uses it to make a paused task vanish.
 
+### Composer action presentation
+
+Desktop Add and mobile More address the same composer action owners. Save as
+Skill uses the existing typed control-input sender, manual review uses its
+existing audit reservation, and Context opens the same request-pinned usage
+panel even when the draft is nonempty. Busy actions retain their existing
+eligibility; changing layout does not create another sender or grant permission.
+The mobile Your files pane uses the same granted-folder tree, explicit access
+mutations and authoritative readback as desktop. Back or close deactivates its
+content, clears per-open reference checks and closes its access dialog; reopening
+the pane does not restore a previously closed access dialog. Project-file
+selection closes when its existing account/conversation/project scope changes,
+so a previous owner's late listing cannot remain selectable in the next composer.
+
 ### Manual-review terminal receipts
 
 A reviewer can stop without changing the already completed task result. Its

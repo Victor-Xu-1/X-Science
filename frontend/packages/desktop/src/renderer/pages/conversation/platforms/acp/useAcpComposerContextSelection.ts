@@ -34,6 +34,7 @@ export function useAcpComposerContextSelection(
   useEffect(() => {
     const token = { key: currentScope };
     scopeRef.current = token;
+    setProjectFilesOpen(false);
     return () => {
       if (scopeRef.current === token) scopeRef.current = { key: '' };
     };

@@ -101,7 +101,7 @@ const SendBox: React.FC<{
    * When provided, mobile renders a single `+` button (left) and send/stop button (right);
    * `tools` and `rightTools` are not rendered inline on mobile.
    */
-  onMobilePlusClick?: () => void;
+  onMobilePlusClick?: (trigger?: HTMLButtonElement) => void;
 }> = ({
   onSend,
   onStop,
@@ -917,7 +917,9 @@ const SendBox: React.FC<{
       type='secondary'
       className='sendbox-mobile-plus-btn'
       icon={<Plus theme='outline' size='16' />}
-      onClick={onMobilePlusClick}
+      onClick={(event) =>
+        onMobilePlusClick?.(event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : undefined)
+      }
       data-testid='sendbox-mobile-plus-btn'
       aria-label={t('common.more')}
     />

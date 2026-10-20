@@ -14,6 +14,10 @@ import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XS
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
+import {
+  bindComposerPlusOpener,
+  buildComposerPlusEntries,
+} from '@/renderer/components/chat/MobileActionSheet/composerPlusEntries';
 import SendBox from '@/renderer/components/chat/SendBox';
 import { AcpComposerAttachments } from './AcpComposerAttachments';
 import { PdfReadingComposerPrefix } from '@/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix';
@@ -165,6 +169,7 @@ const AcpSendBox: React.FC<{
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const [contextWindow, setContextWindow] = useState({ sequence: 0, returnFocus: null as HTMLButtonElement | null });
+  const mobilePlusTrigger = useRef<HTMLButtonElement | null>(null);
   const conversationContext = useConversationContextSafe();
   const { data: composerCapabilities, mutate: mutateComposerCapabilities } = useSWR(
     conversation_id ? ['x-science-composer-capabilities', conversation_id] : null,
@@ -1006,6 +1011,21 @@ const AcpSendBox: React.FC<{
     onLocalFilesAdded: handleFilesAdded,
     onBrowserFilesAdded: canSelectProjectFiles ? handleLocalFilesSelected : undefined,
   });
+  const plusActions = {
+    ...skillMenuProps,
+    onSelectProjectFiles: canSelectProjectFiles ? openProjectFiles : undefined,
+    onLocalFilesAdded: handleFilesAdded,
+    onViewPlan: isXScienceConversation && planPresentation.reference ? planPresentation.openPlan : undefined,
+    planProgress: planPresentation.reference?.progress,
+    onViewContextWindow: isXScienceConversation
+      ? (returnFocus: HTMLButtonElement | null) => {
+          setContextWindow((current) => ({ sequence: current.sequence + 1, returnFocus }));
+        }
+      : undefined,
+    onRequestReview: handleRequestReview,
+    reviewInFlight: reviewBusy,
+    reviewDisabled: isBusy,
+  };
 
   const sheetEntries = useAcpMobileActionSheetController({
     isMobile,
@@ -1031,20 +1051,14 @@ const AcpSendBox: React.FC<{
     computeControl,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
-    attachEntries:
-      isXScienceConversation && planPresentation.reference
-        ? [
-            ...attachEntries,
-            {
-              key: 'view-plan',
-              label: t('conversation.attachMenu.viewPlan'),
-              meta: planPresentation.reference.progress
-                ? `${planPresentation.reference.progress.completed}/${planPresentation.reference.progress.total}`
-                : undefined,
-              onClick: planPresentation.openPlan,
-            },
-          ]
-        : attachEntries,
+    attachEntries: [
+      ...attachEntries,
+      ...buildComposerPlusEntries({
+        actions: plusActions,
+        contextReturnFocus: () => mobilePlusTrigger.current,
+        t,
+      }),
+    ],
     ...mobileSkillProps,
     loadedMcpStatuses,
     selectedSkillNames,
@@ -1154,7 +1168,7 @@ const AcpSendBox: React.FC<{
       {skillSurfaces}
 
       <SendBox
-        onMobilePlusClick={isMobile ? openMobileControls : undefined}
+        onMobilePlusClick={isMobile ? bindComposerPlusOpener(mobilePlusTrigger, openMobileControls) : undefined}
         value={content}
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
@@ -1188,29 +1202,13 @@ const AcpSendBox: React.FC<{
               <FileAttachButton
                 key={`${ownerId}:${conversation_id}`}
                 openFileSelector={openFileSelector}
-                onSelectProjectFiles={canSelectProjectFiles ? openProjectFiles : undefined}
-                onLocalFilesAdded={handleFilesAdded}
                 onLocalFilesSelected={canSelectProjectFiles ? handleLocalFilesSelected : undefined}
                 loadedMcpStatuses={loadedMcpStatuses}
-                {...skillMenuProps}
+                {...plusActions}
                 selectedSkillNames={selectedSkillNames}
                 selectedMcpServerIds={selectedMcpServerIds}
                 onSelectMcpServer={handleMcpSelected}
-                onViewPlan={
-                  isXScienceConversation && planPresentation.reference ? planPresentation.openPlan : undefined
-                }
-                planProgress={planPresentation.reference?.progress}
-                onViewContextWindow={
-                  isXScienceConversation
-                    ? (returnFocus) => {
-                        setContextWindow((current) => ({ sequence: current.sequence + 1, returnFocus }));
-                      }
-                    : undefined
-                }
-                onRequestReview={handleRequestReview}
                 reviewLabelMode='manual'
-                reviewInFlight={reviewBusy}
-                reviewDisabled={isBusy}
               />
               <XScienceSessionOptionsMenu
                 computeControl={computeControl}

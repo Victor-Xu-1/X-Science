@@ -64,6 +64,63 @@ describe('mobile sheet pane ownership', () => {
     expect(screen.getByRole('menuitemradio', { name: 'Option' })).toBeEnabled();
   });
 
+  it('M454 keeps a disabled busy Save action focusable without invoking it or closing More', () => {
+    const onClick = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <MobileActionSheet
+        open
+        onClose={onClose}
+        entries={[
+          {
+            key: 'save-skill',
+            label: 'Save Skill',
+            disabled: true,
+            keepDisabledFocusable: true,
+            busy: true,
+            description: 'Wait for the current task',
+            onClick,
+          },
+        ]}
+      />
+    );
+    advance();
+    const save = screen.getByRole('menuitem', { name: /Save Skill/ });
+    expect(save).not.toBeDisabled();
+    expect(save).toHaveAttribute('aria-disabled', 'true');
+    expect(save).toHaveAttribute('aria-busy', 'true');
+    save.focus();
+    expect(save).toHaveFocus();
+    fireEvent.click(save);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Wait for the current task')).toBeVisible();
+  });
+
+  it('M454 deactivates inline footer immediately on Back and close, before retained pane unmount', () => {
+    const footer = vi.fn((active: boolean) => <span data-testid='inline-active'>{String(active)}</span>);
+    const items: MobileActionSheetEntry[] = [
+      {
+        key: 'your-files',
+        label: 'Your files',
+        submenu: { title: 'Your files', options: [], onSelect: vi.fn(), footer },
+      },
+    ];
+    const view = render(<MobileActionSheet open onClose={vi.fn()} entries={items} />);
+    advance();
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-your-files'));
+    advance();
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('true');
+    fireEvent.click(screen.getByRole('button', { name: 'common.back' }));
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('false');
+    advance(300);
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-your-files'));
+    advance();
+    view.rerender(<MobileActionSheet open={false} onClose={vi.fn()} entries={items} />);
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('false');
+    expect(screen.getByTestId('inline-active').closest('[aria-hidden]')).toHaveAttribute('inert');
+  });
+
   it('keeps the retained outgoing submenu and its footer inert after going back', () => {
     const { main, pane } = openSheet();
     fireEvent.click(main);
