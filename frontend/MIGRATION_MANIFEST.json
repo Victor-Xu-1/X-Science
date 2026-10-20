@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "accc3a050e97f6f655b36e6dff6f6501708e09f362f89d936285871a01215159",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "d001a139d4920d216cb5fc4ceec9f56f06e833fbe8a619ceecdfb72104a2f0ec",
+  "additionFingerprintSHA256": "a76dcb446b4e0e38ad700fd0375e3d2d2c1b8073ccdae4673bf18d293369138c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -14079,8 +14079,8 @@
     },
     {
       "path": "tests/unit/xscience/runtimePlanPinned.dom.test.tsx",
-      "sha256": "d41b670d3d8a997fa9d921501e75b27c17803bf6d2bb5dc191667ecf6615dcdf",
-      "bytes": 12757,
+      "sha256": "30d4dc74a662c87fc579fb2a353c2fa62454dfc04afc322559e6e20c9a60dc45",
+      "bytes": 12850,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14091,7 +14091,7 @@
     },
     {
       "path": "tests/unit/xscience/runtimePlanPreviewOwner.dom.test.tsx",
-      "sha256": "c34a7d8b2d1688c2cbf149fd195820b4b5b5ca58ab1f68d5884a8bada7683a7e",
+      "sha256": "c767210d878e1e3b2207c9f1caf02feadaa6a8570f7d0d11a5c16b41eb6e5a4f",
       "bytes": 2567,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },

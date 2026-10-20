@@ -105,13 +105,14 @@ describe('C397 pinned immutable Plan preview', () => {
     await act(async () => {});
   };
 
-  it('keeps the selected A body and metadata read-only when current Plan becomes B', async () => {
+  it('keeps selected A read-only without inventing historical revision metadata when current Plan becomes B', async () => {
     await mount();
     expect(await screen.findByText('Immutable document A')).toBeInTheDocument();
     await advance();
     expect(screen.getByText('Immutable document A')).toBeInTheDocument();
     expect(screen.getByText('此计划已被替换，仅供查看。')).toBeInTheDocument();
-    expect(screen.getByTestId('x-science-plan-review')).toHaveTextContent('修订 1 / 1');
+    expect(screen.getByTestId('x-science-plan-review')).not.toHaveTextContent(/修订 \d/);
+    expect(runtime.plan.mock.calls[0][0]).toEqual(reference('A'));
     expect(screen.queryByRole('button', { name: '批准并执行' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '丢弃计划并结束任务' })).not.toBeInTheDocument();
     expect(runtime.approve).not.toHaveBeenCalled();
