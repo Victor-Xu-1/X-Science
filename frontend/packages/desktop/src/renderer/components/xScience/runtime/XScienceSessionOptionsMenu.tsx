@@ -1,4 +1,8 @@
-import { X_SCIENCE_SESSION_DEFAULTS, type XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
+import {
+  X_SCIENCE_SESSION_DEFAULTS,
+  type XScienceSessionOptions,
+  type XScienceSessionPreferenceControl,
+} from '@/renderer/services/xScienceSessionOptions';
 import { Dropdown, Message } from '@arco-design/web-react';
 import { Right, SettingConfig } from '@icon-park/react';
 import { Server, Shield, UserRound } from 'lucide-react';
@@ -33,6 +37,9 @@ export type XScienceSessionOptionsMenuProps = {
   goalClearInFlight?: boolean;
   disabled?: boolean;
   memoryDisabled?: boolean;
+  autoReviewDisabled?: boolean;
+  autoReviewControl?: XScienceSessionPreferenceControl;
+  stagedAutoReview?: boolean;
   permissionControl?: XSciencePermissionControlInput;
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
@@ -53,6 +60,9 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   goalClearInFlight = false,
   disabled = false,
   memoryDisabled = disabled,
+  autoReviewDisabled = disabled,
+  autoReviewControl,
+  stagedAutoReview,
   permissionControl,
   memoryControl,
   delegationControl,
@@ -65,13 +75,15 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const refreshMemory = memoryControl?.refresh;
+  const refreshReview = autoReviewControl?.refresh;
   const refreshSpecialist = specialistControl?.refresh;
   useEffect(() => {
     if (visible) {
       refreshMemory?.();
+      refreshReview?.();
       void refreshSpecialist?.();
     }
-  }, [refreshMemory, refreshSpecialist, visible]);
+  }, [refreshMemory, refreshReview, refreshSpecialist, visible]);
   const [submenu, setSubmenu] = useState<Submenu>(null);
   useEffect(() => {
     if (!visible) setSubmenu(null);
@@ -104,7 +116,11 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   // Optional session-option hydration must not withdraw the independent mode
   // and observed-grant capabilities that were already available to the user.
   const triggerDisabled =
-    disabled && !permission.available && !delegationControl && !memoryControl?.preference?.current();
+    disabled &&
+    !permission.available &&
+    !delegationControl &&
+    !memoryControl?.preference?.current() &&
+    !autoReviewControl?.current();
   const hasPermissionChoices = permission.options.length > 0;
   useLayoutEffect(() => {
     if (hasPermissionChoices || submenu !== 'permission') return;
@@ -173,19 +189,26 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
   const computeLabel = computeSelectionLabel(computeControl?.selection, computeControl?.providers ?? [], t);
 
   const updateToggle = async (key: 'autoReview' | 'memory', checked: boolean) => {
-    if ((key === 'memory' ? memoryDisabled : disabled) || (key === 'memory' && !memoryControl?.canUpdate())) return;
+    if (
+      (key === 'memory' ? memoryDisabled : autoReviewDisabled) ||
+      (key === 'memory' && !memoryControl?.canUpdate()) ||
+      (key === 'autoReview' &&
+        autoReviewControl &&
+        (!autoReviewControl.current() || autoReviewControl.status !== 'ready'))
+    )
+      return;
 
     // The session owner owns Memory operation identity across close/reopen and account changes.
-    const ownedMemory = key === 'memory' && memoryControl?.preference;
-    if (!ownedMemory) setPendingOption(key);
+    const ownedPreference = key === 'memory' ? memoryControl?.preference : autoReviewControl;
+    if (!ownedPreference) setPendingOption(key);
     try {
       await onPersistentOptionChange?.(key, checked);
       if (!onPersistentOptionChange) onChange({ ...value, [key]: checked });
     } catch (error) {
-      console.error('Failed to update session option:', error);
+      console.error('Failed to update session option');
       Message.error(t('conversation.xscienceRuntime.sessionOptions.updateFailed'));
     } finally {
-      if (!ownedMemory) setPendingOption(null);
+      if (!ownedPreference) setPendingOption(null);
     }
   };
 
@@ -310,12 +333,15 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
       ) : null}
       <XScienceAgentControlToggles
         memoryControl={memoryControl}
+        autoReviewControl={autoReviewControl}
+        stagedAutoReview={stagedAutoReview}
         delegationControl={delegationControl}
         active={visible}
         value={value}
-        pending={memoryPresentation.pending ? 'memory' : pendingOption}
+        pending={memoryPresentation.pending ? 'memory' : autoReviewControl?.pending ? 'autoReview' : pendingOption}
         disabled={disabled}
         memoryDisabled={memoryDisabled}
+        autoReviewDisabled={autoReviewDisabled}
         onChange={(key, next) => {
           void updateToggle(key, next);
         }}
@@ -429,7 +455,8 @@ const XScienceSessionOptionsMenu: React.FC<XScienceSessionOptionsMenuProps> = ({
         >
           <SettingConfig theme='outline' size={17} strokeWidth={3.6} />
           {(delegationControl?.current() && delegationControl.enabled === false) ||
-          value.autoReview ||
+          (stagedAutoReview ??
+            (autoReviewControl ? autoReviewControl.status === 'ready' && value.autoReview : value.autoReview)) ||
           hasMemoryCustomization ||
           Boolean(specialistControl?.current() && specialistControl.applied && !specialistControl.applied.is_default) ||
           (permission.available && permission.currentValue !== 'default') ||

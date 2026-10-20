@@ -94,6 +94,27 @@ its results. A new review remains an explicit Add → Manual review action; this
 metadata does not auto-retry, auto-approve or create a second execution authority.
 No database schema or retention change is introduced.
 
+### Auto-review preference observation and admission
+
+The existing session-options owner holds the Auto-review value and its freshness;
+desktop and mobile share that owner. An attempted persistent write invalidates
+cached observations even when the acknowledgement is lost or returns an error.
+An unknown result is not displayed as a confirmed checked/unchecked choice and
+Retry reads the checked actual root with GET; it does not repeat the mutation.
+A readback proves the current observed value, not cancellation or final settlement
+of a write whose response was lost. Account, root and operation fences reject late
+client responses. Draft intent remains local and distinct from observation.
+
+For a new ordinary canonical input with a validated typed message intent and no
+explicit verifier override, admission freezes the current root session preference
+on the same transaction and records server-only capture provenance. Present
+invalid persisted values are rejected; valid legacy booleans and trimmed on/off
+values normalize without changing Memory policy. Explicit input, hidden controls
+and legacy/direct calls retain their contracts. Exact command retry reuses the
+original frozen input rather than recapturing a newer preference; observation
+alone must not create a new retry identity. No per-Send frontend GET gate, new
+preference store, automatic POST replay, schema or permission grant is added.
+
 ## Snapshot reference query indexes
 
 Schema 74 adds two separate, non-unique indexes on

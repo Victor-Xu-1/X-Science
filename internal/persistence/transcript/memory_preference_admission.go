@@ -73,29 +73,9 @@ func resolveMemoryPreferenceAdmission(ctx context.Context, conn *sql.Conn, strea
 	if !eligible || explicit {
 		return data, config, nil, nil
 	}
-	var owner, project, rootID, rootRootID, raw string
-	err := conn.QueryRowContext(ctx, `SELECT project.user_id,frame.project_id,frame.root_frame_id,root.root_frame_id,COALESCE(metadata.context_data,'{}')
-		FROM frames frame JOIN projects project ON project.id=frame.project_id
-		JOIN frames root ON root.id=frame.root_frame_id AND root.project_id=frame.project_id
-		LEFT JOIN frame_runtime_metadata metadata ON metadata.frame_id=root.id WHERE frame.id=?`, stream.FrameID).
-		Scan(&owner, &project, &rootID, &rootRootID, &raw)
+	preference, err := readRootSessionOriginalInput(ctx, conn, stream)
 	if err != nil {
-		return nil, nil, nil, schemaError(err)
-	}
-	if owner != stream.OwnerID || project != stream.ProjectID || rootID != stream.RootFrameID || rootRootID != rootID {
-		return nil, nil, nil, ErrOwnerMismatch
-	}
-	var metadata map[string]json.RawMessage
-	if json.Unmarshal([]byte(raw), &metadata) != nil {
-		return nil, nil, nil, ErrEventConflict
-	}
-	original, found := metadata["_original_input"]
-	if !found {
-		return data, config, nil, nil
-	}
-	var preference map[string]json.RawMessage
-	if json.Unmarshal(original, &preference) != nil {
-		return nil, nil, nil, ErrEventConflict
+		return nil, nil, nil, err
 	}
 	modeJSON, found := preference["memory_mode"]
 	if !found {
@@ -106,13 +86,43 @@ func resolveMemoryPreferenceAdmission(ctx context.Context, conn *sql.Conn, strea
 		return nil, nil, nil, ErrEventConflict
 	}
 	var parent sql.NullString
-	if err := conn.QueryRowContext(ctx, `SELECT parent_frame_id FROM frames WHERE id=?`, rootID).Scan(&parent); err != nil {
+	if err := conn.QueryRowContext(ctx, `SELECT parent_frame_id FROM frames WHERE id=?`, stream.RootFrameID).Scan(&parent); err != nil {
 		return nil, nil, nil, schemaError(err)
 	}
 	if parent.Valid {
 		return nil, nil, nil, ErrOwnerMismatch
 	}
-	capture := &memoryPreferenceCapture{Schema: 1, Source: "root_original_input", RootFrameID: rootID, Mode: mode}
+	capture := &memoryPreferenceCapture{Schema: 1, Source: "root_original_input", RootFrameID: stream.RootFrameID, Mode: mode}
 	data, config = freezeMemoryPreference(data, config, mode)
 	return data, config, capture, nil
+}
+
+// Shared read projection on the caller's admission transaction, not another
+// preference owner. Each option keeps its own missing/legacy value policy.
+func readRootSessionOriginalInput(ctx context.Context, conn *sql.Conn, stream Stream) (map[string]json.RawMessage, error) {
+	var owner, project, rootID, rootRootID, raw string
+	err := conn.QueryRowContext(ctx, `SELECT project.user_id,frame.project_id,frame.root_frame_id,root.root_frame_id,COALESCE(metadata.context_data,'{}')
+		FROM frames frame JOIN projects project ON project.id=frame.project_id
+		JOIN frames root ON root.id=frame.root_frame_id AND root.project_id=frame.project_id
+		LEFT JOIN frame_runtime_metadata metadata ON metadata.frame_id=root.id WHERE frame.id=?`, stream.FrameID).
+		Scan(&owner, &project, &rootID, &rootRootID, &raw)
+	if err != nil {
+		return nil, schemaError(err)
+	}
+	if owner != stream.OwnerID || project != stream.ProjectID || rootID != stream.RootFrameID || rootRootID != rootID {
+		return nil, ErrOwnerMismatch
+	}
+	var metadata map[string]json.RawMessage
+	if json.Unmarshal([]byte(raw), &metadata) != nil {
+		return nil, ErrEventConflict
+	}
+	original, found := metadata["_original_input"]
+	if !found {
+		return nil, nil
+	}
+	var preference map[string]json.RawMessage
+	if json.Unmarshal(original, &preference) != nil {
+		return nil, ErrEventConflict
+	}
+	return preference, nil
 }

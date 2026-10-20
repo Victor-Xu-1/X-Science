@@ -1162,6 +1162,8 @@
       "memoryPreferenceLoading": "Checking this conversation's Memory preference…",
       "memoryPreferenceUnknown": "Memory preference is unconfirmed. The last snapshot is not current; refresh to read it without repeating a change.",
       "memoryPreferenceRetry": "Refresh Memory preference",
+      "autoReviewPreferenceUnknown": "Automatic review preference is unconfirmed. Refresh reads the current setting without repeating the change; an unacknowledged change may still complete later.",
+      "autoReviewPreferenceRetry": "Refresh automatic review preference",
       "memoryAvailabilityUnavailable": "Memory availability could not be checked. Reopen this menu to try again.",
       "expert": "Expert",
       "specialistState": {

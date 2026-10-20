@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import {
   retireStagedMemory as withoutStagedMemory,
+  retireStagedAutoReview,
   type StagedSessionOptions,
 } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { getRendererAccountOwnerId } from '@/renderer/services/rendererAccountScope';
@@ -14,6 +15,7 @@ import {
   updateXScienceSessionConfig,
   type XScienceSessionOptions,
   type XScienceSessionMemoryControl,
+  type XScienceSessionPreferenceControl,
 } from '@/renderer/services/xScienceSessionOptions';
 import { safeErrorDiagnostic } from './acpSendBoxDiagnostics';
 import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
@@ -51,12 +53,21 @@ export function useAcpComposerSessionOptions<TRetry>(
     stagedSessionOptionsRef.current = remaining;
     setStagedSessionOptions(remaining);
   }, [setStagedSessionOptions]);
+  const retireReviewIntent = useCallback(() => {
+    directCommandRetryRef.current = null;
+    const staged = stagedSessionOptionsRef.current;
+    if (!staged || staged.autoReview === undefined) return;
+    const remaining = retireStagedAutoReview(staged);
+    stagedSessionOptionsRef.current = remaining;
+    setStagedSessionOptions(remaining);
+  }, [setStagedSessionOptions]);
   const state = useXScienceSessionOptionsState(conversation_id, agent_name, {
     ownerId,
     frameIncarnationId,
     expectedRootFrameId: projectedMemoryRoot,
     projectId: projectedMemoryRoot ? frameProjection?.project_id : undefined,
     onMutationStarted: retireStagedMemory,
+    onReviewMutationStarted: retireReviewIntent,
   });
   const { setOptions: setXScienceSessionOptions, loadState: sessionOptionsLoad } = state;
   const applyStagedSessionOptions = useCallback(() => {
@@ -65,7 +76,7 @@ export function useAcpComposerSessionOptions<TRetry>(
     setXScienceSessionOptions((current) => ({
       ...current,
       delegation: staged.delegation,
-      autoReview: staged.autoReview,
+      ...(typeof staged.autoReview === 'boolean' ? { autoReview: staged.autoReview } : {}),
     }));
   }, [setXScienceSessionOptions]);
   // The runtime session-options load resolves asynchronously for a fresh
@@ -89,7 +100,8 @@ export function useAcpSessionOptionControls(
   setOptions: Dispatch<SetStateAction<XScienceSessionOptions>>,
   setMobileOpen: (open: boolean) => void,
   sessionMemory?: XScienceSessionMemoryControl,
-  stagedMemory?: boolean
+  stagedMemory?: boolean,
+  sessionAutoReview?: XScienceSessionPreferenceControl
 ) {
   const ownerId = authority.current.ownerId;
   const extra = conversation?.type === 'acp' && conversation.id === conversationId ? conversation.extra : undefined;
@@ -119,6 +131,7 @@ export function useAcpSessionOptionControls(
   const updatePersistentSessionOption = useCallback(
     async (key: 'autoReview' | 'memory', value: boolean) => {
       const requestOwner = authority.current;
+      if (key === 'autoReview' && sessionAutoReview) return sessionAutoReview.update(value);
       if (key === 'memory' && !memoryControl.canUpdate()) return;
       if (key === 'memory' && sessionMemory) return sessionMemory.update(value);
       try {
@@ -130,10 +143,11 @@ export function useAcpSessionOptionControls(
       if (!mounted.current || authority.current !== requestOwner || !memoryControl.current()) return;
       setOptions((current) => ({ ...current, [key]: value }));
     },
-    [authority, conversationId, memoryControl, mounted, setOptions, sessionMemory]
+    [authority, conversationId, memoryControl, mounted, setOptions, sessionMemory, sessionAutoReview]
   );
   const openMobileControls = () => {
     memoryControl.refresh();
+    sessionAutoReview?.refresh();
     setMobileOpen(true);
   };
   const handleClearGoal = useCallback(async () => {

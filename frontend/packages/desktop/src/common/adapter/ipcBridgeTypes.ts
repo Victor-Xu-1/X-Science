@@ -35,7 +35,7 @@ export interface ISendMessageParams {
   inject_mcp_server_ids?: string[];
   session_options?: {
     ultra_mode: boolean;
-    verifier_mode: 'on' | 'off';
+    verifier_mode?: 'on' | 'off';
     memory_mode?: 'on' | 'off';
     target_agent?: string;
     specialist_binding?: import('./specialistBinding').SpecialistInputReference;
