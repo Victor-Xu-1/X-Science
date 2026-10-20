@@ -33,6 +33,72 @@ beforeEach(() =>
 );
 
 describe('Retained context-history keyboard navigation', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    'Context395 shows explicit-zero and missing counters for a single retained actual request in %s',
+    async (language) => {
+      const value = history(1);
+      Object.assign(value.samples[0], {
+        usedTokens: 100,
+        callUsage: {
+          input_tokens: 100,
+          output_tokens: 0,
+          total_tokens: 100,
+          reported: { input: true, output: true, total: true, cache_read: true, cache_write: false },
+        },
+      });
+      await renderWithI18n(<ContextWindowHistory history={value} />, language);
+      const details = screen.getByTestId('context-call-details');
+      expect(
+        within(details).getByText(language === 'en-US' ? 'Recorded request details' : '已记录请求明细')
+      ).toBeInTheDocument();
+      expect(within(details).getByTestId('context-call-cache_read')).toHaveTextContent('0');
+      expect(within(details).getByTestId('context-call-cache_write')).toHaveTextContent(
+        language === 'en-US' ? 'Not reported' : '未报告'
+      );
+      expect(
+        within(details).getByText(
+          language === 'en-US'
+            ? 'Cache is included in input; do not add it again.'
+            : '缓存已包含在输入中，请勿重复相加。'
+        )
+      ).toBeInTheDocument();
+    }
+  );
+
+  it('Context395 pins exact older counters through appended receipts and keeps legacy presence unknown', async () => {
+    const value = history(3);
+    const usage = {
+      input_tokens: 100,
+      output_tokens: 10,
+      total_tokens: 135,
+      cache_read_tokens: 20,
+      cache_write_tokens: 5,
+      reported: { input: true, output: true, total: true, cache_read: true, cache_write: true },
+      invalid_fields: { input: false, output: false, total: false, cache_read: false, cache_write: true },
+      cache_tokens_additive: true,
+    };
+    Object.assign(value.samples[0], { usedTokens: 135, outputTokens: 10, callUsage: usage });
+    value.peak = value.samples[0];
+    const view = await renderWithI18n(<ContextWindowHistory history={value} />, 'en-US');
+    fireEvent.click(screen.getByTestId('context-window-history-toggle'));
+    fireEvent.click(within(screen.getByTestId('context-window-history-chart')).getAllByRole('button')[0]);
+    expect(screen.getByTestId('context-call-cache_read')).toHaveTextContent('20');
+    expect(screen.getByTestId('context-call-cache_write')).toHaveTextContent('Unavailable (invalid counter)');
+    expect(screen.getByText('Cache is additional input; the counters remain separate here.')).toBeInTheDocument();
+    view.rerender(
+      <ContextWindowHistory
+        history={{ ...value, samples: [...value.samples, history(4).samples[3]], totalObserved: 4 }}
+      />
+    );
+    expect(screen.getByTestId('context-call-input')).toHaveTextContent('100');
+    fireEvent.click(within(screen.getByTestId('context-window-history-chart')).getAllByRole('button')[1]);
+    expect(screen.getByText('Details are unavailable or were not recorded for this request.')).toBeInTheDocument();
+    const legacy = history(1);
+    Object.assign(legacy.samples[0], { callUsage: { input_tokens: 10, output_tokens: 1, total_tokens: 11 } });
+    view.rerender(<ContextWindowHistory history={legacy} />);
+    expect(screen.getByText('Counter presence was not recorded for this request.')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-call-input')).not.toBeInTheDocument();
+  });
   it('keeps every dense record but exposes only one chart Tab stop and arrow/Home/End selection', async () => {
     await renderWithI18n(<ContextWindowHistory history={history()} />, 'en-US');
     const disclosure = screen.getByTestId('context-window-history-toggle');

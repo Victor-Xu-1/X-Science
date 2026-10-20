@@ -19,20 +19,21 @@ import (
 // Context usage describes one main-agent request, never the cumulative billing
 // counter or a reviewer/translation request. Only numeric metadata is retained.
 type runnerContextUsage struct {
-	SessionID      string                  `json:"sessionId"`
-	RequestID      string                  `json:"requestId"`
-	Attempt        int                     `json:"attempt"`
-	Model          string                  `json:"model"`
-	ObservedAt     time.Time               `json:"observedAt"`
-	State          string                  `json:"state"`
-	Source         string                  `json:"source"`
-	UsedTokens     int                     `json:"usedTokens"`
-	LimitTokens    int                     `json:"limitTokens"`
-	LimitSource    string                  `json:"limitSource"`
-	OutputTokens   int                     `json:"outputTokens"`
-	HasMedia       bool                    `json:"hasMedia"`
-	InputEstimates []runnerContextUsageRow `json:"inputEstimates"`
-	Progress       *runnerContextProgress  `json:"progress,omitempty"`
+	SessionID      string                   `json:"sessionId"`
+	RequestID      string                   `json:"requestId"`
+	Attempt        int                      `json:"attempt"`
+	Model          string                   `json:"model"`
+	ObservedAt     time.Time                `json:"observedAt"`
+	State          string                   `json:"state"`
+	Source         string                   `json:"source"`
+	UsedTokens     int                      `json:"usedTokens"`
+	LimitTokens    int                      `json:"limitTokens"`
+	LimitSource    string                   `json:"limitSource"`
+	OutputTokens   int                      `json:"outputTokens"`
+	HasMedia       bool                     `json:"hasMedia"`
+	InputEstimates []runnerContextUsageRow  `json:"inputEstimates"`
+	Progress       *runnerContextProgress   `json:"progress,omitempty"`
+	CallUsage      *agentruntime.ModelUsage `json:"callUsage,omitempty"`
 }
 
 type runnerContextUsageRow struct {
@@ -186,10 +187,23 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 	}
 	snapshot.State = "failed"
 	snapshot.ObservedAt = time.Now().UTC()
+	snapshot.CallUsage = nil
 	if callErr == nil {
 		snapshot.State = "complete"
 		snapshot.Progress = nil
 		snapshot.Source, snapshot.UsedTokens, snapshot.OutputTokens = settleRunnerContextUsage(*snapshot, response)
+		usage := response.Usage
+		if validContextCallUsageCounters(usage) {
+			if usage.Reported != nil {
+				fields := *usage.Reported
+				usage.Reported = &fields
+			}
+			snapshot.CallUsage = &usage
+		} else {
+			// Optional inspection metadata must not poison the existing context
+			// receipt or retry an already successful model request.
+			log.Printf("context_call_usage_unrepresentable")
+		}
 	}
 	// A metrics write must not turn successful model execution into a retry.
 	// On failure the durable request estimate remains explicitly an estimate.
@@ -252,6 +266,11 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	if err != nil {
 		return snapshot, fmt.Errorf("decode context usage: %w", err)
 	}
+	if raw, present := fields["callUsage"]; present {
+		if snapshot.State != "complete" || snapshot.CallUsage == nil || !validContextCallUsageCounters(*snapshot.CallUsage) || !validContextCallUsageWire(raw) {
+			return snapshot, errors.New("invalid context call usage")
+		}
+	}
 	for _, field := range []string{"sessionId", "requestId", "attempt", "model", "observedAt", "state", "source", "usedTokens", "limitTokens", "limitSource", "outputTokens", "hasMedia", "inputEstimates"} {
 		value, found := fields[field]
 		if !found || len(value) == 0 || string(value) == "null" {
@@ -304,4 +323,48 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 		snapshot.LimitSource = "unknown"
 	}
 	return snapshot, nil
+}
+
+func validContextCallUsageCounters(usage agentruntime.ModelUsage) bool {
+	for _, value := range [...]int{usage.InputTokens, usage.OutputTokens, usage.TotalTokens, usage.CacheReadTokens, usage.CacheWriteTokens} {
+		if value < 0 || uint64(value) > contextHistorySafeInteger {
+			return false
+		}
+	}
+	return true
+}
+
+// Missing cache counters are typed zero under ModelUsage's omitempty contract.
+// Present null or malformed fields must not silently decode to Go zero values.
+func validContextCallUsageWire(raw json.RawMessage) bool {
+	var fields map[string]json.RawMessage
+	if json.Unmarshal(raw, &fields) != nil || fields == nil {
+		return false
+	}
+	for _, key := range []string{"input_tokens", "output_tokens", "total_tokens"} {
+		if value, found := fields[key]; !found || string(value) == "null" {
+			return false
+		}
+	}
+	for _, key := range []string{"cache_read_tokens", "cache_write_tokens", "cache_tokens_additive", "warnings"} {
+		if value, found := fields[key]; found && string(value) == "null" {
+			return false
+		}
+	}
+	for _, key := range []string{"reported", "invalid_fields"} {
+		value, present := fields[key]
+		if !present {
+			continue
+		}
+		var flags map[string]json.RawMessage
+		if json.Unmarshal(value, &flags) != nil || flags == nil {
+			return false
+		}
+		for _, flag := range []string{"input", "output", "total", "cache_read", "cache_write"} {
+			if value, found := flags[flag]; !found || (string(value) != "true" && string(value) != "false") {
+				return false
+			}
+		}
+	}
+	return true
 }

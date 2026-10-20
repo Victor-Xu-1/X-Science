@@ -159,15 +159,18 @@ and a post-restart lifecycle sweep. Source files are never part of that reset.
 
 The composer reads `GET /api/conversations/{id}/context-usage` through the
 conversation's existing ownership check. It returns either an explicit
-`unavailable` status or one numeric record for the latest main-agent model
-request. The record is kept in task-scoped `runtime-state.sqlite`; task/project
+`unavailable` status or a numeric latest main-agent request observation and its
+bounded history (up to128 retained requests, with explicit recorded/latest-only
+coverage). The records are kept in task-scoped `runtime-state.sqlite`; task/project
 deletion removes it with other operational state. It contains no prompt,
 message, tool argument, response body, credential, or endpoint URL. Earlier
 conversations have no retroactive record until a new model request runs.
 
-`source=provider` means the completed request's usage came from its provider
-response; `source=estimated` means a local text/tool-schema estimate was used
-because no usage counters were returned or the request did not complete.
+`source=provider` means sufficient provider evidence supports the completed
+context total. It does not establish that every individual counter was
+reported: for example, a reported total may coexist with estimated output.
+`source=estimated` means local estimates contribute to the total or the request
+did not complete.
 Provider usage is per request, never the cumulative task billing counter.
 Input rows estimate five mutually exclusive parts of the actual request:
 system instructions, tools and subagents, conversation messages, connectors
@@ -176,17 +179,38 @@ percentages inferred from tool names or user-supplied text. The numeric record
 does not retain the underlying content. Image/audio/document token costs are
 not inferred from bytes.
 
-The card apportions the reported input total using these request-specific
-estimates and includes the latest response in conversation messages. Its five
-displayed token amounts sum to the latest request's total; the category values
-are still estimates, not independently metered provider counters. Both the
-large percentage and the category percentages use the same context budget.
+The card preserves these request-specific input estimates without scaling them
+to a provider total, and includes the latest projected output under conversation
+messages. Category values are estimates, not independently metered provider
+counters; their sum can differ from the settled total. Display-window ratios
+do not turn either value into a verified model-capacity measurement.
 Values above 100% remain visible, while the segmented bar normalizes to its
 available width so no category is cut off. A tooltip exposes the measurement,
 attribution and budget sources without adding diagnostic rows to the card.
 
-The limit is the runner's configured context budget or its documented default,
-not an independently verified model capacity. Earlier three-category records
+An optional `callUsage` on a successful main-model response retains the existing
+`agentruntime.ModelUsage` snake-case wire fields. Its `reported` flags preserve
+explicit zero versus missing counters; `invalid_fields` preserves current
+invalidity independently of historical `warnings`. Omitted zero cache fields
+remain valid typed zero when their reported flag is true. Missing `reported`
+means presence was not recorded, not that nonzero legacy counters are explicit
+provider evidence. `cache_tokens_additive` distinguishes additional cache input
+from overlapping cached input; the selected-request detail does not add cache
+again or feed these counters back into occupancy/compaction.
+
+The response's reported flags are copied with its counters at finish. An
+unrepresentable negative or above-JavaScript-safe counter suppresses only this
+optional detail with a fixed diagnostic; it does not poison the existing
+context receipt or retry the successful model task. Persisted malformed optional
+evidence is rejected by the existing read/decoder error path. Old, failed,
+unfinished and preflight observations do not invent completed usage details.
+In particular, context-pressure observations can precede provider dispatch:
+history sample counts are not a complete physical-call ledger or Turns. No
+message/branch association is inferred from runner attempts or timestamps.
+
+The limit is a configured or model-profile context budget when known, not an
+independently verified capacity. Unknown capacity stays unknown in stored
+telemetry; the UI may use its labeled default1M display budget. Earlier three-category records
 remain stored but report unavailable until the next request supplies the
 five-category projection. A presentation-only translation
 may be billed in provider audits, but cannot replace the agent request shown

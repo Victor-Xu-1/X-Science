@@ -880,6 +880,18 @@
     "queueTooLarge": "Queue data is too large to persist safely. Remove some queued commands first."
   },
   "contextUsage": {
+    "requestDetails": "Recorded request details",
+    "callDetailsUnrecorded": "Details are unavailable or were not recorded for this request.",
+    "callPresenceUnrecorded": "Counter presence was not recorded for this request.",
+    "call_input": "Input",
+    "call_cache_read": "Cache read",
+    "call_cache_write": "Cache write",
+    "call_output": "Output",
+    "call_total": "Reported total",
+    "callInvalid": "Unavailable (invalid counter)",
+    "callNotReported": "Not reported",
+    "callCacheIncluded": "Cache is included in input; do not add it again.",
+    "callCacheAdditional": "Cache is additional input; the counters remain separate here.",
     "latest": "Latest request",
     "requesting": "Requesting",
     "generating": "Generating · estimate",

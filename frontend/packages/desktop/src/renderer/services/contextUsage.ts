@@ -7,6 +7,21 @@
 export const CONTEXT_USAGE_CATEGORIES = ['systemPrompt', 'tools', 'messages', 'mcp', 'skills'] as const;
 export type ContextUsageCategory = (typeof CONTEXT_USAGE_CATEGORIES)[number];
 export type ContextUsageBreakdownRow = { key: ContextUsageCategory; tokens: number };
+export const CONTEXT_CALL_FIELDS = ['input', 'cache_read', 'cache_write', 'output', 'total'] as const;
+export type ContextCallField = (typeof CONTEXT_CALL_FIELDS)[number];
+type ContextCallFields = Record<ContextCallField, boolean>;
+/** The existing ModelUsage wire format; absence is not a reported zero. */
+export type ContextCallUsage = {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
+  reported?: ContextCallFields;
+  invalid_fields?: ContextCallFields;
+  cache_tokens_additive?: boolean;
+  warnings?: Array<{ field: string; reason: string }>;
+};
 export type ContextUsageProgress = {
   phase: 'generating' | 'thinking' | 'compacting';
   observedAt: string;
@@ -34,6 +49,7 @@ export type ContextUsageSnapshot = {
   hasMedia: boolean;
   inputEstimates: ContextUsageBreakdownRow[];
   progress?: ContextUsageProgress;
+  callUsage?: ContextCallUsage;
 };
 export type ContextUsageHistory = {
   sessionId: string;
@@ -72,6 +88,49 @@ function isTokenCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
+function validContextCallUsage(value: unknown): value is ContextCallUsage {
+  if (!isObject(value)) return false;
+  for (const key of ['input_tokens', 'output_tokens', 'total_tokens']) {
+    if (!isTokenCount(value[key])) return false;
+  }
+  for (const key of ['cache_read_tokens', 'cache_write_tokens']) {
+    if (Object.hasOwn(value, key) && !isTokenCount(value[key])) return false;
+  }
+  for (const key of ['reported', 'invalid_fields']) {
+    const flags = value[key];
+    if (
+      Object.hasOwn(value, key) &&
+      (!isObject(flags) || CONTEXT_CALL_FIELDS.some((field) => typeof flags[field] !== 'boolean'))
+    )
+      return false;
+  }
+  if (Object.hasOwn(value, 'cache_tokens_additive') && typeof value.cache_tokens_additive !== 'boolean') return false;
+  if (
+    Object.hasOwn(value, 'warnings') &&
+    (!Array.isArray(value.warnings) ||
+      value.warnings.length > 10 ||
+      value.warnings.some(
+        (entry) => !isObject(entry) || typeof entry.field !== 'string' || typeof entry.reason !== 'string'
+      ))
+  )
+    return false;
+  return true;
+}
+
+function callUsageIdentity(usage: ContextCallUsage | undefined): string {
+  return JSON.stringify(
+    usage
+      ? [
+          ...CONTEXT_CALL_FIELDS.map((field) => usage[`${field}_tokens`] ?? 0),
+          usage.reported ? CONTEXT_CALL_FIELDS.map((field) => usage.reported![field]) : null,
+          CONTEXT_CALL_FIELDS.map((field) => usage.invalid_fields?.[field] ?? false),
+          usage.cache_tokens_additive ?? false,
+          usage.warnings?.map((entry) => [entry.field, entry.reason]) ?? [],
+        ]
+      : null
+  );
+}
+
 /** Validate the server contract; absent telemetry is not zero or "loading". */
 export function parseContextUsage(payload: unknown, conversationId: string): ContextUsageResult {
   if (!isObject(payload)) throw new Error('Invalid context usage response');
@@ -105,6 +164,9 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
     if (!isObject(row) || row.key !== CONTEXT_USAGE_CATEGORIES[index] || !isTokenCount(row.tokens)) {
       throw new Error('Invalid context usage breakdown');
     }
+  }
+  if (Object.hasOwn(value, 'callUsage') && (value.state !== 'complete' || !validContextCallUsage(value.callUsage))) {
+    throw new Error('Invalid context call usage');
   }
   const inputEstimateTotal = value.inputEstimates.reduce((sum, row) => sum + BigInt(row.tokens), BigInt(0));
   if (inputEstimateTotal + BigInt(value.outputTokens as number) > BigInt(Number.MAX_SAFE_INTEGER)) {
@@ -189,7 +251,8 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
       latest.source !== value.source ||
       latest.observedAt !== value.observedAt ||
       latest.limitTokens !== (legacyDefault ? 0 : value.limitTokens) ||
-      latest.limitSource !== (legacyDefault ? 'unknown' : value.limitSource)
+      latest.limitSource !== (legacyDefault ? 'unknown' : value.limitSource) ||
+      callUsageIdentity(latest.callUsage) !== callUsageIdentity(value.callUsage as ContextCallUsage | undefined)
     ) {
       throw new Error('Invalid context history latest sample');
     }

@@ -37,6 +37,85 @@ const snapshot = (): ContextUsageSnapshot => ({
 describe('context usage contract', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it('Context395 rejects malformed optional call evidence instead of quietly treating it as zero', () => {
+    expect(() =>
+      parseContextUsage(
+        {
+          status: 'available',
+          snapshot: {
+            ...snapshot(),
+            callUsage: {
+              input_tokens: 10,
+              output_tokens: 0,
+              total_tokens: 10,
+              cache_read_tokens: 'not-a-counter',
+              reported: { input: true, output: true, total: true, cache_read: true, cache_write: false },
+            },
+          },
+        },
+        'one'
+      )
+    ).toThrow('Invalid context call usage');
+  });
+
+  it('Context395 accepts typed omitted cache zero and retains presence without changing occupancy', () => {
+    const callUsage = {
+      input_tokens: 17,
+      output_tokens: 3,
+      total_tokens: 20,
+      reported: { input: true, output: true, total: true, cache_read: true, cache_write: false },
+      invalid_fields: { input: false, output: false, total: false, cache_read: false, cache_write: true },
+      cache_tokens_additive: true,
+    };
+    const value = { ...snapshot(), callUsage };
+    const parsed = parseContextUsage({ status: 'available', snapshot: value }, 'one');
+    expect(parsed.status === 'available' && parsed.snapshot.callUsage).toEqual(callUsage);
+    expect(projectContextUsage(value).usedTokens).toBe(20);
+    expect(estimateContextUsageBreakdown(value)).toEqual(estimateContextUsageBreakdown(snapshot()));
+    expect(parseContextUsage({ status: 'available', snapshot: snapshot() }, 'one').status).toBe('available');
+    for (const malformed of [
+      null,
+      { ...callUsage, reported: null },
+      { ...callUsage, reported: { input: true } },
+      { ...callUsage, cache_read_tokens: null },
+      { ...callUsage, cache_tokens_additive: null },
+      { ...callUsage, total_tokens: Number.MAX_SAFE_INTEGER + 1 },
+    ]) {
+      expect(() =>
+        parseContextUsage({ status: 'available', snapshot: { ...value, callUsage: malformed } }, 'one')
+      ).toThrow('Invalid context call usage');
+    }
+    const legacy = { input_tokens: 17, output_tokens: 3, total_tokens: 20 };
+    expect(
+      parseContextUsage({ status: 'available', snapshot: { ...snapshot(), callUsage: legacy } }, 'one').status
+    ).toBe('available');
+  });
+
+  it('Context395 does not accept different call facts for the same latest history identity', () => {
+    const value = { ...snapshot(), callUsage: { input_tokens: 17, output_tokens: 3, total_tokens: 20 } };
+    expect(() =>
+      parseContextUsage(
+        {
+          status: 'available',
+          snapshot: value,
+          history: {
+            sessionId: 'one',
+            totalObserved: 1,
+            coverage: 'recorded',
+            samples: [{ ...value, callUsage: { ...value.callUsage, input_tokens: 18 } }],
+          },
+        },
+        'one'
+      )
+    ).toThrow('Invalid context history latest sample');
+    expect(() =>
+      parseContextUsage(
+        { status: 'available', snapshot: { ...value, state: 'failed', source: 'estimated', outputTokens: 0 } },
+        'one'
+      )
+    ).toThrow('Invalid context call usage');
+  });
+
   it('keeps unknown capacity unknown and retires historical defaults without mutating receipts', () => {
     const legacy = {
       ...snapshot(),
