@@ -5,6 +5,7 @@
  */
 
 import { Left, Right } from '@icon-park/react';
+import { Check, Minus } from 'lucide-react';
 import React, { Fragment, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -222,7 +223,9 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                   <div className={styles.empty}>{renderedSub.emptyText}</div>
                 ) : (
                   renderedSub.options.map((option) => {
-                    const showRadio = renderedSub.selectable !== false;
+                    const kind = option.kind ?? (renderedSub.selectable !== false ? 'radio' : 'action');
+                    const checked =
+                      kind === 'checkbox' ? (option.checked ?? Boolean(option.active)) : Boolean(option.active);
                     return (
                       <button
                         type='button'
@@ -230,19 +233,29 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                         className={`${styles.item} ${option.disabled ? styles.disabled : ''}`}
                         disabled={option.disabled}
                         onClick={() => handleSubSelect(option.key)}
-                        role={showRadio ? 'menuitemradio' : 'menuitem'}
-                        aria-checked={showRadio ? Boolean(option.active) : undefined}
+                        role={
+                          kind === 'checkbox' ? 'menuitemcheckbox' : kind === 'radio' ? 'menuitemradio' : 'menuitem'
+                        }
+                        aria-checked={kind === 'action' ? undefined : checked}
                         data-testid={`mobile-action-sheet-option-${option.key}`}
                       >
                         <div className={styles.body}>
                           <div className={styles.label}>{option.label}</div>
                           {option.description && <div className={styles.desc}>{option.description}</div>}
                         </div>
-                        {showRadio && (
+                        {kind === 'radio' && (
                           <div
                             className={`${styles.radio} ${option.active ? styles.checked : ''}`}
                             aria-hidden='true'
                           />
+                        )}
+                        {kind === 'checkbox' && (
+                          <span
+                            className='ml-auto inline-flex h-14px w-14px shrink-0 items-center justify-center'
+                            aria-hidden='true'
+                          >
+                            {checked === 'mixed' ? <Minus size={14} /> : checked ? <Check size={14} /> : null}
+                          </span>
                         )}
                       </button>
                     );

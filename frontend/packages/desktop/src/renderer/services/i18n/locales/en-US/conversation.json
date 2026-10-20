@@ -1134,6 +1134,9 @@
       "memoryDescription": "Use memory from the next turn",
       "memoryDisabledInSettings": "Memory is off in Settings. Turn it on to use Memory in this conversation.",
       "memoryAvailabilityLoading": "Checking memory availability…",
+      "memoryPreferenceLoading": "Checking this conversation's Memory preference…",
+      "memoryPreferenceUnknown": "Memory preference is unconfirmed. The last snapshot is not current; refresh to read it without repeating a change.",
+      "memoryPreferenceRetry": "Refresh Memory preference",
       "memoryAvailabilityUnavailable": "Memory availability could not be checked. Reopen this menu to try again.",
       "expert": "Expert",
       "specialistState": {

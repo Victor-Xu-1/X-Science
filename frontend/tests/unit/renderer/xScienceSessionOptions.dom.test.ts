@@ -2,17 +2,118 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createXScienceSessionDefaults,
   loadXScienceSessionOptions,
+  loadXScienceSessionMemoryPreference,
   X_SCIENCE_SESSION_DEFAULTS,
   updateXScienceSessionConfig,
 } from '@/renderer/services/xScienceSessionOptions';
+import { clearXScienceFrameReads, loadCachedXScienceFrame } from '@/renderer/services/xScienceFrameReads';
+import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
 afterEach(() => {
+  clearXScienceFrameReads();
+  resetRendererAccountScopeForTest();
   vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
 describe('X-Science session options service', () => {
+  const frame = (id: string, memory: unknown = 'off', root = id) => ({
+    id,
+    project_id: 'project',
+    root_frame_id: root,
+    parent_frame_id: id === root ? null : root,
+    input_data: memory === undefined ? {} : { memory_mode: memory },
+  });
+  it('Memory406 reads the checked actual root, bypasses cached child preferences and rejects mismatched identity', async () => {
+    const transport = vi.fn<typeof fetch>(async (url) =>
+      Response.json(String(url).endsWith('/child') ? frame('child', 'on', 'root') : frame('root', 'off'))
+    );
+    await expect(
+      loadXScienceSessionMemoryPreference('child', {
+        fetchImpl: transport,
+        expectedRootFrameId: 'root',
+        projectId: 'project',
+      })
+    ).resolves.toEqual({ rootFrameId: 'root', memory: false });
+    expect(transport.mock.calls.map(([url]) => url)).toEqual(['/api/frames/child', '/api/frames/root']);
+    await expect(
+      loadXScienceSessionMemoryPreference('child', { fetchImpl: transport, expectedRootFrameId: 'other-root' })
+    ).rejects.toThrow('invalid session Memory');
+  });
+  it.each([false, true, 'OFF', 'disabled', null])(
+    'Memory406 rejects present invalid root mode %j instead of inventing a confirmed preference',
+    async (mode) => {
+      await expect(
+        loadXScienceSessionMemoryPreference('root', { fetchImpl: async () => Response.json(frame('root', mode)) })
+      ).rejects.toThrow('invalid session Memory');
+    }
+  );
+  it('Memory406 inherits the one shared default only when the root mode is absent', async () => {
+    await expect(
+      loadXScienceSessionMemoryPreference('root', {
+        fetchImpl: async () => Response.json({ ...frame('root'), input_data: {} }),
+      })
+    ).resolves.toEqual({ rootFrameId: 'root', memory: X_SCIENCE_SESSION_DEFAULTS.memory });
+  });
+  it('Memory406 never requests the root after the account changes during the child read', async () => {
+    let finish!: (response: Response) => void;
+    const transport = vi.fn<typeof fetch>(
+      () =>
+        new Promise<Response>((done) => {
+          finish = done;
+        })
+    );
+    setRendererAccountOwner('account-a');
+    const request = loadXScienceSessionMemoryPreference('child', { fetchImpl: transport });
+    const rejected = expect(request).rejects.toThrow();
+    setRendererAccountOwner('account-b');
+    finish(Response.json(frame('child', 'on', 'root')));
+    await rejected;
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+  it('Memory406 bounds the complete fresh preference body read and cleans up the timer', async () => {
+    vi.useFakeTimers();
+    const transport = vi.fn<typeof fetch>((_url, init) =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              init?.signal?.addEventListener(
+                'abort',
+                () => controller.error(new DOMException('Aborted', 'AbortError')),
+                { once: true }
+              );
+            },
+          })
+        )
+      )
+    );
+    const request = loadXScienceSessionMemoryPreference('root', { fetchImpl: transport });
+    const rejected = expect(request).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(8_000);
+    await rejected;
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('Memory406 invalidates a cached snapshot even when the write acknowledgement is lost', async () => {
+    let memory = 'on';
+    const transport = vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === 'POST') {
+        memory = 'off';
+        throw new TypeError('synthetic lost acknowledgement');
+      }
+      return Response.json({ id: 'memory406-cache', input_data: { memory_mode: memory } });
+    });
+    vi.stubGlobal('fetch', transport);
+    await loadCachedXScienceFrame('memory406-cache');
+    await expect(updateXScienceSessionConfig('memory406-cache', { memory: false })).rejects.toThrow(
+      'lost acknowledgement'
+    );
+    await expect(loadCachedXScienceFrame('memory406-cache')).resolves.toMatchObject({
+      input_data: { memory_mode: 'off' },
+    });
+    expect(transport).toHaveBeenCalledTimes(3);
+  });
   it('owns one immutable default with inherited Memory and returns isolated draft copies', () => {
     const first = createXScienceSessionDefaults('AIDD_EXPERT');
     const second = createXScienceSessionDefaults('AIDD_EXPERT');

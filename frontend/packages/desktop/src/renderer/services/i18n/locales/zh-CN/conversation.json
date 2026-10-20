@@ -1134,6 +1134,9 @@
       "memoryDescription": "下一轮起使用长期记忆",
       "memoryDisabledInSettings": "设置中已关闭记忆。请先开启，才能在此会话中使用记忆。",
       "memoryAvailabilityLoading": "正在检查记忆可用性…",
+      "memoryPreferenceLoading": "正在读取此会话的记忆偏好…",
+      "memoryPreferenceUnknown": "记忆偏好尚未确认，最后快照不代表当前状态。刷新只会重新读取，不会重复修改。",
+      "memoryPreferenceRetry": "刷新记忆偏好",
       "memoryAvailabilityUnavailable": "暂时无法确认记忆可用性。请重新打开此菜单重试。",
       "expert": "专家",
       "specialistState": {

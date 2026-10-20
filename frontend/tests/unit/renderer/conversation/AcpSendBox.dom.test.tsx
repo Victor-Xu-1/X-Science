@@ -20,6 +20,7 @@ import { renderWithI18n } from '../../i18nTestUtils';
 import { pdfBinding, pdfContext } from './pdfReadingFixtures';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
 import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
@@ -94,6 +95,8 @@ const resumeFrameMock = vi.fn();
 const requestFrameAuditMock = vi.fn();
 const notifyRuntimeInvalidationMock = vi.fn();
 const loadSessionOptionsMock = vi.fn();
+const loadSessionMemoryMock = vi.fn();
+const realMemoryAuthority = { current: false };
 const updateSessionConfigMock = vi.fn();
 const loadAssistantsMock = vi.fn();
 const saveConversationAsSkillMock = vi.fn();
@@ -462,14 +465,24 @@ vi.mock('@/renderer/hooks/xScience/runtime/useAcpConfigOptions', () => ({
 // the composer like it does in production; tests seed it via
 // sendBoxDraftSeed before rendering.
 const sendBoxDraftSeed = { current: '' };
+const memoryRetryDraft = {
+  initial: undefined as StagedSessionOptions | undefined,
+  replace: null as ((value: StagedSessionOptions) => void) | null,
+};
 vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: () => () => {
     const [draft, setDraft] = React.useState({
       content: sendBoxDraftSeed.current,
       contextItems: draftContextItemsMock.current,
+      stagedSessionOptions: memoryRetryDraft.initial,
     });
     const draftRef = React.useRef(draft);
     draftRef.current = draft;
+    memoryRetryDraft.replace = (value) => {
+      const next = { ...draftRef.current, stagedSessionOptions: value };
+      draftRef.current = next;
+      setDraft(next);
+    };
     if (specialistAsideFixture.active) specialistAsideFixture.draft = draft;
     return {
       saveFailed: false,
@@ -590,6 +603,7 @@ vi.mock('@/renderer/services/FileService', () => ({
 vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
   const actual = await original<typeof import('@/renderer/services/xScienceSessionOptions')>();
   return {
+    X_SCIENCE_SESSION_DEFAULTS: actual.X_SCIENCE_SESSION_DEFAULTS,
     createXScienceSessionDefaults: (targetAgent = 'OPERON') => ({
       delegation: false,
       autoReview: false,
@@ -599,10 +613,11 @@ vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
       asRoutine: false,
     }),
     loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
+    loadXScienceSessionMemoryPreference: (...args: unknown[]) => loadSessionMemoryMock(...args),
     toXScienceMessageSessionOptions: (
       ...[value, overrides]: Parameters<typeof actual.toXScienceMessageSessionOptions>
     ) =>
-      specialistAsideFixture.active
+      specialistAsideFixture.active || realMemoryAuthority.current
         ? actual.toXScienceMessageSessionOptions(value, overrides)
         : {
             ...value,
@@ -1114,6 +1129,8 @@ describe('AcpSendBox', () => {
     queuedCommandSequence = 0;
     realContextDropdown.current = false;
     sendBoxDraftSeed.current = '';
+    memoryRetryDraft.initial = undefined;
+    memoryRetryDraft.replace = null;
     sendBoxProps.current = null;
     isMobileMock.current = false;
     mobileActionSheetEntries.current = [];
@@ -1142,6 +1159,8 @@ describe('AcpSendBox', () => {
       asRoutine: false,
     };
     loadSessionOptionsMock.mockReturnValue(defaultSessionOptions.promise);
+    realMemoryAuthority.current = false;
+    loadSessionMemoryMock.mockImplementation(async (id: string) => ({ rootFrameId: id, memory: false }));
     settleDefaultSessionOptions = async () => {
       defaultSessionOptions.resolve(defaultSessionOptionsValue);
       await defaultSessionOptions.promise;
@@ -1995,7 +2014,185 @@ describe('AcpSendBox', () => {
     expect(screen.queryByRole('alert', { name: '运行状态不可用' })).not.toBeInTheDocument();
   });
 
+  it('Memory406 keeps ordinary Send available with unknown Memory and omits a stale override', async () => {
+    realMemoryAuthority.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    loadSessionMemoryMock.mockRejectedValue(new Error('synthetic preference unavailable'));
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      expect(screen.getByRole('button', { name: 'send' })).toBeEnabled();
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0].session_options).not.toHaveProperty('memory_mode');
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it('Memory406 R3 reuses the actual direct mutation after a lost ACK and automatic unknown-to-ready observation', async () => {
+    realMemoryAuthority.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    const preference = createDeferred<{ rootFrameId: string; memory: boolean }>();
+    loadSessionMemoryMock.mockReturnValue(preference.promise);
+    sendMessageInvokeMock
+      .mockReset()
+      .mockRejectedValueOnce(new Error('response_lost_after_commit'))
+      .mockResolvedValueOnce({
+        msg_id: 'memory-retry',
+        turn_id: 'memory-retry',
+        runtime: { state: 'running', is_processing: true },
+      });
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      const first = sendMessageInvokeMock.mock.calls[0][0];
+      expect(first.session_options).not.toHaveProperty('memory_mode');
+      await act(async () => preference.resolve({ rootFrameId: 'conv-1', memory: true }));
+      await waitFor(() => expect(sessionOptionsProps.current?.value).toMatchObject({ memory: true }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageInvokeMock.mock.calls[1][0]).toEqual(first);
+      expect(queuedCommandSequence).toBe(1);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it('Memory406 R3 treats an actual Memory user mutation as a new intent even with unchanged readback', async () => {
+    realMemoryAuthority.current = true;
+    realAgentControls.current = true;
+    realContextDropdown.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    const availability = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ enabled: true }));
+    sendMessageInvokeMock
+      .mockReset()
+      .mockRejectedValueOnce(new Error('response_lost_after_commit'))
+      .mockResolvedValueOnce({
+        msg_id: 'memory-new',
+        turn_id: 'memory-new',
+        runtime: { state: 'running', is_processing: true },
+      });
+    const messageState = makeMessageState();
+    messageState.running = false;
+    const view = await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={messageState} />);
+    try {
+      await waitFor(() =>
+        expect(
+          (
+            sessionOptionsProps.current?.memoryControl as { preference?: { capture: () => boolean | null } }
+          )?.preference?.capture()
+        ).toBe(false)
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
+      const memory = await screen.findByTestId('session-config-row-memory');
+      await waitFor(() => expect(memory).toBeEnabled());
+      const before = loadSessionMemoryMock.mock.calls.length;
+      fireEvent.click(memory);
+      await waitFor(() => expect(updateSessionConfigMock).toHaveBeenCalledTimes(1));
+      expect(updateSessionConfigMock.mock.calls[0][1]).toEqual({ memory: true });
+      // A fresh read is an observation, not an atomic ACK: keep the same retained value here.
+      await waitFor(() => expect(loadSessionMemoryMock.mock.calls.length).toBeGreaterThan(before));
+      await waitFor(() => expect(memory).toBeEnabled());
+      expect(memory).toHaveAttribute('aria-checked', 'false');
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageInvokeMock.mock.calls[1][0].loading_id).not.toBe(
+        sendMessageInvokeMock.mock.calls[0][0].loading_id
+      );
+      expect(queuedCommandSequence).toBe(2);
+    } finally {
+      view.unmount();
+      availability.mockRestore();
+    }
+  });
+
+  it('Memory406 R3 distinguishes changed staged Memory intent without treating observed preferences as intent', async () => {
+    realMemoryAuthority.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: true });
+    const staged = { delegation: false, autoReview: false, memory: false, targetAgent: 'OPERON' };
+    memoryRetryDraft.initial = staged;
+    sendMessageInvokeMock
+      .mockReset()
+      .mockRejectedValueOnce(new Error('response_lost_after_commit'))
+      .mockResolvedValueOnce({
+        msg_id: 'memory-staged',
+        turn_id: 'memory-staged',
+        runtime: { state: 'running', is_processing: true },
+      });
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      await waitFor(() => expect(sessionOptionsProps.current?.value).toMatchObject({ memory: true }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      expect(sendMessageInvokeMock.mock.calls[0][0].session_options.memory_mode).toBe('off');
+      act(() => memoryRetryDraft.replace?.({ ...staged, memory: true }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageInvokeMock.mock.calls[1][0].loading_id).not.toBe(
+        sendMessageInvokeMock.mock.calls[0][0].loading_id
+      );
+      expect(sendMessageInvokeMock.mock.calls[1][0].session_options.memory_mode).toBe('on');
+      expect(queuedCommandSequence).toBe(2);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it.each(['ready', 'retrying'] as const)(
+    'Memory406 R4 preserves staged replay after %s legacy hydration without overriding observed Memory',
+    async (status) => {
+      realMemoryAuthority.current = true;
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: false });
+      if (status === 'retrying')
+        loadSessionOptionsMock.mockRejectedValue(new Error('synthetic legacy hydration failure'));
+      memoryRetryDraft.initial = { delegation: true, autoReview: true, memory: true, targetAgent: 'OPERON' };
+      sendMessageInvokeMock.mockReset().mockResolvedValueOnce({
+        msg_id: 'memory-staged-replay',
+        turn_id: 'memory-staged-replay',
+        runtime: { state: 'running', is_processing: true },
+      });
+      const view = await render(
+        <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+      );
+      try {
+        await waitFor(() =>
+          expect(sessionOptionsProps.current?.value).toMatchObject({
+            delegation: true,
+            autoReview: true,
+            memory: false,
+          })
+        );
+        expect(sessionOptionsProps.current?.disabled).toBe(status === 'retrying');
+        fireEvent.click(screen.getByRole('button', { name: 'send' }));
+        await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+        expect(sendMessageInvokeMock.mock.calls[0][0].session_options).toMatchObject({
+          verifier_mode: 'on',
+          memory_mode: 'on',
+        });
+      } finally {
+        view.unmount();
+      }
+    }
+  );
+
   it('keeps the core composer available and retries when optional session settings fail', async () => {
+    loadSessionMemoryMock.mockResolvedValue({ rootFrameId: 'conv-1', memory: true });
     vi.useFakeTimers();
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
@@ -2033,6 +2230,7 @@ describe('AcpSendBox', () => {
   });
 
   it('does not apply stale session options after switching conversations', async () => {
+    loadSessionMemoryMock.mockImplementation(async (id: string) => ({ rootFrameId: id, memory: id === 'conv-2' }));
     runtimeViewMock.isProcessing = false;
     runtimeViewMock.canSendMessage = true;
     const stale = createDeferred<Record<string, unknown>>();

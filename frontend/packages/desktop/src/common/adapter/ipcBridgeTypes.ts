@@ -36,7 +36,7 @@ export interface ISendMessageParams {
   session_options?: {
     ultra_mode: boolean;
     verifier_mode: 'on' | 'off';
-    memory_mode: 'on' | 'off';
+    memory_mode?: 'on' | 'off';
     target_agent?: string;
     specialist_binding?: import('./specialistBinding').SpecialistInputReference;
     model?: string;

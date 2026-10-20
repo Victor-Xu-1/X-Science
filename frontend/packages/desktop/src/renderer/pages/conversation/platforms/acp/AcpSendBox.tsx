@@ -79,9 +79,8 @@ import { applyStagedDraft, makeDraftRestoreIssueNotifier, type StagedDraftPayloa
 import type { UseAcpMessageReturn } from './useAcpMessage';
 import { useAcpSendBoxDraftController } from './useAcpSendBoxDraftController';
 import { useAcpMobileActionSheetController } from './useAcpMobileActionSheetController';
-import { useAcpSessionOptionControls } from './useAcpSessionOptionControls';
+import { useAcpComposerSessionOptions, useAcpSessionOptionControls } from './useAcpSessionOptionControls';
 import { configErrorMessageKey, safeErrorDiagnostic } from './acpSendBoxDiagnostics';
-import { useXScienceSessionOptionsState } from './useXScienceSessionOptionsState';
 import { useAcpComposerContextSelection } from './useAcpComposerContextSelection';
 import { useAcpTaskCenterMetrics } from './useAcpTaskCenterMetrics';
 import { useAcpPlanPresentation } from './useAcpPlanPresentation';
@@ -155,6 +154,7 @@ const AcpSendBox: React.FC<{
     stagedPlanModeRef.current = stagedPlanMode;
   }, [stagedPlanMode]);
   const stagedSessionOptionsRef = useRef(stagedSessionOptions);
+  const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
   useEffect(() => {
     stagedSessionOptionsRef.current = stagedSessionOptions;
   }, [stagedSessionOptions]);
@@ -202,30 +202,21 @@ const AcpSendBox: React.FC<{
     isXScienceConversation
   );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
+  const frameIncarnationId =
+    initialConversation?.type === 'acp' && initialConversation.id === conversation_id
+      ? initialConversation.extra.frame_incarnation_id
+      : undefined;
   const {
     options: xscienceSessionOptions,
     setOptions: setXScienceSessionOptions,
     loadState: sessionOptionsLoad,
-  } = useXScienceSessionOptionsState(conversation_id, agent_name);
-  const applyStagedSessionOptions = useCallback(() => {
-    const staged = stagedSessionOptionsRef.current;
-    if (!staged) return;
-    setXScienceSessionOptions((current) => ({
-      ...current,
-      delegation: staged.delegation,
-      autoReview: staged.autoReview,
-      memory: staged.memory,
-    }));
-  }, [setXScienceSessionOptions]);
-  // The runtime session-options load resolves asynchronously for a fresh
-  // conversation; replay the staged selection once it settles so the loaded
-  // defaults cannot silently replace the requesting page's choices.
-  useEffect(() => {
-    if (sessionOptionsLoad.conversationId !== conversation_id) return;
-    if (sessionOptionsLoad.status === 'ready' || sessionOptionsLoad.status === 'retrying') {
-      applyStagedSessionOptions();
-    }
-  }, [applyStagedSessionOptions, sessionOptionsLoad]);
+    memory: sessionMemory,
+    applyStagedSessionOptions,
+  } = useAcpComposerSessionOptions(conversation_id, agent_name, initialConversation, ownerId, frameIncarnationId, {
+    stagedSessionOptionsRef,
+    setStagedSessionOptions,
+    directCommandRetryRef,
+  });
   const [reviewInFlight, setReviewInFlight] = useState(false);
   const [reviewActive, setReviewActive] = useState(false);
   const {
@@ -243,7 +234,6 @@ const AcpSendBox: React.FC<{
   } = useAcpComposerContextSelection(projectId, contextItems, setContextItems, `${ownerId}:${conversation_id}`);
   const sendBoxAnchorRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
-  const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
   const conversationAuthorityRef = useRef({ conversationId: conversation_id, ownerId });
   const sendIntentRef = useRef<XScienceSendIntent | null>(null);
   const terminalFailureRollbackRef = useRef<TerminalFailureRollback>([]);
@@ -257,8 +247,6 @@ const AcpSendBox: React.FC<{
   }
   const sideQuestionSupported = backend.trim().toLowerCase() === 'xscience';
   const mobileModeChangeInFlightRef = useRef(false);
-  const frameIncarnationId =
-    initialConversation?.type === 'acp' ? initialConversation.extra.frame_incarnation_id : undefined;
   const planPresentation = useAcpPlanPresentation(ownerId, conversation_id, frameIncarnationId);
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
@@ -336,7 +324,9 @@ const AcpSendBox: React.FC<{
     conversationAuthorityRef,
     mountedRef,
     setXScienceSessionOptions,
-    setIsMobileSheetOpen
+    setIsMobileSheetOpen,
+    sessionMemory,
+    stagedSessionOptions?.memory
   );
 
   const handleSheetModeChange = useCallback(
@@ -509,7 +499,8 @@ const AcpSendBox: React.FC<{
     stagedSessionOptionsRef,
     stagedPlanModeRef,
     delegationControl,
-    specialistControl
+    specialistControl,
+    sessionMemory
   );
 
   const executeCommand = useCallback(
@@ -805,7 +796,8 @@ const AcpSendBox: React.FC<{
       contextItems: commandContextItems,
       branchId: getSelectedXScienceBranch(conversation_id),
       branchRevision: getXScienceBranchSelectionRevision(conversation_id),
-      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined },
+      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined, memory: undefined },
+      stagedMemory: stagedSessionOptionsRef.current?.memory,
       queuedSpecialistAuthority,
       planMode,
     });
@@ -1228,6 +1220,7 @@ const AcpSendBox: React.FC<{
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}
+                memoryDisabled={skillSave.inFlight}
                 permissionControl={{
                   contextKey: JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
                   grantsController,

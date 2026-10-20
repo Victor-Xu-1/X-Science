@@ -1,5 +1,17 @@
 import { invalidateXScienceFrameReads, loadCachedXScienceFrame } from './xScienceFrameReads';
 import type { SpecialistInputReference } from '@/common/adapter/specialistBinding';
+import { getRendererAccountScopeToken } from './rendererAccountScope';
+
+/** Freshness/operation metadata only. The existing session options own the value. */
+export type XScienceSessionMemoryControl = {
+  status: 'loading' | 'ready' | 'writing' | 'readback' | 'unknown';
+  pending: boolean;
+  error?: unknown;
+  refresh: () => void;
+  update: (value: boolean) => Promise<void>;
+  capture: () => boolean | null;
+  current: () => boolean;
+};
 
 export type XScienceSessionOptions = {
   delegation: boolean;
@@ -75,7 +87,8 @@ export async function loadXScienceSessionOptions(
 export async function updateXScienceSessionConfig(
   rootFrameId: string,
   patch: XScienceSessionConfigPatch,
-  fetchImpl: FetchLike = fetch
+  fetchImpl: FetchLike = fetch,
+  options: { rootFrameId?: string; signal?: AbortSignal } = {}
 ): Promise<void> {
   const body: Record<string, 'on' | 'off' | null> = {};
   if (patch.autoReview !== undefined) body.verifier_mode = patch.autoReview ? 'on' : 'off';
@@ -83,22 +96,95 @@ export async function updateXScienceSessionConfig(
   if (patch.goalText === null) body.goal_text = null;
   if (Object.keys(body).length === 0) return;
 
-  await requestJson(
-    `/api/frames/${encodeURIComponent(rootFrameId)}/session-config`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    },
-    fetchImpl
-  );
-  invalidateXScienceFrameReads(rootFrameId);
+  const account = getRendererAccountScopeToken();
+  const invalidateMemory = () => {
+    if (patch.memory === undefined || getRendererAccountScopeToken() !== account) return;
+    invalidateXScienceFrameReads(rootFrameId);
+    if (options.rootFrameId) invalidateXScienceFrameReads(options.rootFrameId);
+  };
+  invalidateMemory();
+  try {
+    await requestJson(
+      `/api/frames/${encodeURIComponent(rootFrameId)}/session-config`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+      fetchImpl,
+      options.signal
+    );
+    if (getRendererAccountScopeToken() === account) invalidateXScienceFrameReads(rootFrameId);
+  } finally {
+    // A lost ACK does not mean the write did not happen. Never retain the old cache.
+    invalidateMemory();
+  }
+}
+
+/** Resolve the server's actual root before observing its session preference. */
+export async function loadXScienceSessionMemoryPreference(
+  frameId: string,
+  options: { expectedRootFrameId?: string; projectId?: string; signal?: AbortSignal; fetchImpl?: FetchLike } = {}
+): Promise<{ rootFrameId: string; memory: boolean }> {
+  const account = getRendererAccountScopeToken();
+  const controller = new AbortController();
+  const abort = () => controller.abort(options.signal?.reason);
+  options.signal?.addEventListener('abort', abort, { once: true });
+  if (options.signal?.aborted) abort();
+  const timer = setTimeout(() => controller.abort(), SESSION_REQUEST_TIMEOUT_MS);
+  const invalid = () => new Error('X-Science returned invalid session Memory identity or preference');
+  const checkCurrent = () => {
+    if (getRendererAccountScopeToken() !== account || controller.signal.aborted) {
+      throw controller.signal.reason ?? new DOMException('Aborted', 'AbortError');
+    }
+  };
+  const read = async (id: string) => {
+    checkCurrent();
+    const payload = await loadCachedXScienceFrame(id, {
+      // Explicit transport intentionally bypasses the account-local frame cache.
+      fetchImpl: (input, init) => (options.fetchImpl ?? fetch)(String(input), init),
+      signal: controller.signal,
+      timeoutMs: SESSION_REQUEST_TIMEOUT_MS,
+    });
+    const record = asRecord(payload);
+    checkCurrent();
+    const frame = asRecord(record?.frame) ?? record;
+    if (!frame || frame.id !== id || !stringValue(frame.project_id) || !stringValue(frame.root_frame_id))
+      throw invalid();
+    return frame;
+  };
+  try {
+    const frame = await read(frameId);
+    const rootFrameId = stringValue(frame.root_frame_id);
+    const projectId = stringValue(frame.project_id);
+    if (
+      (options.expectedRootFrameId && options.expectedRootFrameId !== rootFrameId) ||
+      (options.projectId && options.projectId !== projectId) ||
+      (rootFrameId !== frameId && !stringValue(frame.parent_frame_id))
+    )
+      throw invalid();
+    const root = rootFrameId === frameId ? frame : await read(rootFrameId);
+    if (root.root_frame_id !== rootFrameId || stringValue(root.parent_frame_id) || root.project_id !== projectId)
+      throw invalid();
+    const input = asRecord(root.input_data) ?? {};
+    const original = asRecord(asRecord(root.context_data)?._original_input) ?? {};
+    const raw = Object.hasOwn(original, 'memory_mode') ? original.memory_mode : input.memory_mode;
+    const memory =
+      raw === undefined ? X_SCIENCE_SESSION_DEFAULTS.memory : raw === 'on' ? true : raw === 'off' ? false : null;
+    if (memory === null) throw invalid();
+    checkCurrent();
+    return { rootFrameId, memory };
+  } finally {
+    clearTimeout(timer);
+    options.signal?.removeEventListener('abort', abort);
+  }
 }
 
 export function toXScienceMessageSessionOptions(
   options: XScienceSessionOptions,
   overrides: {
     delegation?: boolean | null;
+    memory?: boolean | null;
     planMode?: boolean;
     targetBranchId?: string | null;
     expectedBranchId?: string | null;
@@ -111,7 +197,9 @@ export function toXScienceMessageSessionOptions(
     // Compatibility guidance only; a live policy owner may omit an unknown value.
     ultra_mode: overrides.delegation === null ? undefined : (overrides.delegation ?? options.delegation),
     verifier_mode: options.autoReview ? ('on' as const) : ('off' as const),
-    memory_mode: options.memory ? ('on' as const) : ('off' as const),
+    ...(overrides.memory === null
+      ? {}
+      : { memory_mode: (overrides.memory ?? options.memory) ? ('on' as const) : ('off' as const) }),
     ...(overrides.targetAgent === null ? {} : { target_agent: overrides.targetAgent ?? options.targetAgent }),
     ...(overrides.specialistBinding ? { specialist_binding: overrides.specialistBinding } : {}),
     ...(overrides.planMode === undefined ? {} : { plan_mode: overrides.planMode }),
@@ -121,8 +209,16 @@ export function toXScienceMessageSessionOptions(
   };
 }
 
-async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike): Promise<unknown> {
+async function requestJson(
+  path: string,
+  init: RequestInit,
+  fetchImpl: FetchLike,
+  signal?: AbortSignal
+): Promise<unknown> {
   const controller = new AbortController();
+  const abort = () => controller.abort(signal?.reason);
+  signal?.addEventListener('abort', abort, { once: true });
+  if (signal?.aborted) abort();
   const timeoutId = setTimeout(() => controller.abort('session_request_timeout'), SESSION_REQUEST_TIMEOUT_MS);
   try {
     const response = await fetchImpl(path, {
@@ -151,6 +247,7 @@ async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike
     throw error;
   } finally {
     clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', abort);
   }
 }
 

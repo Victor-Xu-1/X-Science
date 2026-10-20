@@ -13,6 +13,7 @@ import {
 } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { specialistIdentity, specialistSnapshot } from '../../xscience/sessionSpecialistFixtures';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
+import type { XScienceSessionMemoryControl } from '@/renderer/services/xScienceSessionOptions';
 const { selected, revision, load } = vi.hoisted(() => ({ selected: vi.fn(), revision: vi.fn(), load: vi.fn() }));
 vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
   getSelectedXScienceBranch: selected,
@@ -28,6 +29,58 @@ const captured = { reference, targetAgent: 'AGENT_B' };
 afterEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
+});
+it('Memory406 captures staged/observed/unknown precedence before any branch read yields', async () => {
+  selected.mockReturnValue('branch-a');
+  revision.mockReturnValue(1);
+  let finish!: (value: unknown) => void;
+  load.mockReturnValue(
+    new Promise((done) => {
+      finish = done;
+    })
+  );
+  const capture = vi.fn(() => null as boolean | null);
+  const memory = { capture, current: () => true } as unknown as XScienceSessionMemoryControl;
+  const staged = { current: { delegation: true, autoReview: false, memory: false, targetAgent: 'OPERON' } };
+  const hook = renderHook(() =>
+    useAcpCommandAuthority('frame', options, staged, { current: false }, undefined, undefined, memory)
+  );
+  const pending = hook.result.current();
+  staged.current.memory = true;
+  finish({ activeBranchId: 'branch-a', generation: 1, branches: [{ id: 'branch-a' }] });
+  expect((await pending).sessionOptions.memory_mode).toBe('off');
+  expect(capture).not.toHaveBeenCalled();
+  selected.mockReturnValue(null);
+  const unstaged = renderHook(() =>
+    useAcpCommandAuthority('frame', options, { current: null }, { current: false }, undefined, undefined, memory)
+  );
+  expect((await unstaged.result.current()).sessionOptions).not.toHaveProperty('memory_mode');
+  capture.mockReturnValue(false);
+  const observed = await unstaged.result.current();
+  expect(observed.sessionOptions.memory_mode).toBe('off');
+  capture.mockReturnValue(true);
+  // An already captured retry uses this exact authority, not another capture.
+  expect(observed.sessionOptions.memory_mode).toBe('off');
+});
+it('Memory406 rejects a superseded Memory owner before an old branch-loading send can submit', async () => {
+  selected.mockReturnValue('branch-a');
+  revision.mockReturnValue(1);
+  let current = true;
+  let finish!: (value: unknown) => void;
+  load.mockReturnValue(
+    new Promise((done) => {
+      finish = done;
+    })
+  );
+  const memory = { capture: () => true, current: () => current } as unknown as XScienceSessionMemoryControl;
+  const hook = renderHook(() =>
+    useAcpCommandAuthority('frame', options, { current: null }, { current: false }, undefined, undefined, memory)
+  );
+  const pending = hook.result.current();
+  const rejected = expect(pending).rejects.toThrow('session_memory_owner_changed');
+  current = false;
+  finish({ activeBranchId: 'branch-a', generation: 1, branches: [{ id: 'branch-a' }] });
+  await rejected;
 });
 it('captures the ordinary reference synchronously before branch loading yields', async () => {
   selected.mockReturnValue('branch-a');
