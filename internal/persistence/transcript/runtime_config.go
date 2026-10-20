@@ -59,6 +59,15 @@ func latestFrameRuntimeConfig(
 	stream Stream,
 	selection *AsideHistorySelection,
 ) (map[string]any, bool, error) {
+	return readFrameRuntimeConfig(ctx, queryer, stream, selection, nil)
+}
+
+// ordinaryRevision is used only for claimed Memory permission. General runtime
+// configuration retains its existing control/response projection behavior.
+func readFrameRuntimeConfig(
+	ctx context.Context, queryer transcriptQueryer, stream Stream,
+	selection *AsideHistorySelection, ordinaryRevision *int64,
+) (map[string]any, bool, error) {
 	if stream.Kind != StreamKindFrameRef {
 		return nil, false, ErrEventConflict
 	}
@@ -91,9 +100,16 @@ func latestFrameRuntimeConfig(
 			WHERE event.stream_uid=? AND event.event_type IN ('user_message','user_input_response')
 				AND (? IS NULL OR event.publication_seq<=?)
 				AND json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,
-					'$.runtimeConfig') IS NOT NULL
-			ORDER BY member.ordinal`
+					'$.runtimeConfig') IS NOT NULL`
 		args = []any{branchID, stream.UID, throughPublication, throughPublication}
+		if ordinaryRevision != nil {
+			query += ` AND EXISTS(SELECT 1 FROM transcript_input_admissions admission
+				WHERE admission.stream_uid=event.stream_uid AND admission.event_id=event.event_id
+				AND admission.source_kind='event' AND admission.input_kind='message'
+				AND admission.classification_version=1 AND admission.input_revision<=?)`
+			args = append(args, *ordinaryRevision)
+		}
+		query += ` ORDER BY member.ordinal`
 	} else if selection != nil || readAuthority != "legacy_mixed_v1" || writeAuthority != "legacy_frame_ref_v1" {
 		return nil, false, ErrEventConflict
 	}
@@ -126,6 +142,12 @@ func latestFrameRuntimeConfig(
 		}
 		if len(patch) == 0 {
 			return nil, false, ErrEventConflict
+		}
+		// Memory aliases describe one choice. A newer explicit patch replaces the
+		// prior alias; within one patch the existing snake-first policy is retained.
+		if hasMemoryOverride(patch) {
+			delete(config, "memory_mode")
+			delete(config, "memoryMode")
 		}
 		for key, value := range patch {
 			config[key] = value

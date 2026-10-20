@@ -404,6 +404,22 @@ func appendFrameUserEventConn(
 				messageOrigin = "input_response"
 			}
 		}
+		var memoryCapture *memoryPreferenceCapture
+		var activeStreamUID, readAuthority, writeAuthority string
+		var activeEpoch int64
+		if err := conn.QueryRowContext(ctx, `SELECT active_stream_uid,active_epoch,read_authority,write_authority
+			FROM transcript_frame_authority WHERE owner_id=? AND session_id=?`,
+			stream.OwnerID, stream.SessionID).Scan(&activeStreamUID, &activeEpoch, &readAuthority, &writeAuthority); err != nil {
+			return err
+		}
+		if activeStreamUID != stream.UID || activeEpoch != stream.Epoch {
+			return ErrEventConflict
+		}
+		canonical := readAuthority == "transcript_payload_v1" && writeAuthority == "transcript_payload_v1"
+		input.InputData, input.RuntimeConfig, memoryCapture, err = resolveMemoryPreferenceAdmission(ctx, conn, stream, input, eventType, messageOrigin, prior, canonical)
+		if err != nil {
+			return err
+		}
 		artifactReferences := []UserArtifactReference(nil)
 		if existingFound && existing.Source == EventSourcePayload {
 			var persisted struct {
@@ -433,6 +449,9 @@ func appendFrameUserEventConn(
 			"text": input.Text, "role": "user", "_uuid": input.MessageUUID, "messageOrigin": messageOrigin,
 			"content": []any{map[string]any{"type": "text", "text": input.Text}},
 		}
+		if memoryCapture != nil {
+			messagePayload[memoryPreferenceCaptureKey] = memoryCapture
+		}
 		messageIntent, err := replayFrameUserMessageIntent(ctx, conn, stream.FrameID, input.ClientMessageID, input.MessageIntent, existing, existingFound)
 		if err != nil {
 			return err
@@ -460,16 +479,6 @@ func appendFrameUserEventConn(
 		payload, err := json.Marshal(messagePayload)
 		if err != nil || len(payload) > maxEventPayloadBytes {
 			return errors.New("frame user event payload is invalid")
-		}
-		var activeStreamUID, readAuthority, writeAuthority string
-		var activeEpoch int64
-		if err := conn.QueryRowContext(ctx, `SELECT active_stream_uid,active_epoch,read_authority,write_authority
-			FROM transcript_frame_authority WHERE owner_id=? AND session_id=?`,
-			stream.OwnerID, stream.SessionID).Scan(&activeStreamUID, &activeEpoch, &readAuthority, &writeAuthority); err != nil {
-			return err
-		}
-		if activeStreamUID != stream.UID || activeEpoch != stream.Epoch {
-			return ErrEventConflict
 		}
 		if readAuthority == "transcript_payload_v1" && writeAuthority == "transcript_payload_v1" {
 			record := eventRecord{

@@ -55,7 +55,7 @@ func (s *Server) executeWorkspaceMemoryTool(ctx context.Context, sessionID, name
 			Claim: run.Authority.Claim, SourceEventID: run.SourceEventID,
 			InputSHA256: hex.EncodeToString(inputDigest[:]),
 			FreshWriteAllowed: func(freshCtx context.Context) (bool, error) {
-				return s.claimedMemoryWriteEnabled(freshCtx, stream)
+				return s.claimedMemoryWriteEnabled(freshCtx, stream, run.Authority.Claim)
 			},
 		})
 		if err != nil {
@@ -137,9 +137,19 @@ func boundedMemoryOperationError(toolName string, err error) string {
 	return toolName + " failed"
 }
 
-func (s *Server) claimedMemoryWriteEnabled(ctx context.Context, stream transcriptstore.Stream) (bool, error) {
+func (s *Server) claimedMemoryWriteEnabled(ctx context.Context, stream transcriptstore.Stream, claim transcriptstore.RunnerClaim) (bool, error) {
 	if s == nil || s.workspaceStore == nil {
 		return false, errors.New("memory runtime is unavailable")
+	}
+	if s.transcriptStore == nil || claim.StreamUID != stream.UID || claim.OwnerID != stream.OwnerID {
+		return false, transcriptstore.ErrOwnerMismatch
+	}
+	claimedMode, claimedExplicit, err := s.transcriptStore.ClaimedRunnerMemoryMode(ctx, claim)
+	if err != nil {
+		return false, err
+	}
+	if !claimedExplicit || claimedMode != "on" {
+		return false, memorytools.ErrMemoryUnavailable
 	}
 	mode := ""
 	modeExplicit := false
@@ -175,6 +185,20 @@ func (s *Server) claimedMemoryWriteEnabled(ctx context.Context, stream transcrip
 	}
 	if !modeExplicit {
 		mode, modeExplicit = sessionWorkspaceMemoryModeWithFrame(session, metadata, metadataFound)
+	}
+	// Fresh opt-outs revoke permission but can never grant it to this claim.
+	if sessionMode, explicit := sessionWorkspaceMemoryMode(session); explicit && sessionMode == "off" {
+		return false, memorytools.ErrMemoryUnavailable
+	}
+	rootMetadata := metadata
+	if stream.RootFrameID != "" && stream.RootFrameID != stream.FrameID {
+		rootMetadata, metadataFound, err = s.workspaceStore.GetFrameRuntimeMetadata(stream.RootFrameID)
+		if err != nil {
+			return false, err
+		}
+	}
+	if rootMode, explicit := frameWorkspaceMemoryMode(rootMetadata); metadataFound && explicit && rootMode == "off" {
+		return false, memorytools.ErrMemoryUnavailable
 	}
 	enabled, err, disabledReason := s.workspaceMemoryAccessEnabledReason(ctx, stream.OwnerID, stream.ProjectID, mode, modeExplicit)
 	if err != nil {
@@ -255,7 +279,7 @@ func (s *Server) resolveWorkspaceMemoryScope(ctx context.Context, sessionID stri
 		if rootFrameID == "" {
 			rootFrameID = strings.TrimSpace(stream.FrameID)
 		}
-		enabled, err := s.claimedMemoryWriteEnabled(ctx, stream)
+		enabled, err := s.claimedMemoryWriteEnabled(ctx, stream, transcriptAuthority.Claim)
 		if err != nil {
 			return workspaceMemoryScopeResolution{}, err
 		}

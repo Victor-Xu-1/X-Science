@@ -26,7 +26,7 @@ its source-backed reference.
 | Check dependency direction and placement | [Module topology](engineering/module-topology.md) |
 | Change long-task/tool lifecycle behavior | [Harness conformance](engineering/x-science-harness-conformance.md) |
 | Change scientific execution | [Managed execution runtime](engineering/managed-execution-runtime.md) · [Kernel contract](engineering/kernel-execution-contract.md) |
-| Change memory or data retention | [Memory architecture](engineering/memory-architecture.md) · [Data lifecycle](engineering/runtime-data-lifecycle.md) |
+| Change memory or data retention | [Memory architecture](engineering/memory-architecture.md) · [Memory preference admission](engineering/memory-preference-admission.md) · [Data lifecycle](engineering/runtime-data-lifecycle.md) |
 | Change tool feedback in the UI | [Presentation contract](engineering/tool-stream-presentation-contract.md) |
 | Maintain source cleanliness or verification scope | [Source hygiene](engineering/source-hygiene.md) · [Verification scope](engineering/verification-scope.md) |
 | Check compatibility scenarios | [Compatibility contracts](compatibility/README.md) |
