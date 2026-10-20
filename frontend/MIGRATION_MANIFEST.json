@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cf19a9012b2ae5fd17636f2186e5cd2ed928d6fdbaad9eac498a473df6edec32",
+  "adaptationFingerprintSHA256": "20defda470fab5b3cd93ea0bdc6d9cc81385aca5c65eb6f2b02a88ca63c4a864",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "5e27158bc93d62e5cfc4e9bae94ab239f10a6350a23b5119ea0e17bde8009abb",
+  "additionFingerprintSHA256": "714ae7882902234855fed08799714bb281012f5aca25008efec261ebff4ef3df",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "f292b9b9de87af4e0efeeb70b612ee5039a7e35e983431c0e5effaf616c6c055",
-      "bytes": 188410,
+      "targetSHA256": "cb08ba6fb594bb86dc0c0d3645c125f44fb3c877afe84e633d4b0dc04c26e8c6",
+      "bytes": 188947,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4674,8 +4674,8 @@
     {
       "path": "tests/unit/renderer/hooks/guidPage.dom.test.tsx",
       "sourceSHA256": "3d3844aa79c885baecd5d8b6276c031d33b10963b38f009079dde27771036a1c",
-      "targetSHA256": "df6c42ead0057c06357d5181df73b771de438625b194dd1f60da7052968f095a",
-      "bytes": 28501,
+      "targetSHA256": "83d5854e258c1d56c533306bcdc8735ec0ca5fbc72b94f5a5d44bfc638ad5219",
+      "bytes": 29775,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -12615,8 +12615,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceAgentControls.dom.test.tsx",
-      "sha256": "6cf7fde2befdc31d4a473afa2ff503d47cd2ffaffe1138c0aed28ef3a7bccccd",
-      "bytes": 14742,
+      "sha256": "458852dba0d9018c0d5d74a451683c3762092d2a730bf6b64913a297b5178ef3",
+      "bytes": 15035,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
