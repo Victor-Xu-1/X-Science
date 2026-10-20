@@ -24,6 +24,7 @@ import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPer
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
 import type { SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
+import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { computeRootProjection, registerComputeRootCases } from './acpComputeRootCases';
 import {
   manualCompactionIdentity,
@@ -176,7 +177,14 @@ const mobileActionSheetEntries = {
     onClick?: () => void;
     submenu?: {
       onSelect?: (value: string) => void;
-      options?: Array<{ key: string; description?: string; active?: boolean }>;
+      options?: Array<{
+        key: string;
+        description?: string;
+        active?: boolean;
+        checked?: boolean | 'mixed';
+        disabled?: boolean;
+        kind?: string;
+      }>;
     };
   }>,
 };
@@ -4070,6 +4078,159 @@ describe('AcpSendBox', () => {
     });
 
     expect(messageSuccessMock).not.toHaveBeenCalled();
+  });
+
+  it('C394 mobile unified owner displays authoritative readback rather than optimistic membership', async () => {
+    setRendererAccountOwner('compute-owner');
+    isMobileMock.current = true;
+    loadComputeProvidersMock.mockResolvedValue([
+      { name: 'ssh:first', displayName: 'First', checked: true },
+      { name: 'ssh:canonical', displayName: 'Canonical', checked: true },
+    ]);
+    loadSessionComputeProvidersMock.mockResolvedValueOnce(['ssh:first']).mockResolvedValue(['ssh:canonical']);
+    await render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
+    const entry = () => mobileActionSheetEntries.current.find((item) => item.key === 'session-compute');
+    await waitFor(() => expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toBeDefined());
+    await act(async () => entry()?.submenu?.onSelect?.('ssh:first'));
+    await waitFor(() => expect(loadSessionComputeProvidersMock).toHaveBeenCalledTimes(2));
+    expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:canonical')).toMatchObject({
+      kind: 'checkbox',
+      checked: true,
+    });
+    expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toMatchObject({ checked: false });
+  });
+
+  it('C394 mobile unified owner freezes a lost ACK and retries GET without replaying PUT', async () => {
+    setRendererAccountOwner('compute-owner');
+    isMobileMock.current = true;
+    loadComputeProvidersMock.mockResolvedValue([{ name: 'ssh:first', displayName: 'First', checked: true }]);
+    loadSessionComputeProvidersMock.mockResolvedValueOnce(['ssh:first']).mockResolvedValue([]);
+    setSessionComputeProviderMock.mockRejectedValueOnce(new TypeError('synthetic lost ACK'));
+    await render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
+    const entry = () => mobileActionSheetEntries.current.find((item) => item.key === 'session-compute');
+    await waitFor(() => expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toBeDefined());
+    await act(async () => entry()?.submenu?.onSelect?.('ssh:first'));
+    await waitFor(() =>
+      expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toMatchObject({
+        disabled: true,
+        checked: true,
+      })
+    );
+    expect(entry()?.submenu?.options?.find((row) => row.kind === 'action')).toBeDefined();
+    await act(async () => entry()?.submenu?.onSelect?.('ssh:first'));
+    await act(async () => entry()?.submenu?.onSelect?.('__retry__'));
+    await waitFor(() => expect(loadSessionComputeProvidersMock).toHaveBeenCalledTimes(2));
+    expect(setSessionComputeProviderMock).toHaveBeenCalledTimes(1);
+    expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toMatchObject({
+      disabled: false,
+      checked: false,
+    });
+  });
+
+  it('C394 mobile unified owner retains the pending write across viewport changes and ignores an older inspection close', async () => {
+    setRendererAccountOwner('compute-owner');
+    isMobileMock.current = true;
+    const pending = createDeferred<void>();
+    loadComputeProvidersMock.mockResolvedValue([{ name: 'ssh:first', displayName: 'First', checked: true }]);
+    loadSessionComputeProvidersMock.mockResolvedValueOnce(['ssh:first']).mockResolvedValue([]);
+    setSessionComputeProviderMock.mockReturnValueOnce(pending.promise);
+    const node = () => (
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
+    const view = await render(node());
+    const entry = () => mobileActionSheetEntries.current.find((item) => item.key === 'session-compute');
+    await waitFor(() => expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toBeDefined());
+    const oldSelect = entry()?.submenu?.onSelect;
+    await act(async () => oldSelect?.('ssh:first'));
+    isMobileMock.current = false;
+    view.rerender(node());
+    const desktop = () => sessionOptionsProps.current?.computeControl as SessionComputeControl;
+    let closeOld!: () => void;
+    let closeNew!: () => void;
+    await act(async () => {
+      closeOld = desktop().inspect();
+    });
+    await act(async () => {
+      closeNew = desktop().inspect();
+      closeOld();
+    });
+    expect(loadSessionComputeProvidersMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      oldSelect?.('ssh:first');
+      await desktop().change('ssh:first', false);
+    });
+    expect(setSessionComputeProviderMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending.resolve();
+      await pending.promise;
+    });
+    await waitFor(() => expect(desktop()).toMatchObject({ status: 'ready', selection: [], pending: null }));
+    expect(loadSessionComputeProvidersMock).toHaveBeenCalledTimes(2);
+    await act(async () => closeNew());
+    isMobileMock.current = true;
+    view.rerender(node());
+    await waitFor(() =>
+      expect(entry()?.submenu?.options?.find((row) => row.key === 'ssh:first')).toMatchObject({
+        kind: 'checkbox',
+        checked: false,
+        disabled: false,
+      })
+    );
+    expect(setSessionComputeProviderMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('C394 mobile unified owner keeps failed and empty catalogs reachable without a false Local observation', async () => {
+    setRendererAccountOwner('compute-owner');
+    isMobileMock.current = true;
+    loadComputeProvidersMock.mockRejectedValueOnce(new Error('synthetic catalog failure')).mockResolvedValue([]);
+    loadSessionComputeProvidersMock.mockResolvedValue([]);
+    await render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        ownerId='compute-owner'
+        initialConversation={computeRootProjection('conv-1', 'inc-1', 'root-1')}
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
+    const entry = () => mobileActionSheetEntries.current.find((item) => item.key === 'session-compute');
+    await waitFor(() =>
+      expect(entry()?.submenu?.options?.find((row) => row.key === '__retry__')).toMatchObject({ kind: 'action' })
+    );
+    expect(entry()?.submenu?.options?.find((row) => row.key === '__local__')).toMatchObject({
+      active: false,
+      disabled: true,
+    });
+    await act(async () => entry()?.submenu?.onSelect?.('__retry__'));
+    await waitFor(() =>
+      expect(entry()?.submenu?.options?.find((row) => row.key === '__local__')).toMatchObject({
+        active: true,
+        disabled: false,
+      })
+    );
+    expect(setSessionComputeProviderMock).not.toHaveBeenCalled();
   });
 
   it('does not apply an old compute response to a replacement conversation', async () => {

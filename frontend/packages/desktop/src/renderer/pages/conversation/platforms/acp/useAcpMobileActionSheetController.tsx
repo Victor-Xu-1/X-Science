@@ -9,6 +9,8 @@ import {
 import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import XScienceDelegationControlRow from '@/renderer/components/xScience/runtime/XScienceDelegationControlRow';
+import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
+import { buildMobileComputeEntry } from '@/renderer/components/xScience/runtime/XScienceComputeChoices';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import XScienceSpecialistChoices, {
   specialistControlLabel,
@@ -46,9 +48,7 @@ type UseAcpMobileActionSheetControllerArgs = {
   memoryControl?: XScienceMemoryControl;
   delegationControl?: XScienceDelegationControl;
   specialistControl?: XScienceSpecialistControl;
-  mobileComputeProviders: Array<{ name: string; label: string }>;
-  mobileEnabledCompute: string[];
-  handleSessionComputeChange: (providerName: string, checked: boolean) => Promise<void>;
+  computeControl: SessionComputeControl;
   handleSheetModeChange: (mode: string) => Promise<void>;
   handleThoughtLevelSetOption: (optionId: string, value: string) => Promise<boolean>;
   attachEntries: MobileActionSheetEntry[];
@@ -83,9 +83,7 @@ export const useAcpMobileActionSheetController = ({
   memoryControl,
   delegationControl,
   specialistControl,
-  mobileComputeProviders,
-  mobileEnabledCompute,
-  handleSessionComputeChange,
+  computeControl,
   handleSheetModeChange,
   handleThoughtLevelSetOption,
   attachEntries,
@@ -205,26 +203,7 @@ export const useAcpMobileActionSheetController = ({
       },
     });
 
-    if (mobileComputeProviders.length > 0) {
-      entries.push({
-        key: 'session-compute',
-        icon: <SettingTwo theme='outline' size='16' />,
-        label: t('conversation.xscienceRuntime.sessionOptions.compute'),
-        meta: String(mobileEnabledCompute.length),
-        submenu: {
-          title: t('conversation.xscienceRuntime.sessionOptions.compute'),
-          options: mobileComputeProviders.map((provider) => ({
-            key: provider.name,
-            label: provider.label,
-            active: mobileEnabledCompute.includes(provider.name),
-          })),
-          onSelect: (providerName) => {
-            const checked = !mobileEnabledCompute.includes(providerName);
-            void handleSessionComputeChange(providerName, checked);
-          },
-        },
-      });
-    }
+    entries.push(buildMobileComputeEntry(computeControl, t));
 
     if (modelListError) {
       const authenticationError = isBackendHttpError(modelListError) && [401, 403].includes(modelListError.status);
@@ -396,7 +375,7 @@ export const useAcpMobileActionSheetController = ({
     attachEntries,
     canSwitchModel,
     currentMode,
-    handleSessionComputeChange,
+    computeControl,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
     grantsController,
@@ -407,8 +386,6 @@ export const useAcpMobileActionSheetController = ({
     loadedMcpStatuses,
     loadedSkills,
     librarySkillNames,
-    mobileComputeProviders,
-    mobileEnabledCompute,
     specialistControl,
     memoryControl,
     delegationControl,

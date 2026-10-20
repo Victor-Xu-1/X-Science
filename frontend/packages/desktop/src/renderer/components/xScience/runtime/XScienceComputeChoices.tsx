@@ -4,6 +4,8 @@ import React from 'react';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import type { XScienceComputeProvider } from '@/renderer/services/xScienceCompute';
+import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
+import type { MobileActionSheetEntry, MobileActionSheetOption } from '@/renderer/components/chat/MobileActionSheet';
 
 const rowClass =
   'composer-control-menu__row session-options-menu__row box-border flex h-32px w-full items-center gap-8px border-0 bg-transparent px-8px text-left font-inherit text-13px leading-none text-t-primary outline-none hover:bg-[var(--color-fill-2)] focus-visible:bg-[var(--color-fill-2)] disabled:cursor-default disabled:opacity-50';
@@ -21,7 +23,7 @@ export function computeSelectionLabel(
   return t('conversation.xscienceRuntime.sessionOptions.providerCount', { count: selection.length });
 }
 
-/** Presentation only. The parent menu retains the single read/mutation owner. */
+/** Presentation only. Both layouts use the same conversation-owned read/mutation control. */
 export default function XScienceComputeChoices({
   providers,
   enabled,
@@ -104,4 +106,68 @@ export default function XScienceComputeChoices({
       </button>
     </>
   );
+}
+
+export function buildMobileComputeEntry(control: SessionComputeControl, t: TFunction): MobileActionSheetEntry {
+  const disabled = control.disabled || control.status !== 'ready' || control.pending !== null;
+  const options: MobileActionSheetOption[] = [
+    {
+      key: '__local__',
+      label: t('conversation.xscienceRuntime.sessionOptions.localMachine'),
+      active: control.selection !== undefined && control.enabled.length === 0,
+      disabled,
+    },
+    ...control.providers.map((provider) => ({
+      key: provider.name,
+      label: provider.displayName,
+      kind: 'checkbox' as const,
+      checked: control.selection === undefined ? ('mixed' as const) : control.enabled.includes(provider.name),
+      disabled,
+    })),
+  ];
+  if (control.status === 'error')
+    options.push({
+      key: '__retry__',
+      kind: 'action',
+      label: t('conversation.xscienceRuntime.sessionOptions.computeState.retry'),
+    });
+  return {
+    key: 'session-compute',
+    label: t('conversation.xscienceRuntime.sessionOptions.compute'),
+    meta: computeSelectionLabel(control.selection, control.providers, t),
+    submenu: {
+      title: t('conversation.xscienceRuntime.sessionOptions.compute'),
+      options,
+      onSelect: (name) => {
+        if (name === '__retry__') {
+          control.retry();
+          return;
+        }
+        if (disabled) return;
+        if (name === '__local__') {
+          void control.selectLocal();
+          return;
+        }
+        if (control.providers.some((provider) => provider.name === name))
+          void control.change(name, !control.enabled.includes(name));
+      },
+      footer: () =>
+        control.status !== 'ready' ? (
+          <div
+            role={control.status === 'error' ? 'alert' : 'status'}
+            className='px-12px py-8px text-12px text-t-secondary'
+          >
+            {t(
+              control.status === 'error'
+                ? 'conversation.xscienceRuntime.sessionOptions.computeState.read'
+                : 'conversation.xscienceRuntime.sessionOptions.computeState.loading'
+            )}
+          </div>
+        ) : control.providers.length === 0 ? (
+          <div className='px-12px py-8px text-12px text-t-secondary'>
+            {t('conversation.xscienceRuntime.sessionOptions.noCompute')}
+          </div>
+        ) : null,
+    },
+  };
 }

@@ -58,7 +58,10 @@ import {
   getXScienceBranchSelectionRevision,
   selectXScienceBranch,
 } from '@/renderer/services/xScienceConversationBranches';
-import { useAcpMobileComputeControls } from './useAcpMobileComputeControls';
+import {
+  computeConversationRoot,
+  useSessionComputeControls,
+} from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { routeAcpSendOption } from './acpSendOptionRouting';
 import { notifyXScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
 import QueuedSpecialistNotice from '@/renderer/components/xScience/runtime/QueuedSpecialistNotice';
@@ -300,16 +303,11 @@ const AcpSendBox: React.FC<{
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
   }, [runtimeMode?.currentValue]);
-  const mobileCompute = useAcpMobileComputeControls(
-    conversation_id,
-    isMobile,
-    localeKey,
-    ownerId,
-    conversationAuthorityRef,
-    mountedRef,
-    t,
-    initialConversation
-  );
+  const computeControl = useSessionComputeControls({
+    rootFrameId: computeConversationRoot(conversation_id, ownerId, initialConversation),
+    contextKey: JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
+    active: isMobile,
+  });
   const {
     memoryControl,
     delegationControl,
@@ -1023,9 +1021,7 @@ const AcpSendBox: React.FC<{
     memoryControl,
     delegationControl,
     specialistControl,
-    mobileComputeProviders: mobileCompute.mobileComputeProviders,
-    mobileEnabledCompute: mobileCompute.mobileEnabledCompute,
-    handleSessionComputeChange: mobileCompute.handleSessionComputeChange,
+    computeControl,
     handleSheetModeChange,
     handleThoughtLevelSetOption,
     attachEntries:
@@ -1210,7 +1206,7 @@ const AcpSendBox: React.FC<{
                 reviewDisabled={isBusy}
               />
               <XScienceSessionOptionsMenu
-                rootFrameId={mobileCompute.rootFrameId}
+                computeControl={computeControl}
                 value={xscienceSessionOptions}
                 onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
