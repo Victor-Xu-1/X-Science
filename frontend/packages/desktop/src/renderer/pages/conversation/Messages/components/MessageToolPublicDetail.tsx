@@ -231,6 +231,8 @@ const MessageToolPublicDetail: React.FC<{
     () => buildToolPublicDetailPresentation(item, language, resultSummary),
     [item, language, resultSummary]
   );
+  const isMethodDocument =
+    presentation.detailKind === 'method' && presentation.inputBlocks.some((block) => block.variant === 'markdown');
   const hasOutputDetail =
     presentation.showGenericOutput &&
     (presentation.resultRows.length > 0 ||
@@ -274,7 +276,12 @@ const MessageToolPublicDetail: React.FC<{
       ))}
       {hasInput ? (
         <section className='tool-public-detail__section' aria-label={toolPublicDetailText(chinese, 'input')}>
-          <div className='tool-public-detail__surface tool-public-detail__surface--input'>
+          <div
+            className={
+              'tool-public-detail__surface tool-public-detail__surface--input' +
+              (isMethodDocument ? ' tool-public-detail__surface--document' : '')
+            }
+          >
             {presentation.planSummary ? (
               <p className='tool-public-detail__plan-summary' data-testid='tool-public-plan-summary'>
                 {presentation.planSummary}
