@@ -9,6 +9,7 @@ import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { XScienceLongTaskPhase } from './longTaskStatusModel';
 import type { XScienceReviewVerdict } from './runtimeOperationsModel';
+import { restoreScopedFocus } from '@/renderer/utils/focusScope';
 
 export type XScienceTaskCenterMetricScope = {
   tokenUsage: number | null;
@@ -159,8 +160,10 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
   const { t, i18n } = useTranslation();
   const panelRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    openerRef.current = opener;
     const panel = panelRef.current;
     headingRef.current?.focus({ preventScroll: true });
     return () => {
@@ -208,6 +211,11 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
     onClose();
     action?.();
   };
+  const openPlan = () =>
+    runAction(() => {
+      restoreScopedFocus(openerRef.current, panelRef.current);
+      onOpenPlan?.();
+    });
 
   return (
     <div
@@ -344,7 +352,7 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
                   meta={t('conversation.xscienceRuntime.runtimeOperations.taskWaitingApproval')}
                   attention
                   testId='x-science-task-open-plan'
-                  onClick={() => runAction(onOpenPlan)}
+                  onClick={openPlan}
                 />
               ) : null}
               {reviewFindingsAvailable && onOpenReviewFindings ? (
@@ -374,7 +382,7 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
                   label={t('conversation.xscienceRuntime.runtimeOperations.taskPlan')}
                   meta={t('conversation.xscienceRuntime.runtimeOperations.viewPlan')}
                   testId='x-science-task-open-plan'
-                  onClick={() => runAction(onOpenPlan)}
+                  onClick={openPlan}
                 />
               ) : phase === 'completed' && !planAvailable ? (
                 <TaskCenterRecordRow

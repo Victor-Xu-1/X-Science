@@ -70,6 +70,26 @@ const expectDetailsSurfaceClosed = () => {
 };
 
 describe('XScienceTaskStatus', () => {
+  it('C419 return focus hands Plan the task center persistent opener before disposing its temporary action', async () => {
+    let handedFocus: Element | null = null;
+    const onOpenPlan = vi.fn(() => {
+      handedFocus = document.activeElement;
+    });
+    await renderWithI18n(
+      <XScienceTaskStatus {...defaultProps} snapshot={snapshot('completed')} planAvailable onOpenPlan={onOpenPlan} />,
+      'en-US'
+    );
+    const trigger = screen.getByTestId('x-science-task-details-trigger');
+    trigger.focus();
+    fireEvent.click(trigger);
+    const action = screen.getByTestId('x-science-task-open-plan');
+    action.focus();
+    fireEvent.click(action);
+    expect(onOpenPlan).toHaveBeenCalledTimes(1);
+    await waitFor(expectDetailsSurfaceClosed);
+    expect(handedFocus).toBe(trigger);
+  });
+
   it.each(['en-US', 'zh-CN'] as const)(
     'does not call a configured subscription refusal a missing-model wait in %s',
     async (language) => {

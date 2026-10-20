@@ -6,6 +6,7 @@
 
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { XSciencePlanProgress } from '@/renderer/components/xScience/runtime/planProgressModel';
+import { restoreScopedFocus } from '@/renderer/utils/focusScope';
 import { Button, Message, Tooltip, Trigger } from '@arco-design/web-react';
 import { FolderOpen, ListCheckbox, Paperclip, Shield } from '@icon-park/react';
 import { BookMarked, ChartNoAxesCombined, Loader2, Plus as ControlPlus } from 'lucide-react';
@@ -361,7 +362,12 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
                   </span>
                 ) : undefined
               }
-              onClick={() => closeAndRun(onViewPlan)}
+              onClick={() =>
+                closeAndRun(() => {
+                  restoreScopedFocus(triggerButtonRef.current, menuRef.current);
+                  onViewPlan?.();
+                })
+              }
               disabled={!onViewPlan}
             />
           </div>
