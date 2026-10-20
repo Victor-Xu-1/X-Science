@@ -8,7 +8,10 @@ import {
   projectXScienceLongTaskStatus,
   type XScienceLongTaskStatus,
 } from '@/renderer/components/xScience/runtime/longTaskStatusModel';
-import type { XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import {
+  normalizeXScienceRuntimeSnapshot,
+  type XScienceRuntimeSnapshot,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import { describe, expect, it } from 'vitest';
 
 const snapshot = (status: string, overrides: Partial<XScienceRuntimeSnapshot> = {}): XScienceRuntimeSnapshot => ({
@@ -60,6 +63,27 @@ const expectStatus = (status: string, phase: XScienceLongTaskStatus['phase']) =>
 };
 
 describe('longTaskStatusModel', () => {
+  it('443 carries the canonical reviewer stop reason without reviving or failing the completed root', () => {
+    const current = normalizeXScienceRuntimeSnapshot({
+      id: 'current-root',
+      status: 'completed',
+      runtime_stage: 'review_failed',
+      runtime_review_status: 'failed',
+      runtime_review_stop_reason: 'no_progress',
+    });
+    expect(projectXScienceLongTaskStatus(current)).toMatchObject({
+      ok: true,
+      value: {
+        phase: 'completed',
+        terminal: true,
+        taskCompleted: true,
+        reviewStopReason: 'no_progress',
+        canCancel: false,
+        canResume: false,
+      },
+    });
+  });
+
   it('maps only the current authoritative frame statuses into typed phases', () => {
     expectStatus('queued', 'queued');
     expectStatus('pending', 'queued');

@@ -38,6 +38,7 @@ export type XScienceLongTaskStatus = {
   canResume: boolean;
   reviewStatus: string | null;
   reviewDescription: string | null;
+  reviewStopReason?: XScienceRuntimeSnapshot['reviewStopReason'];
   reviewTrigger: 'auto' | 'manual' | null;
   reviewVerdict: XScienceRuntimeSnapshot['reviewVerdict'];
   reviewIssueCount: number;
@@ -86,6 +87,7 @@ export function projectXScienceLongTaskStatus(snapshot: XScienceRuntimeSnapshot)
       canResume: snapshot.canResume,
       reviewStatus: snapshot.reviewStatus,
       reviewDescription: snapshot.reviewDescription,
+      reviewStopReason: snapshot.reviewStopReason ?? 'unknown',
       reviewTrigger: snapshot.reviewTrigger,
       reviewVerdict: snapshot.reviewVerdict,
       reviewIssueCount: snapshot.reviewIssueCount,

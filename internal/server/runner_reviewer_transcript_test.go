@@ -2,14 +2,173 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
+
+func TestReviewerPublicStopReasonStaysWithSelectedReviewerAndCancellation(t *testing.T) {
+	store, repo, db := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "owner", "stop-project", "stop-root")
+	if _, err := db.Exec(`UPDATE frames SET status='completed' WHERE id='stop-root'`); err != nil {
+		t.Fatal(err)
+	}
+	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = server.Close(t.Context()) })
+	root, found, err := store.GetFrame("stop-root")
+	if err != nil || !found {
+		t.Fatalf("root found=%t err=%v", found, err)
+	}
+	summary := transcriptstore.RunnerTimingSummary{Attempt: 3, StartedAt: root.CreatedAt}
+	begin := func(index int) workspace.Frame {
+		frame, err := server.beginSessionReviewerFrame(context.Background(), sessionstore.Session{ID: root.ID}, "fixture-model", 3, index)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return frame
+	}
+	settle := func(ctx context.Context, frame workspace.Frame, index int) {
+		active := &activeSessionRun{}
+		job := manualSessionReviewJob{reviewerFrame: frame, reviewIndex: index}
+		outcome := manualSessionReviewOutcome{status: "failed", description: "safe review description", stopReason: transcriptstore.PublicStopNoProgress}
+		if err := server.settleManualSessionReview(ctx, active, job, outcome); err != nil {
+			t.Fatal(err)
+		}
+		if err := server.settleManualSessionReview(ctx, active, job, manualSessionReviewOutcome{status: "failed", description: "must not replace receipt"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	first := begin(0)
+	settle(context.Background(), first, 0)
+	projection, err := server.compatibilityFrameReviewProjection(t.Context(), root, summary)
+	if err != nil || projection["runtime_review_stop_reason"] != "no_progress" {
+		t.Fatalf("first projection=%#v err=%v", projection, err)
+	}
+	// A new reader uses the canonical receipt; no in-memory diagnostic cache.
+	restarted := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = restarted.Close(t.Context()) })
+	projection, err = restarted.compatibilityFrameReviewProjection(t.Context(), root, summary)
+	if err != nil || projection["runtime_review_stop_reason"] != "no_progress" {
+		t.Fatalf("reload projection=%#v err=%v", projection, err)
+	}
+	second := begin(1)
+	projection, err = server.compatibilityFrameReviewProjection(t.Context(), root, summary)
+	if err != nil || projection["runtime_review_frame_id"] != second.ID || projection["runtime_review_stop_reason"] != nil {
+		t.Fatalf("older stopped reviewer polluted active reviewer: %#v %v", projection, err)
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	settle(cancelled, second, 1)
+	projection, err = server.compatibilityFrameReviewProjection(t.Context(), root, summary)
+	if err != nil || projection["runtime_review_frame_id"] != second.ID || projection["runtime_review_status"] != "failed" || projection["runtime_review_stop_reason"] != "cancelled" {
+		t.Fatalf("final cancellation did not override prior cause: %#v %v", projection, err)
+	}
+	third := begin(2)
+	if err := server.finishSessionReviewerFrame(third.ID, "failed", "legacy private description invalid json", 2); err != nil {
+		t.Fatal(err)
+	}
+	projection, err = server.compatibilityFrameReviewProjection(t.Context(), root, summary)
+	if err != nil || projection["runtime_review_frame_id"] != third.ID || projection["runtime_review_stop_reason"] != "unknown" {
+		t.Fatalf("legacy cause guessed from prose: %#v %v", projection, err)
+	}
+	otherInput := summary
+	otherInput.Attempt++
+	if projection, err = server.compatibilityFrameReviewProjection(t.Context(), root, otherInput); err != nil || projection != nil {
+		t.Fatalf("review crossed root attempt: %#v %v", projection, err)
+	}
+	current, _, err := store.GetFrame(root.ID)
+	if err != nil || current.Status != "completed" {
+		t.Fatalf("review stop changed root: %#v %v", current, err)
+	}
+	frames, err := store.ListFramesForRoot(root.ID)
+	if err != nil || len(frames) != 4 {
+		t.Fatalf("unexpected automatic review retry: %d %v", len(frames), err)
+	}
+}
+
+func TestReviewerPublicStopReasonRejectsUnboundOrMalformedTerminal(t *testing.T) {
+	store, repo, db := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "owner", "bound-project", "bound-root")
+	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = server.Close(t.Context()) })
+	frame, err := server.beginSessionReviewerFrame(context.Background(), sessionstore.Session{ID: "bound-root"}, "fixture-model", 1, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := server.finishSessionReviewerFrame(frame.ID, "failed", "safe", 0, transcriptstore.FrameRunnerTerminalOptions{PublicStopReason: transcriptstore.PublicStopNoProgress}); err != nil {
+		t.Fatal(err)
+	}
+	frame, _, err = store.GetFrame(frame.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, _, err := repo.GetFrameStreamBySession(t.Context(), "owner", frame.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, _, err := repo.GetLatestRunnerRuntimeState(t.Context(), stream.UID, "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clientID := fmt.Sprintf("runner-terminal:failed:%s:%d", stream.UID, state.Attempt)
+	event, _, err := repo.GetEventByClientMessageID(t.Context(), stream.UID, "owner", clientID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, reason := range []any{nil, "PRIVATE_SENTINEL", "NO_PROGRESS", map[string]any{"private": true}} {
+		payload, err := json.Marshal(map[string]any{"status": "failed", "detail": "safe", "public_stop_reason": reason})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`UPDATE transcript_events SET payload_json=? WHERE stream_uid=? AND event_id=?`, payload, stream.UID, event.EventID); err != nil {
+			t.Fatal(err)
+		}
+		if got, err := server.sessionReviewerPublicStopReason(t.Context(), frame); err != nil || got != transcriptstore.PublicStopUnknown {
+			t.Fatalf("malformed reason=%s err=%v", got, err)
+		}
+	}
+	if _, err := db.Exec(`UPDATE transcript_events SET payload_json=? WHERE stream_uid=? AND event_id=?`, event.PayloadJSON, stream.UID, event.EventID); err != nil {
+		t.Fatal(err)
+	}
+	var otherEventID int64
+	if err := db.QueryRow(`SELECT MIN(event_id) FROM transcript_events WHERE stream_uid=? AND runner_attempt=? AND event_type='runner_checkpoint' AND event_id<>?`, stream.UID, state.Attempt, state.FinishedEventID).Scan(&otherEventID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`UPDATE transcript_runner_attempts SET finished_event_id=? WHERE stream_uid=? AND attempt=?`, otherEventID, stream.UID, state.Attempt); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := server.sessionReviewerPublicStopReason(t.Context(), frame); err != nil || got != transcriptstore.PublicStopUnknown {
+		t.Fatalf("wrong terminal event trusted: %s %v", got, err)
+	}
+	if _, err := db.Exec(`UPDATE transcript_runner_attempts SET finished_event_id=? WHERE stream_uid=? AND attempt=?`, state.FinishedEventID, stream.UID, state.Attempt); err != nil {
+		t.Fatal(err)
+	}
+	wrongFrame := frame
+	wrongFrame.Status = "completed"
+	if got, err := server.sessionReviewerPublicStopReason(t.Context(), wrongFrame); err != nil || got != transcriptstore.PublicStopUnknown {
+		t.Fatalf("wrong terminal status trusted: %s %v", got, err)
+	}
+	wrongFrame = frame
+	wrongFrame.RootFrameID = "another-root"
+	if got, err := server.sessionReviewerPublicStopReason(t.Context(), wrongFrame); err != nil || got != transcriptstore.PublicStopUnknown {
+		t.Fatalf("wrong root trusted: %s %v", got, err)
+	}
+	if got, err := server.sessionReviewerPublicStopReason(t.Context(), frame); err != nil || got != transcriptstore.PublicStopNoProgress {
+		t.Fatalf("valid bound terminal lost: %s %v", got, err)
+	}
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := server.sessionReviewerPublicStopReason(cancelled, frame); err == nil {
+		t.Fatal("read failure was converted into a known reason")
+	}
+}
 
 func TestSessionReviewerFrameTerminalUsesTranscriptAndRecoversProjection(t *testing.T) {
 	store, repo, db := newTranscriptWebFixture(t)

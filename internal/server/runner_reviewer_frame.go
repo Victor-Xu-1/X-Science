@@ -413,7 +413,7 @@ func (s *Server) beginSessionReviewerTranscript(
 	return started.Claim, nil
 }
 
-func (s *Server) finishSessionReviewerFrame(frameID, status, description string, reviewIndex int) error {
+func (s *Server) finishSessionReviewerFrame(frameID, status, description string, reviewIndex int, options ...transcriptstore.FrameRunnerTerminalOptions) error {
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
 		return errors.New("workspace and transcript stores are required for completion reviewer frames")
 	}
@@ -435,6 +435,7 @@ func (s *Server) finishSessionReviewerFrame(frameID, status, description string,
 	err = s.transcriptStore.RunImmediate(context.Background(), func(tx *transcriptstore.ImmediateTransaction) error {
 		_, _, _, finishErr := tx.FinishLatestFrameRunner(
 			context.Background(), frameContext.UserID, frameID, status, description, []string{"ws"},
+			options...,
 		)
 		return finishErr
 	})
@@ -456,6 +457,45 @@ func (s *Server) finishSessionReviewerFrame(frameID, status, description string,
 		return err
 	}
 	return s.publishWorkspaceEvent(event)
+}
+
+// Read only the selected reviewer's current canonical terminal. Missing old
+// metadata is unknown; read errors remain errors rather than a guessed reason.
+func (s *Server) sessionReviewerPublicStopReason(ctx context.Context, frame workspace.Frame) (transcriptstore.PublicStopReason, error) {
+	access, found, err := s.workspaceStore.GetFrameRealtimeContext(frame.ID)
+	if err != nil || !found {
+		return transcriptstore.PublicStopUnknown, err
+	}
+	stream, found, err := s.transcriptStore.GetFrameStreamBySession(ctx, access.UserID, frame.ID)
+	if err != nil || !found {
+		return transcriptstore.PublicStopUnknown, err
+	}
+	state, found, err := s.transcriptStore.GetLatestRunnerRuntimeState(ctx, stream.UID, stream.OwnerID)
+	if err != nil || !found {
+		return transcriptstore.PublicStopUnknown, err
+	}
+	if state.Attempt <= 0 || state.FinishedEventID <= 0 || state.StreamUID != stream.UID ||
+		stream.FrameID != frame.ID || stream.RootFrameID != frame.RootFrameID ||
+		state.ClaimedInputRevision != stream.InputRevision || state.Status != frame.Status {
+		return transcriptstore.PublicStopUnknown, nil
+	}
+	clientID := fmt.Sprintf("runner-terminal:%s:%s:%d", state.Status, stream.UID, state.Attempt)
+	event, found, err := s.transcriptStore.GetEventByClientMessageID(ctx, stream.UID, stream.OwnerID, clientID)
+	if err != nil || !found {
+		return transcriptstore.PublicStopUnknown, err
+	}
+	if event.EventID != state.FinishedEventID || event.StreamUID != stream.UID || event.Type != "runner_finished" ||
+		event.Source != transcriptstore.EventSourcePayload || event.RunnerAttempt == nil || *event.RunnerAttempt != state.Attempt {
+		return transcriptstore.PublicStopUnknown, nil
+	}
+	var payload struct {
+		Status string                           `json:"status"`
+		Reason transcriptstore.PublicStopReason `json:"public_stop_reason"`
+	}
+	if json.Unmarshal(event.PayloadJSON, &payload) != nil || payload.Status != state.Status || !payload.Reason.Valid() {
+		return transcriptstore.PublicStopUnknown, nil
+	}
+	return payload.Reason, nil
 }
 
 func sessionReviewerFailureStatus(ctx context.Context, err error) string {

@@ -66,6 +66,8 @@ export type XScienceRuntimeSnapshot = {
   reviewProfile: string | null;
   reviewFrameId: string | null;
   reviewDescription: string | null;
+  /** Closed canonical reviewer stop class, never raw diagnostics or retry authority. */
+  reviewStopReason?: XScienceReviewStopReason;
   reviewTrigger: 'auto' | 'manual' | null;
   reviewVerdict: XScienceReviewVerdict;
   reviewIssueCount: number;
@@ -98,6 +100,27 @@ function normalizeProviderFailureKind(value: unknown): XScienceProviderFailureKi
 }
 
 export type XScienceReviewVerdict = 'pass' | 'pass_with_warnings' | 'revise' | null;
+
+export type XScienceReviewStopReason =
+  | 'no_progress'
+  | 'source_changed'
+  | 'cancelled'
+  | 'model_protocol'
+  | 'provider_unavailable'
+  | 'unknown';
+
+function normalizeReviewStopReason(value: unknown): XScienceReviewStopReason {
+  switch (value) {
+    case 'no_progress':
+    case 'source_changed':
+    case 'cancelled':
+    case 'model_protocol':
+    case 'provider_unavailable':
+      return value;
+    default:
+      return 'unknown';
+  }
+}
 
 export type XScienceRuntimeStage =
   | 'starting'
@@ -539,6 +562,7 @@ export function normalizeXScienceRuntimeSnapshot(value: unknown): XScienceRuntim
     reviewProfile: nullableString(value.runtime_review_profile),
     reviewFrameId: nullableString(value.runtime_review_frame_id),
     reviewDescription: nullableString(value.runtime_review_description),
+    reviewStopReason: normalizeReviewStopReason(value.runtime_review_stop_reason),
     reviewTrigger: reviewTriggerValue === 'manual' || reviewTriggerValue === 'auto' ? reviewTriggerValue : null,
     reviewVerdict: normalizeReviewVerdict(value.runtime_review_verdict),
     reviewIssueCount: nonNegativeInteger(value.runtime_review_issue_count) ?? 0,

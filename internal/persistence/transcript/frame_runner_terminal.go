@@ -9,6 +9,32 @@ import (
 	"strings"
 )
 
+// PublicStopReason is safe presentation metadata, never retry or execution authority.
+type PublicStopReason string
+
+const (
+	PublicStopNoProgress          PublicStopReason = "no_progress"
+	PublicStopSourceChanged       PublicStopReason = "source_changed"
+	PublicStopCancelled           PublicStopReason = "cancelled"
+	PublicStopModelProtocol       PublicStopReason = "model_protocol"
+	PublicStopProviderUnavailable PublicStopReason = "provider_unavailable"
+	PublicStopUnknown             PublicStopReason = "unknown"
+)
+
+func (reason PublicStopReason) Valid() bool {
+	switch reason {
+	case PublicStopNoProgress, PublicStopSourceChanged, PublicStopCancelled,
+		PublicStopModelProtocol, PublicStopProviderUnavailable, PublicStopUnknown:
+		return true
+	default:
+		return false
+	}
+}
+
+type FrameRunnerTerminalOptions struct {
+	PublicStopReason PublicStopReason
+}
+
 // FinishLatestFrameRunner settles an internally owned Frame runner without
 // exposing a claim-token bypass on Repository. Callers must already hold the
 // workspace transaction that owns the Frame lifecycle mutation.
@@ -16,8 +42,9 @@ func (tx *ImmediateTransaction) FinishLatestFrameRunner(
 	ctx context.Context,
 	ownerID, frameID, status, detail string,
 	destinations []string,
+	options ...FrameRunnerTerminalOptions,
 ) (Event, FinishReceipt, bool, error) {
-	return tx.finishLatestFrameRunner(ctx, ownerID, frameID, status, detail, destinations, true)
+	return tx.finishLatestFrameRunner(ctx, ownerID, frameID, status, detail, destinations, true, options...)
 }
 
 // projectFrame is false only after the recovery caller has verified an already
@@ -28,7 +55,11 @@ func (tx *ImmediateTransaction) finishLatestFrameRunner(
 	ownerID, frameID, status, detail string,
 	destinations []string,
 	projectFrame bool,
+	options ...FrameRunnerTerminalOptions,
 ) (Event, FinishReceipt, bool, error) {
+	if len(options) > 1 || len(options) == 1 && options[0].PublicStopReason != "" && !options[0].PublicStopReason.Valid() {
+		return Event{}, FinishReceipt{}, false, errors.New("one optional allowlisted public stop reason is required")
+	}
 	ownerID = strings.TrimSpace(ownerID)
 	frameID = strings.TrimSpace(frameID)
 	status = normalizeTerminalStatus(status)
@@ -53,7 +84,11 @@ func (tx *ImmediateTransaction) finishLatestFrameRunner(
 	if err != nil {
 		return Event{}, FinishReceipt{}, false, err
 	}
-	payload, err := json.Marshal(map[string]string{"status": status, "detail": detail})
+	terminal := map[string]string{"status": status, "detail": detail}
+	if len(options) == 1 && options[0].PublicStopReason != "" {
+		terminal["public_stop_reason"] = string(options[0].PublicStopReason)
+	}
+	payload, err := json.Marshal(terminal)
 	if err != nil {
 		return Event{}, FinishReceipt{}, false, err
 	}
