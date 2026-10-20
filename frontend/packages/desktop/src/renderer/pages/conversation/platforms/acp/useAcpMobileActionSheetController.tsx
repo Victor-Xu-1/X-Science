@@ -159,7 +159,13 @@ export const useAcpMobileActionSheetController = ({
           },
           buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
           ...(memoryControl?.preference?.status === 'unknown'
-            ? [{ key: 'memory-retry', label: t('conversation.xscienceRuntime.sessionOptions.memoryPreferenceRetry') }]
+            ? [
+                {
+                  key: 'memory-retry',
+                  kind: 'action' as const,
+                  label: t('conversation.xscienceRuntime.sessionOptions.memoryPreferenceRetry'),
+                },
+              ]
             : []),
         ],
         onSelect: (key) => {

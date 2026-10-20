@@ -11,6 +11,9 @@ export interface MobileActionSheetOption {
   label: ReactNode;
   description?: ReactNode;
   active?: boolean;
+  /** Omitted keeps the submenu's existing radio/action behavior. */
+  kind?: 'action' | 'checkbox';
+  checked?: boolean | 'mixed';
   disabled?: boolean;
 }
 

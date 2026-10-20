@@ -137,6 +137,8 @@ export function buildSessionMemoryOption(
   const memory = sessionMemoryPresentation(control, preference);
   return {
     key: 'memory',
+    kind: 'checkbox',
+    checked: memory.checked ?? 'mixed',
     label: t('conversation.xscienceRuntime.sessionOptions.memory'),
     description: memory.reason ? t(memory.reason) : t('conversation.xscienceRuntime.sessionOptions.memoryDescription'),
     active: memory.checked === true,

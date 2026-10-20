@@ -130,6 +130,39 @@ function SharedComposerHarness({
 }
 
 describe('session Memory availability', () => {
+  it.each(['preference', 'retry'])('Memory406 R2 gives the mobile %s its truthful ARIA semantics', async (row) => {
+    const preference: XScienceSessionMemoryControl = {
+      status: 'unknown',
+      pending: false,
+      current: () => true,
+      capture: () => null,
+      refresh: vi.fn(),
+      update: vi.fn(),
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => Response.json({ enabled: true }))
+    );
+    await renderWithI18n(<SharedComposerHarness sessionMemory={preference} legacyReady={false} />, 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile controls' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-options'));
+    const target = await screen.findByTestId(
+      `mobile-action-sheet-option-${row === 'preference' ? 'memory' : 'memory-retry'}`
+    );
+    if (row === 'preference') {
+      expect(target).toHaveAttribute('role', 'menuitemcheckbox');
+      expect(target).toHaveAttribute('aria-checked', 'mixed');
+      expect(target).toBeDisabled();
+    } else {
+      expect(target).toHaveAttribute('role', 'menuitem');
+      expect(target).not.toHaveAttribute('aria-checked');
+      expect(target.querySelector('[aria-hidden]')).toBeNull();
+      const before = preference.refresh;
+      fireEvent.click(target);
+      expect(before).toHaveBeenCalledTimes(2);
+      expect(preference.update).not.toHaveBeenCalled();
+    }
+  });
   it('Memory406 treats an unknown session readback as unknown despite globally available Memory', () => {
     const control = {
       availability: { status: 'ready', enabled: true },
