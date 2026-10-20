@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { fireEvent, screen, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,6 +6,11 @@ import type { IMessageToolCall } from '@/common/chat/chatLib';
 import MessageToolCall from '@/renderer/pages/conversation/Messages/components/MessageToolCall';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
 import { renderWithI18n } from '../i18nTestUtils';
+
+const toolDetailCss = readFileSync(
+  'packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolGroupSummary.css',
+  'utf8'
+);
 
 vi.mock('@/renderer/components/base/FileChangesPanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/Markdown', () => ({
@@ -39,7 +45,10 @@ describe('MessageToolCall', () => {
   beforeEach(() => conversationDisclosureStore.resetForTests());
 
   it.each(['en-US', 'zh-CN'] as const)('Skill353 discloses a historical native guide once in %s', async (language) => {
-    const body = '# Fixture method\n\nKeep controls paired.';
+    const body = [
+      '# Fixture method',
+      ...Array.from({ length: 80 }, (_, index) => 'Instruction ' + (index + 1) + ': Keep controls paired.'),
+    ].join('\n\n');
     const output = JSON.stringify('<skill-metadata name="example-guide" loaded="true" executed="false" />\n\n' + body);
     await renderWithI18n(
       <MessageToolCall
@@ -67,6 +76,27 @@ describe('MessageToolCall', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/skill-metadata/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('show-output-toggle')).not.toBeInTheDocument();
+
+    // Check the actual stylesheet and rendered wrappers, not mock Markdown geometry.
+    // JSDOM proves scroll constraints here; browser layout remains a separate check.
+    const style = document.createElement('style');
+    style.textContent = toolDetailCss;
+    document.head.append(style);
+    try {
+      expect(style.sheet?.cssRules.length).toBeGreaterThan(0);
+      const surface = screen.getByTestId('tool-public-detail').querySelector('.tool-public-detail__surface--input')!;
+      const markdown = surface.querySelector('.tool-public-detail__block-markdown')!;
+      const boundedScrollOwners = [surface, markdown].filter((element) => {
+        const computed = getComputedStyle(element);
+        return computed.maxHeight !== 'none' && /auto|scroll/.test(computed.overflowY || computed.overflow);
+      });
+      expect(boundedScrollOwners).toEqual([markdown]);
+      expect(getComputedStyle(surface).maxHeight).toBe('none');
+      expect(getComputedStyle(surface).overflow).toBe('visible');
+      expect(getComputedStyle(markdown).maxHeight).toBe('320px');
+    } finally {
+      style.remove();
+    }
   });
 
   it.each([

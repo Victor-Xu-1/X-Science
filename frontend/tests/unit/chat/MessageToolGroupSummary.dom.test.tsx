@@ -4,12 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { readFileSync } from 'node:fs';
 import React from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageAcpToolCall, IMessageToolCall } from '@/common/chat/chatLib';
 import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
+
+const toolDetailCss = readFileSync(
+  'packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolGroupSummary.css',
+  'utf8'
+);
 
 const mockDownloadFileFromPath = vi.fn().mockResolvedValue(undefined);
 const mockMessageSuccess = vi.fn();
@@ -682,6 +688,62 @@ describe('MessageToolGroupSummary ACP image output', () => {
     expect(screen.getByText('Loading guidance does not mean the workflow was executed.')).toBeInTheDocument();
     expect(screen.queryByText(/skill-metadata/)).not.toBeInTheDocument();
     expect(screen.queryByTestId('show-output-toggle')).not.toBeInTheDocument();
+
+    const style = document.createElement('style');
+    style.textContent = toolDetailCss;
+    document.head.append(style);
+    try {
+      expect(style.sheet?.cssRules.length).toBeGreaterThan(0);
+      const surface = screen.getByTestId('tool-public-detail').querySelector('.tool-public-detail__surface--input')!;
+      const markdown = surface.querySelector('.tool-public-detail__block-markdown')!;
+      const boundedScrollOwners = [surface, markdown].filter((element) => {
+        const computed = getComputedStyle(element);
+        return computed.maxHeight !== 'none' && /auto|scroll/.test(computed.overflowY || computed.overflow);
+      });
+      expect(boundedScrollOwners).toEqual([markdown]);
+      expect(getComputedStyle(surface).maxHeight).toBe('none');
+      expect(getComputedStyle(surface).overflow).toBe('visible');
+      expect(getComputedStyle(markdown).maxHeight).toBe('320px');
+    } finally {
+      style.remove();
+    }
+  });
+
+  it.each([
+    ['code', 'python', { code: 'print("fixture")\nprint("complete")' }, '320px'],
+    ['text', 'write_file', { file_path: 'notes.txt', content: 'First note\nSecond note' }, '320px'],
+    ['markdown', 'write_file', { file_path: 'notes.md', content: '# Notes\n\nKeep controls paired.' }, '420px'],
+  ] as const)('Skill353 leaves non-guide %s scroll constraints unchanged', (variant, name, args, maximum) => {
+    render(
+      <MessageToolGroupSummary
+        messages={[
+          {
+            id: 'non-guide-scroll',
+            conversation_id: 'fixture-conversation',
+            type: 'tool_call',
+            content: { call_id: 'non-guide-scroll', name, args, status: 'completed', output: 'Saved' },
+          } as IMessageToolCall,
+        ]}
+      />
+    );
+    fireEvent.click(screen.getByTestId('tool-chip'));
+    const style = document.createElement('style');
+    style.textContent = toolDetailCss;
+    document.head.append(style);
+    try {
+      const surface = screen.getByTestId('tool-public-detail').querySelector('.tool-public-detail__surface--input')!;
+      const blockTrigger = surface.querySelector<HTMLButtonElement>('.tool-public-detail__block-trigger');
+      if (blockTrigger) fireEvent.click(blockTrigger);
+      const block = surface.querySelector(
+        variant === 'markdown' ? '.tool-public-detail__block-markdown' : '.tool-public-detail__block-content'
+      )!;
+      expect(surface).not.toHaveClass('tool-public-detail__surface--document');
+      expect(getComputedStyle(surface).maxHeight).toBe('430px');
+      expect(getComputedStyle(surface).overflow).toBe('auto');
+      expect(getComputedStyle(block).maxHeight).toBe(maximum);
+    } finally {
+      style.remove();
+    }
   });
 
   it('renders a layered, independently collapsible public detail for an environment step', () => {

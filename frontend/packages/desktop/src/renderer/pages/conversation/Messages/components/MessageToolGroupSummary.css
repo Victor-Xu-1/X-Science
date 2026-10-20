@@ -458,6 +458,16 @@ body[arco-theme='dark'] .tool-group-summary {
   max-height: 430px;
 }
 
+/* Method documents own their scroll; the surrounding fields remain in normal flow. */
+.tool-public-detail__surface--document {
+  max-height: none;
+  overflow: visible;
+}
+
+.tool-public-detail__surface--document .tool-public-detail__block-markdown {
+  max-height: 320px;
+}
+
 .tool-public-detail--plan .tool-public-detail__surface--input {
   max-height: none;
   overflow: visible;
