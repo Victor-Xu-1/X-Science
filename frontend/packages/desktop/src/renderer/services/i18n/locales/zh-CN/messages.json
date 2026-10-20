@@ -153,6 +153,8 @@
     "updatedContent": "更新内容",
     "writtenContent": "写入内容",
     "analysisGuide": "分析指南",
+    "skillLoadNotice": "加载指南不代表工作流已执行。",
+    "skillReceiptOnlyNotice": "此 Skill 加载记录不含方法正文，也不代表工作流已执行。",
     "runOutput": "运行输出",
     "memoryRecords": "记忆内容",
     "detailedResult": "详细结果",

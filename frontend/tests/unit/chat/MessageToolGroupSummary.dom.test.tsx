@@ -648,6 +648,42 @@ describe('MessageToolGroupSummary ACP image output', () => {
     expect(screen.queryByTestId('show-output-toggle')).not.toBeInTheDocument();
   });
 
+  it('Skill353 uses the existing grouped live ACP method disclosure without a competing receipt tree', () => {
+    const body = '# Live method\n\nKeep sample-level controls.';
+    const message: IMessageAcpToolCall = {
+      id: 'live-guide',
+      conversation_id: 'fixture-conversation',
+      type: 'acp_tool_call',
+      content: {
+        sessionId: 'fixture-session',
+        update: {
+          sessionUpdate: 'tool_call_update',
+          tool_call_id: 'live-guide',
+          status: 'completed',
+          title: 'skill',
+          kind: 'other',
+          rawInput: { skill: 'example-guide' },
+          content: [
+            {
+              type: 'content',
+              content: {
+                type: 'text',
+                text: '<skill-metadata name="example-guide" loaded="true" executed="false" />\n\n' + body,
+              },
+            },
+          ],
+        },
+      },
+    };
+    render(<MessageToolGroupSummary messages={[message]} />);
+    fireEvent.click(screen.getByTestId('tool-chip'));
+    expect(screen.getAllByTestId('markdown-view')).toHaveLength(1);
+    expect(screen.getByTestId('markdown-view')).toHaveTextContent('# Live method');
+    expect(screen.getByText('Loading guidance does not mean the workflow was executed.')).toBeInTheDocument();
+    expect(screen.queryByText(/skill-metadata/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('show-output-toggle')).not.toBeInTheDocument();
+  });
+
   it('renders a layered, independently collapsible public detail for an environment step', () => {
     const message: IMessageToolCall = {
       id: 'environment-list-1',

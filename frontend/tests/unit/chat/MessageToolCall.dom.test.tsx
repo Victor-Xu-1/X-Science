@@ -38,6 +38,37 @@ const message = {
 describe('MessageToolCall', () => {
   beforeEach(() => conversationDisclosureStore.resetForTests());
 
+  it.each(['en-US', 'zh-CN'] as const)('Skill353 discloses a historical native guide once in %s', async (language) => {
+    const body = '# Fixture method\n\nKeep controls paired.';
+    const output = JSON.stringify('<skill-metadata name="example-guide" loaded="true" executed="false" />\n\n' + body);
+    await renderWithI18n(
+      <MessageToolCall
+        message={{
+          ...message,
+          content: {
+            call_id: 'history-guide',
+            name: 'load_skill',
+            args: { skill: 'example-guide' },
+            status: 'completed',
+            output,
+          },
+        }}
+      />,
+      language
+    );
+    fireEvent.click(screen.getByTestId('tool-chip'));
+    expect(screen.getAllByText(body, { normalizer: (value) => value })).toHaveLength(1);
+    expect(
+      screen.getByText(
+        language === 'en-US'
+          ? 'Loading guidance does not mean the workflow was executed.'
+          : '加载指南不代表工作流已执行。'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/skill-metadata/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('show-output-toggle')).not.toBeInTheDocument();
+  });
+
   it.each([
     ['en-US', { result: '[]' }, true],
     ['zh-CN', { result: '[]' }, true],

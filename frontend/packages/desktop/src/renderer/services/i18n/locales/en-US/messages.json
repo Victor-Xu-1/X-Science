@@ -153,6 +153,8 @@
     "updatedContent": "Updated content",
     "writtenContent": "Written content",
     "analysisGuide": "Analysis guide",
+    "skillLoadNotice": "Loading guidance does not mean the workflow was executed.",
+    "skillReceiptOnlyNotice": "This Skill-load receipt does not include the method document and is not workflow execution evidence.",
     "runOutput": "Output",
     "memoryRecords": "Memory records",
     "detailedResult": "Detailed result",
