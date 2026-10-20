@@ -6,6 +6,7 @@
   "cancel": "取消",
   "save": "保存",
   "delete": "删除",
+  "removeNamed": "移除 {{name}}",
   "confirm": "确定",
   "file": "文件",
   "folder": "文件夹",

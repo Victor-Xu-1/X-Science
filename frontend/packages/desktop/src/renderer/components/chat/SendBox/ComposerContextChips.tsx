@@ -56,7 +56,7 @@ const ComposerContextChips: React.FC<ComposerContextChipsProps> = ({ items, onRe
             <button
               type='button'
               className='composer-context-chip__remove'
-              aria-label={`Remove ${item.label}`}
+              aria-label={t('common.removeNamed', { name: item.label })}
               onClick={() => onRemove(key)}
             >
               <CloseSmall theme='outline' size={13} />

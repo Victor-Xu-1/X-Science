@@ -311,6 +311,7 @@ export type I18nKey =
   | 'common.refreshSuccess'
   | 'common.reload'
   | 'common.remove'
+  | 'common.removeNamed'
   | 'common.reply'
   | 'common.resizeSidebar'
   | 'common.restore'

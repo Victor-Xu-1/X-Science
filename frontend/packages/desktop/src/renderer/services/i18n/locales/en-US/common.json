@@ -6,6 +6,7 @@
   "cancel": "Cancel",
   "save": "Save",
   "delete": "Delete",
+  "removeNamed": "Remove {{name}}",
   "confirm": "Confirm",
   "file": "File",
   "folder": "Folder",
