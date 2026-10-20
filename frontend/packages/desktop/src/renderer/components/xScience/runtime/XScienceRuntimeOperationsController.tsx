@@ -891,6 +891,12 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         planError={planPreview.error}
         planReplaced={planPreview.replaced}
         planCanRetry={planPreview.canRetry}
+        planVersions={planPreview.versions}
+        planVersionsLoading={planPreview.versionsLoading}
+        planVersionsError={planPreview.versionsError}
+        planCanLoadVersions={planPreview.canLoadVersions}
+        onLoadPlanVersions={planPreview.loadVersions}
+        onSelectPlanVersion={planPreview.selectVersion}
         onOpenCurrentPlan={planPreview.canOpenCurrent ? openPlanReview : undefined}
         planApprovalAvailable={
           planPreview.isSelected(snapshot?.planApproval) && planPreview.isSelected(snapshot?.taskPlan)

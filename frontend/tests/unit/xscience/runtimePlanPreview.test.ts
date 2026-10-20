@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { loadXSciencePlanDocument } from '@/renderer/services/xScienceRuntimeOperations';
+import { loadXSciencePlanDocument, loadXSciencePlanVersions } from '@/renderer/services/xScienceRuntimeOperations';
 import { normalizeXScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 
 vi.mock('@/common', () => ({ ipcBridge: {} }));
@@ -12,6 +12,77 @@ const plan = (taskSummary: string) => ({
 });
 
 describe('version-bound task plan preview', () => {
+  it('reads actual content-version pairs without exposing storage or current runtime metadata', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            artifact_id: 'plan/one',
+            version_id: 'old/version',
+            version_number: 1,
+            file_path: '/storage/private',
+            revision_number: 9,
+            progress: { completed: 8 },
+          },
+          { artifact_id: 'plan/one', version_id: 'new/version', version_number: 3 },
+        ])
+      )
+    );
+    const versions = await loadXSciencePlanVersions('plan/one', { baseUrl: 'http://gateway.test', fetchImpl });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toBe('http://gateway.test/api/artifacts/plan%2Fone/versions');
+    expect(versions).toEqual([
+      { artifactId: 'plan/one', versionId: 'old/version', contentVersion: 1 },
+      { artifactId: 'plan/one', versionId: 'new/version', contentVersion: 3 },
+    ]);
+  });
+
+  it('retains a valid empty content-version list separately from request errors', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('[]'));
+    await expect(loadXSciencePlanVersions('plan', { fetchImpl })).resolves.toEqual([]);
+  });
+
+  it.each(
+    [
+      null,
+      {},
+      { versions: [] },
+      [null],
+      [{ artifact_id: 'foreign', version_id: 'v1', version_number: 1 }],
+      [{ artifact_id: 'plan', version_id: '', version_number: 1 }],
+      [{ artifact_id: 'plan', version_id: '   ', version_number: 1 }],
+      [{ artifact_id: 'plan', version_id: 'v1', version_number: 0 }],
+      [{ artifact_id: 'plan', version_id: 'v1', version_number: 1.5 }],
+      [{ artifact_id: 'plan', version_id: 'v1', version_number: '1' }],
+      [{ artifact_id: 'plan', version_id: 'v1', version_number: Number.MAX_SAFE_INTEGER + 1 }],
+      [
+        { artifact_id: 'plan', version_id: 'v1', version_number: 1 },
+        { artifact_id: 'plan', version_id: 'v1', version_number: 2 },
+      ],
+      [
+        { artifact_id: 'plan', version_id: 'v1', version_number: 1 },
+        { artifact_id: 'plan', version_id: 'v2', version_number: 1 },
+      ],
+    ].map((payload) => ({ payload }))
+  )('rejects a malformed, foreign or duplicate content-version list as a whole: $payload', async ({ payload }) => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response(JSON.stringify(payload)));
+    await expect(loadXSciencePlanVersions('plan', { fetchImpl })).rejects.toThrow();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves an unavailable content-version list error without reading latest', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('{"detail":"Artifact unavailable"}', { status: 404 }));
+    await expect(loadXSciencePlanVersions('plan', { fetchImpl })).rejects.toThrow();
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0][0]).toMatch(/\/api\/artifacts\/plan\/versions$/);
+  });
+
+  it('rejects a blank artifact before requesting a content-version list', async () => {
+    const fetchImpl = vi.fn();
+    await expect(loadXSciencePlanVersions(' ', { fetchImpl })).rejects.toThrow();
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('loads the captured exact version rather than the latest artifact body', async () => {
     const fetchImpl = vi.fn(
       async (url: string) =>
