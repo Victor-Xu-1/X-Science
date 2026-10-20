@@ -3,12 +3,20 @@ import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { getRendererAccountOwnerId, getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
 import {
   loadXScienceComputeProviders,
   loadXScienceSessionComputeProviders,
   setXScienceSessionComputeProvider,
   type XScienceComputeProvider,
 } from '@/renderer/services/xScienceCompute';
+
+function computeFailureDiagnostic(error: unknown): { kind: 'http' | 'unknown'; status?: number } {
+  if (!isXScienceHttpError(error)) return { kind: 'unknown' };
+  return Number.isInteger(error.status) && error.status >= 100 && error.status <= 599
+    ? { kind: 'http', status: error.status }
+    : { kind: 'http' };
+}
 
 export function computeConversationRoot(id: string, ownerId: string, conversation?: TChatConversation): string | null {
   const extra = conversation?.type === 'acp' && conversation.id === id ? conversation.extra : null;
@@ -136,7 +144,7 @@ export function useSessionComputeControls({
       })
       .catch((error) => {
         if (!valid()) return;
-        console.error('Failed to load session compute:', error);
+        console.error('Failed to load session compute:', computeFailureDiagnostic(error));
         setView((previous) => ({
           owner,
           status: 'error',
@@ -187,7 +195,7 @@ export function useSessionComputeControls({
     } catch (error) {
       // An unknown write is not rollback. Only an explicit GET retry may observe the current state.
       if (valid()) {
-        console.error('Session compute write outcome could not be confirmed:', error);
+        console.error('Session compute write outcome could not be confirmed:', computeFailureDiagnostic(error));
         setView((previous) => (previous?.owner === owner ? { ...previous, status: 'error' } : previous));
         Message.error(translation.current('conversation.xscienceRuntime.sessionOptions.computeUpdateFailed'));
       }
