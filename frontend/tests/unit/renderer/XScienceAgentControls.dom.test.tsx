@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
 import { useSessionPermissionGrantsController } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
+import { useSessionComputeControls } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { createXScienceSessionDefaults } from '@/renderer/services/xScienceSessionOptions';
 import { renderWithI18n } from '../i18nTestUtils';
@@ -70,9 +71,15 @@ function Harness({
   modeOption?: typeof option;
 }) {
   const controller = useSessionPermissionGrantsController(withGrants ? sessionGrantIdentity : null);
+  const computeControl = useSessionComputeControls({
+    rootFrameId: `frame-${owner}`,
+    contextKey: owner,
+    disabled: readOnly,
+  });
   return (
     <MemoryRouter>
       <XScienceSessionOptionsMenu
+        computeControl={computeControl}
         value={{ ...createXScienceSessionDefaults(), goalText: readOnly ? 'Fixture goal' : null }}
         onChange={mocks.changeOptions}
         onClearGoal={mocks.clearGoal}
@@ -175,7 +182,7 @@ describe('unified composer Agent controls', () => {
     fireEvent.mouseEnter(screen.getByTestId('session-config-row-compute'));
     const local = await screen.findByRole('menuitemradio', { name: 'Local' });
     expect(local).toBeDisabled();
-    const provider = screen.getByRole('menuitemcheckbox', { name: 'Compute Fixture host' });
+    const provider = await screen.findByRole('menuitemcheckbox', { name: 'Compute Fixture host' });
     expect(provider).toBeDisabled();
     fireEvent.click(provider);
     expect(mocks.changeOptions).not.toHaveBeenCalled();

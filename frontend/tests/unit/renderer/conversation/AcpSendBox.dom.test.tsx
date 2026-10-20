@@ -4252,11 +4252,17 @@ describe('AcpSendBox', () => {
       />
     );
     await waitFor(() =>
-      expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeDefined()
+      expect(
+        mobileActionSheetEntries.current
+          .find((entry) => entry.key === 'session-compute')
+          ?.submenu?.options?.find((row) => row.key === 'local-cpu')
+      ).toMatchObject({ disabled: false })
     );
-
-    mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')?.submenu?.onSelect?.('local-cpu');
+    const oldSelect = mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')?.submenu
+      ?.onSelect;
+    oldSelect?.('local-cpu');
     await act(async () => Promise.resolve());
+    expect(setSessionComputeProviderMock).toHaveBeenCalledWith('root-1', 'local-cpu', true);
     loadAssistantsMock.mockImplementationOnce(() => new Promise(() => {}));
     loadComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
     loadSessionComputeProvidersMock.mockImplementationOnce(() => new Promise(() => {}));
@@ -4275,7 +4281,13 @@ describe('AcpSendBox', () => {
       await pendingCompute.promise;
     });
 
-    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute')).toBeUndefined();
+    const current = mobileActionSheetEntries.current.find((entry) => entry.key === 'session-compute');
+    expect(current).toBeDefined();
+    expect(current?.submenu?.options).toEqual([
+      expect.objectContaining({ key: '__local__', active: false, disabled: true }),
+    ]);
+    await act(async () => oldSelect?.('local-cpu'));
+    expect(setSessionComputeProviderMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not expose an old compute failure after switching conversations', async () => {
