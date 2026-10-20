@@ -26,6 +26,10 @@ func sessionRunnerErrorReasonCode(err error) string {
 	if reason := sessionRunnerFailureReasonCode(err.Error()); reason != "" {
 		return reason
 	}
+	var preparation sessionRunnerPreparationFailure
+	if errors.As(err, &preparation) {
+		return preparation.reasonCode()
+	}
 	return "runner_execution_failed"
 }
 

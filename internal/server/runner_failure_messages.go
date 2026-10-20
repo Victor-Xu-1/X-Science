@@ -22,6 +22,10 @@ func publicSessionRunnerFailureMessage(raw, language string, reasonCodes ...stri
 			return localizedSessionRunnerFailureMessage(language, "cleanup")
 		case "runner_response_persistence_failed":
 			return localizedSessionRunnerFailureMessage(language, "persistence")
+		case sessionRunnerHistoryPreparationFailedReasonCode:
+			return localizedSessionRunnerFailureMessage(language, "history_preparation")
+		case sessionRunnerPreparationFailedReasonCode:
+			return localizedSessionRunnerFailureMessage(language, "preparation")
 		}
 	}
 	message := strings.TrimSpace(raw)
@@ -85,6 +89,10 @@ func localizedSessionRunnerFailureMessage(language, kind string) string {
 			return "任务运行环境的收尾处理失败。已有结果已保留；请检查运行详情后继续。"
 		case "persistence":
 			return "回复保存失败，不能确认本轮已完整结束。已有文件不会因此被重新生成；请恢复存储后继续。"
+		case "history_preparation":
+			return "本次运行未能完成对话历史准备。已有进度和结果已保留；请检查运行详情后再继续。"
+		case "preparation":
+			return "任务准备未完成。已有进度和结果已保留；请检查运行详情后再继续。"
 		case "execution":
 			return "任务本次运行未能完整结束。当前进度和已有结果均已保存；继续运行会从已保存的位置恢复。"
 		case "quota":
@@ -117,6 +125,10 @@ func localizedSessionRunnerFailureMessage(language, kind string) string {
 		return "Task runtime cleanup failed. Existing results were preserved; inspect the run details before continuing."
 	case "persistence":
 		return "The response could not be saved, so this run is not confirmed complete. Existing files will not be regenerated; restore storage before continuing."
+	case "history_preparation":
+		return "Conversation history could not be prepared for this run. Existing progress and results were preserved; inspect the run details before continuing."
+	case "preparation":
+		return "Task preparation did not finish. Existing progress and results were preserved; inspect the run details before continuing."
 	case "execution":
 		return "This run did not finish completely. Current progress and existing results were preserved; continuing resumes from the saved position."
 	case "quota":

@@ -147,6 +147,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			}
 		}
 		if preparationActive && err != nil {
+			err = classifySessionRunnerPreparationFailure(preparationStage, err)
 			attempt := 0
 			if run != nil {
 				attempt = run.Attempt
