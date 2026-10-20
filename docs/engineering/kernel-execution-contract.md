@@ -70,6 +70,38 @@ startup boundary and immediately before queue submission. The lock never spans
 a submitted execution. Only an exact newly created failed startup is cleaned
 up, with a bounded shutdown; a denied reuse does not close another live worker.
 
+## Conversation Compute observation
+
+`GET /api/compute/session/:root/state` requires an authenticated, currently
+owned real root; child, foreign, missing and draft pseudo-roots are not
+persistent session state. Its closed response contains `enabled`,
+`configured`, `selectionSource` (`inherited` or `explicit`) and
+`softwareRuntime`, whose `kind` is `local_default`, `local_explicit`,
+`remote_unsupported`, `invalid_selection` or `unavailable`.
+`providerName` appears only for `remote_unsupported`.
+
+The resource enablement list preserves the existing `/enabled` defaults.
+It is not the software execution target: untouched raw selection can enable
+SSH resources while the software-runtime policy remains Local default.
+Explicit empty selection means Local explicit; multiple or blank selection
+is invalid; a missing or foreign singleton is unavailable. An existing
+remote singleton remains unsupported by the software-runtime adapter and
+must never silently fall back to Local.
+
+The existing resolver and this projection share one raw selection read and
+the same policy rules. The response is a current observation, not an atomic
+execution admission, immutable selected-target capture or universal tool
+permission. Local Python/Bash and explicitly addressed remote jobs retain
+their own execution and authorization contracts. Legacy `/enabled`, PUT and
+migration semantics remain unchanged.
+
+The composer's single Compute owner reads this state with the existing
+15-second transport deadline. Failure remains unknown/read-only and Retry
+performs GET only, never replaying PUT or falling back to the legacy array
+read. A readback cannot prove an uncertain write will never arrive later.
+Draft controls retain local intent without claiming a persisted or admitted
+target.
+
 ## Durable detached execution recovery
 
 Multi-call model responses preserve their original ordered proposals with a

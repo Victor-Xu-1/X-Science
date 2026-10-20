@@ -714,7 +714,7 @@ func limitComputeJobLogLines(log workspace.ComputeJobLog, limit int) workspace.C
 func (s *Server) handleComputeSessionEnabled(w http.ResponseWriter, r *http.Request) {
 	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/compute/session/"), "/")
 	parts := strings.Split(path, "/")
-	if len(parts) < 2 || parts[0] == "" || parts[1] != "enabled" {
+	if len(parts) < 2 || parts[0] == "" || (parts[1] != "enabled" && parts[1] != "state") {
 		writeAgentCompatError(w, http.StatusNotFound, errors.New("compute session not found"))
 		return
 	}
@@ -728,7 +728,7 @@ func (s *Server) handleComputeSessionEnabled(w http.ResponseWriter, r *http.Requ
 		writeAgentCompatError(w, http.StatusBadRequest, errors.New("invalid compute session key"))
 		return
 	}
-	if !strings.HasPrefix(sessionKey, "draft-") {
+	if parts[1] == "state" || !strings.HasPrefix(sessionKey, "draft-") {
 		owned, err := s.workspaceStore.ComputeRootOwnedBy(userID, sessionKey)
 		if err != nil {
 			writeAgentCompatError(w, http.StatusInternalServerError, err)
@@ -739,32 +739,43 @@ func (s *Server) handleComputeSessionEnabled(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	}
+	if parts[1] == "state" {
+		if len(parts) != 2 || r.Method != http.MethodGet {
+			writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
+			return
+		}
+		values, configured, policy, err := s.readSessionComputeSelection(userID, sessionKey)
+		if err != nil {
+			writeAgentCompatError(w, http.StatusInternalServerError, err)
+			return
+		}
+		enabled, err := s.sessionComputeEnabledProviders(userID, values, configured)
+		if err != nil {
+			writeAgentCompatError(w, http.StatusInternalServerError, err)
+			return
+		}
+		source := "inherited"
+		if configured {
+			source = "explicit"
+		}
+		writeJSON(w, http.StatusOK, struct {
+			Enabled         []string                     `json:"enabled"`
+			Configured      bool                         `json:"configured"`
+			SelectionSource string                       `json:"selectionSource"`
+			SoftwareRuntime computeSoftwareRuntimePolicy `json:"softwareRuntime"`
+		}{enabled, configured, source, policy})
+		return
+	}
 	if len(parts) == 2 && r.Method == http.MethodGet {
 		values, configured, err := s.workspaceStore.SessionComputeProviderSelection(userID, sessionKey)
 		if err != nil {
 			writeAgentCompatError(w, http.StatusInternalServerError, err)
 			return
 		}
-		if !configured {
-			providers, err := s.workspaceStore.ListComputeProviders(userID)
-			if err != nil {
-				writeAgentCompatError(w, http.StatusInternalServerError, err)
-				return
-			}
-			for _, provider := range providers {
-				if provider.Family == "byoc" {
-					settings, found, err := s.workspaceStore.GetBYOCSettings(strings.TrimPrefix(provider.Name, "byoc:"), userID)
-					if err != nil {
-						writeAgentCompatError(w, http.StatusInternalServerError, err)
-						return
-					}
-					if !found || !settings.Enabled {
-						continue
-					}
-				}
-				values = append(values, provider.Name)
-			}
-			sort.Strings(values)
+		values, err = s.sessionComputeEnabledProviders(userID, values, configured)
+		if err != nil {
+			writeAgentCompatError(w, http.StatusInternalServerError, err)
+			return
 		}
 		writeJSON(w, http.StatusOK, values)
 		return
@@ -790,6 +801,31 @@ func (s *Server) handleComputeSessionEnabled(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeAgentCompatError(w, http.StatusMethodNotAllowed, errors.New("method not allowed"))
+}
+
+// Preserve the legacy enabled-resource defaults for both read projections.
+func (s *Server) sessionComputeEnabledProviders(userID string, values []string, configured bool) ([]string, error) {
+	if configured {
+		return values, nil
+	}
+	providers, err := s.workspaceStore.ListComputeProviders(userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, provider := range providers {
+		if provider.Family == "byoc" {
+			settings, found, err := s.workspaceStore.GetBYOCSettings(strings.TrimPrefix(provider.Name, "byoc:"), userID)
+			if err != nil {
+				return nil, err
+			}
+			if !found || !settings.Enabled {
+				continue
+			}
+		}
+		values = append(values, provider.Name)
+	}
+	sort.Strings(values)
+	return values, nil
 }
 
 func validComputeSessionKey(value string) bool {

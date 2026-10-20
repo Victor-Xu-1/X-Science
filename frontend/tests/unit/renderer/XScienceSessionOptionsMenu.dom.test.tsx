@@ -30,6 +30,22 @@ vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceSessionComputeProviders: mocks.loadSessionProviders,
   setXScienceSessionComputeProvider: mocks.setSessionProvider,
 }));
+vi.mock('@/renderer/services/runtime/computeSessionState', () => ({
+  loadXScienceSessionComputeState: async (...args: unknown[]) => {
+    const enabled = (await mocks.loadSessionProviders(...args)) as string[];
+    return {
+      enabled,
+      configured: true,
+      selectionSource: 'explicit',
+      softwareRuntime:
+        enabled.length === 0
+          ? { kind: 'local_explicit' }
+          : enabled.length > 1
+            ? { kind: 'invalid_selection' }
+            : { kind: 'remote_unsupported', providerName: enabled[0] },
+    };
+  },
+}));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();

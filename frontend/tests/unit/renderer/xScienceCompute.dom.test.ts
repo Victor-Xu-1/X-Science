@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  decodeSessionComputeState,
+  loadXScienceSessionComputeState,
+} from '@/renderer/services/runtime/computeSessionState';
+import {
   addXScienceInferenceProvider,
   addXScienceSshHost,
   deleteXScienceComputeProvider,
@@ -34,6 +38,83 @@ import {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+describe('C394 state projection strict read contract', () => {
+  const inherited = {
+    enabled: ['ssh:fixture'],
+    configured: false,
+    selectionSource: 'inherited',
+    softwareRuntime: { kind: 'local_default' },
+  };
+  it('preserves inherited access and explicit policy evidence without inventing a software target', async () => {
+    const transport = vi.fn<typeof fetch>().mockResolvedValue(Response.json(inherited));
+    await expect(loadXScienceSessionComputeState('root', transport)).resolves.toEqual(inherited);
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(transport.mock.calls[0][0]).toBe('/api/compute/session/root/state');
+    expect(transport.mock.calls[0][1]).toMatchObject({ credentials: 'include' });
+    for (const [enabled, policy] of [
+      [[], { kind: 'local_explicit' }],
+      [['ssh:a', 'ssh:b'], { kind: 'invalid_selection' }],
+      [['ssh:a'], { kind: 'remote_unsupported', providerName: 'ssh:a' }],
+      [['ssh:missing'], { kind: 'unavailable' }],
+    ] as const) {
+      const state = { enabled: [...enabled], configured: true, selectionSource: 'explicit', softwareRuntime: policy };
+      expect(decodeSessionComputeState(state)).toEqual(state);
+    }
+  });
+  it('rejects malformed or contradictory fields without exposing private response data', () => {
+    for (const value of [
+      null,
+      [],
+      { ...inherited, configured: 'false' },
+      { ...inherited, selectionSource: 'explicit' },
+      { ...inherited, enabled: ['ssh:a', 'ssh:a'] },
+      { ...inherited, softwareRuntime: { kind: 'REMOTE_PRIVATE_SENTINEL' } },
+      { ...inherited, softwareRuntime: { kind: 'local_default', providerName: 'PRIVATE_SENTINEL' } },
+      {
+        enabled: ['ssh:a'],
+        configured: true,
+        selectionSource: 'explicit',
+        softwareRuntime: { kind: 'remote_unsupported', providerName: null },
+      },
+    ]) {
+      expect(() => decodeSessionComputeState(value)).toThrow('X-Science returned an invalid session compute state');
+    }
+  });
+  it.each(['fetch', 'body'] as const)('bounds the new state %s read at15s without a legacy fallback', async (phase) => {
+    vi.useFakeTimers();
+    let release!: () => void;
+    const transport = vi.fn<typeof fetch>().mockImplementation((_url, init) => {
+      const pending = new Promise<Response | string>((resolve, reject) => {
+        release = () => resolve(phase === 'fetch' ? Response.json(inherited) : JSON.stringify(inherited));
+        init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), { once: true });
+      });
+      return phase === 'fetch'
+        ? (pending as Promise<Response>)
+        : Promise.resolve({ ok: true, status: 200, text: () => pending as Promise<string> } as Response);
+    });
+    const result = loadXScienceSessionComputeState('root', transport).catch((error: unknown) => error);
+    try {
+      await vi.advanceTimersByTimeAsync(15_000);
+      await expect(result).resolves.toMatchObject({ name: 'TimeoutError' });
+      expect(transport).toHaveBeenCalledTimes(1);
+      expect(transport.mock.calls[0][0]).toBe('/api/compute/session/root/state');
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      release();
+      await result;
+      vi.useRealTimers();
+    }
+  });
+  it('keeps HTTP read failure as failure and never falls back to the old enabled array', async () => {
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(Response.json({ error: 'PRIVATE_SENTINEL' }, { status: 503 }));
+    await expect(loadXScienceSessionComputeState('root', transport)).rejects.toMatchObject({ status: 503 });
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(transport.mock.calls[0][0]).toBe('/api/compute/session/root/state');
+  });
 });
 
 describe('C394 control deadline', () => {
