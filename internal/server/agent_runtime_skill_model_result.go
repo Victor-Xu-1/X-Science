@@ -43,6 +43,14 @@ func agentRuntimeSkillModelResult(value any) any {
 			header += " " + field + "=" + strconv.Quote(strconv.FormatBool(value))
 		}
 	}
+	// Preserve the producer's distinct source-body and rendered-prompt facts.
+	// They are opaque digests, not package versions or execution authority.
+	// Keep this bounded metadata before descriptions for leading previews.
+	for _, field := range []string{"source_body_hash", "body_hash"} {
+		if hash, present := skill[field].(string); present && strings.TrimSpace(hash) != "" && len(hash) <= 128 {
+			header += " " + field + "=" + strconv.Quote(hash)
+		}
+	}
 	if description != "" {
 		header += ` description=` + strconv.Quote(description)
 	}
