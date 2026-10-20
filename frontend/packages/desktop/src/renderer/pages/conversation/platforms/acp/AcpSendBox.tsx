@@ -157,6 +157,7 @@ const AcpSendBox: React.FC<{
     stagedPlanModeRef.current = stagedPlanMode;
   }, [stagedPlanMode]);
   const stagedSessionOptionsRef = useRef(stagedSessionOptions);
+  const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
   useEffect(() => {
     stagedSessionOptionsRef.current = stagedSessionOptions;
   }, [stagedSessionOptions]);
@@ -212,6 +213,9 @@ const AcpSendBox: React.FC<{
   const projectedMemoryRoot =
     ownerId === getRendererAccountOwnerId() && frameIncarnationId ? frameProjection?.root_frame_id : undefined;
   const retireStagedMemory = useCallback(() => {
+    // A user mutation is new intent even if readback retains the same value.
+    // Background observations must not retire the captured retry authority.
+    directCommandRetryRef.current = null;
     const staged = stagedSessionOptionsRef.current;
     if (!staged || staged.memory === undefined) return;
     const remaining = withoutStagedMemory(staged);
@@ -265,7 +269,6 @@ const AcpSendBox: React.FC<{
   } = useAcpComposerContextSelection(projectId, contextItems, setContextItems, `${ownerId}:${conversation_id}`);
   const sendBoxAnchorRef = useRef<HTMLDivElement>(null);
   const mountedRef = useRef(true);
-  const directCommandRetryRef = useRef<DirectCommandRetry | null>(null);
   const conversationAuthorityRef = useRef({ conversationId: conversation_id, ownerId });
   const sendIntentRef = useRef<XScienceSendIntent | null>(null);
   const terminalFailureRollbackRef = useRef<TerminalFailureRollback>([]);
@@ -828,7 +831,8 @@ const AcpSendBox: React.FC<{
       contextItems: commandContextItems,
       branchId: getSelectedXScienceBranch(conversation_id),
       branchRevision: getXScienceBranchSelectionRevision(conversation_id),
-      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined },
+      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined, memory: undefined },
+      stagedMemory: stagedSessionOptionsRef.current?.memory,
       queuedSpecialistAuthority,
       planMode,
     });
