@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+func claimedRunnerMemoryModeForTest(t *testing.T, repo *Repository, claim RunnerClaim) (string, bool, error) {
+	t.Helper()
+	result, err := repo.ClaimedRunnerMemoryContext(t.Context(), claim)
+	if err == nil && !result.Canonical {
+		t.Fatal("expected canonical fixture authority")
+	}
+	return result.Mode, result.Explicit, err
+}
+
 func TestClaimedRunnerMemoryModeUsesAdmittedRevision(t *testing.T) {
 	repo, db, stream := memoryAdmissionFixture(t, `{"_original_input":{"memory_mode":"off"}}`)
 	input := memoryAdmissionInput(stream, "first")
@@ -23,7 +32,7 @@ func TestClaimedRunnerMemoryModeUsesAdmittedRevision(t *testing.T) {
 	if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), memoryAdmissionInput(stream, "queued")); err != nil {
 		t.Fatal(err)
 	}
-	mode, found, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim.Claim)
+	mode, found, err := claimedRunnerMemoryModeForTest(t, repo, claim.Claim)
 	if err != nil || !found || mode != "off" {
 		t.Fatalf("queued input leaked: %s %t %v", mode, found, err)
 	}
@@ -34,7 +43,7 @@ func TestClaimedRunnerMemoryModeUsesAdmittedRevision(t *testing.T) {
 	if err != nil || !next.Claimed {
 		t.Fatalf("next=%+v err=%v", next, err)
 	}
-	mode, found, err = repo.ClaimedRunnerMemoryMode(t.Context(), next.Claim)
+	mode, found, err = claimedRunnerMemoryModeForTest(t, repo, next.Claim)
 	if err != nil || !found || mode != "on" {
 		t.Fatalf("new claim missed capture: %s %t %v", mode, found, err)
 	}
@@ -44,18 +53,18 @@ func TestClaimedRunnerMemoryModeRejectsStaleClaim(t *testing.T) {
 	repo, _, _, claim := claimedComposerFixture(t, false)
 	wrong := claim
 	wrong.OwnerID = "other"
-	if _, _, err := repo.ClaimedRunnerMemoryMode(t.Context(), wrong); !errors.Is(err, ErrOwnerMismatch) {
+	if _, _, err := claimedRunnerMemoryModeForTest(t, repo, wrong); !errors.Is(err, ErrOwnerMismatch) {
 		t.Fatalf("wrong owner: %v", err)
 	}
 	wrong = claim
 	wrong.ClaimToken = "wrong"
-	if _, _, err := repo.ClaimedRunnerMemoryMode(t.Context(), wrong); !errors.Is(err, ErrClaimStale) {
+	if _, _, err := claimedRunnerMemoryModeForTest(t, repo, wrong); !errors.Is(err, ErrClaimStale) {
 		t.Fatalf("wrong token: %v", err)
 	}
 	if _, _, _, err := repo.FinishRunner(t.Context(), FinishRunnerInput{Claim: claim, ClientMessageID: "finish", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim); !errors.Is(err, ErrClaimStale) {
+	if _, _, err := claimedRunnerMemoryModeForTest(t, repo, claim); !errors.Is(err, ErrClaimStale) {
 		t.Fatalf("terminal claim: %v", err)
 	}
 }
@@ -78,7 +87,7 @@ func TestClaimedRunnerMemoryModeInheritsOnlyProvenExplicitHistory(t *testing.T) 
 			if err != nil || !claim.Claimed {
 				t.Fatalf("claim=%+v err=%v", claim, err)
 			}
-			mode, found, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim.Claim)
+			mode, found, err := claimedRunnerMemoryModeForTest(t, repo, claim.Claim)
 			if value == "on" && (err != nil || !found || mode != "on") {
 				t.Fatalf("lost explicit history: %s %t %v", mode, found, err)
 			}
@@ -97,7 +106,7 @@ func TestClaimedRunnerMemoryModeRejectsChangedBranchGeneration(t *testing.T) {
 	if _, err := db.Exec(`UPDATE transcript_branch_state SET generation=generation+1 WHERE stream_uid=?`, stream.UID); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim); !errors.Is(err, ErrEventConflict) {
+	if _, _, err := claimedRunnerMemoryModeForTest(t, repo, claim); !errors.Is(err, ErrEventConflict) {
 		t.Fatalf("changed branch generation accepted: %v", err)
 	}
 }
@@ -117,7 +126,7 @@ func TestMemoryRuntimeConfigAliasesHonorLatestPatch(t *testing.T) {
 		if err != nil || !claim.Claimed {
 			t.Fatalf("claim=%+v err=%v", claim, err)
 		}
-		mode, found, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim.Claim)
+		mode, found, err := claimedRunnerMemoryModeForTest(t, repo, claim.Claim)
 		if err != nil || !found || mode != "on" {
 			t.Fatalf("captured old alias blocked new override: %s %t %v", mode, found, err)
 		}
@@ -152,7 +161,7 @@ func TestMemoryRuntimeConfigAliasesHonorLatestPatch(t *testing.T) {
 			if err != nil || !claim.Claimed {
 				t.Fatalf("claim=%+v err=%v", claim, err)
 			}
-			mode, found, err := repo.ClaimedRunnerMemoryMode(t.Context(), claim.Claim)
+			mode, found, err := claimedRunnerMemoryModeForTest(t, repo, claim.Claim)
 			if err != nil || !found || mode != "off" {
 				t.Fatalf("same-patch priority changed: %s %t %v", mode, found, err)
 			}

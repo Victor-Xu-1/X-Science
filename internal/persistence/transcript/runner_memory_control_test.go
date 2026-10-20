@@ -37,7 +37,7 @@ func TestClaimedRunnerMemoryModeControlsCannotGrant(t *testing.T) {
 			if err != nil || !resumed.Claimed {
 				t.Fatalf("resume=%+v err=%v", resumed, err)
 			}
-			mode, found, err := repo.ClaimedRunnerMemoryMode(t.Context(), resumed.Claim)
+			mode, found, err := claimedRunnerMemoryModeForTest(t, repo, resumed.Claim)
 			if err != nil || !found || mode != ordinary {
 				t.Fatalf("control granted/replaced claim permission: %s %t %v", mode, found, err)
 			}

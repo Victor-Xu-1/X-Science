@@ -144,11 +144,11 @@ func (s *Server) claimedMemoryWriteEnabled(ctx context.Context, stream transcrip
 	if s.transcriptStore == nil || claim.StreamUID != stream.UID || claim.OwnerID != stream.OwnerID {
 		return false, transcriptstore.ErrOwnerMismatch
 	}
-	claimedMode, claimedExplicit, err := s.transcriptStore.ClaimedRunnerMemoryMode(ctx, claim)
+	memoryContext, err := s.transcriptStore.ClaimedRunnerMemoryContext(ctx, claim)
 	if err != nil {
 		return false, err
 	}
-	if !claimedExplicit || claimedMode != "on" {
+	if memoryContext.Canonical && (!memoryContext.Explicit || memoryContext.Mode != "on") {
 		return false, memorytools.ErrMemoryUnavailable
 	}
 	mode := ""
@@ -186,19 +186,21 @@ func (s *Server) claimedMemoryWriteEnabled(ctx context.Context, stream transcrip
 	if !modeExplicit {
 		mode, modeExplicit = sessionWorkspaceMemoryModeWithFrame(session, metadata, metadataFound)
 	}
-	// Fresh opt-outs revoke permission but can never grant it to this claim.
-	if sessionMode, explicit := sessionWorkspaceMemoryMode(session); explicit && sessionMode == "off" {
-		return false, memorytools.ErrMemoryUnavailable
-	}
-	rootMetadata := metadata
-	if stream.RootFrameID != "" && stream.RootFrameID != stream.FrameID {
-		rootMetadata, metadataFound, err = s.workspaceStore.GetFrameRuntimeMetadata(stream.RootFrameID)
-		if err != nil {
-			return false, err
+	if memoryContext.Canonical {
+		// Fresh opt-outs revoke permission but can never grant it to this claim.
+		if sessionMode, explicit := sessionWorkspaceMemoryMode(session); explicit && sessionMode == "off" {
+			return false, memorytools.ErrMemoryUnavailable
 		}
-	}
-	if rootMode, explicit := frameWorkspaceMemoryMode(rootMetadata); metadataFound && explicit && rootMode == "off" {
-		return false, memorytools.ErrMemoryUnavailable
+		rootMetadata := metadata
+		if stream.RootFrameID != "" && stream.RootFrameID != stream.FrameID {
+			rootMetadata, metadataFound, err = s.workspaceStore.GetFrameRuntimeMetadata(stream.RootFrameID)
+			if err != nil {
+				return false, err
+			}
+		}
+		if rootMode, explicit := frameWorkspaceMemoryMode(rootMetadata); metadataFound && explicit && rootMode == "off" {
+			return false, memorytools.ErrMemoryUnavailable
+		}
 	}
 	enabled, err, disabledReason := s.workspaceMemoryAccessEnabledReason(ctx, stream.OwnerID, stream.ProjectID, mode, modeExplicit)
 	if err != nil {

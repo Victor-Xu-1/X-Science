@@ -30,7 +30,14 @@ claim's admitted input revision and actual branch snapshot. Unknown or invalid
 permission cannot be upgraded by global defaults or a newer queued input. Fresh
 global/user/session/root opt-outs may still revoke that permission. Existing
 receipt replay remains independent of granting a fresh write. Noncanonical
-legacy access retains its existing compatibility path. A control-classified response patch
+legacy access retains its existing compatibility path, including legacy Frame-ref
+streams with a real Transcript claim. The same live-claim snapshot reads existing
+FrameAuthority: valid payload authority uses the new claimed-permission check,
+valid legacy authority uses the original guard, and unknown/contradictory authority
+fails closed. In the claimed Memory projection only, explicit ordinary InputData
+Memory takes precedence over the same event's runtimeConfig, including when no
+runtimeConfig is present. Present-invalid values are not inherited as `on`.
+A control-classified response patch
 cannot create claimed permission, though a fresh control opt-out can revoke it.
 
 This backend contract does not claim completion of frontend ACK/readback,

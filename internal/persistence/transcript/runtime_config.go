@@ -99,9 +99,11 @@ func readFrameRuntimeConfig(
 			LEFT JOIN frame_events frame_event ON event.source='frame_ref' AND frame_event.id=event.frame_event_id
 			WHERE event.stream_uid=? AND event.event_type IN ('user_message','user_input_response')
 				AND (? IS NULL OR event.publication_seq<=?)
-				AND json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,
-					'$.runtimeConfig') IS NOT NULL`
-		args = []any{branchID, stream.UID, throughPublication, throughPublication}
+				AND (json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,
+					'$.runtimeConfig') IS NOT NULL OR (? AND (
+					json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,'$.inputData.memory_mode') IS NOT NULL OR
+					json_type(CASE WHEN event.source='payload' THEN event.payload_json ELSE frame_event.payload END,'$.inputData.memoryMode') IS NOT NULL)))`
+		args = []any{branchID, stream.UID, throughPublication, throughPublication, ordinaryRevision != nil}
 		if ordinaryRevision != nil {
 			query += ` AND EXISTS(SELECT 1 FROM transcript_input_admissions admission
 				WHERE admission.stream_uid=event.stream_uid AND admission.event_id=event.event_id
@@ -128,6 +130,17 @@ func readFrameRuntimeConfig(
 		var payload map[string]json.RawMessage
 		if err := json.Unmarshal(raw, &payload); err != nil {
 			return nil, false, ErrEventConflict
+		}
+		if ordinaryRevision != nil {
+			mode, explicit, err := claimedMemoryPatch(payload)
+			if err != nil {
+				return nil, false, err
+			}
+			if explicit {
+				config["memory_mode"] = mode
+				found = true
+			}
+			continue
 		}
 		rawConfig, exists := payload["runtimeConfig"]
 		if !exists {
