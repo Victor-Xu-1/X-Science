@@ -36,6 +36,23 @@ function renderMenu(
 }
 
 describe('v1.1 add-to-message menu', () => {
+  it('C419 return focus hands View Plan the surviving Plus opener rather than its temporary row', async () => {
+    let handedFocus: Element | null = null;
+    const onViewPlan = vi.fn(() => {
+      handedFocus = document.activeElement;
+    });
+    const user = userEvent.setup();
+    await renderMenu({ onViewPlan }, 'en-US');
+    await user.click(screen.getByRole('button', { name: 'Add to message' }));
+    const item = screen.getByRole('menuitem', { name: 'View plan' });
+    await waitFor(() => expect(getComputedStyle(item).pointerEvents).not.toBe('none'));
+    item.focus();
+    await user.click(item);
+    expect(onViewPlan).toHaveBeenCalledTimes(1);
+    expect(handedFocus).toBe(screen.getByRole('button', { name: 'Add to message' }));
+    expect(screen.getByRole('button', { name: 'Add to message' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('hides unavailable plan, review, and save-skill operations instead of presenting no-op actions', async () => {
     await renderMenu();
     fireEvent.click(screen.getByRole('button', { name: '添加到消息' }));

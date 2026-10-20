@@ -14,11 +14,13 @@ function Fixture({
   onClose,
   onComplete,
   onRepair,
+  planReadState = 'ready',
 }: {
   surface: Surface;
   onClose: () => void;
   onComplete: (action: 'approve' | 'discard') => void;
   onRepair: () => void;
+  planReadState?: 'ready' | 'loading' | 'error';
 }) {
   const [visible, setVisible] = useState(false);
   const close = () => {
@@ -30,6 +32,7 @@ function Fixture({
       <button type='button' onClick={() => setVisible(true)}>
         Open runtime view
       </button>
+      <button type='button'>Outside destination</button>
       <XScienceRuntimeDrawers
         mobile={false}
         reviewTitle='Fixture findings'
@@ -50,8 +53,8 @@ function Fixture({
           revisionNumber: 1,
           revisionCount: 1,
         }}
-        planLoading={false}
-        planError={null}
+        planLoading={planReadState === 'loading'}
+        planError={planReadState === 'error' ? 'Synthetic Plan read failure' : null}
         planApprovalAvailable
         planAction={null}
         returnPlanLabel='Discard fixture'
@@ -74,6 +77,85 @@ async function openFixture(surface: Surface, language: TestLanguage = 'en-US') {
 }
 
 describe('C419 runtime drawer native close', () => {
+  it('C419 return focus reaches the persistent Plan opener after the actual native exit', async () => {
+    const callbacks = await openFixture('plan');
+    const close = await screen.findByRole('button', { name: 'Close' });
+    await waitFor(() => expect(close).toHaveFocus());
+    await callbacks.user.click(close);
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument());
+    await waitFor(() => expect(callbacks.opener).toHaveFocus());
+    expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+    expect(callbacks.onComplete).not.toHaveBeenCalled();
+  });
+
+  it('C419 return focus preserves an external destination chosen during the Plan exit', async () => {
+    const callbacks = await openFixture('plan');
+    const close = await screen.findByRole('button', { name: 'Close' });
+    await waitFor(() => expect(close).toHaveFocus());
+    await callbacks.user.click(close);
+    const outside = screen.getByRole('button', { name: 'Outside destination' });
+    outside.focus();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument());
+    expect(outside).toHaveFocus();
+    expect(callbacks.onComplete).not.toHaveBeenCalled();
+  });
+
+  it('C419 return focus ignores the superseded exit when the same Plan is reopened', async () => {
+    const callbacks = await openFixture('plan');
+    const close = await screen.findByRole('button', { name: 'Close' });
+    await waitFor(() => expect(close).toHaveFocus());
+    await callbacks.user.click(close);
+    await callbacks.user.click(callbacks.opener);
+    const currentClose = await screen.findByRole('button', { name: 'Close' });
+    await waitFor(() => expect(currentClose).toHaveFocus());
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    expect(currentClose).toHaveFocus();
+    act(() => fireEvent.keyDown(currentClose, { key: 'Escape', keyCode: 27, which: 27 }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument());
+    await waitFor(() => expect(callbacks.opener).toHaveFocus());
+    expect(callbacks.onClose).toHaveBeenCalledTimes(2);
+    expect(callbacks.onComplete).not.toHaveBeenCalled();
+  });
+
+  it('C419 return focus does not restore a disposed owner into the replacement view', async () => {
+    const callbacks = { onClose: vi.fn(), onComplete: vi.fn(), onRepair: vi.fn() };
+    const user = userEvent.setup();
+    const rendered = await renderWithI18n(<Fixture key='old-owner' surface='plan' {...callbacks} />, 'en-US');
+    await user.click(screen.getByRole('button', { name: 'Open runtime view' }));
+    const close = await screen.findByRole('button', { name: 'Close' });
+    await waitFor(() => expect(close).toHaveFocus());
+    await user.click(close);
+    rendered.rerender(<Fixture key='new-owner' surface='plan' {...callbacks} />);
+    const outside = screen.getByRole('button', { name: 'Outside destination' });
+    outside.focus();
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+    });
+    expect(outside).toHaveFocus();
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+    expect(callbacks.onComplete).not.toHaveBeenCalled();
+  });
+
+  it.each(['loading', 'error'] as const)(
+    'C419 return focus closes a %s Plan without a decision',
+    async (planReadState) => {
+      const callbacks = { onClose: vi.fn(), onComplete: vi.fn(), onRepair: vi.fn() };
+      const user = userEvent.setup();
+      await renderWithI18n(<Fixture surface='plan' {...callbacks} planReadState={planReadState} />, 'en-US');
+      const opener = screen.getByRole('button', { name: 'Open runtime view' });
+      await user.click(opener);
+      const close = await screen.findByRole('button', { name: 'Close' });
+      await waitFor(() => expect(close).toHaveFocus());
+      await user.click(close);
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument());
+      await waitFor(() => expect(opener).toHaveFocus());
+      expect(callbacks.onClose).toHaveBeenCalledTimes(1);
+      expect(callbacks.onComplete).not.toHaveBeenCalled();
+    }
+  );
+
   it.each([
     ['plan', 'en-US', 'Close'],
     ['plan', 'zh-CN', '关闭'],
