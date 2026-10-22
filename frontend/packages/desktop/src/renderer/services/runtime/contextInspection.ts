@@ -1,4 +1,4 @@
-import type { ContextCallUsage, ContextUsageSnapshot } from './contextUsage';
+import type { ContextCallUsage, ContextUsageSnapshot } from '../contextUsage';
 
 export type ContextInspectionScope = {
   conversationId: string;

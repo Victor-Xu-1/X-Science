@@ -1,6 +1,6 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ContextInspection } from '@/renderer/services/contextInspection';
+import type { ContextInspection } from '@/renderer/services/runtime/contextInspection';
 import { estimateContextUsageBreakdown } from '@/renderer/services/contextUsage';
 import { InspectionCallDetails, InspectionTurnDetails } from './ContextInspectionDetails';
 import {

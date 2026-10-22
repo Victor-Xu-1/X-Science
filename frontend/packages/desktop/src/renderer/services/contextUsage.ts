@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { parseContextInspection, type ContextInspection } from './contextInspection';
+import { parseContextInspection, type ContextInspection } from './runtime/contextInspection';
 
 export const CONTEXT_USAGE_CATEGORIES = ['systemPrompt', 'tools', 'messages', 'mcp', 'skills'] as const;
 export type ContextUsageCategory = (typeof CONTEXT_USAGE_CATEGORIES)[number];

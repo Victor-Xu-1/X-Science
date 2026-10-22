@@ -3,7 +3,7 @@ import type {
   ContextInspection,
   ContextInspectionCall,
   ContextInspectionOutcome,
-} from '@/renderer/services/contextInspection';
+} from '@/renderer/services/runtime/contextInspection';
 
 export type ContextInspectionTurnPoint = ContextInspectionOutcome & { turnId: string; turnNumber: number };
 

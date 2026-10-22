@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ContextInspectionCall } from '@/renderer/services/contextInspection';
+import type { ContextInspectionCall } from '@/renderer/services/runtime/contextInspection';
 import { estimateContextUsageBreakdown, type ContextUsageSnapshot } from '@/renderer/services/contextUsage';
 import { contextDisplayWindow, formatContextTokens } from './contextWindowHistoryModel';
 import {

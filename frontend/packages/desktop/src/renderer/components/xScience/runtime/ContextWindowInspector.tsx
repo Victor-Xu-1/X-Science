@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import type { ContextUsageState } from '@/renderer/hooks/xScience/useContextUsage';
-import { contextInspectionIdentity } from '@/renderer/services/contextInspection';
+import { contextInspectionIdentity } from '@/renderer/services/runtime/contextInspection';
 import { projectContextUsage } from '@/renderer/services/contextUsage';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { containTabFocus, restoreScopedFocus } from '@/renderer/utils/focusScope';
