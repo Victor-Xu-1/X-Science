@@ -8,19 +8,22 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// Historical76 fixtures start from an empty current database. Restore the one
-// Web table definition changed by79 before removing newer migration receipts;
-// otherwise the fixture falsely claims76 while retaining the14-only CHECK.
+// Historical76 fixtures start from an empty reviewed80 database. Remove the
+// Library80 tables and restore the Web table definition changed by79 before
+// removing newer migration receipts; otherwise the fixture falsely claims76
+// while retaining newer objects or the14-only CHECK.
 // This helper is test-only and never touches an installed/user database.
 func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 	t.Helper()
 	var installed, facts int
-	if err := db.QueryRow(`SELECT MAX(version) FROM workspace_schema_migrations`).Scan(&installed); err != nil || installed != 79 {
-		t.Fatalf("historical reconstruction requires reviewed current79 schema: version=%d err=%v", installed, err)
+	if err := db.QueryRow(`SELECT MAX(version) FROM workspace_schema_migrations`).Scan(&installed); err != nil || installed != 80 {
+		t.Fatalf("historical reconstruction requires reviewed current80 schema: version=%d err=%v", installed, err)
 	}
 	if err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM transcript_streams)+
 		(SELECT COUNT(*) FROM transcript_web_projection_state)+(SELECT COUNT(*) FROM transcript_web_messages)+
-		(SELECT COUNT(*) FROM transcript_web_message_identities)+(SELECT COUNT(*) FROM transcript_web_message_artifact_refs)`).Scan(&facts); err != nil || facts != 0 {
+		(SELECT COUNT(*) FROM transcript_web_message_identities)+(SELECT COUNT(*) FROM transcript_web_message_artifact_refs)+
+		(SELECT COUNT(*) FROM project_literature)+(SELECT COUNT(*) FROM literature_attachment_versions)+
+		(SELECT COUNT(*) FROM literature_attachments)+(SELECT COUNT(*) FROM literature_items)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical projection reconstruction requires an empty private fixture: facts=%d err=%v", facts, err)
 	}
 	var currentDDL string
@@ -46,7 +49,11 @@ func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	for _, statement := range []string{`DROP TABLE transcript_web_projection_state`, transcriptstore.WebReadModelV74ProjectionStateStatement(), readyIndex} {
+	for _, statement := range []string{
+		`DROP TABLE project_literature`, `DROP TABLE literature_attachment_versions`,
+		`DROP TABLE literature_attachments`, `DROP TABLE literature_items`,
+		`DROP TABLE transcript_web_projection_state`, transcriptstore.WebReadModelV74ProjectionStateStatement(), readyIndex,
+	} {
 		if _, err := tx.ExecContext(t.Context(), statement); err != nil {
 			t.Fatal(err)
 		}
