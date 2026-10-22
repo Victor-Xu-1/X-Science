@@ -3,6 +3,8 @@ import {
   samePdfReadingPending,
   pdfReadingExpected,
   samePdfReadingScope,
+  samePdfReadingSource,
+  pdfReadingSourceKey,
   type PdfReadingContext,
   type PdfReadingPendingMutation,
   type PdfReadingMutation,
@@ -205,9 +207,7 @@ export class PdfReadingController {
     if (pending) {
       if (
         pending.request.schema !== 'x-science.pdf-reading-link.v1' ||
-        !pending.request.sources?.every((item) =>
-          sources.some((source) => source.artifact_id === item.artifact_id && source.version_id === item.version_id)
-        )
+        !pending.request.sources?.every((item) => sources.some((source) => samePdfReadingSource(source, item)))
       ) {
         throw new Error('Resolve the original PDF reading request first');
       }
@@ -265,10 +265,14 @@ export class PdfReadingController {
   };
   reportPosition = (source: PdfReadingSource, position: PdfReadingPosition): void => {
     if (!this.current() || !validPdfReadingPosition(position)) return;
-    this.positions.set(source.version_id, { ...position });
+    this.positions.set(pdfReadingSourceKey(source), { ...position });
     while (this.positions.size > 100) this.positions.delete(this.positions.keys().next().value!);
   };
-  positionFor = (versionId: string) => this.positions.get(versionId);
+  positionFor = (source: PdfReadingSource | string) => {
+    if (typeof source !== 'string') return this.positions.get(pdfReadingSourceKey(source));
+    const binding = this.view.context?.bindings.filter((item) => item.version_id === source);
+    return binding?.length === 1 ? this.positions.get(pdfReadingSourceKey(binding[0])) : undefined;
+  };
   captureSend = (activeVersionId?: string): PdfReadingSendSnapshot => {
     if (!this.current()) throw new Error('PDF reading scope changed');
     if (this.view.pending || (this.view.blocked && this.view.context?.bindings.length))

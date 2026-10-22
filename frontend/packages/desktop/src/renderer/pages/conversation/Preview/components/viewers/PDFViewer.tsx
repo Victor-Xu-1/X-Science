@@ -6,7 +6,8 @@
 
 import { XSciencePdfArtifactViewer } from '@/renderer/pages/artifact/XSciencePdfArtifactViewer';
 import React, { useCallback, useMemo, useState } from 'react';
-import type { PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
+import { pdfReadingSourceKey, type PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
+import { previewReadingSource } from '@/renderer/services/runtime/pdfReadingPreview';
 import { useOptionalPreviewContext } from '../../context/PreviewContext';
 import { PdfReadingPreviewAction } from './PdfReadingPreviewAction';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +23,7 @@ interface PDFPreviewProps {
   artifactId?: string;
   versionId?: string;
   projectId?: string;
+  readingSource?: unknown;
   targetPage?: number;
   revealId?: string;
 }
@@ -34,22 +36,24 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({
   artifactId,
   versionId,
   projectId,
+  readingSource,
   targetPage,
   revealId,
 }) => {
   const { t } = useTranslation();
   const owner = useOptionalPreviewContext()?.pdfReadingOwner;
   const identity = useMemo(
-    () => (artifactId && versionId ? { artifact_id: artifactId, version_id: versionId } : undefined),
-    [artifactId, versionId]
+    () => previewReadingSource(readingSource, artifactId, versionId),
+    [readingSource, artifactId, versionId]
   );
-  const [observed, setObserved] = useState<{ version?: string; position: PdfReadingPosition }>();
+  const sourceKey = identity ? pdfReadingSourceKey(identity) : undefined;
+  const [observed, setObserved] = useState<{ key?: string; position: PdfReadingPosition }>();
   const report = useCallback(
     (position: PdfReadingPosition) => {
-      setObserved({ version: versionId, position });
+      setObserved({ key: sourceKey, position });
       if (identity && projectId === owner?.projectId) owner?.reportPosition(identity, position);
     },
-    [identity, owner, projectId, versionId]
+    [identity, owner, projectId, sourceKey]
   );
   const source = buildPdfSrc(file_path, content);
   const filename = fileName || file_path?.replace(/\\/g, '/').split('/').at(-1) || t('preview.pdf.title');
@@ -72,11 +76,11 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({
   return (
     <div className='size-full min-h-0 flex flex-col'>
       <PdfReadingPreviewAction
-        key={versionId ?? source}
+        key={sourceKey ?? source}
         source={identity}
         projectId={projectId}
         name={filename}
-        position={observed?.version === versionId ? observed?.position : undefined}
+        position={observed?.key === sourceKey ? observed?.position : undefined}
       />
       <div className='min-h-0 flex-1'>
         <XSciencePdfArtifactViewer

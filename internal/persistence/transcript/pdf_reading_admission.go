@@ -40,6 +40,9 @@ func readingInputWithSnapshot(data map[string]any, snapshot PDFReadingSnapshot) 
 func snapshotPDFReadingReferences(snapshot PDFReadingSnapshot) []UserArtifactReferenceInput {
 	refs := make([]UserArtifactReferenceInput, 0, len(snapshot.Bindings))
 	for _, binding := range snapshot.Bindings {
+		if binding.SourceKind != "artifact-version" {
+			continue
+		}
 		refs = append(refs, UserArtifactReferenceInput{ArtifactID: binding.ArtifactID, VersionID: binding.VersionID})
 	}
 	return refs
@@ -81,6 +84,17 @@ func FreezePDFReadingQueueInput(ctx context.Context, query MessageIntentQuery, o
 	}
 	if err = ValidatePDFReadingSnapshotSources(ctx, query, owner, snapshot); err != nil {
 		return nil, nil, err
+	}
+	for _, binding := range snapshot.Bindings {
+		if binding.SourceKind == "literature-attachment-version" {
+			var live bool
+			if err = query.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM literature_items WHERE id=? AND owner_user_id=? AND deleted_at IS NULL)`, binding.ItemID, owner).Scan(&live); err != nil {
+				return nil, nil, err
+			}
+			if !live {
+				return nil, nil, ErrPDFReadingUnavailable
+			}
+		}
 	}
 	return readingInputWithSnapshot(data, snapshot), snapshotPDFReadingReferences(snapshot), nil
 }
@@ -131,6 +145,19 @@ func resolvePDFReadingMessageInput(ctx context.Context, query MessageIntentQuery
 func ValidatePDFReadingSnapshotSources(ctx context.Context, query MessageIntentQuery, owner string, snapshot PDFReadingSnapshot) error {
 	for _, binding := range snapshot.Bindings {
 		var valid bool
+		if binding.SourceKind == "literature-attachment-version" {
+			err := query.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM literature_attachment_versions v
+			 JOIN literature_attachments a ON a.id=v.attachment_id JOIN literature_items i ON i.id=a.item_id
+			 WHERE v.id=? AND a.id=? AND i.id=? AND i.owner_user_id=? AND v.checksum=? AND v.size_bytes=? AND v.content_available=1
+			 AND NOT EXISTS(SELECT 1 FROM blob_commit_markers b WHERE b.kind='literature-attachment-version' AND b.aggregate_id=v.id))`, binding.VersionID, binding.AttachmentID, binding.ItemID, owner, binding.Checksum, binding.SizeBytes).Scan(&valid)
+			if err != nil {
+				return err
+			}
+			if !valid {
+				return ErrPDFReadingUnavailable
+			}
+			continue
+		}
 		err := query.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM artifact_versions version
    JOIN artifacts artifact ON artifact.id=version.artifact_id JOIN projects project ON project.id=artifact.project_id
    WHERE version.id=? AND artifact.id=? AND project.id=? AND project.user_id=? AND lower(version.content_sha256)=?

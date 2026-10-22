@@ -82,6 +82,14 @@ func (s *Server) executeAgentWorkspaceReadFile(
 			map[string]any{"file_path": target.path, "file_path_scope": "original_source"})
 	}
 	versionID := strings.TrimSpace(stringValue(input["version_id"]))
+	if strings.HasPrefix(versionID, "litv_") {
+		version, err := s.openAcceptedLibraryReadingVersion(ctx, identity, userID, versionID)
+		if err != nil {
+			return nil, errors.New("read_file Library version is unavailable")
+		}
+		defer version.reader.Close()
+		return s.readAgentWorkspaceVersionWithLocation(ctx, identity, version, input)
+	}
 	version, found, err := s.openAgentWorkspaceReadableVersion(ctx, userID, projectID, versionID)
 	if err != nil {
 		return nil, errors.New("read_file could not open the requested artifact version")

@@ -1,5 +1,5 @@
 import type { PdfReadingSnapshot } from '@/common/adapter/pdfReadingContext';
-import { getXScienceArtifactVersionContentUrl } from '@/renderer/services/xScienceArtifacts';
+import { boundPdfPreview } from '@/renderer/services/runtime/pdfReadingPreview';
 import { useOptionalPreviewContext } from '../../Preview/context/PreviewContext';
 import { BookOpenText } from 'lucide-react';
 import React from 'react';
@@ -35,22 +35,8 @@ export function MessagePdfReadingContext({
       title={binding.name}
       aria-label={`${label} · ${binding.name}`}
       onClick={() => {
-        const url = getXScienceArtifactVersionContentUrl(binding.version_id);
-        preview.openPreview(
-          url,
-          'pdf',
-          {
-            artifactId: binding.artifact_id,
-            versionId: binding.version_id,
-            projectId: snapshot.scope.project_id,
-            rootFrameId: snapshot.scope.root_frame_id,
-            file_name: binding.name,
-            contentUrl: url,
-            editable: false,
-            targetPdfPage: snapshot.page_number,
-          },
-          { presentation: 'single' }
-        );
+        const target = boundPdfPreview(binding, snapshot, snapshot.page_number);
+        preview.openPreview(target.content, 'pdf', target.metadata, { presentation: 'single' });
       }}
     >
       <BookOpenText size={14} strokeWidth={2} aria-hidden='true' />

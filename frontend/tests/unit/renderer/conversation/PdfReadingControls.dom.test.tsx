@@ -11,13 +11,17 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import type { PdfReadingPreviewOwner } from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PdfReadingContext } from '@/common/adapter/pdfReadingContext';
 
-const mocks = vi.hoisted(() => ({ options: vi.fn(), owner: null as PdfReadingPreviewOwner | null }));
+const mocks = vi.hoisted(() => ({ options: vi.fn(), library: vi.fn(), owner: null as PdfReadingPreviewOwner | null }));
 vi.mock('@/renderer/services/runtime/pdfReadingContext', async (original) => ({
   ...(await original<typeof import('@/renderer/services/runtime/pdfReadingContext')>()),
   loadProjectReadingOptions: mocks.options,
 }));
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
   useOptionalPreviewContext: () => ({ pdfReadingOwner: mocks.owner }),
+}));
+vi.mock('@/renderer/services/runtime/literatureLibrary', async (original) => ({
+  ...(await original<typeof import('@/renderer/services/runtime/literatureLibrary')>()),
+  loadLibraryReadingOptions: mocks.library,
 }));
 const Harness = ({ controller, open }: { controller: PdfReadingController; open: (id: string) => void }) => {
   const view = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
@@ -29,6 +33,7 @@ describe('C12 PDF reading controls', () => {
     resetRendererAccountScopeForTest();
     setRendererAccountOwner('owner');
     mocks.options.mockReset();
+    mocks.library.mockReset().mockResolvedValue({ options: [], unavailable: 0 });
     mocks.owner = null;
   });
   afterEach(() => {
@@ -68,7 +73,8 @@ describe('C12 PDF reading controls', () => {
       await mutation.promise;
     });
     expect(screen.getByTestId('pdf-context-bar')).toHaveTextContent('paper-2.pdf');
-    expect(screen.queryByText('Library')).toBeNull();
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(controller.getSnapshot().context?.bindings.at(-1)?.source_kind).toBe('artifact-version');
   });
   it('opens a bound PDF and unlinks without deleting its underlying file', async () => {
     const mutate = vi.fn().mockResolvedValue({ ...pdfContext([], 2), changed: true });
@@ -150,7 +156,7 @@ describe('C12 PDF reading controls', () => {
     );
     await act(async () => {
       action.reject(new Error('old request'));
-      await action.promise.catch(() => undefined);
+      await action.promise.catch((): undefined => undefined);
     });
     expect(screen.queryByRole('alert')).toBeNull();
   });

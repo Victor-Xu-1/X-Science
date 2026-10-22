@@ -44,6 +44,23 @@ func inputAttachmentReaderStatesFromRunnerEntries(entries []eventjournal.Entry) 
 			})
 		}
 	}
+	for _, entry := range entries {
+		if role := strings.ToLower(strings.TrimSpace(stringValue(entry.Message["role"]))); role != "" && role != "user" {
+			continue
+		}
+		bindings, err := runnerLibraryPDFBindings(entry.Message)
+		if err != nil {
+			continue
+		}
+		for _, binding := range bindings {
+			if _, found := byVersion[binding.VersionID]; found {
+				continue
+			}
+			format, _, _ := agentWorkspaceFormatHint(binding.Name, binding.MIMEType)
+			byVersion[binding.VersionID] = len(states)
+			states = append(states, sessionRunnerInputAttachmentReader{VersionID: binding.VersionID, Filename: binding.Name, FormatID: format.ID, Reader: format.Reader, EquivalentPackages: append([]string(nil), format.EquivalentPackages...)})
+		}
+	}
 	if len(states) == 0 {
 		return nil
 	}

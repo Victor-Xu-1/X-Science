@@ -243,6 +243,11 @@ func Open(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, err
 	}
+	if err := store.reconcileLiteratureBlobs(context.Background()); err != nil {
+		_ = readDB.Close()
+		_ = db.Close()
+		return nil, err
+	}
 	if err := pruneWorkspaceSchemaBackups(path, backupPath); err != nil {
 		_ = readDB.Close()
 		_ = db.Close()

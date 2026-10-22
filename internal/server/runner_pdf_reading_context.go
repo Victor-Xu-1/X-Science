@@ -36,6 +36,9 @@ func runnerPDFReadingHints(message eventjournal.Message, refs []transcriptstore.
 	}
 	result := map[string]runnerPDFReadingHint{}
 	for _, binding := range snapshot.Bindings {
+		if binding.SourceKind == "literature-attachment-version" {
+			continue
+		}
 		ref, found := byVersion[binding.VersionID]
 		if !found || ref.ArtifactID != binding.ArtifactID || ref.Checksum != binding.Checksum || ref.SizeBytes != binding.SizeBytes {
 			return nil, transcriptstore.ErrPDFReadingInvalid

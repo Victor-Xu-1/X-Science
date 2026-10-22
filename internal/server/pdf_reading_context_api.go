@@ -29,10 +29,8 @@ func validPDFReadingSources(sources []transcriptstore.PDFReadingSource, max int)
 		return false
 	}
 	for _, source := range sources {
-		for _, value := range []string{source.ArtifactID, source.VersionID} {
-			if value == "" || len(value) > 512 || value != strings.TrimSpace(value) {
-				return false
-			}
+		if !source.Valid() {
+			return false
 		}
 	}
 	return true
@@ -101,17 +99,17 @@ func (s *Server) handlePDFReadingContext(w http.ResponseWriter, r *http.Request,
 	if link {
 		existing := map[string]transcriptstore.PDFReadingBinding{}
 		for _, binding := range current.Bindings {
-			existing[binding.VersionID] = binding
+			existing[binding.Source().Key()] = binding
 		}
 		seen := map[string]bool{}
 		for _, source := range body.Sources {
-			if seen[source.VersionID] {
+			if seen[source.Key()] {
 				writePDFReadingError(w, transcriptstore.ErrPDFReadingInvalid)
 				return
 			}
-			seen[source.VersionID] = true
-			binding, found := existing[source.VersionID]
-			if found && binding.ArtifactID != source.ArtifactID {
+			seen[source.Key()] = true
+			binding, found := existing[source.Key()]
+			if found && !binding.Matches(source) {
 				writePDFReadingError(w, transcriptstore.ErrPDFReadingUnavailable)
 				return
 			}

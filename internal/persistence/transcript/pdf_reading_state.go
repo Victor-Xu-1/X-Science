@@ -44,10 +44,10 @@ func ReadPDFReadingContext(ctx context.Context, query MessageIntentQuery, owner,
 	}
 	seen, versions := map[string]bool{}, map[string]bool{}
 	for _, binding := range record.Context.Bindings {
-		if !binding.Valid() || seen[binding.BindingID] || versions[binding.VersionID] {
+		if !binding.Valid() || seen[binding.BindingID] || versions[binding.Source().Key()] {
 			return result, ErrPDFReadingState
 		}
-		seen[binding.BindingID], versions[binding.VersionID] = true, true
+		seen[binding.BindingID], versions[binding.Source().Key()] = true, true
 	}
 	if record.LastMutation == nil {
 		return result, ErrPDFReadingState

@@ -418,6 +418,7 @@ const PreviewBoardTileContent: React.FC<{
         artifactId={metadata?.artifactId}
         versionId={metadata?.versionId}
         projectId={metadata?.projectId}
+        readingSource={metadata?.pdfReadingSource}
         targetPage={metadata?.targetPdfPage}
         revealId={metadata?.pdfRevealId}
       />
