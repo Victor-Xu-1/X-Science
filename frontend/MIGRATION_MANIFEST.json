@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "e53e640f1425ece29e2072c3a919c73a5d618904950fba2624653b6440e1542d",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "04a45fc145fb75e5518e698ec7e69276f9b3efebb52f15cb7de21c98b821a852",
+  "additionFingerprintSHA256": "de3200e61e968813b9369f91d86e2b1d392971a18fa80e3c35f574d3705d5903",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -8073,14 +8073,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionDetails.tsx",
-      "sha256": "2cdde4a62821c2ff5d65403f2f45dbc34635ffbf7b123f4c83b03e7d59d83542",
-      "bytes": 6296,
+      "sha256": "cd062f6cb52b2c3a28acdc781a38c975e9873b05d3af6c48ba1f60615db69203",
+      "bytes": 6304,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionHistory.tsx",
-      "sha256": "1935b8f33cadf99b1bff084112e82729dd7f0483415008b7213aefac32611c3e",
-      "bytes": 9125,
+      "sha256": "92a59bda5f242d28ac2aeb37290fefe7f3c6581f65b444eb63b22b399f8e97cb",
+      "bytes": 9133,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8109,8 +8109,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.tsx",
-      "sha256": "3c95bf1c18b8c2bc4060722e2136c77f0776d05fd56c0d9d88c380bc3fc8eb2b",
-      "bytes": 9780,
+      "sha256": "bf066e2b79941fcf899baad5373d1c0186c8e48713fd1e29a342c202a90887a5",
+      "bytes": 9788,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8307,8 +8307,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/contextInspectionModel.ts",
-      "sha256": "525dc11ed2b9795f45d26d59207158a14ad66ccc3b04e57ef00f19654df25076",
-      "bytes": 4267,
+      "sha256": "0b9dc7fb300012b0ab7798e4bcd4ce679ce44960c3be13ab4b1adf684c5a7623",
+      "bytes": 4275,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10454,15 +10454,9 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/services/contextInspection.ts",
-      "sha256": "641cbd758168a6514ccea95336bae9e9f30c0f00a4dd5401fcc6ac3c0735dd42",
-      "bytes": 8931,
-      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
-    },
-    {
       "path": "packages/desktop/src/renderer/services/contextUsage.ts",
-      "sha256": "2a18e86794fb0a81a9826398fca2ab97b03a40f6e9f631be2bf39fe78ea99d16",
-      "bytes": 15044,
+      "sha256": "b23e758c6e0f5176df4d4073f17aafc403c2e77e7e38fc5ae963f71efcc7a8fe",
+      "bytes": 15052,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10661,6 +10655,12 @@
       "path": "packages/desktop/src/renderer/services/runtime/computeSessionState.ts",
       "sha256": "78c24afaf950a62f262058070dab1ee0a69c3d0c407c827dabe0526634277956",
       "bytes": 3077,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/contextInspection.ts",
+      "sha256": "fb60684f44e5145e429aca44f0b6970d1bac8bf18dbb729abbeef6a56a7fc84b",
+      "bytes": 8932,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
