@@ -8,8 +8,8 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// Historical76 fixtures start from an empty reviewed80 database. Remove the
-// Library80 tables and restore the Web table definition changed by79 before
+// Historical76 fixtures start from an empty reviewed81 database. Remove the
+// Memory81/Library80 tables and restore the Web definition changed by79 before
 // removing newer migration receipts; otherwise the fixture falsely claims76
 // while retaining newer objects or the14-only CHECK.
 // This helper is test-only and never touches an installed/user database.
@@ -44,7 +44,7 @@ func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	dropEmptyReviewedV80LiteratureFixtureTables(t, tx)
+	dropEmptyReviewedV81MemoryAndLiteratureFixtureTables(t, tx)
 	for _, statement := range []string{
 		`DROP TABLE transcript_web_projection_state`, transcriptstore.WebReadModelV74ProjectionStateStatement(), readyIndex,
 	} {
