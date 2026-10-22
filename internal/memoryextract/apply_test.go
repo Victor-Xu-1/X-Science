@@ -69,7 +69,7 @@ func TestWorkspaceApplyEmittedUsesExtractorScopesAndSuccessorChains(t *testing.T
 		return id
 	}
 
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
 		Append: []AppendOperation{
 			{Text: "durable profile-like fact", Evidence: "stated", Entity: "profile", Category: "Methods"},
 			{Text: "flagged external instruction", Evidence: "observed", Entity: "project:current"},
@@ -135,7 +135,7 @@ func TestWorkspaceApplyRejectsRepairThatDropsUpdatedLiterals(t *testing.T) {
 			return "Use build 654321 (was 123456).", nil
 		}),
 	)
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
 		Replace: []ReplaceOperation{{ID: "mem_replace", Text: "Use build 654321 with /new/path/2."}},
 	})
 	if err != nil {
@@ -178,7 +178,7 @@ func TestWorkspaceExtractorKeepsArtifactSubjectSeparateFromOwningProject(t *test
 	service := NewService(store, classifier, nil)
 	service.newID = func() string { return "artifact-memory" }
 
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
 		Append: []AppendOperation{
 			{Text: "Current artifact durable fact", Entity: "artifact:current-artifact", Evidence: "observed"},
 			{Text: "Other artifact durable fact", Entity: "artifact:other-artifact", Evidence: "observed"},
@@ -220,7 +220,7 @@ func TestWorkspaceExtractorFallsBackMalformedEntitiesButRejectsValidUnavailableS
 		return id
 	}
 
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "current", SourceFrameID: "frame"}, Operations{
 		Append: []AppendOperation{
 			{Text: "Unknown entity syntax falls back", Entity: "workspace", Evidence: "observed"},
 			{Text: "Malformed project entity falls back", Entity: "project:other project", Evidence: "observed"},
@@ -253,7 +253,7 @@ func TestWorkspaceAppendPIUnavailableHoldsWholeApplyBatch(t *testing.T) {
 	service := NewService(store, extractionClassifierFunc(func(context.Context, []string) ([]memorytools.Classification, error) {
 		return nil, &memoryclassifier.UnavailableError{Cause: errors.New("auth")}
 	}), nil)
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Operations{
 		Append: []AppendOperation{{Text: "new durable fact", Evidence: "observed"}},
 		Remove: []string{"mem_remove"},
 	})
@@ -274,7 +274,7 @@ func TestWorkspaceReplacementPIUnavailableKeepsPredecessorButDoesNotHoldBatch(t 
 	service := NewService(store, extractionClassifierFunc(func(context.Context, []string) ([]memorytools.Classification, error) {
 		return nil, &memoryclassifier.UnavailableError{Cause: errors.New("timeout")}
 	}), nil)
-	result, err := service.Apply(ctx, ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Operations{
+	result, err := applyPreparedExtraction(t, ctx, service, ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Operations{
 		Replace: []ReplaceOperation{{ID: "mem_replace", Text: "updated stable value", Evidence: "observed"}},
 		Remove:  []string{"mem_remove"},
 	})

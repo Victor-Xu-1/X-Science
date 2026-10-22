@@ -2,6 +2,8 @@ package workspace
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -125,7 +127,7 @@ func TestWorkspaceExtractorReplacementCreatesFencedSuccessor(t *testing.T) {
 		ID: "mem_old", UserID: "user", Body: "old v4.0.2", Origin: "extractor", Evidence: "observed",
 		SubjectProjectID: "project", SourceFrameID: "frame",
 	})
-	successor, replaced, err := store.CreateAndSupersedeExtractorMemory(ctx, predecessor, "user", "project", "frame", "mem_new", "new v4.0.3 (was v4.0.2)", "stated")
+	successor, replaced, err := createAndSupersedeExtractorMemoryForTest(store, ctx, predecessor, "user", "project", "frame", "mem_new", "new v4.0.3 (was v4.0.2)", "stated")
 	if err != nil || !replaced {
 		t.Fatalf("extractor replace = %#v, %v, %v", successor, replaced, err)
 	}
@@ -139,7 +141,7 @@ func TestWorkspaceExtractorReplacementCreatesFencedSuccessor(t *testing.T) {
 
 	stale := predecessor
 	stale.Body = "stale body"
-	if _, replaced, err := store.CreateAndSupersedeExtractorMemory(ctx, stale, "user", "project", "frame", "mem_orphan", "wrong", "observed"); err != nil || replaced {
+	if _, replaced, err := createAndSupersedeExtractorMemoryForTest(store, ctx, stale, "user", "project", "frame", "mem_orphan", "wrong", "observed"); err != nil || replaced {
 		t.Fatalf("stale replacement = %v, %v", replaced, err)
 	}
 	var orphanCount int
@@ -160,11 +162,24 @@ func TestWorkspaceExtractorReplacementProtectsUserAndCrossProjectRows(t *testing
 		t.Fatal(err)
 	}
 	userRow := mustCreateWorkspaceMemory(t, store, CreateMemoryInput{ID: "user-row", UserID: "user", Body: "user", Origin: "user", Evidence: "stated", SubjectProjectID: "current"})
-	if _, _, err := store.CreateAndSupersedeExtractorMemory(ctx, userRow, "user", "current", "frame", "user-new", "changed", "stated"); err == nil || !strings.Contains(err.Error(), ErrAgentMemoryMutationForbidden.Error()) {
+	if _, _, err := createAndSupersedeExtractorMemoryForTest(store, ctx, userRow, "user", "current", "frame", "user-new", "changed", "stated"); err == nil || !strings.Contains(err.Error(), ErrAgentMemoryMutationForbidden.Error()) {
 		t.Fatalf("user row replacement error = %v", err)
 	}
 	otherRow := mustCreateWorkspaceMemory(t, store, CreateMemoryInput{ID: "other-row", UserID: "user", Body: "other", Origin: "extractor", Evidence: "observed", SubjectProjectID: "other"})
-	if _, _, err := store.CreateAndSupersedeExtractorMemory(ctx, otherRow, "user", "current", "frame", "other-new", "changed", "observed"); err == nil || !strings.Contains(err.Error(), ErrAgentMemoryMutationForbidden.Error()) {
+	if _, _, err := createAndSupersedeExtractorMemoryForTest(store, ctx, otherRow, "user", "current", "frame", "other-new", "changed", "observed"); err == nil || !strings.Contains(err.Error(), ErrAgentMemoryMutationForbidden.Error()) {
 		t.Fatalf("cross-project replacement error = %v", err)
 	}
+}
+
+func createAndSupersedeExtractorMemoryForTest(store *Store, ctx context.Context, expected Memory, owner, project, frame, newID, body, evidence string) (Memory, bool, error) {
+	var successor Memory
+	err := store.WithTransaction(ctx, func(tx *sql.Tx) error {
+		var err error
+		successor, err = store.createAndSupersedeExtractorMemoryTx(ctx, tx, expected, owner, project, frame, newID, body, evidence)
+		return err
+	})
+	if errors.Is(err, ErrAgentMemoryChanged) {
+		return Memory{}, false, nil
+	}
+	return successor, err == nil, err
 }

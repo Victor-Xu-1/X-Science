@@ -30,6 +30,9 @@ func (s *Server) executeSettingsTool(toolName string, input map[string]any) (any
 		if key == hostGrantsSettingKey || strings.HasPrefix(key, hostGrantsSettingKey+".") {
 			return nil, errors.New("host grants must be changed through the host access API")
 		}
+		if key == memoryAutoExtractionSettingKey || strings.HasPrefix(key, memoryAutoExtractionSettingKey+".user.") {
+			return nil, errors.New("automatic memory must be changed through the owner-scoped memory preference API")
+		}
 		setting, err := s.settingsStore.Set(key, input["value"])
 		return map[string]any{"setting": setting}, err
 	case "settings_get":

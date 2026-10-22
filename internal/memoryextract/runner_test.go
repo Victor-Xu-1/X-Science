@@ -33,10 +33,10 @@ func TestWorkspaceExtractionRunnerPersistsAndAdvancesCursor(t *testing.T) {
 		return map[string]any{"append": []any{map[string]any{"text": "durable project decision", "evidence": "stated"}}}, nil
 	}))
 	messages := []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "please preserve this decision"}}}}
-	result, err := runner.Run(context.Background(), RunInput{
+	result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 		Scope:    ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: messages, FinalResponseText: "Decision confirmed.", Config: DefaultConfig(),
-	})
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,11 +65,11 @@ func TestWorkspaceExtractionRunnerUsesConfiguredEnabledDefaultAndOwnerOverride(t
 	}))
 	config := DefaultConfig()
 	config.Enabled = true
-	input := RunInput{
+	input := bindExtractionSource(t, store, RunInput{
 		Scope:    ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "capture this durable preference"}}}},
 		Config:   config,
-	}
+	})
 	result, err := runner.Run(context.Background(), input)
 	if err != nil || result.Gate != "done" || calls != 1 {
 		t.Fatalf("configured enabled extraction = %#v, calls=%d, err=%v", result, calls, err)
@@ -77,6 +77,9 @@ func TestWorkspaceExtractionRunnerUsesConfiguredEnabledDefaultAndOwnerOverride(t
 	if err := store.SetMemoryEnabled(context.Background(), "user", false); err != nil {
 		t.Fatal(err)
 	}
+	// A later opt-out governs a new completion; it does not revoke a receipt
+	// already committed for the earlier input.
+	input = bindExtractionSource(t, store, RunInput{Scope: input.Scope, Messages: input.Messages, Config: config})
 	result, err = runner.Run(context.Background(), input)
 	if err != nil || result.Gate != "disabled" || calls != 1 {
 		t.Fatalf("owner-disabled extraction = %#v, calls=%d, err=%v", result, calls, err)
@@ -99,16 +102,16 @@ func TestWorkspaceExtractionRunnerGatesAndAdvancesOnlyAtSourceBackedPoints(t *te
 	}))
 	scope := ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}
 
-	aside, err := runner.Run(context.Background(), RunInput{
+	aside, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 		Scope: scope, AsideParent: true,
 		Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "remember this aside finding"}}}},
 		Config:   DefaultConfig(),
-	})
+	}))
 	if err != nil || aside.Gate != "disabled-aside" || aside.CursorAfter != 0 {
 		t.Fatalf("aside result = %#v, %v", aside, err)
 	}
 
-	noProse, err := runner.Run(context.Background(), RunInput{Scope: scope, Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "only two"}}}}, Config: DefaultConfig()})
+	noProse, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{Scope: scope, Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "only two"}}}}, Config: DefaultConfig()}))
 	if err != nil || noProse.Gate != "no-prose" || noProse.CursorAfter != 0 {
 		t.Fatalf("no-prose result = %#v, %v", noProse, err)
 	}
@@ -119,7 +122,7 @@ func TestWorkspaceExtractionRunnerGatesAndAdvancesOnlyAtSourceBackedPoints(t *te
 			ToolInput: map[string]any{"replace": []any{map[string]any{"id": "mem"}}},
 		}}},
 	}
-	agentWrote, err := runner.Run(context.Background(), RunInput{Scope: scope, Messages: agentWroteMessages, Config: DefaultConfig()})
+	agentWrote, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{Scope: scope, Messages: agentWroteMessages, Config: DefaultConfig()}))
 	if err != nil || agentWrote.Gate != "agent-wrote" || agentWrote.CursorAfter != len(agentWroteMessages) {
 		t.Fatalf("agent-wrote result = %#v, %v", agentWrote, err)
 	}
@@ -144,7 +147,7 @@ func TestWorkspaceExtractionRunnerRepairsCursorOvershoot(t *testing.T) {
 		return map[string]any{}, nil
 	}))
 	messages := []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "rescan the complete history"}}}, {Role: "assistant", Content: []Block{{Type: BlockText, Text: "done"}}}}
-	result, err := runner.Run(context.Background(), RunInput{Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Messages: messages, Config: DefaultConfig()})
+	result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Messages: messages, Config: DefaultConfig()}))
 	if err != nil || result.Gate != "done" || !result.Overshoot || result.CursorBefore != 9 || result.CursorAfter != 2 {
 		t.Fatalf("overshoot result = %#v, %v", result, err)
 	}
@@ -162,10 +165,10 @@ func TestWorkspaceExtractionRunnerHoldsCursorWhenAppendClassifierUnavailable(t *
 	runner := NewRunner(store, service, extractorFunc(func(context.Context, ExtractRequest) (map[string]any, error) {
 		return map[string]any{"append": []any{map[string]any{"text": "durable new finding", "evidence": "observed"}}}, nil
 	}))
-	result, err := runner.Run(context.Background(), RunInput{
+	result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 		Scope:    ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "remember this durable finding"}}}}, Config: DefaultConfig(),
-	})
+	}))
 	if err != nil || result.Gate != "pi-unavailable" || result.CursorAfter != 0 || result.CursorAdvanced {
 		t.Fatalf("PI-unavailable runner result = %#v, %v", result, err)
 	}
@@ -184,13 +187,13 @@ func TestWorkspaceExtractionRunnerHoldsCursorAndSwallowsExtractorFailure(t *test
 		return nil, errors.New("provider unavailable")
 	}))
 
-	result, err := runner.Run(context.Background(), RunInput{
+	result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 		Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: []Message{{Role: "user", Content: []Block{{
 			Type: BlockText, Text: "retain this durable project decision",
 		}}}},
 		Config: DefaultConfig(),
-	})
+	}))
 	if err != nil || result.Gate != "extractor-failed" || result.ExtractorError != "provider unavailable" || result.CursorAdvanced || result.CursorAfter != 0 {
 		t.Fatalf("extractor failure result = %#v, err=%v", result, err)
 	}
@@ -215,7 +218,7 @@ func TestWorkspaceExtractionRunnerCadenceIsPerProjectAndHoldsCursor(t *testing.T
 	}))
 	config := DefaultConfig()
 	config.ExtractEveryN = 2
-	input := RunInput{Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "capture this durable preference"}}}}, Config: config}
+	input := bindExtractionSource(t, store, RunInput{Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"}, Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "capture this durable preference"}}}}, Config: config})
 	first, err := runner.Run(context.Background(), input)
 	if err != nil || first.Gate != "cadence" || first.CursorAfter != 0 {
 		t.Fatalf("first cadence result = %#v, %v", first, err)
@@ -243,13 +246,13 @@ func TestWorkspaceExtractionCadenceSurvivesPerScopeRunnerReconstruction(t *testi
 	cadence := NewCadence()
 	config := DefaultConfig()
 	config.ExtractEveryN = 2
-	input := RunInput{
+	input := bindExtractionSource(t, store, RunInput{
 		Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: []Message{{Role: "user", Content: []Block{{
 			Type: BlockText, Text: "capture this durable cross-runner preference",
 		}}}},
 		Config: config,
-	}
+	})
 
 	first, err := NewRunnerWithCadence(store, service, model, cadence).Run(context.Background(), input)
 	if err != nil || first.Gate != "cadence" {
@@ -273,11 +276,11 @@ func TestWorkspaceExtractionRunnerHonorsExplicitZeroMaxPerRun(t *testing.T) {
 	}))
 	config := DefaultConfig()
 	config.ExtractMax = 0
-	result, err := runner.Run(context.Background(), RunInput{
+	result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 		Scope:    ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 		Messages: []Message{{Role: "user", Content: []Block{{Type: BlockText, Text: "capture this durable preference"}}}},
 		Config:   config,
-	})
+	}))
 	if err != nil || result.Gate != "done" || !result.CursorAdvanced || len(result.Applied.Appended) != 0 {
 		t.Fatalf("zero-cap extraction result = %#v, err=%v", result, err)
 	}
@@ -310,13 +313,13 @@ func TestWorkspaceExtractionFiltersRecalledBodiesOnlyInForkedMode(t *testing.T) 
 			}))
 			config := DefaultConfig()
 			config.ExtractMode = test.mode
-			result, err := runner.Run(context.Background(), RunInput{
+			result, err := runner.Run(context.Background(), bindExtractionSource(t, store, RunInput{
 				Scope: ApplyScope{UserID: "user", ProjectID: "project", SourceFrameID: "frame"},
 				Messages: []Message{{Role: "user", Content: []Block{{
 					Type: BlockText, Text: "preserve the durable CRBN binding evidence",
 				}}}},
 				RecalledBodies: []string{body}, Config: config,
-			})
+			}))
 			if err != nil || result.Gate != "done" || !result.CursorAdvanced {
 				t.Fatalf("%s result = %#v, err=%v", test.mode, result, err)
 			}

@@ -6,10 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"x-science/internal/memorypolicy"
-
-	"github.com/google/uuid"
 )
 
 // ListMemoryExtractionRows returns the workspace existing-facts manifest
@@ -144,93 +140,59 @@ func (s *Store) SetLastExtractMessageIndex(ctx context.Context, frameID string, 
 	return rows == 1, nil
 }
 
-// CreateAndSupersedeExtractorMemory creates the successor row and links its
-// predecessor in one transaction. It is intentionally separate from the
-// write_memory tool, whose workspace contract updates an active row in
-// place. The expected snapshot excludes timestamps and last_surfaced_at, just
-// like the workspace createAndSupersede expectation object.
-func (s *Store) CreateAndSupersedeExtractorMemory(
-	ctx context.Context,
-	expected Memory,
-	ownerUserID string,
-	currentProjectID string,
-	sourceFrameID string,
-	newID string,
-	body string,
-	evidence string,
-) (Memory, bool, error) {
-	if s == nil || s.db == nil {
-		return Memory{}, false, errors.New("workspace store is closed")
-	}
-	ownerUserID = strings.TrimSpace(ownerUserID)
-	currentProjectID = strings.TrimSpace(currentProjectID)
-	sourceFrameID = strings.TrimSpace(sourceFrameID)
-	newID = strings.TrimSpace(newID)
-	if newID == "" {
-		newID = "mem_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:memorypolicy.GeneratedIDHexLength]
-	}
-	if ownerUserID == "" || expected.ID == "" || expected.UserID != ownerUserID {
-		return Memory{}, false, errors.New("extractor replacement owner and predecessor are required")
-	}
-	if expected.Origin == "user" || expected.SubjectFrameID != "" {
-		return Memory{}, false, ErrAgentMemoryMutationForbidden
-	}
-	if evidence = strings.TrimSpace(evidence); evidence == "" {
-		evidence = expected.Evidence
-	}
-
-	var successor Memory
-	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		current, err := scanMemory(tx.QueryRowContext(ctx, memorySelect+` WHERE m.id = ? AND m.user_id = ?`, expected.ID, ownerUserID))
-		if errors.Is(err, sql.ErrNoRows) {
-			return ErrAgentMemoryChanged
-		}
-		if err != nil {
-			return fmt.Errorf("read extractor predecessor: %w", err)
-		}
-		if !sameExtractorMemorySnapshot(current, expected) {
-			return ErrAgentMemoryChanged
-		}
-		if err := requireAgentMemoryScopeTx(ctx, tx, current, ownerUserID, currentProjectID, ""); err != nil {
-			return err
-		}
-
-		successor, err = s.createMemoryTx(ctx, tx, CreateMemoryInput{
-			ID: newID, UserID: ownerUserID, Body: body, Origin: current.Origin, Evidence: evidence,
-			SubjectProjectID: current.SubjectProjectID, SubjectArtifactID: current.SubjectArtifactID,
-			SubjectVersionID: current.SubjectVersionID, SubjectFrameID: current.SubjectFrameID,
-			SourceFrameID: sourceFrameID, CategoryID: current.CategoryID,
-		}, ownerUserID)
-		if err != nil {
-			return err
-		}
-		updated, err := tx.ExecContext(ctx, `UPDATE memories SET superseded_by = ?, updated_at = ?
-			WHERE id = ? AND user_id = ? AND superseded_by IS NULL
-			AND body = ? AND evidence = ? AND origin = ?
-			AND COALESCE(subject_project_id, '') = ?
-			AND COALESCE(subject_artifact_id, '') = ?
-			AND COALESCE(subject_version_id, '') = ?
-			AND COALESCE(subject_frame_id, '') = ?
-			AND COALESCE(category_id, '') = ?`,
-			successor.ID, s.now().UTC(), current.ID, ownerUserID,
-			expected.Body, expected.Evidence, expected.Origin,
-			expected.SubjectProjectID, expected.SubjectArtifactID, expected.SubjectVersionID,
-			expected.SubjectFrameID, expected.CategoryID)
-		if err != nil {
-			return fmt.Errorf("supersede extractor memory: %w", err)
-		}
-		if err := requireOneMutationRow(updated, "memory", current.ID); err != nil {
-			return ErrAgentMemoryChanged
-		}
-		return nil
-	})
-	if errors.Is(err, ErrAgentMemoryChanged) {
-		return Memory{}, false, nil
+// The private transaction helper is shared by atomic extraction commits and
+// focused CAS tests. There is no standalone production extraction write path.
+func (s *Store) createAndSupersedeExtractorMemoryTx(ctx context.Context, tx memoryTransaction, expected Memory, ownerUserID, currentProjectID, sourceFrameID, newID, body, evidence string) (Memory, error) {
+	current, err := scanMemory(tx.QueryRowContext(ctx, memorySelect+` WHERE m.id = ? AND m.user_id = ?`, expected.ID, ownerUserID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return Memory{}, ErrAgentMemoryChanged
 	}
 	if err != nil {
-		return Memory{}, false, err
+		return Memory{}, fmt.Errorf("read extractor predecessor: %w", err)
 	}
-	return successor, true, nil
+	if current.SupersededBy != "" || !sameExtractorMemorySnapshot(current, expected) {
+		return Memory{}, ErrAgentMemoryChanged
+	}
+	if current.Origin == "user" || current.SubjectFrameID != "" {
+		return Memory{}, ErrAgentMemoryMutationForbidden
+	}
+	if err := requireAgentMemoryScopeTx(ctx, tx, current, ownerUserID, currentProjectID, ""); err != nil {
+		return Memory{}, err
+	}
+	if strings.TrimSpace(evidence) == "" {
+		evidence = expected.Evidence
+	}
+	successor, err := s.createMemoryTx(ctx, tx, CreateMemoryInput{
+		ID: newID, UserID: ownerUserID, Body: body, Origin: current.Origin, Evidence: evidence,
+		SubjectProjectID: current.SubjectProjectID, SubjectArtifactID: current.SubjectArtifactID,
+		SubjectVersionID: current.SubjectVersionID, SubjectFrameID: current.SubjectFrameID,
+		SourceFrameID: sourceFrameID, CategoryID: current.CategoryID,
+	}, ownerUserID)
+	if err != nil {
+		return Memory{}, err
+	}
+	updated, err := tx.ExecContext(ctx, `UPDATE memories SET superseded_by = ?, updated_at = ?
+		WHERE id = ? AND user_id = ? AND superseded_by IS NULL
+		AND body = ? AND evidence = ? AND origin = ?
+		AND COALESCE(subject_project_id, '') = ?
+		AND COALESCE(subject_artifact_id, '') = ?
+		AND COALESCE(subject_version_id, '') = ?
+		AND COALESCE(subject_frame_id, '') = ?
+		AND COALESCE(category_id, '') = ?`,
+		successor.ID, s.now().UTC(), current.ID, ownerUserID,
+		expected.Body, expected.Evidence, expected.Origin,
+		expected.SubjectProjectID, expected.SubjectArtifactID, expected.SubjectVersionID,
+		expected.SubjectFrameID, expected.CategoryID)
+	if err != nil {
+		return Memory{}, fmt.Errorf("supersede extractor memory: %w", err)
+	}
+	if err := requireOneMutationRow(updated, "memory", current.ID); err != nil {
+		// The snapshot was checked before inserting the successor under this
+		// transaction's write fence. An unexpected trigger/SQL effect here must
+		// roll back the successor, not be handled as an ordinary stale skip.
+		return Memory{}, fmt.Errorf("supersede extractor memory changed after its transaction fence: %w", err)
+	}
+	return successor, nil
 }
 
 func sameExtractorMemorySnapshot(left, right Memory) bool {
