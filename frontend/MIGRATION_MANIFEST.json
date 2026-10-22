@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "ec1e114add9f25cbaef31babd731c4e9732fe0e28b43d237f43bad2231bc4868",
+  "adaptationFingerprintSHA256": "5d28e8633d423e53de36b0aff7f0d7f5657f694a20681f2eb13c9d7449411a5b",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6e1588badf0a543cb0ed10e2bc67442a48aaadf8d29379c3a39f9c67faaed182",
+  "additionFingerprintSHA256": "10f340ddd807d038eb21c3bf662c31680aa917846991c282b0514fd3ef737fda",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1184
+    "addedFiles": 1192
   },
   "adaptations": [
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "15663b15455575d72c7c6075e3742b007fb59b996453c8b49faa995bf265da5c",
-      "bytes": 279867,
+      "targetSHA256": "c50641d9cb58611afc9fa1db3511e91403b5c54ae98d2c23776ea1cba40aa00a",
+      "bytes": 282213,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "e86dadb260d6ac83a3041f2e02c228dd77a4e0baace9953710c5da21cacabedb",
-      "bytes": 110465,
+      "targetSHA256": "2311c557d381081be62768dad8d705b28474d07302c948f855d649beabdd5f73",
+      "bytes": 113338,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "3d00ee6a1aae95ecc99d3eef805dfc8ab09a45a8fb2c6326725a022bc794c174",
-      "bytes": 103997,
+      "targetSHA256": "fd2fa00de7dc785dab4c02a25b39cee2e445570526b77699e746cc0c7a10534c",
+      "bytes": 106849,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4618,8 +4618,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "bfe2911159308688e93252e45502d6303ee75f6c38c707eaf389296b0f30f228",
-      "bytes": 215637,
+      "targetSHA256": "bf2a88b0c83075a58aad0dbf5281bb0d10a9eba59d58ac8385a90aae4c681d75",
+      "bytes": 215817,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8072,6 +8072,18 @@
       "reason": "Render actual maintenance receipts, exact retry/cancel and explicit capacity recovery without fabricated progress."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionDetails.tsx",
+      "sha256": "2cdde4a62821c2ff5d65403f2f45dbc34635ffbf7b123f4c83b03e7d59d83542",
+      "bytes": 6296,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionHistory.tsx",
+      "sha256": "1935b8f33cadf99b1bff084112e82729dd7f0483415008b7213aefac32611c3e",
+      "bytes": 9125,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.module.css",
       "sha256": "e119397a6809639ffab33f2551c0281138c3e0db68670d7821361676f466c5d9",
       "bytes": 7149,
@@ -8079,14 +8091,26 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextUsagePanel.tsx",
-      "sha256": "99bfaa1d84195ccee4b56f9b730740974e3698e59ec7ae1dd26e65d51f804e3b",
-      "bytes": 15691,
+      "sha256": "fa11e920d10176a87e4d1db0902889c3ae4941a1b86fdf49377ad12ca9dcd4a6",
+      "bytes": 17448,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowHistory.tsx",
       "sha256": "4894e1faedf763089b3373dd95313e2a0ef85a486ea88bd7d16b7b85814b88a3",
       "bytes": 9365,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.module.css",
+      "sha256": "452232977e6ae8f29298e7060301aceefaadc6d226bfa9b22fcdf0cf4068f5bc",
+      "bytes": 8570,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.tsx",
+      "sha256": "3c95bf1c18b8c2bc4060722e2136c77f0776d05fd56c0d9d88c380bc3fc8eb2b",
+      "bytes": 9780,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8282,6 +8306,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/xScience/runtime/contextInspectionModel.ts",
+      "sha256": "525dc11ed2b9795f45d26d59207158a14ad66ccc3b04e57ef00f19654df25076",
+      "bytes": 4267,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/contextWindowHistoryModel.ts",
       "sha256": "2af4378a141e9fb5ca61b9c908eb793725460e9d0244efeca7944b56b8f2ad06",
       "bytes": 3348,
@@ -8439,8 +8469,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/xScience/useContextUsage.ts",
-      "sha256": "3ec13f2105786a1787e663549f46450a6df47886ff319c93ad60f40a47d87665",
-      "bytes": 4335,
+      "sha256": "43ca4185c7ef59201dfb0d971ba4b0729874284390fa32fb034b676a4684b0cc",
+      "bytes": 5814,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10424,9 +10454,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/contextInspection.ts",
+      "sha256": "641cbd758168a6514ccea95336bae9e9f30c0f00a4dd5401fcc6ac3c0735dd42",
+      "bytes": 8931,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/contextUsage.ts",
-      "sha256": "cbdc2bb70a6ae222e29ce53d477ac46062408617e21085deaf60a441166a2054",
-      "bytes": 14172,
+      "sha256": "2a18e86794fb0a81a9826398fca2ab97b03a40f6e9f631be2bf39fe78ea99d16",
+      "bytes": 15044,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12465,8 +12501,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextUsagePanel.dom.test.tsx",
-      "sha256": "d2d9ad707e399ae8b60b2f922fc8b7b05dbf91d556989a5a5616d3885f2c0745",
-      "bytes": 26570,
+      "sha256": "a678a7536eaf1d4fc989bfb30bd523a95ad14433f2cdd760aa17e0d57ee48198",
+      "bytes": 26890,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12485,6 +12521,18 @@
       "path": "tests/unit/renderer/ContextWindowHistoryInteraction.dom.test.tsx",
       "sha256": "ccf307344a74b36c649a5c919ef44cf0e430d1efa00572f92baccc560ee80824",
       "bytes": 8842,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/ContextWindowInspector.dom.test.tsx",
+      "sha256": "f65247e8583bd1edb3693396ccbc178919c26896fd907bb48019a6186142cf30",
+      "bytes": 25331,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/ContextWindowInspectorStyle.test.ts",
+      "sha256": "66a2079e28d6d181fec6e2d12811015cf7a9372fd806d0d9414e580a0106b133",
+      "bytes": 1535,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
