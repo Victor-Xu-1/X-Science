@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e53e640f1425ece29e2072c3a919c73a5d618904950fba2624653b6440e1542d",
+  "adaptationFingerprintSHA256": "f7b2531a9bfde77a12fa2d74ead8b729134ae391a1ed6cf0a4ced5219a2fcb2e",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "de3200e61e968813b9369f91d86e2b1d392971a18fa80e3c35f574d3705d5903",
+  "additionFingerprintSHA256": "22df2149142e2636346f1fe21eed0579e72ab45aec850f87ce7606a6b0657c98",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1192
+    "addedFiles": 1200
   },
   "adaptations": [
     {
@@ -1601,8 +1601,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel.tsx",
       "sourceSHA256": "10c226da920132b34cbec848a0c83997c1477132b93449e4d3a7140f0b819404",
-      "targetSHA256": "55e10df317c89b670b056c9869004c45c6ffbf19b2f761b59e01770a54c136f7",
-      "bytes": 27343,
+      "targetSHA256": "ff3205fb0c142c0d8cd45c5444af098109022c07e1dadab40e744c5404f42bb2",
+      "bytes": 27396,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1713,8 +1713,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/PDFViewer.tsx",
       "sourceSHA256": "23433f1382d77da01db4771bb72431a8b900ac564d98adbbc8c903d8915a99c3",
-      "targetSHA256": "8a9ed022c4a60d4d9b9c6f57b6b031a807092e3e6759180d44d50c08f60a2aef",
-      "bytes": 3170,
+      "targetSHA256": "b1666ab4e8c2093054a98fc8227bdc5c58d906b356f336a960962898632782df",
+      "bytes": 3366,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1878,8 +1878,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/context/PreviewContext.tsx",
       "sourceSHA256": "ea6bd57ad08f37347bf39e38aa460505b34053c2508788d5fd8cead43c1cd57b",
-      "targetSHA256": "33f9dceba33dfd6f177cfb0d1b23ac003898c945e0bb97d25f0c34be036902e1",
-      "bytes": 36549,
+      "targetSHA256": "72c35278a57a3309ee657d33c37fddaddc6e4e8032e519581240efbe441d439b",
+      "bytes": 36711,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "c50641d9cb58611afc9fa1db3511e91403b5c54ae98d2c23776ea1cba40aa00a",
-      "bytes": 282213,
+      "targetSHA256": "037586fd2c1e823973950a7587494595fd558ac970b3a9775e472d4cd2f81406",
+      "bytes": 282939,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "2311c557d381081be62768dad8d705b28474d07302c948f855d649beabdd5f73",
-      "bytes": 113338,
+      "targetSHA256": "649a20e42cef456bd9eb6d7acaef60abdf8667f1f1305e8e8f89234e0ffbb49b",
+      "bytes": 114288,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "fd2fa00de7dc785dab4c02a25b39cee2e445570526b77699e746cc0c7a10534c",
-      "bytes": 106849,
+      "targetSHA256": "60aa787aa74c83fe3ffaa3345b6ba3e5d032e00a5f7e8615e5c1eb2dfd8f076b",
+      "bytes": 107756,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7646,6 +7646,12 @@
       "reason": "Own runtime control and execution IPC bindings as one domain client."
     },
     {
+      "path": "packages/desktop/src/common/adapter/literatureLibrary.ts",
+      "sha256": "5942a8f07fedd7d596cfb04167c7090f287fe904cf5c1709e83d1b4ac80f5cc3",
+      "bytes": 9435,
+      "reason": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner."
+    },
+    {
       "path": "packages/desktop/src/common/adapter/messageStreamProtocol.ts",
       "sha256": "ac542dbbae1f779a14f0fb74f7b97c2dfd4f62ac62f18dd74f0783ac7b2947ed",
       "bytes": 13012,
@@ -7653,8 +7659,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/pdfReadingContext.ts",
-      "sha256": "55276af46d7eb2be4638db8ac0999f613f1bce9e18e4d69ecd7ba75f6e8ad4ce",
-      "bytes": 11022,
+      "sha256": "647a0d4c31d6896e888e201e96f706fe49177cc79d22ce5607c49384a4b9b593",
+      "bytes": 12703,
       "reason": "Define and strictly decode Go-owned reading scope, immutable version bindings, selection snapshots and exact pending requests; preserve current owner/incarnation/revision identities."
     },
     {
@@ -7868,9 +7874,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/LibraryItemEditor.tsx",
+      "sha256": "1b8d6f1836d8c362d2ab3152ca9c181034ab879e055c92d89b2a3277a292f58b",
+      "bytes": 4079,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/PdfReadingBar.tsx",
-      "sha256": "c07014cab69b90032e9e666bcb9ecab046d020d3f7b63d1af9acfcdf7f39d1e2",
-      "bytes": 3921,
+      "sha256": "445ec4287fe1c997a831f11368dcc77058cea57920b5f7fafef6b7b3fe6776dd",
+      "bytes": 3890,
       "reason": "Adapt the reference linked-PDF bar, open/remove controls and filename layout to the existing composer controller, including truthful pending and blocked states. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx."
     },
     {
@@ -7887,14 +7899,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/ReadingContextPicker.tsx",
-      "sha256": "b000581e2d1d584efd4bfc14a044ba5c4dea774598092c122e2bde7c86930159",
-      "bytes": 6161,
+      "sha256": "57f94d467b53bc00b7c868e473393a73b472a33b3110b673753640e51b4f0123",
+      "bytes": 14721,
       "reason": "Adapt the source reading picker to authenticated Project ArtifactVersion candidates, scoped search/loading/retry/selection and the three-document limit; do not fabricate Library authority. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ReadingContextPicker.tsx."
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/readingContext.css",
-      "sha256": "8bc3b8408531141be075568000eba777e4e4e47659af5ba6318145078a15516c",
-      "bytes": 5882,
+      "sha256": "0b6f502414d4a893b4d8e342656ae7758d1edad0c3e222655c15e7891770d782",
+      "bytes": 7769,
       "reason": "Translate the reference linked-bar/picker geometry and light/dark color tokens into scoped CSS using existing application radius/weight tokens. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx, src/renderer/src/pages/workspace/ReadingContextPicker.tsx, src/renderer/src/assets/main.css."
     },
     {
@@ -8402,6 +8414,12 @@
       "reason": "Capture a component/account lifetime predicate to fence late draft/upload UI callbacks without granting filesystem or send authority."
     },
     {
+      "path": "packages/desktop/src/renderer/hooks/chat/useLiteratureMutation.ts",
+      "sha256": "a81c21e922abdcbb1186f2168306043ed69e1a08b0ada54a12038f56fade0da5",
+      "bytes": 870,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/hooks/chat/usePdfReadingAttachments.ts",
       "sha256": "9323d07b0d48939ca8863eb1f3fbe7b033655eb8f02e0ec99dcfbe8dc4d6ef05",
       "bytes": 2134,
@@ -8409,8 +8427,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/chat/usePdfReadingComposer.ts",
-      "sha256": "5e4a400f0ea3fe932cf1dd7ad192e8ba29203ee7c478597f870828b4fecfb678",
-      "bytes": 5641,
+      "sha256": "fc06b722bad9620007cf855ae1bd48edceb738e26254813176a3919db979b80c",
+      "bytes": 5371,
       "reason": "Bind one reading controller to the actual account/conversation and existing PreviewProvider, forwarding canonical invalidations, positions and initial-upload preparation."
     },
     {
@@ -8673,8 +8691,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePdfReadingContext.tsx",
-      "sha256": "9fc81060794fbad7ae2db5901f37a75ee76fc8354696a0c683421826a6355d0a",
-      "bytes": 2207,
+      "sha256": "eeaf471b44f3823cb6116d3c990b11fc1e6acf54d9b242aaa848d8220518314f",
+      "bytes": 1823,
       "reason": "Adapt the reference historical reading badge to canonical Go snapshots and reopen the original immutable version/page without relinking it. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/WorkspaceMessageItem.tsx, src/renderer/src/pages/workspace/pdf-reading-reveal.ts."
     },
     {
@@ -9009,8 +9027,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewBoard.tsx",
-      "sha256": "9b94ed1adcb377b66621175cf2d3eff4eeea0032bf2e263a0b7b3e25be292805",
-      "bytes": 29009,
+      "sha256": "07cb621ccb9b7d925b6f1f2afea920ec24ec5abbdb52141587f5adbe3875377f",
+      "bytes": 29060,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9189,8 +9207,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/PdfReadingPreviewAction.tsx",
-      "sha256": "77e209b7504d522b5c7886b985e2e70339fa46bfc30d56c5295c0d490190fb85",
-      "bytes": 2954,
+      "sha256": "afef1f89b3df924134f418f25a4017f442d833c6bd8420243b7fb694a1b30c49",
+      "bytes": 2939,
       "reason": "Adapt Read with agent/remove controls to a borrowed live-composer or Guid-draft port with immutable identity and late-response fencing. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/use-pdf-context-action.ts, src/renderer/src/pages/workspace/ConversationPanel.tsx."
     },
     {
@@ -10622,9 +10640,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/LiteratureMutationController.ts",
+      "sha256": "d28db4321bd0b56a191f845f1faabee09430bfce30b609671dc964c3b6b90daa",
+      "bytes": 5298,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/PdfReadingController.ts",
-      "sha256": "654656b40455041655d38157e6d053b284a53b4ab1d84f8bfd0ce238c0496ad1",
-      "bytes": 13537,
+      "sha256": "44b2db54b6077fb67b57a5f77abd31a2a4e618b982e86a67002777433b1203d5",
+      "bytes": 13807,
       "reason": "Implement the browser-side single composer intent lifecycle over Go CAS endpoints, exact durable retry feedback, account fences and click-time selection preparation; not a second binding authority."
     },
     {
@@ -10760,15 +10784,21 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
+      "sha256": "c8d92bcac9c79d5f5fe78ed8b4a4c84438f2ff36fcc0b25fd1e2ae09b7dd24dc",
+      "bytes": 5715,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/pdfReadingContext.ts",
-      "sha256": "88dded92874305bba8a0cf179ec10bb38041906bce7a6a31a3926f7f49008c88",
-      "bytes": 6478,
+      "sha256": "33cad094358f9adfee59508c3ba49d587c6d4e9e41ac1d1c625f6d298f70845a",
+      "bytes": 6391,
       "reason": "Use the existing authenticated HTTP bridge for strict reading read/mutate/candidate responses and bounded Project candidate batches."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/pdfReadingHandoff.ts",
-      "sha256": "ff658c4e4549db20696d792121af55f75c476ecad5364b484a5b72d24d378659",
-      "bytes": 3534,
+      "sha256": "42ecc90064007b2d8a2dcdf057e63996816d2f6b090137f2345c6b9a58cbe959",
+      "bytes": 3521,
       "reason": "Carry validated immutable PDF sources/page hints through the existing initial-message handoff and reuse a prepared selection on uncertain send retries."
     },
     {
@@ -10779,14 +10809,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/pdfReadingPreview.ts",
-      "sha256": "0604b2dc372ea287188ed8b7ca9e45efcdf1dab22320ae778858c0a5c47c0713",
-      "bytes": 1408,
+      "sha256": "5995ee8414ade6c7ec6a127798c1575ed704410b7b2fb09641d74ebca0598e59",
+      "bytes": 3157,
       "reason": "Define the borrowed composer preview port and immutable ArtifactVersion preview metadata without adding a second preview or server-state owner."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/pdfReadingSendSnapshot.ts",
-      "sha256": "bdcc0ea3758ddd0c8a4f8ffd891700650032d73d7212e572b16fc4767c858c80",
-      "bytes": 3046,
+      "sha256": "675debbb1c1563c7665e9b4bb5a877c6ef2eac688029b3876f14445fb30ca8b4",
+      "bytes": 3283,
       "reason": "Implement click-time reading snapshot and own-link mapping over the Go contract, preserving active unlinked-source position and rejecting external selection changes."
     },
     {
@@ -12836,6 +12866,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversation/LibraryReadingPicker.dom.test.tsx",
+      "sha256": "a79553fbb02ac566ef5624fc6d7052aeaea6c05ae722e588c9790de0a9d8f5ea",
+      "bytes": 9663,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/conversation/MobileWorkspaceOverlay.dom.test.tsx",
       "sha256": "0bfbc7c505369bbbba7ae259c6ad35cf3cc1df26bfb085534158d5ef8b4554dc",
       "bytes": 2495,
@@ -12849,8 +12885,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/PdfReadingControls.dom.test.tsx",
-      "sha256": "466dbea14844ff3d7adcaf642a860b5a0d7959e826af3d22d6c28eb0935d80a6",
-      "bytes": 7664,
+      "sha256": "4c4601bb87b5fd6e19e57d47dea4cb1623bd28e44bbfa869d8812f2bdf72ff0b",
+      "bytes": 8094,
       "reason": "Exercise source-adapted bar/picker UI states and real controller callbacks."
     },
     {
@@ -12938,6 +12974,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversation/literatureLibrary.test.ts",
+      "sha256": "bb7bd0c3e60c7b8ecb151396de2a3d5ed884c3e251809a78ca931109f9e95b3d",
+      "bytes": 8509,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/conversation/manualContextCompactionFixtures.ts",
       "sha256": "dbe148b9d6e7fdaf9c2f3655331ee0fd2377399b07cf652a38cda09f2ac26f9b",
       "bytes": 2655,
@@ -12972,6 +13014,12 @@
       "sha256": "0fa19137128be9306222192824399447951a844256eaef1549cf8e4c5d8df0ed",
       "bytes": 3547,
       "reason": "Verify original initial-message reading preparation, exact retry and known/unknown handoff behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/pdfReadingLibrary.test.ts",
+      "sha256": "7f5757249f1e152773a6c8cf561bf0d35a59a0dddd5520eb252296725962f702",
+      "bytes": 3407,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/pdfReadingTransport.test.ts",
