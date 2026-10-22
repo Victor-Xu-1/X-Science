@@ -15,6 +15,7 @@ func TestSkillLoadReplayRejectsChangedDependencyTopologyWithoutOrphanInjection(t
 	for _, change := range []string{"replace", "add", "remove"} {
 		t.Run(change, func(t *testing.T) {
 			fixture := newKernelSkillDraftFixture(t)
+			disableLoadedClosureFixtureMCP(t, fixture)
 			const root, oldDependency, newDependency = "topology-root", "topology-original", "topology-replacement"
 			for _, dependency := range []string{oldDependency, newDependency} {
 				if _, err := fixture.call("host.skills.edit", dependency, "SKILL.md", kernelSkillManifestForTest(dependency, "Independent package "+dependency)); err != nil {

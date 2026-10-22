@@ -50,7 +50,7 @@ func TestSkillLoadParameterizedReplayRequiresExplicitReloadEvenAfterEarlierEmpty
 func TestSkillLoadReceiptReopensAfterCompactionWithoutSubstitutingPackages(t *testing.T) {
 	for _, change := range []string{"unchanged", "leaf", "dependency", "resource"} {
 		t.Run(change, func(t *testing.T) {
-			fixture := newKernelSkillDraftFixture(t)
+			fixture := resourceLoadedClosureFixture(t)
 			const dependency, name = "replay-dependency-fixture", "replay-leaf-fixture"
 			for _, item := range []struct{ name, manifest string }{
 				{dependency, kernelSkillManifestForTest(dependency, "Original replay dependency.")},

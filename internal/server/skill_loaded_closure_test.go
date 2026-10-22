@@ -109,6 +109,11 @@ func TestSkillLoadAfterDependencyPublicationUsesCurrentClosure(t *testing.T) {
 }
 
 func loadedClosureDependencyManifest(name, body string, dependencies ...string) string {
+	if len(dependencies) == 0 {
+		// The real parser requires non-empty sequences when dependencies are
+		// declared. An instruction-only root omits that optional metadata.
+		return kernelSkillManifestForTest(name, body)
+	}
 	return "---\nname: " + name + "\ndescription: Bounded synthetic composition.\nmetadata:\n  dependencies:\n    skills: [" +
 		strings.Join(dependencies, ", ") + "]\n---\n\n" + body + "\n"
 }
@@ -126,7 +131,7 @@ func assertLoadedClosureOrder(t *testing.T, receipt *agentruntime.SkillLoadRecei
 }
 
 func TestSkillLoadAfterResourcePublicationUsesCurrentBundle(t *testing.T) {
-	fixture := newKernelSkillDraftFixture(t)
+	fixture := resourceLoadedClosureFixture(t)
 	const name = "revision-resource-fixture"
 	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", kernelSkillManifestForTest(name, "Inspect the package reference.")); err != nil {
 		t.Fatal(err)
@@ -189,7 +194,10 @@ func executeLoadedClosureFixture(
 	}
 	result, err := gateway.Execute(ctx, agentruntime.ToolCall{ID: callID, Name: "skill", Arguments: encoded})
 	if err != nil || !result.SkillLoadReceipt.BoundToCall(callID) {
-		t.Fatalf("explicit Skill load %s: receipt=%v err=%v", callID, result.SkillLoadReceipt != nil, err)
+		value := mapValue(result.Value)
+		t.Fatalf("explicit Skill load %s: receipt=%v status=%q code=%q message=%q error=%q err=%v",
+			callID, result.SkillLoadReceipt != nil, stringValue(value["status"]), stringValue(value["code"]),
+			stringValue(value["message"]), stringValue(value["error"]), err)
 	}
 	if err := completeLoadedClosureFixture(ctx, fixture, options, run, callID, encoded, result); err != nil {
 		t.Fatalf("complete Skill load %s: %v", callID, err)
@@ -242,10 +250,18 @@ func publishLoadedClosureFixture(t *testing.T, fixture *kernelSkillDraftFixture,
 	t.Helper()
 	validated, err := fixture.call("host.skills.validate", name)
 	if err != nil || mapValue(validated)["valid"] != true {
-		t.Fatalf("validate synthetic Skill draft: valid=%v err=%v", mapValue(validated)["valid"], err)
+		report, _ := json.Marshal(validated)
+		t.Fatalf("validate synthetic Skill draft %q: report=%s err=%v", name, report, err)
 	}
 	published, err := fixture.call("host.skills.publish", name, overwrite)
 	if err != nil || mapValue(published)["status"] != "published" {
 		t.Fatalf("explicitly publish synthetic Skill draft: status=%q err=%v", stringValue(mapValue(published)["status"]), err)
+	}
+}
+
+func disableLoadedClosureFixtureMCP(t *testing.T, fixture *kernelSkillDraftFixture) {
+	t.Helper()
+	if err := disableBundledMCPForLocalFixture(context.Background(), fixture.server, fixture.stream.OwnerID); err != nil {
+		t.Fatal(err)
 	}
 }

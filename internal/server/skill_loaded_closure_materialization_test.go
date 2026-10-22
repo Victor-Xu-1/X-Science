@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	kernelruntime "x-science/internal/kernel"
 	"x-science/internal/persistence/workspace"
+	"x-science/internal/toolcontract"
 	"x-science/internal/tools/registry"
 )
 
@@ -132,7 +136,24 @@ func TestSkillClosureSelectedRunnerContextResolvesCapturedRuntimeDirectory(t *te
 	liveTools := filterAgentRuntimeToolSchemas(bound.Schemas, bound.Options.AllowedTools)
 	retained := fixture.server.agentRuntimeDiscoverableSkills(selected, agentRuntimeToolSchemaNameSet(liveTools))
 	if fixture.server.tools == nil || len(retained) != 1 || retained[0].Name != name {
-		t.Fatalf("actual registry/tool authority filtered selected fixture: selected=%d retained=%d", len(selected), len(retained))
+		live := agentRuntimeToolSchemaNameSet(liveTools)
+		// Diagnostic only. The actual production filter above remains the
+		// admission assertion; these values report its real service/tool facts.
+		report := registry.AuditRuntimeSkillDependencyClosure(selected, fixture.server.tools, registry.RuntimeResolverFunc(func(name string, class registry.DependencyClass) registry.RuntimeStatus {
+			if class == registry.DependencyClassExternalRuntime {
+				ready := fixture.server.kernelManager.ManagedEnvironmentSupervisorReady()
+				return registry.RuntimeStatus{Executable: ready, AuthorityResolved: ready, Route: "managed-environment-supervisor"}
+			}
+			if class == registry.DependencyClassTool {
+				canonical, valid := toolcontract.NormalizeRuntimeName(name)
+				_, admitted := live[canonical]
+				return registry.RuntimeStatus{Executable: valid && admitted, AuthorityResolved: valid && admitted, Route: "actual-bound-tool-schema"}
+			}
+			return registry.RuntimeStatus{Executable: true, Route: "request-tool-authority"}
+		}))
+		encoded, _ := json.Marshal(report)
+		t.Fatalf("actual registry/tool authority filtered selected fixture: selected=%d retained=%d supervisorReady=%t dependencies=%s",
+			len(selected), len(retained), fixture.server.kernelManager.ManagedEnvironmentSupervisorReady(), encoded)
 	}
 	_, runnerErr := fixture.server.runSessionRunnerChat(ctx, options, session, entries, run)
 	select {
@@ -156,8 +177,33 @@ func TestSkillClosureSelectedRunnerContextResolvesCapturedRuntimeDirectory(t *te
 
 func resourceLoadedClosureFixture(t *testing.T) *kernelSkillDraftFixture {
 	t.Helper()
-	store, manager, app, _ := newKernelHostTestRuntime(t, filepath.Join(t.TempDir(), "resource-runtime.db"), true)
-	t.Cleanup(func() { closeKernelHostTestRuntime(t, app, manager, store) })
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, file, _, found := runtime.Caller(0)
+	if !found {
+		t.Fatal("locate existing kernel runtime assets")
+	}
+	assets := filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "assets", "optional"))
+	runtimeRoot := t.TempDir()
+	manager := kernelruntime.NewManager(kernelruntime.Config{
+		Python: python, AssetRoot: assets,
+		ManifestPath: filepath.Join(assets, "kernel-compute.manifest.json"), WorkerPath: filepath.Join(assets, "kernels", "kernel_worker.py"),
+		Micromamba: filepath.Join(runtimeRoot, "micromamba"), CondaHome: filepath.Join(runtimeRoot, "conda"),
+		CondaEnvsPath: filepath.Join(runtimeRoot, "conda", "envs"), CondaRuntimeCatalog: filepath.Join(runtimeRoot, "catalog.json"),
+		ExecutionTimeout: 30 * time.Second, InterruptGrace: 2 * time.Second, ShutdownTimeout: 2 * time.Second,
+	})
+	if !manager.ManagedEnvironmentSupervisorEnabled() {
+		t.Fatal("isolated local managed-environment supervisor is not configured")
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if _, err := manager.CloseAll(ctx); err != nil {
+			t.Error(err)
+		}
+	})
 	fixture := &kernelSkillDraftFixture{
 		agentSaveArtifactsFixture: newAgentSaveArtifactsFixtureWithKernelManager(t, manager), generation: 1,
 	}
@@ -171,6 +217,35 @@ func resourceLoadedClosureFixture(t *testing.T) *kernelSkillDraftFixture {
 	}
 	if !fixture.server.kernelConfinementEvidence(false).Available {
 		t.Fatal("existing local resource-materialization fixture lacks its required confinement evidence")
+	}
+	disableLoadedClosureFixtureMCP(t, fixture)
+	// This is the same real service-owned loop used by runtime admission. Its
+	// state, caches and maintenance roots are all temporary. No installation,
+	// helper, kernel cell or scientific computation is requested by this fixture.
+	supervisorCtx, cancelSupervisor := context.WithCancel(context.Background())
+	supervisorDone := make(chan error, 1)
+	go func() { supervisorDone <- manager.RunManagedEnvironmentSupervisor(supervisorCtx) }()
+	t.Cleanup(func() {
+		cancelSupervisor()
+		select {
+		case err := <-supervisorDone:
+			if err != nil {
+				t.Error(err)
+			}
+		case <-time.After(2 * time.Second):
+			t.Error("local resource supervisor did not stop")
+		}
+	})
+	deadline := time.NewTimer(2 * time.Second)
+	defer deadline.Stop()
+	ready := time.NewTicker(time.Millisecond)
+	defer ready.Stop()
+	for !manager.ManagedEnvironmentSupervisorReady() {
+		select {
+		case <-deadline.C:
+			t.Fatal("real local managed-environment supervisor did not become ready")
+		case <-ready.C:
+		}
 	}
 	return fixture
 }
