@@ -31,6 +31,14 @@ type Options = {
 };
 const contains = (names: string[], name: string) => names.some((item) => item.toLowerCase() === name.toLowerCase());
 
+export function canActivateConversationSkill({
+  assistantId,
+  runtimeAgentName,
+  disabled,
+}: Pick<Options, 'assistantId' | 'runtimeAgentName' | 'disabled'>) {
+  return Boolean(assistantId?.trim() || runtimeAgentName?.trim()) && !disabled;
+}
+
 // Admission is an explicit user action, separate from Save and from Send.
 // Reuse the existing additive profile API; never replace its other bindings.
 export function useConversationSkillActivation(options: Options) {
@@ -56,7 +64,7 @@ export function useConversationSkillActivation(options: Options) {
     scope.request = request;
     setSnapshot({ scope, request: request ? { ...request } : null });
   };
-  const canActivate = Boolean(assistantId?.trim() || runtimeAgentName?.trim()) && !disabled;
+  const canActivate = canActivateConversationSkill(options);
   const request = (name: string) => {
     if (!canActivate || !mountedRef.current || scopeRef.current !== scope || scope.request?.pending || !name.trim())
       return;

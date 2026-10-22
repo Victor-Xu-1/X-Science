@@ -5,7 +5,7 @@ import {
   type XScienceComposerCapabilities,
 } from '@/renderer/services/xScienceGateway';
 import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
-import { useConversationSkillActivation } from './useConversationSkillActivation';
+import { canActivateConversationSkill, useConversationSkillActivation } from './useConversationSkillActivation';
 
 type Options = {
   conversationId: string;
@@ -29,27 +29,46 @@ type Options = {
 export function useAcpConversationSkills(options: Options) {
   const { conversationId, ownerId, authority, mountedRef, disabled, mutateComposerCapabilities, fetchSlashCommands } =
     options;
+  const activationDisabled = disabled || !options.isXScience;
+  const mobileLibraryActive =
+    options.isMobile &&
+    canActivateConversationSkill({
+      assistantId: options.assistantId,
+      runtimeAgentName: options.runtimeAgentName,
+      disabled: activationDisabled,
+    });
+  const { data: mobileSkillLibrary, mutate: mutateMobileSkillLibrary } = useSWR(
+    mobileLibraryActive ? ['x-science-mobile-skill-library', ownerId, conversationId] : null,
+    () => loadXScienceSkills(),
+    { keepPreviousData: false }
+  );
   const refreshCatalogs = useCallback(
     async (isCurrent: () => boolean) => {
+      if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+      const readCurrent = async <T>(load: () => Promise<T>) => {
+        if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+        const value = await load();
+        if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+        return value;
+      };
       // Start the bound mutation before yielding so SWR captures this conversation's
-      // key. Await both real reads; a failed read is not an empty Skill catalog.
+      // key. The mounted mobile library shares the same readback barrier.
       const refreshed = await Promise.allSettled([
-        mutateComposerCapabilities(
-          async () => {
-            const capabilities = await loadXScienceComposerCapabilities(conversationId);
-            if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-            return capabilities;
-          },
-          { revalidate: false }
-        ),
-        fetchSlashCommands({ fresh: true }),
+        mutateComposerCapabilities(() => readCurrent(() => loadXScienceComposerCapabilities(conversationId)), {
+          revalidate: false,
+        }),
+        readCurrent(() => fetchSlashCommands({ fresh: true })),
+        mobileLibraryActive
+          ? mutateMobileSkillLibrary(() => readCurrent(loadXScienceSkills), { revalidate: false })
+          : undefined,
       ]);
+      if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
       if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
       const capabilities = refreshed[0];
       if (capabilities.status !== 'fulfilled' || !capabilities.value) throw new Error('Skill capabilities unavailable');
       return capabilities.value.skills;
     },
-    [conversationId, fetchSlashCommands, mutateComposerCapabilities]
+    [conversationId, fetchSlashCommands, mobileLibraryActive, mutateComposerCapabilities, mutateMobileSkillLibrary]
   );
   const skillActivation = useConversationSkillActivation({
     authority,
@@ -58,17 +77,10 @@ export function useAcpConversationSkills(options: Options) {
     assistantId: options.assistantId,
     runtimeAgentName: options.runtimeAgentName,
     locale: options.locale,
-    disabled: disabled || !options.isXScience,
+    disabled: activationDisabled,
     refreshCatalogs,
     onSelectSkill: options.onSelectSkill,
   });
-  const { data: mobileSkillLibrary } = useSWR(
-    options.isMobile && skillActivation.canActivate
-      ? ['x-science-mobile-skill-library', ownerId, conversationId]
-      : null,
-    () => loadXScienceSkills(),
-    { keepPreviousData: false }
-  );
   const mobileLibraryNames = useMemo(
     () =>
       skillActivation.canActivate
