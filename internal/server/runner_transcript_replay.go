@@ -24,6 +24,11 @@ func (s *Server) loadTranscriptRunnerReplay(
 	if s == nil || s.transcriptStore == nil || authority == nil {
 		return nil, errors.New("transcript runner authority is required")
 	}
+	authority.replaySnapshot = nil
+	replaySnapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, authority.Stream.UID, authority.Stream.OwnerID)
+	if err != nil {
+		return nil, err
+	}
 	correction, hasCorrection, err := s.loadPriorTerminalCorrection(ctx, authority)
 	if err != nil {
 		return nil, err
@@ -43,6 +48,13 @@ func (s *Server) loadTranscriptRunnerReplay(
 	})
 	if err != nil {
 		return nil, fmt.Errorf("load transcript runner replay: %w", err)
+	}
+	selectedSnapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, authority.Stream.UID, authority.Stream.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+	if replaySnapshot.BranchID == selectedSnapshot.BranchID && replaySnapshot.BranchGeneration == selectedSnapshot.BranchGeneration {
+		authority.replaySnapshot = &replaySnapshot
 	}
 	entries := make([]eventjournal.Entry, 0, len(projected))
 	artifactReferenceCorrection := hasCorrection &&

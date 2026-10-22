@@ -22,6 +22,9 @@ type transcriptRunnerAuthority struct {
 	// Claim is immutable across heartbeat/checkpoint goroutines. The repository
 	// validates and renews the live expiry in durable runner state.
 	Claim transcriptstore.RunnerClaim
+	// Read-only cutoff selected before the bounded replay read. It cannot grant
+	// execution authority or be reconstructed from a model/persisted payload.
+	replaySnapshot *transcriptstore.ProjectionSnapshot
 }
 
 func (s *Server) claimTranscriptFrameRunner(

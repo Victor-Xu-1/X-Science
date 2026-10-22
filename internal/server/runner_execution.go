@@ -227,6 +227,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", errors.New("runner chat requires at least one user message")
 	}
 	currentLogicalEntries := entries
+	var recoveredSkillLoads []*agentruntime.SkillLoadReceipt
 	if run != nil {
 		preparationSubstage = "load_provider_continuation"
 		// Provider history is conversation context, not Skill admission authority.
@@ -269,7 +270,10 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			selectionRequired = false
 		}
 		run.setImplementationSelectionRequired(selectionRequired)
-		run.addExecutedSkillInvocationKeys(completedSkillInvocationKeysFromRunnerEntries(scientificEntries)...)
+		recoveredSkillLoads, err = s.restoreSkillLoadReceipts(ctx, scientificEntries, run)
+		if err != nil {
+			return "", err
+		}
 		run.addTrustedScientificReviewSignals(trustedScientificReviewSignalsFromRunnerEntries(scientificEntries)...)
 		run.addTrustedScientificCapabilityWitnesses(trustedScientificCapabilityWitnessesFromRunnerEntries(scientificEntries)...)
 		run.ContinuationArtifactReferences = artifactReferencesFromRunnerEntries(scientificEntries)
@@ -549,9 +553,41 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if run != nil && strings.TrimSpace(run.SessionID) != "" {
 		runtimeSkillSessionID = strings.TrimSpace(run.SessionID)
 	}
-	selectedSkills, err = s.prepareAgentSkillRuntimeContexts(ctx, runtimeSkillSessionID, selectedSkills)
+	var selectedSnapshot runtimeSkillClosureSnapshot
+	if len(selectedSkills) > 0 {
+		selectedSnapshot, err = s.captureRuntimeSkillClosureSnapshot(selectedSkills)
+		if err != nil {
+			return "", fmt.Errorf("snapshot selected skill runtime context: %w", err)
+		}
+	}
+	selectedSnapshot, recoveredSkillKeys, changedSkillRoots := selectedSnapshot.forReplay(recoveredSkillLoads, options.SelectedSkillNames)
+	if context := runtimeSkillReplayContext(changedSkillRoots); context != "" {
+		messages = appendRuntimeAgentPolicyContextMessage(messages, context)
+	}
+	retainedSkillNames := make(map[string]bool, len(selectedSnapshot.contracts))
+	for _, contract := range selectedSnapshot.contracts {
+		retainedSkillNames[normalizedRuntimeSkillReceiptName(contract.skill.Name)] = true
+	}
+	retainedExplicitSkills := explicitlySelectedSkills[:0]
+	for _, skill := range explicitlySelectedSkills {
+		if retainedSkillNames[normalizedRuntimeSkillReceiptName(skill.Name)] {
+			retainedExplicitSkills = append(retainedExplicitSkills, skill)
+		}
+	}
+	explicitlySelectedSkills = retainedExplicitSkills
+	retainedExplicitClosure := explicitSkillClosure[:0]
+	for _, skill := range explicitSkillClosure {
+		if retainedSkillNames[normalizedRuntimeSkillReceiptName(skill.Name)] {
+			retainedExplicitClosure = append(retainedExplicitClosure, skill)
+		}
+	}
+	explicitScientificCapabilities = requiredScientificCapabilities(retainedExplicitClosure)
+	selectedSkills, err = selectedSnapshot.materializeForContext(ctx, s, runtimeSkillSessionID)
 	if err != nil {
 		return "", fmt.Errorf("prepare selected skill runtime context: %w", err)
+	}
+	if run != nil {
+		run.addExecutedSkillInvocationKeys(recoveredSkillKeys...)
 	}
 	if executionPriority := runtimeSkillExecutionPriorityContext(selectedSkills); executionPriority != "" {
 		messages = appendRuntimeAgentPolicyContextMessageWithSource(messages, executionPriority, agentruntime.ContextUsageSkills)

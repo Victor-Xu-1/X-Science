@@ -1,34 +1,14 @@
 package server
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"strings"
+
+	"x-science/internal/agentruntime"
 )
 
-func runtimeSkillInvocationKey(skillName, args, filter string) string {
-	skillName = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(skillName), "/"))
-	if skillName == "" {
-		return ""
-	}
-	digest := sha256.Sum256([]byte(strings.Join([]string{
-		skillName,
-		strings.TrimSpace(args),
-		strings.TrimSpace(filter),
-	}, "\x00")))
-	return hex.EncodeToString(digest[:])
-}
-
-func runtimeSkillInvocationKeyFromInput(input map[string]any) string {
-	return runtimeSkillInvocationKey(
-		stringValue(input["skill"]),
-		stringValue(input["args"]),
-		stringValue(input["filter"]),
-	)
-}
-
-func repeatedRuntimeSkillInvocationResult(skillName string, loadedSkills []string) map[string]any {
+func repeatedRuntimeSkillInvocationResult(skillName string, loadedSkills []string, receipt *agentruntime.SkillLoadReceipt) map[string]any {
 	return map[string]any{
+		"load_receipt": receipt.Clone(),
 		"ok":           true,
 		"success":      true,
 		"loaded":       true,

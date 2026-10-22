@@ -456,6 +456,14 @@ func (s *Server) checkpointChatTool(options SessionRunnerChatOptions, run *sessi
 }
 
 func (s *Server) checkpointChatToolWithTerminalObserver(options SessionRunnerChatOptions, run *sessionRunnerChatRun, status string, message string, toolCallID string, phase string, onNewTerminal func(), details ...map[string]any) error {
+	return s.checkpointChatToolWithObservers(options, run, status, message, toolCallID, phase, onNewTerminal, nil, details...)
+}
+
+// onCommitted observes the original checkpoint owner's successful write or
+// identical replay. A tolerated divergent-payload conflict is not a commit
+// receipt, so it must not grant a new in-memory load identity to its caller.
+// Unlike onNewTerminal, this observation does not imply a new tool settlement.
+func (s *Server) checkpointChatToolWithObservers(options SessionRunnerChatOptions, run *sessionRunnerChatRun, status string, message string, toolCallID string, phase string, onNewTerminal func(), onCommitted func(transcriptstore.Event), details ...map[string]any) error {
 	if run == nil {
 		return nil
 	}
@@ -629,8 +637,12 @@ func (s *Server) checkpointChatToolWithTerminalObserver(options SessionRunnerCha
 		run.ToolSourceEventIDs[toolCallID] = transcriptEvent.EventID
 	}
 	if run.Transcript != nil {
-		// created is supplied by the existing checkpoint transaction. Observers
-		// run only after its commit, never for a replay, conflict or rollback.
+		if onCommitted != nil && transcriptEvent.EventID > 0 {
+			onCommitted(transcriptEvent)
+		}
+		// created is supplied by the existing checkpoint transaction. The
+		// new-terminal observer excludes replay, conflict and rollback; the
+		// committed-event observer above also accepts an identical replay.
 		if createdTerminal {
 			onNewTerminal()
 		}

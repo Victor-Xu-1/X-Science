@@ -134,9 +134,13 @@ func TestRuntimeSkillSnapshotSerializesPublicationAndRejectsChangedCachedContrac
 	if err != nil {
 		t.Fatal(err)
 	}
-	bundle, resources, err := app.snapshotPublishedAgentSkillRuntime(current[0])
-	if err != nil || !resources || publicationTestResource(bundle) != "NEW_CONFIRMED" {
-		t.Fatalf("confirmed snapshot resources=%t content=%q err=%v", resources, publicationTestResource(bundle), err)
+	snapshot, err := app.captureRuntimeSkillClosureSnapshot(current)
+	if err != nil || len(snapshot.contracts) != 1 {
+		t.Fatalf("confirmed actual closure snapshot=%d err=%v", len(snapshot.contracts), err)
+	}
+	contract := snapshot.contracts[0]
+	if !contract.hasResources || publicationTestResource(contract.bundle) != "NEW_CONFIRMED" {
+		t.Fatalf("confirmed snapshot resources=%t content=%q", contract.hasResources, publicationTestResource(contract.bundle))
 	}
 }
 

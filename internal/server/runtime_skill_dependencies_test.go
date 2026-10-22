@@ -227,48 +227,32 @@ func TestSkillSearchAndLoadShareDependencyPolicyAuthority(t *testing.T) {
 }
 
 func TestRepeatedSkillInvocationReturnsOneCompactReuseReceipt(t *testing.T) {
-	catalog := skills.NewCatalog()
-	catalog.AddSkill(skills.Skill{Name: "analysis-workflow", Body: "CANONICAL CONTRACT"})
-	server := New(Options{FileRoot: t.TempDir()})
-	server.skillCatalog = catalog
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := server.Close(ctx); err != nil {
-			t.Errorf("close server: %v", err)
-		}
-	})
-	run := &sessionRunnerChatRun{SessionID: "skill-reuse-session"}
-	ctx := context.WithValue(context.Background(), transcriptRunnerChatRunContextKey{}, run)
-
-	first, err := server.executeSkillToolWithRuntimeSkillsAndPolicy(
-		ctx, map[string]any{"skill": "analysis-workflow"}, nil, runtimeSkillPolicyAuthority{}, nil,
-	)
-	if err != nil || !strings.Contains(stringValue(mapValue(first)["prompt"]), "CANONICAL CONTRACT") {
-		t.Fatalf("first Skill load=%#v err=%v", first, err)
+	fixture := newKernelSkillDraftFixture(t)
+	if _, err := fixture.call("host.skills.edit", "analysis-workflow", "SKILL.md", kernelSkillManifestForTest("analysis-workflow", "CANONICAL CONTRACT")); err != nil {
+		t.Fatal(err)
 	}
-	second, err := server.executeSkillToolWithRuntimeSkillsAndPolicy(
-		ctx, map[string]any{"skill": "analysis-workflow"}, nil, runtimeSkillPolicyAuthority{}, nil,
-	)
-	secondPayload := mapValue(second)
-	if err != nil || secondPayload["reused"] != true || secondPayload["status"] != "already_loaded" ||
+	publishLoadedClosureFixture(t, fixture, "analysis-workflow", false)
+	run, gateway := loadedClosureFixtureGateway(fixture)
+	first := executeLoadedClosureFixture(t, fixture, run, gateway, "load-first", "analysis-workflow", "")
+	if text, ok := first.Value.(string); !ok || !strings.Contains(text, "CANONICAL CONTRACT") {
+		t.Fatal("first Skill load omitted the published contract")
+	}
+	second := executeLoadedClosureFixture(t, fixture, run, gateway, "load-repeated", "analysis-workflow", "")
+	secondPayload := mapValue(second.Value)
+	if secondPayload["reused"] != true || secondPayload["status"] != "already_loaded" ||
 		secondPayload["prompt"] != nil {
-		t.Fatalf("repeated Skill load=%#v err=%v", second, err)
+		t.Fatalf("repeated Skill load=%#v", second.Value)
 	}
-	entries, err := server.runtimeStore.List("skill-invocations")
+	entries, err := fixture.server.runtimeStore.List("skill-invocations")
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("repeated Skill persisted duplicate invocations=%#v err=%v", entries, err)
 	}
 
-	third, err := server.executeSkillToolWithRuntimeSkillsAndPolicy(
-		ctx, map[string]any{"skill": "analysis-workflow", "args": "different scope"},
-		nil, runtimeSkillPolicyAuthority{}, nil,
-	)
-	if err != nil || mapValue(third)["reused"] == true ||
-		!strings.Contains(stringValue(mapValue(third)["prompt"]), "CANONICAL CONTRACT") {
-		t.Fatalf("materially different Skill invocation=%#v err=%v", third, err)
+	third := executeLoadedClosureFixture(t, fixture, run, gateway, "load-different-scope", "analysis-workflow", "different scope")
+	if text, ok := third.Value.(string); !ok || !strings.Contains(text, "CANONICAL CONTRACT") {
+		t.Fatalf("materially different Skill invocation=%#v", third.Value)
 	}
-	entries, err = server.runtimeStore.List("skill-invocations")
+	entries, err = fixture.server.runtimeStore.List("skill-invocations")
 	if err != nil || len(entries) != 2 {
 		t.Fatalf("distinct Skill invocation audit=%#v err=%v", entries, err)
 	}
@@ -304,24 +288,18 @@ func (model *repeatedSkillRunnerModel) Complete(
 }
 
 func TestAgentEngineConvergesAfterWeakModelRepeatsLoadedSkill(t *testing.T) {
-	catalog := skills.NewCatalog()
-	catalog.AddSkill(skills.Skill{Name: "analysis-workflow", Body: "CANONICAL CONTRACT"})
-	server := New(Options{FileRoot: t.TempDir()})
-	server.skillCatalog = catalog
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := server.Close(ctx); err != nil {
-			t.Errorf("close server: %v", err)
-		}
-	})
-	run := &sessionRunnerChatRun{SessionID: "skill-loop-engine"}
-	model := &repeatedSkillRunnerModel{}
-	gateway := serverAgentRuntimeToolGateway{
-		server: server, taskRun: run, sessionID: run.SessionID,
-		allowedTools: []string{"skill"}, suppressHooks: true,
+	fixture := newKernelSkillDraftFixture(t)
+	if _, err := fixture.call("host.skills.edit", "analysis-workflow", "SKILL.md", kernelSkillManifestForTest("analysis-workflow", "CANONICAL CONTRACT")); err != nil {
+		t.Fatal(err)
 	}
-	engine := agentruntime.Engine{Model: model, Tools: gateway}
+	publishLoadedClosureFixture(t, fixture, "analysis-workflow", false)
+	run, gateway := loadedClosureFixtureGateway(fixture)
+	model := &repeatedSkillRunnerModel{}
+	gateway.suppressHooks = true
+	engine := agentruntime.Engine{Model: model, Tools: gateway, OnEventError: func(event agentruntime.Event) error {
+		return fixture.server.checkpointSessionRunnerToolEvent(context.Background(),
+			SessionRunnerChatOptions{RunnerID: run.Transcript.Claim.RunnerID, SessionID: run.SessionID}, run, event)
+	}}
 	result, err := engine.Run(context.Background(), agentruntime.RunRequest{
 		Messages: []agentruntime.Message{{Role: "user", Content: "Load the analysis workflow once."}},
 		Tools: []agentruntime.ToolSchema{{
@@ -336,7 +314,7 @@ func TestAgentEngineConvergesAfterWeakModelRepeatsLoadedSkill(t *testing.T) {
 		model.round != 3 || !model.sawReuse || !model.sawHint {
 		t.Fatalf("engine did not converge after the compact reuse receipt: result=%#v model=%#v err=%v", result, model, err)
 	}
-	entries, err := server.runtimeStore.List("skill-invocations")
+	entries, err := fixture.server.runtimeStore.List("skill-invocations")
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("engine repeated full Skill materialization=%#v err=%v", entries, err)
 	}
@@ -365,24 +343,19 @@ func (model *alternatingSkillDiscoveryRunnerModel) Complete(
 }
 
 func TestAgentEngineBoundsAlternatingLoadedSkillDiscovery(t *testing.T) {
-	catalog := skills.NewCatalog()
-	catalog.AddSkill(skills.Skill{Name: "analysis-workflow", Body: "CANONICAL CONTRACT"})
-	server := New(Options{FileRoot: t.TempDir()})
-	server.skillCatalog = catalog
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := server.Close(ctx); err != nil {
-			t.Errorf("close server: %v", err)
-		}
-	})
-	run := &sessionRunnerChatRun{SessionID: "alternating-skill-loop"}
-	model := &alternatingSkillDiscoveryRunnerModel{}
-	gateway := serverAgentRuntimeToolGateway{
-		server: server, taskRun: run, sessionID: run.SessionID,
-		allowedTools: []string{"search_skills", "skill"}, suppressHooks: true,
+	fixture := newKernelSkillDraftFixture(t)
+	if _, err := fixture.call("host.skills.edit", "analysis-workflow", "SKILL.md", kernelSkillManifestForTest("analysis-workflow", "CANONICAL CONTRACT")); err != nil {
+		t.Fatal(err)
 	}
-	_, err := (agentruntime.Engine{Model: model, Tools: gateway}).Run(
+	publishLoadedClosureFixture(t, fixture, "analysis-workflow", false)
+	run, gateway := loadedClosureFixtureGateway(fixture)
+	model := &alternatingSkillDiscoveryRunnerModel{}
+	gateway.allowedTools, gateway.suppressHooks = []string{"search_skills", "skill"}, true
+	engine := agentruntime.Engine{Model: model, Tools: gateway, OnEventError: func(event agentruntime.Event) error {
+		return fixture.server.checkpointSessionRunnerToolEvent(context.Background(),
+			SessionRunnerChatOptions{RunnerID: run.Transcript.Claim.RunnerID, SessionID: run.SessionID}, run, event)
+	}}
+	_, err := engine.Run(
 		context.Background(), agentruntime.RunRequest{
 			Messages: []agentruntime.Message{{Role: "user", Content: "Find and load the analysis workflow once."}},
 			Tools: []agentruntime.ToolSchema{
@@ -396,7 +369,7 @@ func TestAgentEngineBoundsAlternatingLoadedSkillDiscovery(t *testing.T) {
 	if !errors.As(err, &noProgress) || noProgress.Limit != 3 || model.round != 5 {
 		t.Fatalf("alternating Skill discovery rounds=%d error=%v", model.round, err)
 	}
-	entries, listErr := server.runtimeStore.List("skill-invocations")
+	entries, listErr := fixture.server.runtimeStore.List("skill-invocations")
 	if listErr != nil || len(entries) != 1 {
 		t.Fatalf("alternating Skill loop rematerialized contracts=%#v err=%v", entries, listErr)
 	}

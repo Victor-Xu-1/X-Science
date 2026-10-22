@@ -11,6 +11,7 @@ import (
 
 	"x-science/internal/agentruntime"
 	"x-science/internal/kernelcontract"
+	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/toolcontract"
@@ -627,7 +628,29 @@ func (s *Server) checkpointSessionRunnerToolEvent(
 		if phase == "completed" && !event.RejectedBeforeExecution {
 			run.activateToolCapability(event.ToolName, stringArrayValue(details["toolCapabilities"])...)
 		}
-		if err := s.checkpointChatToolWithTerminalObserver(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, terminalObserver, details); err != nil {
+		var skillLoadReceipt *agentruntime.SkillLoadReceipt
+		if phase == "completed" && !event.RejectedBeforeExecution && isCompletedSkillToolName(event.ToolName) &&
+			agentruntime.ClassifyToolResult(toolResult) == agentruntime.ToolResultSucceeded &&
+			runtimeSkillLoadReceiptForScope(event.SkillLoadReceipt, run.Transcript, event.ToolCallID) &&
+			runtimeSkillLoadReceiptMatchesInput(event.SkillLoadReceipt, completedSkillInput(eventjournal.Message(details))) &&
+			event.SkillLoadReceipt.Binding.RunnerAttempt == run.Transcript.Claim.Attempt &&
+			event.SkillLoadReceipt.Binding.InputRevision == run.Transcript.Claim.ClaimedInputRevision {
+			if cause := context.Cause(ctx); cause != nil {
+				return cause
+			}
+			skillLoadReceipt = event.SkillLoadReceipt.Clone()
+			details[runtimeSkillLoadReceiptField] = skillLoadReceipt
+		}
+		var onCommitted func(transcriptstore.Event)
+		if skillLoadReceipt != nil {
+			onCommitted = func(committed transcriptstore.Event) {
+				if durable := runtimeSkillLoadReceiptFromCommittedEvent(committed); durable != nil &&
+					runtimeSkillLoadReceiptDigest(durable) == runtimeSkillLoadReceiptDigest(skillLoadReceipt) {
+					run.addExecutedSkillInvocationKeys(durable.InvocationKey)
+				}
+			}
+		}
+		if err := s.checkpointChatToolWithObservers(options, run, status, fmt.Sprintf("tool %s %s", event.ToolName, status), event.ToolCallID, phase, terminalObserver, onCommitted, details); err != nil {
 			return err
 		}
 		observed := run.observeExecutionEvidence(event.ToolName, toolResult)

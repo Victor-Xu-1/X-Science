@@ -116,9 +116,9 @@ func TestScientificCapabilitiesResumeOnlyFromCompletedSkillCheckpoint(t *testing
 	if names := completedSkillNamesFromRunnerEntries(entries); strings.Join(names, ",") != "real-docking" {
 		t.Fatalf("resumed executed Skills=%#v", names)
 	}
-	keys := completedSkillInvocationKeysFromRunnerEntries(entries)
-	if len(keys) != 1 || keys[0] != runtimeSkillInvocationKey("real-docking", "", "") {
-		t.Fatalf("resumed exact Skill invocation keys=%#v", keys)
+	receipts := completedSkillLoadReceiptsFromRunnerEntries(entries, nil)
+	if len(receipts) != 0 {
+		t.Fatalf("legacy name history manufactured exact Skill load receipts=%#v", receipts)
 	}
 }
 
@@ -132,9 +132,9 @@ func TestScientificCapabilitiesResumeFromExecutedSkillIdentity(t *testing.T) {
 	if names := completedSkillNamesFromRunnerEntries(entries); !reflect.DeepEqual(names, []string{"p2rank-pocket-detection"}) {
 		t.Fatalf("recovered executed Skill identity=%#v", names)
 	}
-	keys := completedSkillInvocationKeysFromRunnerEntries(entries)
-	if !reflect.DeepEqual(keys, []string{runtimeSkillInvocationKey("p2rank-pocket-detection", "", "")}) {
-		t.Fatalf("recovered executed Skill invocation=%#v", keys)
+	receipts := completedSkillLoadReceiptsFromRunnerEntries(entries, nil)
+	if len(receipts) != 0 {
+		t.Fatalf("legacy executed identity manufactured an exact package receipt=%#v", receipts)
 	}
 }
 
