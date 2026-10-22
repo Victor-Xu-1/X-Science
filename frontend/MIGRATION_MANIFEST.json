@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "970b54c4f512a84bd5d59872a8612898fb10c89dc49e57ba7c55688c977122ab",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "725ccdddcc41cb68a603674bdf11b4916e79227b5c224859cce4de460e6414ef",
+  "additionFingerprintSHA256": "8592602e284acbd1e14c88b7a0b97804c7ba9a092cfe7b322b341e2ebb2561eb",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1200
+    "addedFiles": 1201
   },
   "adaptations": [
     {
@@ -9657,8 +9657,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkills.ts",
-      "sha256": "ee1005cf837daaa7ecb30c312bbfbc61b62681ecb5b58a9ef8aa84ba97432227",
-      "bytes": 3269,
+      "sha256": "916b820edab3cd74a371b5bb71a702fee357c3c0866e736d3d6fb727117eabee",
+      "bytes": 4071,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9705,8 +9705,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillActivation.ts",
-      "sha256": "f267c48022c55907756fcaf111a7f16ea6c73e8df2e5ee37efd6a0005185e048",
-      "bytes": 5071,
+      "sha256": "01f6b0c3f87c28f8736e586d95dd006afb06648b0306c476958a70efd7483a77",
+      "bytes": 5285,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13049,6 +13049,12 @@
       "path": "tests/unit/renderer/conversation/toolGroupVisualContract.test.ts",
       "sha256": "e488dedc12f3613dbd3f44741a9c467b145d0da809a8ab6cd65e64bdaadf6b9a",
       "bytes": 5365,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/useAcpConversationSkills.dom.test.tsx",
+      "sha256": "d4b117c0b693b3c4bb783de7236ed880fc9ccf61a480d3a5c928dbb4996a35d7",
+      "bytes": 7541,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
