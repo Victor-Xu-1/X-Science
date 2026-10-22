@@ -51,14 +51,7 @@ func (runtime *memoryExtractionRuntime) readMemoryExtractionSnapshot(
 			return projectMemoryExtractionSnapshot(entries), nil
 		}
 	}
-	if runtime.server.eventJournal == nil {
-		return memoryExtractionJournalSnapshot{}, errors.New("memory extraction compatibility journal is unavailable")
-	}
-	entries, err := runtime.server.eventJournal.ReadAllStrict(sessionID)
-	if err != nil {
-		return memoryExtractionJournalSnapshot{}, err
-	}
-	entries, err = legacyMemorySourceEntries(entries, source)
+	entries, err := runtime.readLegacyMemorySource(sessionID, source)
 	if err != nil {
 		return memoryExtractionJournalSnapshot{}, err
 	}
