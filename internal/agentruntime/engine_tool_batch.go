@@ -251,10 +251,19 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 	if modelResultErr != nil {
 		return message, modelResultErr
 	}
+	var skillLoadReceipt *SkillLoadReceipt
+	if outcome == ToolResultSucceeded && !rejectedBeforeExecution &&
+		strings.EqualFold(call.Name, "skill") && result.SkillLoadReceipt.BoundToCall(call.ID) {
+		if cause := context.Cause(ctx); cause != nil {
+			return Message{}, cause
+		}
+		skillLoadReceipt = result.SkillLoadReceipt.Clone()
+	}
 	if err := e.emitLifecycleEvent(ctx, Event{
 		Type: eventType, ToolName: call.Name, ToolCallID: call.ID, Message: eventMessage,
 		Arguments: string(call.Arguments), ExecutedArguments: executedArguments,
 		Result: originalResult, RejectedBeforeExecution: rejectedBeforeExecution,
+		SkillLoadReceipt: skillLoadReceipt,
 	}); err != nil {
 		return message, err
 	}

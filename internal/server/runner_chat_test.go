@@ -22,6 +22,7 @@ import (
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/tools/registry"
 )
 
 func TestNormalizeSessionRunnerChatOptionsUsesV11RetryDefault(t *testing.T) {
@@ -1499,7 +1500,82 @@ When asked for runtime work, use task tools and summarize state.
 	if err := os.WriteFile(filepath.Join(skillsDir, "skill-a", "handoff.md"), []byte("handoff reference instructions"), 0o600); err != nil {
 		t.Fatalf("write skill reference: %v", err)
 	}
+	store, repo, _ := newTranscriptWebFixture(t)
+	const ownerID, projectID, frameID = "runtime-skill-owner", "runtime-skill-project", "runtime-skill-frame"
+	projectPath := t.TempDir()
+	if _, err := store.CreateProject(workspace.CreateProjectInput{
+		ID: projectID, UserID: ownerID, Name: "Runtime Skill context", Path: projectPath,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFrame(workspace.CreateFrameInput{
+		ID: frameID, ProjectID: projectID, AgentName: "OPERON", Status: "processing", ConversationType: "agent",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetFrameRuntimeMetadata(frameID, workspace.FrameRuntimeMetadata{
+		FrameID: frameID, ContextData: map[string]any{"web_extra": map[string]any{}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(Options{
+		FileRoot: t.TempDir(), SkillDirectories: []string{skillsDir},
+		Workspace: store, Transcript: repo, Tools: registry.Default(),
+	})
+	t.Cleanup(func() { closeTestServer(t, srv) })
+	if srv.kernelManager != nil {
+		t.Fatal("reference-only Skill context must not configure a computation kernel")
+	}
+	if _, err := srv.upsertHostGrant(ownerID, projectPath, "read_write"); err != nil {
+		t.Fatal(err)
+	}
+	if err := disableBundledMCPForLocalFixture(context.Background(), srv, ownerID); err != nil {
+		t.Fatal(err)
+	}
+	enabled := true
+	if _, err := store.CreateAgent(workspace.CreateAgentInput{
+		ID: "runtime-skill-context-agent", UserID: ownerID, Name: "OPERON", DisplayName: "Runtime Skill context",
+		Description:  "Keeps the owner-selected reference-only Skill available without kernel execution.",
+		SystemPrompt: "RUNTIME_SKILL_CONTEXT_OWNER", SkillNames: []string{"runtime-skill-work"}, Enabled: &enabled,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := srv.submitFrameMessage(store, frameMessageSubmission{
+		FrameID: frameID, MessageUUID: "runtime-skill-input", ClientMessageID: "runtime-skill-input",
+		Text: "Run runtime skill work",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stream, found, err := repo.GetFrameStreamBySession(context.Background(), ownerID, frameID)
+	if err != nil || !found {
+		t.Fatalf("canonical Skill context stream found=%t err=%v", found, err)
+	}
+	claimed, err := repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+		StreamUID: stream.UID, OwnerID: ownerID, RunnerID: "chat-runner-skill", TTL: time.Minute,
+		ResumeSource: transcriptstore.ResumeSourceFresh,
+	})
+	if err != nil || !claimed.Claimed {
+		t.Fatalf("claim canonical Skill context runner: claimed=%t err=%v", claimed.Claimed, err)
+	}
+	run := &sessionRunnerChatRun{
+		SessionID: stream.SessionID, Attempt: int(claimed.Claim.Attempt), ClaimToken: claimed.Claim.ClaimToken,
+		Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim},
+	}
+	ctx := withTranscriptRunnerChatRun(context.Background(), run)
+	session, err := srv.loadTranscriptFrameSessionProjection(stream)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries, err := srv.loadTranscriptRunnerReplay(ctx, run.Transcript, 20, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	access, workspaceRoot, authorized := srv.resolveAgentWorkspaceAuthority(ctx, session.ID)
+	if !authorized || access.UserID != ownerID || workspaceRoot != projectPath || srv.resolveAgentKernelContext(ctx, session.ID) != nil {
+		t.Fatal("canonical fixture must admit only the owned workspace, without kernel execution")
+	}
 
+	observed := make(chan string, 1)
 	modelAPI := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
 		var request struct {
@@ -1509,7 +1585,9 @@ When asked for runtime work, use task tools and summarize state.
 			} `json:"messages"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			t.Fatalf("decode model request: %v", err)
+			t.Errorf("decode model request: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 		systemContent := []string{}
 		for _, message := range request.Messages {
@@ -1517,39 +1595,47 @@ When asked for runtime work, use task tools and summarize state.
 				systemContent = append(systemContent, message.Content)
 			}
 		}
-		joined := strings.Join(systemContent, "\n")
-		if !strings.Contains(joined, "Runtime skill context:") ||
-			!strings.Contains(joined, "runtime-skill-work") ||
-			!strings.Contains(joined, "Source: "+skillPath) ||
-			!strings.Contains(joined, "References: handoff.md") ||
-			!strings.Contains(joined, "handoff reference instructions") {
-			t.Fatalf("model request missing runtime skill context injection: %v", systemContent)
+		select {
+		case observed <- strings.Join(systemContent, "\n"):
+		default:
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"context-aware response"}}]}`))
 	}))
 	defer modelAPI.Close()
 
-	root := t.TempDir()
-	srv := New(Options{FileRoot: root, SkillDirectories: []string{skillsDir}})
-	session := sessionstore.Session{ID: "session-skill-1"}
-	entries := []eventjournal.Entry{
-		{
-			Message: eventjournal.Message{
-				"role":    "user",
-				"content": "Run runtime skill work",
-			},
-		},
+	options := normalizeSessionRunnerChatOptions(SessionRunnerChatOptions{RunnerID: "chat-runner-skill",
+		SessionID:           session.ID,
+		SelectedSkillNames:  []string{"runtime-skill-work"},
+		AllowedTools:        []string{"skill"},
+		DisableMCPDiscovery: true, DisableSkillDiscovery: true,
+		Endpoint:         modelAPI.URL + "/v1/chat/completions",
+		Model:            "context-model",
+		MaxToolRounds:    1,
+		MaxAttempts:      1,
+		ReplayLimit:      20,
+		OutputLimitBytes: 64 * 1024,
+	})
+	bound, err := srv.bindSessionRunnerToolAuthority(ctx, session, options)
+	if err != nil || strings.Join(bound.Options.SelectedSkillNames, ",") != "runtime-skill-work" ||
+		bound.Options.SystemPrompt != "RUNTIME_SKILL_CONTEXT_OWNER" {
+		t.Fatalf("owner profile did not bind the actual selected Skill: selected=%v err=%v", bound.Options.SelectedSkillNames, err)
 	}
-	result, err := srv.runSessionRunnerChat(context.Background(), SessionRunnerChatOptions{RunnerID: "chat-runner-skill",
-		SelectedSkillNames: []string{"runtime-skill-work"},
-		Endpoint:           modelAPI.URL + "/v1/chat/completions",
-		Model:              "context-model",
-		MaxToolRounds:      1,
-		MaxAttempts:        1,
-		ReplayLimit:        20,
-		OutputLimitBytes:   64 * 1024,
-	}, session, entries, nil)
+	selected, err := srv.runtimeSkillsByNameWithConnectorSchemas(bound.Options.SelectedSkillNames, bound.Options.ExcludedSkillNames, bound.Schemas)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected = srv.agentRuntimeDiscoverableSkills(selected, agentRuntimeToolSchemaNameSet(filterAgentRuntimeToolSchemas(bound.Schemas, bound.Options.AllowedTools)))
+	if len(selected) != 1 || selected[0].Name != "runtime-skill-work" || strings.Contains(selected[0].Body, "${X_SCIENCE_SKILL_DIR}") {
+		t.Fatal("actual registry must retain the original reference-only Skill without a directory placeholder")
+	}
+	snapshot, err := srv.captureRuntimeSkillClosureSnapshot(selected)
+	if err != nil || len(snapshot.contracts) != 1 || !snapshot.contracts[0].hasResources {
+		t.Fatalf("capture actual reference-only package: err=%v", err)
+	}
+	bundle := snapshot.contracts[0].bundle
+	runtimeDirectory := filepath.Join(projectPath, ".x-science", "runtime", "skills", agentSkillRuntimeDirectoryName(selected[0].Name), bundle.digest)
+	result, err := srv.runSessionRunnerChat(ctx, options, session, entries, run)
 	if err != nil {
 		t.Fatalf("runSessionRunnerChat() error = %v", err)
 	}
@@ -1558,6 +1644,36 @@ When asked for runtime work, use task tools and summarize state.
 	}
 	if requests.Load() != 1 {
 		t.Fatalf("model requests = %d", requests.Load())
+	}
+	select {
+	case joined := <-observed:
+		for _, required := range []string{
+			"RUNTIME_SKILL_CONTEXT_OWNER", "Runtime skill context:", "### runtime-skill-work",
+			"Source: " + filepath.Join(runtimeDirectory, "SKILL.md"), "References: handoff.md",
+			"When asked for runtime work, use task tools and summarize state.", "handoff reference instructions",
+		} {
+			if !strings.Contains(joined, required) {
+				t.Fatalf("actual provider request is missing the captured Skill contract field %q", required)
+			}
+		}
+		if strings.Contains(joined, "Source: "+skillPath) {
+			t.Fatal("actual provider context referenced the mutable source package")
+		}
+	default:
+		t.Fatal("actual provider request did not expose the selected Skill context")
+	}
+	if !hostPathWithin(projectPath, runtimeDirectory) {
+		t.Fatal("content-addressed resource directory escaped its authorized project")
+	}
+	handoff, err := os.ReadFile(filepath.Join(runtimeDirectory, "handoff.md"))
+	if err != nil || string(handoff) != "handoff reference instructions" {
+		t.Fatalf("captured handoff resource bytes=%q err=%v", handoff, err)
+	}
+	if valid, err := verifyAgentSkillRuntimeBundle(runtimeDirectory, bundle); err != nil || !valid {
+		t.Fatalf("captured reference bundle is invalid: valid=%t err=%v", valid, err)
+	}
+	if srv.kernelManager != nil || srv.resolveAgentKernelContext(ctx, session.ID) != nil {
+		t.Fatal("reference-only Skill context enabled computation execution")
 	}
 }
 

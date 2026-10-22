@@ -710,12 +710,11 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 	if err != nil {
 		return nil, err
 	}
-	for _, composed := range composedSkills {
-		if err := s.withPublishedRuntimeSkillSnapshot(composed, func() error { return nil }); err != nil {
-			return nil, err
-		}
+	snapshot, err := s.captureRuntimeSkillClosureSnapshot(composedSkills)
+	if err != nil {
+		return nil, err
 	}
-	effectiveSkills := append([]skills.Skill(nil), composedSkills...)
+	effectiveSkills := snapshot.skills()
 	effectiveSkill := effectiveSkills[len(effectiveSkills)-1]
 	filter := strings.TrimSpace(stringValue(input["filter"]))
 	args := stringValue(input["args"])
@@ -723,18 +722,18 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 	for _, composed := range effectiveSkills {
 		loadedNames = append(loadedNames, composed.Name)
 	}
-	invocationKey := runtimeSkillInvocationKey(effectiveSkill.Name, args, filter)
+	receipt, err := snapshot.receipt(effectiveSkill.Name, args, filter)
+	if err != nil {
+		return nil, err
+	}
 	activeRun, _ := ctx.Value(transcriptRunnerChatRunContextKey{}).(*sessionRunnerChatRun)
 	if activeRun != nil {
-		if activeRun.hasExecutedSkillInvocationKey(invocationKey) {
-			return repeatedRuntimeSkillInvocationResult(effectiveSkill.Name, loadedNames), nil
+		if receipt != nil && activeRun.hasExecutedSkillInvocationKey(receipt.InvocationKey) {
+			return repeatedRuntimeSkillInvocationResult(effectiveSkill.Name, loadedNames, receipt), nil
 		}
-		for index, composed := range effectiveSkills {
-			materialized, err := s.materializeAgentSkillRuntime(ctx, activeRun.SessionID, composed)
-			if err != nil {
-				return nil, fmt.Errorf("materialize skill runtime %q: %w", composed.Name, err)
-			}
-			effectiveSkills[index] = materialized
+		effectiveSkills, err = snapshot.materialize(ctx, s, activeRun.SessionID)
+		if err != nil {
+			return nil, err
 		}
 		effectiveSkill = effectiveSkills[len(effectiveSkills)-1]
 	}
@@ -750,12 +749,9 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 		return nil, err
 	}
 	if activeRun != nil {
-		// Only a fully materialized and rendered closure becomes execution
-		// authority. Recording every dependency and the exact invocation key
-		// makes continuation restore the complete methodology without reloading
-		// the same body in a model loop.
+		// Capability history is separate from exact reuse. The host receipt is
+		// activated only after its successful durable terminal checkpoint.
 		activeRun.addExecutedSkillNames(loadedNames...)
-		activeRun.addExecutedSkillInvocationKeys(invocationKey)
 		for _, composed := range effectiveSkills {
 			activeRun.addRequiredScientificCapabilities(composed.RequiredCapabilities...)
 		}
@@ -785,7 +781,8 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 		"nextAction":               "Follow the loaded contract with one of allowedTools. Do not call Skill again to execute a command.",
 	}
 	result := map[string]any{
-		"data": data,
+		"load_receipt": receipt,
+		"data":         data,
 		"skill": map[string]any{
 			"name":           skill.Name,
 			"description":    skill.Description,

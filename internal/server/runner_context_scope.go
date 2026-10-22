@@ -136,34 +136,6 @@ func completedSkillNamesFromRunnerEntries(entries []eventjournal.Entry) []string
 	return uniqueSortedFolded(names)
 }
 
-func completedSkillInvocationKeysFromRunnerEntries(entries []eventjournal.Entry) []string {
-	keys := make([]string, 0)
-	for _, entry := range entries {
-		message := entry.Message
-		if stringValue(message["type"]) != "runner_checkpoint" ||
-			stringValue(message["status"]) != "completed" ||
-			stringValue(message["toolPhase"]) != "completed" ||
-			!isCompletedSkillToolName(stringValue(message["toolName"])) {
-			continue
-		}
-		input := completedSkillInput(message)
-		if key := runtimeSkillInvocationKeyFromInput(input); key != "" {
-			keys = append(keys, key)
-		}
-	}
-	if records, _, err := latestPersistedSessionRunnerToolContinuity(entries); err == nil {
-		for _, record := range records {
-			if !record.Successful || strings.TrimSpace(record.SkillName) == "" {
-				continue
-			}
-			if key := runtimeSkillInvocationKey(record.SkillName, "", ""); key != "" {
-				keys = append(keys, key)
-			}
-		}
-	}
-	return uniqueSortedFolded(keys)
-}
-
 func isCompletedSkillToolName(name string) bool {
 	name = strings.TrimSpace(name)
 	return name == "skill" || name == "Skill"

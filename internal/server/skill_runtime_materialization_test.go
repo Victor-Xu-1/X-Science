@@ -210,28 +210,6 @@ func TestRuntimeSkillExecutionPriorityIsCompactAndAssetDriven(t *testing.T) {
 	}
 }
 
-func TestMaterializeAgentSkillRuntimeLeavesUnreferencedResourcesInline(t *testing.T) {
-	skillRoot := filepath.Join(t.TempDir(), "reference-only")
-	if err := os.MkdirAll(filepath.Join(skillRoot, "references"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	skillFile := filepath.Join(skillRoot, "SKILL.md")
-	if err := os.WriteFile(skillFile, []byte("---\nname: reference-only\n---\n\nRead the inline guidance.\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(skillRoot, "references", "guide.md"), []byte("reference\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	skill := skills.Skill{Name: "reference-only", Path: skillFile, Body: "Read the inline guidance."}
-	materialized, err := (&Server{}).materializeAgentSkillRuntime(context.Background(), "session", skill)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if materialized.Path != skill.Path {
-		t.Fatalf("unreferenced resources changed skill path: %q", materialized.Path)
-	}
-}
-
 func TestPrepareAgentSkillRuntimeContextsResolvesResourcesBeforeFirstModelRequest(t *testing.T) {
 	store, manager, app, identity := newKernelHostTestRuntime(
 		t,
@@ -306,4 +284,17 @@ Run ${X_SCIENCE_SKILL_DIR}/scripts/document_workbench.py before answering.
 	if _, err := os.Stat(filepath.Join(filepath.Dir(prepared[0].Path), "scripts", "document_workbench.py")); err != nil {
 		t.Fatalf("materialized helper is unavailable: %v", err)
 	}
+}
+
+// Existing publication fences share the production closure snapshot/context
+// path. This adapter is test-only, not a second per-item production loader.
+func (s *Server) prepareAgentSkillRuntimeContexts(ctx context.Context, sessionID string, selected []skills.Skill) ([]skills.Skill, error) {
+	if len(selected) == 0 {
+		return nil, nil
+	}
+	snapshot, err := s.captureRuntimeSkillClosureSnapshot(selected)
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.materializeForContext(ctx, s, sessionID)
 }

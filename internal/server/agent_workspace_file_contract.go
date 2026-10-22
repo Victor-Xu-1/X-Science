@@ -43,8 +43,9 @@ type agentWorkspaceReadableVersion struct {
 }
 
 type agentRuntimeRichToolResponse struct {
-	value any
-	parts []agentruntime.ContentPart
+	value            any
+	parts            []agentruntime.ContentPart
+	skillLoadReceipt *agentruntime.SkillLoadReceipt
 }
 
 func unwrapAgentRuntimeRichToolResponse(value any) (any, []agentruntime.ContentPart) {

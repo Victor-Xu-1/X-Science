@@ -143,6 +143,9 @@ func (g serverAgentRuntimeToolGateway) executeGateway(ctx context.Context, call 
 	}
 	if execution.resultReady {
 		receipt.Result = execution.result
+		if agentRuntimeContextError(invocation.Context) != nil || invocation.Err != nil {
+			receipt.Result.SkillLoadReceipt = nil
+		}
 		receipt.Value = execution.result.Value
 		return receipt
 	}
@@ -568,6 +571,10 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution := serverAgentRuntimeExecution(invocation)
 	gateway := execution.gateway
 	name := invocation.CanonicalName
+	var skillLoadReceipt *agentruntime.SkillLoadReceipt
+	if rich, ok := execution.response.(agentRuntimeRichToolResponse); ok {
+		skillLoadReceipt = rich.skillLoadReceipt.Clone()
+	}
 	response, parts := unwrapAgentRuntimeRichToolResponse(execution.response)
 	response = compactAgentRuntimeToolResponse(name, response)
 	if gateway.suppressHooks {
@@ -593,6 +600,10 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution.responseParts = parts
 	execution.result = gateway.trustedAgentRuntimeToolResult(invocation.Context, execution.call, response, parts)
 	if status == "completed" && isCompletedSkillToolName(name) {
+		if agentruntime.ClassifyToolResult(response) == agentruntime.ToolResultSucceeded &&
+			agentRuntimeContextError(invocation.Context) == nil && skillLoadReceipt.BoundToCall(execution.call.ID) {
+			execution.result.SkillLoadReceipt = skillLoadReceipt.Clone()
+		}
 		if contract, ok := response.(string); ok && strings.HasPrefix(contract, agentRuntimeSkillMetadataPrefix) {
 			// The catalog loader has already bounded and materialized this exact
 			// contract. A data preview is insufficient instruction context for a

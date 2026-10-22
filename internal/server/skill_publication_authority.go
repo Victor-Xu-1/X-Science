@@ -26,16 +26,29 @@ func (s *Server) requirePublishedRuntimeSkill(skill skills.Skill) error {
 // snapshot. The lock-free refusal also permits a publication callback to inspect
 // visibility without attempting to re-enter its own mutation mutex.
 func (s *Server) withPublishedRuntimeSkillSnapshot(skill skills.Skill, snapshot func() error) error {
-	if err := s.requirePublishedRuntimeSkill(skill); err != nil {
-		return err
+	return s.withPublishedRuntimeSkillClosureSnapshot([]skills.Skill{skill}, snapshot)
+}
+
+// One ordered closure must be read under the same publication boundary. A
+// dependency cannot be replaced between separate leaf and dependency reads.
+func (s *Server) withPublishedRuntimeSkillClosureSnapshot(items []skills.Skill, snapshot func() error) error {
+	managed := false
+	for _, skill := range items {
+		if err := s.requirePublishedRuntimeSkill(skill); err != nil {
+			return err
+		}
+		managed = managed || s.managedRuntimeSkillPath(skill)
 	}
-	managed := strings.TrimSpace(s.fileRoot) != "" && filepath.IsAbs(s.fileRoot) &&
-		pathWithinRoot(skill.Path, personalSkillDirectory(s.fileRoot))
 	if managed {
 		s.skillMutationMu.Lock()
 		defer s.skillMutationMu.Unlock()
+	}
+	for _, skill := range items {
 		if err := s.requirePublishedRuntimeSkill(skill); err != nil {
 			return err
+		}
+		if !s.managedRuntimeSkillPath(skill) {
+			continue
 		}
 		// A publication may have completed while the reader waited. Never pair
 		// an old cached instruction/dependency contract with the new package.
@@ -49,12 +62,9 @@ func (s *Server) withPublishedRuntimeSkillSnapshot(skill skills.Skill, snapshot 
 	return snapshot()
 }
 
-func (s *Server) snapshotPublishedAgentSkillRuntime(skill skills.Skill) (agentSkillRuntimeBundle, bool, error) {
-	if strings.HasPrefix(skill.Path, "builtin:") || !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
-		err := s.withPublishedRuntimeSkillSnapshot(skill, func() error { return nil })
-		return agentSkillRuntimeBundle{}, false, err
-	}
-	return s.loadPublishedAgentSkillRuntimeBundle(skill)
+func (s *Server) managedRuntimeSkillPath(skill skills.Skill) bool {
+	return strings.TrimSpace(s.fileRoot) != "" && filepath.IsAbs(s.fileRoot) &&
+		pathWithinRoot(skill.Path, personalSkillDirectory(s.fileRoot))
 }
 
 // Cache diagnostics use the same publication boundary without changing their

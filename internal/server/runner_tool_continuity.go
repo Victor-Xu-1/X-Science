@@ -24,18 +24,20 @@ const (
 )
 
 type sessionRunnerToolContinuityRecord struct {
-	EventID                        int64    `json:"eventId"`
-	ToolCallID                     string   `json:"toolCallId"`
-	ToolName                       string   `json:"toolName"`
-	Phase                          string   `json:"phase"`
-	Successful                     bool     `json:"successful"`
-	InputSummary                   string   `json:"inputSummary,omitempty"`
-	ResultSummary                  string   `json:"resultSummary,omitempty"`
-	FailureDiagnostic              string   `json:"failureDiagnostic,omitempty"`
-	AcceptanceSummary              string   `json:"acceptanceSummary,omitempty"`
-	SkillName                      string   `json:"skillName,omitempty"`
-	ToolCapabilities               []string `json:"toolCapabilities,omitempty"`
-	RequiredScientificCapabilities []string `json:"requiredScientificCapabilities,omitempty"`
+	EventID                        int64                          `json:"eventId"`
+	ToolCallID                     string                         `json:"toolCallId"`
+	ToolName                       string                         `json:"toolName"`
+	Phase                          string                         `json:"phase"`
+	Successful                     bool                           `json:"successful"`
+	InputSummary                   string                         `json:"inputSummary,omitempty"`
+	ResultSummary                  string                         `json:"resultSummary,omitempty"`
+	FailureDiagnostic              string                         `json:"failureDiagnostic,omitempty"`
+	AcceptanceSummary              string                         `json:"acceptanceSummary,omitempty"`
+	SkillName                      string                         `json:"skillName,omitempty"`
+	SkillLoadReceipt               *agentruntime.SkillLoadReceipt `json:"skillLoadReceipt,omitempty"`
+	SkillLoadSource                *runtimeSkillLoadSource        `json:"skillLoadSource,omitempty"`
+	ToolCapabilities               []string                       `json:"toolCapabilities,omitempty"`
+	RequiredScientificCapabilities []string                       `json:"requiredScientificCapabilities,omitempty"`
 }
 
 // sessionRunnerProviderContextTokenEstimate measures the exact protocol shape
@@ -118,6 +120,8 @@ func sessionRunnerToolContinuityRecords(entries []journal.Entry) ([]sessionRunne
 				executedInput = mapValue(input)
 			}
 			record.SkillName = strings.TrimPrefix(strings.TrimSpace(stringValue(executedInput["skill"])), "/")
+			record.SkillLoadReceipt = runtimeSkillLoadReceiptFromCheckpoint(entry)
+			record.SkillLoadSource = runtimeSkillLoadSourceForEntry(entry, record.SkillLoadReceipt)
 			record.RequiredScientificCapabilities = uniqueSortedScientificCapabilities(
 				stringArrayValue(message["requiredScientificCapabilities"]),
 			)
@@ -289,7 +293,7 @@ func boundSessionRunnerToolContinuity(
 	for _, index := range indexes {
 		bounded = append(bounded, deduplicated[index])
 	}
-	return bounded
+	return boundRuntimeSkillLoadContinuity(bounded)
 }
 
 func sessionRunnerContinuityMilestone(record sessionRunnerToolContinuityRecord) bool {

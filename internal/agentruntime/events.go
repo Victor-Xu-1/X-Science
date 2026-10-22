@@ -28,6 +28,7 @@ type Event struct {
 	Message           string
 	Arguments         string
 	ExecutedArguments string
+	SkillLoadReceipt  *SkillLoadReceipt `json:"-"`
 	Result            string
 	ToolCalls         []ToolCall
 	// RejectedBeforeExecution distinguishes a model-visible protocol/policy

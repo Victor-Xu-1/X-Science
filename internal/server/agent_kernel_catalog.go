@@ -305,7 +305,21 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponseUncached(ctx cont
 		if err != nil {
 			return nil, err
 		}
-		return agentRuntimeSkillModelResult(result), nil
+		receipt := bindRuntimeSkillLoadReceipt(result, g.taskRun, call.ID)
+		if payload := mapValue(result); payload != nil {
+			projectedPayload := make(map[string]any, len(payload))
+			for key, value := range payload {
+				if key != "load_receipt" {
+					projectedPayload[key] = value
+				}
+			}
+			result = projectedPayload
+		}
+		projected := agentRuntimeSkillModelResult(result)
+		if receipt != nil {
+			return agentRuntimeRichToolResponse{value: projected, skillLoadReceipt: receipt}, nil
+		}
+		return projected, nil
 	}
 	if isAgentKernelToolName(name) && g.kernel != nil {
 		return g.server.executeAgentKernelToolWithApproval(

@@ -32,16 +32,19 @@ type agentSkillRuntimeBundle struct {
 	files  []agentSkillRuntimeFile
 }
 
-func (s *Server) materializeAgentSkillRuntime(
+// Callers that captured an ordered closure pass those exact immutable bytes.
+// Publication locks must be released before workspace preparation begins.
+func (s *Server) materializeAgentSkillRuntimeSnapshot(
 	ctx context.Context,
 	sessionID string,
 	skill skills.Skill,
+	bundle agentSkillRuntimeBundle,
+	hasRuntimeResources bool,
 ) (skills.Skill, error) {
-	bundle, hasRuntimeResources, err := s.snapshotPublishedAgentSkillRuntime(skill)
-	if err != nil {
-		return skills.Skill{}, err
-	}
-	if strings.HasPrefix(skill.Path, "builtin:") || !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
+	// A fully captured resource bundle must be pinned even when its instruction
+	// body has no directory placeholder: preferred assets still use skill.Path.
+	// The legacy instruction-only caller supplies no resources and stays inline.
+	if strings.HasPrefix(skill.Path, "builtin:") || !hasRuntimeResources && !strings.Contains(skill.Body, "${X_SCIENCE_SKILL_DIR}") {
 		return skill, nil
 	}
 	if !hasRuntimeResources {
@@ -53,11 +56,14 @@ func (s *Server) materializeAgentSkillRuntime(
 	}
 	preparationCtx, cancelPreparation := context.WithTimeout(preparationCtx, agentSkillRuntimePreparationTimeout)
 	defer cancelPreparation()
-	identity := s.resolveAgentKernelContext(preparationCtx, sessionID)
-	if identity == nil {
+	// Pinning captured files needs the current workspace owner, not permission
+	// to start a computation kernel. Execution tools retain their own runtime
+	// and confinement admission after the text contract has been loaded.
+	access, workspaceDir, authorized := s.resolveAgentWorkspaceAuthority(preparationCtx, sessionID)
+	if !authorized {
 		return skills.Skill{}, errors.New("skill runtime resources require an authorized project workspace")
 	}
-	workspaceRoot, err := s.ensureAgentWorkspaceRoot(identity)
+	workspaceRoot, err := s.ensureAgentWorkspaceRoot(&agentKernelContext{access: access, workspaceDir: workspaceDir})
 	if err != nil {
 		return skills.Skill{}, err
 	}
@@ -67,33 +73,6 @@ func (s *Server) materializeAgentSkillRuntime(
 	}
 	skill.Path = filepath.Join(directory, "SKILL.md")
 	return skill, nil
-}
-
-// prepareAgentSkillRuntimeContexts makes resource-bearing Skills usable in the
-// very first provider request. Explicitly selected Skills are already included
-// in the runner's system context before the model can invoke the Skill tool, so
-// their bundled resources and runtime-directory placeholder must be resolved at
-// the same authorized project boundary used by tool execution.
-func (s *Server) prepareAgentSkillRuntimeContexts(
-	ctx context.Context,
-	sessionID string,
-	selected []skills.Skill,
-) ([]skills.Skill, error) {
-	if len(selected) == 0 {
-		return nil, nil
-	}
-	prepared := make([]skills.Skill, len(selected))
-	for index, skill := range selected {
-		effective, err := s.materializeAgentSkillRuntime(ctx, sessionID, skill)
-		if err != nil {
-			return nil, fmt.Errorf("materialize selected skill %q runtime: %w", skill.Name, err)
-		}
-		if strings.Contains(effective.Body, "${X_SCIENCE_SKILL_DIR}") {
-			effective.Body = renderSkillPrompt(effective, "")
-		}
-		prepared[index] = effective
-	}
-	return prepared, nil
 }
 
 func loadAgentSkillRuntimeBundle(skill skills.Skill) (agentSkillRuntimeBundle, bool, error) {

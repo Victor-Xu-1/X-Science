@@ -71,11 +71,12 @@ func agentRuntimeLegacySkillModelResult(value any) any {
 	// logical task. Its rendered body can contain an older materialized runtime
 	// path after a deployment, so replaying that body would let stale assets
 	// compete with the current catalog contract. Retain the bounded identity
-	// receipt and let runner_execution inject exactly one freshly materialized
-	// contract for the current turn.
+	// receipt. runner_execution restores a versioned contract only when its
+	// captured closure still matches; legacy names remain unknown-version
+	// compatibility context and never authorize exact invocation reuse.
 	header := strings.TrimSpace(strings.SplitN(text, "\n", 2)[0])
 	header = agentRuntimeLegacySkillMetadataPrefix + strings.TrimPrefix(header, agentRuntimeSkillMetadataPrefix)
-	return header + "\n\nThe capability was loaded earlier in this logical task. Follow only the current runtime contract supplied by the system."
+	return header + "\n\nThe capability was loaded earlier in this logical task. Its package version is unknown unless a verified host load receipt is restored. Follow only the current runtime contract supplied by the system."
 }
 
 func providerVisibleSkillResultNames(messages []chatCompletionMessage) map[string]struct{} {

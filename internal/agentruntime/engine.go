@@ -203,6 +203,9 @@ type ToolResult struct {
 	// model-supplied result flag; it only keeps that wait from being treated as
 	// repetition of an already completed operation.
 	PendingWorkWait bool `json:"-"`
+	// SkillLoadReceipt is host-only load provenance. It is never accepted from
+	// model arguments or inferred from a model-facing Skill metadata string.
+	SkillLoadReceipt *SkillLoadReceipt `json:"-"`
 	// ExecutedArguments is the canonical JSON object that reached the tool after
 	// runtime normalization. A nil value means the requested ToolCall arguments
 	// were executed unchanged. Terminal lifecycle events use this value so
