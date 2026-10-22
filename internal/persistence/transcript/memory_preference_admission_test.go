@@ -197,6 +197,110 @@ func TestVerifierPreferenceAdmissionCapturesCurrentRootAndReplaysExactInput(t *t
 	}
 }
 
+func TestVerifierPreferenceAdmissionReplayMaterializedRuntimeMatchesFrozenMode(t *testing.T) {
+	for _, mode := range []string{"on", "off"} {
+		t.Run(mode, func(t *testing.T) {
+			repo, db, stream := verifierAdmissionFixture(t, `{"_original_input":{"verifier_mode":"`+mode+`"}}`, `{}`)
+			input := verifierAdmissionInput(stream, "materialized-replay")
+			event, _, created, err := repo.AppendFrameUserEvent(t.Context(), input)
+			if err != nil || !created || verifierCapturedMode(t, event) != mode {
+				t.Fatalf("initial capture created=%t event=%s err=%v", created, event.PayloadJSON, err)
+			}
+			var payload struct {
+				InputData     map[string]any `json:"inputData"`
+				RuntimeConfig map[string]any `json:"runtimeConfig"`
+			}
+			if err := json.Unmarshal(event.PayloadJSON, &payload); err != nil {
+				t.Fatal(err)
+			}
+			opposite := "on"
+			if mode == "on" {
+				opposite = "off"
+			}
+			if _, err := db.Exec(`UPDATE frame_runtime_metadata SET context_data=? WHERE frame_id='memory-root'`, `{"_original_input":{"verifier_mode":"`+opposite+`"}}`); err != nil {
+				t.Fatal(err)
+			}
+			copyMap := func(values map[string]any) map[string]any {
+				copied := make(map[string]any, len(values))
+				for key, value := range values {
+					copied[key] = value
+				}
+				return copied
+			}
+			mapsJSON := func(input AppendFrameUserEventInput) string {
+				t.Helper()
+				encoded, err := json.Marshal([]map[string]any{input.InputData, input.RuntimeConfig})
+				if err != nil {
+					t.Fatal(err)
+				}
+				return string(encoded)
+			}
+			for _, materializedInput := range []bool{false, true} {
+				for _, typed := range []bool{false, true} {
+					retryInput := input
+					retryInput.InputData = copyMap(input.InputData)
+					if materializedInput {
+						retryInput.InputData = copyMap(payload.InputData)
+					}
+					retryInput.RuntimeConfig = copyMap(payload.RuntimeConfig)
+					if !typed {
+						retryInput.MessageIntent = nil // Older durable repository caller.
+					}
+					before := mapsJSON(retryInput)
+					retry, _, created, err := repo.AppendFrameUserEvent(t.Context(), retryInput)
+					if err != nil || created || retry.EventID != event.EventID || string(retry.PayloadJSON) != string(event.PayloadJSON) {
+						t.Fatalf("materialized input=%t typed=%t changed frozen replay: created=%t event=%s err=%v", materializedInput, typed, created, retry.PayloadJSON, err)
+					}
+					if mapsJSON(retryInput) != before {
+						t.Fatal("materialized replay mutated caller maps")
+					}
+				}
+			}
+			for _, surface := range []string{"input", "runtime"} {
+				for _, alias := range []string{"verifier_mode", "verifierMode"} {
+					for _, invalid := range []any{opposite, nil, true, 42, strings.ToUpper(mode), " " + mode + " "} {
+						retryInput := input
+						retryInput.InputData = copyMap(payload.InputData)
+						retryInput.RuntimeConfig = copyMap(payload.RuntimeConfig)
+						values := retryInput.InputData
+						if surface == "runtime" {
+							values = retryInput.RuntimeConfig
+						}
+						values[alias] = invalid
+						before := mapsJSON(retryInput)
+						if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), retryInput); !errors.Is(err, ErrEventConflict) {
+							t.Fatalf("%s alias=%s value=%#v accepted changed or mixed replay: %v", surface, alias, invalid, err)
+						}
+						if mapsJSON(retryInput) != before {
+							t.Fatal("rejected replay mutated caller maps")
+						}
+					}
+				}
+			}
+			for _, changed := range []string{"unrelated input", "input capture", "runtime capture"} {
+				retryInput := input
+				retryInput.InputData = copyMap(payload.InputData)
+				retryInput.RuntimeConfig = copyMap(payload.RuntimeConfig)
+				switch changed {
+				case "unrelated input":
+					retryInput.InputData["request"] = "A different request"
+				case "input capture":
+					retryInput.InputData[verifierPreferenceCaptureKey] = map[string]any{"mode": mode}
+				case "runtime capture":
+					retryInput.RuntimeConfig[verifierPreferenceCaptureKey] = map[string]any{"mode": mode}
+				}
+				before := mapsJSON(retryInput)
+				if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), retryInput); !errors.Is(err, ErrEventConflict) {
+					t.Fatalf("matching mode bypassed %s conflict: %v", changed, err)
+				}
+				if mapsJSON(retryInput) != before {
+					t.Fatal("conflicting replay mutated caller maps")
+				}
+			}
+		})
+	}
+}
+
 func TestVerifierPreferenceAdmissionValidatesStoredPreference(t *testing.T) {
 	for _, test := range []struct {
 		name, original, legacy, want string

@@ -24,6 +24,21 @@ func hasVerifierOverride(values map[string]any) bool {
 	return snake || camel
 }
 
+// A durable replay may already contain the server's materialized preference.
+// Check every alias before freezing so that overwriting one cannot hide a change.
+func verifierReplayOverridesMatch(mode string, values ...map[string]any) bool {
+	for _, value := range values {
+		for _, key := range []string{"verifier_mode", "verifierMode"} {
+			if raw, present := value[key]; present {
+				if supplied, ok := raw.(string); !ok || supplied != mode {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
 func freezeVerifierPreference(data, config map[string]any, mode string) (map[string]any, map[string]any) {
 	inputCopy, configCopy := make(map[string]any, len(data)), make(map[string]any, len(config))
 	for key, value := range data {
@@ -64,7 +79,10 @@ func resolveVerifierPreferenceAdmission(ctx context.Context, conn *sql.Conn, str
 			return data, config, nil, nil // Never manufacture facts for old inputs.
 		}
 		var capture verifierPreferenceCapture
-		if !ordinary || explicit || json.Unmarshal(raw, &capture) != nil || capture.Schema != 1 || capture.Source != "root_session_preference" || capture.RootFrameID != stream.RootFrameID || capture.Mode != "on" && capture.Mode != "off" {
+		if !ordinary || json.Unmarshal(raw, &capture) != nil || capture.Schema != 1 || capture.Source != "root_session_preference" || capture.RootFrameID != stream.RootFrameID || capture.Mode != "on" && capture.Mode != "off" {
+			return nil, nil, nil, ErrEventConflict
+		}
+		if !verifierReplayOverridesMatch(capture.Mode, data, config) {
 			return nil, nil, nil, ErrEventConflict
 		}
 		data, config = freezeVerifierPreference(data, config, capture.Mode)
