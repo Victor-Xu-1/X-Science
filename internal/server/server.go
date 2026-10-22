@@ -281,7 +281,7 @@ type Server struct {
 	manualReviewMu                        sync.Mutex
 	visualReviewChallengeToken            func() (string, error)
 	runtimeComponentsMu                   sync.RWMutex
-	runtimeComponents                     map[string]struct{}
+	runtimeComponents                     map[string]runtimeComponentState
 	kernelPeerPendingMu                   sync.Mutex
 	kernelPeerPending                     map[string]int
 	kernelPeerReservations                map[string]string
@@ -649,7 +649,7 @@ func New(options Options) *Server {
 		tryDrainIdleDurableWait:               options.TryDrainIdleDurableWait,
 		agentKernelForegroundWaitTimeout:      defaultAgentKernelForegroundWaitTimeout,
 		kernelIdleNow:                         time.Now,
-		runtimeComponents:                     map[string]struct{}{},
+		runtimeComponents:                     map[string]runtimeComponentState{},
 		feishuDedup:                           adaptercommon.NewMessageDedup(30*time.Minute, 20000),
 		wechatDedup:                           adaptercommon.NewMessageDedup(30*time.Minute, 20000),
 		skillCatalog:                          skillCatalog,

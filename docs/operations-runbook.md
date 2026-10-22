@@ -63,6 +63,24 @@ authorize a release.
 - The default operator username is `local`. There is no compiled-in password; set a unique deployment password.
 - The production runner uses the active saved workspace model provider. `go_builtin` is a test/development authority only.
 
+### Runtime component readiness
+
+The health listener starts after supervised components have registered their
+readiness. An HTTP503 `degraded` response retains `degraded_components` and adds
+`runtime_component_states`, an identity-matched map containing only `starting`
+or `failed`. Both fields come from one snapshot; no component error text is
+retained in this map. Initial preparation is `starting`; a real error is `failed`
+and stays failed across another start until the component explicitly reports
+ready. Ready components are removed from both fields.
+
+Deployment observers may wait within their existing deadline for exact-version,
+fully described nonterminal startup. A503 is never final readiness. Missing,
+unknown or failed states, catalogue failures and draining runtimes must not be
+silently accepted as startup. Python/R preparation still uses its dedicated
+scientific core health contract. Final deployment requires actual healthy
+responses and matching artifact identity; timeouts retain failure and rollback
+evidence rather than restarting indefinitely.
+
 ## Public source checkout
 
 ### Project workspace admission and preparation

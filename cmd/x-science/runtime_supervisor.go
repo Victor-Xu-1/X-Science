@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"sync"
 	"time"
+
+	"x-science/internal/server"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 	defaultRuntimeSupervisorStableWindow   = time.Minute
 )
 
-var errRuntimeComponentStarting = errors.New("runtime component starting")
+var errRuntimeComponentStarting = server.ErrRuntimeComponentStarting
 
 type runtimeSupervisorPolicy struct {
 	InitialBackoff time.Duration
