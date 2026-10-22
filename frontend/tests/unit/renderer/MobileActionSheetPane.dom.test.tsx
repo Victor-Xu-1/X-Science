@@ -1,8 +1,11 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import type { MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
+import sheetStyles from '@/renderer/components/chat/MobileActionSheet/MobileActionSheet.module.css';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -51,6 +54,62 @@ describe('mobile sheet pane ownership', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+  });
+
+  it('M454 bounds the main menu scroll chain without forcing short-menu height', () => {
+    const sheetCss = readFileSync(
+      resolve(
+        process.cwd(),
+        'packages/desktop/src/renderer/components/chat/MobileActionSheet/MobileActionSheet.module.css'
+      ),
+      'utf8'
+    );
+    const { pane } = openSheet();
+    const list = screen.getByRole('menu');
+    const panes = pane.parentElement;
+    const sheet = screen.getByRole('dialog');
+    expect(list.parentElement).toBe(pane);
+    expect(list).toHaveClass(sheetStyles.list);
+    expect(pane).toHaveClass(sheetStyles.pane, sheetStyles.paneMain);
+    expect(panes).toHaveClass(sheetStyles.panes);
+    expect(panes?.parentElement).toBe(sheet);
+    expect(sheet).toHaveClass(sheetStyles.sheet);
+
+    // JSDOM cannot establish overflow geometry. This checks the source CSS
+    // chain that gives the real list a shrinkable bound, not scrollHeight or
+    // proof of browser layout at a fabricated viewport/menu-row count.
+    const rule = (selector: string) => {
+      const match = sheetCss.match(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`));
+      expect(match, `missing .${selector} rule`).not.toBeNull();
+      return Object.fromEntries(
+        match![1]
+          .split(';')
+          .map((declaration) => declaration.trim().split(/\s*:\s*/, 2))
+          .filter((declaration) => declaration.length === 2)
+      );
+    };
+    const outer = rule('sheet');
+    const wrapper = rule('panes');
+    const main = rule('paneMain');
+    expect(outer.display).toBe('flex');
+    expect(outer['flex-direction']).toBe('column');
+    expect(outer['max-height']).toBeTruthy();
+    expect(wrapper.display).toBe('flex');
+    expect(wrapper['flex-direction']).toBe('column');
+    expect(wrapper.flex).toBe('0 1 auto');
+    expect(wrapper['min-height']).toBe('0');
+    expect(main.flex).toBe('1 1 auto');
+    expect(main['min-height']).toBe('0');
+    expect(rule('pane').display).toBe('flex');
+    expect(rule('pane')['flex-direction']).toBe('column');
+    expect(rule('list').flex).toBe('1');
+    expect(rule('list')['min-height']).toBe('0');
+    expect(rule('list')['overflow-y']).toBe('auto');
+    expect(rule('header')['flex-shrink']).toBe('0');
+    expect(rule('handle')['flex-shrink']).toBe('0');
+    expect(rule('paneSub').position).toBe('absolute');
+    expect(rule('paneSub').inset).toBe('0');
+    for (const container of [outer, wrapper, main]) expect(container.height).toBeUndefined();
   });
 
   it('makes the outgoing main pane inert while the actual submenu and footer are active', () => {

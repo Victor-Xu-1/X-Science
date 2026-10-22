@@ -1,14 +1,15 @@
 import type { TChatConversation } from '@/common/config/storage';
 import MobileActionSheet, { type MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
 import { useSessionPermissionGrantsController } from '@/renderer/hooks/xScience/runtime/useSessionPermissionGrants';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type RefObject } from 'react';
 
 /** Adapts this composer identity to the shared grant controller and its existing mobile presentation. */
 export function useAcpSessionPermissionGrants(
   conversationId: string,
   ownerId: string,
   conversation: TChatConversation | undefined,
-  enabled: boolean
+  enabled: boolean,
+  mobilePlusTrigger?: RefObject<HTMLButtonElement | null>
 ) {
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const grantConversation =
@@ -26,8 +27,9 @@ export function useAcpSessionPermissionGrants(
       : null
   );
   useEffect(() => {
+    if (mobilePlusTrigger) mobilePlusTrigger.current = null;
     setIsMobileSheetOpen(false);
-  }, [grantsController]);
+  }, [grantsController, mobilePlusTrigger]);
 
   // A render helper keeps the existing controlled sheet and hidden attachment input
   // together; it does not introduce a second mobile or permission state owner.
@@ -42,7 +44,10 @@ export function useAcpSessionPermissionGrants(
         <MobileActionSheet
           key={grantsController?.presentationKey ?? `${ownerId}:${conversationId}`}
           open={isMobileSheetOpen}
-          onClose={() => setIsMobileSheetOpen(false)}
+          onClose={() => {
+            if (mobilePlusTrigger) mobilePlusTrigger.current = null;
+            setIsMobileSheetOpen(false);
+          }}
           title={title}
           entries={entries}
         />

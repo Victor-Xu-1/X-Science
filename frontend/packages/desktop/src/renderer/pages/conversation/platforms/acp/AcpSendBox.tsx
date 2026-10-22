@@ -14,10 +14,7 @@ import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XS
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useAttachEntry } from '@/renderer/components/chat/MobileActionSheet';
-import {
-  bindComposerPlusOpener,
-  buildComposerPlusEntries,
-} from '@/renderer/components/chat/MobileActionSheet/composerPlusEntries';
+import { buildComposerPlusEntries } from '@/renderer/components/chat/MobileActionSheet/composerPlusEntries';
 import SendBox from '@/renderer/components/chat/SendBox';
 import { AcpComposerAttachments } from './AcpComposerAttachments';
 import { PdfReadingComposerPrefix } from '@/renderer/components/chat/SendBox/reading/PdfReadingComposerPrefix';
@@ -208,7 +205,8 @@ const AcpSendBox: React.FC<{
     conversation_id,
     ownerId,
     initialConversation,
-    isXScienceConversation
+    isXScienceConversation,
+    mobilePlusTrigger
   );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const frameIncarnationId =
@@ -238,6 +236,7 @@ const AcpSendBox: React.FC<{
     handleSkillSelected,
     openProjectFiles,
     projectFilesOpen,
+    projectFilesSelectorKey,
     selectedMcpServerIds,
     selectedSkillNames,
     setProjectFilesOpen,
@@ -252,6 +251,7 @@ const AcpSendBox: React.FC<{
     conversationAuthorityRef.current.ownerId !== ownerId
   ) {
     conversationAuthorityRef.current = { conversationId: conversation_id, ownerId };
+    mobilePlusTrigger.current = null;
     directCommandRetryRef.current = null;
     terminalFailureRollbackRef.current = [];
   }
@@ -332,7 +332,8 @@ const AcpSendBox: React.FC<{
     setIsMobileSheetOpen,
     sessionMemory,
     stagedSessionOptions?.memory,
-    sessionAutoReview
+    sessionAutoReview,
+    mobilePlusTrigger
   );
 
   const handleSheetModeChange = useCallback(
@@ -1100,13 +1101,23 @@ const AcpSendBox: React.FC<{
     setAiProcessing,
     onRuntimeMutation
   );
-  const sendBoxWidthClass = CHAT_SURFACE_WIDTH_CLASS;
+  const contextUsagePanel = isXScienceConversation ? (
+    <ContextUsagePanel
+      key={`${ownerId}:${conversation_id}:${frameIncarnationId ?? ''}`}
+      conversationId={conversation_id}
+      active={isBusy}
+      compaction={compaction}
+      openRequest={contextWindow.sequence}
+      returnFocus={contextWindow.returnFocus}
+      triggerVisible={!isMobile && (isBusy || content.trim() === '' || compaction.needsAttention)}
+    />
+  ) : null;
   const taskCenterMetrics = useAcpTaskCenterMetrics(messageState.tokenUsage?.total_tokens);
 
   return (
     <div
       ref={sendBoxAnchorRef}
-      className={`${sendBoxWidthClass} conversation-composer w-full min-w-0 max-w-full box-border flex flex-col mt-auto mb-16px`}
+      className={`${CHAT_SURFACE_WIDTH_CLASS} conversation-composer w-full min-w-0 max-w-full box-border flex flex-col mt-auto mb-16px`}
     >
       <BtwOverlay controller={aside.sideQuestion} parentTaskRunning={isBusy} />
       {aside.branchStatus}
@@ -1168,7 +1179,7 @@ const AcpSendBox: React.FC<{
       {skillSurfaces}
 
       <SendBox
-        onMobilePlusClick={isMobile ? bindComposerPlusOpener(mobilePlusTrigger, openMobileControls) : undefined}
+        onMobilePlusClick={isMobile ? openMobileControls : undefined}
         value={content}
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
@@ -1239,17 +1250,7 @@ const AcpSendBox: React.FC<{
         }
         rightTools={
           <div className='flex items-center gap-8px min-w-0'>
-            {isXScienceConversation ? (
-              <ContextUsagePanel
-                key={`${ownerId}:${conversation_id}:${frameIncarnationId ?? ''}`}
-                conversationId={conversation_id}
-                active={isBusy}
-                compaction={compaction}
-                openRequest={contextWindow.sequence}
-                returnFocus={contextWindow.returnFocus}
-                triggerVisible={isBusy || content.trim() === '' || compaction.needsAttention}
-              />
-            ) : null}
+            {!isMobile && contextUsagePanel}
             {isXScienceConversation && content.trim() !== '' && (
               <OptimizePromptAction
                 draft={content}
@@ -1303,7 +1304,9 @@ const AcpSendBox: React.FC<{
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         compactActions={false}
       ></SendBox>
+      {isMobile && contextUsagePanel}
       <GuidProjectFilesModal
+        key={projectFilesSelectorKey}
         visible={projectFilesOpen}
         projectId={projectId}
         onCancel={() => setProjectFilesOpen(false)}

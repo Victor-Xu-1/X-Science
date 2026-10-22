@@ -18,17 +18,6 @@ export type ComposerPlusActions = {
   onViewContextWindow?: (returnFocus: HTMLButtonElement | null) => void;
 };
 
-/** Bind a native opener to its existing composer ref, without owning presentation state. */
-export function bindComposerPlusOpener(
-  opener: { current: HTMLButtonElement | null },
-  open: () => void
-): (trigger?: HTMLButtonElement) => void {
-  return (trigger) => {
-    opener.current = trigger ?? null;
-    open();
-  };
-}
-
 /** Presentation only: every effect remains owned by the current composer. */
 export function buildComposerPlusEntries({
   actions,
@@ -118,12 +107,15 @@ export function buildComposerPlusEntries({
       onClick: actions.onSaveSkill,
     });
   }
-  if (actions.onViewContextWindow) {
+  if (actions.onViewContextWindow && contextReturnFocus()?.isConnected) {
     entries.push({
       key: 'context-window',
       icon: <ChartNoAxesCombined size={16} />,
       label: t('conversation.contextUsage.title'),
-      onClick: () => actions.onViewContextWindow?.(contextReturnFocus()),
+      onClick: () => {
+        const opener = contextReturnFocus();
+        if (opener?.isConnected) actions.onViewContextWindow?.(opener);
+      },
     });
   }
   return entries;
