@@ -30,7 +30,7 @@ func runnerModelMessageText(message eventjournal.Message) string {
 	if err != nil || libraryErr != nil || len(refs) == 0 && len(library) == 0 {
 		return text
 	}
-	attachments := append(make([]string, 0, len(refs)+len(library)), library...)
+	attachments := append([]string(nil), library...)
 	reading, err := runnerPDFReadingHints(message, refs)
 	if err != nil {
 		return text
