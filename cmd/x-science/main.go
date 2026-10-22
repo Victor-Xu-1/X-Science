@@ -394,9 +394,6 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		runErr = withRuntimeShutdownFailure(runErr, srv.Shutdown(shutdownContext))
 	}()
 	serverErrCh := make(chan error, 1)
-	primaryWorkers.Go(func() {
-		serverErrCh <- srv.Serve(listener)
-	})
 	startSupervisor := func(name string, run func(context.Context) error) {
 		app.ReportRuntimeComponent(name, errRuntimeComponentStarting)
 		primaryWorkers.Go(func() {
@@ -521,6 +518,11 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 			return fmt.Errorf("mark recovered VM runtime ready: %w", err)
 		}
 	}
+	// Register all component readiness before serving health. Otherwise an
+	// observer can see an empty component set and a false healthy startup window.
+	primaryWorkers.Go(func() {
+		serverErrCh <- srv.Serve(listener)
+	})
 
 	stop := make(chan os.Signal, 1)
 	signals := []os.Signal{os.Interrupt, syscall.SIGTERM}

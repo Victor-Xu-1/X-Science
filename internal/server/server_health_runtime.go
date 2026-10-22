@@ -15,7 +15,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	}
 	status := "healthy"
 	httpStatus := http.StatusOK
-	degradedComponents := s.degradedRuntimeComponents()
+	degradedComponents, componentStates := s.runtimeComponentHealth()
 	activeSessionRuns, activeRuntimeOperations, runtimeDraining := s.runtimeActivity()
 	activeDurableRunnerAttempts := s.activeDurableRunnerAttemptCount()
 	activeKernelExecutions := s.activeKernelExecutionCount()
@@ -52,6 +52,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	response["scientific_runtime_core"] = scientificCore
 	if len(degradedComponents) > 0 {
 		response["degraded_components"] = degradedComponents
+		response["runtime_component_states"] = componentStates
 	}
 	if s != nil && s.agentCatalogError != nil {
 		response["agent_catalog_error"] = s.agentCatalogError.Error()
