@@ -16,7 +16,7 @@ func (s *Server) handlePDFReadingCandidates(w http.ResponseWriter, r *http.Reque
 	candidates := []map[string]any{}
 	seen := map[string]bool{}
 	for _, source := range body.Sources {
-		key := source.ArtifactID + "\x00" + source.VersionID
+		key := source.Key()
 		if seen[key] {
 			continue
 		}

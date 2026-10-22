@@ -9,10 +9,24 @@ export type PdfReadingScope = {
   root_frame_incarnation_id: string;
   project_id: string;
 };
-export type PdfReadingSource = { artifact_id: string; version_id: string };
+export type ArtifactPdfReadingSource = {
+  source_kind?: 'artifact-version';
+  artifact_id: string;
+  version_id: string;
+  item_id?: never;
+  attachment_id?: never;
+};
+export type LiteraturePdfReadingSource = {
+  source_kind: 'literature-attachment-version';
+  item_id: string;
+  attachment_id: string;
+  version_id: string;
+  artifact_id?: never;
+};
+export type PdfReadingSource = ArtifactPdfReadingSource | LiteraturePdfReadingSource;
 export type PdfReadingBinding = PdfReadingSource & {
   binding_id: string;
-  source_kind: 'artifact-version';
+  source_kind: 'artifact-version' | 'literature-attachment-version';
   name: string;
   mime_type: 'application/pdf';
   size_bytes: number;
@@ -95,15 +109,41 @@ export function decodePdfReadingScope(value: unknown): PdfReadingScope {
   };
 }
 export function decodePdfReadingSource(value: unknown): PdfReadingSource {
-  if (!record(value) || !identity(value.artifact_id) || !identity(value.version_id)) return invalid();
+  if (!record(value) || !identity(value.version_id)) return invalid();
+  if (value.source_kind === 'literature-attachment-version') {
+    if (!identity(value.item_id) || !identity(value.attachment_id) || Object.hasOwn(value, 'artifact_id'))
+      return invalid();
+    return {
+      source_kind: 'literature-attachment-version',
+      item_id: value.item_id,
+      attachment_id: value.attachment_id,
+      version_id: value.version_id,
+    };
+  }
+  if (
+    (value.source_kind !== undefined && value.source_kind !== 'artifact-version') ||
+    !identity(value.artifact_id) ||
+    Object.hasOwn(value, 'item_id') ||
+    Object.hasOwn(value, 'attachment_id')
+  )
+    return invalid();
   return { artifact_id: value.artifact_id, version_id: value.version_id };
+}
+/** Immutable source coordinates, not a mutable filename or bare version ID. */
+export function pdfReadingSourceKey(source: PdfReadingSource): string {
+  return source.source_kind === 'literature-attachment-version'
+    ? JSON.stringify([source.source_kind, source.item_id, source.attachment_id, source.version_id])
+    : JSON.stringify(['artifact-version', source.artifact_id, source.version_id]);
+}
+export function samePdfReadingSource(left: PdfReadingSource, right: PdfReadingSource): boolean {
+  return pdfReadingSourceKey(left) === pdfReadingSourceKey(right);
 }
 export function decodePdfReadingBinding(value: unknown): PdfReadingBinding {
   const source = decodePdfReadingSource(value);
   if (
     !record(value) ||
     !identity(value.binding_id) ||
-    value.source_kind !== 'artifact-version' ||
+    value.source_kind !== (source.source_kind ?? 'artifact-version') ||
     typeof value.name !== 'string' ||
     !value.name ||
     value.name.length > 4096 ||
@@ -118,24 +158,25 @@ export function decodePdfReadingBinding(value: unknown): PdfReadingBinding {
     !Number.isFinite(Date.parse(value.linked_at))
   )
     return invalid();
-  return {
-    ...source,
+  const common = {
     binding_id: value.binding_id,
-    source_kind: 'artifact-version',
     name: value.name,
-    mime_type: 'application/pdf',
+    mime_type: 'application/pdf' as const,
     size_bytes: value.size_bytes,
     checksum: value.checksum,
     page_count: value.page_count,
     linked_at: value.linked_at,
   };
+  return source.source_kind === 'literature-attachment-version'
+    ? { ...source, ...common }
+    : { ...source, ...common, source_kind: 'artifact-version' };
 }
 function decodeBindings(value: unknown): PdfReadingBinding[] {
   if (!Array.isArray(value) || value.length > MAX_READING_PDFS) return invalid();
   const bindings = value.map(decodePdfReadingBinding);
   if (
     new Set(bindings.map((item) => item.binding_id)).size !== bindings.length ||
-    new Set(bindings.map((item) => item.version_id)).size !== bindings.length
+    new Set(bindings.map(pdfReadingSourceKey)).size !== bindings.length
   )
     return invalid();
   return bindings;
@@ -239,7 +280,7 @@ export function decodePdfReadingMutation(value: unknown): PdfReadingMutation {
     )
       return invalid();
     const sources = value.sources.map(decodePdfReadingSource);
-    if (new Set(sources.map((item) => item.version_id)).size !== sources.length) return invalid();
+    if (new Set(sources.map(pdfReadingSourceKey)).size !== sources.length) return invalid();
     return { ...common, schema: value.schema, sources };
   }
   if (value.schema !== 'x-science.pdf-reading-unlink.v1' || !identity(value.binding_id) || value.sources !== undefined)

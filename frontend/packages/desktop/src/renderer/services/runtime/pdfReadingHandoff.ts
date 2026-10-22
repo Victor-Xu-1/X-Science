@@ -1,6 +1,8 @@
 import {
   decodePdfReadingSelection,
   decodePdfReadingSource,
+  pdfReadingSourceKey,
+  samePdfReadingSource,
   MAX_READING_PDFS,
   MAX_READING_PDF_BYTES,
   type PdfReadingSelection,
@@ -29,8 +31,7 @@ export function decodePdfReadingSources(value: unknown): PdfReadingSource[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > MAX_READING_PDFS)
     throw new Error('Invalid PDF reading draft');
   const sources = value.map(decodePdfReadingSource);
-  if (new Set(sources.map((source) => source.version_id)).size !== sources.length)
-    throw new Error('Duplicate PDF reading draft');
+  if (new Set(sources.map(pdfReadingSourceKey)).size !== sources.length) throw new Error('Duplicate PDF reading draft');
   return sources;
 }
 
@@ -62,7 +63,7 @@ export async function prepareInitialPdfReading(
       Number(raw.pageNumber) < 1 ||
       Number(raw.pageCount) < 2 ||
       Number(raw.pageNumber) > Number(raw.pageCount) ||
-      !sources.some((item) => item.artifact_id === source.artifact_id && item.version_id === source.version_id)
+      !sources.some((item) => samePdfReadingSource(item, source))
     )
       throw new Error('Invalid PDF reading draft position');
     position = { source, pageNumber: Number(raw.pageNumber), pageCount: Number(raw.pageCount) };

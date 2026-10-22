@@ -1,6 +1,8 @@
 import {
   pdfReadingExpected,
   samePdfReadingScope,
+  samePdfReadingSource,
+  pdfReadingSourceKey,
   type PdfReadingContext,
   type PdfReadingPosition,
   type PdfReadingSelection,
@@ -21,12 +23,7 @@ export class PdfReadingSelectionChangedError extends Error {
 }
 
 export function unlinkedPdfReadingSources(context: PdfReadingContext, sources: PdfReadingSource[]): PdfReadingSource[] {
-  return sources.filter(
-    (source) =>
-      !context.bindings.some(
-        (binding) => binding.artifact_id === source.artifact_id && binding.version_id === source.version_id
-      )
-  );
+  return sources.filter((source) => !context.bindings.some((binding) => samePdfReadingSource(binding, source)));
 }
 
 export function validPdfReadingPosition(position: PdfReadingPosition): boolean {
@@ -59,11 +56,7 @@ export function requirePdfReadingContext(actual: PdfReadingContext | null, expec
     actual.bindings.length !== expected.bindings.length ||
     actual.bindings.some((binding, index) => {
       const original = expected.bindings[index];
-      return (
-        binding.binding_id !== original.binding_id ||
-        binding.artifact_id !== original.artifact_id ||
-        binding.version_id !== original.version_id
-      );
+      return binding.binding_id !== original.binding_id || !samePdfReadingSource(binding, original);
     })
   )
     throw new PdfReadingSelectionChangedError();
@@ -75,8 +68,14 @@ export function selectionFromPdfReadingSend(
 ): PdfReadingSelection | undefined {
   if (!context?.bindings.length) return undefined;
   const active =
-    context.bindings.find((binding) => binding.version_id === snapshot.activeVersionId) ?? context.bindings[0];
-  const position = snapshot.positions.get(active.version_id);
+    context.bindings.find((binding) => pdfReadingSourceKey(binding) === snapshot.activeVersionId) ??
+    (context.bindings.filter((binding) => binding.version_id === snapshot.activeVersionId).length === 1
+      ? context.bindings.find((binding) => binding.version_id === snapshot.activeVersionId)
+      : undefined) ??
+    context.bindings[0];
+  const position =
+    snapshot.positions.get(pdfReadingSourceKey(active)) ??
+    (active.source_kind === 'artifact-version' ? snapshot.positions.get(active.version_id) : undefined);
   return {
     schema: 'x-science.pdf-reading-selection.v1',
     ...pdfReadingExpected(context),

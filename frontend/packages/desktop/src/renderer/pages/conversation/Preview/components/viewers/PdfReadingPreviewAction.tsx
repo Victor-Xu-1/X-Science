@@ -1,4 +1,9 @@
-import type { PdfReadingPosition, PdfReadingSource } from '@/common/adapter/pdfReadingContext';
+import {
+  pdfReadingSourceKey,
+  samePdfReadingSource,
+  type PdfReadingPosition,
+  type PdfReadingSource,
+} from '@/common/adapter/pdfReadingContext';
 import { useOptionalPreviewContext } from '../../context/PreviewContext';
 import { Link2, Loader2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -19,6 +24,7 @@ export function PdfReadingPreviewAction({
   const { t } = useTranslation();
   const owner = useOptionalPreviewContext()?.pdfReadingOwner;
   const [error, setError] = useState(false);
+  const sourceKey = source ? pdfReadingSourceKey(source) : undefined;
   const authority = useRef<object>({});
   useEffect(() => {
     const token = {};
@@ -32,16 +38,11 @@ export function PdfReadingPreviewAction({
     owner?.frameId,
     owner?.context?.scope.frame_incarnation_id,
     owner?.context?.scope.root_frame_incarnation_id,
-    source?.artifact_id,
-    source?.version_id,
+    sourceKey,
   ]);
   if (!source || !owner || projectId !== owner.projectId) return null;
-  const binding = owner.context?.bindings.find(
-    (item) => item.version_id === source.version_id && item.artifact_id === source.artifact_id
-  );
-  const draftLinked = owner.draftSources?.some(
-    (item) => item.artifact_id === source.artifact_id && item.version_id === source.version_id
-  );
+  const binding = owner.context?.bindings.find((item) => samePdfReadingSource(item, source));
+  const draftLinked = owner.draftSources?.some((item) => samePdfReadingSource(item, source));
   const linked = Boolean(binding || draftLinked);
   if (!linked && (!position || position.pageCount <= 1)) return null;
   const full = !linked && (owner.context?.bindings.length ?? owner.draftSources?.length ?? 0) >= 3;

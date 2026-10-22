@@ -4,12 +4,16 @@ import type {
   PdfReadingSelection,
   PdfReadingSource,
 } from '@/common/adapter/pdfReadingContext';
+import { pdfReadingSourceKey } from '@/common/adapter/pdfReadingContext';
 import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import { PdfReadingController } from '@/renderer/services/runtime/PdfReadingController';
-import { getXScienceArtifactVersionContentUrl } from '@/renderer/services/xScienceArtifacts';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
-import { composerPdfPreview } from '@/renderer/services/runtime/pdfReadingPreview';
+import {
+  activePdfReadingKey,
+  boundPdfPreview,
+  composerPdfPreview,
+} from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PdfReadingSourcePosition } from '@/renderer/services/runtime/pdfReadingHandoff';
 import type { ComposerArtifactContext } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import type { PdfReadingPendingAccess } from '@/renderer/services/runtime/pdfReadingPendingState';
@@ -93,36 +97,22 @@ export function usePdfReadingComposer(options: {
     const context = controller.getSnapshot().context;
     const binding = context?.bindings.find((item) => item.binding_id === bindingId);
     if (!binding || !context) return;
-    const url = getXScienceArtifactVersionContentUrl(binding.version_id);
-    preview.openPreview(
-      url,
-      'pdf',
-      {
-        artifactId: binding.artifact_id,
-        versionId: binding.version_id,
-        projectId: context.scope.project_id,
-        rootFrameId: context.scope.root_frame_id,
-        contentUrl: url,
-        file_name: binding.name,
-        editable: false,
-        targetPdfPage: controller.positionFor(binding.version_id)?.pageNumber,
-      },
-      { presentation: 'single' }
-    );
+    const target = boundPdfPreview(binding, context, controller.positionFor(binding)?.pageNumber);
+    preview.openPreview(target.content, 'pdf', target.metadata, { presentation: 'single' });
   };
   const openArtifact = (item: ComposerArtifactContext) => {
     const target = composerPdfPreview(item, view.context?.scope.project_id);
     if (target) preview.openPreview(target.content, 'pdf', target.metadata, { presentation: 'single' });
   };
-  const capture = () => controller.capture(preview.activeTab?.metadata?.versionId);
-  const captureSend = () => controller.captureSend(preview.activeTab?.metadata?.versionId);
+  const capture = () => controller.capture(activePdfReadingKey(preview.activeTab?.metadata));
+  const captureSend = () => controller.captureSend(activePdfReadingKey(preview.activeTab?.metadata));
   const prepareInitialSources = async (
     sources: PdfReadingSource[],
     position?: PdfReadingSourcePosition
   ): Promise<PdfReadingSelection | undefined> => {
     await controller.prepareSources(sources);
     if (position) controller.reportPosition(position.source, position);
-    return position ? controller.capture(position.source.version_id) : capture();
+    return position ? controller.capture(pdfReadingSourceKey(position.source)) : capture();
   };
   return {
     view,

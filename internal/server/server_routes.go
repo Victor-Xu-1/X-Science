@@ -182,6 +182,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/system/refresh-kernels", s.handleRefreshKernels)
 	mux.HandleFunc("/api/go/preferences/kernels/refresh", s.handleRefreshKernels)
 	mux.HandleFunc("/api/projects", s.handleProjectsCompatibility)
+	mux.HandleFunc("/api/literature/", s.handleLiterature)
 	mux.HandleFunc("/api/projects/processing-counts", s.handleCompatibilityProcessingCounts)
 	mux.HandleFunc("/api/projects/", s.handleProjectAttachments)
 	mux.HandleFunc("/api/benches/", s.handleCompatibilityBenchUpdate)

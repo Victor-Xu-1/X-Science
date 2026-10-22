@@ -26,10 +26,11 @@ type runnerComposerAttachment struct {
 func runnerModelMessageText(message eventjournal.Message) string {
 	text := runnerMessageText(message)
 	refs, err := decodeUserArtifactReferences(message["artifactRefs"])
-	if err != nil || len(refs) == 0 {
+	library, libraryErr := runnerLibraryAttachmentText(message)
+	if err != nil || libraryErr != nil || len(refs) == 0 && len(library) == 0 {
 		return text
 	}
-	attachments := make([]string, 0, len(refs))
+	attachments := append(make([]string, 0, len(refs)+len(library)), library...)
 	reading, err := runnerPDFReadingHints(message, refs)
 	if err != nil {
 		return text

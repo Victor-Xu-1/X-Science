@@ -33,6 +33,8 @@ export interface DomSnippet {
 }
 
 export interface PreviewMetadata {
+  /** Exact source coordinates; content authorization stays on the server. */
+  pdfReadingSource?: import('@/common/adapter/pdfReadingContext').PdfReadingSource;
   targetPdfPage?: number;
   pdfRevealId?: string;
   notebookSession?: NotebookSessionNavigation;

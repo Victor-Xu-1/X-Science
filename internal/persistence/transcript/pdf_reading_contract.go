@@ -46,16 +46,18 @@ func (scope PDFReadingScope) Valid() bool {
 }
 
 type PDFReadingBinding struct {
-	BindingID  string `json:"binding_id"`
-	SourceKind string `json:"source_kind"`
-	ArtifactID string `json:"artifact_id"`
-	VersionID  string `json:"version_id"`
-	Name       string `json:"name"`
-	MIMEType   string `json:"mime_type"`
-	SizeBytes  int64  `json:"size_bytes"`
-	Checksum   string `json:"checksum"`
-	PageCount  int    `json:"page_count"`
-	LinkedAt   string `json:"linked_at"`
+	BindingID    string `json:"binding_id"`
+	SourceKind   string `json:"source_kind"`
+	ArtifactID   string `json:"artifact_id,omitempty"`
+	ItemID       string `json:"item_id,omitempty"`
+	AttachmentID string `json:"attachment_id,omitempty"`
+	VersionID    string `json:"version_id"`
+	Name         string `json:"name"`
+	MIMEType     string `json:"mime_type"`
+	SizeBytes    int64  `json:"size_bytes"`
+	Checksum     string `json:"checksum"`
+	PageCount    int    `json:"page_count"`
+	LinkedAt     string `json:"linked_at"`
 }
 
 type PDFReadingContext struct {
@@ -82,8 +84,11 @@ type PDFReadingMutationProof struct {
 }
 
 type PDFReadingSource struct {
-	ArtifactID string `json:"artifact_id"`
-	VersionID  string `json:"version_id"`
+	SourceKind   string `json:"source_kind,omitempty"`
+	ArtifactID   string `json:"artifact_id,omitempty"`
+	ItemID       string `json:"item_id,omitempty"`
+	AttachmentID string `json:"attachment_id,omitempty"`
+	VersionID    string `json:"version_id"`
 }
 
 type PDFReadingExpected struct {
@@ -153,8 +158,8 @@ func (binding PDFReadingBinding) Valid() bool {
 			return false
 		}
 	}
-	return binding.BindingID != "" && len(binding.BindingID) <= 512 && binding.SourceKind == "artifact-version" &&
-		binding.ArtifactID != "" && len(binding.ArtifactID) <= 512 && binding.VersionID != "" && len(binding.VersionID) <= 512 &&
+	return binding.BindingID != "" && len(binding.BindingID) <= 512 &&
+		(binding.SourceKind == "artifact-version" || binding.SourceKind == "literature-attachment-version") && binding.Source().Valid() &&
 		binding.Name != "" && len(binding.Name) <= 4096 && binding.MIMEType == "application/pdf" &&
 		binding.SizeBytes > 0 && binding.SizeBytes <= MaxPDFReadingBytes && err == nil && len(checksum) == 32 &&
 		binding.Checksum == strings.ToLower(binding.Checksum) && binding.PageCount > 1 && timeErr == nil

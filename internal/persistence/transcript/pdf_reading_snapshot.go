@@ -19,10 +19,10 @@ func decodePDFReadingSnapshot(value any) (*PDFReadingSnapshot, error) {
 	active := snapshot.ActiveBindingID == ""
 	seen, versions := map[string]bool{}, map[string]bool{}
 	for _, binding := range snapshot.Bindings {
-		if !binding.Valid() || seen[binding.BindingID] || versions[binding.VersionID] {
+		if !binding.Valid() || seen[binding.BindingID] || versions[binding.Source().Key()] {
 			return nil, ErrPDFReadingInvalid
 		}
-		seen[binding.BindingID], versions[binding.VersionID] = true, true
+		seen[binding.BindingID], versions[binding.Source().Key()] = true, true
 		if binding.BindingID == snapshot.ActiveBindingID {
 			active = true
 			if snapshot.PageNumber > binding.PageCount {

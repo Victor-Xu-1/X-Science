@@ -21,6 +21,27 @@ func (err *pdfReadingCandidateError) Error() string { return err.reason }
 
 func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project string, source transcriptstore.PDFReadingSource) (transcriptstore.PDFReadingBinding, error) {
 	var binding transcriptstore.PDFReadingBinding
+	if !source.Valid() {
+		return binding, transcriptstore.ErrPDFReadingInvalid
+	}
+	if source.Kind() == "literature-attachment-version" {
+		item, version, reader, err := s.workspaceStore.OpenLiteratureVersionContent(ctx, owner, source.VersionID, false)
+		if err != nil {
+			return binding, &pdfReadingCandidateError{"unavailable"}
+		}
+		defer reader.Close()
+		if item != source.ItemID || version.AttachmentID != source.AttachmentID {
+			return binding, &pdfReadingCandidateError{"unavailable"}
+		}
+		if version.SizeBytes > transcriptstore.MaxPDFReadingBytes {
+			return binding, &pdfReadingCandidateError{"too_large"}
+		}
+		if version.PageCount < 2 {
+			return binding, &pdfReadingCandidateError{"single_page"}
+		}
+		return transcriptstore.PDFReadingBinding{BindingID: "inspected", SourceKind: source.Kind(), ItemID: item, AttachmentID: version.AttachmentID, VersionID: version.ID,
+			Name: version.Filename, MIMEType: version.MIMEType, SizeBytes: version.SizeBytes, Checksum: version.Checksum, PageCount: version.PageCount, LinkedAt: time.Now().UTC().Format(time.RFC3339Nano)}, nil
+	}
 	artifact, version, reader, found, err := s.workspaceStore.OpenArtifactVersionContentForOwner(source.VersionID, owner)
 	if errors.Is(err, workspace.ErrArtifactContentPruned) || errors.Is(err, os.ErrNotExist) {
 		return binding, &pdfReadingCandidateError{"unavailable"}

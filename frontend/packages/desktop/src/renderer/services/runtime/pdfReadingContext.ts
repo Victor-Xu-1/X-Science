@@ -4,6 +4,8 @@ import {
   decodePdfReadingScope,
   decodePdfReadingSource,
   samePdfReadingScope,
+  samePdfReadingSource,
+  pdfReadingSourceKey,
   type PdfReadingContext,
   type PdfReadingMutation,
   type PdfReadingSource,
@@ -45,12 +47,7 @@ export async function mutatePdfReadingContext(
     throw new Error('PDF reading acknowledgement changed');
   if (
     kind === 'link'
-      ? request.sources?.some(
-          (source) =>
-            !result.bindings.some(
-              (binding) => binding.artifact_id === source.artifact_id && binding.version_id === source.version_id
-            )
-        )
+      ? request.sources?.some((source) => !result.bindings.some((binding) => samePdfReadingSource(binding, source)))
       : result.bindings.some((binding) => binding.binding_id === request.binding_id)
   )
     throw new Error('PDF reading effect was not acknowledged');
@@ -81,11 +78,10 @@ export async function inspectPdfReadingCandidates(frameId: string, sources: PdfR
     if (!candidate || typeof candidate !== 'object' || typeof candidate.eligible !== 'boolean')
       throw new Error('Invalid PDF candidate');
     const source = decodePdfReadingSource(candidate.source);
-    const key = JSON.stringify(source);
+    const key = pdfReadingSourceKey(source);
     if (seen.has(key)) throw new Error('Duplicate PDF candidate');
     seen.add(key);
-    if (!sources.some((item) => item.artifact_id === source.artifact_id && item.version_id === source.version_id))
-      throw new Error('Unrequested PDF source');
+    if (!sources.some((item) => samePdfReadingSource(item, source))) throw new Error('Unrequested PDF source');
     if (
       candidate.eligible &&
       (!Number.isSafeInteger(candidate.page_count) ||
@@ -109,7 +105,7 @@ export async function inspectPdfReadingCandidates(frameId: string, sources: PdfR
   });
   return { scope, candidates };
 }
-export type PdfReadingOption = { source: PdfReadingSource; name: string; pageCount: number };
+export type PdfReadingOption = { source: PdfReadingSource; name: string; pageCount: number; description?: string };
 export async function loadProjectReadingOptions(context: PdfReadingContext, signal: AbortSignal) {
   const artifacts = await loadXScienceProjectArtifacts(context.scope.project_id, { signal });
   const files = [

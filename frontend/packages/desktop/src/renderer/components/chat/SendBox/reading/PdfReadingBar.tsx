@@ -22,7 +22,7 @@ export function PdfReadingBar({
   };
   return (
     <div className='pdf-reading-composer'>
-      {context && context.bindings.length > 0 && (
+      {context && (
         <div className='pdf-reading-bar' data-testid='pdf-context-bar'>
           <ReadingContextPicker
             context={context}

@@ -57,7 +57,7 @@ func (s *Store) insertBlobCommitMarkerTx(ctx context.Context, tx workspaceTransa
 	}
 	if !(strings.HasPrefix(finalClean, "artifact-versions/") || strings.HasPrefix(finalClean, "attachments/") ||
 		strings.HasPrefix(finalClean, "uploads/") || strings.HasPrefix(finalClean, "scientific-submissions/") ||
-		strings.HasPrefix(finalClean, "large-tool-results/")) {
+		strings.HasPrefix(finalClean, "large-tool-results/") || strings.HasPrefix(finalClean, "literature-versions/")) {
 		return errors.New("blob commit final path has unsupported namespace")
 	}
 	if _, err := s.blobAbsolute(marker.StagingPath); err != nil {

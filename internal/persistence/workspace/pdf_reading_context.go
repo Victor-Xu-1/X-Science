@@ -82,16 +82,16 @@ func (s *Store) mutatePDFReadingContext(ctx context.Context, input PDFReadingMut
 			}
 			versions := map[string]bool{}
 			for _, binding := range result.Bindings {
-				versions[binding.VersionID] = true
+				versions[binding.Source().Key()] = true
 			}
 			for index, binding := range input.Bindings {
-				if binding.ArtifactID != input.Sources[index].ArtifactID || binding.VersionID != input.Sources[index].VersionID {
+				if !binding.Matches(input.Sources[index]) {
 					return transcriptstore.ErrPDFReadingInvalid
 				}
 				if !binding.Valid() {
 					return transcriptstore.ErrPDFReadingInvalid
 				}
-				if versions[binding.VersionID] {
+				if versions[binding.Source().Key()] {
 					continue
 				}
 				if err := transcriptstore.ValidatePDFReadingSnapshotSources(ctx, tx, input.OwnerID, transcriptstore.PDFReadingSnapshot{
@@ -99,10 +99,23 @@ func (s *Store) mutatePDFReadingContext(ctx context.Context, input PDFReadingMut
 				}); err != nil {
 					return err
 				}
-				binding.BindingID = PDFReadingBindingID(result.Scope, input.OperationID, binding.ArtifactID, binding.VersionID)
+				if binding.SourceKind == "literature-attachment-version" {
+					var live bool
+					if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM literature_items WHERE id=? AND owner_user_id=? AND deleted_at IS NULL)`, binding.ItemID, input.OwnerID).Scan(&live); err != nil {
+						return err
+					}
+					if !live {
+						return transcriptstore.ErrPDFReadingUnavailable
+					}
+				}
+				identity := binding.ArtifactID
+				if binding.SourceKind != "artifact-version" {
+					identity = binding.Source().Key() + "\x00" + binding.ItemID + "\x00" + binding.AttachmentID
+				}
+				binding.BindingID = PDFReadingBindingID(result.Scope, input.OperationID, identity, binding.VersionID)
 				binding.LinkedAt = s.now().UTC().Format(time.RFC3339Nano)
 				result.Bindings = append(result.Bindings, binding)
-				versions[binding.VersionID] = true
+				versions[binding.Source().Key()] = true
 				result.Changed = true
 			}
 			if len(result.Bindings) > transcriptstore.MaxPDFReadingBindings {
