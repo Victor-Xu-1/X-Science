@@ -30,6 +30,7 @@ func (runtime *memoryExtractionRuntime) readMemoryExtractionSnapshot(
 	ctx context.Context,
 	ownerID string,
 	sessionID string,
+	source memoryExtractionSource,
 ) (memoryExtractionJournalSnapshot, error) {
 	if runtime == nil || runtime.server == nil {
 		return memoryExtractionJournalSnapshot{}, errors.New("memory extraction snapshot reader is unavailable")
@@ -40,17 +41,17 @@ func (runtime *memoryExtractionRuntime) readMemoryExtractionSnapshot(
 			return memoryExtractionJournalSnapshot{}, err
 		}
 		if found {
-			entries, err := runtime.readMemoryExtractionTranscriptEntries(ctx, stream)
+			if source.proof == nil || source.proof.StreamUID != stream.UID || source.proof.OwnerID != ownerID {
+				return memoryExtractionJournalSnapshot{}, errMemoryExtractionSource
+			}
+			entries, err := runtime.readMemoryExtractionTranscriptEntries(ctx, stream, source)
 			if err != nil {
 				return memoryExtractionJournalSnapshot{}, err
 			}
 			return projectMemoryExtractionSnapshot(entries), nil
 		}
 	}
-	if runtime.server.eventJournal == nil {
-		return memoryExtractionJournalSnapshot{}, errors.New("memory extraction compatibility journal is unavailable")
-	}
-	entries, err := runtime.server.eventJournal.ReadAllStrict(sessionID)
+	entries, err := runtime.readLegacyMemorySource(sessionID, source)
 	if err != nil {
 		return memoryExtractionJournalSnapshot{}, err
 	}
@@ -60,21 +61,19 @@ func (runtime *memoryExtractionRuntime) readMemoryExtractionSnapshot(
 func (runtime *memoryExtractionRuntime) readMemoryExtractionTranscriptEntries(
 	ctx context.Context,
 	stream transcriptstore.Stream,
+	source memoryExtractionSource,
 ) ([]eventjournal.Entry, error) {
-	snapshot, err := runtime.server.transcriptStore.GetProjectionSnapshot(ctx, stream.UID, stream.OwnerID)
-	if err != nil {
+	if err := runtime.validateCompletedMemorySource(ctx, source); err != nil {
 		return nil, err
 	}
-	if snapshot.ThroughPublicationSequence == 0 {
-		return []eventjournal.Entry{}, nil
-	}
+	proof := source.proof
 	entries := make([]eventjournal.Entry, 0)
 	after := int64(0)
-	for after < snapshot.ThroughPublicationSequence {
+	for after < proof.PublicationSeq {
 		page, err := runtime.server.transcriptStore.ListProjectedCoordinateEvents(ctx, transcriptstore.ListProjectedEventsInput{
 			StreamUID: stream.UID, OwnerID: stream.OwnerID,
-			BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
-			AfterPublicationSequence: after, ThroughPublicationSequence: snapshot.ThroughPublicationSequence,
+			BranchID: proof.BranchID, BranchGeneration: proof.BranchGeneration,
+			AfterPublicationSequence: after, ThroughPublicationSequence: proof.PublicationSeq,
 			Limit: memoryExtractionTranscriptPageSize,
 		})
 		if err != nil {
@@ -83,7 +82,7 @@ func (runtime *memoryExtractionRuntime) readMemoryExtractionTranscriptEntries(
 		if len(page) == 0 {
 			return nil, fmt.Errorf(
 				"memory extraction transcript projection stopped at publication sequence %d of %d",
-				after, snapshot.ThroughPublicationSequence,
+				after, proof.PublicationSeq,
 			)
 		}
 		for _, projected := range page {

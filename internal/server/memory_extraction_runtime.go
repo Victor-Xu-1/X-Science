@@ -23,9 +23,11 @@ func (extract memoryExtractorFunc) ExtractMemories(ctx context.Context, request 
 }
 
 type memoryExtractionSessionState struct {
-	runMu         sync.Mutex
-	latestEventID int64
-	request       *agentruntime.ModelRequest
+	runMu          sync.Mutex
+	latestEventID  int64
+	request        *agentruntime.ModelRequest
+	requestAttempt int64
+	queued         int
 }
 
 // memoryExtractionRuntime is the sole post-completion memory authority. It
@@ -63,12 +65,11 @@ func newMemoryExtractionRuntimeWithFactory(server *Server, factory memoryExtract
 	}
 }
 
-func (runtime *memoryExtractionRuntime) rememberLastRequest(sessionID string, request agentruntime.ModelRequest) {
-	if runtime == nil || strings.TrimSpace(sessionID) == "" {
+func (runtime *memoryExtractionRuntime) rememberLastRequest(sessionID string, attempt int64, request agentruntime.ModelRequest) {
+	if runtime == nil || strings.TrimSpace(sessionID) == "" || attempt <= 0 {
 		return
 	}
-	copyRequest := request
-	copyRequest.Messages = append([]agentruntime.Message(nil), request.Messages...)
+	copyRequest := agentruntime.SnapshotModelRequest(request)
 	runtime.mu.Lock()
 	state := runtime.sessions[sessionID]
 	if state == nil {
@@ -76,6 +77,7 @@ func (runtime *memoryExtractionRuntime) rememberLastRequest(sessionID string, re
 		runtime.sessions[sessionID] = state
 	}
 	state.request = &copyRequest
+	state.requestAttempt = attempt
 	runtime.mu.Unlock()
 }
 
@@ -86,6 +88,11 @@ func (runtime *memoryExtractionRuntime) ScheduleCompletedRootEvent(sessionID str
 	sessionID = strings.TrimSpace(sessionID)
 	if sessionID == "" || eventID <= 0 {
 		return completedMemoryExtractionResult(errors.New("completed memory extraction identity is required"))
+	}
+	source, sourceErr := runtime.captureCompletedMemorySource(context.Background(), sessionID, eventID)
+	if sourceErr != nil {
+		log.Printf("extract completed root memory gate=%q", "skipped-source")
+		return completedMemoryExtractionResult(nil)
 	}
 	runtime.mu.Lock()
 	state := runtime.sessions[sessionID]
@@ -98,12 +105,17 @@ func (runtime *memoryExtractionRuntime) ScheduleCompletedRootEvent(sessionID str
 		return completedMemoryExtractionResult(nil)
 	}
 	state.latestEventID = eventID
+	state.queued++
+	// Transfer this request to the job; a later attempt owns its own registry slot.
+	if state.requestAttempt == source.attempt {
+		state.request = nil
+	}
 	runtime.mu.Unlock()
 	return runtime.tasks.Go(func() error {
 		state.runMu.Lock()
 		defer state.runMu.Unlock()
-		defer runtime.releaseSessionState(sessionID, state, eventID)
-		result, err := runtime.RunCompletedRoot(context.Background(), sessionID)
+		defer runtime.releaseSessionState(sessionID, state)
+		result, err := runtime.runCompletedRoot(context.Background(), sessionID, source)
 		if err != nil {
 			log.Printf("extract completed root memory session_id=%q event_id=%d: %v", sessionID, eventID, err)
 		} else {
@@ -118,11 +130,26 @@ func (runtime *memoryExtractionRuntime) ScheduleCompletedRootEvent(sessionID str
 	})
 }
 
-func (runtime *memoryExtractionRuntime) releaseSessionState(sessionID string, state *memoryExtractionSessionState, eventID int64) {
+func (runtime *memoryExtractionRuntime) releaseSessionState(sessionID string, state *memoryExtractionSessionState) {
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock()
-	if runtime.sessions[sessionID] == state && state.latestEventID == eventID {
+	state.queued--
+	if runtime.sessions[sessionID] == state && state.queued == 0 && state.request == nil {
 		delete(runtime.sessions, sessionID)
+	}
+}
+
+func (runtime *memoryExtractionRuntime) discardAttemptRequest(sessionID string, attempt int64) {
+	if runtime == nil {
+		return
+	}
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	if state := runtime.sessions[sessionID]; state != nil && state.requestAttempt == attempt {
+		state.request = nil
+		if state.queued == 0 {
+			delete(runtime.sessions, sessionID)
+		}
 	}
 }
 
@@ -135,7 +162,11 @@ func completedMemoryExtractionResult(err error) <-chan error {
 	return result
 }
 
-func (runtime *memoryExtractionRuntime) RunCompletedRoot(ctx context.Context, sessionID string) (memoryextract.RunResult, error) {
+func (runtime *memoryExtractionRuntime) RunCompletedRoot(ctx context.Context, sessionID string, eventID int64) (memoryextract.RunResult, error) {
+	return runtime.runCompletedRoot(ctx, sessionID, memoryExtractionSource{finishEventID: eventID})
+}
+
+func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, sessionID string, source memoryExtractionSource) (memoryextract.RunResult, error) {
 	result := memoryextract.RunResult{Gate: "start"}
 	if runtime == nil || runtime.server == nil || runtime.server.workspaceStore == nil {
 		return result, errors.New("memory extraction runtime is unavailable")
@@ -182,23 +213,23 @@ func (runtime *memoryExtractionRuntime) RunCompletedRoot(ctx context.Context, se
 		result.Gate = "disabled-auto"
 		return result, nil
 	}
-	snapshot, err := runtime.readMemoryExtractionSnapshot(ctx, resolved.Scope.UserID, sessionID)
+	if !source.captured {
+		source, err = runtime.captureCompletedMemorySource(ctx, sessionID, source.finishEventID)
+		if err != nil {
+			result.Gate = "skipped-source"
+			return result, nil
+		}
+	}
+	snapshot, err := runtime.readMemoryExtractionSnapshot(ctx, resolved.Scope.UserID, sessionID, source)
 	if err != nil {
-		return result, err
+		result.Gate = "skipped-source"
+		return result, nil
 	}
 	if snapshot.TerminalStatus != "completed" {
 		result.Gate = "not-completed"
 		return result, nil
 	}
-	runtime.mu.Lock()
-	state := runtime.sessions[sessionID]
-	var request *agentruntime.ModelRequest
-	if state != nil && state.request != nil {
-		copyRequest := *state.request
-		copyRequest.Messages = append([]agentruntime.Message(nil), state.request.Messages...)
-		request = &copyRequest
-	}
-	runtime.mu.Unlock()
+	request := source.request
 	if config.ExtractMode == "forked" && request == nil {
 		result.Gate = "no-last-request-view"
 		return result, nil
@@ -206,7 +237,7 @@ func (runtime *memoryExtractionRuntime) RunCompletedRoot(ctx context.Context, se
 	if runtime.factory == nil {
 		return result, errors.New("memory extraction model factory is unavailable")
 	}
-	extractor := runtime.factory(resolved.Scope, config.ExtractMode, request)
+	extractor := runtime.sourceBoundMemoryExtractor(source, runtime.factory(resolved.Scope, config.ExtractMode, request))
 	service := memoryextract.NewService(
 		runtime.server.workspaceStore,
 		runtime.server.newMemoryClassifierForModel(resolved.Scope, sessionWorkspaceModel(resolved.Session)),
@@ -358,15 +389,16 @@ type memoryExtractionRecordingModelClient struct {
 	delegate  agentruntime.ModelClient
 	runtime   *memoryExtractionRuntime
 	sessionID string
+	attempt   int64
 }
 
 func (client *memoryExtractionRecordingModelClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
-	client.runtime.rememberLastRequest(client.sessionID, request)
+	client.runtime.rememberLastRequest(client.sessionID, client.attempt, request)
 	return client.delegate.Complete(ctx, request)
 }
 
 func (client *memoryExtractionRecordingModelClient) CompleteStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
-	client.runtime.rememberLastRequest(client.sessionID, request)
+	client.runtime.rememberLastRequest(client.sessionID, client.attempt, request)
 	if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
 		return streaming.CompleteStream(ctx, request, emit)
 	}

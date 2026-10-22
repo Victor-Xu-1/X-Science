@@ -46,7 +46,7 @@ func TestWorkspaceMemoryExtractionRuntimePersistsAndRecallsAcrossSessions(t *tes
 			}}}, nil
 		})
 	})
-	result, err := runtime.RunCompletedRoot(context.Background(), "frame-root")
+	result, err := runtime.RunCompletedRoot(context.Background(), "frame-root", 3)
 	if err != nil || result.Gate != "done" || len(result.Applied.Appended) != 1 {
 		t.Fatalf("result=%#v err=%v", result, err)
 	}
@@ -89,7 +89,7 @@ func TestWorkspaceMemoryExtractionRuntimeHonorsEveryPolicyGateAndDeduplicatesCom
 	if err := server.workspaceStore.SetMemoryEnabled(ctx, "user-1", false); err != nil {
 		t.Fatal(err)
 	}
-	if result, err := runtime.RunCompletedRoot(ctx, "frame-root"); err != nil || result.Gate != "disabled" {
+	if result, err := runtime.RunCompletedRoot(ctx, "frame-root", 3); err != nil || result.Gate != "disabled" {
 		t.Fatalf("user-off result=%#v err=%v", result, err)
 	}
 	if err := server.workspaceStore.SetMemoryEnabled(ctx, "user-1", true); err != nil {
@@ -98,7 +98,7 @@ func TestWorkspaceMemoryExtractionRuntimeHonorsEveryPolicyGateAndDeduplicatesCom
 	if err := server.workspaceStore.SetProjectMemoryEnabled(ctx, "project-1", "user-1", false); err != nil {
 		t.Fatal(err)
 	}
-	if result, err := runtime.RunCompletedRoot(ctx, "frame-root"); err != nil || result.Gate != "disabled" {
+	if result, err := runtime.RunCompletedRoot(ctx, "frame-root", 3); err != nil || result.Gate != "disabled" {
 		t.Fatalf("project-off result=%#v err=%v", result, err)
 	}
 	if err := server.workspaceStore.SetProjectMemoryEnabled(ctx, "project-1", "user-1", true); err != nil {
@@ -107,7 +107,7 @@ func TestWorkspaceMemoryExtractionRuntimeHonorsEveryPolicyGateAndDeduplicatesCom
 	if err := server.setMemoryAutoExtractionEnabled("user-1", false); err != nil {
 		t.Fatal(err)
 	}
-	if result, err := runtime.RunCompletedRoot(ctx, "frame-root"); err != nil || result.Gate != "disabled-auto" {
+	if result, err := runtime.RunCompletedRoot(ctx, "frame-root", 3); err != nil || result.Gate != "disabled-auto" {
 		t.Fatalf("auto-off result=%#v err=%v", result, err)
 	}
 	if err := server.setMemoryAutoExtractionEnabled("user-1", true); err != nil {
@@ -119,7 +119,7 @@ func TestWorkspaceMemoryExtractionRuntimeHonorsEveryPolicyGateAndDeduplicatesCom
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if result, err := runtime.RunCompletedRoot(ctx, "frame-root"); err != nil || result.Gate != "disabled" {
+	if result, err := runtime.RunCompletedRoot(ctx, "frame-root", 3); err != nil || result.Gate != "disabled" {
 		t.Fatalf("session-off result=%#v err=%v", result, err)
 	}
 	if err := server.sessionStore.Upsert(sessionstore.Session{
@@ -160,7 +160,7 @@ func TestWorkspaceMemoryExtractionRuntimeRejectsChildAndAsideFrames(t *testing.T
 			t.Fatal(err)
 		}
 		runtime := newMemoryExtractionRuntimeWithFactory(server, nil)
-		result, err := runtime.RunCompletedRoot(ctx, child.ID)
+		result, err := runtime.RunCompletedRoot(ctx, child.ID, 0)
 		if err != nil || result.Gate != "not-root" {
 			t.Fatalf("child result=%#v err=%v", result, err)
 		}
@@ -174,7 +174,7 @@ func TestWorkspaceMemoryExtractionRuntimeRejectsChildAndAsideFrames(t *testing.T
 			t.Fatal(err)
 		}
 		runtime := newMemoryExtractionRuntimeWithFactory(server, nil)
-		result, err := runtime.RunCompletedRoot(ctx, "frame-root")
+		result, err := runtime.RunCompletedRoot(ctx, "frame-root", 0)
 		if err != nil || result.Gate != "disabled-aside" {
 			t.Fatalf("aside result=%#v err=%v", result, err)
 		}
@@ -230,7 +230,7 @@ func TestWorkspaceCompletedWebFrameExtractsWithoutLegacySessionIndex(t *testing.
 			}}}, nil
 		})
 	})
-	result, err := runtime.RunCompletedRoot(context.Background(), "frame-root")
+	result, err := runtime.RunCompletedRoot(context.Background(), "frame-root", 3)
 	if err != nil || result.Gate != "done" || len(result.Applied.Appended) != 1 {
 		t.Fatalf("web-frame result=%#v err=%v", result, err)
 	}

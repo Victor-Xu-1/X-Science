@@ -28,6 +28,12 @@ func (s *Server) settleSessionRunnerChatOutcome(
 	claimToken string,
 ) error {
 	var err error
+	canonicalSettled := false
+	defer func() {
+		if canonicalSettled && s.memoryExtraction != nil {
+			s.memoryExtraction.discardAttemptRequest(session.ID, int64(result.Attempt))
+		}
+	}()
 	if chatRun.AfterEventID > result.CheckpointEventID {
 		result.CheckpointEventID = chatRun.AfterEventID
 	}
@@ -171,6 +177,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		)
 		if finishTranscriptErr == nil {
 			activeRun.settled = true
+			canonicalSettled = true
 		}
 		activeRun.settlement.Unlock()
 		if finishTranscriptErr != nil {
@@ -250,6 +257,9 @@ func (s *Server) settleSessionRunnerChatOutcome(
 	result.Status = status
 	if status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && result.FinishEventID > 0 {
 		s.memoryExtraction.ScheduleCompletedRootEvent(session.ID, result.FinishEventID)
+	}
+	if transcriptAuthority == nil && s.memoryExtraction != nil {
+		s.memoryExtraction.discardAttemptRequest(session.ID, int64(result.Attempt))
 	}
 	if status == "completed" && transcriptAuthority == nil {
 		advanced, err := s.autoAdvanceTaskRunSession(session.ID, "TaskRun auto-advanced after runner chat completion.")

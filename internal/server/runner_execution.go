@@ -764,6 +764,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if s.memoryExtraction != nil {
 		engine.Model = &memoryExtractionRecordingModelClient{
 			delegate: engine.Model, runtime: s.memoryExtraction, sessionID: session.ID,
+			attempt: int64(sessionRunnerAttempt(run)),
 		}
 	}
 	deltaBatcher := newSessionRunnerContentDeltaBatcher(
