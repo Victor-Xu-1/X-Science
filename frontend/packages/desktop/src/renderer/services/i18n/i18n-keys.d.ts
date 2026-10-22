@@ -1984,6 +1984,8 @@ export type I18nKey =
   | 'conversation.xscienceRuntime.sendBox.viewCurrentPlanDescription'
   | 'conversation.xscienceRuntime.sessionOptions.autoReview'
   | 'conversation.xscienceRuntime.sessionOptions.autoReviewDescription'
+  | 'conversation.xscienceRuntime.sessionOptions.autoReviewPreferenceRetry'
+  | 'conversation.xscienceRuntime.sessionOptions.autoReviewPreferenceUnknown'
   | 'conversation.xscienceRuntime.sessionOptions.clearGoal'
   | 'conversation.xscienceRuntime.sessionOptions.clearingGoal'
   | 'conversation.xscienceRuntime.sessionOptions.compute'

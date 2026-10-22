@@ -65,3 +65,35 @@ func TestLatestFrameRuntimeConfigMergesPartialInputPatchesAndHonorsExplicitOverr
 		t.Fatalf("selected cutoff lost merged config: %#v found=%t err=%v", config, found, err)
 	}
 }
+
+func TestLatestFrameRuntimeConfigVerifierAliasOverridePreservesEventBytes(t *testing.T) {
+	repo, _, stream := memoryAdmissionFixture(t, `{}`)
+	first := memoryAdmissionInput(stream, "old-snake-alias")
+	first.RuntimeConfig = map[string]any{"verifier_mode": "on", "agentName": "OPERON"}
+	prior, _, _, err := repo.AppendFrameUserEvent(t.Context(), first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := memoryAdmissionInput(stream, "new-camel-alias")
+	next.RuntimeConfig = map[string]any{"verifierMode": "off"}
+	if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), next); err != nil {
+		t.Fatal(err)
+	}
+	config, found, err := repo.LatestFrameRuntimeConfig(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || !found || config["verifierMode"] != "off" || config["verifier_mode"] != nil || config["agentName"] != "OPERON" {
+		t.Fatalf("older snake alias overrode newer explicit camel choice: config=%#v found=%t err=%v", config, found, err)
+	}
+	samePatch := memoryAdmissionInput(stream, "same-patch-aliases")
+	samePatch.RuntimeConfig = map[string]any{"verifier_mode": "on", "verifierMode": "off"}
+	if _, _, _, err := repo.AppendFrameUserEvent(t.Context(), samePatch); err != nil {
+		t.Fatal(err)
+	}
+	config, _, err = repo.LatestFrameRuntimeConfig(t.Context(), stream.UID, stream.OwnerID)
+	if err != nil || config["verifier_mode"] != "on" || config["verifierMode"] != "off" {
+		t.Fatalf("same-patch snake-first choice changed: config=%#v err=%v", config, err)
+	}
+	retry, _, created, err := repo.AppendFrameUserEvent(t.Context(), first)
+	if err != nil || created || string(retry.PayloadJSON) != string(prior.PayloadJSON) {
+		t.Fatalf("runtime projection rewrote historical event bytes: created=%t event=%s err=%v", created, retry.PayloadJSON, err)
+	}
+}

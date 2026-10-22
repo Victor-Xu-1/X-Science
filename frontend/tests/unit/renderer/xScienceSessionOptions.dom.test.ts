@@ -3,11 +3,19 @@ import {
   createXScienceSessionDefaults,
   loadXScienceSessionOptions,
   loadXScienceSessionMemoryPreference,
+  loadXScienceSessionAutoReviewPreference,
+  toXScienceMessageSessionOptions,
   X_SCIENCE_SESSION_DEFAULTS,
   updateXScienceSessionConfig,
 } from '@/renderer/services/xScienceSessionOptions';
 import { clearXScienceFrameReads, loadCachedXScienceFrame } from '@/renderer/services/xScienceFrameReads';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import {
+  saveSendBoxDraft,
+  loadSendBoxDraft,
+  clearSendBoxDraft,
+  retireStagedAutoReview,
+} from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 
 afterEach(() => {
   clearXScienceFrameReads();
@@ -18,6 +26,31 @@ afterEach(() => {
 });
 
 describe('X-Science session options service', () => {
+  it('AutoReview invalidates a cached preference after the server commits but responds 500', async () => {
+    let mode = 'off';
+    const transport = vi.fn<typeof fetch>(async (_url, init) => {
+      if (init?.method === 'POST') {
+        expect(JSON.parse(String(init.body))).toEqual({ verifier_mode: 'on' });
+        mode = 'on';
+        return Response.json({ detail: 'session config updated but realtime delivery failed' }, { status: 500 });
+      }
+      return Response.json({
+        id: 'review-root',
+        root_frame_id: 'review-root',
+        parent_frame_id: null,
+        project_id: 'review-project',
+        input_data: { verifier_mode: mode },
+      });
+    });
+    vi.stubGlobal('fetch', transport);
+    expect(await loadCachedXScienceFrame('review-root')).toMatchObject({ input_data: { verifier_mode: 'off' } });
+    await expect(updateXScienceSessionConfig('review-root', { autoReview: true })).rejects.toThrow();
+    expect(mode).toBe('on');
+    expect(transport.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+    expect(await loadCachedXScienceFrame('review-root')).toMatchObject({ input_data: { verifier_mode: 'on' } });
+    expect(transport.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(2);
+  });
+
   const frame = (id: string, memory: unknown = 'off', root = id) => ({
     id,
     project_id: 'project',
@@ -25,6 +58,87 @@ describe('X-Science session options service', () => {
     parent_frame_id: id === root ? null : root,
     input_data: memory === undefined ? {} : { memory_mode: memory },
   });
+  it('AutoReview reads only the checked actual root and retains legacy booleans without inventing invalid or absent intent', async () => {
+    for (const mode of [true, false, 'on', 'off', ' ON ', ' oFf ', undefined, 'invalid']) {
+      const transport = vi.fn<typeof fetch>(async (url) =>
+        Response.json({
+          ...frame(String(url).endsWith('/child') ? 'child' : 'root', 'off', 'root'),
+          input_data: String(url).endsWith('/child')
+            ? { verifier_mode: 'off' }
+            : mode === undefined
+              ? {}
+              : { verifier_mode: mode },
+        })
+      );
+      const request = loadXScienceSessionAutoReviewPreference('child', {
+        fetchImpl: transport,
+        expectedRootFrameId: 'root',
+        projectId: 'project',
+      });
+      if (mode === 'invalid') await expect(request).rejects.toThrow('invalid session Auto-review');
+      else
+        await expect(request).resolves.toEqual({
+          rootFrameId: 'root',
+          autoReview: mode === true || (typeof mode === 'string' && mode.trim().toLowerCase() === 'on'),
+        });
+      expect(transport.mock.calls.map(([url]) => url)).toEqual(['/api/frames/child', '/api/frames/root']);
+    }
+    await expect(
+      loadXScienceSessionAutoReviewPreference('root', {
+        expectedRootFrameId: 'other',
+        fetchImpl: async () => Response.json(frame('root')),
+      })
+    ).rejects.toThrow('invalid session Auto-review');
+  });
+
+  it('AutoReview never sends the second root read after the captured account changes', async () => {
+    let finish!: (response: Response) => void;
+    const transport = vi.fn<typeof fetch>(
+      () =>
+        new Promise<Response>((done) => {
+          finish = done;
+        })
+    );
+    setRendererAccountOwner('review-account-a');
+    const rejected = expect(
+      loadXScienceSessionAutoReviewPreference('child', { fetchImpl: transport })
+    ).rejects.toThrow();
+    setRendererAccountOwner('review-account-b');
+    finish(Response.json(frame('child', 'off', 'root')));
+    await rejected;
+    expect(transport).toHaveBeenCalledTimes(1);
+  });
+
+  it('AutoReview omission and staged retirement preserve existing explicit bools and other draft options', () => {
+    const staged = { delegation: true, autoReview: false, memory: false, targetAgent: 'synthetic-agent' };
+    const draft = {
+      _type: 'acp' as const,
+      content: 'synthetic retained draft',
+      atPath: [],
+      uploadFile: [],
+      contextItems: [],
+      stagedSessionOptions: staged,
+    };
+    try {
+      expect(saveSendBoxDraft('review-owner', 'review-draft', draft)).toBe(true);
+      expect(loadSendBoxDraft('review-owner', 'review-draft')?.stagedSessionOptions).toEqual(staged);
+      const remaining = retireStagedAutoReview(staged);
+      expect(remaining).toEqual({ delegation: true, memory: false, targetAgent: 'synthetic-agent' });
+      expect(saveSendBoxDraft('review-owner', 'review-draft', { ...draft, stagedSessionOptions: remaining })).toBe(
+        true
+      );
+      expect(loadSendBoxDraft('review-owner', 'review-draft')?.stagedSessionOptions).toEqual(remaining);
+      expect(toXScienceMessageSessionOptions(createXScienceSessionDefaults(), { autoReview: null })).not.toHaveProperty(
+        'verifier_mode'
+      );
+      expect(toXScienceMessageSessionOptions(createXScienceSessionDefaults(), { autoReview: true }).verifier_mode).toBe(
+        'on'
+      );
+    } finally {
+      clearSendBoxDraft('review-owner', 'review-draft');
+    }
+  });
+
   it('Memory406 reads the checked actual root, bypasses cached child preferences and rejects mismatched identity', async () => {
     const transport = vi.fn<typeof fetch>(async (url) =>
       Response.json(String(url).endsWith('/child') ? frame('child', 'on', 'root') : frame('root', 'off'))

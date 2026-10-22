@@ -94,6 +94,7 @@ import { stopAcpConversation } from './acpStopAction';
 import { useAcpRuntimeActions } from './useAcpRuntimeActions';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import { useAcpCommandAuthority } from './useAcpCommandAuthority';
+import { sessionOptionsRetrySnapshot } from '@/renderer/services/xScienceSessionOptions';
 import './conversationQueueDock.css';
 
 const AcpSendBox: React.FC<{
@@ -214,6 +215,7 @@ const AcpSendBox: React.FC<{
     setOptions: setXScienceSessionOptions,
     loadState: sessionOptionsLoad,
     memory: sessionMemory,
+    autoReview: sessionAutoReview,
     applyStagedSessionOptions,
   } = useAcpComposerSessionOptions(conversation_id, agent_name, initialConversation, ownerId, frameIncarnationId, {
     stagedSessionOptionsRef,
@@ -324,7 +326,8 @@ const AcpSendBox: React.FC<{
     setXScienceSessionOptions,
     setIsMobileSheetOpen,
     sessionMemory,
-    stagedSessionOptions?.memory
+    stagedSessionOptions?.memory,
+    sessionAutoReview
   );
 
   const handleSheetModeChange = useCallback(
@@ -498,7 +501,8 @@ const AcpSendBox: React.FC<{
     stagedPlanModeRef,
     delegationControl,
     specialistControl,
-    sessionMemory
+    sessionMemory,
+    sessionAutoReview
   );
 
   const executeCommand = useCallback(
@@ -794,8 +798,9 @@ const AcpSendBox: React.FC<{
       contextItems: commandContextItems,
       branchId: getSelectedXScienceBranch(conversation_id),
       branchRevision: getXScienceBranchSelectionRevision(conversation_id),
-      sessionOptions: { ...xscienceSessionOptions, targetAgent: undefined, memory: undefined },
+      sessionOptions: sessionOptionsRetrySnapshot(xscienceSessionOptions),
       stagedMemory: stagedSessionOptionsRef.current?.memory,
+      stagedAutoReview: stagedSessionOptionsRef.current?.autoReview,
       queuedSpecialistAuthority,
       planMode,
     });
@@ -1019,6 +1024,8 @@ const AcpSendBox: React.FC<{
     sessionOptionsReady,
     updatePersistentSessionOption,
     memoryControl,
+    autoReviewControl: sessionAutoReview,
+    stagedAutoReview: stagedSessionOptions?.autoReview,
     delegationControl,
     specialistControl,
     computeControl,
@@ -1211,12 +1218,15 @@ const AcpSendBox: React.FC<{
                 onChange={setXScienceSessionOptions}
                 onPersistentOptionChange={updatePersistentSessionOption}
                 memoryControl={memoryControl}
+                autoReviewControl={sessionAutoReview}
+                stagedAutoReview={stagedSessionOptions?.autoReview}
                 delegationControl={delegationControl}
                 specialistControl={specialistControl}
                 onClearGoal={handleClearGoal}
                 goalClearInFlight={goalClearInFlight}
                 disabled={!sessionOptionsReady || skillSave.inFlight}
                 memoryDisabled={skillSave.inFlight}
+                autoReviewDisabled={skillSave.inFlight}
                 permissionControl={{
                   contextKey: JSON.stringify([ownerId, conversation_id, frameIncarnationId]),
                   grantsController,

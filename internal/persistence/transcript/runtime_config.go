@@ -162,6 +162,12 @@ func readFrameRuntimeConfig(
 			delete(config, "memory_mode")
 			delete(config, "memoryMode")
 		}
+		// AutoReview aliases also describe one choice. New explicit/captured
+		// patches replace older aliases; one patch keeps its snake-first policy.
+		if hasVerifierOverride(patch) {
+			delete(config, "verifier_mode")
+			delete(config, "verifierMode")
+		}
 		for key, value := range patch {
 			config[key] = value
 		}

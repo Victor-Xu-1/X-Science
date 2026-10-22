@@ -3,7 +3,7 @@ import type { SpecialistInputReference } from '@/common/adapter/specialistBindin
 import { getRendererAccountScopeToken } from './rendererAccountScope';
 
 /** Freshness/operation metadata only. The existing session options own the value. */
-export type XScienceSessionMemoryControl = {
+export type XScienceSessionPreferenceControl = {
   status: 'loading' | 'ready' | 'writing' | 'readback' | 'unknown';
   pending: boolean;
   error?: unknown;
@@ -12,6 +12,8 @@ export type XScienceSessionMemoryControl = {
   capture: () => boolean | null;
   current: () => boolean;
 };
+
+export type XScienceSessionMemoryControl = XScienceSessionPreferenceControl;
 
 export type XScienceSessionOptions = {
   delegation: boolean;
@@ -48,6 +50,14 @@ export function createXScienceSessionDefaults(targetAgent = 'OPERON'): XScienceS
     ...X_SCIENCE_SESSION_DEFAULTS,
     targetAgent: targetAgent.trim() || X_SCIENCE_SESSION_DEFAULTS.targetAgent,
   };
+}
+
+/** Observed preferences are not new intent for an immutable command retry. */
+export function sessionOptionsRetrySnapshot(
+  options: XScienceSessionOptions
+): Omit<XScienceSessionOptions, 'targetAgent' | 'memory' | 'autoReview'> &
+  Record<'targetAgent' | 'memory' | 'autoReview', undefined> {
+  return { ...options, targetAgent: undefined, memory: undefined, autoReview: undefined };
 }
 
 export async function loadXScienceSessionOptions(
@@ -97,12 +107,13 @@ export async function updateXScienceSessionConfig(
   if (Object.keys(body).length === 0) return;
 
   const account = getRendererAccountScopeToken();
-  const invalidateMemory = () => {
-    if (patch.memory === undefined || getRendererAccountScopeToken() !== account) return;
+  const invalidatePreference = () => {
+    if ((patch.memory === undefined && patch.autoReview === undefined) || getRendererAccountScopeToken() !== account)
+      return;
     invalidateXScienceFrameReads(rootFrameId);
     if (options.rootFrameId) invalidateXScienceFrameReads(options.rootFrameId);
   };
-  invalidateMemory();
+  invalidatePreference();
   try {
     await requestJson(
       `/api/frames/${encodeURIComponent(rootFrameId)}/session-config`,
@@ -117,22 +128,45 @@ export async function updateXScienceSessionConfig(
     if (getRendererAccountScopeToken() === account) invalidateXScienceFrameReads(rootFrameId);
   } finally {
     // A lost ACK does not mean the write did not happen. Never retain the old cache.
-    invalidateMemory();
+    invalidatePreference();
   }
 }
 
 /** Resolve the server's actual root before observing its session preference. */
 export async function loadXScienceSessionMemoryPreference(
   frameId: string,
-  options: { expectedRootFrameId?: string; projectId?: string; signal?: AbortSignal; fetchImpl?: FetchLike } = {}
+  options: PreferenceReadOptions = {}
 ): Promise<{ rootFrameId: string; memory: boolean }> {
+  const snapshot = await loadSessionPreference(frameId, 'memory', options);
+  return { rootFrameId: snapshot.rootFrameId, memory: snapshot.value };
+}
+
+export async function loadXScienceSessionAutoReviewPreference(
+  frameId: string,
+  options: PreferenceReadOptions = {}
+): Promise<{ rootFrameId: string; autoReview: boolean }> {
+  const snapshot = await loadSessionPreference(frameId, 'autoReview', options);
+  return { rootFrameId: snapshot.rootFrameId, autoReview: snapshot.value };
+}
+
+type PreferenceReadOptions = {
+  expectedRootFrameId?: string;
+  projectId?: string;
+  signal?: AbortSignal;
+  fetchImpl?: FetchLike;
+};
+
+async function loadSessionPreference(frameId: string, key: 'memory' | 'autoReview', options: PreferenceReadOptions) {
   const account = getRendererAccountScopeToken();
   const controller = new AbortController();
   const abort = () => controller.abort(options.signal?.reason);
   options.signal?.addEventListener('abort', abort, { once: true });
   if (options.signal?.aborted) abort();
   const timer = setTimeout(() => controller.abort(), SESSION_REQUEST_TIMEOUT_MS);
-  const invalid = () => new Error('X-Science returned invalid session Memory identity or preference');
+  const invalid = () =>
+    new Error(
+      `X-Science returned invalid session ${key === 'memory' ? 'Memory' : 'Auto-review'} identity or preference`
+    );
   const checkCurrent = () => {
     if (getRendererAccountScopeToken() !== account || controller.signal.aborted) {
       throw controller.signal.reason ?? new DOMException('Aborted', 'AbortError');
@@ -168,12 +202,21 @@ export async function loadXScienceSessionMemoryPreference(
       throw invalid();
     const input = asRecord(root.input_data) ?? {};
     const original = asRecord(asRecord(root.context_data)?._original_input) ?? {};
-    const raw = Object.hasOwn(original, 'memory_mode') ? original.memory_mode : input.memory_mode;
-    const memory =
-      raw === undefined ? X_SCIENCE_SESSION_DEFAULTS.memory : raw === 'on' ? true : raw === 'off' ? false : null;
-    if (memory === null) throw invalid();
+    const field = key === 'memory' ? 'memory_mode' : 'verifier_mode';
+    const raw = Object.hasOwn(original, field) ? original[field] : input[field];
+    const value =
+      raw === undefined
+        ? X_SCIENCE_SESSION_DEFAULTS[key]
+        : key === 'autoReview'
+          ? readFreshAutoReviewMode(raw)
+          : raw === 'on'
+            ? true
+            : raw === 'off'
+              ? false
+              : null;
+    if (value === null) throw invalid();
     checkCurrent();
-    return { rootFrameId, memory };
+    return { rootFrameId, value };
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener('abort', abort);
@@ -185,6 +228,7 @@ export function toXScienceMessageSessionOptions(
   overrides: {
     delegation?: boolean | null;
     memory?: boolean | null;
+    autoReview?: boolean | null;
     planMode?: boolean;
     targetBranchId?: string | null;
     expectedBranchId?: string | null;
@@ -196,7 +240,9 @@ export function toXScienceMessageSessionOptions(
   return {
     // Compatibility guidance only; a live policy owner may omit an unknown value.
     ultra_mode: overrides.delegation === null ? undefined : (overrides.delegation ?? options.delegation),
-    verifier_mode: options.autoReview ? ('on' as const) : ('off' as const),
+    ...(overrides.autoReview === null
+      ? {}
+      : { verifier_mode: (overrides.autoReview ?? options.autoReview) ? ('on' as const) : ('off' as const) }),
     ...(overrides.memory === null
       ? {}
       : { memory_mode: (overrides.memory ?? options.memory) ? ('on' as const) : ('off' as const) }),
@@ -262,6 +308,14 @@ function readOnOffMode(value: unknown): boolean | null {
   if (value === 'on' || value === true) return true;
   if (value === 'off' || value === false) return false;
   return null;
+}
+
+/** Match the admitted root review preference without loosening Memory's wire contract. */
+function readFreshAutoReviewMode(value: unknown): boolean | null {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return null;
+  const mode = value.trim().toLowerCase();
+  return mode === 'on' ? true : mode === 'off' ? false : null;
 }
 
 function asRecord(value: unknown): RecordValue | null {

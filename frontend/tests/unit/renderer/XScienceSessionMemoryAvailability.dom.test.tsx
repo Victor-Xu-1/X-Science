@@ -57,8 +57,13 @@ function MenuHarness({ availability }: { availability: XScienceMemoryAvailabilit
 
 function SharedComposerHarness({
   sessionMemory,
+  sessionReview,
   legacyReady = true,
-}: { sessionMemory?: XScienceSessionMemoryControl; legacyReady?: boolean } = {}) {
+}: {
+  sessionMemory?: XScienceSessionMemoryControl;
+  sessionReview?: XScienceSessionMemoryControl;
+  legacyReady?: boolean;
+} = {}) {
   const { t, i18n } = useTranslation();
   const [value, setValue] = useState({ ...createXScienceSessionDefaults(), memory: true });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -67,12 +72,14 @@ function SharedComposerHarness({
   const owner = useRef({ conversationId: 'synthetic-frame', ownerId: 'synthetic-owner' });
   const { memoryControl, updatePersistentSessionOption, openMobileControls } = useAcpSessionOptionControls(
     'synthetic-frame',
-    'synthetic-owner:synthetic-frame',
+    undefined,
     owner,
     mounted,
     setValue,
     setMobileOpen,
-    sessionMemory
+    sessionMemory,
+    undefined,
+    sessionReview
   );
   const entries = useAcpMobileActionSheetController({
     isMobile: true,
@@ -89,6 +96,7 @@ function SharedComposerHarness({
     sessionOptionsReady: legacyReady,
     updatePersistentSessionOption,
     memoryControl,
+    autoReviewControl: sessionReview,
     computeControl,
     handleSheetModeChange: async () => undefined,
     handleThoughtLevelSetOption: async () => true,
@@ -110,6 +118,8 @@ function SharedComposerHarness({
           value={value}
           onChange={setValue}
           memoryControl={memoryControl}
+          autoReviewControl={sessionReview}
+          autoReviewDisabled={!sessionReview && !legacyReady}
           computeControl={computeControl}
           disabled={!legacyReady}
           memoryDisabled={false}
@@ -129,6 +139,98 @@ function SharedComposerHarness({
 }
 
 describe('session Memory availability', () => {
+  it('AutoReview has the same unknown checkbox and GET-only Retry action in desktop and mobile', async () => {
+    const preference: XScienceSessionMemoryControl = {
+      status: 'unknown',
+      pending: false,
+      current: () => true,
+      capture: () => null,
+      refresh: vi.fn(),
+      update: vi.fn(),
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async () => Response.json({ enabled: true }))
+    );
+    await renderWithI18n(<SharedComposerHarness sessionReview={preference} legacyReady={false} />, 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation options' }));
+    const desktop = await screen.findByTestId('session-config-row-autoReview');
+    expect(desktop).toHaveAttribute('aria-checked', 'mixed');
+    expect(desktop).toBeDisabled();
+    const retry = screen.getByRole('menuitem', { name: 'Refresh automatic review preference' });
+    expect(retry).not.toHaveAttribute('aria-checked');
+    fireEvent.click(retry);
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Conversation options' }), { key: 'Escape' });
+    fireEvent.click(screen.getByRole('button', { name: 'Mobile controls' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-session-options'));
+    const mobile = await screen.findByTestId('mobile-action-sheet-option-autoReview');
+    expect(mobile).toHaveAttribute('role', 'menuitemcheckbox');
+    expect(mobile).toHaveAttribute('aria-checked', 'mixed');
+    expect(mobile).toBeDisabled();
+    const mobileRetry = screen.getByTestId('mobile-action-sheet-option-autoReview-retry');
+    expect(mobileRetry).toHaveAttribute('role', 'menuitem');
+    expect(mobileRetry).not.toHaveAttribute('aria-checked');
+    const before = vi.mocked(preference.refresh).mock.calls.length;
+    fireEvent.click(mobileRetry);
+    expect(preference.refresh).toHaveBeenCalledTimes(before + 1);
+    expect(preference.update).not.toHaveBeenCalled();
+  });
+
+  it.each(['incarnation', 'account'])(
+    'AutoReview ignores the old %s ACK and finally while a new owner write is pending',
+    async (boundary) => {
+      setRendererAccountOwner('review-account-a');
+      const writes: Array<(response: Response) => void> = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn<typeof fetch>(async (_url, init) => {
+          if (init?.method === 'POST') return new Promise<Response>((done) => writes.push(done));
+          return Response.json({
+            id: 'root',
+            root_frame_id: 'root',
+            parent_frame_id: null,
+            project_id: 'project',
+            input_data: { verifier_mode: 'off', memory_mode: 'on' },
+          });
+        })
+      );
+      const hook = renderHook(
+        ({ incarnation }) =>
+          useXScienceSessionOptionsState('root', undefined, { ownerId: 'owner', frameIncarnationId: incarnation }),
+        { initialProps: { incarnation: 'old' } }
+      );
+      await waitFor(() => expect(hook.result.current.autoReview.status).toBe('ready'));
+      let old!: Promise<void>;
+      act(() => {
+        old = hook.result.current.autoReview.update(true);
+      });
+      if (boundary === 'account')
+        act(() => {
+          setRendererAccountOwner('review-account-b');
+        });
+      hook.rerender({ incarnation: boundary === 'incarnation' ? 'new' : 'old' });
+      await waitFor(() => expect(hook.result.current.autoReview.status).toBe('ready'));
+      let fresh!: Promise<void>;
+      act(() => {
+        fresh = hook.result.current.autoReview.update(true);
+      });
+      await act(async () => {
+        writes[0](Response.json({ status: 'ok' }));
+        await old;
+      });
+      expect(hook.result.current.autoReview.status).toBe('writing');
+      expect(hook.result.current.autoReview.capture()).toBeNull();
+      await act(async () => {
+        writes[1](Response.json({ status: 'ok' }));
+        await fresh;
+      });
+      expect(hook.result.current.autoReview.status).toBe('ready');
+      expect(hook.result.current.autoReview.capture()).toBe(false);
+      expect(writes).toHaveLength(2);
+      hook.unmount();
+    }
+  );
+
   it.each(['preference', 'retry'])('Memory406 R2 gives the mobile %s its truthful ARIA semantics', async (row) => {
     const preference: XScienceSessionMemoryControl = {
       status: 'unknown',
@@ -282,7 +384,7 @@ describe('session Memory availability', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn<typeof fetch>(async () => {
-        if (++reads === 2)
+        if (++reads === 3)
           return new Promise<Response>((done) => {
             finishLegacy = done;
           });
@@ -291,7 +393,7 @@ describe('session Memory availability', () => {
           root_frame_id: 'root',
           parent_frame_id: null,
           project_id: 'project',
-          input_data: { memory_mode: 'off' },
+          input_data: { memory_mode: 'off', verifier_mode: 'on' },
         });
       })
     );

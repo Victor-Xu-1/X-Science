@@ -20,6 +20,7 @@ import { renderWithI18n } from '../../i18nTestUtils';
 import { pdfBinding, pdfContext } from './pdfReadingFixtures';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { clearXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
 import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
@@ -97,7 +98,9 @@ const requestFrameAuditMock = vi.fn();
 const notifyRuntimeInvalidationMock = vi.fn();
 const loadSessionOptionsMock = vi.fn();
 const loadSessionMemoryMock = vi.fn();
+const loadSessionReviewMock = vi.fn();
 const realMemoryAuthority = { current: false };
+const realReviewAuthority = { current: false };
 const updateSessionConfigMock = vi.fn();
 const loadAssistantsMock = vi.fn();
 const saveConversationAsSkillMock = vi.fn();
@@ -611,6 +614,7 @@ vi.mock('@/renderer/services/FileService', () => ({
 vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
   const actual = await original<typeof import('@/renderer/services/xScienceSessionOptions')>();
   return {
+    ...actual,
     X_SCIENCE_SESSION_DEFAULTS: actual.X_SCIENCE_SESSION_DEFAULTS,
     createXScienceSessionDefaults: (targetAgent = 'OPERON') => ({
       delegation: false,
@@ -620,12 +624,19 @@ vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
       goalText: null,
       asRoutine: false,
     }),
-    loadXScienceSessionOptions: (...args: unknown[]) => loadSessionOptionsMock(...args),
+    loadXScienceSessionOptions: (...args: Parameters<typeof actual.loadXScienceSessionOptions>) =>
+      realReviewAuthority.current ? actual.loadXScienceSessionOptions(...args) : loadSessionOptionsMock(...args),
     loadXScienceSessionMemoryPreference: (...args: unknown[]) => loadSessionMemoryMock(...args),
+    loadXScienceSessionAutoReviewPreference: (
+      ...args: Parameters<typeof actual.loadXScienceSessionAutoReviewPreference>
+    ) =>
+      realReviewAuthority.current
+        ? actual.loadXScienceSessionAutoReviewPreference(...args)
+        : loadSessionReviewMock(...args),
     toXScienceMessageSessionOptions: (
       ...[value, overrides]: Parameters<typeof actual.toXScienceMessageSessionOptions>
     ) =>
-      specialistAsideFixture.active || realMemoryAuthority.current
+      specialistAsideFixture.active || realMemoryAuthority.current || realReviewAuthority.current
         ? actual.toXScienceMessageSessionOptions(value, overrides)
         : {
             ...value,
@@ -634,7 +645,8 @@ vi.mock('@/renderer/services/xScienceSessionOptions', async (original) => {
             ...(overrides?.expectedBranchId ? { expected_branch_id: overrides.expectedBranchId } : {}),
             ...(overrides?.expectedGeneration ? { expected_generation: overrides.expectedGeneration } : {}),
           },
-    updateXScienceSessionConfig: (...args: unknown[]) => updateSessionConfigMock(...args),
+    updateXScienceSessionConfig: (...args: Parameters<typeof actual.updateXScienceSessionConfig>) =>
+      realReviewAuthority.current ? actual.updateXScienceSessionConfig(...args) : updateSessionConfigMock(...args),
   };
 });
 vi.mock('@/renderer/services/xScienceCatalog', async (original) => ({
@@ -1184,7 +1196,9 @@ describe('AcpSendBox', () => {
     };
     loadSessionOptionsMock.mockReturnValue(defaultSessionOptions.promise);
     realMemoryAuthority.current = false;
+    realReviewAuthority.current = false;
     loadSessionMemoryMock.mockImplementation(async (id: string) => ({ rootFrameId: id, memory: false }));
+    loadSessionReviewMock.mockImplementation(async (id: string) => ({ rootFrameId: id, autoReview: false }));
     settleDefaultSessionOptions = async () => {
       defaultSessionOptions.resolve(defaultSessionOptionsValue);
       await defaultSessionOptions.promise;
@@ -1934,7 +1948,11 @@ describe('AcpSendBox', () => {
         expect(await screen.findByLabelText('本会话已授权 1 项')).toHaveTextContent('1');
         expect(screen.queryByTestId('x-science-permission-selector')).not.toBeInTheDocument();
         fireEvent.click(screen.getByTestId('x-science-session-options-trigger'));
-        expect(await screen.findByRole('menuitemcheckbox', { name: '自动审阅' })).toBeDisabled();
+        const review = await screen.findByRole('menuitemcheckbox', { name: '自动审阅' });
+        await waitFor(() => expect(review).toBeEnabled());
+        expect(loadSessionReviewMock.mock.calls.some(([id]) => id === sessionGrantIdentity.frameId)).toBe(true);
+        expect(review).toHaveAttribute('aria-checked', 'false');
+        expect(updateSessionConfigMock).not.toHaveBeenCalled();
       }
       expect(grantReads()).toHaveLength(1);
       fireEvent.click(await screen.findByRole('button', { name: '撤销本会话对 Python execution 的授权' }));
@@ -2038,6 +2056,60 @@ describe('AcpSendBox', () => {
     expect(screen.queryByRole('alert', { name: '运行状态不可用' })).not.toBeInTheDocument();
   });
 
+  it('AutoReview leaves a committed-but-500 mutation unknown until GET-only Retry', async () => {
+    clearXScienceFrameReads();
+    realReviewAuthority.current = true;
+    realAgentControls.current = true;
+    realContextDropdown.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    let mode = 'off';
+    const transport = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      if (String(url) === '/api/memory/enabled') return Response.json({ enabled: true });
+      if (init?.method === 'POST') {
+        expect(String(url)).toBe('/api/frames/conv-1/session-config');
+        expect(JSON.parse(String(init.body))).toEqual({ verifier_mode: 'on' });
+        mode = 'on';
+        return Response.json({ detail: 'session config updated but realtime delivery failed' }, { status: 500 });
+      }
+      return Response.json({
+        id: 'conv-1',
+        root_frame_id: 'conv-1',
+        parent_frame_id: null,
+        project_id: 'review-project',
+        input_data: { verifier_mode: mode },
+      });
+    });
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
+      const review = await screen.findByTestId('session-config-row-autoReview');
+      await waitFor(() => expect(review).toBeEnabled());
+      expect(review).toHaveAttribute('aria-checked', 'false');
+      fireEvent.click(review);
+      await waitFor(() => expect(mode).toBe('on'));
+      await waitFor(() => expect(messageErrorMock).toHaveBeenCalled());
+      expect(review).toHaveAttribute('aria-checked', 'mixed');
+      expect(review).toBeDisabled();
+      fireEvent.click(review);
+      const retry = await screen.findByRole('menuitem', { name: '刷新自动审阅偏好' });
+      expect(retry).not.toHaveAttribute('aria-checked');
+      fireEvent.click(retry);
+      await waitFor(() => expect(review).toHaveAttribute('aria-checked', 'true'));
+      expect(review).toBeEnabled();
+      expect(transport.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(requestFrameAuditMock).not.toHaveBeenCalled();
+    } finally {
+      view.unmount();
+      transport.mockRestore();
+      clearXScienceFrameReads();
+      realReviewAuthority.current = false;
+    }
+  });
+
   it('Memory406 keeps ordinary Send available with unknown Memory and omits a stale override', async () => {
     realMemoryAuthority.current = true;
     runtimeViewMock.isProcessing = false;
@@ -2053,6 +2125,83 @@ describe('AcpSendBox', () => {
       expect(sendMessageInvokeMock.mock.calls[0][0].session_options).not.toHaveProperty('memory_mode');
     } finally {
       view.unmount();
+    }
+  });
+
+  it('AutoReview reuses immutable input after an unknown-to-ready observation without replaying a new command', async () => {
+    realMemoryAuthority.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    const preference = createDeferred<{ rootFrameId: string; autoReview: boolean }>();
+    loadSessionReviewMock.mockReturnValue(preference.promise);
+    sendMessageInvokeMock
+      .mockReset()
+      .mockRejectedValueOnce(new Error('response_lost_after_commit'))
+      .mockResolvedValueOnce({
+        msg_id: 'review-retry',
+        turn_id: 'review-retry',
+        runtime: { state: 'running', is_processing: true },
+      });
+    const view = await render(
+      <AcpSendBox conversation_id='conv-1' backend='xscience' messageState={makeMessageState()} />
+    );
+    try {
+      expect(screen.getByRole('button', { name: 'send' })).toBeEnabled();
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      const first = sendMessageInvokeMock.mock.calls[0][0];
+      expect(first.session_options).not.toHaveProperty('verifier_mode');
+      await act(async () => preference.resolve({ rootFrameId: 'conv-1', autoReview: true }));
+      await waitFor(() => expect(sessionOptionsProps.current?.value).toMatchObject({ autoReview: true }));
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageInvokeMock.mock.calls[1][0]).toEqual(first);
+      expect(queuedCommandSequence).toBe(1);
+    } finally {
+      view.unmount();
+    }
+  });
+
+  it('AutoReview explicit mutation retires only staged review intent and starts a new command after lost ACK', async () => {
+    realMemoryAuthority.current = true;
+    realAgentControls.current = true;
+    realContextDropdown.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    memoryRetryDraft.initial = { delegation: false, autoReview: false, memory: true, targetAgent: 'OPERON' };
+    const availability = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => Response.json({ enabled: true }));
+    sendMessageInvokeMock
+      .mockReset()
+      .mockRejectedValueOnce(new Error('response_lost_after_commit'))
+      .mockResolvedValueOnce({
+        msg_id: 'review-new',
+        turn_id: 'review-new',
+        runtime: { state: 'running', is_processing: true },
+      });
+    const messageState = makeMessageState();
+    messageState.running = false;
+    const view = await render(<AcpSendBox conversation_id='conv-1' backend='xscience' messageState={messageState} />);
+    try {
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(1));
+      const first = sendMessageInvokeMock.mock.calls[0][0];
+      expect(first.session_options.verifier_mode).toBe('off');
+      fireEvent.click(screen.getByRole('button', { name: '会话选项' }));
+      const review = await screen.findByTestId('session-config-row-autoReview');
+      await waitFor(() => expect(review).toBeEnabled());
+      fireEvent.click(review);
+      await waitFor(() => expect(updateSessionConfigMock).toHaveBeenCalledTimes(1));
+      expect(updateSessionConfigMock.mock.calls[0][1]).toEqual({ autoReview: true });
+      await waitFor(() => expect(review).toBeEnabled());
+      expect(review).toHaveAttribute('aria-checked', 'false');
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+      await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledTimes(2));
+      expect(sendMessageInvokeMock.mock.calls[1][0].loading_id).not.toBe(first.loading_id);
+      expect(sendMessageInvokeMock.mock.calls[1][0].session_options.memory_mode).toBe('on');
+      expect(queuedCommandSequence).toBe(2);
+    } finally {
+      view.unmount();
+      availability.mockRestore();
     }
   });
 

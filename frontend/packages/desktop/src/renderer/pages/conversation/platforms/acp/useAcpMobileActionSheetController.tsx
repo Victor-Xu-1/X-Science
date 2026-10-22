@@ -6,9 +6,16 @@ import {
   type MobileActionSheetEntry,
   type MobileActionSheetOption,
 } from '@/renderer/components/chat/MobileActionSheet';
-import type { XScienceSessionOptions } from '@/renderer/services/xScienceSessionOptions';
+import type {
+  XScienceSessionOptions,
+  XScienceSessionPreferenceControl,
+} from '@/renderer/services/xScienceSessionOptions';
 import type { XScienceDelegationControl } from '@/renderer/hooks/xScience/runtime/useSessionDelegationPolicy';
 import XScienceDelegationControlRow from '@/renderer/components/xScience/runtime/XScienceDelegationControlRow';
+import {
+  buildSessionAutoReviewOptions,
+  sessionAutoReviewPresentation,
+} from '@/renderer/components/xScience/runtime/XScienceAgentControlToggles';
 import type { SessionComputeControl } from '@/renderer/hooks/xScience/runtime/useSessionComputeControls';
 import { buildMobileComputeEntry } from '@/renderer/components/xScience/runtime/XScienceComputeChoices';
 import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
@@ -46,6 +53,8 @@ type UseAcpMobileActionSheetControllerArgs = {
   sessionOptionsReady: boolean;
   updatePersistentSessionOption: (key: 'autoReview' | 'memory', value: boolean) => Promise<void>;
   memoryControl?: XScienceMemoryControl;
+  autoReviewControl?: XScienceSessionPreferenceControl;
+  stagedAutoReview?: boolean;
   delegationControl?: XScienceDelegationControl;
   specialistControl?: XScienceSpecialistControl;
   computeControl: SessionComputeControl;
@@ -81,6 +90,8 @@ export const useAcpMobileActionSheetController = ({
   sessionOptionsReady,
   updatePersistentSessionOption,
   memoryControl,
+  autoReviewControl,
+  stagedAutoReview,
   delegationControl,
   specialistControl,
   computeControl,
@@ -132,6 +143,11 @@ export const useAcpMobileActionSheetController = ({
     const currentModeLabel = modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default');
 
     const entries: MobileActionSheetEntry[] = [];
+    const reviewChecked = sessionAutoReviewPresentation(
+      autoReviewControl,
+      xscienceSessionOptions.autoReview,
+      stagedAutoReview
+    ).checked;
 
     entries.push({
       key: 'session-options',
@@ -141,20 +157,20 @@ export const useAcpMobileActionSheetController = ({
         delegationControl?.current() && delegationControl.enabled === false
           ? t('conversation.xscienceRuntime.sessionOptions.delegation')
           : '',
-        xscienceSessionOptions.autoReview ? t('conversation.xscienceRuntime.sendBox.reviewShort') : '',
+        reviewChecked ? t('conversation.xscienceRuntime.sendBox.reviewShort') : '',
       ]
         .filter(Boolean)
         .join(' · '),
       submenu: {
         title: t('conversation.xscienceRuntime.sessionOptions.title'),
         options: [
-          {
-            key: 'autoReview',
-            label: t('conversation.xscienceRuntime.sessionOptions.autoReview'),
-            description: t('conversation.xscienceRuntime.sessionOptions.autoReviewDescription'),
-            active: xscienceSessionOptions.autoReview,
-            disabled: !sessionOptionsReady,
-          },
+          ...buildSessionAutoReviewOptions(
+            autoReviewControl,
+            xscienceSessionOptions.autoReview,
+            stagedAutoReview,
+            sessionOptionsReady,
+            t
+          ),
           buildSessionMemoryOption(memoryControl, xscienceSessionOptions.memory, t),
           ...(memoryControl?.preference?.status === 'unknown'
             ? [
@@ -167,16 +183,26 @@ export const useAcpMobileActionSheetController = ({
             : []),
         ],
         onSelect: (key) => {
+          if (key === 'autoReview-retry') {
+            autoReviewControl?.refresh();
+            return;
+          }
           if (key === 'memory-retry') {
             memoryControl?.preference?.refresh();
             return;
           }
-          if (key !== 'memory' && !sessionOptionsReady) return;
+          if (
+            key === 'autoReview' &&
+            autoReviewControl &&
+            (!autoReviewControl.current() || autoReviewControl.status !== 'ready')
+          )
+            return;
+          if (key !== 'memory' && !autoReviewControl && !sessionOptionsReady) return;
           if (key === 'autoReview' || key === 'memory') {
             if (key === 'memory' && !memoryControl?.canUpdate()) return;
             const nextValue = !(key === 'memory'
               ? (memoryControl?.stagedMemory ?? xscienceSessionOptions.memory)
-              : xscienceSessionOptions[key]);
+              : reviewChecked);
             void updatePersistentSessionOption(key, nextValue).catch((error) => {
               console.error('[AcpSendBox] Failed to update session option', safeErrorDiagnostic(error));
               Message.error(t('conversation.xscienceRuntime.sessionOptions.updateFailed'));
@@ -388,6 +414,8 @@ export const useAcpMobileActionSheetController = ({
     librarySkillNames,
     specialistControl,
     memoryControl,
+    autoReviewControl,
+    stagedAutoReview,
     delegationControl,
     model_info,
     modelListError,

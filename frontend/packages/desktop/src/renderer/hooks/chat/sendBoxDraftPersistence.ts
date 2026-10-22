@@ -23,7 +23,7 @@ const MAX_CONVERSATION_ID_LENGTH = 512;
 
 export type StagedSessionOptions = {
   delegation: boolean;
-  autoReview: boolean;
+  autoReview?: boolean;
   memory?: boolean;
   targetAgent: string;
 };
@@ -31,6 +31,12 @@ export type StagedSessionOptions = {
 /** Retire only the explicit Memory intent; other staged options remain durable. */
 export function retireStagedMemory(options: StagedSessionOptions): StagedSessionOptions {
   const { memory: _retired, ...remaining } = options;
+  return remaining;
+}
+
+/** A new explicit review mutation supersedes only the old staged review intent. */
+export function retireStagedAutoReview(options: StagedSessionOptions): StagedSessionOptions {
+  const { autoReview: _retired, ...remaining } = options;
   return remaining;
 }
 
@@ -228,7 +234,7 @@ function normalizeStagedSessionOptions(value: unknown): { stagedSessionOptions?:
   const targetAgent = value.targetAgent;
   if (
     typeof delegation !== 'boolean' ||
-    typeof autoReview !== 'boolean' ||
+    (autoReview !== undefined && typeof autoReview !== 'boolean') ||
     (memory !== undefined && typeof memory !== 'boolean') ||
     typeof targetAgent !== 'string' ||
     targetAgent.length > 256
@@ -236,7 +242,12 @@ function normalizeStagedSessionOptions(value: unknown): { stagedSessionOptions?:
     return {};
   }
   return {
-    stagedSessionOptions: { delegation, autoReview, ...(typeof memory === 'boolean' ? { memory } : {}), targetAgent },
+    stagedSessionOptions: {
+      delegation,
+      ...(typeof autoReview === 'boolean' ? { autoReview } : {}),
+      ...(typeof memory === 'boolean' ? { memory } : {}),
+      targetAgent,
+    },
   };
 }
 

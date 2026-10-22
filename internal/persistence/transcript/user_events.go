@@ -405,6 +405,7 @@ func appendFrameUserEventConn(
 			}
 		}
 		var memoryCapture *memoryPreferenceCapture
+		var verifierCapture *verifierPreferenceCapture
 		var activeStreamUID, readAuthority, writeAuthority string
 		var activeEpoch int64
 		if err := conn.QueryRowContext(ctx, `SELECT active_stream_uid,active_epoch,read_authority,write_authority
@@ -417,6 +418,10 @@ func appendFrameUserEventConn(
 		}
 		canonical := readAuthority == "transcript_payload_v1" && writeAuthority == "transcript_payload_v1"
 		input.InputData, input.RuntimeConfig, memoryCapture, err = resolveMemoryPreferenceAdmission(ctx, conn, stream, input, eventType, messageOrigin, prior, canonical)
+		if err != nil {
+			return err
+		}
+		input.InputData, input.RuntimeConfig, verifierCapture, err = resolveVerifierPreferenceAdmission(ctx, conn, stream, input, eventType, messageOrigin, prior, canonical)
 		if err != nil {
 			return err
 		}
@@ -451,6 +456,9 @@ func appendFrameUserEventConn(
 		}
 		if memoryCapture != nil {
 			messagePayload[memoryPreferenceCaptureKey] = memoryCapture
+		}
+		if verifierCapture != nil {
+			messagePayload[verifierPreferenceCaptureKey] = verifierCapture
 		}
 		messageIntent, err := replayFrameUserMessageIntent(ctx, conn, stream.FrameID, input.ClientMessageID, input.MessageIntent, existing, existingFound)
 		if err != nil {
