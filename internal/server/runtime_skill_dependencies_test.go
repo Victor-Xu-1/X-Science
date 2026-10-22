@@ -624,14 +624,14 @@ func TestExplicitDeepLiteratureSkillReturnsCompleteRealDependencyContract(t *tes
 		t.Fatal("resolve server source directory")
 	}
 	repositoryRoot := filepath.Clean(filepath.Join(filepath.Dir(currentFile), "..", ".."))
-	server := New(Options{FileRoot: t.TempDir()})
-	t.Cleanup(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := server.Close(ctx); err != nil {
-			t.Errorf("close server: %v", err)
-		}
-	})
+	fixture := newAgentSaveArtifactsFixture(t)
+	server := fixture.server
+	if server.kernelManager != nil {
+		t.Fatal("text Skill resource fixture must not configure a computation kernel")
+	}
+	if err := disableBundledMCPForLocalFixture(context.Background(), server, fixture.stream.OwnerID); err != nil {
+		t.Fatal(err)
+	}
 	productionCatalog, _, loadErrors := loadSkillCatalog(
 		nil, []string{filepath.Join(repositoryRoot, "skills", "x-science")}, t.TempDir(),
 	)
@@ -639,11 +639,55 @@ func TestExplicitDeepLiteratureSkillReturnsCompleteRealDependencyContract(t *tes
 		t.Fatalf("production Skill catalog errors=%#v", loadErrors)
 	}
 	server.skillCatalog = productionCatalog
-	run := &sessionRunnerChatRun{SessionID: "real-deep-literature-session"}
-	ctx := context.WithValue(context.Background(), transcriptRunnerChatRunContextKey{}, run)
+	literature, found := findCatalogSkill(productionCatalog, "literature-review")
+	if !found {
+		t.Fatal("production literature-review dependency is missing")
+	}
+	bundle, hasResources, err := server.loadPublishedAgentSkillRuntimeBundle(literature)
+	if err != nil || !hasResources || strings.Contains(literature.Body, "${X_SCIENCE_SKILL_DIR}") {
+		t.Fatalf("real dependency must carry resources without a directory placeholder: resources=%t err=%v", hasResources, err)
+	}
+	hasKernel := false
+	for _, file := range bundle.files {
+		hasKernel = hasKernel || file.relativePath == "kernel.py" && len(file.content) > 0
+	}
+	if !hasKernel {
+		t.Fatal("production literature-review kernel.py resource is missing")
+	}
 	authority := map[string]struct{}{
 		"search_skills": {}, "skill": {}, "repl": {}, "web_search": {},
 		"web_fetch": {}, "web_research": {}, "fetch_article_fulltext": {}, "save_artifacts": {},
+	}
+	// Resource copying needs workspace ownership, not computation admission.
+	// An unbound session must still fail without recording a load or any files.
+	unauthorizedRun := &sessionRunnerChatRun{SessionID: "unbound-deep-literature-session"}
+	unauthorized, err := server.executeSkillToolWithRuntimeSkills(
+		withTranscriptRunnerChatRun(context.Background(), unauthorizedRun),
+		map[string]any{"skill": "deep-literature-investigation"}, nil, authority,
+	)
+	if err == nil || !strings.Contains(err.Error(), "require an authorized project workspace") || unauthorized != nil ||
+		len(unauthorizedRun.executedSkillNamesSnapshot()) != 0 {
+		t.Fatalf("unbound session acquired a resource contract: result=%T loaded=%v err=%v", unauthorized,
+			unauthorizedRun.executedSkillNamesSnapshot(), err)
+	}
+	if invocations, err := server.runtimeStore.List("skill-invocations"); err != nil || len(invocations) != 0 {
+		t.Fatalf("unbound session persisted load audit: count=%d err=%v", len(invocations), err)
+	}
+	cacheRoot := filepath.Join(fixture.projectPath, ".x-science", "runtime", "skills")
+	if _, err := os.Stat(cacheRoot); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("unbound session materialized workspace resources: err=%v", err)
+	}
+	run := &sessionRunnerChatRun{
+		SessionID: fixture.stream.SessionID, Attempt: int(fixture.claim.Attempt), ClaimToken: fixture.claim.ClaimToken,
+		Transcript: &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim},
+	}
+	ctx := withTranscriptRunnerChatRun(context.Background(), run)
+	access, workspaceRoot, authorized := server.resolveAgentWorkspaceAuthority(ctx, run.SessionID)
+	if !authorized || access.UserID != fixture.stream.OwnerID || workspaceRoot != fixture.projectPath {
+		t.Fatalf("fixture lacks its canonical owned project workspace: authorized=%t owner=%q path=%q", authorized, access.UserID, workspaceRoot)
+	}
+	if server.resolveAgentKernelContext(ctx, run.SessionID) != nil {
+		t.Fatal("workspace-only resource loading acquired kernel execution authority")
 	}
 	result, err := server.executeSkillToolWithRuntimeSkills(
 		ctx, map[string]any{"skill": "deep-literature-investigation"}, nil, authority,
@@ -660,6 +704,29 @@ func TestExplicitDeepLiteratureSkillReturnsCompleteRealDependencyContract(t *tes
 	deepAt := strings.Index(prompt, "### deep-literature-investigation")
 	if literatureAt < 0 || deepAt < 0 || literatureAt >= deepAt {
 		t.Fatalf("dependency order is incomplete: literature=%d deep=%d", literatureAt, deepAt)
+	}
+	receipt, ok := payload["load_receipt"].(*agentruntime.SkillLoadReceipt)
+	if !ok || !receipt.Valid() || len(receipt.Contracts) != 2 ||
+		receipt.Contracts[0].Name != "literature-review" || receipt.Contracts[0].BundleKind != "files" ||
+		receipt.Contracts[0].BundleSHA256 != bundle.digest || receipt.Contracts[1].Name != "deep-literature-investigation" {
+		t.Fatalf("complete resource dependency receipt=%#v", receipt)
+	}
+	runtimeDirectory := filepath.Join(cacheRoot, agentSkillRuntimeDirectoryName(literature.Name), bundle.digest)
+	if !hostPathWithin(fixture.projectPath, runtimeDirectory) ||
+		!strings.Contains(prompt, "Base directory for this skill: "+filepath.ToSlash(runtimeDirectory)) {
+		t.Fatal("dependency contract did not reference its authorized content-addressed resource directory")
+	}
+	for _, file := range bundle.files {
+		raw, err := os.ReadFile(filepath.Join(runtimeDirectory, filepath.FromSlash(file.relativePath)))
+		if err != nil || string(raw) != string(file.content) {
+			t.Fatalf("materialized dependency resource %s differs from its captured production bytes: err=%v", file.relativePath, err)
+		}
+	}
+	if valid, err := verifyAgentSkillRuntimeBundle(runtimeDirectory, bundle); err != nil || !valid {
+		t.Fatalf("dependency resource bundle or marker verification failed: valid=%t err=%v", valid, err)
+	}
+	if server.kernelManager != nil || server.resolveAgentKernelContext(ctx, run.SessionID) != nil {
+		t.Fatal("loading text Skill resources enabled computation execution")
 	}
 	for _, required := range []string{
 		"### Patent evidence is a separate source class",

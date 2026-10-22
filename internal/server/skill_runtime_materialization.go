@@ -56,11 +56,14 @@ func (s *Server) materializeAgentSkillRuntimeSnapshot(
 	}
 	preparationCtx, cancelPreparation := context.WithTimeout(preparationCtx, agentSkillRuntimePreparationTimeout)
 	defer cancelPreparation()
-	identity := s.resolveAgentKernelContext(preparationCtx, sessionID)
-	if identity == nil {
+	// Pinning captured files needs the current workspace owner, not permission
+	// to start a computation kernel. Execution tools retain their own runtime
+	// and confinement admission after the text contract has been loaded.
+	access, workspaceDir, authorized := s.resolveAgentWorkspaceAuthority(preparationCtx, sessionID)
+	if !authorized {
 		return skills.Skill{}, errors.New("skill runtime resources require an authorized project workspace")
 	}
-	workspaceRoot, err := s.ensureAgentWorkspaceRoot(identity)
+	workspaceRoot, err := s.ensureAgentWorkspaceRoot(&agentKernelContext{access: access, workspaceDir: workspaceDir})
 	if err != nil {
 		return skills.Skill{}, err
 	}
