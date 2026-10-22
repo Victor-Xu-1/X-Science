@@ -860,7 +860,7 @@ async function renderManualCompaction(
     runtime: { state: 'running', is_processing: true },
   });
   const usageFetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-    if (!String(input).endsWith('/context-usage')) throw new Error('Unexpected C11 usage request');
+    if (!/\/context-usage(?:\?inspect=1)?$/.test(String(input))) throw new Error('Unexpected C11 usage request');
     return new Response(JSON.stringify(usage), { status: 200 });
   });
   const transport = vi.spyOn(httpBridge, 'httpRequest').mockImplementation(async (method, path, body) => {
@@ -1849,7 +1849,7 @@ describe('AcpSendBox', () => {
     }
   );
 
-  it('C11 mobile uses the same context card and explicit request controller', async () => {
+  it('C11 mobile uses the independent context inspector and same explicit request controller', async () => {
     isMobileMock.current = true;
     realMobileActionSheet.current = true;
     const harness = await renderManualCompaction();
@@ -1859,7 +1859,7 @@ describe('AcpSendBox', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Compact context' }));
       await screen.findByRole('button', { name: 'Compacting context' });
       expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(1);
-      fireEvent.click(screen.getByTestId('context-usage-close'));
+      fireEvent.click(screen.getByTestId('context-inspector-close'));
       expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(0);
       expect(mobileActionSheetOpen.current).toBe(false);
     } finally {
@@ -3465,13 +3465,14 @@ describe('AcpSendBox', () => {
       expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
       fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
-      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('30.0%');
-      expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+      expect(await screen.findByRole('dialog', { name: 'Context window' })).toBeInTheDocument();
+      expect(screen.getAllByTestId('context-window-inspector')).toHaveLength(1);
+      expect(screen.queryByTestId('context-usage-panel')).not.toBeInTheDocument();
       expect(mobileActionSheetOpen.current).toBe(false);
       expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep this nonempty draft.');
       expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
       expect(sendMessageInvokeMock).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByTestId('context-usage-close'));
+      fireEvent.click(screen.getByTestId('context-inspector-close'));
       expect(screen.getByRole('button', { name: 'mobile more' })).toHaveFocus();
     } finally {
       harness.dispose();
@@ -3491,8 +3492,8 @@ describe('AcpSendBox', () => {
         if (priorMore) {
           fireEvent.click(more);
           fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
-          await screen.findByTestId('context-usage-percent');
-          fireEvent.click(screen.getByTestId('context-usage-close'));
+          await screen.findByRole('dialog', { name: 'Context window' });
+          fireEvent.click(screen.getByTestId('context-inspector-close'));
           expect(more).toHaveFocus();
         }
         // Both provider notice and TaskCenter use this same model-only callback.
@@ -3506,8 +3507,8 @@ describe('AcpSendBox', () => {
         expect(mobileActionSheetOpen.current).toBe(false);
         fireEvent.click(more);
         fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
-        await screen.findByTestId('context-usage-percent');
-        fireEvent.click(screen.getByTestId('context-usage-close'));
+        await screen.findByRole('dialog', { name: 'Context window' });
+        fireEvent.click(screen.getByTestId('context-inspector-close'));
         expect(more).toHaveFocus();
         expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep this recovery draft.');
         expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
@@ -5081,14 +5082,14 @@ describe('AcpSendBox', () => {
     expect(openContext).toBeTypeOf('function');
     const sends = sendMessageInvokeMock.mock.calls.length;
     await act(async () => (openContext as (opener: HTMLButtonElement | null) => void)(null));
-    expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+    expect(screen.getAllByTestId('context-window-inspector')).toHaveLength(1);
     expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
     expect(sendMessageInvokeMock).toHaveBeenCalledTimes(sends);
-    fireEvent.click(screen.getByTestId('context-usage-close'));
-    expect(screen.queryByTestId('context-usage-panel')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('context-inspector-close'));
+    expect(screen.queryByTestId('context-window-inspector')).not.toBeInTheDocument();
     expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
     await act(async () => (openContext as (opener: HTMLButtonElement | null) => void)(null));
-    expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+    expect(screen.getAllByTestId('context-window-inspector')).toHaveLength(1);
   });
 
   it('swaps the context-usage ring for the optimize-prompt action while typing', async () => {

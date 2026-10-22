@@ -14,26 +14,29 @@ import (
 	"github.com/google/uuid"
 	"x-science/internal/agentruntime"
 	"x-science/internal/persistence/runtimekv"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // Context usage describes one main-agent request, never the cumulative billing
 // counter or a reviewer/translation request. Only numeric metadata is retained.
 type runnerContextUsage struct {
-	SessionID      string                   `json:"sessionId"`
-	RequestID      string                   `json:"requestId"`
-	Attempt        int                      `json:"attempt"`
-	Model          string                   `json:"model"`
-	ObservedAt     time.Time                `json:"observedAt"`
-	State          string                   `json:"state"`
-	Source         string                   `json:"source"`
-	UsedTokens     int                      `json:"usedTokens"`
-	LimitTokens    int                      `json:"limitTokens"`
-	LimitSource    string                   `json:"limitSource"`
-	OutputTokens   int                      `json:"outputTokens"`
-	HasMedia       bool                     `json:"hasMedia"`
-	InputEstimates []runnerContextUsageRow  `json:"inputEstimates"`
-	Progress       *runnerContextProgress   `json:"progress,omitempty"`
-	CallUsage      *agentruntime.ModelUsage `json:"callUsage,omitempty"`
+	SessionID       string                                  `json:"sessionId"`
+	RequestID       string                                  `json:"requestId"`
+	Attempt         int                                     `json:"attempt"`
+	Model           string                                  `json:"model"`
+	ObservedAt      time.Time                               `json:"observedAt"`
+	State           string                                  `json:"state"`
+	Source          string                                  `json:"source"`
+	UsedTokens      int                                     `json:"usedTokens"`
+	LimitTokens     int                                     `json:"limitTokens"`
+	LimitSource     string                                  `json:"limitSource"`
+	OutputTokens    int                                     `json:"outputTokens"`
+	HasMedia        bool                                    `json:"hasMedia"`
+	InputEstimates  []runnerContextUsageRow                 `json:"inputEstimates"`
+	Progress        *runnerContextProgress                  `json:"progress,omitempty"`
+	CallUsage       *agentruntime.ModelUsage                `json:"callUsage,omitempty"`
+	Association     *transcriptstore.ContextCallAssociation `json:"association,omitempty"`
+	ObservationKind string                                  `json:"observationKind,omitempty"`
 }
 
 type runnerContextUsageRow struct {
@@ -52,6 +55,7 @@ type sessionContextUsageRecorder struct {
 	limit       int
 	limitSource string
 	frameExists func() (bool, error)
+	association *transcriptstore.ContextCallAssociation
 }
 
 func contextUsageRecorderForCall(ctx context.Context, recorder *sessionContextUsageRecorder) *sessionContextUsageRecorder {
@@ -143,6 +147,10 @@ func estimateRunnerRequestUsage(request agentruntime.ModelRequest) ([]runnerCont
 }
 
 func (recorder *sessionContextUsageRecorder) begin(model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
+	return recorder.beginObservation("model_call", model, request, capacities...)
+}
+
+func (recorder *sessionContextUsageRecorder) beginObservation(kind, model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
 	if recorder == nil {
 		return nil
 	}
@@ -170,6 +178,11 @@ func (recorder *sessionContextUsageRecorder) begin(model string, request agentru
 		Model: model, ObservedAt: time.Now().UTC(), State: "request", Source: "estimated",
 		LimitTokens: capacity.Tokens, LimitSource: capacity.Source,
 		InputEstimates: rows, HasMedia: hasMedia,
+		ObservationKind: kind,
+	}
+	if recorder.association != nil {
+		association := *recorder.association
+		snapshot.Association = &association
 	}
 	for _, row := range rows {
 		snapshot.UsedTokens += row.Tokens
@@ -265,6 +278,13 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	}
 	if err != nil {
 		return snapshot, fmt.Errorf("decode context usage: %w", err)
+	}
+	if _, present := fields["association"]; present && (!validContextAssociation(snapshot.Association) ||
+		snapshot.Association.Scope.ConversationID != snapshot.SessionID || snapshot.Association.RunnerAttempt != int64(snapshot.Attempt)) {
+		return snapshot, errors.New("invalid context input association")
+	}
+	if _, present := fields["observationKind"]; present && snapshot.ObservationKind != "model_call" && snapshot.ObservationKind != "context_preparation" {
+		return snapshot, errors.New("invalid context observation kind")
 	}
 	if raw, present := fields["callUsage"]; present {
 		if snapshot.State != "complete" || snapshot.CallUsage == nil || !validContextCallUsageCounters(*snapshot.CallUsage) || !validContextCallUsageWire(raw) {

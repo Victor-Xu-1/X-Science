@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { parseContextInspection, type ContextInspection } from './contextInspection';
+
 export const CONTEXT_USAGE_CATEGORIES = ['systemPrompt', 'tools', 'messages', 'mcp', 'skills'] as const;
 export type ContextUsageCategory = (typeof CONTEXT_USAGE_CATEGORIES)[number];
 export type ContextUsageBreakdownRow = { key: ContextUsageCategory; tokens: number };
@@ -58,19 +60,21 @@ export type ContextUsageHistory = {
   samples: ContextUsageSnapshot[];
   peak?: ContextUsageSnapshot;
 };
-export type ContextUsageResult =
+export type ContextUsageResult = (
   | { status: 'unavailable' }
   | {
       status: 'available';
       snapshot: ContextUsageSnapshot;
       autoCompaction?: ContextCompactionPolicy;
       history?: ContextUsageHistory;
-    };
+    }
+) & { inspection?: ContextInspection | null };
 
 export class ContextUsageRequestError extends Error {
   constructor(
     message: string,
-    readonly retryable: boolean
+    readonly retryable: boolean,
+    readonly scopeChanged = false
   ) {
     super(message);
   }
@@ -134,7 +138,21 @@ function callUsageIdentity(usage: ContextCallUsage | undefined): string {
 /** Validate the server contract; absent telemetry is not zero or "loading". */
 export function parseContextUsage(payload: unknown, conversationId: string): ContextUsageResult {
   if (!isObject(payload)) throw new Error('Invalid context usage response');
-  if (payload.status === 'unavailable') return { status: 'unavailable' };
+  const inspection =
+    payload.inspection === undefined
+      ? undefined
+      : parseContextInspection(
+          payload.inspection,
+          conversationId,
+          (snapshot) => {
+            const parsed = parseContextUsage({ status: 'available', snapshot }, conversationId);
+            if (parsed.status !== 'available') throw new Error('Invalid context inspection sample');
+            return parsed.snapshot;
+          },
+          validContextCallUsage
+        );
+  if (payload.status === 'unavailable')
+    return { status: 'unavailable', ...(inspection === undefined ? {} : { inspection }) };
   const value = payload.snapshot;
   if (
     payload.status !== 'available' ||
@@ -286,6 +304,7 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
   }
   return {
     status: 'available',
+    ...(inspection === undefined ? {} : { inspection }),
     snapshot: (legacyDefault ? { ...value, limitTokens: 0, limitSource: 'unknown' } : value) as ContextUsageSnapshot,
     ...(history ? { history } : {}),
     ...(policy === undefined
@@ -333,17 +352,25 @@ export function estimateContextUsageBreakdown(snapshot: ContextUsageSnapshot): C
   return rows;
 }
 
-export async function fetchContextUsage(conversationId: string, signal: AbortSignal): Promise<ContextUsageResult> {
-  const response = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}/context-usage`, {
-    credentials: 'include',
-    cache: 'no-store',
-    headers: { Accept: 'application/json' },
-    signal,
-  });
+export async function fetchContextUsage(
+  conversationId: string,
+  signal: AbortSignal,
+  inspect = false
+): Promise<ContextUsageResult> {
+  const response = await fetch(
+    `/api/conversations/${encodeURIComponent(conversationId)}/context-usage${inspect ? '?inspect=1' : ''}`,
+    {
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal,
+    }
+  );
   if (!response.ok)
     throw new ContextUsageRequestError(
       `Context usage request failed: ${response.status}`,
-      response.status === 408 || response.status === 429 || response.status >= 500
+      response.status === 408 || response.status === 429 || response.status >= 500,
+      response.status === 409
     );
   return parseContextUsage(await response.json(), conversationId);
 }
