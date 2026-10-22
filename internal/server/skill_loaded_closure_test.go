@@ -76,6 +76,44 @@ func TestSkillLoadAfterExplicitSameNamePublicationUsesCurrentContract(t *testing
 	assertReuse("load-revised-again")
 }
 
+func TestSkillLoadReceiptPreservesRenderedArgumentWhitespace(t *testing.T) {
+	fixture := newKernelSkillDraftFixture(t)
+	disableLoadedClosureFixtureMCP(t, fixture)
+	const name = "argument-whitespace-load-fixture"
+	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", kernelSkillManifestForTest(name, "Before<$ARGUMENTS>After")); err != nil {
+		t.Fatal(err)
+	}
+	publishLoadedClosureFixture(t, fixture, name, false)
+	run, gateway := loadedClosureFixtureGateway(fixture)
+	load := func(callID, arguments string) agentruntime.ToolResult {
+		t.Helper()
+		result := executeLoadedClosureFixture(t, fixture, run, gateway, callID, name, arguments)
+		var executed map[string]any
+		if err := json.Unmarshal(result.ExecutedArguments, &executed); err != nil || executed["args"] != arguments {
+			t.Fatalf("actual gateway did not preserve raw arguments for %s: args=%#v want=%q err=%v", callID, executed["args"], arguments, err)
+		}
+		return result
+	}
+	first := load("load-raw-argument", "A")
+	if text, ok := first.Value.(string); !ok || !strings.Contains(text, "Before<A>After") {
+		t.Fatal("first actual Skill load omitted its rendered raw argument")
+	}
+	second := load("load-padded-argument", " A ")
+	if text, ok := second.Value.(string); !ok || !strings.Contains(text, "Before< A >After") || strings.Contains(text, "Before<A>After") {
+		value := mapValue(second.Value)
+		t.Fatalf("distinct rendered argument reused the earlier contract: type=%T status=%q reused=%v", second.Value, stringValue(value["status"]), value["reused"])
+	}
+	if first.SkillLoadReceipt.InvocationKey == second.SkillLoadReceipt.InvocationKey {
+		t.Fatal("different rendered argument bytes retained the same exact invocation key")
+	}
+	third := load("load-padded-argument-again", " A ")
+	value := mapValue(third.Value)
+	if value["reused"] != true || value["status"] != "already_loaded" ||
+		third.SkillLoadReceipt.InvocationKey != second.SkillLoadReceipt.InvocationKey {
+		t.Fatalf("identical raw padded argument did not reuse its committed load: status=%q reused=%v", stringValue(value["status"]), value["reused"])
+	}
+}
+
 func TestSkillLoadAfterDependencyPublicationUsesCurrentClosure(t *testing.T) {
 	fixture := newKernelSkillDraftFixture(t)
 	const dependency, name = "revision-dependency-fixture", "revision-leaf-fixture"

@@ -45,7 +45,7 @@ type SkillLoadReceipt struct {
 func NewSkillLoadReceipt(name, arguments, filter string, contracts []SkillContractIdentity) (*SkillLoadReceipt, error) {
 	receipt := &SkillLoadReceipt{
 		Version: 1, SkillName: strings.TrimSpace(name),
-		ArgumentsSHA256: skillLoadSHA256([]byte(strings.TrimSpace(arguments))),
+		ArgumentsSHA256: skillLoadSHA256([]byte(arguments)),
 		FilterSHA256:    skillLoadSHA256([]byte(strings.TrimSpace(filter))),
 		Contracts:       append([]SkillContractIdentity(nil), contracts...),
 	}
@@ -108,7 +108,7 @@ func (receipt *SkillLoadReceipt) BoundToCall(callID string) bool {
 
 func (receipt *SkillLoadReceipt) MatchesArguments(name, arguments, filter string) bool {
 	return receipt.Valid() && strings.EqualFold(strings.TrimPrefix(strings.TrimSpace(name), "/"), receipt.SkillName) &&
-		receipt.ArgumentsSHA256 == skillLoadSHA256([]byte(strings.TrimSpace(arguments))) &&
+		receipt.ArgumentsSHA256 == skillLoadSHA256([]byte(arguments)) &&
 		receipt.FilterSHA256 == skillLoadSHA256([]byte(strings.TrimSpace(filter)))
 }
 

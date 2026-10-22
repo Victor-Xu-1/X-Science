@@ -10,9 +10,15 @@ import (
 
 func TestSkillLoadReceiptIdentityIsBoundedAndTamperEvident(t *testing.T) {
 	receipt := skillLoadReceiptFixture(t)
-	trimmed, err := NewSkillLoadReceipt("analysis-fixture", " scope ", " filter ", receipt.Contracts)
+	trimmed, err := NewSkillLoadReceipt("analysis-fixture", "scope", " filter ", receipt.Contracts)
 	if err != nil || trimmed.InvocationKey != receipt.InvocationKey {
-		t.Fatal("trimmed arguments/filter did not preserve exact invocation semantics")
+		t.Fatal("trimmed filter did not preserve its actual invocation semantics")
+	}
+	padded, err := NewSkillLoadReceipt("analysis-fixture", " scope ", "filter", receipt.Contracts)
+	if err != nil || padded.InvocationKey == receipt.InvocationKey ||
+		receipt.MatchesArguments("analysis-fixture", " scope ", "filter") ||
+		!padded.MatchesArguments("analysis-fixture", " scope ", " filter ") {
+		t.Fatal("render-distinct raw arguments acquired the same exact load identity")
 	}
 	for _, mutate := range []func(*SkillLoadReceipt){
 		func(r *SkillLoadReceipt) { r.Version++ },
