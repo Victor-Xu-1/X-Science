@@ -44,6 +44,8 @@ export interface MobileActionSheetEntry {
   /** If provided, tapping triggers this action and closes the sheet */
   onClick?: () => void;
   disabled?: boolean;
+  keepDisabledFocusable?: boolean;
+  busy?: boolean;
 }
 
 export interface MobileActionSheetProps {

@@ -101,7 +101,8 @@ export function useAcpSessionOptionControls(
   setMobileOpen: (open: boolean) => void,
   sessionMemory?: XScienceSessionMemoryControl,
   stagedMemory?: boolean,
-  sessionAutoReview?: XScienceSessionPreferenceControl
+  sessionAutoReview?: XScienceSessionPreferenceControl,
+  mobilePlusTrigger?: RefObject<HTMLButtonElement | null>
 ) {
   const ownerId = authority.current.ownerId;
   const extra = conversation?.type === 'acp' && conversation.id === conversationId ? conversation.extra : undefined;
@@ -145,7 +146,9 @@ export function useAcpSessionOptionControls(
     },
     [authority, conversationId, memoryControl, mounted, setOptions, sessionMemory, sessionAutoReview]
   );
-  const openMobileControls = () => {
+  const openMobileControls = (trigger?: HTMLButtonElement) => {
+    if (mobilePlusTrigger)
+      mobilePlusTrigger.current = trigger instanceof HTMLButtonElement && trigger.isConnected ? trigger : null;
     memoryControl.refresh();
     sessionAutoReview?.refresh();
     setMobileOpen(true);

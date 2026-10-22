@@ -15,35 +15,89 @@ import {
   type OnboardingPendingUpload,
 } from '@/renderer/services/onboardingService';
 
+type ComposerSelectionScope = { key: string; active: boolean };
+type ProjectFilesSelection = { scope: ComposerSelectionScope; account: string; key: string };
+
 export function useAcpComposerContextSelection(
   projectId: string | undefined,
   contextItems: ComposerContextItem[],
   setContextItems: Dispatch<SetStateAction<ComposerContextItem[]>>,
   ownerScope = ''
 ) {
-  const [projectFilesOpen, setProjectFilesOpen] = useState(false);
+  const [projectFilesSelection, setProjectFilesSelection] = useState<ProjectFilesSelection | null>(null);
+  const projectFilesSelectionRef = useRef<ProjectFilesSelection | null>(null);
+  const projectFilesSequenceRef = useRef(0);
   const uploadedAttachmentsRef = useRef(new WeakMap<File, OnboardingArtifactCacheEntry>());
   const pendingUploadsRef = useRef(new WeakMap<File, OnboardingPendingUpload>());
-  const currentScope = `${ownerScope}:${projectId ?? ''}:${getRendererAccountScopeToken()}`;
-  const scopeRef = useRef({ key: currentScope });
+  const account = getRendererAccountScopeToken();
+  const currentScope = `${ownerScope}:${projectId ?? ''}:${account}`;
+  const scopeRef = useRef<ComposerSelectionScope>({ key: currentScope, active: true });
   if (scopeRef.current.key !== currentScope) {
-    scopeRef.current = { key: currentScope };
+    scopeRef.current = { key: currentScope, active: true };
+    projectFilesSelectionRef.current = null;
     uploadedAttachmentsRef.current = new WeakMap();
     pendingUploadsRef.current = new WeakMap();
   }
+  const scope = scopeRef.current;
   useEffect(() => {
-    const token = { key: currentScope };
-    scopeRef.current = token;
+    // The render already retired a different owner. Effect replay only changes
+    // this token's lifetime, never installs another owner after that render.
+    scope.active = true;
     return () => {
-      if (scopeRef.current === token) scopeRef.current = { key: '' };
+      scope.active = false;
     };
-  }, [currentScope]);
+  }, [scope]);
   const canSelectProjectFiles = Boolean(projectId?.trim());
-  const openProjectFiles = useCallback(() => setProjectFilesOpen(true), []);
+  const projectFilesOpen = Boolean(
+    projectFilesSelection &&
+    projectFilesSelectionRef.current === projectFilesSelection &&
+    projectFilesSelection.scope === scope &&
+    scope.active &&
+    projectFilesSelection.account === account
+  );
+  const projectFilesSelectorKey = projectFilesOpen ? projectFilesSelection!.key : currentScope;
+  const openProjectFiles = useCallback(() => {
+    if (scopeRef.current !== scope || !scope.active || getRendererAccountScopeToken() !== account) return;
+    const selection = { scope, account, key: `${currentScope}:${++projectFilesSequenceRef.current}` };
+    projectFilesSelectionRef.current = selection;
+    setProjectFilesSelection(selection);
+  }, [scope, account, currentScope]);
+  const setProjectFilesOpen = useCallback(
+    (next: SetStateAction<boolean>) => {
+      if (scopeRef.current !== scope || !scope.active || getRendererAccountScopeToken() !== account) return;
+      const visible = projectFilesSelectionRef.current?.scope === scope;
+      if (typeof next === 'function' ? next(visible) : next) {
+        openProjectFiles();
+        return;
+      }
+      projectFilesSelectionRef.current = null;
+      setProjectFilesSelection(null);
+    },
+    [scope, account, openProjectFiles]
+  );
   const handleProjectArtifactsSelected = useCallback(
     (selectedArtifacts: XScienceProjectArtifact[]) => {
-      setContextItems((current) =>
-        selectedArtifacts.reduce<ComposerContextItem[]>((items, artifact) => {
+      const selection = projectFilesSelection;
+      if (
+        !selection ||
+        projectFilesSelectionRef.current !== selection ||
+        scopeRef.current !== selection.scope ||
+        !selection.scope.active ||
+        getRendererAccountScopeToken() !== selection.account
+      )
+        return;
+      projectFilesSelectionRef.current = null;
+      setProjectFilesSelection(null);
+      setContextItems((current) => {
+        // A deferred state updater must not cross the owner/account boundary
+        // after an otherwise valid confirmation has already been accepted.
+        if (
+          scopeRef.current !== selection.scope ||
+          !selection.scope.active ||
+          getRendererAccountScopeToken() !== selection.account
+        )
+          return current;
+        return selectedArtifacts.reduce<ComposerContextItem[]>((items, artifact) => {
           const context = createComposerArtifactContext({
             artifactId: artifact.artifactId,
             versionId: artifact.versionId,
@@ -53,11 +107,10 @@ export function useAcpComposerContextSelection(
             sizeBytes: artifact.sizeBytes,
           });
           return context ? addComposerContextItem(items, context) : items;
-        }, current)
-      );
-      setProjectFilesOpen(false);
+        }, current);
+      });
     },
-    [projectId, setContextItems]
+    [projectId, setContextItems, projectFilesSelection]
   );
   const handleArtifactReferenceSelected = useCallback(
     (reference: ArtifactComposerReference) => {
@@ -77,7 +130,7 @@ export function useAcpComposerContextSelection(
       const scope = scopeRef.current;
       const account = getRendererAccountScopeToken();
       const ensureCurrent = () => {
-        if (scopeRef.current !== scope || getRendererAccountScopeToken() !== account)
+        if (scopeRef.current !== scope || !scope.active || getRendererAccountScopeToken() !== account)
           throw new Error('Attachment composer changed');
       };
       const targetProjectId = projectId?.trim();
@@ -96,10 +149,10 @@ export function useAcpComposerContextSelection(
           artifact = await uploadXScienceProjectAttachment(targetProjectId, file, {
             pending: pending?.projectId === targetProjectId ? pending : undefined,
             onInitialized: (next) => {
-              if (scopeRef.current === scope) pendingUploadsRef.current.set(file, next);
+              if (scopeRef.current === scope && scope.active) pendingUploadsRef.current.set(file, next);
             },
             onAbandoned: () => {
-              if (scopeRef.current === scope) pendingUploadsRef.current.delete(file);
+              if (scopeRef.current === scope && scope.active) pendingUploadsRef.current.delete(file);
             },
           });
           ensureCurrent();
@@ -152,6 +205,7 @@ export function useAcpComposerContextSelection(
     handleSkillSelected,
     openProjectFiles,
     projectFilesOpen,
+    projectFilesSelectorKey,
     selectedMcpServerIds,
     selectedSkillNames,
     setProjectFilesOpen,

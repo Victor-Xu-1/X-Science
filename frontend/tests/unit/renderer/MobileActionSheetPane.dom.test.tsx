@@ -1,8 +1,11 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MobileActionSheet from '@/renderer/components/chat/MobileActionSheet';
 import type { MobileActionSheetEntry } from '@/renderer/components/chat/MobileActionSheet';
+import sheetStyles from '@/renderer/components/chat/MobileActionSheet/MobileActionSheet.module.css';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 
@@ -53,6 +56,62 @@ describe('mobile sheet pane ownership', () => {
     vi.unstubAllGlobals();
   });
 
+  it('M454 bounds the main menu scroll chain without forcing short-menu height', () => {
+    const sheetCss = readFileSync(
+      resolve(
+        process.cwd(),
+        'packages/desktop/src/renderer/components/chat/MobileActionSheet/MobileActionSheet.module.css'
+      ),
+      'utf8'
+    );
+    const { pane } = openSheet();
+    const list = screen.getByRole('menu');
+    const panes = pane.parentElement;
+    const sheet = screen.getByRole('dialog');
+    expect(list.parentElement).toBe(pane);
+    expect(list).toHaveClass(sheetStyles.list);
+    expect(pane).toHaveClass(sheetStyles.pane, sheetStyles.paneMain);
+    expect(panes).toHaveClass(sheetStyles.panes);
+    expect(panes?.parentElement).toBe(sheet);
+    expect(sheet).toHaveClass(sheetStyles.sheet);
+
+    // JSDOM cannot establish overflow geometry. This checks the source CSS
+    // chain that gives the real list a shrinkable bound, not scrollHeight or
+    // proof of browser layout at a fabricated viewport/menu-row count.
+    const rule = (selector: string) => {
+      const match = sheetCss.match(new RegExp(`\\.${selector}\\s*\\{([^}]*)\\}`));
+      expect(match, `missing .${selector} rule`).not.toBeNull();
+      return Object.fromEntries(
+        match![1]
+          .split(';')
+          .map((declaration) => declaration.trim().split(/\s*:\s*/, 2))
+          .filter((declaration) => declaration.length === 2)
+      );
+    };
+    const outer = rule('sheet');
+    const wrapper = rule('panes');
+    const main = rule('paneMain');
+    expect(outer.display).toBe('flex');
+    expect(outer['flex-direction']).toBe('column');
+    expect(outer['max-height']).toBeTruthy();
+    expect(wrapper.display).toBe('flex');
+    expect(wrapper['flex-direction']).toBe('column');
+    expect(wrapper.flex).toBe('0 1 auto');
+    expect(wrapper['min-height']).toBe('0');
+    expect(main.flex).toBe('1 1 auto');
+    expect(main['min-height']).toBe('0');
+    expect(rule('pane').display).toBe('flex');
+    expect(rule('pane')['flex-direction']).toBe('column');
+    expect(rule('list').flex).toBe('1');
+    expect(rule('list')['min-height']).toBe('0');
+    expect(rule('list')['overflow-y']).toBe('auto');
+    expect(rule('header')['flex-shrink']).toBe('0');
+    expect(rule('handle')['flex-shrink']).toBe('0');
+    expect(rule('paneSub').position).toBe('absolute');
+    expect(rule('paneSub').inset).toBe('0');
+    for (const container of [outer, wrapper, main]) expect(container.height).toBeUndefined();
+  });
+
   it('makes the outgoing main pane inert while the actual submenu and footer are active', () => {
     const { main, pane } = openSheet();
     fireEvent.click(main);
@@ -62,6 +121,63 @@ describe('mobile sheet pane ownership', () => {
     const footer = screen.getByTestId('policy-footer');
     expect(footer.closest('[aria-hidden]')).not.toHaveAttribute('inert');
     expect(screen.getByRole('menuitemradio', { name: 'Option' })).toBeEnabled();
+  });
+
+  it('M454 keeps a disabled busy Save action focusable without invoking it or closing More', () => {
+    const onClick = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <MobileActionSheet
+        open
+        onClose={onClose}
+        entries={[
+          {
+            key: 'save-skill',
+            label: 'Save Skill',
+            disabled: true,
+            keepDisabledFocusable: true,
+            busy: true,
+            description: 'Wait for the current task',
+            onClick,
+          },
+        ]}
+      />
+    );
+    advance();
+    const save = screen.getByRole('menuitem', { name: /Save Skill/ });
+    expect(save).not.toBeDisabled();
+    expect(save).toHaveAttribute('aria-disabled', 'true');
+    expect(save).toHaveAttribute('aria-busy', 'true');
+    save.focus();
+    expect(save).toHaveFocus();
+    fireEvent.click(save);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByText('Wait for the current task')).toBeVisible();
+  });
+
+  it('M454 deactivates inline footer immediately on Back and close, before retained pane unmount', () => {
+    const footer = vi.fn((active: boolean) => <span data-testid='inline-active'>{String(active)}</span>);
+    const items: MobileActionSheetEntry[] = [
+      {
+        key: 'your-files',
+        label: 'Your files',
+        submenu: { title: 'Your files', options: [], onSelect: vi.fn(), footer },
+      },
+    ];
+    const view = render(<MobileActionSheet open onClose={vi.fn()} entries={items} />);
+    advance();
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-your-files'));
+    advance();
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('true');
+    fireEvent.click(screen.getByRole('button', { name: 'common.back' }));
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('false');
+    advance(300);
+    fireEvent.click(screen.getByTestId('mobile-action-sheet-your-files'));
+    advance();
+    view.rerender(<MobileActionSheet open={false} onClose={vi.fn()} entries={items} />);
+    expect(screen.getByTestId('inline-active')).toHaveTextContent('false');
+    expect(screen.getByTestId('inline-active').closest('[aria-hidden]')).toHaveAttribute('inert');
   });
 
   it('keeps the retained outgoing submenu and its footer inert after going back', () => {

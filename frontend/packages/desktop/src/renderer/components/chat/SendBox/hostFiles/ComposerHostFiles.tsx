@@ -13,9 +13,11 @@ import styles from './hostFiles.module.css';
 export default function ComposerHostFiles({
   onReference,
   menuOpen,
+  presentation = 'submenu',
 }: {
   onReference: (file: { path: string; name: string }) => void;
   menuOpen: boolean;
+  presentation?: 'submenu' | 'inline';
 }) {
   const { t } = useTranslation();
   const id = useId();
@@ -26,7 +28,7 @@ export default function ComposerHostFiles({
   const [open, setOpen] = useState(false);
   const [grantOpen, setGrantOpen] = useState(false);
   const [added, setAdded] = useState<ReadonlySet<string>>(() => new Set());
-  const visible = menuOpen && open;
+  const visible = menuOpen && (presentation === 'inline' || open);
   const folders = useHostFiles(visible);
   const changeOpen = (next: boolean) => {
     setOpen(next && menuOpen);
@@ -36,8 +38,9 @@ export default function ComposerHostFiles({
     if (!menuOpen) {
       setOpen(false);
       setAdded(new Set());
+      if (presentation === 'inline') setGrantOpen(false);
     }
-  }, [menuOpen]);
+  }, [menuOpen, presentation]);
   useEffect(() => {
     if (visible && keyboardOpen.current) {
       keyboardOpen.current = false;
@@ -56,11 +59,15 @@ export default function ComposerHostFiles({
       id={id}
       role='menu'
       aria-label={t('conversation.attachMenu.yourFiles')}
-      className={`app-overlay-menu composer-control-submenu conversation-control-submenu ${styles.panel}`}
-      style={{ width: 'min(300px, calc(100vw - 24px))', maxHeight: 'min(340px, calc(100vh - 24px))' }}
+      className={`${presentation === 'submenu' ? 'app-overlay-menu composer-control-submenu ' : ''}conversation-control-submenu ${styles.panel}`}
+      style={
+        presentation === 'inline'
+          ? { width: '100%' }
+          : { width: 'min(300px, calc(100vw - 24px))', maxHeight: 'min(340px, calc(100vh - 24px))' }
+      }
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' || event.key === 'ArrowLeft') {
+        if (presentation === 'submenu' && (event.key === 'Escape' || event.key === 'ArrowLeft')) {
           event.preventDefault();
           event.stopPropagation();
           closeToTrigger();
@@ -82,7 +89,12 @@ export default function ComposerHostFiles({
       }}
     >
       <div className={styles.header}>
-        <button type='button' className={styles.grant} disabled={folders.busy} onClick={() => setGrantOpen(true)}>
+        <button
+          type='button'
+          className={styles.grant}
+          disabled={folders.busy || !visible}
+          onClick={() => setGrantOpen(true)}
+        >
           <FolderPlus size={14} strokeWidth={1.8} aria-hidden='true' />
           {t('conversation.hostFiles.grantShort')}
         </button>
@@ -142,42 +154,46 @@ export default function ComposerHostFiles({
   );
   return (
     <>
-      <Trigger
-        popup={() => content}
-        trigger='hover'
-        position='rt'
-        popupVisible={visible}
-        onVisibleChange={changeOpen}
-        mouseEnterDelay={100}
-        mouseLeaveDelay={150}
-        unmountOnExit={false}
-      >
-        <button
-          ref={trigger}
-          type='button'
-          role='menuitem'
-          aria-haspopup='menu'
-          aria-expanded={visible}
-          aria-controls={id}
-          className={`composer-control-menu__row ${styles.trigger}`}
-          onClick={() => changeOpen(true)}
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-              event.preventDefault();
-              event.stopPropagation();
-              keyboardOpen.current = true;
-              changeOpen(true);
-            }
-          }}
+      {presentation === 'inline' ? (
+        content
+      ) : (
+        <Trigger
+          popup={() => content}
+          trigger='hover'
+          position='rt'
+          popupVisible={visible}
+          onVisibleChange={changeOpen}
+          mouseEnterDelay={100}
+          mouseLeaveDelay={150}
+          unmountOnExit={false}
         >
-          <span>
-            <Folder size={16} strokeWidth={2} aria-hidden='true' />
-          </span>
-          <span className={styles.name}>{t('conversation.attachMenu.yourFiles')}</span>
-          <ChevronRight size={14} strokeWidth={2} aria-hidden='true' />
-        </button>
-      </Trigger>
-      {grantOpen && (
+          <button
+            ref={trigger}
+            type='button'
+            role='menuitem'
+            aria-haspopup='menu'
+            aria-expanded={visible}
+            aria-controls={id}
+            className={`composer-control-menu__row ${styles.trigger}`}
+            onClick={() => changeOpen(true)}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                event.preventDefault();
+                event.stopPropagation();
+                keyboardOpen.current = true;
+                changeOpen(true);
+              }
+            }}
+          >
+            <span>
+              <Folder size={16} strokeWidth={2} aria-hidden='true' />
+            </span>
+            <span className={styles.name}>{t('conversation.attachMenu.yourFiles')}</span>
+            <ChevronRight size={14} strokeWidth={2} aria-hidden='true' />
+          </button>
+        </Trigger>
+      )}
+      {grantOpen && (presentation !== 'inline' || visible) && (
         <Modal
           visible
           title={t('conversation.hostFiles.grant')}

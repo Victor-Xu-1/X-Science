@@ -1,4 +1,5 @@
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import ComposerHostFiles from '@/renderer/components/chat/SendBox/hostFiles/ComposerHostFiles';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
@@ -17,6 +18,88 @@ function fixtureResponse(body: unknown, status = 200): Response {
 }
 
 describe('composer granted folder snapshots', () => {
+  it('M454 inline Grant dialog stays closed after Back and reopening Your files', async () => {
+    const onReference = vi.fn();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = new URL(String(input), 'http://localhost');
+      if (url.pathname !== '/api/preferences/host-grants') throw new Error('Unexpected inline grant fixture request');
+      return fixtureResponse({ grants: [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    function InlineFiles() {
+      const [active, setActive] = React.useState(true);
+      return (
+        <>
+          <button onClick={() => setActive(true)}>Open files</button>
+          <button onClick={() => setActive(false)}>Back</button>
+          <ComposerHostFiles menuOpen={active} presentation='inline' onReference={onReference} />
+        </>
+      );
+    }
+    await renderWithI18n(<InlineFiles />, 'en-US');
+    await screen.findByText('No granted folders.');
+    const back = screen.getByRole('button', { name: 'Back' });
+    const reopen = screen.getByRole('button', { name: 'Open files' });
+    fireEvent.click(screen.getByRole('button', { name: 'Grant folder…' }));
+    expect(await screen.findByRole('dialog', { name: 'Grant folder access' })).toBeInTheDocument();
+    fireEvent.click(back);
+    expect(screen.queryByRole('dialog', { name: 'Grant folder access' })).not.toBeInTheDocument();
+    fireEvent.click(reopen);
+    expect(screen.queryByRole('dialog', { name: 'Grant folder access' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Grant folder…' })).toBeEnabled();
+    expect(onReference).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+  });
+
+  it('M454 inline Your files reuses the granted tree, stays open, and clears per-open checks on Back', async () => {
+    const onReference = vi.fn();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = new URL(String(input), 'http://localhost');
+      if (url.pathname === '/api/preferences/host-grants')
+        return fixtureResponse({
+          grants: [
+            {
+              id: '/fixture/mobile',
+              hostPath: '/fixture/mobile',
+              mountName: 'Mobile',
+              guestPath: '/fixture/mobile',
+              mode: 'ro',
+            },
+          ],
+        });
+      if (url.pathname === '/api/preferences/host-browse')
+        return fixtureResponse([{ name: 'sample.csv', isDirectory: false }]);
+      throw new Error(`unexpected inline fixture route: ${url.pathname}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    function InlineFiles() {
+      const [active, setActive] = React.useState(false);
+      return (
+        <>
+          <button onClick={() => setActive(true)}>Open files</button>
+          <button onClick={() => setActive(false)}>Back</button>
+          <ComposerHostFiles menuOpen={active} presentation='inline' onReference={onReference} />
+        </>
+      );
+    }
+    await renderWithI18n(<InlineFiles />, 'en-US');
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Open files' }));
+    expect(screen.queryByRole('menuitem', { name: 'Your files' })).not.toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Expand Mobile' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reference sample.csv' }));
+    expect(onReference).toHaveBeenCalledOnce();
+    expect(new URL(onReference.mock.calls[0][0].path).protocol).toBe('x-science-host-grant:');
+    expect(screen.getByRole('menu', { name: 'Your files' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Referenced sample.csv' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('button', { name: 'Grant folder…' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Open files' }));
+    expect(screen.getByRole('button', { name: 'Reference sample.csv' })).toBeEnabled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.every(([, init]) => !init?.method || init.method === 'GET')).toBe(true);
+  });
+
   it('selects an owned granted file without granting access or changing the workspace', async () => {
     const onLocalFilesAdded = vi.fn();
     const onSelectProjectFiles = vi.fn();

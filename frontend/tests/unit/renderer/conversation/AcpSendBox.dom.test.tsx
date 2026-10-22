@@ -14,12 +14,13 @@ import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
 import type { XSciencePlanReference } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
+import * as composerContextSelection from '@/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { pdfBinding, pdfContext } from './pdfReadingFixtures';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
-import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { getRendererAccountOwnerId, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { clearXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
 import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
@@ -108,6 +109,7 @@ const loadComputeProvidersMock = vi.fn();
 const loadSessionComputeProvidersMock = vi.fn();
 const setSessionComputeProviderMock = vi.fn();
 const loadComposerCapabilitiesMock = vi.fn();
+const loadProjectArtifactsMock = vi.fn();
 const loadSkillLibraryMock = vi.fn();
 const getSelectedBranchMock = vi.fn();
 const getBranchRevisionMock = vi.fn();
@@ -119,6 +121,7 @@ const sessionOptionsProps = { current: null as Record<string, unknown> | null };
 const messageListMock = { current: [] as TMessage[] };
 const runtimeOperationsProps = {
   current: null as {
+    onChooseModel?: () => void;
     runtimeState?: string;
     runtimeAuthorityUnavailable?: boolean;
     onRetryRuntimeAuthority?: () => void;
@@ -172,6 +175,7 @@ const useAcpConfigOptionsMock = vi.fn();
 const useAcpModelInfoMock = vi.fn();
 const askSideQuestionMock = vi.fn();
 const isMobileMock = { current: false };
+const mobilePlusProject = { current: null as { projectId: string } | null };
 const mobileActionSheetEntries = {
   current: [] as Array<{
     key: string;
@@ -234,7 +238,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     prefix?: React.ReactNode;
     placeholder?: string;
     bottomHint?: React.ReactNode;
-    onMobilePlusClick?: () => void;
+    onMobilePlusClick?: (trigger?: HTMLButtonElement) => void;
     tools?: React.ReactNode;
     disabled?: boolean;
     allowSendWhileLoading?: boolean;
@@ -246,7 +250,8 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
       data-aside-owner={btwController ? 'external' : 'local'}
     >
       {tools}
-      {rightTools}
+      {/* Match the real SendBox compact outlet: hidden tools must not mount owners. */}
+      {isMobileMock.current && onMobilePlusClick ? null : rightTools}
       {prefix}
       {specialistAsideFixture.active ? sendButtonSuffix : null}
       <output data-testid='sendbox-draft'>{value}</output>
@@ -255,7 +260,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
       <button type='button' onClick={() => onChange?.('hello')}>
         change
       </button>
-      <button type='button' onClick={onMobilePlusClick}>
+      <button type='button' onClick={(event) => onMobilePlusClick?.(event.currentTarget)}>
         mobile more
       </button>
       <button
@@ -330,6 +335,7 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceBranchMenu', () => ({
 }));
 vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', () => ({
   default: (props: {
+    onChooseModel?: () => void;
     runtimeState?: string;
     runtimeAuthorityUnavailable?: boolean;
     onRetryRuntimeAuthority?: () => void;
@@ -464,6 +470,8 @@ vi.mock('@/renderer/components/media/HorizontalFileList', () => ({
 }));
 vi.mock('@/renderer/services/xScienceGateway', () => ({
   loadXScienceComposerCapabilities: (...args: unknown[]) => loadComposerCapabilitiesMock(...args),
+  loadXScienceProjectArtifacts: (...args: unknown[]) => loadProjectArtifactsMock(...args),
+  loadXScienceProjects: async () => [],
 }));
 vi.mock('@/renderer/hooks/xScience/runtime/useAcpModelInfo', () => ({
   useAcpModelInfo: (...args: unknown[]) => useAcpModelInfoMock(...args),
@@ -540,7 +548,7 @@ vi.mock('@/renderer/hooks/chat/useAutoTitle', () => ({
   }),
 }));
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => null,
+  useConversationContextSafe: () => mobilePlusProject.current,
 }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: isMobileMock.current }),
@@ -748,14 +756,34 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
       visible,
       title,
       children,
+      onOk,
+      onCancel,
+      okText,
+      cancelText,
+      okButtonProps,
     }: {
       visible?: boolean;
       title?: React.ReactNode;
       children?: React.ReactNode;
+      onOk?: () => void;
+      onCancel?: () => void;
+      okText?: React.ReactNode;
+      cancelText?: React.ReactNode;
+      okButtonProps?: { disabled?: boolean };
     }) =>
       visible ? (
         <div role='dialog' aria-label={typeof title === 'string' ? title : undefined}>
           {children}
+          {onCancel && (
+            <button type='button' onClick={onCancel}>
+              {cancelText ?? 'Cancel'}
+            </button>
+          )}
+          {onOk && (
+            <button type='button' disabled={okButtonProps?.disabled} onClick={onOk}>
+              {okText ?? 'OK'}
+            </button>
+          )}
         </div>
       ) : null,
     Button: ({
@@ -1169,6 +1197,7 @@ describe('AcpSendBox', () => {
     memoryRetryDraft.replace = null;
     sendBoxProps.current = null;
     isMobileMock.current = false;
+    mobilePlusProject.current = null;
     mobileActionSheetEntries.current = [];
     mobileActionSheetOpen.current = false;
     realMobileActionSheet.current = false;
@@ -1210,6 +1239,7 @@ describe('AcpSendBox', () => {
     loadSessionComputeProvidersMock.mockImplementation(() => new Promise(() => {}));
     setSessionComputeProviderMock.mockResolvedValue(undefined);
     loadComposerCapabilitiesMock.mockResolvedValue({ skills: [], mcpStatuses: [] });
+    loadProjectArtifactsMock.mockResolvedValue([]);
     loadSkillLibraryMock.mockResolvedValue([]);
     getSelectedBranchMock.mockReturnValue(null);
     getBranchRevisionMock.mockReturnValue(0);
@@ -1821,9 +1851,11 @@ describe('AcpSendBox', () => {
 
   it('C11 mobile uses the same context card and explicit request controller', async () => {
     isMobileMock.current = true;
+    realMobileActionSheet.current = true;
     const harness = await renderManualCompaction();
     try {
-      fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
+      fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+      fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
       fireEvent.click(await screen.findByRole('button', { name: 'Compact context' }));
       await screen.findByRole('button', { name: 'Compacting context' });
       expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(1);
@@ -3305,7 +3337,13 @@ describe('AcpSendBox', () => {
     );
     expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')).toMatchObject({ meta: '0/3' });
     expect(keys).not.toContain('request-review');
-    expect(keys).not.toContain('save-skill');
+    expect(keys).toContain('save-skill');
+    expect(mobileActionSheetEntries.current.find((entry) => entry.key === 'save-skill')).toMatchObject({
+      disabled: true,
+      busy: false,
+      keepDisabledFocusable: true,
+      description: '任务空闲时可用',
+    });
     expect(loadFramePlanMock).not.toHaveBeenCalled();
     act(() => mobileActionSheetEntries.current.find((entry) => entry.key === 'view-plan')?.onClick?.());
     expect(emitterEmitMock).toHaveBeenCalledWith('xscience.runtime.plan.open', 'conv-1');
@@ -3391,6 +3429,359 @@ describe('AcpSendBox', () => {
     expect(setConfigOption).toHaveBeenCalledOnce();
     expect(messageErrorMock).toHaveBeenCalled();
   });
+
+  it('M454 exposes the existing Plus action owners in mobile More in stable order without dispatching', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    mobilePlusProject.current = { projectId: 'project-mobile-plus' };
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    sendBoxDraftSeed.current = 'Keep the ordinary draft.';
+    await render(
+      <AcpSendBox conversation_id='conv-mobile-plus' backend='xscience' messageState={makeMessageState()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    const expected = ['project-files', 'your-files', 'manual-review', 'save-skill', 'context-window'];
+    await waitFor(() =>
+      expect(mobileActionSheetEntries.current.map((entry) => entry.key)).toEqual(expect.arrayContaining(expected))
+    );
+    const actual = mobileActionSheetEntries.current.map((entry) => entry.key).filter((key) => expected.includes(key));
+    expect(actual).toEqual(expected);
+    for (const key of expected) expect(screen.getByTestId(`mobile-action-sheet-${key}`)).toBeInTheDocument();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    expect(requestFrameAuditMock).not.toHaveBeenCalled();
+    expect(saveConversationAsSkillMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep the ordinary draft.');
+  });
+
+  it('M454 opens the same Context owner from mobile More with an idle nonempty draft', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    sendBoxDraftSeed.current = 'Keep this nonempty draft.';
+    const harness = await renderManualCompaction();
+    try {
+      expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+      fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
+      expect(await screen.findByTestId('context-usage-percent')).toHaveTextContent('30.0%');
+      expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
+      expect(mobileActionSheetOpen.current).toBe(false);
+      expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep this nonempty draft.');
+      expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('context-usage-close'));
+      expect(screen.getByRole('button', { name: 'mobile more' })).toHaveFocus();
+    } finally {
+      harness.dispose();
+    }
+  });
+
+  it.each([false, true])(
+    'M462 does not offer Context from model-only mobile openers (prior More: %s)',
+    async (priorMore) => {
+      isMobileMock.current = true;
+      realMobileActionSheet.current = true;
+      sendBoxDraftSeed.current = 'Keep this recovery draft.';
+      const harness = await renderManualCompaction();
+      try {
+        const more = screen.getByRole('button', { name: 'mobile more' });
+        expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
+        if (priorMore) {
+          fireEvent.click(more);
+          fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
+          await screen.findByTestId('context-usage-percent');
+          fireEvent.click(screen.getByTestId('context-usage-close'));
+          expect(more).toHaveFocus();
+        }
+        // Both provider notice and TaskCenter use this same model-only callback.
+        // Neither supplies the native More opener, and neither may reuse one.
+        expect(runtimeOperationsProps.current?.onChooseModel).toBeTypeOf('function');
+        await act(async () => runtimeOperationsProps.current?.onChooseModel?.());
+        await screen.findByTestId('mobile-action-sheet-save-skill');
+        expect(screen.queryByTestId('mobile-action-sheet-context-window')).not.toBeInTheDocument();
+        expect(mobileActionSheetOpen.current).toBe(true);
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(mobileActionSheetOpen.current).toBe(false);
+        fireEvent.click(more);
+        fireEvent.click(await screen.findByTestId('mobile-action-sheet-context-window'));
+        await screen.findByTestId('context-usage-percent');
+        fireEvent.click(screen.getByTestId('context-usage-close'));
+        expect(more).toHaveFocus();
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep this recovery draft.');
+        expect(harness.transport.mock.calls.filter(([method]) => method === 'POST')).toHaveLength(0);
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      } finally {
+        harness.dispose();
+      }
+    }
+  );
+
+  it('M454 invokes the existing hidden Save Skill command once from mobile More without a Save dialog', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    sendBoxDraftSeed.current = 'Preserve the ordinary draft during Skill saving.';
+    sendMessageInvokeMock.mockImplementationOnce(acceptSkillTaskSend);
+    await render(
+      <AcpSendBox conversation_id='conv-mobile-save' backend='xscience' messageState={makeMessageState()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    const save = await screen.findByTestId('mobile-action-sheet-save-skill');
+    await act(async () => {
+      fireEvent.click(save);
+      fireEvent.click(save);
+    });
+    await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
+    expect(sendMessageInvokeMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversation_id: 'conv-mobile-save',
+        turn_intent: 'save-as-skill',
+        files: [],
+      })
+    );
+    expect(mobileActionSheetOpen.current).toBe(false);
+    expect(saveConversationAsSkillMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: '保存为 Skill' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Preserve the ordinary draft during Skill saving.');
+  });
+
+  it('M454 invokes the existing manual-review request rather than changing AutoReview from mobile More', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    await render(
+      <AcpSendBox conversation_id='conv-mobile-review' backend='xscience' messageState={makeMessageState()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-manual-review'));
+    await waitFor(() => expect(requestFrameAuditMock).toHaveBeenCalledOnce());
+    expect(requestFrameAuditMock).toHaveBeenCalledWith('conv-mobile-review');
+    expect(notifyRuntimeInvalidationMock).toHaveBeenCalledWith('conv-mobile-review');
+    expect(updateSessionConfigMock).not.toHaveBeenCalled();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+    expect(mobileActionSheetOpen.current).toBe(false);
+  });
+
+  it('M454 Project files selects an exact version through the existing modal and Cancel adds nothing', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    mobilePlusProject.current = { projectId: 'project-mobile-plus' };
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    loadProjectArtifactsMock.mockResolvedValue([
+      {
+        artifactId: 'artifact-mobile',
+        versionId: 'version-mobile',
+        projectId: 'project-mobile-plus',
+        filename: 'selected.csv',
+        sizeBytes: 42,
+      },
+    ]);
+    sendMessageInvokeMock.mockResolvedValueOnce({
+      msg_id: 'selected-artifact-input',
+      turn_id: 'selected-artifact-turn',
+      runtime: { state: 'running', is_processing: true },
+    });
+    const view = await render(
+      <AcpSendBox conversation_id='conv-mobile-project' backend='xscience' messageState={makeMessageState()} />
+    );
+    await act(async () => {
+      await view.i18n.changeLanguage('en-US');
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-project-files'));
+    fireEvent.click(await screen.findByTestId('guid-project-file-option'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByTestId('composer-context-chips')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-project-files'));
+    fireEvent.click(await screen.findByTestId('guid-project-file-option'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+    expect(screen.getByTestId('composer-context-chips')).toHaveTextContent('selected.csv');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'send' }));
+    });
+    await waitFor(() =>
+      expect(sendMessageInvokeMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversation_id: 'conv-mobile-project',
+          artifact_refs: [
+            expect.objectContaining({
+              artifact_id: 'artifact-mobile',
+              version_id: 'version-mobile',
+              relation: 'attached',
+            }),
+          ],
+        })
+      )
+    );
+    expect(loadProjectArtifactsMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('M454 Project files closes the old owner and ignores its late same-project response', async () => {
+    isMobileMock.current = true;
+    realMobileActionSheet.current = true;
+    mobilePlusProject.current = { projectId: 'project-mobile-plus' };
+    const pending =
+      createDeferred<
+        Array<{ artifactId: string; versionId: string; projectId: string; filename: string; sizeBytes: number }>
+      >();
+    loadProjectArtifactsMock.mockReturnValueOnce(pending.promise);
+    const view = await render(
+      <AcpSendBox
+        conversation_id='conv-project-old'
+        ownerId='owner-old'
+        backend='xscience'
+        messageState={makeMessageState()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+    fireEvent.click(await screen.findByTestId('mobile-action-sheet-project-files'));
+    await waitFor(() => expect(loadProjectArtifactsMock).toHaveBeenCalledOnce());
+    await act(async () => {
+      view.rerender(
+        <AcpSendBox
+          conversation_id='conv-project-new'
+          ownerId='owner-new'
+          backend='xscience'
+          messageState={makeMessageState()}
+        />
+      );
+      pending.resolve([
+        {
+          artifactId: 'artifact-old-owner',
+          versionId: 'version-old-owner',
+          projectId: 'project-mobile-plus',
+          filename: 'old-owner.csv',
+          sizeBytes: 1,
+        },
+      ]);
+      await pending.promise;
+    });
+    expect(screen.queryByTestId('guid-project-files-modal')).not.toBeInTheDocument();
+    expect(screen.queryByText('old-owner.csv')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('composer-context-chips')).not.toBeInTheDocument();
+    expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['owner', false],
+    ['owner', true],
+    ['account', false],
+    ['account', true],
+  ] as const)(
+    'M462 Project files fences %s in the committed layout before passive cleanup, pending=%s',
+    async (transition, initiallyPending) => {
+      isMobileMock.current = true;
+      realMobileActionSheet.current = true;
+      mobilePlusProject.current = { projectId: 'project-mobile-plus' };
+      const previousAccount = getRendererAccountOwnerId();
+      setRendererAccountOwner('selector-account-old');
+      const oldArtifact = {
+        artifactId: 'artifact-committed-old',
+        versionId: 'version-committed-old',
+        projectId: 'project-mobile-plus',
+        filename: 'committed-old.csv',
+        sizeBytes: 1,
+      };
+      const newArtifact = {
+        ...oldArtifact,
+        artifactId: 'artifact-current',
+        versionId: 'version-current',
+        filename: 'current.csv',
+      };
+      const pending = createDeferred<Array<typeof oldArtifact>>();
+      loadProjectArtifactsMock.mockResolvedValue([newArtifact]);
+      if (initiallyPending) loadProjectArtifactsMock.mockReturnValueOnce(pending.promise);
+      else loadProjectArtifactsMock.mockResolvedValueOnce([oldArtifact]);
+      const actualSelectionHook = composerContextSelection.useAcpComposerContextSelection;
+      const selection = { current: null as ReturnType<typeof actualSelectionHook> | null };
+      let oldConfirm: ReturnType<typeof actualSelectionHook>['handleProjectArtifactsSelected'] | undefined;
+      const contextWrites = vi.fn();
+      const selectorHook = vi
+        .spyOn(composerContextSelection, 'useAcpComposerContextSelection')
+        .mockImplementation((project, items, setItems, scope) => {
+          const result = actualSelectionHook(
+            project,
+            items,
+            (update) => {
+              contextWrites();
+              setItems(update);
+            },
+            scope
+          );
+          selection.current = result;
+          return result;
+        });
+      const layoutObservations: boolean[] = [];
+      const ScopeHarness = ({ switched }: { switched: boolean }) => {
+        React.useLayoutEffect(() => {
+          if (!switched) return;
+          // This is the new owner's committed layout, before the selector's
+          // passive close effect can run. Exercise both a retained event and a
+          // saved real callback, even if the old DOM has already been removed.
+          layoutObservations.push(Boolean(screen.queryByTestId('guid-project-files-modal')));
+          screen.queryByRole<HTMLButtonElement>('button', { name: 'Select files' })?.click();
+          oldConfirm?.([oldArtifact]);
+          if (initiallyPending) pending.resolve([oldArtifact]);
+        }, [switched]);
+        return (
+          <AcpSendBox
+            conversation_id='conv-project-layout'
+            ownerId={switched && transition === 'owner' ? 'owner-new' : 'owner-old'}
+            backend='xscience'
+            messageState={makeMessageState()}
+          />
+        );
+      };
+      let view: Awaited<ReturnType<typeof render>> | undefined;
+      try {
+        view = await render(<ScopeHarness switched={false} />);
+        await act(async () => {
+          await view!.i18n.changeLanguage('en-US');
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+        fireEvent.click(await screen.findByTestId('mobile-action-sheet-project-files'));
+        await waitFor(() => expect(loadProjectArtifactsMock).toHaveBeenCalledOnce());
+        if (!initiallyPending) fireEvent.click(await screen.findByTestId('guid-project-file-option'));
+        oldConfirm = selection.current!.handleProjectArtifactsSelected;
+        contextWrites.mockClear();
+        await act(async () => {
+          if (transition === 'account') setRendererAccountOwner('selector-account-new');
+          view!.rerender(<ScopeHarness switched />);
+        });
+        if (initiallyPending)
+          await act(async () => {
+            await pending.promise;
+          });
+        expect(layoutObservations).toEqual([false]);
+        expect(contextWrites).not.toHaveBeenCalled();
+        expect(screen.queryByText('committed-old.csv')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('composer-context-chips')).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'mobile more' }));
+        fireEvent.click(await screen.findByTestId('mobile-action-sheet-project-files'));
+        fireEvent.click(await screen.findByTestId('guid-project-file-option'));
+        fireEvent.click(screen.getByRole('button', { name: 'Select files' }));
+        expect(screen.getByTestId('composer-context-chips')).toHaveTextContent('current.csv');
+        expect(loadProjectArtifactsMock).toHaveBeenCalledTimes(2);
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      } finally {
+        view?.unmount();
+        selectorHook.mockRestore();
+        setRendererAccountOwner(previousAccount);
+      }
+    }
+  );
 
   it('places the real frame audit in the v1.1 add menu and removes the separate global branch selector', async () => {
     runtimeViewMock.isProcessing = false;

@@ -172,7 +172,10 @@
 .panes {
   position: relative;
   overflow: hidden;
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .pane {
@@ -184,6 +187,8 @@
 
 .paneMain {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .paneSub {

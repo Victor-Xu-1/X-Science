@@ -176,7 +176,9 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                     type='button'
                     className={`${styles.item} ${entry.disabled ? styles.disabled : ''}`}
                     onClick={() => handleEntryClick(entry)}
-                    disabled={entry.disabled}
+                    disabled={entry.disabled && !entry.keepDisabledFocusable}
+                    aria-disabled={entry.disabled || undefined}
+                    aria-busy={entry.busy || undefined}
                     role='menuitem'
                     aria-haspopup={entry.submenu ? 'menu' : undefined}
                     aria-expanded={entry.submenu ? activeSubKey === entry.key : undefined}
