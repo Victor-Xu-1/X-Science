@@ -111,7 +111,7 @@ func (client *sessionRunnerDynamicModelClient) recordContextPressure(ctx context
 	}
 	recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
 	// Admission runs after model resolution, before provider dispatch.
-	snapshot := recorder.begin(resolved.model, request, contextCapacityForModel(resolved.contextProfile, client.contextOptions))
+	snapshot := recorder.beginObservation("context_preparation", resolved.model, request, contextCapacityForModel(resolved.contextProfile, client.contextOptions))
 	if snapshot == nil {
 		return
 	}

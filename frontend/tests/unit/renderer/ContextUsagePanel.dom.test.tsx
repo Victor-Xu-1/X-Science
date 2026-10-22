@@ -61,7 +61,7 @@ const usage = (usedTokens = 20, sessionId = 'conversation-1') => ({
 });
 
 describe('ContextUsagePanel', () => {
-  it('opens the same usage owner from the plus menu while its ring is hidden and restores the opener', async () => {
+  it('opens the independent inspector using the same usage owner while its ring is hidden and restores the opener', async () => {
     vi.mocked(fetch).mockImplementation(() => Promise.resolve(new Response(JSON.stringify(usage(31)))));
     const opener = document.createElement('button');
     opener.textContent = 'Plus';
@@ -85,11 +85,12 @@ describe('ContextUsagePanel', () => {
           returnFocus={opener}
         />
       );
-      const panel = await screen.findByRole('dialog', { name: 'Context usage' });
-      await waitFor(() => expect(screen.getByTestId('context-usage-percent')).toHaveTextContent('31.0%'));
-      const panelId = panel.id;
-      expect(screen.getAllByTestId('context-usage-panel')).toHaveLength(1);
-      fireEvent.click(screen.getByTestId('context-usage-close'));
+      const panel = await screen.findByRole('dialog', { name: 'Context window' });
+      await screen.findByText('Context inspection is unavailable');
+      const panelId = panel.getAttribute('aria-labelledby');
+      expect(screen.getAllByTestId('context-window-inspector')).toHaveLength(1);
+      expect(screen.queryByTestId('context-usage-panel')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Close context window' }));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(screen.queryByTestId('x-science-context-usage-trigger')).not.toBeInTheDocument();
       expect(opener).toHaveFocus();
@@ -101,7 +102,9 @@ describe('ContextUsagePanel', () => {
           returnFocus={opener}
         />
       );
-      expect((await screen.findByRole('dialog', { name: 'Context usage' })).id).toBe(panelId);
+      expect((await screen.findByRole('dialog', { name: 'Context window' })).getAttribute('aria-labelledby')).toBe(
+        panelId
+      );
     } finally {
       opener.remove();
     }
@@ -118,8 +121,8 @@ describe('ContextUsagePanel', () => {
         'en-US'
       );
       view.rerender(<ContextUsagePanel conversationId='conversation-1' openRequest={1} returnFocus={opener} />);
-      await screen.findByRole('dialog', { name: 'Context usage' });
-      fireEvent.click(screen.getByTestId('context-usage-close'));
+      await screen.findByRole('dialog', { name: 'Context window' });
+      fireEvent.click(screen.getByRole('button', { name: 'Close context window' }));
       const ring = screen.getByTestId('x-science-context-usage-trigger');
       fireEvent.click(ring);
       await screen.findByRole('dialog', { name: 'Context usage' });
@@ -139,7 +142,7 @@ describe('ContextUsagePanel', () => {
     view.rerender(
       <ContextUsagePanel key='owner-a' conversationId='conversation-1' triggerVisible={false} openRequest={1} />
     );
-    await screen.findByRole('dialog', { name: 'Context usage' });
+    await screen.findByRole('dialog', { name: 'Context window' });
     view.rerender(
       <ContextUsagePanel key='owner-b' conversationId='conversation-2' triggerVisible={false} openRequest={1} />
     );
@@ -490,6 +493,8 @@ describe('ContextUsagePanel', () => {
     const rendered = await renderWithI18n(<ContextUsagePanel conversationId='conversation-1' />, 'en-US');
     fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     rendered.rerender(<ContextUsagePanel conversationId='conversation-2' />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('x-science-context-usage-trigger'));
     await act(async () => {
       for (const resolve of pending.slice(0, -1)) resolve(new Response(JSON.stringify(usage(99))));
       pending.at(-1)?.(new Response(JSON.stringify(usage(5, 'conversation-2'))));

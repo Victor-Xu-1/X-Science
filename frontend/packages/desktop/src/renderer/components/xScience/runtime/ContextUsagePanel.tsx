@@ -17,6 +17,8 @@ import {
 import styles from './ContextUsagePanel.module.css';
 import { focusableElements, restoreScopedFocus } from '@/renderer/utils/focusScope';
 import ContextWindowHistory from './ContextWindowHistory';
+import ContextWindowInspector from './ContextWindowInspector';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import ContextCompactionAction, { type ContextCompactionPresentation } from './ContextCompactionAction';
 import {
   contextDisplayWindow,
@@ -99,30 +101,45 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({
   returnFocus,
 }) => {
   const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
+  const ownerScope = JSON.stringify([getRendererAccountScopeToken(), conversationId]);
+  const [popoverScope, setPopoverScope] = useState<string | null>(null);
+  const [inspectorScope, setInspectorScope] = useState<string | null>(null);
+  const visible = popoverScope === ownerScope;
+  const inspectorVisible = inspectorScope === ownerScope;
   const [panelNode, setPanelNode] = useState<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const previousOpenRequest = useRef(openRequest);
-  const openSource = useRef<'ring' | 'menu'>('ring');
+  const previousOpenRequest = useRef({ request: openRequest, scope: ownerScope });
+  const currentOwnerScope = useRef(ownerScope);
+  currentOwnerScope.current = ownerScope;
+  const setVisible = (open: boolean) => {
+    if (currentOwnerScope.current !== ownerScope) return;
+    setPopoverScope(open ? ownerScope : null);
+    if (open) setInspectorScope(null);
+  };
+  const inspectorReturnFocus = useRef<HTMLButtonElement | null>(null);
   const panelId = useId();
   const detailsId = useId();
   useLayoutEffect(() => {
-    if (previousOpenRequest.current === openRequest) return;
-    previousOpenRequest.current = openRequest;
-    openSource.current = 'menu';
-    setVisible(true);
-  }, [openRequest]);
+    setPopoverScope(null);
+    setInspectorScope(null);
+  }, [ownerScope]);
+  useLayoutEffect(() => {
+    const previous = previousOpenRequest.current;
+    previousOpenRequest.current = { request: openRequest, scope: ownerScope };
+    if (previous.scope !== ownerScope || previous.request === openRequest) return;
+    inspectorReturnFocus.current = returnFocus ?? null;
+    setPopoverScope(null);
+    setInspectorScope(ownerScope);
+  }, [openRequest, ownerScope, returnFocus]);
   useLayoutEffect(() => {
     if (visible && panelNode) focusableElements(panelNode)[0]?.focus({ preventScroll: true });
   }, [panelNode, visible]);
   const closePanel = () => {
+    if (currentOwnerScope.current !== ownerScope) return;
     setVisible(false);
-    restoreScopedFocus(
-      openSource.current === 'menu' && returnFocus?.isConnected ? returnFocus : triggerRef.current,
-      panelNode
-    );
+    restoreScopedFocus(triggerRef.current, panelNode);
   };
-  const { state, retry } = useContextUsage(conversationId, visible, active);
+  const { state, retry } = useContextUsage(conversationId, visible || inspectorVisible, active, inspectorVisible);
   const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
   const policy = state.status === 'available' ? state.autoCompaction : undefined;
   const history = state.status === 'available' ? state.history : undefined;
@@ -201,195 +218,207 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({
     : [];
 
   return (
-    <Dropdown
-      trigger='click'
-      position='tl'
-      popupVisible={visible}
-      onVisibleChange={(nextVisible) => {
-        if (nextVisible) openSource.current = 'ring';
-        setVisible(nextVisible);
-      }}
-      droplist={
-        <div
-          id={panelId}
-          ref={setPanelNode}
-          className={styles.root}
-          data-testid='context-usage-panel'
-          role='dialog'
-          aria-label={t('conversation.contextUsage.title')}
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape' || event.defaultPrevented) return;
-            event.preventDefault();
-            closePanel();
-          }}
-        >
-          <div className={styles.header}>
-            <span className={styles.headerTitle}>{t('conversation.contextUsage.title')}</span>
-            <span className={styles.phase} role='status' data-testid='context-usage-phase'>
-              {statusLabel}
-            </span>
-            <button
-              type='button'
-              className={styles.closeButton}
-              aria-label={t('common.close')}
-              data-testid='context-usage-close'
-              onClick={closePanel}
-            >
-              <Close theme='outline' size={20} strokeWidth={2.2} />
-            </button>
-          </div>
-          {usage ? (
-            <>
-              <Tooltip
-                position='top'
-                trigger={['hover', 'focus']}
-                content={
-                  <div className={styles.details}>
-                    {details.map((line, index) => (
-                      <p key={index}>{line}</p>
-                    ))}
-                  </div>
-                }
+    <>
+      <Dropdown
+        trigger='click'
+        position='tl'
+        popupVisible={visible}
+        onVisibleChange={(nextVisible) => {
+          setVisible(nextVisible);
+        }}
+        droplist={
+          <div
+            id={panelId}
+            ref={setPanelNode}
+            className={styles.root}
+            data-testid='context-usage-panel'
+            role='dialog'
+            aria-label={t('conversation.contextUsage.title')}
+            onKeyDown={(event) => {
+              if (event.key !== 'Escape' || event.defaultPrevented) return;
+              event.preventDefault();
+              closePanel();
+            }}
+          >
+            <div className={styles.header}>
+              <span className={styles.headerTitle}>{t('conversation.contextUsage.title')}</span>
+              <span className={styles.phase} role='status' data-testid='context-usage-phase'>
+                {statusLabel}
+              </span>
+              <button
+                type='button'
+                className={styles.closeButton}
+                aria-label={t('common.close')}
+                data-testid='context-usage-close'
+                onClick={closePanel}
               >
-                <div
-                  className={styles.statRow}
-                  tabIndex={0}
-                  role='group'
-                  aria-label={t('conversation.contextUsage.title')}
-                  aria-describedby={detailsId}
-                >
-                  <span className={styles.bigPercent} data-testid='context-usage-percent'>
-                    {`${usagePercent.toFixed(1)}%`}
-                  </span>
-                  <span className={styles.usedText}>
-                    {t('conversation.contextUsage.usedLabel')}{' '}
-                    <strong>
-                      {usage.source === 'estimated' ? '≈ ' : ''}
-                      {formatTokenCount(usage.usedTokens)} / {formatTokenCount(displayWindow!.windowTokens)}
-                    </strong>
-                  </span>
-                </div>
-              </Tooltip>
-              <span id={detailsId} className={styles.screenReaderOnly}>
-                {details.join(' · ')}
-              </span>
-              <div className={styles.bar} aria-hidden='true' data-testid='context-usage-bar'>
-                {barRows.map((row) => (
-                  <span
-                    key={row.key}
-                    data-category={row.key}
-                    className={styles.barSegment}
-                    style={{
-                      flexGrow: row.tokens / barTotal,
-                      background: COLORS[row.key],
-                    }}
-                  />
-                ))}
-                {remaining > 0 && <span className={styles.barRemaining} style={{ flexGrow: remaining / barTotal }} />}
-              </div>
-              <div className={styles.legend} data-testid='context-usage-legend'>
-                {rows.map((row) => (
-                  <div key={row.key} className={styles.legendRow}>
-                    <span className={styles.legendLabel} title={labels[row.key]}>
-                      <i className={styles.legendDot} style={{ background: COLORS[row.key] }} aria-hidden='true' />
-                      {labels[row.key]}
-                    </span>
-                    <span className={styles.legendPercent}>≈ {formatTokenCount(row.tokens)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className={styles.observation} data-testid='context-usage-observation'>
-                <span>
-                  {t(
-                    `conversation.contextUsage.${displayWindow!.isDefaultBudget ? 'defaultWindow' : usage.limitSource === 'model_profile' ? 'modelWindow' : 'configuredLimit'}`
-                  )}
-                </span>
-                <span>
-                  {t(`conversation.contextUsage.${usage.source === 'provider' ? 'providerShort' : 'estimatedShort'}`)}
-                </span>
-              </div>
-              {history && <ContextWindowHistory history={history} interactive={visible} />}
-              {stale && (
-                <div className={styles.refreshNotice} role='status'>
-                  <span>
-                    {t(
-                      state.refreshState === 'retrying'
-                        ? 'conversation.contextUsage.refreshRetrying'
-                        : 'conversation.contextUsage.refreshStale'
-                    )}
-                  </span>
-                  <button type='button' onClick={retry}>
-                    {t('conversation.contextUsage.retry')}
-                  </button>
-                </div>
-              )}
-            </>
-          ) : state.status === 'loading' ? (
-            <div
-              className={styles.loading}
-              role='status'
-              aria-label={t('conversation.contextUsage.loading')}
-              data-testid='context-usage-loading'
-            >
-              <Spin size={16} />
-            </div>
-          ) : (
-            <div className={styles.empty} role='status'>
-              <span>
-                {state.status === 'error'
-                  ? t('conversation.contextUsage.loadFailed')
-                  : t('conversation.contextUsage.unavailable')}
-              </span>
-              <button type='button' onClick={retry} className={styles.retry}>
-                {t('conversation.contextUsage.retry')}
+                <Close theme='outline' size={20} strokeWidth={2.2} />
               </button>
             </div>
-          )}
-          <ContextCompactionAction
-            presentation={compaction}
-            measured={Boolean(usage && usage.source === 'provider' && usage.state !== 'request')}
-            percent={usagePercent}
-          />
-        </div>
-      }
-    >
-      {triggerVisible || visible ? (
-        <button
-          type='button'
-          ref={triggerRef}
-          data-testid='x-science-context-usage-trigger'
-          aria-label={t('conversation.contextUsage.title')}
-          aria-expanded={visible}
-          aria-controls={visible ? panelId : undefined}
-          aria-haspopup='dialog'
-          title={
-            usage
-              ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%${
-                  defaultBudgetNote ? ` · ${defaultBudgetNote}` : ''
-                }`
-              : t('conversation.contextUsage.unavailable')
-          }
-          data-usage-state={state.status}
-          className={styles.trigger}
-        >
-          {usage ? (
-            <UsageRing
-              usedTokens={usage.usedTokens}
-              limitTokens={displayWindow!.windowTokens}
-              threshold={policy?.enabled && policy.thresholdTokens > 0 ? policy.thresholdTokens : undefined}
+            {usage ? (
+              <>
+                <Tooltip
+                  position='top'
+                  trigger={['hover', 'focus']}
+                  content={
+                    <div className={styles.details}>
+                      {details.map((line, index) => (
+                        <p key={index}>{line}</p>
+                      ))}
+                    </div>
+                  }
+                >
+                  <div
+                    className={styles.statRow}
+                    tabIndex={0}
+                    role='group'
+                    aria-label={t('conversation.contextUsage.title')}
+                    aria-describedby={detailsId}
+                  >
+                    <span className={styles.bigPercent} data-testid='context-usage-percent'>
+                      {`${usagePercent.toFixed(1)}%`}
+                    </span>
+                    <span className={styles.usedText}>
+                      {t('conversation.contextUsage.usedLabel')}{' '}
+                      <strong>
+                        {usage.source === 'estimated' ? '≈ ' : ''}
+                        {formatTokenCount(usage.usedTokens)} / {formatTokenCount(displayWindow!.windowTokens)}
+                      </strong>
+                    </span>
+                  </div>
+                </Tooltip>
+                <span id={detailsId} className={styles.screenReaderOnly}>
+                  {details.join(' · ')}
+                </span>
+                <div className={styles.bar} aria-hidden='true' data-testid='context-usage-bar'>
+                  {barRows.map((row) => (
+                    <span
+                      key={row.key}
+                      data-category={row.key}
+                      className={styles.barSegment}
+                      style={{
+                        flexGrow: row.tokens / barTotal,
+                        background: COLORS[row.key],
+                      }}
+                    />
+                  ))}
+                  {remaining > 0 && <span className={styles.barRemaining} style={{ flexGrow: remaining / barTotal }} />}
+                </div>
+                <div className={styles.legend} data-testid='context-usage-legend'>
+                  {rows.map((row) => (
+                    <div key={row.key} className={styles.legendRow}>
+                      <span className={styles.legendLabel} title={labels[row.key]}>
+                        <i className={styles.legendDot} style={{ background: COLORS[row.key] }} aria-hidden='true' />
+                        {labels[row.key]}
+                      </span>
+                      <span className={styles.legendPercent}>≈ {formatTokenCount(row.tokens)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={styles.observation} data-testid='context-usage-observation'>
+                  <span>
+                    {t(
+                      `conversation.contextUsage.${displayWindow!.isDefaultBudget ? 'defaultWindow' : usage.limitSource === 'model_profile' ? 'modelWindow' : 'configuredLimit'}`
+                    )}
+                  </span>
+                  <span>
+                    {t(`conversation.contextUsage.${usage.source === 'provider' ? 'providerShort' : 'estimatedShort'}`)}
+                  </span>
+                </div>
+                {history && <ContextWindowHistory history={history} interactive={visible} />}
+                {stale && (
+                  <div className={styles.refreshNotice} role='status'>
+                    <span>
+                      {t(
+                        state.refreshState === 'retrying'
+                          ? 'conversation.contextUsage.refreshRetrying'
+                          : 'conversation.contextUsage.refreshStale'
+                      )}
+                    </span>
+                    <button type='button' onClick={retry}>
+                      {t('conversation.contextUsage.retry')}
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : state.status === 'loading' ? (
+              <div
+                className={styles.loading}
+                role='status'
+                aria-label={t('conversation.contextUsage.loading')}
+                data-testid='context-usage-loading'
+              >
+                <Spin size={16} />
+              </div>
+            ) : (
+              <div className={styles.empty} role='status'>
+                <span>
+                  {state.status === 'error'
+                    ? t('conversation.contextUsage.loadFailed')
+                    : t('conversation.contextUsage.unavailable')}
+                </span>
+                <button type='button' onClick={retry} className={styles.retry}>
+                  {t('conversation.contextUsage.retry')}
+                </button>
+              </div>
+            )}
+            <ContextCompactionAction
+              presentation={compaction}
+              measured={Boolean(usage && usage.source === 'provider' && usage.state !== 'request')}
+              percent={usagePercent}
             />
-          ) : state.status === 'loading' ? (
-            <Spin size={16} />
-          ) : (
-            <span className={styles.unknown} aria-hidden='true'>
-              —
-            </span>
-          )}
-        </button>
-      ) : (
-        <span aria-hidden='true' style={{ width: 0, height: 0 }} />
-      )}
-    </Dropdown>
+          </div>
+        }
+      >
+        {triggerVisible || visible ? (
+          <button
+            type='button'
+            ref={triggerRef}
+            data-testid='x-science-context-usage-trigger'
+            aria-label={t('conversation.contextUsage.title')}
+            aria-expanded={visible}
+            aria-controls={visible ? panelId : undefined}
+            aria-haspopup='dialog'
+            title={
+              usage
+                ? `${statusLabel} · ${usage.source === 'estimated' ? '≈ ' : ''}${usagePercent.toFixed(1)}%${
+                    defaultBudgetNote ? ` · ${defaultBudgetNote}` : ''
+                  }`
+                : t('conversation.contextUsage.unavailable')
+            }
+            data-usage-state={state.status}
+            className={styles.trigger}
+          >
+            {usage ? (
+              <UsageRing
+                usedTokens={usage.usedTokens}
+                limitTokens={displayWindow!.windowTokens}
+                threshold={policy?.enabled && policy.thresholdTokens > 0 ? policy.thresholdTokens : undefined}
+              />
+            ) : state.status === 'loading' ? (
+              <Spin size={16} />
+            ) : (
+              <span className={styles.unknown} aria-hidden='true'>
+                —
+              </span>
+            )}
+          </button>
+        ) : (
+          <span aria-hidden='true' style={{ width: 0, height: 0 }} />
+        )}
+      </Dropdown>
+      <ContextWindowInspector
+        open={inspectorVisible}
+        ownerScope={ownerScope}
+        state={state}
+        returnFocus={inspectorReturnFocus.current}
+        compaction={compaction}
+        retry={retry}
+        onClose={() => {
+          if (currentOwnerScope.current === ownerScope) setInspectorScope(null);
+        }}
+      />
+    </>
   );
 };
 

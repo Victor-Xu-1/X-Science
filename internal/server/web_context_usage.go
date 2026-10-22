@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -20,26 +21,55 @@ func (s *Server) handleWebContextUsage(w http.ResponseWriter, r *http.Request, f
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "context usage storage unavailable"})
 		return
 	}
-	snapshot, history, found, err := readRunnerContextUsage(s.runtimeStore, frame.ID)
-	if errors.Is(err, errLegacyRunnerContextUsage) && snapshot.SessionID == frame.ID {
-		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"status": "unavailable"})
-		return
+	inspect := r.URL.Query().Get("inspect") == "1"
+	var authority *transcriptstore.ContextInspectionSnapshot
+	var ownerID string
+	if inspect {
+		var err error
+		authority, ownerID, err = s.contextInspectionAuthority(r.Context(), frame.ID)
+		if err != nil {
+			writeContextInspectionError(w, err)
+			return
+		}
 	}
-	if err != nil {
+	snapshot, history, found, err := readRunnerContextUsage(s.runtimeStore, frame.ID)
+	legacy := errors.Is(err, errLegacyRunnerContextUsage) && snapshot.SessionID == frame.ID
+	if legacy {
+		history = runnerContextHistory{SessionID: frame.ID, TotalObserved: 1, Coverage: "latest_only", Samples: []runnerContextUsage{snapshot}}
+	}
+	if err != nil && !legacy {
 		log.Printf("context_usage_read_failed frame=%s: %v", frame.ID, err)
 		writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "context usage temporarily unavailable"})
 		return
 	}
-	if !found {
-		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"status": "unavailable"})
-		return
+	result := map[string]any{"status": "unavailable"}
+	if found && !legacy {
+		result["status"], result["snapshot"], result["history"] = "available", snapshot, history
+		policy, err := s.contextCompactionPolicy(snapshot.LimitTokens)
+		if err != nil {
+			log.Printf("context_usage_policy_unavailable frame=%s: %v", frame.ID, err)
+		} else {
+			result["autoCompaction"] = policy
+		}
 	}
-	result := map[string]any{"status": "available", "snapshot": snapshot, "history": history}
-	policy, err := s.contextCompactionPolicy(snapshot.LimitTokens)
-	if err != nil {
-		log.Printf("context_usage_policy_unavailable frame=%s: %v", frame.ID, err)
-	} else {
-		result["autoCompaction"] = policy
+	if inspect {
+		result["inspection"] = nil
+		if authority != nil {
+			if err := s.transcriptStore.ValidateContextInspection(r.Context(), ownerID, authority.Scope); err != nil {
+				writeContextInspectionError(w, err)
+				return
+			}
+			result["inspection"] = projectContextInspection(*authority, history)
+		}
 	}
 	writeWorkspaceJSON(w, http.StatusOK, result)
+}
+
+func writeContextInspectionError(w http.ResponseWriter, err error) {
+	if errors.Is(err, transcriptstore.ErrBranchStateStale) || errors.Is(err, transcriptstore.ErrEventConflict) {
+		writeWorkspaceJSON(w, http.StatusConflict, map[string]any{"message": "context inspection scope changed; retry the read"})
+		return
+	}
+	log.Printf("context_inspection_read_unavailable")
+	writeWorkspaceJSON(w, http.StatusServiceUnavailable, map[string]any{"message": "context inspection temporarily unavailable"})
 }

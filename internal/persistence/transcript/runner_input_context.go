@@ -32,6 +32,7 @@ type ClaimedInputContext struct {
 	PublicationSeq  int64
 	ClientMessageID string
 	InputData       map[string]any
+	Association     *ContextCallAssociation
 }
 
 func (r *Repository) ClaimedRunnerInputContext(ctx context.Context, claim RunnerClaim) (*ClaimedInputContext, error) {
@@ -51,7 +52,11 @@ func (r *Repository) ClaimedRunnerInputContext(ctx context.Context, claim Runner
 	if err != nil {
 		return nil, schemaError(err)
 	}
-	return readAdmittedRunnerInputContextConn(ctx, conn, stream, claim.ClaimedInputRevision, false)
+	input, err := readAdmittedRunnerInputContextConn(ctx, conn, stream, claim.ClaimedInputRevision, false)
+	if err == nil && input != nil && input.Association != nil {
+		input.Association.RunnerAttempt = claim.Attempt
+	}
+	return input, err
 }
 
 // RunnerInputContext reads the admitted ordinary input for one recorded attempt.
@@ -114,13 +119,13 @@ func readAdmittedRunnerInputContextConn(ctx context.Context, conn *sql.Conn, str
 		return nil, schemaError(err)
 	}
 	var factBranch, eventType, clientID, source string
-	var version, factGeneration int64
+	var version, factGeneration, admittedRevision int64
 	var runnerAttempt sql.NullInt64
 	var raw []byte
 	var member bool
 	var input ClaimedInputContext
 	err := conn.QueryRowContext(ctx, `SELECT a.classification_version,a.branch_id,a.branch_generation,
-		e.event_type,e.client_message_id,e.source,e.runner_attempt,e.event_id,e.publication_seq,
+		e.event_type,e.client_message_id,e.source,e.runner_attempt,e.event_id,e.publication_seq,a.input_revision,
 		CASE WHEN e.source='payload' THEN e.payload_json ELSE f.payload END,
 		EXISTS(SELECT 1 FROM transcript_branch_events m WHERE m.stream_uid=a.stream_uid AND m.branch_id=a.branch_id AND m.event_id=a.event_id)
 		FROM transcript_input_admissions a JOIN transcript_events e ON e.stream_uid=a.stream_uid AND e.event_id=a.event_id
@@ -128,7 +133,7 @@ func readAdmittedRunnerInputContextConn(ctx context.Context, conn *sql.Conn, str
 		WHERE a.stream_uid=? AND a.source_kind='event' AND a.input_kind='message' AND a.input_revision<=?
 			AND EXISTS(SELECT 1 FROM transcript_branch_events m WHERE m.stream_uid=a.stream_uid AND m.branch_id=? AND m.event_id=a.event_id)
 		ORDER BY a.input_revision DESC LIMIT 1`, stream.FrameID, stream.UID, inputRevision, branch).
-		Scan(&version, &factBranch, &factGeneration, &eventType, &clientID, &source, &runnerAttempt, &input.EventID, &input.PublicationSeq, &raw, &member)
+		Scan(&version, &factBranch, &factGeneration, &eventType, &clientID, &source, &runnerAttempt, &input.EventID, &input.PublicationSeq, &admittedRevision, &raw, &member)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil // A copied/legacy prefix has no prospective admission proof.
 	}
@@ -161,6 +166,15 @@ func readAdmittedRunnerInputContextConn(ctx context.Context, conn *sql.Conn, str
 	}
 	data, found := payload["inputData"]
 	input.ClientMessageID = clientID
+	if !historical && stream.Kind == StreamKindFrameRef {
+		scope, err := contextInspectionScopeConn(ctx, conn, stream)
+		if err != nil {
+			return nil, schemaError(err)
+		}
+		input.Association = &ContextCallAssociation{Version: 1, Scope: scope, InputMessageID: contextInputMessageID(raw, clientID),
+			InputEventID: input.EventID, InputRevision: admittedRevision, InputPublicationSequence: input.PublicationSeq,
+			AdmissionBranchID: factBranch, AdmissionBranchGeneration: factGeneration, ClaimedInputRevision: inputRevision}
+	}
 	if !found {
 		return &input, nil
 	}

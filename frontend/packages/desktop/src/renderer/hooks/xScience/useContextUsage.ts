@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import {
   ContextUsageRequestError,
   fetchContextUsage,
@@ -15,16 +16,25 @@ import {
 export const CONTEXT_USAGE_TIMEOUT_MS = 8000;
 export const CONTEXT_USAGE_POLL_MS = 5000;
 export const CONTEXT_USAGE_MAX_RETRIES = 3;
-type UsageState = (
+export type ContextUsageState = (
   | { conversationId: string; status: 'loading' | 'error' }
   | (ContextUsageResult & { conversationId: string })
 ) & { refreshState?: 'refreshing' | 'retrying' | 'stale' };
 
 /** One bounded request at a time; closing/switching aborts obsolete requests. */
-export function useContextUsage(conversationId: string, visible: boolean, active: boolean) {
-  const [state, setState] = useState<UsageState>({ conversationId, status: 'loading' });
+export function useContextUsage(conversationId: string, visible: boolean, active: boolean, inspect = false) {
+  const accountScope = getRendererAccountScopeToken();
+  const scopeKey = JSON.stringify([accountScope, conversationId]);
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
+  const resetId = useId();
+  const [ownedState, setOwnedState] = useState<{ scope: string; value: ContextUsageState }>({
+    scope: scopeKey,
+    value: { conversationId, status: 'loading' },
+  });
   const [refresh, setRefresh] = useState(0);
   const retry = useCallback(() => setRefresh((value) => value + 1), []);
+  useEffect(() => registerRendererAccountReset('context-usage:' + resetId, retry), [resetId, retry]);
   useEffect(() => {
     const resume = () => {
       if ((visible || active) && !document.hidden) retry();
@@ -44,6 +54,20 @@ export function useContextUsage(conversationId: string, visible: boolean, active
     let controller: AbortController | undefined;
     let deadline: ReturnType<typeof setTimeout> | undefined;
     let failures = 0;
+    const setState = (update: ContextUsageState | ((previous: ContextUsageState) => ContextUsageState)) => {
+      if (disposed || currentScope.current !== scopeKey || getRendererAccountScopeToken() !== accountScope) return;
+      setOwnedState((previous) => {
+        if (disposed || currentScope.current !== scopeKey || getRendererAccountScopeToken() !== accountScope)
+          return previous;
+        return {
+          scope: scopeKey,
+          value:
+            typeof update === 'function'
+              ? update(previous.scope === scopeKey ? previous.value : { conversationId, status: 'loading' })
+              : update,
+        };
+      });
+    };
     setState((previous) =>
       previous.conversationId === conversationId && previous.status === 'available'
         ? { ...previous, refreshState: 'refreshing' }
@@ -69,7 +93,7 @@ export function useContextUsage(conversationId: string, visible: boolean, active
       try {
         // The deadline settles the UI even if a transport ignores AbortSignal.
         const result = await Promise.race([
-          fetchContextUsage(conversationId, requestController.signal),
+          fetchContextUsage(conversationId, requestController.signal, inspect),
           stopped,
           timeout,
         ]);
@@ -80,6 +104,10 @@ export function useContextUsage(conversationId: string, visible: boolean, active
         if (visible || active) poll = setTimeout(() => void load(), CONTEXT_USAGE_POLL_MS);
       } catch (error) {
         if (disposed) return;
+        if (error instanceof ContextUsageRequestError && error.scopeChanged) {
+          setState({ conversationId, status: 'error', refreshState: 'stale' });
+          return;
+        }
         const willRetry = (visible || active) && isContextUsageRetryable(error) && failures < CONTEXT_USAGE_MAX_RETRIES;
         setState((previous) =>
           previous.conversationId === conversationId && previous.status === 'available'
@@ -100,9 +128,10 @@ export function useContextUsage(conversationId: string, visible: boolean, active
       clearTimeout(deadline);
       controller?.abort();
     };
-  }, [conversationId, visible, active, refresh]);
+  }, [conversationId, visible, active, refresh, inspect, scopeKey, accountScope]);
   return {
-    state: state.conversationId === conversationId ? state : { conversationId, status: 'loading' as const },
+    state: ownedState.scope === scopeKey ? ownedState.value : { conversationId, status: 'loading' as const },
+    scopeKey,
     retry,
   };
 }
