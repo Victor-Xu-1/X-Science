@@ -230,6 +230,7 @@ type Server struct {
 	transcriptWebReadModel                *transcriptstore.WebReadModelRepository
 	memoryConfig                          memoryconfig.Config
 	memoryExtraction                      *memoryExtractionRuntime
+	memoryAutoExtractionCommitMu          sync.RWMutex
 	transcriptContractErr                 error
 	transcriptDeliveryMu                  sync.Mutex
 	transcriptDeliveryStop                context.CancelFunc

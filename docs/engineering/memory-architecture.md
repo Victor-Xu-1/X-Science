@@ -14,7 +14,7 @@ X-Science implements one workspace memory lifecycle. It does not maintain a para
 | Automatic recall | `Store.RecallMemories` |
 | Explicit search | `Store.SearchMemories` over the authenticated user's full pool |
 | Prompt rendering | `internal/memoryprompt` |
-| Post-completion extraction | `internal/memoryextract` plus `memoryExtractionRuntime` |
+| Post-completion extraction | `internal/memoryextract` plus `memoryExtractionRuntime`; one workspace atomic outcome receipt |
 | Logical-task recall stability | durable runner task memory snapshot |
 | Conversation continuity | transcript replay and compaction, not a second memory store |
 
@@ -26,7 +26,15 @@ X-Science implements one workspace memory lifecycle. It does not maintain a para
 4. Rank automatic recall with BM25/Jaccard reciprocal-rank fusion, project boost, staleness decay, cross-project quotas and frame isolation.
 5. Inject recall as a harness-owned user block immediately before the real user message. Persist served IDs so retries and child tasks do not repeatedly surface the same facts.
 6. Seal that context to the logical task so a lease recovery cannot drift to newly written facts.
-7. After a durable completed root turn, run one detached, drainable extraction task. Project the durable transcript, honor compaction cursors, suppress recalled-text feedback, classify mutations, and apply scoped appends/replacements/removals.
+7. After a durable completed root turn, run one detached, drainable extraction task. Capture its exact completed source, project only that source, honor compaction cursors and suppress recalled-text feedback. Prepare classification and literal repair without a write transaction, then commit allowed mutations, the extraction cursor and the original outcome receipt together.
+
+## Completed-extraction commit and replay
+
+`Service.Prepare` produces values, not persisted effects. `Store.CommitMemoryExtraction` is the only automatic-extraction mutation owner. It uses the existing workspace/transcript SQLite immediate transaction to revalidate the captured completed source, owned root/frame incarnations, persisted memory policy and expected cursor before applying the prepared batch. A canonical source retains stream epoch, branch generation, event/publication coordinates, attempt and consumed input revision. A legacy source retains its strict completed-prefix digest and holds the journal replacement guard only across the short commit.
+
+Accepted appends, snapshot-CAS successors, removals, cursor progression and the immutable schema81 receipt commit atomically. A SQL, cursor or receipt failure rolls them all back; a later retry does not infer success from a fact's existence. Rejected/flagged operations retain their diagnostics. A stale fact snapshot is skipped rather than overwriting or deleting a newer edit. No model, classifier, repair callback or network operation holds the write transaction.
+
+Receipt replay returns the original IDs, cursor outcome and diagnostics before model/cadence/forked-request gates, including after process restart or reply loss. The same completed source with a conflicting input or explicit mutation plan cannot acquire a second write. Later branch changes or memory opt-out do not revoke already committed profile/project facts or turn receipt readback into a fresh write grant; root incarnation and owner checks still apply. This receipt is not an interactive `write_memory` invocation, runtime-KV ledger, new scheduler, or guarantee that every historical completion is enqueued after downtime.
 
 ## Isolation and safety
 
@@ -45,7 +53,7 @@ The legacy `autoMemoryEnabled` session-summary path, runtime-KV `memory`/`memory
 
 ## Focused verification
 
-The affected test surface is:
+Choose exact named regressions for the changed behavior from the affected surface below; this inventory is not a requirement to rerun every listed package or unrelated module:
 
 - `go test ./internal/memoryconfig ./internal/memorypolicy ./internal/memoryclassifier ./internal/memoryprompt ./internal/memorytools ./internal/memoryextract`
 - `go test ./internal/persistence/workspace -run 'Memory|WorkspaceExtraction|WorkspaceExtractor'`

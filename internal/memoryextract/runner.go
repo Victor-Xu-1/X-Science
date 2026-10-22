@@ -66,6 +66,9 @@ type RunInput struct {
 	FinalResponseText string
 	RecalledBodies    []string
 	Config            Config
+	// Source and CommitGuard are host-captured authority, never model output.
+	Source      *workspace.CompletedExtractionSource
+	CommitGuard func(context.Context, func() error) error
 }
 
 type RunResult struct {
@@ -78,6 +81,7 @@ type RunResult struct {
 	Overshoot      bool
 	DeltaCount     int
 	Applied        ApplyResult
+	Replayed       bool
 }
 
 type Runner struct {
@@ -121,6 +125,9 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 	if input.Scope.UserID == "" {
 		result.Gate = "no-userId"
 		return result, nil
+	}
+	if replay, found, err := r.readReplay(ctx, input); err != nil || found {
+		return replay, err
 	}
 	if input.AsideParent {
 		result.Gate = "disabled-aside"
@@ -181,8 +188,12 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 	}
 	if HasMemoryWritesSince(delta, config.ExtractMax) {
 		result.Gate = "agent-wrote"
-		r.advanceCursor(ctx, input.Scope.SourceFrameID, len(input.Messages), cursor, result.Overshoot, config.ExtractDelta, &result)
-		return result, nil
+		return r.commit(ctx, input, config, result, workspace.ExtractionMutationPlan{})
+	}
+	if !sourceMatchesScope(input.Source, input.Scope) ||
+		(input.Source.Legacy != nil && input.CommitGuard == nil) {
+		result.Gate = "skipped-source"
+		return result, workspace.ErrExtractionSourceChanged
 	}
 	if config.ExtractEveryN > 1 && !r.cadencePass(input.Scope.ProjectID, config.ExtractEveryN) {
 		result.Gate = "cadence"
@@ -238,18 +249,18 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		operations = DropRecalledOperations(operations, input.RecalledBodies)
 		operations = DropMatchingOperations(operations, CollectServerToolStubBodies(input.Messages))
 	}
-	applied, err := r.service.Apply(ctx, input.Scope, operations)
-	result.Applied = applied
+	plan, err := r.service.Prepare(ctx, input.Scope, operations)
+	result.Applied = plan.Prepared
 	if err != nil {
+		result.Gate = "prepare-failed"
 		return result, err
 	}
-	if applied.PIUnavailable {
+	if plan.Prepared.PIUnavailable {
 		result.Gate = "pi-unavailable"
 		return result, nil
 	}
-	r.advanceCursor(ctx, input.Scope.SourceFrameID, len(input.Messages), cursor, result.Overshoot, config.ExtractDelta, &result)
 	result.Gate = "done"
-	return result, nil
+	return r.commit(ctx, input, config, result, plan)
 }
 
 func normalizeConfig(config Config) Config {
@@ -271,25 +282,4 @@ func (r *Runner) cadencePass(projectID string, every int) bool {
 	next := r.cadence.projects[projectID] + 1
 	r.cadence.projects[projectID] = next
 	return next%every == 0
-}
-
-func (r *Runner) advanceCursor(ctx context.Context, frameID string, next, previous int, overshoot, enabled bool, result *RunResult) {
-	if !enabled {
-		return
-	}
-	var expected *int
-	if overshoot {
-		expected = &previous
-	}
-	changed, err := r.store.SetLastExtractMessageIndex(ctx, frameID, next, expected)
-	if err != nil {
-		result.CursorError = err.Error()
-		return
-	}
-	result.CursorAdvanced = changed
-	if current, readErr := r.store.LastExtractMessageIndex(ctx, frameID); readErr == nil {
-		result.CursorAfter = current
-	} else {
-		result.CursorError = readErr.Error()
-	}
 }

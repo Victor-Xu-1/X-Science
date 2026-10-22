@@ -29,7 +29,28 @@ func (r *Repository) ReadCompletedMemorySource(ctx context.Context, streamUID, o
 		return source, err
 	}
 	defer tx.Rollback()
-	_, _, snapshot, err := projectionSnapshotTx(ctx, tx, streamUID, ownerID)
+	source, err = readCompletedMemorySource(ctx, tx, streamUID, ownerID, eventID)
+	if err != nil {
+		return CompletedMemorySource{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return CompletedMemorySource{}, err
+	}
+	return source, nil
+}
+
+// ReadCompletedMemorySource uses the same completed-history query as the
+// repository reader, but retains its proof inside the caller's write fence.
+func (tx *ImmediateTransaction) ReadCompletedMemorySource(ctx context.Context, streamUID, ownerID string, eventID int64) (CompletedMemorySource, error) {
+	if tx == nil || tx.conn == nil || eventID <= 0 {
+		return CompletedMemorySource{}, ErrEventConflict
+	}
+	return readCompletedMemorySource(ctx, tx, streamUID, ownerID, eventID)
+}
+
+func readCompletedMemorySource(ctx context.Context, tx transcriptQueryer, streamUID, ownerID string, eventID int64) (CompletedMemorySource, error) {
+	var source CompletedMemorySource
+	_, _, snapshot, err := projectionSnapshotForBranchTx(ctx, tx, streamUID, ownerID, "")
 	if err != nil {
 		return source, err
 	}
@@ -70,9 +91,6 @@ func (r *Repository) ReadCompletedMemorySource(ctx context.Context, streamUID, o
 	}
 	if source.PublicationSeq <= 0 || source.PublicationSeq > snapshot.ThroughPublicationSequence || source.Attempt <= 0 || source.InputRevision <= 0 {
 		return CompletedMemorySource{}, ErrEventConflict
-	}
-	if err := tx.Commit(); err != nil {
-		return CompletedMemorySource{}, err
 	}
 	return source, nil
 }

@@ -175,10 +175,6 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 	if err != nil {
 		return result, err
 	}
-	if !resolved.Enabled {
-		result.Gate = "disabled"
-		return result, nil
-	}
 	if resolved.Scope.SourceFrameID != resolved.Scope.FrameID {
 		result.Gate = "not-root"
 		return result, nil
@@ -188,6 +184,40 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		return result, err
 	}
 	asideParent := metadataFound && (metadata.InputData["_aside_parent"] != nil || metadata.ContextData["_aside_parent"] != nil)
+	if !source.captured {
+		source, err = runtime.captureCompletedMemorySource(ctx, sessionID, source.finishEventID)
+		if err != nil {
+			result.Gate = "skipped-source"
+			if !resolved.Enabled {
+				result.Gate = "disabled"
+			} else if asideParent {
+				result.Gate = "disabled-aside"
+			}
+			return result, nil
+		}
+	}
+	applyScope := memoryextract.ApplyScope{
+		UserID: resolved.Scope.UserID, ProjectID: resolved.Scope.ProjectID, SourceFrameID: resolved.Scope.SourceFrameID,
+	}
+	commitSource, err := runtime.completedExtractionCommitSource(applyScope, source)
+	if err != nil {
+		result.Gate = "skipped-source"
+		return result, nil
+	}
+	// A previously committed outcome is not a new extraction/write request.
+	// Restore it before mutable policy/cadence and forked last-request gates.
+	saved, committed, err := runtime.server.workspaceStore.ReadMemoryExtractionReceipt(ctx, commitSource)
+	if err != nil {
+		result.Gate = "replay-failed"
+		return result, err
+	}
+	if committed {
+		return memoryextract.RunResultFromCommit(saved), nil
+	}
+	if !resolved.Enabled {
+		result.Gate = "disabled"
+		return result, nil
+	}
 	if asideParent {
 		result.Gate = "disabled-aside"
 		return result, nil
@@ -212,13 +242,6 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 	if !autoEnabled {
 		result.Gate = "disabled-auto"
 		return result, nil
-	}
-	if !source.captured {
-		source, err = runtime.captureCompletedMemorySource(ctx, sessionID, source.finishEventID)
-		if err != nil {
-			result.Gate = "skipped-source"
-			return result, nil
-		}
 	}
 	snapshot, err := runtime.readMemoryExtractionSnapshot(ctx, resolved.Scope.UserID, sessionID, source)
 	if err != nil {
@@ -253,9 +276,9 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		}
 	}
 	return runner.Run(ctx, memoryextract.RunInput{
-		Scope: memoryextract.ApplyScope{
-			UserID: resolved.Scope.UserID, ProjectID: resolved.Scope.ProjectID, SourceFrameID: resolved.Scope.SourceFrameID,
-		},
+		Scope:             applyScope,
+		Source:            &commitSource,
+		CommitGuard:       runtime.extractionCommitGuard(source, applyScope, len(snapshot.Messages)),
 		SessionMemoryMode: mode,
 		Model:             sessionWorkspaceModel(resolved.Session),
 		Messages:          snapshot.Messages,
