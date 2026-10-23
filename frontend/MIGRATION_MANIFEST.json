@@ -3,29 +3,29 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "0b437548e0cf4845893fe00cf55229025eca45c8be48f14f676c1e67665859ef",
+  "adaptationFingerprintSHA256": "3ef9abd747633e5965888c4e816a1759bdaf8ff716155a1f4dd58a5659a27679",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9c17cf9ab507bb008d44b28ecea5d434f09e292167e429bf5d9b9b575f72a6be",
+  "additionFingerprintSHA256": "d4866a95d48047df124490d489eeed4cfbd35ea212bdecaf68e405f1613f735f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1202
+    "addedFiles": 1205
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "81e0ba22b9d8c234ea34bf37741c5e8fb2b5515f6b5010cb5e77769fa3a9a70b",
-      "bytes": 4421,
+      "targetSHA256": "9d83736699eb6cfef7d3a6c08ff07aeb63cdcbb144fcb8f8402eb5204cf7b3a0",
+      "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "976d0ca0bd52be0119e00aa7095976839e69a626a3e270dd9ec9520552fc380c",
-      "bytes": 156,
+      "targetSHA256": "67d13d422e2e73cae186e2240a6fbc8b3b8689ac88d7d39760c782aef23ea60e",
+      "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
     {
@@ -7563,8 +7563,8 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "6631362f88909bd915510f44598d80a08c0fd0dd8438b7f2b6610fcfc31bff5d",
-      "bytes": 558635,
+      "sha256": "8d919f0126b7bc700111c223c41812b0c47ac339a4fdbbff650cd06bcaf664f5",
+      "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
     {
@@ -10641,8 +10641,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/LiteratureMutationController.ts",
-      "sha256": "d28db4321bd0b56a191f845f1faabee09430bfce30b609671dc964c3b6b90daa",
-      "bytes": 5298,
+      "sha256": "2db1dbda3ca748cbe85b7ed81843732577d1f091ca8011dd4d0ace1775127a39",
+      "bytes": 6909,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10787,6 +10787,12 @@
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
       "sha256": "c8d92bcac9c79d5f5fe78ed8b4a4c84438f2ff36fcc0b25fd1e2ae09b7dd24dc",
       "bytes": 5715,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/literatureMutationLock.ts",
+      "sha256": "84603c5ea61732fb2a5d18c1fe847c335881beebfe5b451b76cc70a0aa0abf40",
+      "bytes": 1337,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12867,8 +12873,14 @@
     },
     {
       "path": "tests/unit/renderer/conversation/LibraryReadingPicker.dom.test.tsx",
-      "sha256": "a79553fbb02ac566ef5624fc6d7052aeaea6c05ae722e588c9790de0a9d8f5ea",
-      "bytes": 9663,
+      "sha256": "b3c20096316eb7fa525cc80e3784e662ac77e2e44d621115ad4f49f6c8b3468a",
+      "bytes": 12860,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/LiteratureMutationCrosstab.test.ts",
+      "sha256": "1a71ec22f1f57b32e4c66445c90932051c167075b7715bbaa200bfe2eeb9dba9",
+      "bytes": 13167,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12975,8 +12987,14 @@
     },
     {
       "path": "tests/unit/renderer/conversation/literatureLibrary.test.ts",
-      "sha256": "bb7bd0c3e60c7b8ecb151396de2a3d5ed884c3e251809a78ca931109f9e95b3d",
-      "bytes": 8509,
+      "sha256": "4566cdf1b2703ea1dcbb1a7595834a19ef9fab87cfdcfdc232e21114aef2489c",
+      "bytes": 8691,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/literatureMutationLockFixtures.ts",
+      "sha256": "f9f3018a1eca40a77abcc1b8cf2261be35e66ef6bc90fb4360ec8cc68f72f121",
+      "bytes": 1756,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
