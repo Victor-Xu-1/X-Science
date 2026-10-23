@@ -1083,7 +1083,7 @@
       "research-resources": "科研资源 — Grants.gov 资助机会检索、Antibody Registry 抗体查询。",
       "x-science-research": "独立 X-Science 科研 MCP — 操作员验证信息的紧凑发现与受控执行。",
       "cancer-models": "癌症基因组队列 — cBioPortal 研究、突变、拷贝数改变与临床数据。",
-      "chemistry": "小分子化学 — PubChem 化合物/性质/相似性、ChEBI 本体与 Rhea 反应。",
+      "chemistry": "小分子化学 — PubChem 化合物/性质/相似性、ChEBI 本体、Rhea 反应与 BindingDB 亲和力；支持通过精确的 LMID 或 PubChem CID 查询 LIPID MAPS 脂质分类。",
       "human-genetics": "人类遗传关联 — GWAS Catalog、eQTL Catalogue、FinnGen/日本 BioBank PheWAS 表型。",
       "literature": "学术文献图谱 — OpenAlex 论文/作者/期刊/引用、arXiv 元数据。",
       "genomes": "基因组注释 — Ensembl REST 查找/序列/同源/VEP、UCSC Genome Browser 条带。",

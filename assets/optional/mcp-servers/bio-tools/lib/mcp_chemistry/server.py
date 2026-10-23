@@ -1,6 +1,6 @@
 """mcp-chemistry server — small-molecule chemistry retrieval.
 
-Clean tier-2 schemas over four accuracy-gated fleet packages:
+Clean tier-2 schemas over chemistry retrieval packages:
 
 * ``pubchem-compounds``    — PubChem PUG REST: identifier resolution,
   computed properties, synonyms, bioassay summaries, 2D similarity
@@ -15,6 +15,8 @@ Clean tier-2 schemas over four accuracy-gated fleet packages:
   companion COUNT query, so totals are always honest.
 * ``bindingdb-affinities`` — BindingDB REST: measured Ki/Kd/IC50/EC50 rows
   by UniProt target or by compound similarity.
+* ``lipidmaps``           — exact LMID or PubChem CID lookup, retaining
+  native lipid classification, available structure identifiers and attribution.
 
 This layer is marshalling only: retrieval, pacing, retries and totals live
 in the fleet packages. Listings are either complete or carry
@@ -25,10 +27,15 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
+from typing import Annotated, Literal
+
+from pydantic import Field
 
 from mcp_servers_common.mcp_compat import MCPServer
 from mcp_servers_common.gate import apply_gate_mcpserver
 from mcp.types import ToolAnnotations
+
+from .lipidmaps import CID_PATTERN, LMID_PATTERN, get_compound as _lipidmaps_compound
 
 # All tools are read-only retrieval (operon house rule: in-repo
 # bundled servers annotate every tool explicitly).
@@ -79,6 +86,36 @@ _EC_QUERY_RE = re.compile(r"^\d+\.\d+\.\d+\.n?\d+$")
 # (e.g. "2.1.1.-", "2.1.-.-", "2.1.1"). Checked AFTER the full-EC match, so a
 # complete EC never lands here (finding 3406986031).
 _PARTIAL_EC_QUERY_RE = re.compile(r"^\d+\.(?:\d+|-)(?:\.(?:\d+|-)){0,2}$")
+
+
+# ----------------------------------------------------------- LIPID MAPS ---
+
+@mcp.tool(annotations=READ_ONLY)
+async def lipidmaps_get_compound(
+    id_type: Literal["lm_id", "pubchem_cid"],
+    identifier: Annotated[str, Field(
+        strict=True, max_length=15,
+        pattern=f"^(?:{LMID_PATTERN}|{CID_PATTERN})$", examples=["LMFA01010001"],
+    )],
+) -> dict:
+    """Retrieve lipid classification and compound details from LIPID MAPS.
+
+    Args:
+        id_type: ``lm_id`` or ``pubchem_cid``; exact identifiers only.
+        identifier: exact LMID such as ``LMFA01010001`` or positive PubChem
+            CID string such as ``985``. Resolve names with PubChem first.
+
+    Returns ``{source, license, license_url, source_url, id_type, identifier,
+    total_matches, records_truncated, records}``, with at most five records
+    and the true match count. Native classification, structure strings and
+    database identifiers are preserved; absent/null fields remain unknown.
+    Generic or incompletely specified LMIDs are not unique experimentally
+    identified molecules. Retain all returned matches, attribution and links.
+    Empty records mean no database match, not biological absence. No names,
+    formula, abbreviation, mass or bulk search; upstream errors remain errors.
+    Data: LIPID MAPS, CC BY 4.0, https://www.lipidmaps.org/terms-of-use.
+    """
+    return await _lipidmaps_compound(id_type, identifier)
 
 
 # -------------------------------------------------------------- PubChem ---

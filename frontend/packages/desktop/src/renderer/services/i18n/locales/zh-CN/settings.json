@@ -901,7 +901,7 @@
     "drug-regulatory": "药品监管数据：申请、批准信息、药理分类、仿制药等效信息与 SPL 标签。",
     "research-resources": "科研资源：Grants.gov 资助机会检索与 Antibody Registry 抗体查询。",
     "cancer-models": "癌症基因组队列：cBioPortal 研究、突变、拷贝数变异与临床属性。",
-    "chemistry": "小分子化学：PubChem、ChEBI、Rhea 与 BindingDB 数据检索。",
+    "chemistry": "小分子化学：PubChem、ChEBI、Rhea 与 BindingDB 数据检索；支持通过精确的 LMID 或 PubChem CID 查询 LIPID MAPS 脂质分类。",
     "human-genetics": "人类遗传学关联：GWAS Catalog、eQTL Catalogue、FinnGen 与 BioBank Japan PheWAS。",
     "literature": "文献图谱：OpenAlex 论文、作者、期刊、引文与 arXiv 元数据。",
     "genomes": "基因组注释：Ensembl REST 检索、序列、同源性、VEP 与 UCSC 轨迹。",

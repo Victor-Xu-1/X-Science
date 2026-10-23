@@ -810,8 +810,8 @@
         },
         {
             "path": "lib/mcp_bio/domains.json",
-            "sha256": "7e79b243a576710c3f04927152441845b2880d80a19169889148b9ab81b28d11",
-            "bytes": 7261
+            "sha256": "94f732a3cb7be874d63a71e5e84ae140c56a4d01186286bcfc01f175015b2e80",
+            "bytes": 7291
         },
         {
             "path": "lib/mcp_bio/server.py",
@@ -919,9 +919,14 @@
             "bytes": 110
         },
         {
+            "path": "lib/mcp_chemistry/lipidmaps.py",
+            "sha256": "82f0fde960b761d4753989531ce762ade7d109fe055559a448f1bb4e75aca035",
+            "bytes": 6449
+        },
+        {
             "path": "lib/mcp_chemistry/server.py",
-            "sha256": "d0e0f956748795f5166bad13257a15641aaac97b2f011925c334d0c24064beff",
-            "bytes": 23673
+            "sha256": "fd5ed662f8cf72eeb66b2120b0a52d135ed86df0eaab1a354839bf7cff392da0",
+            "bytes": 25400
         },
         {
             "path": "lib/mcp_clinical_genomics/__init__.py",

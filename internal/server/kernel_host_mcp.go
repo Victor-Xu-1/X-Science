@@ -810,6 +810,10 @@ func compileKernelMCPInputValidator(_ context.Context, schema map[string]any) (*
 }
 
 func compileKernelDraft7Schema(schema map[string]any) (*jsonschema.Schema, error) {
+	return compileKernelDraft7SchemaWithRegexp(schema, compileKernelMCPECMARegexp())
+}
+
+func compileKernelDraft7SchemaWithRegexp(schema map[string]any, engine jsonschema.RegexpEngine) (*jsonschema.Schema, error) {
 	if dialect, ok := schema["$schema"].(string); ok && strings.TrimSpace(dialect) != "" {
 		normalized := strings.TrimSpace(dialect)
 		if normalized != "http://json-schema.org/draft-07/schema#" && normalized != "http://json-schema.org/draft-07/schema" {
@@ -827,7 +831,7 @@ func compileKernelDraft7Schema(schema map[string]any) (*jsonschema.Schema, error
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft7)
 	compiler.UseLoader(kernelMCPDenySchemaLoader{})
-	compiler.UseRegexpEngine(compileKernelMCPECMARegexp())
+	compiler.UseRegexpEngine(engine)
 	if err := compiler.AddResource("kernel-mcp-schema.json", normalizedSchema); err != nil {
 		return nil, err
 	}
@@ -883,10 +887,17 @@ func (expression *kernelMCPECMARegexp) String() string {
 }
 
 func compileKernelMCPECMARegexp() jsonschema.RegexpEngine {
+	return compileKernelMCPECMARegexpWithTimeout(0)
+}
+
+func compileKernelMCPECMARegexpWithTimeout(budget time.Duration) jsonschema.RegexpEngine {
 	return func(pattern string) (jsonschema.Regexp, error) {
 		expression, err := regexp2.Compile(pattern, regexp2.ECMAScript)
 		if err != nil {
 			return nil, err
+		}
+		if budget > 0 {
+			expression.MatchTimeout = budget
 		}
 		return &kernelMCPECMARegexp{expression: expression}, nil
 	}

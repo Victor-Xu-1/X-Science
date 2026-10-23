@@ -437,8 +437,8 @@ func TestBundledConnectorRosterMatchesVendoredMethodAuthority(t *testing.T) {
 			methodCount++
 		}
 	}
-	if methodCount != 244 {
-		t.Fatalf("bundled bio method count=%d, want 244", methodCount)
+	if methodCount != 245 {
+		t.Fatalf("bundled bio method count=%d, want 245", methodCount)
 	}
 	if _, found := connectors["bundled:ketcher-chemistry"]; !found {
 		t.Fatal("native Ketcher MCP App connector is missing")

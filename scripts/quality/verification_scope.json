@@ -467,6 +467,25 @@
       ]
     },
     {
+      "name": "chemistry-lipidmaps-contracts",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools/tests/test_lipidmaps_contract.py"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/mcpdirectory",
+        "x-science/internal/tools/mcpstdio"
+      ],
+      "frontend": false,
+      "checks": [
+        [
+          "python3",
+          "-B",
+          "assets/optional/mcp-servers/bio-tools/tests/test_lipidmaps_contract.py"
+        ]
+      ]
+    },
+    {
       "name": "optional-websearch-security-contract",
       "paths": [
         "scripts/optional/test_security_boundaries.py"

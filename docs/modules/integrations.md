@@ -77,6 +77,24 @@ Skill 的检索得分只是发现依据，不授予执行权限。MCP 的 runtim
 第三方作者、许可证、校验和与更新说明统一归入
 [Third-party inventory](../THIRD_PARTY.md)，不要把“加载来源”写成“原始作者”。
 
+## Exact lipid records · 脂质精确记录
+
+The existing Chemistry connector includes `lipidmaps_get_compound` for one
+exact LMID or positive PubChem CID string. Resolve names with its existing
+PubChem methods first. The result retains native classification, available
+structure/database identifiers, source/license links, the true match count and
+an explicit five-record display cap. Missing fields stay unknown; a generic
+LMID is not proof of a unique experimentally identified molecule. HTTP,
+malformed-data, byte-budget and deadline failures are errors, not “no match.”
+
+现有 Chemistry 连接器沿同一目录、启用状态、会话发现和逐方法权限提供此查询，
+不增加独立连接器或自动放行。只支持单个精确 LMID 或 PubChem CID 字符串，
+不支持名称、分子式、质量或批量搜索。数据来自
+[LIPID MAPS](https://www.lipidmaps.org/resources/rest)，依据其
+[CC BY 4.0 使用条款](https://www.lipidmaps.org/terms-of-use)保留归属和记录链接。
+请求最多读取100,000字节，并有25秒单次请求期限与取消清理；这是外部读取的边界，
+不是研究任务的总运行时限。空记录只表示数据库无匹配，不能推断生物学上的不存在。
+
 ## Focused verification · 验证入口
 
 从仓库根目录执行：
