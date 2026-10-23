@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { createKeyedSnapshotStore } from '@/renderer/services/keyedSnapshotStore';
+import { sessionDelegationIdentity } from '@/renderer/services/runtime/sessionDelegationPolicy';
 import {
   getRendererAccountOwnerId,
   getRendererAccountScopeToken,
@@ -102,6 +103,13 @@ export function readRecentConversationRouteDetail(
   )?.value;
   if (!snapshot?.detail || snapshot.detailRememberedAt === undefined) return undefined;
   if (Date.now() - snapshot.detailRememberedAt > maxAgeMs) return undefined;
+  const extra = snapshot.detail.extra as { backend?: unknown; workspace?: unknown } | undefined;
+  const isXScience =
+    (typeof extra?.backend === 'string' && extra.backend.trim().toLowerCase() === 'xscience') ||
+    (typeof extra?.workspace === 'string' && extra.workspace.startsWith('x-science://'));
+  // A summary-shaped create/legacy response can render immediately, but cannot
+  // suppress the one canonical detail read needed by identity-fenced controls.
+  if (isXScience && !sessionDelegationIdentity(normalizedOwnerId, snapshot.detail.id, extra)) return undefined;
   return snapshot.detail;
 }
 

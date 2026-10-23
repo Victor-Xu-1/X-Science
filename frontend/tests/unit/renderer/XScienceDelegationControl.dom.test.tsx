@@ -72,6 +72,17 @@ describe('authoritative delegation menu control', () => {
     expect(screen.getByTestId('session-config-row-autoReview')).not.toBeDisabled();
     expect(screen.getByRole('button', { name: '会话选项' }).querySelector('.bg-primary')).toBeNull();
   });
+  it('does not advertise an unrequested identity as a policy read in progress', async () => {
+    const row = await open({ enabled: undefined, pending: false, available: false, current: () => false });
+    expect(row).toHaveAttribute('aria-checked', 'mixed');
+    expect(row).toBeDisabled();
+    expect(row).not.toHaveAttribute('aria-busy', 'true');
+    expect(row).not.toHaveAttribute('title', expect.stringMatching(/Reading|正在读取/i));
+    expect(screen.getByTestId('session-config-row-autoReview')).not.toBeDisabled();
+    fireEvent.click(row);
+    expect(change).not.toHaveBeenCalled();
+    expect(localChange).not.toHaveBeenCalled();
+  });
   it('marks an explicit durable deny as customized instead of marking default allow', async () => {
     expect(await open({ enabled: false })).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByRole('button', { name: '会话选项' }).querySelector('.bg-primary')).not.toBeNull();

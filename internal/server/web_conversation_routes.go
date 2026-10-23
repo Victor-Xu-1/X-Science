@@ -149,11 +149,19 @@ func (s *Server) createWebConversation(w http.ResponseWriter, r *http.Request) {
 		writeWebConversationError(w, err)
 		return
 	}
+	// Navigation immediately uses this response to open identity-fenced session
+	// controls. Reuse the presentation projection, not a summary or a costly
+	// runtime bootstrap, so the new frame's actual incarnation is available.
+	conversation, err := webConversationPresentationSnapshot(frame, project.Name)
+	if err != nil {
+		writeWebConversationError(w, err)
+		return
+	}
 	if err := s.publishWebConversationListChange(userID, frame.ID, "created"); err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "conversation created but realtime delivery failed"})
 		return
 	}
-	writeWorkspaceJSON(w, http.StatusCreated, webConversation(frame, project.Name))
+	writeWorkspaceJSON(w, http.StatusCreated, conversation)
 }
 
 func (s *Server) createWebConversationRecord(

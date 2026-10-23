@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4519b509d6bf1949338c70eb275f844c5c6662b671962445229cba84ca63735e",
+  "adaptationFingerprintSHA256": "420cc8cc341edfdbf08e03de68248594161fd2a5e5dad33f330d8895c43d89b6",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "3ba13b916961a4bd4e599af17272772a1853e3cc3994409ced672d28f0a77219",
+  "additionFingerprintSHA256": "091758fc74d6ea0b3807ccd04abeea4ebdc026d170fc9f817cd4952d008a5939",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -2261,8 +2261,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/utils/conversationCache.ts",
       "sourceSHA256": "f446e1545e30f59ef41c178b285891bdedaa9e8c74349e86e7554b5427bc88cc",
-      "targetSHA256": "8b72eb5456b84edb2fd4de4b81a4ecbeb3a596bfeee928ed6eb5a84bed65e56f",
-      "bytes": 8669,
+      "targetSHA256": "02def25e2f990ae10b4a5aaae29e1eec8440a471ca389f89ac3bef1e359622ff",
+      "bytes": 9343,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -4970,8 +4970,8 @@
     {
       "path": "tests/unit/renderer/utils/conversationCache.test.ts",
       "sourceSHA256": "fe0627d87c5156b5ad0495d95142cc85c804cc2920b3bf6308113fd91347f352",
-      "targetSHA256": "a3170bf945a37f80aa6980801fd0ef9531dd2222dd3a6c0270378f9708b20e63",
-      "bytes": 14791,
+      "targetSHA256": "4719e06c03bf6bdbdfeaceb45c355a6446e03e5e1477653aa19cc8a67a27536e",
+      "bytes": 16122,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8463,8 +8463,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/xScience/runtime/useSessionDelegationPolicy.ts",
-      "sha256": "0e4ce7565d3f6fd279406f2270e059b7bb239d23e44e62e6f5922406bee25439",
-      "bytes": 3184,
+      "sha256": "df898ce0b7c669e1d58aaeea7d4c44011c7897d748ef0079cc1bb394a95982fb",
+      "bytes": 3265,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12717,8 +12717,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceDelegationControl.dom.test.tsx",
-      "sha256": "1b1881ff95c80c3113bce4a7642d18c5577f8959b6ffbdef57c9957d68a1be0d",
-      "bytes": 3173,
+      "sha256": "2dd1914d30a34f15d6ab7992c3e705260561f34ba0f2977bfae92d76ad19642f",
+      "bytes": 3824,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
