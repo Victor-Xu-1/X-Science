@@ -1,6 +1,6 @@
 """mcp-structures-interactions server — structural biology & molecular interactions.
 
-Clean tier-2 schemas over three accuracy-gated fleet packages:
+Clean tier-2 schemas over the existing fleet packages and bounded PDB searches:
 
 * ``emdb-meta``             — EMDB cryo-EM map *metadata* (entries, Solr search,
                               publication/map/sample/imaging sections, validation metrics)
@@ -8,13 +8,15 @@ Clean tier-2 schemas over three accuracy-gated fleet packages:
                               participant searches, total-verified pagination)
 * ``intact-interactions``   — IntAct binary interaction evidence (complete
                               MI-score-filtered sweeps, interactor details, networks)
-* ``pdb-structures``        — RCSB PDB entry/entity/ligand *metadata* (attribute
-                              search, capped+flagged against the API total)
+* ``pdb-structures``        — RCSB PDB entry/entity/ligand *metadata*, attribute
+                              and protein-sequence search, deposited-chain 3D
+                              similarity (no coordinate upload/download)
 * ``alphafold-structures``  — AlphaFold DB prediction metadata (pLDDT summaries,
                               model URLs — payloads never downloaded)
 
-This layer is marshalling only: retrieval, pacing (<=2 req/s per host),
-retries and count verification live in the fleet packages.
+This layer is marshalling only: existing fleet packages own retrieval, pacing,
+retries and count verification. The two native-async PDB searches use one bounded
+call for provider I/O, projection, cancellation and cleanup.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Literal
 
-from mcp_servers_common.mcp_compat import MCPServer
+from mcp_servers_common.contract_server import ContractMCPServer
 
 from mcp_servers_common.criteria import blank, reject_blank
 from mcp_servers_common.gate import apply_gate_mcpserver
@@ -55,8 +57,14 @@ from pdb_structures import (
     search_structures,
 )
 from alphafold_structures import fetch_coverage_records, fetch_prediction_record
+from pdb_structures.contracts import SEQUENCE_INPUT_SCHEMA, SIMILARITY_INPUT_SCHEMA
+from pdb_structures.sequence import search_sequence
+from pdb_structures.similarity import search_structure_similarity
 
-mcp = MCPServer("mcp-structures-interactions")
+mcp = ContractMCPServer("mcp-structures-interactions", input_schemas={
+    "pdb_search_sequence": SEQUENCE_INPUT_SCHEMA,
+    "pdb_search_structure_similarity": SIMILARITY_INPUT_SCHEMA,
+})
 
 
 # One client per backend per process; fleet clients pace and retry internally.
@@ -351,6 +359,62 @@ def intact_build_network(
 # --------------------------------------------------------------------------- #
 # RCSB PDB (pdb-structures)
 # --------------------------------------------------------------------------- #
+@mcp.tool(annotations=READ_ONLY)
+async def pdb_search_sequence(
+    sequence: str,
+    identity_cutoff: float = 0.3,
+    evalue_cutoff: float = 0.1,
+    min_query_coverage: float = 0.0,
+    max_candidates: int = 100,
+    max_rows: int = 10,
+) -> dict[str, Any]:
+    """Find experimental PDB entities by one ungapped protein sequence or FASTA.
+
+    Accepts 25..10000 amino acids, whitespace and lowercase. identity_cutoff
+    is a fraction 0..1, not a percentage. Coverage uses 1-based inclusive
+    query coordinates, not alignment length or resolved residues. Scan at
+    most max_candidates (1..1000), return at most max_rows (1..25), with only
+    alignments satisfying min_query_coverage. total_count is the upstream
+    count before coverage filtering; n_scanned/n_matched/n_returned and
+    truncated report the bounded scan honestly. asym_ids are label chain IDs;
+    auth_asym_ids are author IDs. Metadata 404 retains the match with unknown
+    chains. No coordinates are downloaded. Paging, metadata and at most two
+    transient retries share a 50-second budget within this runtime's outer
+    call deadline; failure is explicit, never an empty-success fallback.
+
+    Example: {"sequence":"MTEYKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQV","identity_cutoff":0.9,"min_query_coverage":0.8,"max_rows":10}
+    """
+    return await search_sequence(
+        sequence, identity_cutoff=identity_cutoff, evalue_cutoff=evalue_cutoff,
+        min_query_coverage=min_query_coverage, max_candidates=max_candidates,
+        max_rows=max_rows,
+    )
+
+
+@mcp.tool(annotations=READ_ONLY)
+async def pdb_search_structure_similarity(
+    pdb_id: str,
+    label_asym_id: str,
+    max_rows: int = 10,
+) -> dict[str, Any]:
+    """Find experimental PDB chains with similar 3D structures to a deposited chain.
+
+    Supply a four-character PDB ID and case-sensitive RCSB/mmCIF label_asym_id,
+    not the author chain ID; pdb_get_entities supplies both. RCSB's structure
+    embedding search uses global matching, predicted TM-score cutoff 0.8 and
+    10000 candidates. Returns upstream chain identifiers and relevance/raw
+    scores with real total_count and truncated; query-chain hits can appear.
+    Scores are not sequence identity, structural alignment, RMSD or a locally
+    computed TM-score, and are not proof of equal function. No coordinate
+    upload/download. One request, 25 seconds, at most 500000 response bytes,
+    no retry. Only HTTP 204 means no hits; provider and invalid-data errors
+    remain errors. max_rows is 1..50, default 10.
+
+    Example: {"pdb_id":"1CLL","label_asym_id":"A","max_rows":10}
+    """
+    return await search_structure_similarity(pdb_id, label_asym_id, max_rows=max_rows)
+
+
 @mcp.tool(annotations=READ_ONLY)
 def pdb_search_structures(
     text: str | None = None,
