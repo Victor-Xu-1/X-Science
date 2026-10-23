@@ -1,6 +1,6 @@
 """mcp-structures-interactions server — structural biology & molecular interactions.
 
-Clean tier-2 schemas over three accuracy-gated fleet packages:
+Clean tier-2 schemas over fleet packages and a bounded PDBe validation adapter:
 
 * ``emdb-meta``             — EMDB cryo-EM map *metadata* (entries, Solr search,
                               publication/map/sample/imaging sections, validation metrics)
@@ -12,17 +12,22 @@ Clean tier-2 schemas over three accuracy-gated fleet packages:
                               search, capped+flagged against the API total)
 * ``alphafold-structures``  — AlphaFold DB prediction metadata (pLDDT summaries,
                               model URLs — payloads never downloaded)
+* PDBe validation          — experimental-entry quality/statistics with method
+                              context; null metrics are never treated as zero
 
-This layer is marshalling only: retrieval, pacing (<=2 req/s per host),
-retries and count verification live in the fleet packages.
+This layer is marshalling only: existing fleet packages own their retrieval,
+pacing, retries and count verification; the PDBe adapter uses the shared
+bounded public EBI reader.
 """
 
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from mcp_servers_common.mcp_compat import MCPServer
+from pydantic import Field
+
+from mcp_servers_common.contract_server import ContractMCPServer
 
 from mcp_servers_common.criteria import blank, reject_blank
 from mcp_servers_common.gate import apply_gate_mcpserver
@@ -55,8 +60,10 @@ from pdb_structures import (
     search_structures,
 )
 from alphafold_structures import fetch_coverage_records, fetch_prediction_record
+from .pdbe import PDBE_INPUT_SCHEMA, PDB_ID_PATTERN, fetch_validation as fetch_pdbe_validation
 
-mcp = MCPServer("mcp-structures-interactions")
+mcp = ContractMCPServer("mcp-structures-interactions",
+                        input_schemas={"pdbe_get_validation": PDBE_INPUT_SCHEMA})
 
 
 # One client per backend per process; fleet clients pace and retry internally.
@@ -608,6 +615,26 @@ def pdb_select_latest_liganded_structure(
         "exclude_common_crystallization_components": exclude_common_crystallization_components,
     }
     return result
+
+
+# --------------------------------------------------------------------------- #
+# PDBe experimental-entry validation
+# --------------------------------------------------------------------------- #
+@mcp.tool(annotations=READ_ONLY)
+async def pdbe_get_validation(
+    pdb_id: Annotated[str, Field(strict=True, pattern=PDB_ID_PATTERN, max_length=4,
+                                examples=["1cbs"])],
+) -> dict[str, Any]:
+    """PDBe quality scores and key statistics for one experimental PDB entry.
+
+    Returns source/entry URLs, title and experimental method, nullable quality
+    scores, and native validation statistics with string percentages. Preserve
+    null metrics and unknown data availability: neither is zero or proof of
+    poor quality. A confirmed missing entry/report is distinct from an HTTP,
+    malformed-response or timeout error. Scores are not a universal ranking
+    across methods; no predicted models or residue-level reports are provided.
+    """
+    return await fetch_pdbe_validation(pdb_id)
 
 
 # --------------------------------------------------------------------------- #

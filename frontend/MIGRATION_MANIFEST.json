@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4519b509d6bf1949338c70eb275f844c5c6662b671962445229cba84ca63735e",
+  "adaptationFingerprintSHA256": "693b44792dad533ad5d1279839dcf4eccc76a36f2369ebb82fb2c771257ae17f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "3ba13b916961a4bd4e599af17272772a1853e3cc3994409ced672d28f0a77219",
   "summary": {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "649a20e42cef456bd9eb6d7acaef60abdf8667f1f1305e8e8f89234e0ffbb49b",
-      "bytes": 114288,
+      "targetSHA256": "12992df66a3abb0f83cb0ff5a7036db231dbab0ecd16276222a68e28fcb0ddca",
+      "bytes": 114380,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2931,8 +2931,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "1f462d8d88de4d81719a3cd800bbc540eb52c2429cb035cea5490b92fdb46750",
-      "bytes": 138752,
+      "targetSHA256": "4a04359d0c76ab02d6cf0b90ed59f6f6d4eb852bab8b3652ce01d0618402146f",
+      "bytes": 138762,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "60aa787aa74c83fe3ffaa3345b6ba3e5d032e00a5f7e8615e5c1eb2dfd8f076b",
-      "bytes": 107756,
+      "targetSHA256": "4d7a4474aec71334a161cc79dd381b056634c2d607a039f4a9d90a6139140a53",
+      "bytes": 107856,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3022,7 +3022,7 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "bce3978683d38750704343dc7b31fe07df3c71f445dfc6a870945165c786747a",
+      "targetSHA256": "519d8783e5efa4c7c432a8d9ac14b1a87964888ed8dd66b79ff097a7b945d7c0",
       "bytes": 133453,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },

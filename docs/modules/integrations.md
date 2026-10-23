@@ -77,6 +77,34 @@ Skill 的检索得分只是发现依据，不授予执行权限。MCP 的 runtim
 第三方作者、许可证、校验和与更新说明统一归入
 [Third-party inventory](../THIRD_PARTY.md)，不要把“加载来源”写成“原始作者”。
 
+## Exact public EBI reads · EBI 精确查询
+
+The existing Structures & Interactions connector adds `pdbe_get_validation`
+for one experimental PDB entry, alongside its existing RCSB/AlphaFold/EMDB
+methods. It preserves experimental method, native nullable quality metrics,
+unknown data availability and percentage strings. A recognized absent entry
+is distinct from an existing entry whose validation report is unavailable;
+HTTP/malformed-data failures are not missing data. These summaries are not a
+universal ranking across experimental methods or validation of predictions.
+
+现有 Chemistry 连接器的 `unichem_map_compound` 只接受完整 InChIKey 或精确
+ChEMBL ID，保留每个匹配结构以及 PubChem/ChEMBL/ChEBI 的标识映射、真实数量、
+本地过滤数量和截断说明，不静默选出一个结构。无目标来源的映射不等于没有结构匹配；
+这些是 UniChem 收录的关联，不证明生物学等价或所有来源当前已同步。
+
+Both tools retain the same connector/session/permission, MCP execution and
+durable result owners. A declared input schema drives both tool discovery and
+direct-call validation using public SDK extension points; conditional fields
+and undeclared arguments cannot silently disappear. The SDK still owns actual
+execution/output/transport, and the original serving gate still removes
+deferred tools. No private SDK handler or separate permission path is installed.
+
+两个查询共用有界 EBI 读取：固定 HTTPS 端点、无跳转、保留宿主代理及 CA 策略，
+整个调用25秒（含 PDBe 的多请求）、取消与连接收尾均沿同一生命周期。PDBe 单响应
+最多100,000字节，UniChem 最多1,000,000字节；错误不伪装为空结果，也不自动重试。
+这不是研究任务的总运行时限。数据归属与使用规则见
+[EBI terms](https://www.ebi.ac.uk/about/terms-of-use)；不得把代码许可冒充数据许可。
+
 ## Focused verification · 验证入口
 
 从仓库根目录执行：
