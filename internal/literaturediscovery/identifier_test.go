@@ -58,6 +58,52 @@ func TestExactProviderIDUsesUniqueNormalizedIdentityPriority(t *testing.T) {
 	}
 }
 
+func TestNormalizeIdentifierPreservesBalancedDOISuffixes(t *testing.T) {
+	for _, test := range []struct{ raw, want string }{
+		{"10.1000/foo(bar)", "10.1000/foo(bar)"},
+		{"https://doi.org/10.1000/FOO(bar(baz))", "10.1000/foo(bar(baz))"},
+		{"doi:10.1000/foo[part]", "10.1000/foo[part]"},
+		{"10.1000/foo{part}", "10.1000/foo{part}"},
+		{"10.1000/foo(bar)).", "10.1000/foo(bar)"},
+		{"10.1000/foo[part]];", "10.1000/foo[part]"},
+		{"10.1000/foo(part)[other]", "10.1000/foo(part)[other]"},
+		{"10.1000/plain).", "10.1000/plain"},
+		{"10.1000/foo(bar) .", "10.1000/foo(bar)"},
+		{"10.1000/plain .", "10.1000/plain"},
+		{"10.1000/plain" + strings.Repeat(")", 90000), "10.1000/plain"},
+	} {
+		got, valid := NormalizeIdentifier(Identifier{Scheme: "doi", Value: test.raw})
+		if !valid || got.Value != test.want {
+			t.Errorf("DOI suffix changed: got %q, want %q", got.Value, test.want)
+		}
+	}
+}
+
+func TestFinderBalancedDOIIdentityRoundTrip(t *testing.T) {
+	reference := testReference()
+	reference.Identifiers = []Identifier{{Scheme: "doi", Value: "10.1000/SEED(part)"}}
+	seed, child := testPaper(testSeedID), testPaper(testChildID)
+	seed["externalIds"] = map[string]any{"DOI": "10.1000/SEED(part)"}
+	child["externalIds"] = map[string]any{"DOI": "10.1000/CHILD[part]"}
+	finder, calls := testFinder(t, reference, testResponse(testJSON(t, seed), 200),
+		testResponse(testJSON(t, map[string]any{"offset": 0, "data": []any{map[string]any{"citedPaper": child}}}), 200))
+	result, err := finder.Run(context.Background(), "owner", testRequest())
+	if err != nil || result.State != "ready" || len(*calls) != 2 || result.Seed == nil || len(result.Records) != 1 {
+		t.Fatalf("related lookup failed: %#v / %v", result, err)
+	}
+	if got := (*calls)[0].URL.Path; got != "/graph/v1/paper/DOI:10.1000/seed(part)" {
+		t.Errorf("provider lookup used changed identity: %q", got)
+	}
+	for _, test := range []struct {
+		record Record
+		want   string
+	}{{*result.Seed, "10.1000/seed(part)"}, {result.Records[0], "10.1000/child[part]"}} {
+		if len(test.record.Identifiers) != 1 || test.record.Identifiers[0].Value != test.want {
+			t.Errorf("provider result changed DOI: %#v, want %q", test.record.Identifiers, test.want)
+		}
+	}
+}
+
 func TestFinderRejectsMalformedCallerAndNonzeroUnresolvedPage(t *testing.T) {
 	for _, change := range []func(*Request){
 		func(request *Request) { request.ItemID = " " },

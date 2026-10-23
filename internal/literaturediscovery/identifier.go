@@ -42,7 +42,7 @@ func NormalizeIdentifier(input Identifier) (Identifier, bool) {
 		if match := doiCopyright.FindStringIndex(value[start:]); match != nil {
 			value = value[:start+match[0]]
 		}
-		value = strings.ToLower(strings.TrimSpace(strings.TrimRight(value, ".,;:)}]")))
+		value = strings.ToLower(strings.TrimSpace(trimDOICitationSuffix(strings.TrimSpace(value))))
 		valid = doiValue.MatchString(value)
 	case "pmid":
 		value = pmidPrefix.ReplaceAllString(value, "")
@@ -83,6 +83,31 @@ func lastLineBreak(value string) int {
 		}
 	}
 	return last
+}
+
+// Citation punctuation may follow a DOI, but balanced suffix brackets are
+// part of its identity. Count once so long pasted tails remain linear-time.
+func trimDOICitationSuffix(value string) string {
+	unmatched := map[byte]int{
+		')': strings.Count(value, ")") - strings.Count(value, "("),
+		']': strings.Count(value, "]") - strings.Count(value, "["),
+		'}': strings.Count(value, "}") - strings.Count(value, "{"),
+	}
+	for len(value) > 0 {
+		last := value[len(value)-1]
+		switch last {
+		case '.', ',', ';', ':':
+		case ')', ']', '}':
+			if unmatched[last] <= 0 {
+				return value
+			}
+			unmatched[last]--
+		default:
+			return value
+		}
+		value = value[:len(value)-1]
+	}
+	return value
 }
 
 func exactProviderID(reference Reference) string {
