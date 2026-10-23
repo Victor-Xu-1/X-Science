@@ -37,6 +37,23 @@ func (r *Repository) AppendRunnerEvent(ctx context.Context, input AppendEventInp
 }
 
 func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) (Event, FinishReceipt, bool, error) {
+	var event Event
+	var receipt FinishReceipt
+	var created bool
+	err := r.RunImmediate(ctx, func(tx *ImmediateTransaction) error {
+		var err error
+		event, receipt, created, err = tx.FinishRunner(ctx, input)
+		return err
+	})
+	return event, receipt, created, schemaError(err)
+}
+
+// FinishRunner composes the existing terminal authority with typed workspace
+// mutations on the same immediate connection. It does not schedule optional work.
+func (tx *ImmediateTransaction) FinishRunner(ctx context.Context, input FinishRunnerInput) (Event, FinishReceipt, bool, error) {
+	if tx == nil || tx.repository == nil || tx.conn == nil {
+		return Event{}, FinishReceipt{}, false, ErrSchemaUnavailable
+	}
 	input.ClientMessageID = strings.TrimSpace(input.ClientMessageID)
 	input.Status = strings.TrimSpace(input.Status)
 	if input.ClientMessageID == "" || !terminalStatus(input.Status) {
@@ -48,15 +65,7 @@ func (r *Repository) FinishRunner(ctx context.Context, input FinishRunnerInput) 
 	if err := validatePayload(EventSourcePayload, input.PayloadJSON, nil); err != nil {
 		return Event{}, FinishReceipt{}, false, err
 	}
-	var event Event
-	var receipt FinishReceipt
-	var created bool
-	err := r.withImmediate(ctx, func(conn *sql.Conn) error {
-		var err error
-		event, receipt, created, err = r.finishRunnerConn(ctx, conn, input)
-		return err
-	})
-	return event, receipt, created, schemaError(err)
+	return tx.repository.finishRunnerConn(ctx, tx.conn, input)
 }
 
 // Shared transaction seam; only typed repository operations compose settlement.
