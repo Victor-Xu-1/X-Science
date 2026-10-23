@@ -195,9 +195,10 @@ func (f *Finder) pace(ctx context.Context) error {
 func retryAfter(now time.Time, value string) time.Time {
 	wait := time.Minute
 	if seconds, err := strconv.ParseUint(strings.TrimSpace(value), 10, 64); err == nil {
-		// Clamp before converting to Duration to prevent overflow.
+		// Reject the oversized conversion path explicitly; only 0..300 can
+		// reach the signed Duration conversion and nanosecond multiplication.
 		if seconds > 300 {
-			seconds = 300
+			return now.Add(5 * time.Minute)
 		}
 		wait = time.Duration(seconds) * time.Second
 	} else if date, err := http.ParseTime(value); err == nil {

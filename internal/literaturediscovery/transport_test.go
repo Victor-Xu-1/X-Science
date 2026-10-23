@@ -119,6 +119,36 @@ func TestFinderDoesNotFollowRedirectOrUseAmbientCookies(t *testing.T) {
 	}
 }
 
+func TestFinderRetryAfterConversionBoundaries(t *testing.T) {
+	now := time.Unix(1000000, 0).UTC()
+	for _, test := range []struct {
+		value string
+		want  time.Duration
+	}{
+		{"0", time.Second},
+		{"1", time.Second},
+		{"299", 299 * time.Second},
+		{"300", 5 * time.Minute},
+		{"301", 5 * time.Minute},
+		{"9223372036", 5 * time.Minute},
+		{"9223372037", 5 * time.Minute},
+		{"9223372036854775807", 5 * time.Minute},
+		{"9223372036854775808", 5 * time.Minute},
+		{"18446744073709551615", 5 * time.Minute},
+		{"18446744073709551616", time.Minute},
+		{"-1", time.Minute},
+		{"not-a-date", time.Minute},
+		{now.Add(-time.Hour).Format(http.TimeFormat), time.Second},
+		{now.Add(time.Hour).Format(http.TimeFormat), 5 * time.Minute},
+	} {
+		t.Run(test.value, func(t *testing.T) {
+			if got := retryAfter(now, test.value).Sub(now); got != test.want {
+				t.Fatalf("retry-after %q: got %v, want %v", test.value, got, test.want)
+			}
+		})
+	}
+}
+
 func TestFinderCancellationAndBoundedPacing(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
