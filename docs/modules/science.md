@@ -3,6 +3,27 @@
 本层把“需要什么科学软件和输入”转为受控的执行环境、进程和输出记录。
 它不把模型描述当作计算结果，也不保证目录中列出的每个可选引擎在当前机器上可用。
 
+## Related Library literature · 关联文献
+
+Library item details expose References and Cited by through the authenticated
+`POST /api/literature/related` query. The server reads the owner's current item
+and metadata revision before and after the public-provider request. Supported
+DOI, PMID, PMCID and arXiv identifiers resolve an exact seed; title-only matches
+require explicit confirmation. Temporary resolution tokens bind the owner,
+item, revision and direction, expire after fifteen minutes and do not grant
+access to attachment bytes or change Library membership.
+
+The same configured public-source network policy and owner-scoped Literature
+credential store supply the Semantic Scholar client. Anonymous lookup is
+supported when no key is configured. Provider requests have a thirty-second
+call budget, a two-MiB response limit and twenty-record pages. Cancellation,
+expired state, changed metadata, rate limiting and malformed responses are
+reported distinctly; a failed lookup is not a successful empty result.
+
+关联结果保留书目、作者、标识和来源，只表示发现的参考或被引记录，不证明论文结论
+或 PDF 可用。此查询展示链不修改文献库；候选收件箱和接受/忽略需要各自的持久化
+事务与操作回执。现有 Library 编辑、归属和 PDF 阅读权限仍沿原有链路。
+
 ## Find the implementation · 实现入口
 
 | 责任 | 源码入口 |

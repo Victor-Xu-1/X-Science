@@ -1,6 +1,8 @@
 import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
+import type { LiteratureDirection } from '@/common/adapter/literatureRelated';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LibraryRelatedLookup } from './LibraryRelatedLookup';
 
 /** Metadata/membership editing never owns the accepted PDF or its content. */
 export function LibraryItemEditor({
@@ -23,12 +25,25 @@ export function LibraryItemEditor({
     typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : ''
   );
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [relatedDirection, setRelatedDirection] = useState<LiteratureDirection | null>(null);
   const run = (command: LiteratureCommand): void => {
     void submit(command).then(close, (): undefined => undefined);
   };
   const included = item.project_ids.includes(projectId);
+  if (relatedDirection)
+    return (
+      <LibraryRelatedLookup item={item} initialDirection={relatedDirection} close={() => setRelatedDirection(null)} />
+    );
   return (
     <section className='pdf-library-editor' aria-label={t('conversation.reading.libraryDetails')}>
+      <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
+        <button type='button' disabled={busy} onClick={() => setRelatedDirection('references')}>
+          {t('conversation.reading.related.references')}
+        </button>
+        <button type='button' disabled={busy} onClick={() => setRelatedDirection('citations')}>
+          {t('conversation.reading.related.citations')}
+        </button>
+      </div>
       <label>
         {t('conversation.reading.libraryTitle')}
         <input value={title} maxLength={4096} disabled={busy} onChange={(event) => setTitle(event.target.value)} />

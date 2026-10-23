@@ -40,6 +40,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/literature"), "/"), "/")
+	if len(parts) == 1 && parts[0] == "related" && r.Method == http.MethodPost {
+		s.handleLiteratureRelated(w, r, owner)
+		return
+	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
 		limit := 20
 		var err error

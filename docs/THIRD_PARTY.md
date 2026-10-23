@@ -49,6 +49,14 @@ the corresponding Skill sources; external model and service terms are separate.
 | Go dependencies | `go.mod`, `go.sum` | Versioned Go modules | Compiled into release | Generated `SBOM.spdx.json` and `THIRD_PARTY_LICENSES.json` |
 | Frontend source | `frontend/` | Source import and migration manifests in that directory | Web renderer | `frontend/LICENSE` and `frontend/THIRD_PARTY_LICENSES.json`; release copies: `docs/licenses/frontend/LICENSE` and `docs/frontend-third-party-licenses.json` |
 
+Library References/Cited by discovery behavior is adapted with reference to
+[Open Science a4701c0](https://github.com/aipoch/open-science/tree/a4701c077f03d1013e3664a71d0399e8586122f5)
+(Apache-2.0). X-Science retains its Web owner/revision checks, existing Library
+and credential stores and configured public-source client. Public bibliographic
+responses are provided by the [Semantic Scholar Academic Graph API](https://www.semanticscholar.org/product/api)
+under its applicable service/data terms; source-code licensing does not grant
+rights to full-text articles. Query results are not downloaded PDF attachments.
+
 ## Retained Material With Unresolved Provenance
 
 The Shell grammar parser used by `internal/executionprep` is `mvdan.cc/sh/v3`
