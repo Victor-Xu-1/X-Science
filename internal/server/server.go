@@ -24,6 +24,7 @@ import (
 	compute "x-science/internal/compute"
 	"x-science/internal/datadir"
 	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/literaturediscovery"
 	"x-science/internal/mcpdirectory"
 	"x-science/internal/memoryconfig"
 	"x-science/internal/observability"
@@ -263,6 +264,8 @@ type Server struct {
 	workspaceEvents                       *workspaceEventHub
 	compatEvents                          *compatEventHub
 	httpClient                            *http.Client
+	literatureRelatedOnce                 sync.Once
+	literatureRelated                     *literaturediscovery.Finder
 	speechClientForURL                    func(context.Context, string, *http.Client) (*http.Client, error)
 	localSpeechRuntime                    *localSpeechRuntime
 	webImageClientForURL                  func(context.Context, string, *http.Client) (*http.Client, error)

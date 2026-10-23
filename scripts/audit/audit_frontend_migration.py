@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureRelated.ts": "Define and strictly decode the authenticated Go-owned Library related-literature query, explicit title-match confirmation and revision-bound pagination without importing or accepting candidates. Referenced Open Science a4701c0 literature-discovery contracts; original source attribution is retained in docs/THIRD_PARTY.md.",
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
     "packages/desktop/src/common/adapter/specialistBinding.ts": "Define the shared closed Specialist input-reference and frozen send-authority wire contract for IPC, queues and initial-message decoding; no execution or transport owner.",
     "packages/desktop/src/renderer/pages/conversation/components/DelegatedStopActions.tsx": "New React adapter for the reference compact separate selected-branch Stop/pending/error interaction; single-child Stop, receipt inspection and retry are X-Science extensions. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx. Single-child Stop and physical receipt recovery are X-Science additions, not copied reference controls.",
@@ -681,9 +682,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "4519b509d6bf1949338c70eb275f844c5c6662b671962445229cba84ca63735e"
+APPROVED_ADAPTATION_FINGERPRINT = "38e4f5c44005cd7f6e0d9c75f1139444d3da6961b54df9095333c9f81b760c6a"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "3ba13b916961a4bd4e599af17272772a1853e3cc3994409ced672d28f0a77219"
+APPROVED_ADDITION_FINGERPRINT = "f8ef3f681216713e5a2f5ded10ac4175cf224e228f69da703ab7a076d541e110"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
