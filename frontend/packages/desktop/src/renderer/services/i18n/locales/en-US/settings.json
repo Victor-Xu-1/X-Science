@@ -851,6 +851,11 @@
   "speechToTextStreamingBadge": "Live",
   "speechToTextWholeBadge": "Batch",
   "mcp": "MCP Integration",
+  "xScienceMcpPermissionsLoadError": "Tool permissions could not be loaded.",
+  "mcpBuiltinToolDescriptions": {
+    "pdb_search_sequence": "Search experimental PDB structures by protein sequence, sequence identity and query coverage; return entities, chains and alignment details.",
+    "pdb_search_structure_similarity": "Find experimental PDB chains with similar 3D structures using a deposited chain."
+  },
   "mcpBuiltinDescriptions": {
     "x-science-research": "Discover and call an operator-verified research capability pack through one MCP entry, without installing each source as a separate Skill.",
     "open-targets-official": "Official Open Targets service for target and disease evidence, tractability, safety, genetics, drug mechanisms and clinical candidates.",
@@ -868,7 +873,7 @@
     "regulation": "Gene regulation — ENCODE experiments, JASPAR transcription-factor matrices, and UniBind TFBS.",
     "protein-annotation": "Protein annotation — InterPro/Pfam domains, Human Protein Atlas, and STRING interaction networks.",
     "rna": "Non-coding RNA — Rfam families, seed alignments, covariance models, trees, and sequence regions.",
-    "structures-interactions": "Structures and molecular interactions — PDB, AlphaFold, EMDB, Complex Portal, and IntAct resources.",
+    "structures-interactions": "Structures and molecular interactions — PDB structures, protein sequence and 3D structural similarity searches, AlphaFold predictions, EMDB, Complex Portal, and IntAct resources.",
     "omics-archives": "Omics data archives — ArrayExpress/BioStudies, GEO, MGnify, and PRIDE proteomics projects.",
     "genes-ontologies": "Gene identity and ontologies — MyGene, OLS4, GO, UniProt, and Reactome pathways.",
     "drug-regulatory": "FDA drug data — applications, approvals, pharmacologic classes, generics, and SPL labels.",

@@ -260,6 +260,8 @@
     "pdb_get_ligands",
     "pdb_get_structures",
     "pdb_select_latest_liganded_structure",
+    "pdb_search_sequence",
+    "pdb_search_structure_similarity",
     "pdb_search_structures"
   ],
   "variants": [

@@ -9,6 +9,26 @@ import zhCNSettings from '../i18n/locales/zh-CN/settings.json';
 
 type McpDescriptionLocale = { mcpBuiltinDescriptions?: Record<string, string> };
 
+type McpToolDescriptionLocale = { mcpBuiltinToolDescriptions?: Record<string, string> };
+const BUILTIN_TOOL_DESCRIPTIONS = {
+  'en-US': (enUSSettings as McpToolDescriptionLocale).mcpBuiltinToolDescriptions ?? {},
+  'zh-CN': (zhCNSettings as McpToolDescriptionLocale).mcpBuiltinToolDescriptions ?? {},
+};
+
+/** Only the exact bundled connector owns these method descriptions. */
+export function resolveXScienceMcpToolDescription(
+  server: { id: string; source: string },
+  toolName: string,
+  fallback: string | undefined,
+  language: string | undefined
+): string {
+  if (server.id !== 'bundled:structures-interactions' || server.source !== 'bundled') return fallback ?? '';
+  const locale = language?.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US';
+  return Object.prototype.hasOwnProperty.call(BUILTIN_TOOL_DESCRIPTIONS[locale], toolName)
+    ? BUILTIN_TOOL_DESCRIPTIONS[locale][toolName]!
+    : (fallback ?? '');
+}
+
 const BUILTIN_MCP_DESCRIPTIONS = {
   'en-US': (enUSSettings as McpDescriptionLocale).mcpBuiltinDescriptions ?? {},
   'zh-CN': (zhCNSettings as McpDescriptionLocale).mcpBuiltinDescriptions ?? {},

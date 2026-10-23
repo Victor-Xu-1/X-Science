@@ -1076,7 +1076,7 @@
       "regulation": "Gene regulation — ENCODE experiments/files/biosamples, JASPAR transcription-factor binding matrices, UniBind TFBS.",
       "protein-annotation": "Protein annotation — InterPro/Pfam domains and families, Human Protein Atlas, STRING interaction networks.",
       "rna": "Non-coding RNA — Rfam families, seed alignments, covariance models, trees, sequence regions.",
-      "structures-interactions": "Structures and molecular interactions — PDB structures, AlphaFold predictions, EMDB cryo-EM entries, Complex Portal complexes, IntAct interaction networks.",
+      "structures-interactions": "Structures and molecular interactions — PDB structures, protein sequence and 3D structural similarity searches, AlphaFold predictions, EMDB, Complex Portal, and IntAct resources.",
       "omics-archives": "Omics data archives — ArrayExpress/BioStudies, GEO, MGnify, PRIDE proteomics projects.",
       "genes-ontologies": "Gene identity and ontologies — MyGene queries, OLS4 ontology terms, GO annotations (QuickGO), UniProt entries, Reactome pathways.",
       "drug-regulatory": "FDA drug data — Drugs@FDA applications, approvals, pharmacologic classes, generic equivalents, SPL drug labels.",
