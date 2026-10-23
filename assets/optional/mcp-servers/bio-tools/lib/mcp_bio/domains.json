@@ -52,6 +52,7 @@
     "chebi_get_entity",
     "chebi_get_ontology",
     "chebi_search",
+    "lipidmaps_get_compound",
     "pubchem_get_bioassay_summary",
     "pubchem_get_compounds",
     "pubchem_get_safety",

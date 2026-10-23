@@ -874,7 +874,7 @@
     "drug-regulatory": "FDA drug data — applications, approvals, pharmacologic classes, generics, and SPL labels.",
     "research-resources": "Research resources — Grants.gov funding opportunities and Antibody Registry lookups.",
     "cancer-models": "Cancer genomics cohorts — cBioPortal studies, mutations, copy-number changes, and clinical attributes.",
-    "chemistry": "Small-molecule chemistry — PubChem, ChEBI, Rhea, and BindingDB searches.",
+    "chemistry": "Small-molecule chemistry — PubChem, ChEBI, Rhea, and BindingDB searches; LIPID MAPS lipid classification by exact LMID or PubChem CID.",
     "human-genetics": "Human genetics associations — GWAS Catalog, eQTL Catalogue, FinnGen, and BioBank Japan PheWAS.",
     "literature": "Scholarly literature graph — OpenAlex works, authors, venues, citations, and arXiv metadata.",
     "genomes": "Genome annotation — Ensembl REST lookups, sequences, homology, VEP, and UCSC tracks.",

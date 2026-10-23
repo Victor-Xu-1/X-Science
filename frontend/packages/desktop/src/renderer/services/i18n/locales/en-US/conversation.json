@@ -1083,7 +1083,7 @@
       "research-resources": "Research resources — Grants.gov funding opportunity search, Antibody Registry lookups.",
       "x-science-research": "Independent X-Science research MCP — compact discovery and bounded execution of an operator-verified research capability pack without exposing each source as a separate Skill.",
       "cancer-models": "Cancer genomics cohorts — cBioPortal studies, mutations, copy-number alterations, clinical attributes.",
-      "chemistry": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities.",
+      "chemistry": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities, and LIPID MAPS lipid classification by exact LMID or PubChem CID.",
       "human-genetics": "Human genetics associations — GWAS Catalog, eQTL Catalogue, FinnGen/BioBank-Japan PheWAS portals.",
       "literature": "Scholarly literature graph — OpenAlex works/authors/venues/citations, arXiv metadata.",
       "genomes": "Genome annotation — Ensembl REST lookup/sequence/homology/VEP, UCSC Genome Browser tracks and conservation.",

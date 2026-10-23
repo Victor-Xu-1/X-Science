@@ -139,12 +139,13 @@
   },
   {
     "id": "bundled:chemistry", "name": "chemistry", "displayName": "Chemistry", "package": "mcp_chemistry",
-    "description": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities.",
+    "description": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities, and LIPID MAPS lipid classification by exact LMID or PubChem CID.",
     "upstreams": [
       {"name": "PubChem", "infoLabel": "Policies", "infoUrl": "https://www.ncbi.nlm.nih.gov/home/about/policies/"},
       {"name": "ChEBI", "license": "CC-BY-4.0", "infoUrl": "https://www.ebi.ac.uk/chebi/aboutChebiForward.do"},
       {"name": "Rhea", "license": "CC-BY-4.0", "termsUrl": "https://www.rhea-db.org/help/license-disclaimer"},
-      {"name": "BindingDB", "license": "CC-BY-3.0 / CC-BY-SA-3.0", "infoUrl": "https://www.bindingdb.org/rwd/bind/info.jsp"}
+      {"name": "BindingDB", "license": "CC-BY-3.0 / CC-BY-SA-3.0", "infoUrl": "https://www.bindingdb.org/rwd/bind/info.jsp"},
+      {"name": "LIPID MAPS", "license": "CC-BY-4.0", "termsUrl": "https://www.lipidmaps.org/terms-of-use"}
     ]
   },
   {

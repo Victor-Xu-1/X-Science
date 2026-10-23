@@ -49,6 +49,14 @@ the corresponding Skill sources; external model and service terms are separate.
 | Go dependencies | `go.mod`, `go.sum` | Versioned Go modules | Compiled into release | Generated `SBOM.spdx.json` and `THIRD_PARTY_LICENSES.json` |
 | Frontend source | `frontend/` | Source import and migration manifests in that directory | Web renderer | `frontend/LICENSE` and `frontend/THIRD_PARTY_LICENSES.json`; release copies: `docs/licenses/frontend/LICENSE` and `docs/frontend-third-party-licenses.json` |
 
+The first-party Chemistry adapter retrieves exact records from the external
+[LIPID MAPS REST service](https://www.lipidmaps.org/resources/rest); its dataset
+is not bundled with X-Science. Retrieved database records retain LIPID MAPS
+attribution, record links and its declared [CC BY 4.0 terms](https://www.lipidmaps.org/terms-of-use).
+These data terms are separate from the first-party adapter's Apache-2.0 license
+and do not establish scientific validity, complete structure identity or rights
+to unrelated third-party material.
+
 ## Retained Material With Unresolved Provenance
 
 The Shell grammar parser used by `internal/executionprep` is `mvdan.cc/sh/v3`
