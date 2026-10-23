@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4519b509d6bf1949338c70eb275f844c5c6662b671962445229cba84ca63735e",
+  "adaptationFingerprintSHA256": "e6d546a80f21f9681aa2aa04023044e1c1b4fc844825ac0e2aa5e239c37011c7",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "3ba13b916961a4bd4e599af17272772a1853e3cc3994409ced672d28f0a77219",
+  "additionFingerprintSHA256": "ee3915203621c80f3f56e69afb4f4be6fcbd57e3a406fe2ceb593dafaba1ffab",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1201
+    "addedFiles": 1202
   },
   "adaptations": [
     {
@@ -2507,8 +2507,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/ToolsSettings/McpPermissionsModal.tsx",
       "sourceSHA256": "c36c8889cd6a715f2db25483ca9360215c920bc0afa5d8d5baca196bee18d9bd",
-      "targetSHA256": "caa18b9422a25de7a36657ae788775cdb95840004d3d7844be42f92f0218f8d1",
-      "bytes": 7370,
+      "targetSHA256": "5828a7328abd89def41dd0d6c85fa09c4663f23dfa381d50c89ec20196d3ab23",
+      "bytes": 11207,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "037586fd2c1e823973950a7587494595fd558ac970b3a9775e472d4cd2f81406",
-      "bytes": 282939,
+      "targetSHA256": "78913006564e9eaeb56a5d7751418f024468279113de5bea3aea307b831353bc",
+      "bytes": 283122,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2882,8 +2882,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "649a20e42cef456bd9eb6d7acaef60abdf8667f1f1305e8e8f89234e0ffbb49b",
-      "bytes": 114288,
+      "targetSHA256": "fcd0623b8f8c5dab11750cdc91d43ee8dda934519cee80e78a6475456ed645b3",
+      "bytes": 114311,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2931,8 +2931,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "1f462d8d88de4d81719a3cd800bbc540eb52c2429cb035cea5490b92fdb46750",
-      "bytes": 138752,
+      "targetSHA256": "aaf3b1addaf8ab381c028ebfd0b6e0311fdbd98eeef199a5099b367e3fc9cb78",
+      "bytes": 139241,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2973,8 +2973,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "60aa787aa74c83fe3ffaa3345b6ba3e5d032e00a5f7e8615e5c1eb2dfd8f076b",
-      "bytes": 107756,
+      "targetSHA256": "e9605525410c5dfa603f0ba3e0f88a2a7ae02e76e6f1b5bc2bca19632d9f416c",
+      "bytes": 107810,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3022,8 +3022,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "bce3978683d38750704343dc7b31fe07df3c71f445dfc6a870945165c786747a",
-      "bytes": 133453,
+      "targetSHA256": "e18e45d41efc5531aa1148ac76678d34abe149cc1f5ad76bfd0b60de75bbc551",
+      "bytes": 133892,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },
     {
@@ -3153,8 +3153,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceCapabilities.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedCapabilities.ts",
       "sourceSHA256": "5802a108f6a91475b7e428abfa89e0efa07ef36a9a2d4545c0f0a8e721434029",
-      "targetSHA256": "8cb36c6a6fc72a387f2b99d6ac7618bc12f6f2a650e0c8f15168790eb7ff348c",
-      "bytes": 22855,
+      "targetSHA256": "305f4b64046f1e9b5e2c460b33ea823a0eb1cbe551890739b52a46c640d1d2ee",
+      "bytes": 23203,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -5450,8 +5450,8 @@
       "path": "tests/unit/xscience/mcpCapabilities.test.ts",
       "originalPath": "tests/unit/synonbiomed/mcpCapabilities.test.ts",
       "sourceSHA256": "6e2b73115885cb20740f4b167705d9345cb30d49f170a670ce0921d9b42b88a1",
-      "targetSHA256": "a8c3f126cee2956f7a036f214be0e996f72fb20bb85b63b5402a28fd7d337fa3",
-      "bytes": 4508,
+      "targetSHA256": "f48a48be52fafd80717aaa9d838c95aa621edf9fc90c8d02c45d28288b3c9f1f",
+      "bytes": 5959,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -10521,8 +10521,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/mcp/xScienceMcpDescriptions.ts",
-      "sha256": "0d3d7a2ba0f414503558c688384f6f70148f3c3b041e063d56d80075e09ba170",
-      "bytes": 1124,
+      "sha256": "6e1d7322e6e3b5e09e8e89f0ee3ad3934eb4f1e7162251dc99ff13d324f1839d",
+      "bytes": 2046,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13364,6 +13364,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/settings/McpPermissionsModal.dom.test.tsx",
+      "sha256": "c7707cdf99165143fd746252f2df50042b1a89c8eabf62e7ea95ac8704f9cc66",
+      "bytes": 13897,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/shadowView.dom.test.tsx",
       "sha256": "c841a10c740cbb4557ddf2d44210e1e55fc2bd69ab7fb24976c412436d4b54b0",
       "bytes": 2256,
@@ -14163,8 +14169,8 @@
     },
     {
       "path": "tests/unit/xscience/mcpDescriptions.test.ts",
-      "sha256": "564522f2517237a95f4748545cb0b9aeb389983debc3e1e960d3b5daa239a26e",
-      "bytes": 1201,
+      "sha256": "8e57d28f6f8c5b0ac0936d3097ae39d7e10d7e0a2c203258744903d2cb90284f",
+      "bytes": 2900,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
