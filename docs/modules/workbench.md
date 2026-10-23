@@ -770,4 +770,30 @@ SMILES 是二维化学身份的权威，几何显示数据不能反向覆盖它�
 复制路径处理。取消弹窗不宣称已取消提交到服务端的保存，旧请求的完成或错误不能
 关闭、重置或标记为新弹窗的保存结果。模型 ID、服务地址及保存参数保持原有语义。
 
+## Library request ownership · Library 原请求所有权
+
+Library mutations retain the existing owner-scoped v1 pending envelope and server
+operation ledger. Updated same-origin pages use one owner-keyed native Web Lock
+only for synchronous fresh-read/compare/persist or settlement. Network requests
+never hold that lock. A different unresolved command is refused rather than
+overwriting its original operation; late ACKs, rejections and uncertain replies
+preserve any subsequently admitted request.
+
+Library 写入继续使用原账号 v1 待确认请求和服务端原回执权威，不增加另一套队列或数据库。
+同源且已升级的页面通过原生 Web Locks 原子保护短存储临界区；等待响应不占锁，
+失联后仍按原 operation ID、参数和 revision 重试。存储或锁恢复后，显式重试可继续
+原请求，随后才能提交新操作，不需要清空持久状态或另造请求。
+
+Lock acquisition is bounded to five seconds, cancelled on account changes, and
+checked again before touching storage. Missing native Web Locks or unavailable
+storage fails explicitly without sending a write; there is no unlocked fallback.
+This is a Web adaptation, not a claim about the reference desktop IPC mechanism.
+Old already-loaded pages must be refreshed to participate in the updated protocol;
+the new bundle cannot retroactively coordinate an uncooperative older client.
+
+获取锁最多等待五秒，账号切换会取消等待；迟到回调须重新核验取消状态和账号。
+缺少原生 Web Locks 或存储不可用时明确拒绝写入，不降级为不安全的内存互斥。
+此机制限同源升级页面；既有旧页面需刷新，但地址、存储格式和服务端权限保持不变。
+平台语义参见 [Web Locks API](https://www.w3.org/TR/web-locks/)。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)
