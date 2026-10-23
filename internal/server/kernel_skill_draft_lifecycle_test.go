@@ -39,6 +39,20 @@ func (fixture *kernelSkillDraftFixture) call(method string, args ...any) (any, e
 	})
 }
 
+// Existing lifecycle fixtures explicitly review their current draft before a
+// publish. Raw call remains available to test missing/stale preconditions.
+func (fixture *kernelSkillDraftFixture) publishReviewed(name string, overwrite bool) (any, error) {
+	reviewed, err := fixture.call("host.skills.validate", name)
+	if err != nil {
+		return nil, err
+	}
+	revision := stringValue(mapValue(reviewed)["draft_revision"])
+	if !skillDraftRevisionPattern.MatchString(revision) {
+		return nil, fmt.Errorf("draft could not be reviewed: %#v", reviewed)
+	}
+	return fixture.call("host.skills.publish", name, overwrite, revision)
+}
+
 func kernelSkillManifestForTest(name, body string) string {
 	return "---\nname: " + name + "\ndescription: Bounded synthetic Skill fixture.\n---\n\n" + body + "\n"
 }
@@ -118,7 +132,7 @@ func TestKernelSkillValidateChecksPackageWithoutExecutingHelpers(t *testing.T) {
 	if _, found := findCatalogSkill(fixture.server.skillCatalog, name); found {
 		t.Fatal("validation published the draft")
 	}
-	if _, err := fixture.call("host.skills.publish", name, false); err != nil {
+	if _, err := fixture.publishReviewed(name, false); err != nil {
 		t.Fatal(err)
 	}
 	published, found := findCatalogSkill(fixture.server.skillCatalog, name)
@@ -154,7 +168,7 @@ func TestKernelSkillValidateChecksPackageWithoutExecutingHelpers(t *testing.T) {
 			if err != nil || mapValue(report)["valid"] != false || strings.Contains(fmt.Sprint(report), "Private fixture text") {
 				t.Fatalf("invalid package validation=%#v err=%v", report, err)
 			}
-			if _, err := fixture.call("host.skills.publish", name, true); err == nil {
+			if _, err := fixture.publishReviewed(name, true); err == nil {
 				t.Fatal("invalid draft was published")
 			}
 			current, err := os.ReadFile(published.Path)
@@ -203,14 +217,14 @@ func TestKernelSkillPublishedEditRemainsDraftUntilExplicitValidatedPublish(t *te
 	if err != nil || !strings.Contains(stringValue(mapValue(read)["content"]), "Updated draft workflow.") {
 		t.Fatalf("author read=%#v err=%v", read, err)
 	}
-	if _, err := fixture.call("host.skills.publish", name, false); err == nil {
+	if _, err := fixture.publishReviewed(name, false); err == nil {
 		t.Fatal("publish overwrote an existing package without explicit overwrite")
 	}
 	live, err = os.ReadFile(livePath)
 	if err != nil || string(live) != manifest {
 		t.Fatalf("conflicted publish changed original=%q err=%v", live, err)
 	}
-	if _, err := fixture.call("host.skills.publish", name, true); err != nil {
+	if _, err := fixture.publishReviewed(name, true); err != nil {
 		t.Fatal(err)
 	}
 	live, err = os.ReadFile(livePath)

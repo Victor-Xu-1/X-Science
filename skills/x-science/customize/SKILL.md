@@ -152,7 +152,7 @@ host.skills.edit(name, path, content, old_string=None)
 #                   matches exactly once — add surrounding context if needed)
 # → {"action", "path", "draft_path", "note"}
 
-host.skills.publish(name, overwrite=False)
+host.skills.publish(name, overwrite=False, expected_draft_revision=reviewed["draft_revision"])
 # publish takes NO content args — write SKILL.md via .edit() first.
 # → {"status": "published", "skill_id", "name", "note"}
 
@@ -352,15 +352,20 @@ description: ...
 host.skills.edit("my-skill", "kernel.py", "def helper(x): ...\n")
 
 # inspect / iterate
-print(host.skills.read("my-skill")["content"])
-print(host.skills.validate("my-skill"))
+reviewed = host.skills.read("my-skill")
+print(reviewed["content"])
+validated = host.skills.validate("my-skill")
+assert validated["valid"] and validated["draft_revision"] == reviewed["draft_revision"]
 
 # publish to the live skill set
-host.skills.publish("my-skill")
-print(host.skills.read("my-skill")["content"])
+published = host.skills.publish("my-skill", expected_draft_revision=reviewed["draft_revision"])
+print(host.skills.read(published["skill_id"])["content"])
 ```
 
 New drafts are author-visible but excluded from normal discovery and invocation.
+Retain the revision of the content the user reviewed. A changed or missing
+revision rejects publication without changing the draft or installed package;
+read and review again rather than automatically substituting the latest token.
 Editing a published personal Skill creates a separate draft; it does not alter
 the live package until explicit publication. A same-name live package requires
 an explicit overwrite decision. Do not modify an unrelated Skill to avoid a
@@ -475,5 +480,5 @@ default, `_`-prefixed name, top-level call) surfaces immediately. When the
 probe can't judge (interpreter unavailable, or the source doesn't parse
 under the host's interpreter — possible version drift), the key is absent
 and `note` says why. Iterate against that; don't load the skill just to
-test the sidecar. `host.skills.publish` refuses only on a structural
-reject.
+test the sidecar. `host.skills.publish` also requires the unchanged reviewed
+draft revision, current write authority, and explicit overwrite for replacement.

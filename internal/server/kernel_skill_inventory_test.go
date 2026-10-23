@@ -24,7 +24,7 @@ func TestKernelSkillReadManifestInventoryUsesSelectedPackage(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	published, err := fixture.call("host.skills.publish", name, false)
+	published, err := fixture.publishReviewed(name, false)
 	if err != nil {
 		t.Fatal(err)
 	}

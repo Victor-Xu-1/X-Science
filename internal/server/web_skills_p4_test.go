@@ -80,8 +80,9 @@ Use the real directory skill.`
 	if !webSkillTestStringArrayContains(drafts["drafts"], "p4-directory-copy") {
 		t.Fatalf("drafts=%#v", drafts)
 	}
+	reviewedDraft := compatJSONRequest(t, app, http.MethodGet, "/api/skills/catalog/p4-directory-copy/content?source=draft", userID, nil, http.StatusOK)
 	published := compatJSONRequest(t, app, http.MethodPost, "/api/skills/p4-directory-copy/publish", userID, map[string]any{
-		"overwrite": false,
+		"overwrite": false, "expected_draft_revision": reviewedDraft["draft_revision"],
 	}, http.StatusOK)
 	if published["published"] != true {
 		t.Fatalf("published=%#v", published)

@@ -301,7 +301,7 @@ export function SkillDetailModal({
   const [copyName, setCopyName] = useState('');
   const mode = `${draft}:${editable}`;
   const session = useSkillDetailSession(skill?.name, visible, mode);
-  const editor = useSkillDetailFiles(session, skill?.name, visible, mode);
+  const editor = useSkillDetailFiles(session, skill?.name, visible, mode, draft);
   const { files, path, content, original: originalContent, loading, setContent, selectFile } = editor;
   const mutations = useSkillDetailMutations({
     session,
@@ -334,6 +334,8 @@ export function SkillDetailModal({
   const presentedSkill = presentation?.skill ?? null;
   const presentedDraft = presentation?.draft ?? false;
   const presentedEditable = presentation?.editable ?? false;
+  const detailFailure =
+    mutations.failure ?? (presentedDraft && editor.ready && !editor.draftRevision ? 'draftReviewRequired' : null);
 
   const footer = presentedDraft ? (
     <div className='flex flex-wrap justify-between gap-8px'>
@@ -349,7 +351,12 @@ export function SkillDetailModal({
         <Button loading={saving} disabled={!canWrite} onClick={() => void mutations.run('save')}>
           {t('common.save')}
         </Button>
-        <Button type='primary' loading={saving} disabled={!canWrite} onClick={() => void mutations.run('publish')}>
+        <Button
+          type='primary'
+          loading={saving}
+          disabled={!canWrite || !mutations.canPublish}
+          onClick={() => void mutations.run('publish')}
+        >
           {t('settings.skillsSettings.modals.detail.publish')}
         </Button>
       </div>
@@ -408,10 +415,10 @@ export function SkillDetailModal({
       >
         {contextHolder}
         <div className='flex min-h-420px flex-col gap-18px' data-testid='skill-detail-modal'>
-          {mutations.failure && !copyVisible && (
+          {detailFailure && !copyVisible && (
             <div className='flex items-center justify-between gap-12px'>
               <p role='alert' className='m-0 text-12px text-[rgb(var(--danger-6))]'>
-                {t(`settings.skillsSettings.modals.detail.${mutations.failure}`)}
+                {t(`settings.skillsSettings.modals.detail.${detailFailure}`)}
               </p>
               {mutations.needsRefresh && (
                 <Button disabled={mutations.busy} onClick={() => void mutations.retryRefresh()}>
@@ -448,6 +455,15 @@ export function SkillDetailModal({
               <h3 className='m-0 text-14px font-semibold text-t-primary'>
                 {t('settings.skillsSettings.modals.detail.files')}
               </h3>
+              {presentedDraft && (
+                <Button
+                  size='small'
+                  disabled={!visible || loading || mutations.busy || mutations.needsRefresh}
+                  onClick={() => void mutations.reloadDraft()}
+                >
+                  {t('common.reload')}
+                </Button>
+              )}
               {files.length > 1 ? (
                 <Select
                   value={path}

@@ -43,15 +43,21 @@ host.skills.list()                          # all skills + drafts
 host.skills.read(name, path="SKILL.md")     # → {"name","path","content"}
 host.skills.edit(name, path, content,       # create a missing file (old_string=None)
                  old_string=None)           #   or str_replace one match
-host.skills.validate(name)                   # structure only; never executes helpers
-host.skills.publish(name, overwrite=False)  # promote draft → live skill set
+reviewed = host.skills.read(name)            # retain the exact reviewed package identity
+validated = host.skills.validate(name)       # structure only; never executes helpers
+assert validated["valid"] and validated["draft_revision"] == reviewed["draft_revision"]
+host.skills.publish(name, overwrite=False,
+                    expected_draft_revision=reviewed["draft_revision"])
 ```
 
 Everything below that says "write SKILL.md" / "save test cases to
 `evals/evals.json`" / "ship `kernel.py`" means
 `host.skills.edit(name, <path>, <content>)`. Iterate with
 `edit(..., old_string=...)` for targeted patches instead of re-emitting whole
-files; confirm with `read(...)`. When the skill is ready, `publish(name)` makes
+files; confirm with `read(...)`. Retain that read's `draft_revision` with the
+reviewed content. A validation result must have the same revision; if another
+edit changed it, reread and review instead of silently substituting a new token.
+After explicit acceptance, `publish(name, expected_draft_revision=reviewed["draft_revision"])` makes
 it loadable by agents — then attach it to a profile with
 `host.agents.attach_skill(profile, name)`.
 
@@ -172,7 +178,8 @@ gate the load path runs — so a reject surfaces immediately. When the probe
 can't judge (interpreter unavailable, or the source doesn't parse under
 the host's interpreter — possible version drift), the key is absent and
 `note` says why. Iterate against that; don't load the skill just to test
-the sidecar. `host.skills.publish` refuses only on a structural reject.
+the sidecar. `host.skills.publish` also requires the unchanged reviewed draft
+revision, current write authority, and an explicit overwrite decision when replacing.
 
 #### Progressive Disclosure
 
@@ -537,7 +544,7 @@ old_string=old_description)`. Show the user before/after and report the scores.
 
 ### Package and Present (only if `present_files` tool is available)
 
-In X-Science, publishing is `host.skills.publish(name)` — that promotes the
+In X-Science, publishing is `host.skills.publish(name, expected_draft_revision=reviewed["draft_revision"])` — that promotes the
 draft into the live skill set so any agent can `skill({skill: <name>})` it. The
 packaging step below is for environments that ship `.skill` bundles instead.
 
