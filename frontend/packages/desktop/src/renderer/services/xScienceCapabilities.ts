@@ -343,7 +343,16 @@ export async function loadXScienceMcpToolPermissions(
   const payload = asRecord(
     await getJson<unknown>(`/api/mcp-servers/${encodeURIComponent(serverId)}/tool-permissions`, options)
   );
-  const tools = Array.isArray(payload?.tools) ? payload.tools : [];
+  // The compatibility API can return a discovery failure with HTTP200.
+  // Keep that failure distinct from a genuinely empty successful catalog.
+  if (
+    !payload ||
+    !Array.isArray(payload.tools) ||
+    (payload.error !== undefined && payload.error !== null && payload.error !== '')
+  ) {
+    throw new XScienceCapabilityError(200, 'MCP tool permissions are unavailable');
+  }
+  const tools = payload.tools;
   return {
     tools: tools.map(toMcpToolPermission).filter((tool): tool is XScienceMcpToolPermission => tool !== null),
     skipApprovalsActive: booleanValue(payload?.skipApprovalsActive),

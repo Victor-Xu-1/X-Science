@@ -810,8 +810,8 @@
         },
         {
             "path": "lib/mcp_bio/domains.json",
-            "sha256": "7e79b243a576710c3f04927152441845b2880d80a19169889148b9ab81b28d11",
-            "bytes": 7261
+            "sha256": "2cd51d69ba5bdf52c24013870d3383abca20ebdac88e75703e17cd4caf54a752",
+            "bytes": 7327
         },
         {
             "path": "lib/mcp_bio/server.py",
@@ -1144,6 +1144,11 @@
             "bytes": 195
         },
         {
+            "path": "lib/mcp_servers_common/contract_server.py",
+            "sha256": "39d71b5261a05ac1005dc98ae116117f69a5c580e34d33b84ba9eb8de994a1e3",
+            "bytes": 2272
+        },
+        {
             "path": "lib/mcp_servers_common/criteria.py",
             "sha256": "a4b833913cf47d2671a63ff7d562a971e49e0c04b16cb7338a5e453e34e67ae9",
             "bytes": 939
@@ -1205,8 +1210,8 @@
         },
         {
             "path": "lib/mcp_structures_interactions/server.py",
-            "sha256": "20a95803c5ff7ee38c6667b09c567e098bee4355e9d8bc6c032b99e23d3c0308",
-            "bytes": 29728
+            "sha256": "1967bc4cfd7f550ebe83666c1d0336fdcc856a000ad0688ac6f936a15debaaf5",
+            "bytes": 32963
         },
         {
             "path": "lib/mcp_variants/__init__.py",
@@ -1459,9 +1464,19 @@
             "bytes": 942
         },
         {
+            "path": "lib/pdb_structures/async_client.py",
+            "sha256": "7f8d3f2416327cc297585cd6d621a480fc9a4ed7e06a7626ba5f0cce0bb6818c",
+            "bytes": 6315
+        },
+        {
             "path": "lib/pdb_structures/client.py",
             "sha256": "fcefc7d9d5338454474714201fcb66d62abebc04112b9ac85c79933d958b1408",
             "bytes": 5309
+        },
+        {
+            "path": "lib/pdb_structures/contracts.py",
+            "sha256": "2bdfb624329eb29f74174b4099ba9b6912f2eb24dc48f2c518a18046eba6ebc1",
+            "bytes": 1412
         },
         {
             "path": "lib/pdb_structures/records.py",
@@ -1472,6 +1487,11 @@
             "path": "lib/pdb_structures/search.py",
             "sha256": "6f0d26d24c1f59917ad3b4f7c2c6e268e64f781971e5f2ed9c627cb1fe506d87",
             "bytes": 7406
+        },
+        {
+            "path": "lib/pdb_structures/search_validation.py",
+            "sha256": "1e5ffbe7edc3180b86b533f734241d8765e99b9d243ce40e3daf82d9c171e9dc",
+            "bytes": 2456
         },
         {
             "path": "lib/pdb_structures/selection.py",
@@ -1512,6 +1532,21 @@
             "path": "lib/pride_projects/search.py",
             "sha256": "dda35a590929ca8809a025a1e1f662c373008f347d7a36f704fe1af37ab80e7a",
             "bytes": 6234
+        },
+        {
+            "path": "lib/pdb_structures/sequence.py",
+            "sha256": "068a56d9001fc206430bea1ac8c0b337fac779c3fe617a043c2d0fa7818b7da3",
+            "bytes": 5506
+        },
+        {
+            "path": "lib/pdb_structures/sequence_records.py",
+            "sha256": "9c6b265f6288c4849a10b4035688303b74eaa0bb963e0a65c7ab24867f299928",
+            "bytes": 4949
+        },
+        {
+            "path": "lib/pdb_structures/similarity.py",
+            "sha256": "86aace904af43e0ecfea7176f1e1245e8d47e6fd6fb33f32ac6ba3e1fc8c2087",
+            "bytes": 4656
         },
         {
             "path": "lib/protein_atlas/__init__.py",

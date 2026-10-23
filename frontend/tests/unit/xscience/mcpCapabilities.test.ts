@@ -10,6 +10,40 @@ import {
 } from '@/renderer/services/xScienceCapabilities';
 
 describe('X-Science MCP capability service', () => {
+  it('rejects a tool permission discovery failure envelope instead of reporting an empty catalog', async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            tools: [],
+            skipApprovalsActive: false,
+            error: 'private provider diagnostic',
+          }),
+          { status: 200 }
+        )
+    );
+    await expect(
+      loadXScienceMcpToolPermissions('bundled:structures-interactions', { fetchImpl })
+    ).rejects.toMatchObject({ name: 'XScienceCapabilityError', message: 'MCP tool permissions are unavailable' });
+  });
+
+  it.each([null, {}, { tools: 'invalid' }])('rejects malformed tool permission catalogs: %j', async (payload) => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }));
+    await expect(
+      loadXScienceMcpToolPermissions('bundled:structures-interactions', { fetchImpl })
+    ).rejects.toMatchObject({ name: 'XScienceCapabilityError', message: 'MCP tool permissions are unavailable' });
+  });
+
+  it('retains a truly empty successful tool permission catalog', async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ tools: [], skipApprovalsActive: false }), { status: 200 })
+    );
+    await expect(loadXScienceMcpToolPermissions('bundled:structures-interactions', { fetchImpl })).resolves.toEqual({
+      tools: [],
+      skipApprovalsActive: false,
+    });
+  });
+
   it('normalizes real directory health payloads', async () => {
     const fetchImpl = vi.fn(
       async () =>

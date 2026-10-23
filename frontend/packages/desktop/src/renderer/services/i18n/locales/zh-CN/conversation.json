@@ -1076,7 +1076,7 @@
       "regulation": "基因调控 — ENCODE 实验/文件/生物样本、JASPAR 转录因子结合谱。",
       "protein-annotation": "蛋白注释 — InterPro/Pfam 结构域与家族、Human Protein Atlas、STRING 相互作用。",
       "rna": "非编码 RNA — Rfam 家族、种子比对、协方差模型、序列区域与树。",
-      "structures-interactions": "结构与分子相互作用 — PDB 结构、AlphaFold 预测、EMDB 冷冻电镜与分子相互作用。",
+      "structures-interactions": "结构与分子互作：PDB 结构、蛋白质序列与三维结构相似性检索，以及 AlphaFold 预测、EMDB、Complex Portal 和 IntAct 数据资源。",
       "omics-archives": "组学数据归档 — ArrayExpress/BioStudies、GEO、MGnify 与 PRIDE 蛋白组学项目。",
       "genes-ontologies": "基因标识与本体 — MyGene 查询、OLS4 本体术语、GO 注释（QuickGO）。",
       "drug-regulatory": "FDA 药品数据 — Drugs@FDA 申请、批准、药理类别与仿制药等效性。",
