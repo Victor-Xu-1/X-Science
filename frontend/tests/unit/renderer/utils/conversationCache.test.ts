@@ -294,6 +294,38 @@ describe('conversationCache', () => {
   });
 
   describe('route cache priming', () => {
+    it('does not let an incomplete XScience create handoff suppress the canonical detail read', () => {
+      const created = {
+        ...mockConversation,
+        id: 'conv-incomplete-create',
+        extra: { backend: 'xscience', root_frame_id: 'conv-incomplete-create' },
+      } as TChatConversation;
+
+      rememberConversationRouteSnapshot('owner-a', created, 'detail');
+
+      expect(readConversationRouteSnapshot('owner-a', created.id)).toBe(created);
+      expect(readRecentConversationRouteDetail('owner-a', created.id)).toBeUndefined();
+      expect(ipcBridge.conversation.get.invoke).not.toHaveBeenCalled();
+    });
+
+    it('retains the fast handoff for complete server-owned XScience identity', () => {
+      const created = {
+        ...mockConversation,
+        id: 'conv-complete-create',
+        extra: {
+          backend: 'xscience',
+          root_frame_id: 'conv-complete-create',
+          frame_incarnation_id: 'incarnation-from-server',
+        },
+      } as TChatConversation;
+
+      rememberConversationRouteSnapshot('owner-a', created, 'detail');
+
+      expect(readRecentConversationRouteDetail('owner-a', created.id)).toBe(created);
+      expect(readRecentConversationRouteDetail('owner-b', created.id)).toBeUndefined();
+      expect(ipcBridge.conversation.get.invoke).not.toHaveBeenCalled();
+    });
+
     it('never lets an older sidebar summary replace a newer detail snapshot', () => {
       const current = { ...mockConversation, modified_at: 20, name: 'new detail' } as TChatConversation;
       const candidate = { ...mockConversation, modified_at: 10, name: 'old sidebar' } as TChatConversation;

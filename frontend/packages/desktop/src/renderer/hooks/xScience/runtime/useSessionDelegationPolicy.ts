@@ -71,12 +71,14 @@ export function delegationControlPresentation(control?: XScienceDelegationContro
         ? 'conflict'
         : control?.error
           ? 'failed'
-          : control?.pending || checked === undefined
+          : control?.pending
             ? 'loading'
-            : control.hasLiveAttempts
-              ? 'live'
-              : checked
-                ? 'allow'
-                : 'deny';
+            : !current || !control?.available || checked === undefined
+              ? 'failed'
+              : control.hasLiveAttempts
+                ? 'live'
+                : checked
+                  ? 'allow'
+                  : 'deny';
   return { checked, disabled, reason };
 }
