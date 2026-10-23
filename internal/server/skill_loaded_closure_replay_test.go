@@ -14,7 +14,7 @@ import (
 	"x-science/internal/persistence/workspace"
 )
 
-func TestSkillLoadParameterizedReplayRequiresExplicitReloadEvenAfterEarlierEmptyLoad(t *testing.T) {
+func TestSkillLoadReceiptOnlyReplayRequiresExplicitReloadForParameterizedHistory(t *testing.T) {
 	fixture := newKernelSkillDraftFixture(t)
 	const name, args, filter = "parameterized-replay-fixture", "bounded invocation scope", "selected subset"
 	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", kernelSkillManifestForTest(name, "Actual scoped contract.")); err != nil {
@@ -33,6 +33,8 @@ func TestSkillLoadParameterizedReplayRequiresExplicitReloadEvenAfterEarlierEmpty
 	if err != nil || len(receipts) != 2 {
 		t.Fatalf("historical invocation receipts were lost: %d %v", len(receipts), err)
 	}
+	// Receipt-only replay has no authenticated original full source. The new
+	// source-aware runtime must not turn this lower-level path into authority.
 	filtered, keys, unavailable := selectedLoadedClosureFixture(t, fixture, name).forReplay(receipts, nil)
 	if len(filtered.contracts) != 0 || len(keys) != 0 || strings.Join(unavailable, ",") != name {
 		t.Fatal("earlier empty-scope receipt authorized a reconstructed empty context for a parameterized root")
