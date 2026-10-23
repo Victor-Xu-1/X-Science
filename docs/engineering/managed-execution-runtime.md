@@ -82,6 +82,38 @@ the current request's imports before returning success.
 
 ## Runtime authority
 
+### Directory discovery freshness
+
+`list_host_grants` returns the current owner's directory rows, recorded grant
+times and an opaque `snapshotRevision` calculated from that same snapshot.
+Discovery is not permission: the existing live grant checks, operator approval,
+kernel confinement fence and revocation remain the I/O authority.
+
+For an actual fresh ordinary user input, the main model request compares that
+snapshot with the latest original terminal discovery checkpoint on its active
+branch. It reads outside bounded provider replay, so compaction cannot turn a
+summary into discovery evidence. A changed revision adds one bounded, path-free
+refresh reminder to the request. Missing, failed, legacy or model-context-omitted
+discovery instead receives an explicit fresh-discovery reminder. No directory
+list is copied into the static system prompt. A current, complete result already
+present in model context can be reused without per-file re-querying.
+
+Only a real successful discovery committed by the normal tool-checkpoint owner
+refreshes that evidence. A queued HTTP acknowledgement, model response, notice,
+provider failure or cancellation advances no baseline. Later ordinary inputs may
+therefore be reminded again until discovery succeeds; unlike an accepted-notice
+cache, this does not equate a model accepting a prompt with discovering new
+directories. Automatic continuations, auxiliary calls and hidden controls do not
+consume a fresh ordinary-input reminder. Account, stream and live-claim fences
+also apply to the context read; a later queued input is not a scope switch.
+
+The projection adds no grant store, acknowledgement table, scheduler or retry
+loop. Unknown grant availability is stated conservatively rather than becoming
+a new gate on unrelated tasks; actual directory tools still return their real
+errors and enforce access normally.
+
+### Kernel execution
+
 Kernel proposals normalize task-owned environment aliases and registered runtime
 arguments before their checkpoint creates the immutable operation. The same
 gateway normalization governs dispatch; approval continues to compare the exact
