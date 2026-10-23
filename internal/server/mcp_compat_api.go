@@ -280,6 +280,7 @@ func (s *Server) handleMCPToolPermissionsCompatibility(w http.ResponseWriter, r 
 		response = append(response, map[string]any{
 			"toolName": tool.ToolName, "title": tool.ToolName,
 			"description": compatNilIfEmpty(tool.Description), "state": state,
+			"readOnlyHint": tool.ReadOnlyHint,
 		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tools": response, "skipApprovalsActive": false})
