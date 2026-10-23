@@ -35,7 +35,7 @@ func (client runnerHostGrantContextClient) prepare(ctx context.Context, request 
 		return request, nil
 	}
 	claim := client.run.Transcript.Claim
-	if claim.ResumeSource != transcriptstore.ResumeSourceFresh {
+	if claim.ResumeSource != transcriptstore.ResumeSourceFresh && claim.ResumeSource != transcriptstore.ResumeSourceUserInput {
 		return request, nil
 	}
 	available := false
@@ -75,11 +75,14 @@ func (client runnerHostGrantContextClient) prepare(ctx context.Context, request 
 	if len(discovery.PayloadJSON) > 0 && json.Unmarshal(discovery.PayloadJSON, &checkpoint) == nil &&
 		checkpoint["status"] == "completed" && checkpoint["toolPhase"] == "completed" && checkpoint["rejectedBeforeExecution"] != true &&
 		agentruntime.ClassifyToolResult(checkpoint["toolResult"]) == agentruntime.ToolResultSucceeded {
-		result := mapValue(checkpoint["toolResult"])
+		result, retainedNotice := client.discoveryContextResult(ctx, discovery, checkpoint)
+		if retainedNotice != "" {
+			notice = retainedNotice
+		}
 		revision, _ := result["snapshotRevision"].(string)
 		if current != nil && validHostGrantSnapshotRevision(revision) && revision != current["snapshotRevision"] {
 			notice = hostGrantContextChangedNotice
-		} else if current != nil && validHostGrantSnapshotRevision(revision) &&
+		} else if retainedNotice == "" && current != nil && validHostGrantSnapshotRevision(revision) &&
 			hostGrantDiscoveryInRequest(request, stringValue(checkpoint["toolCallId"]), result) {
 			if err := client.validateInput(ctx, input); err != nil {
 				return request, err

@@ -89,7 +89,8 @@ times and an opaque `snapshotRevision` calculated from that same snapshot.
 Discovery is not permission: the existing live grant checks, operator approval,
 kernel confinement fence and revocation remain the I/O authority.
 
-For an actual fresh ordinary user input, the main model request compares that
+For an actual new ordinary user input, including one dispatched after a prior
+interruption through the user-input resume source, the main model request compares that
 snapshot with the latest original terminal discovery checkpoint on its active
 branch. It reads outside bounded provider replay, so compaction cannot turn a
 summary into discovery evidence. A changed revision adds one bounded, path-free
@@ -97,6 +98,11 @@ refresh reminder to the request. Missing, failed, legacy or model-context-omitte
 discovery instead receives an explicit fresh-discovery reminder. No directory
 list is copied into the static system prompt. A current, complete result already
 present in model context can be reused without per-file re-querying.
+For a normally externalized large discovery, the original immutable-result
+authority verifies the bounded retained body, never its preview. The model gets
+the existing immutable `read_file(version_id=...)` retrieval contract rather
+than a request to re-list the same rows. Missing/unverifiable retained content
+is stated as such without pretending it is current or starting a re-query loop.
 
 Only a real successful discovery committed by the normal tool-checkpoint owner
 refreshes that evidence. A queued HTTP acknowledgement, model response, notice,

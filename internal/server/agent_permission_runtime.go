@@ -25,7 +25,7 @@ func agentPermissionToolSchemas() []agentruntime.ToolSchema {
 	return []agentruntime.ToolSchema{
 		{
 			Name:        listHostGrantsToolName,
-			Description: "List the current user's granted host directories, read/read-write modes and recorded grant times when available. Reuse the latest successful complete result while it remains in context. Refresh after an application authorization-change notice, missing discovery context or an access denial; do not query once per file or turn. This is discovery only, not permission to bypass live runtime access checks.",
+			Description: "List the current user's granted host directories, read/read-write modes and recorded grant times when available. Reuse the latest successful complete result; for an externalized result, read its existing immutable version with read_file rather than re-listing. Refresh after an application authorization-change notice, missing discovery context or an access denial; do not query once per file or turn. This is discovery only, not permission to bypass live runtime access checks.",
 			Parameters:  map[string]any{"type": "object", "additionalProperties": false, "properties": map[string]any{}},
 		},
 		{
