@@ -16,9 +16,7 @@ import (
 	"os"
 
 	"path/filepath"
-	"regexp"
 
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -737,17 +735,11 @@ func (s *Server) executeSkillToolWithRuntimeSkillsAndPolicy(
 		}
 		effectiveSkill = effectiveSkills[len(effectiveSkills)-1]
 	}
-	if filter != "" && strings.HasPrefix(strings.ToLower(strings.TrimSpace(skill.Name)), "mcp-") {
-		if filtered, found := runtimeMCPConnectorFilterRenderedBody(effectiveSkill.Body, filter); found {
-			effectiveSkill.Body = filtered
-			effectiveSkill.BodyHash = serverStringHash(filtered)
-			effectiveSkills[len(effectiveSkills)-1] = effectiveSkill
-		}
-	}
-	prompt, err := renderComposedSkillPrompt(effectiveSkills, effectiveSkill.Name, args)
+	effectiveSkills, prompt, err := renderRuntimeSkillInvocation(effectiveSkills, effectiveSkill.Name, args, filter)
 	if err != nil {
 		return nil, err
 	}
+	effectiveSkill = effectiveSkills[len(effectiveSkills)-1]
 	if activeRun != nil {
 		// Capability history is separate from exact reuse. The host receipt is
 		// activated only after its successful durable terminal checkpoint.
@@ -931,51 +923,6 @@ func renderedSkillExecutionAssets(skill skills.Skill) []string {
 		assets = append(assets, directory+"/"+relative)
 	}
 	return assets
-}
-
-func substituteSkillArguments(content string, args string, argumentNames []string) string {
-	original := content
-	parsedArgs := parseSkillArguments(args)
-	for index, name := range argumentNames {
-		if strings.TrimSpace(name) == "" || isServerNumericString(name) {
-			continue
-		}
-		pattern := regexp.MustCompile(`\$` + regexp.QuoteMeta(name) + `\b`)
-		replacement := ""
-		if index < len(parsedArgs) {
-			replacement = parsedArgs[index]
-		}
-		content = pattern.ReplaceAllString(content, replacement)
-	}
-	indexed := regexp.MustCompile(`\$ARGUMENTS\[(\d+)\]`)
-	content = indexed.ReplaceAllStringFunc(content, func(match string) string {
-		parts := indexed.FindStringSubmatch(match)
-		if len(parts) != 2 {
-			return ""
-		}
-		index, err := strconv.Atoi(parts[1])
-		if err != nil || index < 0 || index >= len(parsedArgs) {
-			return ""
-		}
-		return parsedArgs[index]
-	})
-	shorthand := regexp.MustCompile(`\$(\d+)\b`)
-	content = shorthand.ReplaceAllStringFunc(content, func(match string) string {
-		parts := shorthand.FindStringSubmatch(match)
-		if len(parts) != 2 {
-			return ""
-		}
-		index, err := strconv.Atoi(parts[1])
-		if err != nil || index < 0 || index >= len(parsedArgs) {
-			return ""
-		}
-		return parsedArgs[index]
-	})
-	content = strings.ReplaceAll(content, "$ARGUMENTS", args)
-	if content == original && strings.TrimSpace(args) != "" {
-		content += "\n\nARGUMENTS: " + args
-	}
-	return content
 }
 
 func parseSkillArguments(args string) []string {

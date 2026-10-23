@@ -10,6 +10,7 @@ import (
 
 const agentRuntimeSkillMetadataPrefix = `<skill-metadata name=`
 const agentRuntimeLegacySkillMetadataPrefix = `<skill-metadata replay="legacy" name=`
+const agentRuntimeSkillActivePostlude = "This capability is now active for the current task. Continue with the requested work; do not reload the same capability unless its arguments or the task change."
 
 // agentRuntimeSkillModelResult projects the compatibility Skill payload into
 // the single readable contract consumed by the model. The compatibility API
@@ -56,7 +57,7 @@ func agentRuntimeSkillModelResult(value any) any {
 	}
 	header += " />"
 	return fmt.Sprintf(
-		"%s\n\n%s\n\nThis capability is now active for the current task. Continue with the requested work; do not reload the same capability unless its arguments or the task change.",
+		"%s\n\n%s\n\n"+agentRuntimeSkillActivePostlude,
 		header, prompt,
 	)
 }
