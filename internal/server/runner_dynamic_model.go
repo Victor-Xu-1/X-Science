@@ -313,6 +313,7 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 		recorder.finish(usage, response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)
+			recordMemoryExtractionCallIdentity(ctx, resolved, request)
 			if strings.TrimSpace(response.Model) == "" {
 				response.Model = resolved.model
 			}
@@ -378,6 +379,7 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 		progress.finish(response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)
+			recordMemoryExtractionCallIdentity(ctx, resolved, request)
 			if strings.TrimSpace(response.Model) == "" {
 				response.Model = resolved.model
 			}

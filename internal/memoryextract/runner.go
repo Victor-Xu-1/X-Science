@@ -58,6 +58,8 @@ func ConfigFromMemoryConfig(source memoryconfig.Config) Config {
 }
 
 type RunInput struct {
+	DeliveryClaim     *workspace.MemoryExtractionDeliveryClaim
+	CadenceDecision   *workspace.MemoryExtractionCadence
 	Scope             ApplyScope
 	AsideParent       bool
 	SessionMemoryMode string
@@ -72,16 +74,18 @@ type RunInput struct {
 }
 
 type RunResult struct {
-	Gate           string
-	CursorBefore   int
-	CursorAfter    int
-	CursorAdvanced bool
-	CursorError    string
-	ExtractorError string
-	Overshoot      bool
-	DeltaCount     int
-	Applied        ApplyResult
-	Replayed       bool
+	DeliverySettled bool
+	ExtractorCause  error `json:"-"`
+	Gate            string
+	CursorBefore    int
+	CursorAfter     int
+	CursorAdvanced  bool
+	CursorError     string
+	ExtractorError  string
+	Overshoot       bool
+	DeltaCount      int
+	Applied         ApplyResult
+	Replayed        bool
 }
 
 type Runner struct {
@@ -195,7 +199,7 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		result.Gate = "skipped-source"
 		return result, workspace.ErrExtractionSourceChanged
 	}
-	if config.ExtractEveryN > 1 && !r.cadencePass(input.Scope.ProjectID, config.ExtractEveryN) {
+	if input.CadenceDecision != nil && !input.CadenceDecision.Eligible || input.CadenceDecision == nil && config.ExtractEveryN > 1 && !r.cadencePass(input.Scope.ProjectID, config.ExtractEveryN) {
 		result.Gate = "cadence"
 		return result, nil
 	}
@@ -242,6 +246,7 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		// Extraction is best-effort background work:
 		// preserve diagnostics and the cursor, but never fail the user turn.
 		result.ExtractorError = err.Error()
+		result.ExtractorCause = err
 		return result, nil
 	}
 	operations := ParseEmitted(raw, KnownMutableManifestIDs(manifest), config.ExtractMax)
