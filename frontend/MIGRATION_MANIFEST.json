@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "39f74cedae1c48d5c92fdb7e685a336ee009e0b3336080623ea65314664564ce",
+  "adaptationFingerprintSHA256": "581b9d1b6b4e60413cb6940f74193f57085ff06154827e55167d9ca21a246c23",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "578bc5db1ae5eb0251ac69322214a33ea42e4472446829dbdbc29212ac4030e9",
+  "additionFingerprintSHA256": "a011377ea20312a282fc903ef579fbf9dbd7f010830509aa87ea84c2ccd1d009",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -372,8 +372,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/BtwOverlay.module.css",
       "sourceSHA256": "2ad1466ef61161d66f7e3fda1dc91dcfe762bf6c8f4b5b13fb4aa55088e8bb3c",
-      "targetSHA256": "c8871f3e2f9b10a4f8e3a7108fe88b7aef81adc57da72a8c9bac8daf051b9a93",
-      "bytes": 4119,
+      "targetSHA256": "7b13cff2190243d40a4bb3acacce8654f65cc0be6f56c79b59f23b2af3cf5338",
+      "bytes": 4155,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -2125,8 +2125,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/components/XScienceDelegateDock.css",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/components/SynonBiomedDelegateDock.css",
       "sourceSHA256": "d717c1fea7dc97b8b771adc8bb967badfeb718819a607c3fc49a142d4038c5d4",
-      "targetSHA256": "7a5b61fdbb18b3c63486cbcf162e8cd01581ede79bdc04ca4b5de086b7926afb",
-      "bytes": 6157,
+      "targetSHA256": "7d3f3a74292493852a60bf76ad3f21378be84f195fb65df080ba776b25cfc52d",
+      "bytes": 6248,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7863,8 +7863,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/hostFiles/hostFiles.module.css",
-      "sha256": "3485f19122dc5ca9ed06f0535659fd363e9e55352811cbde362aa561c08faf37",
-      "bytes": 3425,
+      "sha256": "1e70e4a1969c8119fc2e06c59198da3d3c92ce6f71989264e3d8c20c7482d9c4",
+      "bytes": 3655,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7905,8 +7905,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/readingContext.css",
-      "sha256": "0b6f502414d4a893b4d8e342656ae7758d1edad0c3e222655c15e7891770d782",
-      "bytes": 7769,
+      "sha256": "410d2501f015fa259345489c8235ced7df5cb30eb7710b75371e5f852cb370aa",
+      "bytes": 7908,
       "reason": "Translate the reference linked-bar/picker geometry and light/dark color tokens into scoped CSS using existing application radius/weight tokens. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx, src/renderer/src/pages/workspace/ReadingContextPicker.tsx, src/renderer/src/assets/main.css."
     },
     {
@@ -7935,8 +7935,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/archiveUndo.css",
-      "sha256": "bef1497fa300b7e326e6d361bfc83e98f13a824270f31428018e6db128dd33bb",
-      "bytes": 1423,
+      "sha256": "7591e1a20e431fbc398b7562c4dd021c8ad2e27dd4e9b9c5c93d990eb0666ed5",
+      "bytes": 1498,
       "reason": "Style the compact nonmodal archive Undo notice with shared visual tokens."
     },
     {
@@ -8019,8 +8019,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/notifications/notificationInbox.module.css",
-      "sha256": "1f65362aa0198b41c6b4db0b0e466bfbddaf4edc1ee1789d31a21bcf1d863215",
-      "bytes": 4849,
+      "sha256": "14a279f2a19c7c93010474b4c25966e17b5dc6a2a3e45dfd0d620071d6f9af07",
+      "bytes": 5310,
       "reason": "Style the source-reference 36-pixel trigger and compact notification panel without adding a black mask."
     },
     {
@@ -8073,8 +8073,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextCompactionAction.module.css",
-      "sha256": "7613afcb1c079dda1bd69b3e43bff7dee9487b8e9f78d43010caf54f09e33518",
-      "bytes": 674,
+      "sha256": "b6020cf99024f3d88d50837bb7873f96cdb6db4ded19eada750de98146133fa4",
+      "bytes": 765,
       "reason": "Style the compact source-aligned maintenance action with shared tokens and no modal backdrop."
     },
     {
@@ -9165,8 +9165,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/notebook/notebook.module.css",
-      "sha256": "2e21582770f3d2dd0436e5f2c14a12655a9a00b241a2da99ae309d5b1d0427bc",
-      "bytes": 4160,
+      "sha256": "1d7df0208afc7b0d1a1f9fade22b7896c7723e6d44ead7bc3e5d03927441076e",
+      "bytes": 4481,
       "reason": "Style the compact Notebook editor, output and resizable twenty-percent terminal split."
     },
     {
@@ -12093,8 +12093,8 @@
     },
     {
       "path": "tests/unit/dialogBackdropContract.test.ts",
-      "sha256": "30a8289427a350e2158fd7c82a97ba17482e5989eab8225fc4628ed72d0ff1a2",
-      "bytes": 4154,
+      "sha256": "0978e3a153708cc9dcb97101390d5272cf13d6ed532ae6d35b8a48550ffa0efb",
+      "bytes": 4958,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
