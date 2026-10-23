@@ -56,7 +56,22 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			}
 			result = saved.result
 			result.Replayed = true
+			if input.DeliveryClaim != nil {
+				return settleMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key, "")
+			}
 			return nil
+		}
+		if input.DeliveryClaim != nil {
+			if err := requireMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key); err != nil {
+				return err
+			}
+			var cancelled bool
+			if err := tx.QueryRowContext(ctx, `SELECT status IN ('cancelled','canceled') FROM frames WHERE id=?`, input.Source.FrameID).Scan(&cancelled); err != nil {
+				return err
+			}
+			if cancelled {
+				return ErrExtractionSourceChanged
+			}
 		}
 		if err := requireFreshExtractionSourceTx(ctx, tx, identity); err != nil {
 			return err
@@ -87,10 +102,20 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			}
 			result.CursorAfter, result.CursorAdvanced = input.CursorNext, true
 		}
-		return s.insertExtractionReceiptTx(ctx, tx, identity, input.InputSHA256, planDigest, result)
+		if err := s.insertExtractionReceiptTx(ctx, tx, identity, input.InputSHA256, planDigest, result); err != nil {
+			return err
+		}
+		if input.DeliveryClaim != nil {
+			return settleMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key, "")
+		}
+		return nil
 	})
 	if err != nil {
 		return ExtractionCommitResult{}, err
+	}
+	result.DeliverySettled = input.DeliveryClaim != nil
+	if result.DeliverySettled {
+		s.signalOutboxWake()
 	}
 	return result, nil
 }

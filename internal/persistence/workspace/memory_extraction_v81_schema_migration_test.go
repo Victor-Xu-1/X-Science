@@ -99,13 +99,16 @@ func TestMemoryExtractionV81MigrationRollsBackAndPreservesHistory(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.CurrentVersion != 81 || status.TargetVersion != 81 {
-		t.Fatalf("reopen schema current=%d target=%d want81", status.CurrentVersion, status.TargetVersion)
+	if status.CurrentVersion != workspaceSchemaVersion || status.TargetVersion != workspaceSchemaVersion {
+		t.Fatalf("reopen schema current=%d target=%d want%d", status.CurrentVersion, status.TargetVersion, workspaceSchemaVersion)
 	}
-	if !reflect.DeepEqual(current, readMigrationJournal(t, path)) {
-		t.Fatal("reopen changed existing schema journal identities")
+	reopenedJournal := readMigrationJournal(t, path)
+	if len(reopenedJournal) < len(current) || !reflect.DeepEqual(current, reopenedJournal[:len(current)]) {
+		t.Fatal("reopen changed the existing v81 schema journal prefix")
 	}
-	retained = transcriptWebMigrationRows(t, reopened.db)
+	// The current binary appends only the dedicated v82 cadence column. Compare
+	// the exact v81 projection; the v82 regression checks its new value/constraint.
+	retained = memoryExtractionRowsBeforeCadenceColumn(t, reopened.db)
 	delete(retained, "memory_extraction_receipts")
 	assertMemoryExtractionMigrationRows(t, before, retained)
 	var violations int

@@ -561,6 +561,16 @@ func (s *Server) finishTranscriptRunnerWithReason(
 	status, detail, reasonCode string,
 	segmentOrdinals ...int64,
 ) (transcriptstore.Event, error) {
+	return s.finishTranscriptRunnerWithMemory(ctx, authority, status, detail, reasonCode, nil, segmentOrdinals...)
+}
+
+func (s *Server) finishTranscriptRunnerWithMemory(
+	ctx context.Context,
+	authority *transcriptRunnerAuthority,
+	status, detail, reasonCode string,
+	completion *workspace.MemoryExtractionCompletion,
+	segmentOrdinals ...int64,
+) (transcriptstore.Event, error) {
 	if authority == nil {
 		return transcriptstore.Event{}, nil
 	}
@@ -580,10 +590,16 @@ func (s *Server) finishTranscriptRunnerWithReason(
 	if err != nil {
 		return transcriptstore.Event{}, err
 	}
-	event, _, _, err := s.transcriptStore.FinishRunner(ctx, transcriptstore.FinishRunnerInput{
+	input := transcriptstore.FinishRunnerInput{
 		Claim: authority.Claim, ClientMessageID: transcriptRunnerClientMessageID(authority.Claim, "runner-finished"),
 		Status: status, PayloadJSON: raw, Destinations: transcriptRunnerDestinations(authority),
-	})
+	}
+	var event transcriptstore.Event
+	if completion != nil {
+		event, _, _, err = s.workspaceStore.FinishRunnerWithMemoryExtraction(ctx, input, *completion)
+	} else {
+		event, _, _, err = s.transcriptStore.FinishRunner(ctx, input)
+	}
 	if err == nil && s.workspaceStore != nil {
 		s.workspaceStore.NotifyKernelRunnerStateChanged()
 	}

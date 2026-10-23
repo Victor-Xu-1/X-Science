@@ -10,6 +10,7 @@ import (
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
 )
 
@@ -172,8 +173,19 @@ func (s *Server) settleSessionRunnerChatOutcome(
 			}
 			message = publicSessionRunnerFailureMessage(message, failureLanguage, failureReason)
 		}
-		terminalEvent, finishTranscriptErr := s.finishTranscriptRunnerWithReason(
-			context.WithoutCancel(ctx), transcriptAuthority, status, message, failureReason, chatRun.assistantSegmentOrdinal(),
+		var memoryCompletion *workspace.MemoryExtractionCompletion
+		if status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && s.workspaceStore != nil {
+			var prepareErr error
+			memoryCompletion, prepareErr = s.memoryExtraction.prepareCompletedMemoryExtraction(context.WithoutCancel(ctx), transcriptAuthority)
+			if prepareErr != nil {
+				// Optional Memory preparation cannot keep a completed user turn
+				// running. Persist only a failed/no-write disposition alongside
+				// completion; actual terminal/enqueue SQL errors still roll back.
+				memoryCompletion = memoryExtractionPreparationDiagnostic(s.memoryConfig.ExtractMode, s.memoryConfig.ExtractEveryN)
+			}
+		}
+		terminalEvent, finishTranscriptErr := s.finishTranscriptRunnerWithMemory(
+			context.WithoutCancel(ctx), transcriptAuthority, status, message, failureReason, memoryCompletion, chatRun.assistantSegmentOrdinal(),
 		)
 		if finishTranscriptErr == nil {
 			activeRun.settled = true
@@ -255,7 +267,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		}
 	}
 	result.Status = status
-	if status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && result.FinishEventID > 0 {
+	if transcriptAuthority == nil && status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && result.FinishEventID > 0 {
 		s.memoryExtraction.ScheduleCompletedRootEvent(session.ID, result.FinishEventID)
 	}
 	if transcriptAuthority == nil && s.memoryExtraction != nil {
