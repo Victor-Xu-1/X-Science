@@ -120,20 +120,13 @@ selected(event_id) AS (SELECT event_id FROM seed)`
 // source belongs to the active branch. Execution and open-batch discovery keep
 // their separate current-generation authority checks.
 const runnerReplayBatchSelectionCTE = `WITH ` + runnerReplaySeedCTE + `,
-active_batches(batch_id,source_event_id,call_count,state,branch_id) AS (
-	SELECT batch.batch_id,batch.source_event_id,batch.call_count,batch.state,batch.branch_id
-	FROM transcript_tool_call_batches batch
-	JOIN transcript_branch_state branch ON branch.stream_uid=batch.stream_uid
-		AND branch.active_branch_id=batch.branch_id
-		AND (branch.generation=batch.branch_generation OR
-			(batch.branch_generation<branch.generation AND batch.state IN ('settled','cancelled','outcome_unknown')))
-	JOIN transcript_branch_events source ON source.stream_uid=batch.stream_uid
-		AND source.branch_id=batch.branch_id AND source.event_id=batch.source_event_id
-	WHERE batch.stream_uid=?
+read_branch(stream_uid,branch_id,generation,through_publication_seq) AS (
+	SELECT stream_uid,active_branch_id,generation,NULL FROM transcript_branch_state WHERE stream_uid=?
 ),
+` + canonicalToolBatchReadCTE + `,
 hit_batches(batch_id,source_event_id,call_count,state,branch_id) AS (
 	SELECT batch.batch_id,batch.source_event_id,batch.call_count,batch.state,batch.branch_id
-	FROM active_batches batch
+	FROM eligible_tool_batches batch
 	WHERE batch.source_event_id IN (SELECT event_id FROM seed)
 		OR EXISTS (
 			SELECT 1 FROM transcript_tool_call_items item
@@ -159,23 +152,6 @@ selected(event_id) AS (
 	JOIN transcript_branch_events membership ON membership.stream_uid=item.stream_uid
 		AND membership.branch_id=batch.branch_id AND membership.event_id=item.waiting_event_id
 	WHERE item.waiting_event_id IS NOT NULL
-)`
-
-// Group all active item relations for an already selected terminal, rather
-// than inferring its origin from a reusable tool call ID. Ambiguous ownership
-// supplies no provenance and can never multiply the bounded replay rows.
-const runnerReplayToolOutcomeCTE = `,
-canonical_tool_outcomes(stream_uid,terminal_event_id,batch_id,source_event_id,ordinal,tool_call_id) AS (
-	SELECT item.stream_uid,item.terminal_event_id,
-		MIN(batch.batch_id),MIN(batch.source_event_id),MIN(item.ordinal),MIN(item.tool_call_id)
-	FROM active_batches batch
-	JOIN transcript_tool_call_items item ON item.batch_id=batch.batch_id
-	JOIN selected ON selected.event_id=item.terminal_event_id
-	JOIN transcript_branch_events terminal ON terminal.stream_uid=item.stream_uid
-		AND terminal.branch_id=batch.branch_id AND terminal.event_id=item.terminal_event_id
-	WHERE item.terminal_event_id IS NOT NULL
-	GROUP BY item.stream_uid,item.terminal_event_id
-	HAVING COUNT(*)=1
 )`
 
 // ListRunnerReplay projects messages and checkpoints with independent seed
@@ -223,7 +199,7 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 		}
 	}
 
-	hasBatchAuthority, err := runnerReplayHasToolBatchAuthority(ctx, tx)
+	hasBatchAuthority, err := hasCanonicalToolBatchAuthority(ctx, tx)
 	if err != nil {
 		return nil, schemaError(err)
 	}
@@ -277,7 +253,7 @@ func (r *Repository) ListRunnerReplay(ctx context.Context, input ListRunnerRepla
 	outcomeColumns := "NULL,NULL,NULL,NULL,NULL"
 	outcomeJoin := ""
 	if hasBatchAuthority {
-		projectionCTE += runnerReplayToolOutcomeCTE
+		projectionCTE += "," + canonicalToolOutcomeReadCTE
 		outcomeColumns = "outcome.batch_id,outcome.source_event_id,outcome.ordinal,outcome.tool_call_id,outcome.terminal_event_id"
 		outcomeJoin = `LEFT JOIN canonical_tool_outcomes outcome
 			ON outcome.stream_uid=event.stream_uid AND outcome.terminal_event_id=event.event_id`
@@ -348,14 +324,7 @@ func (scanner *runnerReplayEventScanner) Scan(destinations ...any) error {
 	)...); err != nil {
 		return err
 	}
-	if batchID.Valid && batchID.String != "" && toolCallID.Valid && toolCallID.String != "" &&
-		sourceEventID.Valid && sourceEventID.Int64 > 0 && ordinal.Valid && ordinal.Int64 >= 0 &&
-		terminalEventID.Valid && terminalEventID.Int64 > sourceEventID.Int64 {
-		scanner.outcome = &RunnerReplayToolOutcome{
-			BatchID: batchID.String, SourceEventID: sourceEventID.Int64, Ordinal: ordinal.Int64,
-			ToolCallID: toolCallID.String, TerminalEventID: terminalEventID.Int64,
-		}
-	}
+	scanner.outcome = decodeCanonicalToolOutcome(batchID, sourceEventID, ordinal, toolCallID, terminalEventID)
 	return nil
 }
 
@@ -386,21 +355,6 @@ func runnerReplaySeedArgs(input ListRunnerReplayInput) []any {
 		input.StreamUID,
 		input.StreamUID, input.RequiredCheckpointEventID,
 	}
-}
-
-func runnerReplayHasToolBatchAuthority(ctx context.Context, tx *sql.Tx) (bool, error) {
-	var count int
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_schema
-		WHERE type='table' AND name IN ('transcript_tool_call_batches','transcript_tool_call_items')`).Scan(&count); err != nil {
-		return false, err
-	}
-	if count == 0 {
-		return false, nil
-	}
-	if count != 2 {
-		return false, errors.New("transcript tool call batch authority is incomplete")
-	}
-	return true, nil
 }
 
 type runnerReplayOpenToolBatch struct {

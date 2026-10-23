@@ -213,6 +213,19 @@ func (r *Repository) listProjectedEvents(
 	if err := rows.Err(); err != nil {
 		return nil, schemaError(err)
 	}
+	if input.IncludeToolOutcomes {
+		pageEventIDs := make([]int64, 0, len(projected))
+		for _, event := range projected {
+			pageEventIDs = append(pageEventIDs, event.Event.EventID)
+		}
+		outcomes, err := projectedToolOutcomesTx(ctx, tx, input, snapshot, pageEventIDs)
+		if err != nil {
+			return nil, schemaError(err)
+		}
+		for index := range projected {
+			projected[index].ToolOutcome = outcomes[projected[index].Event.EventID]
+		}
+	}
 	if includeArtifacts {
 		refs, err := projectedArtifactReferencesTx(ctx, tx, input, snapshot.BranchID)
 		if err != nil {
