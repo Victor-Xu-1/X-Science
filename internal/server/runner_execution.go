@@ -803,6 +803,9 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			attempt: int64(sessionRunnerAttempt(run)),
 		}
 	}
+	// Project at the actual call boundary, outside recording and budgeting so
+	// both observe the exact provider input. This owns no acceptance baseline.
+	engine.Model = runnerHostGrantContextClient{server: s, run: run, delegate: engine.Model}
 	deltaBatcher := newSessionRunnerContentDeltaBatcher(
 		sessionRunnerContentDeltaFlushInterval,
 		sessionRunnerContentDeltaFlushBytes,
