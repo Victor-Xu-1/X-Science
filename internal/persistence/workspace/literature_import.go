@@ -3,7 +3,6 @@ package workspace
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -19,6 +18,12 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		return receipt, ErrLiteratureInvalid
 	}
 	metadata, err := literatureMetadata(input.Metadata)
+	if err != nil {
+		return receipt, err
+	}
+	// Detach caller-owned metadata before storage work and retain valid numeric
+	// tokens in the first ACK, not only in the persisted metadata JSON.
+	frozenMetadata, err := decodeLiteratureMetadataObject(metadata)
 	if err != nil {
 		return receipt, err
 	}
@@ -77,8 +82,6 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		return receipt, err
 	}
 	marker := blobCommitMarker{ID: uuid.NewString(), Kind: "literature-attachment-version", AggregateID: versionID, StagingPath: stageRelative, FinalPath: path, SHA256: digest, SizeBytes: size, CreatedAt: s.now().UTC()}
-	var frozenMetadata map[string]any
-	_ = json.Unmarshal([]byte(metadata), &frozenMetadata)
 	version := LiteratureVersion{ID: versionID, AttachmentID: attachmentID, VersionNumber: 1, Filename: artifact.Name, MIMEType: "application/pdf", SizeBytes: size, Checksum: digest, PageCount: input.PageCount, Available: true, StoragePath: path}
 	item := LiteratureItem{ID: itemID, Title: strings.TrimSpace(input.Title), MetadataRevision: 1, Metadata: frozenMetadata, ProjectIDs: []string{}, Attachments: []LiteratureAttachment{{ID: attachmentID, Kind: "fullText", Versions: []LiteratureVersion{version}}}}
 	if input.ProjectID != "" {
