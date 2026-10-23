@@ -65,7 +65,8 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 	commit := func() error {
 		var commitErr error
 		saved, commitErr = r.store.CommitMemoryExtraction(ctx, workspace.ExtractionCommitInput{
-			Source: *input.Source, InputSHA256: digest,
+			DeliveryClaim: input.DeliveryClaim,
+			Source:        *input.Source, InputSHA256: digest,
 			CursorBefore: result.CursorBefore, CursorNext: len(input.Messages),
 			AdvanceCursor: config.ExtractDelta, Overshoot: result.Overshoot,
 			DeltaCount: result.DeltaCount, Gate: result.Gate, Plan: plan,
@@ -102,7 +103,8 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 // new write or requiring a model request after process restart.
 func RunResultFromCommit(saved workspace.ExtractionCommitResult) RunResult {
 	return RunResult{
-		Gate: saved.Gate, CursorBefore: saved.CursorBefore, CursorAfter: saved.CursorAfter,
+		DeliverySettled: saved.DeliverySettled,
+		Gate:            saved.Gate, CursorBefore: saved.CursorBefore, CursorAfter: saved.CursorAfter,
 		CursorAdvanced: saved.CursorAdvanced, Overshoot: saved.Overshoot,
 		DeltaCount: saved.DeltaCount, Applied: saved.Applied, Replayed: saved.Replayed,
 	}

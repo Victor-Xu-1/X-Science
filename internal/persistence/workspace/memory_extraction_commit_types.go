@@ -70,6 +70,7 @@ type ExtractionMutationPlan struct {
 }
 
 type ExtractionCommitInput struct {
+	DeliveryClaim *MemoryExtractionDeliveryClaim
 	Source        CompletedExtractionSource
 	InputSHA256   string
 	CursorBefore  int
@@ -84,13 +85,14 @@ type ExtractionCommitInput struct {
 // ExtractionCommitResult is the original durable outcome. Replayed describes
 // the current read/commit attempt and is not part of the saved outcome.
 type ExtractionCommitResult struct {
-	Gate           string
-	InputSHA256    string
-	CursorBefore   int
-	CursorAfter    int
-	CursorAdvanced bool
-	Overshoot      bool
-	DeltaCount     int
-	Applied        ExtractionApplyResult
-	Replayed       bool
+	DeliverySettled bool `json:"-"`
+	Gate            string
+	InputSHA256     string
+	CursorBefore    int
+	CursorAfter     int
+	CursorAdvanced  bool
+	Overshoot       bool
+	DeltaCount      int
+	Applied         ExtractionApplyResult
+	Replayed        bool
 }
