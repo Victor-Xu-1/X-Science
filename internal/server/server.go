@@ -701,6 +701,7 @@ func New(options Options) *Server {
 	}
 	if options.StartBackgroundServices {
 		server.recoverManagedEnvironmentObservations()
+		server.startMemoryExtractionDelivery()
 		server.startTranscriptWebDelivery()
 		server.startDataLifecycle()
 	}
