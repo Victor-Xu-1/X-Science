@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "91b79353543c306c8d799d24a981ee6d7ca547ea3df18cbf30f67c1a725f0606",
+  "adaptationFingerprintSHA256": "600953cd49788c5f32fceb8cc23c1b89c7cf8d9c8077a4d5e57c6b21ef1ab6e8",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "f5cce65093ec8a04e0315223911f5fc73cdf45ec120036659f7cdf7b89e49988",
   "summary": {
@@ -5168,8 +5168,8 @@
       "path": "tests/unit/settings/XScienceMcpSettings.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMcpSettings.dom.test.tsx",
       "sourceSHA256": "e180f2ef876df521f08e312711d87b4b6c8409ec9ad229406d18e4810ca086fb",
-      "targetSHA256": "f1c5ee682d469ad3f1474707257b05540e92e74f0bd8e1d7a255f7d808cc9f19",
-      "bytes": 32894,
+      "targetSHA256": "b80ec05bac569c921c31d5b7a6355b0b3065a9c4ca595af9b43d7c8a72a312be",
+      "bytes": 33088,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify localized and compact MCP connector presentation."
     },
     {
