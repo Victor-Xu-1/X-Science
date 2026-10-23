@@ -40,7 +40,10 @@ export function usePdfReadingPosition(
     setCurrentPage(1);
   }, [source]);
   useEffect(() => {
-    if (pageCount > 0) navigate(targetPage && targetPage <= pageCount ? targetPage : 1);
+    // A resource retry temporarily has no parsed pages. Keep the established
+    // page in this same source rather than treating recovery as a new document.
+    if (pageCount > 0)
+      navigate(targetPage && targetPage <= pageCount ? targetPage : Math.min(current.current, pageCount));
   }, [source, pageCount, targetPage, revealId, navigate]);
   useEffect(() => {
     const scroller = viewport.current;

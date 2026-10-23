@@ -28,14 +28,15 @@ export function validImageDimensions(size: ImageDimensions): boolean {
 export function imageViewportGeometry(
   natural: ImageDimensions,
   viewport: ImageDimensions,
-  mode: ImageViewportMode
+  mode: ImageViewportMode,
+  options: { fitRelativeZoom?: boolean } = {}
 ): ImageViewportGeometry {
   if (!validImageDimensions(natural)) throw new Error('invalid_image_dimensions');
   const fit = validImageDimensions(viewport)
     ? Math.min(viewport.width / natural.width, viewport.height / natural.height)
     : 1;
-  const minScale = Math.min(0.1, fit);
-  const maxScale = Math.max(8, fit);
+  const minScale = options.fitRelativeZoom ? fit : Math.min(0.1, fit);
+  const maxScale = options.fitRelativeZoom ? fit * 8 : Math.max(8, fit);
   const requested = mode.kind === 'fit' ? fit : Number.isFinite(mode.scale) ? mode.scale : 1;
   const scale = Math.max(minScale, Math.min(maxScale, requested));
   const width = natural.width * scale;

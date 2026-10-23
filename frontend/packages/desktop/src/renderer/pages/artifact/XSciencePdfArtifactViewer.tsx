@@ -1,11 +1,5 @@
-import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
-import {
-  logScientificPreviewError,
-  resolveScientificPreviewError,
-  type ScientificPreviewError,
-  scientificPreviewErrorKey,
-} from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError';
+import { scientificPreviewErrorKey } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewError';
 import { Button, Result, Spin } from '@arco-design/web-react';
 import { Minus, Plus, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useEffectEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -17,7 +11,9 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { clampPercent } from './artifactCanvasSelection';
-import { loadPdfDocumentBytes } from './pdfDocumentSource';
+import { usePdfPreviewDocument } from './usePdfPreviewDocument';
+import { SinglePagePdfArtifactPreview } from './SinglePagePdfArtifactPreview';
+import type { PDFPageProxy } from 'pdfjs-dist';
 import { usePdfReadingPosition } from './usePdfReadingPosition';
 import { PdfPageNavigator } from './PdfPageNavigator';
 import type { PdfReadingPosition } from '@/common/adapter/pdfReadingContext';
@@ -63,22 +59,11 @@ export const XSciencePdfArtifactViewer: React.FC<{
   const { i18n, t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
   const pagesRef = useRef<VirtuosoHandle>(null);
-  const [file, setFile] = useState<Uint8Array | null>(null);
-  const [numPages, setNumPages] = useState(0);
-  const [parsedSource, setParsedSource] = useState<string | null>(null);
+  const resource = usePdfPreviewDocument(contentUrl);
+  const { file, numPages, loading, error } = resource;
   const [containerWidth, setContainerWidth] = useState(800);
   const [scale, setScale] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<ScientificPreviewError | null>(null);
-  const [generation, setGeneration] = useState(0);
-  const reading = usePdfReadingPosition(
-    contentUrl,
-    parsedSource === contentUrl ? numPages : 0,
-    pagesRef,
-    onReadingPositionChange,
-    targetPage,
-    revealId
-  );
+  const reading = usePdfReadingPosition(contentUrl, numPages, pagesRef, onReadingPositionChange, targetPage, revealId);
   const clearSelection = useEffectEvent(() => onSelectionChange?.(null));
 
   useEffect(() => {
@@ -92,47 +77,29 @@ export const XSciencePdfArtifactViewer: React.FC<{
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    setFile(null);
-    setNumPages(0);
-    setParsedSource(null);
     setScale(1);
+  }, [contentUrl]);
+  useEffect(() => {
     clearSelection();
-    void loadPdfDocumentBytes(contentUrl, controller.signal)
-      .then((bytes) => {
-        if (controller.signal.aborted) return;
-        setFile(bytes);
-      })
-      .catch((reason: unknown) => {
-        if (controller.signal.aborted) return;
-        logScientificPreviewError(`[${PRODUCT_NAME} PdfArtifactViewer] Failed to load PDF`, reason, 'request-failed');
-        setError(resolveScientificPreviewError(reason, 'request-failed'));
-        setLoading(false);
-      });
-    return () => controller.abort();
-  }, [contentUrl, generation]);
+  }, [resource.owner]);
 
   const pageWidth = Math.min(960, containerWidth) * scale;
   const documentFile = useMemo(() => (file ? { data: file } : null), [file]);
   const handleDocumentLink = useCallback(
     ({ pageIndex }: { pageIndex: number }) => {
+      if (!resource.isCurrent()) return;
       if (!Number.isSafeInteger(pageIndex) || pageIndex < 0 || pageIndex >= numPages) return;
       // PDF.js destinations may refer to a page outside the mounted window.
       // Let the virtualizer mount and position it instead of looking for a DOM page.
       reading.navigate(pageIndex + 1);
     },
-    [numPages, reading.navigate]
+    [numPages, reading.navigate, resource.isCurrent]
   );
-  const handlePageError = useCallback((reason: unknown) => {
-    logScientificPreviewError(`[${PRODUCT_NAME} PdfArtifactViewer] Failed to render PDF page`, reason, 'parse-failed');
-    setError(resolveScientificPreviewError(reason, 'parse-failed'));
-    setLoading(false);
-  }, []);
+  const handlePageError = resource.failed;
 
   const handleTextSelection = useCallback(() => {
     window.setTimeout(() => {
+      if (!resource.isCurrent()) return;
       const selection = window.getSelection();
       const text = selection && !selection.isCollapsed ? selection.toString().trim() : '';
       if (!selection || !text || selection.rangeCount === 0) {
@@ -143,7 +110,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
       const endElement = elementForNode(range.endContainer);
       const startPage = startElement?.closest<HTMLElement>('[data-pdf-page]');
       const endPage = endElement?.closest<HTMLElement>('[data-pdf-page]');
-      if (!startPage || startPage !== endPage) return;
+      if (!startPage || startPage !== endPage || !viewportRef.current?.contains(startPage)) return;
       const pageNumber = Number(startPage.dataset.pdfPage);
       if (!Number.isSafeInteger(pageNumber) || pageNumber < 1) return;
       const rect = range.getBoundingClientRect();
@@ -161,10 +128,11 @@ export const XSciencePdfArtifactViewer: React.FC<{
         pageNumber,
       });
     }, 20);
-  }, [onSelectionChange]);
+  }, [onSelectionChange, resource.isCurrent]);
 
   const selectPoint = useCallback(
     (event: React.MouseEvent<HTMLElement>, pageNumber: number) => {
+      if (!resource.isCurrent()) return;
       const nativeSelection = window.getSelection();
       if (nativeSelection && !nativeSelection.isCollapsed && nativeSelection.toString().trim()) return;
       const rect = event.currentTarget.getBoundingClientRect();
@@ -185,7 +153,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
         pageNumber,
       });
     },
-    [onSelectionChange, t]
+    [onSelectionChange, t, resource.isCurrent]
   );
 
   return (
@@ -194,7 +162,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
       className='relative size-full min-h-0 flex flex-col overflow-hidden bg-fill-2'
       onMouseUp={onSelectionChange ? handleTextSelection : undefined}
     >
-      {!hideToolbar && (
+      {!hideToolbar && numPages > 1 && (
         <div className='z-20 mx-auto mb-8px flex w-fit shrink-0 items-center gap-4px border border-solid border-[var(--color-border-2)] bg-1 p-4px shadow-sm'>
           <Button
             type='text'
@@ -245,7 +213,7 @@ export const XSciencePdfArtifactViewer: React.FC<{
               kind: t('preview.scientific.pdf.kind'),
               ...error.details,
             })}
-            extra={<Button onClick={() => setGeneration((value) => value + 1)}>{t('preview.scientific.retry')}</Button>}
+            extra={<Button onClick={resource.retry}>{t('preview.scientific.retry')}</Button>}
           />
         </div>
       ) : !documentFile ? (
@@ -254,49 +222,64 @@ export const XSciencePdfArtifactViewer: React.FC<{
         </div>
       ) : (
         <Document
-          key={contentUrl}
+          key={resource.key}
           file={documentFile}
           options={pdfOptions}
           onItemClick={handleDocumentLink}
           loading={null}
-          onLoadSuccess={({ numPages: nextNumPages }) => {
-            setNumPages(nextNumPages);
-            setParsedSource(contentUrl);
-            setLoading(false);
-          }}
-          onLoadError={(reason) => {
-            logScientificPreviewError(
-              `[${PRODUCT_NAME} PdfArtifactViewer] Failed to parse PDF`,
-              reason,
-              'parse-failed'
-            );
-            setError(resolveScientificPreviewError(reason, 'parse-failed'));
-            setLoading(false);
-          }}
+          onLoadSuccess={resource.parsed}
+          onLoadError={resource.failed}
           className='min-h-0 flex-1'
           aria-label={t('preview.scientific.pdf.documentNamed', { name: filename })}
         >
-          <Virtuoso
-            ref={pagesRef}
-            scrollerRef={reading.scrollerRef}
-            key={contentUrl}
-            totalCount={numPages}
-            defaultItemHeight={pageWidth * 1.3 + 16}
-            overscan={200}
-            className='size-full'
-            itemContent={(index) => (
-              <div className='flex justify-center px-24px pb-16px' style={{ minWidth: pageWidth + 48 }}>
+          {numPages === 1 ? (
+            <SinglePagePdfArtifactPreview
+              key={resource.key}
+              filename={filename}
+              owner={resource.key}
+              hideToolbar={hideToolbar}
+              interactive={Boolean(onSelectionChange)}
+              onError={handlePageError}
+              renderPage={({ pageWidth: width, devicePixelRatio, selectionEnabled, onLoad, onRendered }) => (
                 <PdfArtifactPage
-                  pageNumber={index + 1}
-                  pageWidth={pageWidth}
+                  pageNumber={1}
+                  pageWidth={width}
+                  devicePixelRatio={devicePixelRatio}
+                  onLoad={onLoad}
+                  onRendered={onRendered}
+                  canvasLabel={filename}
+                  textSelectionEnabled={selectionEnabled || annotations.some((item) => item.type === 'text_selection')}
+                  textSelectable={selectionEnabled}
                   annotations={annotations}
-                  onSelectPoint={onSelectionChange ? selectPoint : undefined}
+                  onSelectPoint={selectionEnabled ? selectPoint : undefined}
                   onAnnotationClick={onAnnotationClick}
                   onRenderError={handlePageError}
                 />
-              </div>
-            )}
-          />
+              )}
+            />
+          ) : numPages > 1 ? (
+            <Virtuoso
+              ref={pagesRef}
+              scrollerRef={reading.scrollerRef}
+              key={contentUrl}
+              totalCount={numPages}
+              defaultItemHeight={pageWidth * 1.3 + 16}
+              overscan={200}
+              className='size-full'
+              itemContent={(index) => (
+                <div className='flex justify-center px-24px pb-16px' style={{ minWidth: pageWidth + 48 }}>
+                  <PdfArtifactPage
+                    pageNumber={index + 1}
+                    pageWidth={pageWidth}
+                    annotations={annotations}
+                    onSelectPoint={onSelectionChange ? selectPoint : undefined}
+                    onAnnotationClick={onAnnotationClick}
+                    onRenderError={handlePageError}
+                  />
+                </div>
+              )}
+            />
+          ) : null}
         </Document>
       )}
       {loading && documentFile && (
@@ -315,11 +298,39 @@ const PdfArtifactPage: React.FC<{
   onSelectPoint?: (event: React.MouseEvent<HTMLElement>, pageNumber: number) => void;
   onAnnotationClick?: (annotation: XScienceArtifactAnnotation) => void;
   onRenderError: (reason: unknown) => void;
-}> = ({ pageNumber, pageWidth, annotations, onSelectPoint, onAnnotationClick, onRenderError }) => {
+  onLoad?: (page: PDFPageProxy) => void;
+  devicePixelRatio?: number;
+  textSelectionEnabled?: boolean;
+  textSelectable?: boolean;
+  onRendered?: () => void;
+  canvasLabel?: string;
+}> = ({
+  pageNumber,
+  pageWidth,
+  annotations,
+  onSelectPoint,
+  onAnnotationClick,
+  onRenderError,
+  onLoad,
+  devicePixelRatio,
+  textSelectionEnabled = true,
+  textSelectable = true,
+  onRendered,
+  canvasLabel,
+}) => {
   const { t } = useTranslation();
   const pageRef = useRef<HTMLElement>(null);
   const [textLayerRevision, setTextLayerRevision] = useState(0);
   const handleTextLayerRendered = useCallback(() => setTextLayerRevision((value) => value + 1), []);
+  const labelCanvas = useCallback(
+    (canvas: HTMLCanvasElement | null) => {
+      if (canvas && canvasLabel) {
+        canvas.setAttribute('role', 'img');
+        canvas.setAttribute('aria-label', canvasLabel);
+      }
+    },
+    [canvasLabel]
+  );
   const pageAnnotations = useMemo(
     () => annotations.filter((annotation) => annotation.pageNumber === pageNumber),
     [annotations, pageNumber]
@@ -329,14 +340,19 @@ const PdfArtifactPage: React.FC<{
     <section
       ref={pageRef}
       data-pdf-page={pageNumber}
+      data-canvas-pan-surface={textSelectable ? undefined : ''}
       aria-label={t('preview.scientific.pdf.pageNumber', { page: pageNumber })}
-      className={`relative shrink-0 overflow-hidden bg-white shadow-md ${onSelectPoint ? 'cursor-crosshair' : ''}`}
+      className={`relative shrink-0 overflow-hidden bg-white shadow-md ${onSelectPoint ? 'cursor-crosshair' : ''} ${textSelectable ? '' : '[&_.textLayer]:pointer-events-none [&_.textLayer]:select-none'}`}
       onClick={onSelectPoint ? (event) => onSelectPoint(event, pageNumber) : undefined}
     >
       <Page
         pageNumber={pageNumber}
         width={pageWidth}
-        renderTextLayer
+        devicePixelRatio={devicePixelRatio}
+        onLoadSuccess={onLoad}
+        onRenderSuccess={onRendered}
+        canvasRef={labelCanvas}
+        renderTextLayer={textSelectionEnabled}
         renderAnnotationLayer
         loading={<div style={{ width: pageWidth, height: pageWidth * 1.3 }} />}
         onRenderTextLayerSuccess={handleTextLayerRendered}
