@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReadingContextPicker } from '@/renderer/components/chat/SendBox/reading/ReadingContextPicker';
 import { PdfReadingBar } from '@/renderer/components/chat/SendBox/reading/PdfReadingBar';
@@ -8,6 +8,7 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { deferredPdf, pdfContext } from './pdfReadingFixtures';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { installLiteratureLocks } from './literatureMutationLockFixtures';
 
 const mocks = vi.hoisted(() => ({ project: vi.fn(), library: vi.fn(), run: vi.fn() }));
 vi.mock('@/renderer/services/runtime/pdfReadingContext', async (original) => ({
@@ -41,8 +42,13 @@ describe('L382 Library reading picker', () => {
       unavailable: 0,
     }));
     mocks.run.mockReset();
+    installLiteratureLocks();
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
   it('offers a first Library selection from the real empty conversation bar', async () => {
     const link = vi.fn().mockResolvedValue(undefined);
     await renderWithI18n(
@@ -216,5 +222,74 @@ describe('L382 Library reading picker', () => {
     await screen.findByText('Library updated · source.pdf');
     expect(mocks.run.mock.calls).toHaveLength(2);
     expect(mocks.run.mock.calls[1][0]).toEqual(mocks.run.mock.calls[0][0]);
+  });
+
+  it('recovers the original pending import through Retry after storage access returns', async () => {
+    const original = {
+      kind: 'import',
+      operation_id: '00000000-0000-4000-8000-000000000099',
+      artifact_id: 'artifact',
+      version_id: 'exact-project-v1',
+      title: 'Recovered paper',
+      project_id: 'project',
+    };
+    const key = 'x-science.literature-mutation.v1:owner';
+    localStorage.setItem(key, JSON.stringify({ ownerId: 'owner', command: original }));
+    let blocked = true;
+    const remove = Storage.prototype.removeItem;
+    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(function (this: Storage, storageKey: string) {
+      if (storageKey === key && blocked) throw new Error('storage access unavailable');
+      return remove.call(this, storageKey);
+    });
+    mocks.project.mockResolvedValue({
+      options: [{ name: 'next.pdf', pageCount: 9, source: { artifact_id: 'next-artifact', version_id: 'next-v1' } }],
+      unavailable: 0,
+    });
+    mocks.run.mockImplementation(async (submitted) => ({
+      schema: 'x-science.literature-receipt.v1',
+      operation_id: submitted.operation_id,
+      item: {
+        id: 'recovered',
+        title: submitted.title,
+        metadata_revision: 1,
+        metadata: {},
+        deleted: false,
+        project_ids: ['project'],
+        attachments: [],
+      },
+      attachment_id: 'attachment',
+      version_id: 'library-version',
+    }));
+    await renderWithI18n(
+      <ReadingContextPicker context={pdfContext([], 0)} pending={false} onSelect={vi.fn()}>
+        <button>choose source</button>
+      </ReadingContextPicker>,
+      'en-US'
+    );
+    fireEvent.click(screen.getByText('choose source'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
+    await screen.findByText(/original Library request could not be safely saved/);
+    expect(mocks.run).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem(key)!)).toEqual({ ownerId: 'owner', command: original });
+    blocked = false;
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    // A restored historical request is not this window's lastAction success toast.
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(mocks.run.mock.calls.map(([value]) => value)).toEqual([original, original]);
+    expect(localStorage.getItem(key)).toBeNull();
+    const next = await screen.findByRole('button', { name: 'Save next.pdf to Library' });
+    expect(next).not.toBeDisabled();
+    fireEvent.click(next);
+    await screen.findByText('Library updated · next.pdf');
+    expect(mocks.run).toHaveBeenCalledTimes(3);
+    expect(mocks.run.mock.calls[2][0]).toMatchObject({
+      kind: 'import',
+      artifact_id: 'next-artifact',
+      version_id: 'next-v1',
+      title: 'next.pdf',
+      project_id: 'project',
+    });
+    expect(mocks.run.mock.calls[2][0].operation_id).not.toBe(original.operation_id);
+    expect(localStorage.getItem(key)).toBeNull();
   });
 });
