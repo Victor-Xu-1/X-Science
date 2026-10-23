@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4519b509d6bf1949338c70eb275f844c5c6662b671962445229cba84ca63735e",
+  "adaptationFingerprintSHA256": "de753c25f5d9f8ac505b694af25b97837696452090e3abfcda5a5e99e443d8e6",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "3ba13b916961a4bd4e599af17272772a1853e3cc3994409ced672d28f0a77219",
+  "additionFingerprintSHA256": "42adfc4b23238294cced76d0adcd2636098549ed9989d2bc2614b2df5e7871e5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1201
+    "addedFiles": 1206
   },
   "adaptations": [
     {
@@ -1192,8 +1192,8 @@
       "path": "packages/desktop/src/renderer/pages/artifact/XSciencePdfArtifactViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/artifact/SynonBiomedPdfArtifactViewer.tsx",
       "sourceSHA256": "66945690e80dbe6ed1744795d17270249e5f6849f7f36644189fa041bdde2b0d",
-      "targetSHA256": "2edab7da62c90bcbac2354e1f76cf1959fe27c0e1a30459fe07985ecfe149916",
-      "bytes": 19617,
+      "targetSHA256": "cbe99f6eba9b9568814e4dced0a071cf83aa978e90b92e3550eeaff6583f62b5",
+      "bytes": 20302,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2847,8 +2847,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "037586fd2c1e823973950a7587494595fd558ac970b3a9775e472d4cd2f81406",
-      "bytes": 282939,
+      "targetSHA256": "7ebf98e98f6e0525849c2ca67e6c37ee9a20d6afbca8cf50a42b83529d8c91f3",
+      "bytes": 283064,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2924,8 +2924,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "6040251633e64861f939dddaccf7a870837b86651caf095d1442903a89efb047",
-      "bytes": 43221,
+      "targetSHA256": "0f314f701a3b0e5eb763fa13113115e037ab739100078deb6e3414b9d0164aba",
+      "bytes": 43365,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3015,8 +3015,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "4adfee3e70a2c862294a70bb99b6d1c3bec12746dbe0b776c426d5d44c011702",
-      "bytes": 41746,
+      "targetSHA256": "bfb04a7ad24667fd955ba63ef3da8b235a71f2ca18110b3b8a49077a44de73cd",
+      "bytes": 41887,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -8540,6 +8540,12 @@
       "reason": "Add bounded previous/next/direct-page controls to the existing PDF viewer using parsed page counts, not a new PDF engine. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/previews/renderers/PdfPreview.tsx."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/artifact/SinglePagePdfArtifactPreview.tsx",
+      "sha256": "4cfbd31d3cdd21000dbd3c2797abaa609a1107f126acc03c8a2a0e7b7846dd42",
+      "bytes": 6240,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/artifact/VideoPreview.tsx",
       "sha256": "6574eed33b9936bff3cc328f40663527fe3c1e9ac4f9160bab28b902de847245",
       "bytes": 371,
@@ -8553,8 +8559,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/imageArtifactViewportModel.ts",
-      "sha256": "8ac12d98e38f23f7821f38cee1fff15b1720cffc409a75c26b65b8eb571d94d4",
-      "bytes": 2658,
+      "sha256": "80f85d334c889d69966385a75b62b50b08a65b70978359be2ad484d1549cc3a8",
+      "bytes": 2773,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8567,6 +8573,12 @@
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactAnnotationStore.ts",
       "sha256": "0904296f75f52285bf1ddd55d05dbf3bc1aa58c2145ad460e4a8203611c944e1",
       "bytes": 4666,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/useArtifactCanvasViewport.ts",
+      "sha256": "2501491d4bff86ecd218ac07326bef0e89a068f5713fbd0262c43419f8a3bd36",
+      "bytes": 12566,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8619,14 +8631,20 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useImageArtifactViewport.ts",
-      "sha256": "1761fcdfe32bdad212140337ed03bdedb62bd43787b07ad6b1171ccaf82c4107",
-      "bytes": 5849,
+      "sha256": "6d2c2cc267acbe46f017b5e7d67d4e7bd421b9850d54f191bf35394dbd7b174c",
+      "bytes": 2550,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/usePdfPreviewDocument.ts",
+      "sha256": "db5897adefc1448b58944a4e0f62cf77ee57db0e0ad4bdd23a018ff5464395a6",
+      "bytes": 3163,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/usePdfReadingPosition.ts",
-      "sha256": "40ea306dbe50bae72fc37e27d7e21bcc24bfdefca1417842bef67c29bea85d76",
-      "bytes": 3142,
+      "sha256": "cf9e0cac651f0f48ed4efb1f1703da6bdcbbe87a9ec8a5e9a0d32f7705539b82",
+      "bytes": 3342,
       "reason": "Track the actual virtualized PDF viewport and route page/reveal actions through the existing viewer; repeat reveal is an action, not a document reload."
     },
     {
@@ -12488,6 +12506,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/ArtifactCanvasViewport.dom.test.tsx",
+      "sha256": "650d19abf91a05ec86fe5b6f9da3f870c5bbaa7fa6313d628ce0f77197b00ee7",
+      "bytes": 14127,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/ArtifactFileActionLifecycle.dom.test.tsx",
       "sha256": "5757ce34cf8a563e7c6204da1cb22f4ca8714dea478238593e1a71a7f506db54",
       "bytes": 8290,
@@ -12689,6 +12713,12 @@
       "path": "tests/unit/renderer/SelectionReplyButton.dom.test.tsx",
       "sha256": "16d7658441bbdb80f1a4d67ef970d85766c8ed9839a25b67f745d35b3ba96c08",
       "bytes": 4247,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/SinglePagePdfPreview.dom.test.tsx",
+      "sha256": "97bca05c0a574d248f6b5dd4fbe6553e1cf5ff07dd965db51cc8d61957b79307",
+      "bytes": 13559,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

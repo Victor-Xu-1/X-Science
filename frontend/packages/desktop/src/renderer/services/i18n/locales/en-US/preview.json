@@ -846,6 +846,9 @@
     "pdf": {
       "kind": "PDF",
       "pointSelection": "PDF page {{page}} · {{x}}%, {{y}}%",
+      "singlePageViewport": "Single-page PDF preview: {{name}}",
+      "panMode": "Pan PDF",
+      "selectMode": "Select PDF text or position",
       "zoomOut": "Zoom out PDF",
       "resetZoom": "Reset PDF zoom",
       "zoomIn": "Zoom in PDF",

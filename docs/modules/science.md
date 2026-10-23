@@ -3,6 +3,22 @@
 本层把“需要什么科学软件和输入”转为受控的执行环境、进程和输出记录。
 它不把模型描述当作计算结果，也不保证目录中列出的每个可选引擎在当前机器上可用。
 
+## PDF preview presentation · PDF 预览方式
+
+The existing authenticated PDF byte reader and PDF.js/react-pdf document own
+every supported source. Presentation follows the **loaded** page count, not
+the filename or advertised metadata: one page uses the same shared artifact
+viewport geometry as images, with bounded raster density, pan, zoom and reset;
+multi-page documents keep the existing navigation/reveal reader. Parsing must
+finish before either control surface is mounted. Resource generations reject
+late parser/page failures from a closed, replaced or retried source.
+
+单页 PDF 沿现有解析器、字节来源与权限链显示，复用图片的视口几何和键盘操作；
+拖拽、Ctrl/Meta 滚轮和双击复位仅由单页界面显式接入，不更改原有图片选点行为。
+已有 PDF 批注仍可通过选择模式使用；这项扩展不把注释或裁剪称为原生图表证据。
+同源重试保留多页缩放和已到达页码，更换来源则重置，不替换后端存储、阅读绑定
+或队列快照。原生图表、翻译及实际浏览器的渲染验收有各自的验证边界。
+
 ## Find the implementation · 实现入口
 
 | 责任 | 源码入口 |

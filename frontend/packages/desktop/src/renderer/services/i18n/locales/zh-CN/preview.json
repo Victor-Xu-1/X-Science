@@ -846,6 +846,9 @@
     "pdf": {
       "kind": "PDF",
       "pointSelection": "PDF 第 {{page}} 页 · {{x}}%, {{y}}%",
+      "singlePageViewport": "单页 PDF 预览：{{name}}",
+      "panMode": "平移 PDF",
+      "selectMode": "选择 PDF 文字或位置",
       "zoomOut": "缩小 PDF",
       "resetZoom": "重置 PDF 缩放",
       "zoomIn": "放大 PDF",

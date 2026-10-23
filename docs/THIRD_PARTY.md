@@ -49,6 +49,15 @@ the corresponding Skill sources; external model and service terms are separate.
 | Go dependencies | `go.mod`, `go.sum` | Versioned Go modules | Compiled into release | Generated `SBOM.spdx.json` and `THIRD_PARTY_LICENSES.json` |
 | Frontend source | `frontend/` | Source import and migration manifests in that directory | Web renderer | `frontend/LICENSE` and `frontend/THIRD_PARTY_LICENSES.json`; release copies: `docs/licenses/frontend/LICENSE` and `docs/frontend-third-party-licenses.json` |
 
+Single-page PDF preview behavior is adapted with reference to
+[Open Science a4701c0](https://github.com/aipoch/open-science/tree/a4701c077f03d1013e3664a71d0399e8586122f5),
+an Apache-2.0 source reference. The Web implementation retains X-Science's
+existing PDF.js/react-pdf parser, authenticated byte source and annotation
+owner, and shares its existing image viewport model instead of importing a
+second desktop runtime or transform framework. The original source and
+third-party notices remain authoritative; a preview is not native table or
+figure validation.
+
 ## Retained Material With Unresolved Provenance
 
 The Shell grammar parser used by `internal/executionprep` is `mvdan.cc/sh/v3`
