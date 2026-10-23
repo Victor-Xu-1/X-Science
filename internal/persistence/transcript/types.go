@@ -688,6 +688,9 @@ type ProjectedEvent struct {
 	Event               Event
 	ResolvedPayloadJSON []byte
 	ArtifactReferences  []ArtifactReference
+	// ToolOutcome is optional read-side provenance from canonical SQL batch
+	// relations, never a stored/provider payload or a client-supplied claim.
+	ToolOutcome *RunnerReplayToolOutcome `json:"-"`
 }
 
 type ProjectionSnapshot struct {
@@ -705,6 +708,9 @@ type ListProjectedEventsInput struct {
 	AfterPublicationSequence   int64
 	ThroughPublicationSequence int64
 	Limit                      int
+	// IncludeToolOutcomes opts an internal evidence consumer into provenance
+	// materialization in the same branch/page read transaction.
+	IncludeToolOutcomes bool `json:"-"`
 }
 
 type ListRunnerReplayInput struct {
