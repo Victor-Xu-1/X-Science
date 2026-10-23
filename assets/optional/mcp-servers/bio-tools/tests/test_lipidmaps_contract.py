@@ -201,12 +201,13 @@ class LipidMapsFacadeContractTests(unittest.IsolatedAsyncioTestCase):
         tools = {tool.name: tool for tool in await chemistry.mcp.list_tools()}
         self.assertIn("pubchem_search_compounds", tools)
         self.assertIn("lipidmaps_get_compound", sorted(tools))
-        tool = tools["lipidmaps_get_compound"]
-        self.assertTrue(tool.annotations.readOnlyHint)
-        self.assertEqual(tool.inputSchema["properties"]["identifier"]["examples"], ["LMFA01010001"])
-        self.assertEqual(set(tool.inputSchema["required"]), {"id_type", "identifier"})
+        # Assert the MCP wire contract, not an SDK generation's Python names.
+        tool = tools["lipidmaps_get_compound"].model_dump(by_alias=True)
+        self.assertIs(tool["annotations"]["readOnlyHint"], True)
+        self.assertEqual(tool["inputSchema"]["properties"]["identifier"]["examples"], ["LMFA01010001"])
+        self.assertEqual(set(tool["inputSchema"]["required"]), {"id_type", "identifier"})
         self.assertEqual(
-            tool.inputSchema["properties"]["id_type"]["enum"],
+            tool["inputSchema"]["properties"]["id_type"]["enum"],
             ["lm_id", "pubchem_cid"],
         )
 
@@ -260,20 +261,21 @@ server.main()
                     async with ClientSession(read, write) as session:
                         await session.initialize()
                         tools = (await session.list_tools()).tools
-                        tool = next(t for t in tools if t.name == "lipidmaps_get_compound")
-                        self.assertTrue(tool.annotations.readOnlyHint)
+                        tool = next(t for t in tools if t.name == "lipidmaps_get_compound").model_dump(by_alias=True)
+                        self.assertIs(tool["annotations"]["readOnlyHint"], True)
                         response = await session.call_tool("lipidmaps_get_compound", ARGS)
-                        self.assertFalse(response.isError)
-                        result = response.structuredContent
+                        wire = response.model_dump(by_alias=True)
+                        self.assertIs(wire["isError"], False)
+                        result = wire.get("structuredContent")
                         if result is None:
-                            result = json.loads("".join(block.text for block in response.content if block.type == "text"))
+                            result = json.loads("".join(block["text"] for block in wire["content"] if block["type"] == "text"))
                         self.assertEqual(result["records"][0]["lm_id"], ROW["lm_id"])
                         self.assertEqual(result["license"], "CC BY 4.0")
                         self.assertEqual(result["total_matches"], 1)
                         rejected = await session.call_tool("lipidmaps_get_compound", {**ARGS, "identifier": "LMFA"})
-                        self.assertTrue(rejected.isError)
+                        self.assertIs(rejected.model_dump(by_alias=True)["isError"], True)
                         rejected = await session.call_tool("lipidmaps_get_compound", {"id_type": "pubchem_cid", "identifier": 985})
-                        self.assertTrue(rejected.isError)
+                        self.assertIs(rejected.model_dump(by_alias=True)["isError"], True)
                         self.assertEqual(received, ["/rest/compound/lm_id/LMFA01010001/all"])
         finally:
             upstream.shutdown()
