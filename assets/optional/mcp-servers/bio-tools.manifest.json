@@ -810,8 +810,8 @@
         },
         {
             "path": "lib/mcp_bio/domains.json",
-            "sha256": "7e79b243a576710c3f04927152441845b2880d80a19169889148b9ab81b28d11",
-            "bytes": 7261
+            "sha256": "2f9531576a2eefb2c6e698a9005a603ea36997085e23133e318c50de3b3ab936",
+            "bytes": 7316
         },
         {
             "path": "lib/mcp_bio/server.py",
@@ -920,8 +920,8 @@
         },
         {
             "path": "lib/mcp_chemistry/server.py",
-            "sha256": "d0e0f956748795f5166bad13257a15641aaac97b2f011925c334d0c24064beff",
-            "bytes": 23673
+            "sha256": "5bd066e319d7019293024397bf2a52a318d16061b80539de7192c9ce5be35ffd",
+            "bytes": 25511
         },
         {
             "path": "lib/mcp_clinical_genomics/__init__.py",
@@ -1205,8 +1205,8 @@
         },
         {
             "path": "lib/mcp_structures_interactions/server.py",
-            "sha256": "20a95803c5ff7ee38c6667b09c567e098bee4355e9d8bc6c032b99e23d3c0308",
-            "bytes": 29728
+            "sha256": "5a5817a728aea6721746c1f701467df407c4431c273a1f4a8375bdf4b637c3ea",
+            "bytes": 31208
         },
         {
             "path": "lib/mcp_variants/__init__.py",
@@ -1752,6 +1752,26 @@
             "path": "run_server.py",
             "sha256": "a7eb344953061bc26ac12ed09d053e0068c5fa7533ce1a3dcc13d3d3d80e2eb2",
             "bytes": 2115
+        },
+        {
+            "path": "lib/mcp_structures_interactions/pdbe.py",
+            "sha256": "38ee5ffa823fbd82c72c4b7e5b4d648f82f8354afbe6a2206b6cd8f5f5f809c1",
+            "bytes": 5848
+        },
+        {
+            "path": "lib/mcp_chemistry/unichem.py",
+            "sha256": "95e74aa44f007f836da5e5701562c3c78376442fbe72caad21b847ed70c3da1a",
+            "bytes": 7186
+        },
+        {
+            "path": "lib/mcp_servers_common/ebi_http.py",
+            "sha256": "a0438ee8a48122dd6e436865257d4adfb7f503455a9b4efc9ac4ab0007abdd68",
+            "bytes": 5396
+        },
+        {
+            "path": "lib/mcp_servers_common/contract_server.py",
+            "sha256": "39d71b5261a05ac1005dc98ae116117f69a5c580e34d33b84ba9eb8de994a1e3",
+            "bytes": 2272
         }
     ]
 }

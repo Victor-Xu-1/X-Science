@@ -77,13 +77,14 @@
   },
   {
     "id": "bundled:structures-interactions", "name": "structures-interactions", "displayName": "Structures & Interactions", "package": "mcp_structures_interactions",
-    "description": "Structures and molecular interactions — PDB structures, AlphaFold predictions, EMDB cryo-EM entries, Complex Portal complexes, IntAct interaction networks.",
+    "description": "Structures and molecular interactions — PDB structures, AlphaFold predictions, EMDB cryo-EM entries, Complex Portal complexes, IntAct interaction networks, and PDBe experimental PDB validation.",
     "upstreams": [
       {"name": "RCSB PDB", "license": "CC0", "termsUrl": "https://www.rcsb.org/pages/usage-policy"},
       {"name": "AlphaFold DB", "license": "CC-BY-4.0", "infoUrl": "https://alphafold.ebi.ac.uk/download"},
       {"name": "EMDB", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"},
       {"name": "Complex Portal", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"},
-      {"name": "IntAct", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"}
+      {"name": "IntAct", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"},
+      {"name": "PDBe", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"}
     ]
   },
   {
@@ -139,12 +140,13 @@
   },
   {
     "id": "bundled:chemistry", "name": "chemistry", "displayName": "Chemistry", "package": "mcp_chemistry",
-    "description": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities.",
+    "description": "Small-molecule chemistry — PubChem compounds/properties/similarity, ChEBI ontology, Rhea reactions, BindingDB affinities, and UniChem exact InChIKey/ChEMBL identifier mapping.",
     "upstreams": [
       {"name": "PubChem", "infoLabel": "Policies", "infoUrl": "https://www.ncbi.nlm.nih.gov/home/about/policies/"},
       {"name": "ChEBI", "license": "CC-BY-4.0", "infoUrl": "https://www.ebi.ac.uk/chebi/aboutChebiForward.do"},
       {"name": "Rhea", "license": "CC-BY-4.0", "termsUrl": "https://www.rhea-db.org/help/license-disclaimer"},
-      {"name": "BindingDB", "license": "CC-BY-3.0 / CC-BY-SA-3.0", "infoUrl": "https://www.bindingdb.org/rwd/bind/info.jsp"}
+      {"name": "BindingDB", "license": "CC-BY-3.0 / CC-BY-SA-3.0", "infoUrl": "https://www.bindingdb.org/rwd/bind/info.jsp"},
+      {"name": "UniChem", "termsUrl": "https://www.ebi.ac.uk/about/terms-of-use"}
     ]
   },
   {

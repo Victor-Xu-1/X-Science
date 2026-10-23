@@ -49,6 +49,15 @@ the corresponding Skill sources; external model and service terms are separate.
 | Go dependencies | `go.mod`, `go.sum` | Versioned Go modules | Compiled into release | Generated `SBOM.spdx.json` and `THIRD_PARTY_LICENSES.json` |
 | Frontend source | `frontend/` | Source import and migration manifests in that directory | Web renderer | `frontend/LICENSE` and `frontend/THIRD_PARTY_LICENSES.json`; release copies: `docs/licenses/frontend/LICENSE` and `docs/frontend-third-party-licenses.json` |
 
+The first-party PDBe and UniChem adapters align the public connector contracts
+in [Open Science](https://github.com/aipoch/open-science/tree/dfc2340b6df97ecb76c4c11bce7e3bd53d3c43d9),
+an Apache-2.0 source reference. They reuse X-Science's existing connector and
+execution authorities rather than importing the reference application runtime.
+PDBe validation and UniChem mappings are external service data, not bundled
+datasets; preserve their source links and the publisher's
+[EBI terms](https://www.ebi.ac.uk/about/terms-of-use). Code licensing does not
+establish a universal license for retrieved records or scientific validation.
+
 ## Retained Material With Unresolved Provenance
 
 The Shell grammar parser used by `internal/executionprep` is `mvdan.cc/sh/v3`

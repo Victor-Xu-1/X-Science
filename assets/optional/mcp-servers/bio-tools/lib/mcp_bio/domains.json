@@ -58,7 +58,8 @@
     "pubchem_search_compounds",
     "pubchem_similarity_search",
     "rhea_get_reaction",
-    "rhea_search_reactions"
+    "rhea_search_reactions",
+    "unichem_map_compound"
   ],
   "clinical-genomics": [
     "civic_gene_variants",
@@ -260,7 +261,8 @@
     "pdb_get_ligands",
     "pdb_get_structures",
     "pdb_select_latest_liganded_structure",
-    "pdb_search_structures"
+    "pdb_search_structures",
+    "pdbe_get_validation"
   ],
   "variants": [
     "cadd_position_scores",

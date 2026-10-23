@@ -467,6 +467,35 @@
       ]
     },
     {
+      "name": "ebi-exact-lookup-contracts",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/ebi_http.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_servers_common/contract_server.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_structures_interactions/pdbe.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_structures_interactions/server.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_chemistry/unichem.py",
+        "assets/optional/mcp-servers/bio-tools/lib/mcp_chemistry/server.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_ebi_catalog_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_ebi_http_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_declared_mcp_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdbe_validation_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_unichem_contract.py"
+      ],
+      "packages": [
+        "x-science/internal/assets",
+        "x-science/internal/mcpdirectory",
+        "x-science/internal/tools/mcpstdio"
+      ],
+      "frontend": false,
+      "checks": [
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_ebi_catalog_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_ebi_http_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_declared_mcp_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdbe_validation_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_unichem_contract.py"]
+      ]
+    },
+    {
       "name": "optional-websearch-security-contract",
       "paths": [
         "scripts/optional/test_security_boundaries.py"

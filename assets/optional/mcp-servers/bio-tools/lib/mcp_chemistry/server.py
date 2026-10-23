@@ -1,6 +1,7 @@
 """mcp-chemistry server — small-molecule chemistry retrieval.
 
-Clean tier-2 schemas over four accuracy-gated fleet packages:
+Clean tier-2 schemas over four accuracy-gated fleet packages and an exact
+public UniChem mapping adapter:
 
 * ``pubchem-compounds``    — PubChem PUG REST: identifier resolution,
   computed properties, synonyms, bioassay summaries, 2D similarity
@@ -15,9 +16,12 @@ Clean tier-2 schemas over four accuracy-gated fleet packages:
   companion COUNT query, so totals are always honest.
 * ``bindingdb-affinities`` — BindingDB REST: measured Ki/Kd/IC50/EC50 rows
   by UniProt target or by compound similarity.
+* UniChem — exact full InChIKey or ChEMBL ID mappings, using the shared
+  bounded public EBI transport without name or similarity expansion.
 
-This layer is marshalling only: retrieval, pacing, retries and totals live
-in the fleet packages. Listings are either complete or carry
+This layer is marshalling only: retrieval and totals live in the fleet
+packages or exact adapters; their transport owns pacing/retry policy.
+Listings are either complete or carry
 ``truncated`` + the upstream total — silent truncation is impossible.
 """
 
@@ -25,16 +29,20 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
+from typing import Annotated, Literal
 
-from mcp_servers_common.mcp_compat import MCPServer
+from mcp_servers_common.contract_server import ContractMCPServer
 from mcp_servers_common.gate import apply_gate_mcpserver
 from mcp.types import ToolAnnotations
+from pydantic import Field
+
+from .unichem import IDENTIFIER_PATTERN, UNICHEM_INPUT_SCHEMA, map_compound as _unichem_map_compound
 
 # All tools are read-only retrieval (operon house rule: in-repo
 # bundled servers annotate every tool explicitly).
 READ_ONLY = ToolAnnotations(readOnlyHint=True)
 
-mcp = MCPServer("mcp-chemistry")
+mcp = ContractMCPServer("mcp-chemistry", input_schemas={"unichem_map_compound": UNICHEM_INPUT_SCHEMA})
 
 
 # One fleet tool instance per process; fleet clients pace/retry internally.
@@ -492,6 +500,32 @@ def bindingdb_targets_by_compound(smiles: str, similarity: float = 0.85,
     return {"smiles": smiles, "similarity": similarity,
             "api_hit_count": result["hit"], "n_rows_total": len(rows),
             "truncated": truncated, "rows": capped}
+
+
+# --------------------------------------------------------------- UniChem ---
+
+@mcp.tool(annotations=READ_ONLY)
+async def unichem_map_compound(
+    id_type: Annotated[Literal["inchikey", "chembl"], Field(examples=["chembl"])],
+    identifier: Annotated[str, Field(strict=True, max_length=27, pattern=IDENTIFIER_PATTERN,
+                                     examples=["CHEMBL1089"])],
+) -> dict[str, object]:
+    """Map one exact full InChIKey or ChEMBL ID to PubChem, ChEMBL and ChEBI.
+
+    Resolve names with PubChem first. No name, similarity, connectivity,
+    salt-component or batch search is performed. UniChem indexed assignments
+    are not verified current source records or biological equivalence.
+
+    Returns source, source_url, id_type, identifier, target_sources,
+    total_matches, records_truncated and at most five distinct structure
+    records. Each record has uci, standard_inchi_key, total_mappings,
+    filtered_out_mappings, matching_mappings, mappings_truncated and up to
+    twenty mappings with source, identifier and a trusted source URL.
+    Filtering is local after download. Empty records mean no UniChem match;
+    empty mappings mean no mapping to the three target databases. Multiple
+    matched structures are preserved, never implicitly reduced to one.
+    """
+    return await _unichem_map_compound(id_type, identifier)
 
 
 def main() -> None:
