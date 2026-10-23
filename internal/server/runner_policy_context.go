@@ -507,6 +507,8 @@ func (s *Server) runtimeSkillCatalogNames(selected []skills.Skill, excluded, all
 	return uniqueSortedFolded(names)
 }
 
+var errRuntimeSkillContextBudget = errors.New("composed runtime Skill context exceeds budget")
+
 func (s *Server) runtimeSkillContextFromSkills(selectedSkills []skills.Skill) (string, error) {
 	if s == nil || s.skillCatalog == nil || len(selectedSkills) == 0 {
 		return "", nil
@@ -521,8 +523,8 @@ func (s *Server) runtimeSkillContextFromSkills(selectedSkills []skills.Skill) (s
 	}
 	if len(context) > maxRuntimeSkillContractBytes {
 		return "", fmt.Errorf(
-			"composed runtime Skill context exceeds %d bytes across %d skills; narrow the selected methodology instead of truncating it",
-			maxRuntimeSkillContractBytes, len(selectedSkills),
+			"%w: limit %d bytes across %d skills; narrow the selected methodology instead of truncating it",
+			errRuntimeSkillContextBudget, maxRuntimeSkillContractBytes, len(selectedSkills),
 		)
 	}
 	return context, nil

@@ -141,6 +141,7 @@ func (s *Server) restoreSkillLoadReceipts(ctx context.Context, entries []eventjo
 func (snapshot runtimeSkillClosureSnapshot) forReplay(
 	receipts []*agentruntime.SkillLoadReceipt,
 	explicitRoots []string,
+	provenContexts ...map[string]runtimeSkillReplayContextRoot,
 ) (runtimeSkillClosureSnapshot, []string, []string) {
 	current := make(map[string]runtimeSkillContractSnapshot, len(snapshot.contracts))
 	for _, contract := range snapshot.contracts {
@@ -170,11 +171,16 @@ func (snapshot runtimeSkillClosureSnapshot) forReplay(
 			knownMembers[normalizedRuntimeSkillReceiptName(identity.Name)] = true
 		}
 		closure, complete := runtimeSkillSnapshotClosure(current, root)
-		// Selected system context is reconstructed without invocation arguments
-		// or connector filters. Until their authenticated prompt is reconstructed,
-		// a parameterized historical receipt cannot authorize that empty context
-		// or suppress a normal explicit load with its original scope.
-		matches := complete && len(closure) == len(receipt.Contracts) && !parameterizedRoots[root]
+		// A receipt alone cannot reconstruct invocation arguments or a filter.
+		// The runtime may additionally prove the original canonical full source,
+		// latest acknowledgement and matching current rendered closure below.
+		matches := complete && len(closure) == len(receipt.Contracts)
+		if len(provenContexts) == 0 {
+			matches = matches && !parameterizedRoots[root]
+		} else {
+			proof, proven := provenContexts[0][root]
+			matches = matches && proven && proof.receipt.Valid() && proof.receipt.InvocationKey == receipt.InvocationKey
+		}
 		for index := 0; matches && index < len(closure); index++ {
 			matches = closure[index].identity() == receipt.Contracts[index]
 		}
@@ -204,8 +210,22 @@ func (snapshot runtimeSkillClosureSnapshot) forReplay(
 		}
 	}
 	filtered := runtimeSkillClosureSnapshot{}
+	views := map[string]*runtimeSkillReplayContextMember{}
+	if len(provenContexts) > 0 {
+		for root, proof := range provenContexts[0] {
+			if matchingRoots[root] {
+				for _, item := range proof.members {
+					views[normalizedRuntimeSkillReceiptName(item.Name)] = &runtimeSkillReplayContextMember{skill: item, sessionID: proof.sessionID}
+				}
+			}
+		}
+	}
 	for _, contract := range snapshot.contracts {
+		contract.contextView = nil
 		if keep[normalizedRuntimeSkillReceiptName(contract.skill.Name)] {
+			if view, found := views[normalizedRuntimeSkillReceiptName(contract.skill.Name)]; found {
+				contract.contextView = view
+			}
 			filtered.contracts = append(filtered.contracts, contract)
 		}
 	}
