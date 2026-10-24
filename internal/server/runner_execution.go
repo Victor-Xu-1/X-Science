@@ -560,7 +560,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			return "", fmt.Errorf("snapshot selected skill runtime context: %w", err)
 		}
 	}
-	selectedSnapshot, recoveredSkillKeys, changedSkillRoots := selectedSnapshot.forReplay(recoveredSkillLoads, options.SelectedSkillNames)
+	selectedSnapshot, selectedSkills, recoveredSkillKeys, changedSkillRoots, err := s.prepareRuntimeSkillReplayContext(
+		ctx, selectedSnapshot, recoveredSkillLoads, options.SelectedSkillNames, run, runtimeSkillSessionID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("prepare selected skill runtime context: %w", err)
+	}
 	if context := runtimeSkillReplayContext(changedSkillRoots); context != "" {
 		messages = appendRuntimeAgentPolicyContextMessage(messages, context)
 	}
@@ -582,13 +587,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 	}
 	explicitScientificCapabilities = requiredScientificCapabilities(retainedExplicitClosure)
-	selectedSkills, err = selectedSnapshot.materializeForContext(ctx, s, runtimeSkillSessionID)
-	if err != nil {
-		return "", fmt.Errorf("prepare selected skill runtime context: %w", err)
-	}
-	if run != nil {
-		run.addExecutedSkillInvocationKeys(recoveredSkillKeys...)
-	}
 	if executionPriority := runtimeSkillExecutionPriorityContext(selectedSkills); executionPriority != "" {
 		messages = appendRuntimeAgentPolicyContextMessageWithSource(messages, executionPriority, agentruntime.ContextUsageSkills)
 	}
@@ -613,7 +611,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	// Keep one authoritative Skill body at system priority for every provider.
 	// The skill tool result remains a short durable receipt, while the current
-	// catalog body is materialized exactly once below. This avoids competing
+	// permitted contract is materialized exactly once above. This avoids competing
 	// copies and prevents weaker OpenAI-compatible providers from treating the
 	// scientific contract as optional low-priority tool data.
 	messages = compactProviderVisibleSkillResultBodies(messages)
@@ -622,7 +620,21 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", err
 	}
 	if strings.TrimSpace(skillContext) != "" {
+		if run != nil && len(recoveredSkillKeys) > 0 {
+			valid, err := s.runtimeSkillReplayBoundaryCurrent(ctx, run)
+			if err != nil {
+				return "", err
+			}
+			if !valid {
+				return "", transcriptstore.ErrBranchStateStale
+			}
+		}
 		messages = appendRuntimeSkillContextMessage(messages, skillContext)
+		if run != nil {
+			// A history key becomes active only after the complete effective
+			// contract has passed the real context budget and been included.
+			run.addExecutedSkillInvocationKeys(recoveredSkillKeys...)
+		}
 	}
 	if err := checkpointPreparationStage("memory_context"); err != nil {
 		return "", err
