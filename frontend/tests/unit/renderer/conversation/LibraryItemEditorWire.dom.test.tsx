@@ -32,7 +32,12 @@ async function renderEditor(metadataJSON: string) {
     const body = JSON.parse(init.body) as Record<string, unknown>;
     writes.push({ path: url.pathname, raw: init.body, body });
     // Controlled replacement/retention response only; this is not a fake Store precision proof.
-    const metadata = Object.hasOwn(body, 'metadata') ? JSON.stringify(body.metadata) : metadataJSON;
+    const patch = body.metadata_patch as { set: Record<string, unknown> } | undefined;
+    const metadata = Object.hasOwn(body, 'metadata')
+      ? JSON.stringify(body.metadata)
+      : patch
+        ? JSON.stringify({ ...JSON.parse(metadataJSON), ...patch.set })
+        : metadataJSON;
     if (typeof metadata !== 'string') throw new Error('Fixture metadata must remain JSON');
     const title = typeof body.title === 'string' ? body.title : originalTitle;
     return jsonResponse(
@@ -52,7 +57,7 @@ async function renderEditor(metadataJSON: string) {
   return { item, close, submit, fetchMock, writes };
 }
 
-async function saveEditor(fixture: Awaited<ReturnType<typeof renderEditor>>) {
+async function saveEditor(fixture: Awaited<ReturnType<typeof renderEditor>>, kind: 'edit' | 'edit-metadata' = 'edit') {
   fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
   await waitFor(() => expect(fixture.close).toHaveBeenCalledTimes(1));
   expect(fixture.submit).toHaveBeenCalledTimes(1);
@@ -63,7 +68,7 @@ async function saveEditor(fixture: Awaited<ReturnType<typeof renderEditor>>) {
   expect(write.body.operation_id).toMatch(uuid);
   expect(write.body.expected_revision).toBe(7);
   expect(fixture.submit.mock.calls[0][0]).toMatchObject({
-    kind: 'edit',
+    kind,
     item_id: 'paper',
     operation_id: write.body.operation_id,
     expected_revision: 7,
@@ -120,21 +125,32 @@ describe('Library item editor metadata wire preservation', () => {
   });
 
   it('preserves numeric year and unedited typed fields when only authors actually change', async () => {
-    // Deliberately safe numeric fields: full opaque-number metadata editing is a separate unresolved contract.
     const fixture = await renderEditor(safeTypedMetadata);
     fireEvent.change(screen.getByRole('textbox', { name: 'Authors' }), { target: { value: 'Edited authors' } });
-    const write = await saveEditor(fixture);
-    const metadata = write.body.metadata as Record<string, unknown>;
-    expect(metadata.year).toBe(2024);
-    expect(metadata).toEqual({ ...fixture.item.metadata, authors: 'Edited authors' });
+    const write = await saveEditor(fixture, 'edit-metadata');
+    expect(Object.hasOwn(write.body, 'metadata')).toBe(false);
+    expect(write.body.metadata_patch).toEqual({ set: { authors: 'Edited authors' } });
+    expect(fixture.item.metadata.year).toBe(2024);
+    expect(fixture.item.metadata).toEqual({
+      authors: ['Ada', 'Grace'],
+      year: 2024,
+      reviewed: false,
+      other: ['x', { n: 1.25 }],
+    });
   });
 
   it('preserves array authors and unedited typed fields when only year actually changes', async () => {
     const fixture = await renderEditor(safeTypedMetadata);
     fireEvent.change(screen.getByRole('textbox', { name: 'Year' }), { target: { value: '2025' } });
-    const write = await saveEditor(fixture);
-    const metadata = write.body.metadata as Record<string, unknown>;
-    expect(metadata.authors).toEqual(['Ada', 'Grace']);
-    expect(metadata).toEqual({ ...fixture.item.metadata, year: '2025' });
+    const write = await saveEditor(fixture, 'edit-metadata');
+    expect(Object.hasOwn(write.body, 'metadata')).toBe(false);
+    expect(write.body.metadata_patch).toEqual({ set: { year: '2025' } });
+    expect(fixture.item.metadata.authors).toEqual(['Ada', 'Grace']);
+    expect(fixture.item.metadata).toEqual({
+      authors: ['Ada', 'Grace'],
+      year: 2024,
+      reviewed: false,
+      other: ['x', { n: 1.25 }],
+    });
   });
 });

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8ec6ebb9a3476d34f24e7cc30ade53d869a399eb1f5c707b348b916920f53b1d",
+  "adaptationFingerprintSHA256": "f3a7d06fd4c64d710bf52ee51bc7a880208f118dd024bf233cf2664b90e8a0a6",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "b2f229ca438e571771209ace81d8308b9b07e70a9da1b5d0308b522263e62842",
+  "additionFingerprintSHA256": "5b10913349f59803c4e0da06c4e094b7a79abe13cfd6cda373e14acd7096bab8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1209
+    "addedFiles": 1214
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "825d2c6155e2db406a8750817e2e3c664e0e23d552fa9deb15a37ece8bfc91a1",
+      "targetSHA256": "328f685219fee8cc375efadb588b4fa0a25796682d82c55dc8514ed042ebd3a6",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "55fcaae67983cc4d0f1d0970b5c21903f8ab87ba246ac74d2db86a22f89a7139",
+      "targetSHA256": "89c0d4fc7d83c7cba1e9f2c1fa893f56575337b4ebd1bb6a1987c4cafb78d810",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "79f94f2d52bd1c6e7bfb8dc82305c33f2136ff8350d8c9de29bc31391cf3067f",
+      "sha256": "4c5c12f4638cc9d56589aaed5a9690354f401df327b0ce17c5086c96c437bf2b",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7647,9 +7647,21 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureLibrary.ts",
-      "sha256": "5942a8f07fedd7d596cfb04167c7090f287fe904cf5c1709e83d1b4ac80f5cc3",
-      "bytes": 9435,
+      "sha256": "9957118dfe3c83e67eec2d6a4cf99aba6757b930a0e155fc445b71198a88549f",
+      "bytes": 10309,
       "reason": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner."
+    },
+    {
+      "path": "packages/desktop/src/common/adapter/literatureMetadataPatch.ts",
+      "sha256": "7bdec423164da0b344c901a49b973a08b26c9827c75081fbe322f08553bd2135",
+      "bytes": 3419,
+      "reason": "Strictly snapshot generic Library metadata field deltas and validate only changed receipt keys while preserving unedited canonical metadata, the existing mutation owner, and literal JSON field semantics."
+    },
+    {
+      "path": "packages/desktop/src/common/adapter/literatureValueIdentity.ts",
+      "sha256": "b838942d62b9974e03d858c76a8928a423af925c78d52f92be06b33c8b84b5b8",
+      "bytes": 1035,
+      "reason": "Factor the existing canonical Library request and receipt JSON equality into a dependency-free helper without changing its comparison semantics or creating another request, transport, or persistence authority."
     },
     {
       "path": "packages/desktop/src/common/adapter/messageStreamProtocol.ts",
@@ -7875,8 +7887,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/LibraryItemEditor.tsx",
-      "sha256": "11739f658f2e3f043edec736ef2118b9038543b4deef8f8237f217df6910ff94",
-      "bytes": 4511,
+      "sha256": "7949fc5e0cdc73c02ffa66961249f4e15324ab6ec71dee52cea48fd959ce901a",
+      "bytes": 4860,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10785,8 +10797,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
-      "sha256": "c8d92bcac9c79d5f5fe78ed8b4a4c84438f2ff36fcc0b25fd1e2ae09b7dd24dc",
-      "bytes": 5715,
+      "sha256": "49bc5ae18a6089206305553badde5d2eb819edc37d3c62e0c7e63432d28a217d",
+      "bytes": 6213,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12873,8 +12885,20 @@
     },
     {
       "path": "tests/unit/renderer/conversation/LibraryItemEditorWire.dom.test.tsx",
-      "sha256": "b64e0c346267330d164d560ca64e6af3af2d38eb8ec2729f8c30f749d90c4f3d",
-      "bytes": 7519,
+      "sha256": "eba9edcaca912345fb00056b6cf0875638c24527c9dc15d212152fa9a9050bbc",
+      "bytes": 7993,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/LibraryItemMetadataDeltaControls.dom.test.tsx",
+      "sha256": "4c16a190bedb8f91b42e14fe66472dc9f285b8ccbdeedce5d8a0fb4e0b01cd18",
+      "bytes": 4280,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/LibraryItemMetadataDeltaWire.dom.test.tsx",
+      "sha256": "a8a17e4a21d15615d2903ac25350ed1abdd095fa5376417f5bc5b74096eac826",
+      "bytes": 6366,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12995,6 +13019,12 @@
       "path": "tests/unit/renderer/conversation/literatureLibrary.test.ts",
       "sha256": "4566cdf1b2703ea1dcbb1a7595834a19ef9fab87cfdcfdc232e21114aef2489c",
       "bytes": 8691,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/literatureMetadataFields.test.ts",
+      "sha256": "d7b2d2dc1b3855f0a29c5eaeafe94be2c0701a15ebd62ab8898dcf06dea47bdf",
+      "bytes": 10536,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
