@@ -17,11 +17,14 @@ export function LibraryItemEditor({
   close: () => void;
 }) {
   const { t } = useTranslation();
+  const initialAuthors = typeof item.metadata.authors === 'string' ? item.metadata.authors : '';
+  const initialYear =
+    typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : '';
   const [title, setTitle] = useState(item.title);
-  const [authors, setAuthors] = useState(typeof item.metadata.authors === 'string' ? item.metadata.authors : '');
-  const [year, setYear] = useState(
-    typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : ''
-  );
+  const [authors, setAuthors] = useState(initialAuthors);
+  const [year, setYear] = useState(initialYear);
+  const authorsChanged = authors !== initialAuthors;
+  const yearChanged = year !== initialYear;
   const [confirmRemove, setConfirmRemove] = useState(false);
   const run = (command: LiteratureCommand): void => {
     void submit(command).then(close, (): undefined => undefined);
@@ -58,7 +61,15 @@ export function LibraryItemEditor({
               item_id: item.id,
               expected_revision: item.metadata_revision,
               title: title.trim(),
-              metadata: { ...item.metadata, authors: authors.trim(), year: year.trim() },
+              ...(authorsChanged || yearChanged
+                ? {
+                    metadata: {
+                      ...item.metadata,
+                      ...(authorsChanged ? { authors: authors.trim() } : {}),
+                      ...(yearChanged ? { year: year.trim() } : {}),
+                    },
+                  }
+                : {}),
             })
           }
         >
