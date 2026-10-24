@@ -3,21 +3,21 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "aa019e2c7e921d7d55260b7805b80e2094c13ff142d4b85b2688888fbfb791ce",
+  "adaptationFingerprintSHA256": "3acd08afa6fe6dc6347667252742c5b25d57104a583c22addcbf260b686c51cd",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "5d76175a9756ff530bacba9af7a5a32f0b397bd3364079e8385c4bac4aa4910c",
+  "additionFingerprintSHA256": "1bce9035503443bc38cf2266dd1fd6e446b6d80cf78ae80c6a908d8ff3fa99ab",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1206
+    "addedFiles": 1207
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "387526078a2dfc198b294a16cad127e91a332a1566c7f17b504afb085bd431ad",
+      "targetSHA256": "5ccf8ef28f2652006c6daea4cabfecf5ad03c40a5d306739aa58b5e926cb322b",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "cc8a1e3d09c7634588de28b90644a45b56fe26ef8f765d29bac255318b9a0fb2",
+      "sha256": "d60356ad3912e2215b7fc7b04e035ef1dbd73fd1c9df5983e3d198a9366177d4",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -13613,6 +13613,12 @@
       "path": "tests/unit/renderer/xScienceUserProfile.dom.test.ts",
       "sha256": "ca7d4f1d7d11647153521447d96e096f32c36b7a733b9fd353dd99dd43e5cc37",
       "bytes": 1890,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/security/bodyParserDependencyContract.test.ts",
+      "sha256": "d70ae3a867d6dc88e4a8314348c2f7565581b6b6d5b50741fac67f94163f07f7",
+      "bytes": 7661,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

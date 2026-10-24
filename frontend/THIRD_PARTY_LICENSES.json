@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "cc8a1e3d09c7634588de28b90644a45b56fe26ef8f765d29bac255318b9a0fb2",
+  "lockfileSHA256": "d60356ad3912e2215b7fc7b04e035ef1dbd73fd1c9df5983e3d198a9366177d4",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -3323,7 +3323,7 @@
     },
     {
       "name": "body-parser",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6445,7 +6445,7 @@
     },
     {
       "name": "qs",
-      "version": "6.16.0",
+      "version": "6.16.1",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"
