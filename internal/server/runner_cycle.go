@@ -240,7 +240,7 @@ func (s *Server) runSessionRunnerChatOnce(
 		}
 		message := cause.Error()
 		if transcriptAuthority != nil {
-			terminalEvent, finishErr := s.finishTranscriptRunner(context.WithoutCancel(ctx), transcriptAuthority, "cancelled", message)
+			receipt, finishErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{Status: "cancelled", Detail: message, SegmentOrdinal: 1})
 			if finishErr == nil {
 				activeRun.settled = true
 			}
@@ -248,7 +248,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			if finishErr != nil {
 				return result, finishErr
 			}
-			result.FinishEventID = terminalEvent.EventID
+			result.FinishEventID = receipt.Terminal.EventID
 			result.Status = "cancelled"
 			return result, nil
 		}
@@ -359,7 +359,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			}
 			return result, err
 		}
-		status, detail, segment, recovered, recoveryErr := s.recoverTranscriptCompletionOnly(ctx, session, chatRun)
+		final, recovered, recoveryErr := s.recoverTranscriptCompletionOnly(ctx, session, chatRun)
 		if recoveryErr != nil {
 			if handled, settleErr := settlePreChatError(recoveryErr); handled {
 				return result, settleErr
@@ -367,7 +367,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			return result, recoveryErr
 		}
 		if recovered {
-			if status == "completed" {
+			if final.Status == "completed" {
 				if err := advanceSessionRunnerPhase(chatRun, runnermachine.PhaseVerify); err != nil {
 					return result, err
 				}
@@ -376,9 +376,7 @@ func (s *Server) runSessionRunnerChatOnce(
 				}
 			}
 			activeRun.settlement.Lock()
-			terminalEvent, finishErr := s.finishTranscriptRunner(
-				context.WithoutCancel(ctx), transcriptAuthority, status, detail, segment.Ordinal,
-			)
+			receipt, finishErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, final)
 			if finishErr == nil {
 				activeRun.settled = true
 			}
@@ -386,8 +384,8 @@ func (s *Server) runSessionRunnerChatOnce(
 			if finishErr != nil {
 				return result, finishErr
 			}
-			result.Status = status
-			result.FinishEventID = terminalEvent.EventID
+			result.Status = receipt.Finish.Status
+			result.FinishEventID = receipt.Terminal.EventID
 			if err := markSessionRunnerTerminal(chatRun); err != nil {
 				return result, err
 			}

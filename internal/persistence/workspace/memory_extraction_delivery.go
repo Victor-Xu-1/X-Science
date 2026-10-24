@@ -74,77 +74,92 @@ func (s *Store) FinishRunnerWithMemoryExtraction(ctx context.Context, input tran
 	err = repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
 		var err error
 		event, receipt, created, err = tx.FinishRunner(ctx, input)
-		if err != nil || !created || input.Status != "completed" {
-			return err
-		}
-		var terminal struct {
-			Purpose string `json:"purpose"`
-		}
-		if json.Unmarshal(event.PayloadJSON, &terminal) != nil {
-			return errors.New("invalid completed Memory terminal")
-		}
-		if terminal.Purpose == transcriptstore.ContextCompactionPurpose {
-			return nil
-		}
-		proof, err := tx.ReadCompletedMemorySource(ctx, input.Claim.StreamUID, input.Claim.OwnerID, event.EventID)
-		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, transcriptstore.ErrEventConflict) {
-			return nil
-		}
 		if err != nil {
 			return err
 		}
-		if proof.FrameID != proof.RootFrameID {
-			return nil
-		}
-		var project, parent string
-		var hasReply bool
-		if err := tx.QueryRowContext(ctx, `SELECT frame.project_id,COALESCE(frame.parent_frame_id,''),EXISTS(
-		 SELECT 1 FROM transcript_events message JOIN transcript_branch_events member
-		 ON member.stream_uid=message.stream_uid AND member.event_id=message.event_id AND member.branch_id=?
-		 WHERE message.stream_uid=? AND message.runner_attempt=? AND message.event_type='assistant_message'
-		 AND message.publication_seq<? AND length(trim(COALESCE(json_extract(message.payload_json,'$.text'),'')))>0)
-		 FROM frames frame WHERE frame.id=?`, proof.BranchID, proof.StreamUID, proof.Attempt, proof.PublicationSeq, proof.FrameID).Scan(&project, &parent, &hasReply); err != nil {
-			return err
-		}
-		if parent != "" || !hasReply {
-			return nil
-		}
-		source := CompletedExtractionSource{Schema: 1, OwnerUserID: proof.OwnerID, ProjectID: project, FrameID: proof.FrameID, Transcript: &proof}
-		identity, err := identifyExtractionSource(source)
-		if err != nil {
-			return err
-		}
-		if err := requireExtractionPolicyTx(ctx, tx, source); errors.Is(err, ErrAgentMemoryMutationForbidden) {
-			return nil
-		} else if err != nil {
-			return err
-		}
-		if err := validateMemoryExtractionCompletion(completion); err != nil {
-			return err
-		}
-		var ordinal int64
-		if err := tx.QueryRowContext(ctx, `INSERT INTO project_runtime_metadata(project_id,memory_completion_ordinal)
-		 SELECT id,1 FROM projects WHERE id=? AND user_id=?
-		 ON CONFLICT(project_id) DO UPDATE SET memory_completion_ordinal=project_runtime_metadata.memory_completion_ordinal+1
-		 WHERE project_runtime_metadata.memory_completion_ordinal<9223372036854775807 RETURNING memory_completion_ordinal`, source.ProjectID, source.OwnerUserID).Scan(&ordinal); err != nil {
-			return err
-		}
-		cadence := MemoryExtractionCadence{EveryN: completion.ExtractEveryN, Ordinal: ordinal, Eligible: ordinal%int64(completion.ExtractEveryN) == 0}
-		dispatch := MemoryExtractionDispatch{Version: 1, Source: source, SessionID: proof.FrameID, Completion: completion, Cadence: cadence}
-		payload, err := json.Marshal(dispatch)
-		if err != nil {
-			return err
-		}
-		if len(payload) > outboxMaxPayloadBytes {
-			return errors.New("bounded Memory dispatch exceeds transport limit")
-		}
-		_, err = s.enqueueOutboxTransaction(ctx, tx, EnqueueOutboxInput{
-			Topic: MemoryExtractionOutboxTopic, Type: MemoryExtractionOutboxType, IdempotencyKey: identity.key,
-			PartitionKey: memoryExtractionPartition(identity), AggregateType: "frame", AggregateID: source.FrameID, Payload: payload,
-		})
+		_, err = s.enqueueCompletedRunnerMemoryTx(ctx, tx, input, event, created, completion)
 		return err
 	})
 	return event, receipt, created, err
+}
+
+// The canonical eligibility/cadence/enqueue producer is shared with atomic final
+// answer settlement. It uses only the caller's already-held transaction.
+func (s *Store) enqueueCompletedRunnerMemoryTx(ctx context.Context, tx *transcriptstore.ImmediateTransaction,
+	input transcriptstore.FinishRunnerInput, event transcriptstore.Event, created bool, completion MemoryExtractionCompletion,
+) (*OutboxEvent, error) {
+	if !created || input.Status != "completed" {
+		return nil, nil
+	}
+	var terminal struct {
+		Purpose string `json:"purpose"`
+	}
+	if json.Unmarshal(event.PayloadJSON, &terminal) != nil {
+		return nil, errors.New("invalid completed Memory terminal")
+	}
+	if terminal.Purpose == transcriptstore.ContextCompactionPurpose {
+		return nil, nil
+	}
+	proof, err := tx.ReadCompletedMemorySource(ctx, input.Claim.StreamUID, input.Claim.OwnerID, event.EventID)
+	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, transcriptstore.ErrEventConflict) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if proof.FrameID != proof.RootFrameID {
+		return nil, nil
+	}
+	var project, parent string
+	var hasReply bool
+	if err := tx.QueryRowContext(ctx, `SELECT frame.project_id,COALESCE(frame.parent_frame_id,''),EXISTS(
+	 SELECT 1 FROM transcript_events message JOIN transcript_branch_events member
+	 ON member.stream_uid=message.stream_uid AND member.event_id=message.event_id AND member.branch_id=?
+	 WHERE message.stream_uid=? AND message.runner_attempt=? AND message.event_type='assistant_message'
+	 AND message.publication_seq<? AND length(trim(COALESCE(json_extract(message.payload_json,'$.text'),'')))>0)
+	 FROM frames frame WHERE frame.id=?`, proof.BranchID, proof.StreamUID, proof.Attempt, proof.PublicationSeq, proof.FrameID).Scan(&project, &parent, &hasReply); err != nil {
+		return nil, err
+	}
+	if parent != "" || !hasReply {
+		return nil, nil
+	}
+	source := CompletedExtractionSource{Schema: 1, OwnerUserID: proof.OwnerID, ProjectID: project, FrameID: proof.FrameID, Transcript: &proof}
+	identity, err := identifyExtractionSource(source)
+	if err != nil {
+		return nil, err
+	}
+	if err := requireExtractionPolicyTx(ctx, tx, source); errors.Is(err, ErrAgentMemoryMutationForbidden) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	if err := validateMemoryExtractionCompletion(completion); err != nil {
+		return nil, err
+	}
+	var ordinal int64
+	if err := tx.QueryRowContext(ctx, `INSERT INTO project_runtime_metadata(project_id,memory_completion_ordinal)
+	 SELECT id,1 FROM projects WHERE id=? AND user_id=?
+	 ON CONFLICT(project_id) DO UPDATE SET memory_completion_ordinal=project_runtime_metadata.memory_completion_ordinal+1
+	 WHERE project_runtime_metadata.memory_completion_ordinal<9223372036854775807 RETURNING memory_completion_ordinal`, source.ProjectID, source.OwnerUserID).Scan(&ordinal); err != nil {
+		return nil, err
+	}
+	cadence := MemoryExtractionCadence{EveryN: completion.ExtractEveryN, Ordinal: ordinal, Eligible: ordinal%int64(completion.ExtractEveryN) == 0}
+	dispatch := MemoryExtractionDispatch{Version: 1, Source: source, SessionID: proof.FrameID, Completion: completion, Cadence: cadence}
+	payload, err := json.Marshal(dispatch)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) > outboxMaxPayloadBytes {
+		return nil, errors.New("bounded Memory dispatch exceeds transport limit")
+	}
+	outbox, err := s.enqueueOutboxTransaction(ctx, tx, EnqueueOutboxInput{
+		Topic: MemoryExtractionOutboxTopic, Type: MemoryExtractionOutboxType, IdempotencyKey: identity.key,
+		PartitionKey: memoryExtractionPartition(identity), AggregateType: "frame", AggregateID: source.FrameID, Payload: payload,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &outbox, nil
 }
 
 func validateMemoryExtractionCompletion(value MemoryExtractionCompletion) error {

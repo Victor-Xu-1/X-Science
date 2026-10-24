@@ -53,7 +53,12 @@ func (s *Store) SetFrameOutputData(frameID string, output map[string]any) error 
 	if err != nil {
 		return fmt.Errorf("encode frame output data: %w", err)
 	}
-	result, err := s.db.ExecContext(context.Background(), `
+	return setFrameOutputDataTransaction(context.Background(), s.db, frameID, raw)
+}
+
+// Preserve the original output-data SQL in the caller's atomic transaction.
+func setFrameOutputDataTransaction(ctx context.Context, tx workspaceTransaction, frameID string, raw []byte) error {
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO frame_runtime_metadata (frame_id, output_data, context_data)
 		SELECT id, ?, '{}' FROM frames WHERE id = ?
 		ON CONFLICT(frame_id) DO UPDATE SET output_data = excluded.output_data`, string(raw), frameID)
