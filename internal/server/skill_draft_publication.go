@@ -60,20 +60,24 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 		return skills.Skill{}, err
 	}
 	defer staged.cleanup(filesystem)
-	// Only promotion belongs inside the existing live-runner commit guard.
-	// Validation, snapshots and post-commit cleanup do not hold the database TX.
+	installed := staged.skill
+	installed.Name = destinationName
+	installed.Path = filepath.Join(destination, "SKILL.md")
+	// Keep the catalog projection with the guarded filesystem promotion, as
+	// imports do. An uncertain TX acknowledgement must not hide installed bytes.
+	// Validation, snapshots and author cleanup stay outside the database TX.
 	if err := commit(func() error {
-		return installSkillDirectoryAtomic(filesystem, staged.source, destination, existing)
+		if err := installSkillDirectoryAtomic(filesystem, staged.source, destination, existing); err != nil {
+			return err
+		}
+		s.skillCatalog.UpsertSkill(installed)
+		return nil
 	}); err != nil {
 		return skills.Skill{}, err
 	}
 	if !legacyDraft {
 		cleanupReviewedSkillDraft(filesystem, draft, authorIdentity, snapshot.revision)
 	}
-	installed := staged.skill
-	installed.Name = destinationName
-	installed.Path = filepath.Join(destination, "SKILL.md")
-	s.skillCatalog.UpsertSkill(installed)
 	return installed, nil
 }
 
