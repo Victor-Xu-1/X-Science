@@ -144,11 +144,11 @@ func (runtime *memoryExtractionRuntime) completedExtractionCommitSource(scope me
 	return bound, nil
 }
 
-func (runtime *memoryExtractionRuntime) legacyExtractionCommitGuard(source memoryExtractionSource, frameID string, snapshotMessageCount int) func(context.Context, func() error) error {
+func (runtime *memoryExtractionRuntime) legacyExtractionCommitGuard(source memoryExtractionSource, scope memoryextract.ApplyScope, snapshotMessageCount int) func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error {
 	if source.proof != nil {
 		return nil
 	}
-	return func(ctx context.Context, commit func() error) error {
+	return func(ctx context.Context, commit func(workspace.LegacyExtractionOrderCheck) error) error {
 		if runtime.server.eventJournal == nil {
 			return errMemoryExtractionSource
 		}
@@ -161,7 +161,7 @@ func (runtime *memoryExtractionRuntime) legacyExtractionCommitGuard(source memor
 			// already committed for a later completion. The journal guard keeps
 			// another legacy completion from racing this read and short commit;
 			// the database also fences Runner's expected cursor in that commit.
-			cursor, err := runtime.server.workspaceStore.LastExtractMessageIndex(ctx, frameID)
+			cursor, err := runtime.server.workspaceStore.LastExtractMessageIndex(ctx, scope.SourceFrameID)
 			if err != nil {
 				return err
 			}
@@ -172,19 +172,19 @@ func (runtime *memoryExtractionRuntime) legacyExtractionCommitGuard(source memor
 					}
 				}
 			}
-			return commit()
+			return commit(legacyMemoryExtractionOrderCheck(ctx, entries, scope, source))
 		})
 	}
 }
 
-func (runtime *memoryExtractionRuntime) extractionCommitGuard(source memoryExtractionSource, scope memoryextract.ApplyScope, snapshotMessageCount int) func(context.Context, func() error) error {
-	legacyGuard := runtime.legacyExtractionCommitGuard(source, scope.SourceFrameID, snapshotMessageCount)
-	return func(ctx context.Context, commit func() error) error {
+func (runtime *memoryExtractionRuntime) extractionCommitGuard(source memoryExtractionSource, scope memoryextract.ApplyScope, snapshotMessageCount int) func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error {
+	legacyGuard := runtime.legacyExtractionCommitGuard(source, scope, snapshotMessageCount)
+	return func(ctx context.Context, commit func(workspace.LegacyExtractionOrderCheck) error) error {
 		return runtime.server.withAutomaticMemoryCommit(ctx, scope.UserID, func() error {
 			if legacyGuard != nil {
 				return legacyGuard(ctx, commit)
 			}
-			return commit()
+			return commit(nil)
 		})
 	}
 }

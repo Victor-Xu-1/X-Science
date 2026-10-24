@@ -70,7 +70,10 @@ type RunInput struct {
 	Config            Config
 	// Source and CommitGuard are host-captured authority, never model output.
 	Source      *workspace.CompletedExtractionSource
-	CommitGuard func(context.Context, func() error) error
+	CommitGuard func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error `json:"-"`
+	// CoveredPrefix derives examined selected history from original receipts.
+	// It is host-captured, read-only and never replaces the stored cursor CAS.
+	CoveredPrefix func(context.Context) (int, error) `json:"-"`
 }
 
 type RunResult struct {
@@ -177,8 +180,20 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 	result.CursorAfter = cursor
 	result.Overshoot = config.ExtractDelta && cursor > len(input.Messages)
 	start := 0
-	if config.ExtractDelta && !result.Overshoot {
-		start = cursor
+	if config.ExtractDelta && input.CoveredPrefix != nil {
+		start, err = input.CoveredPrefix(ctx)
+		if err != nil {
+			result.Gate = "coverage-failed"
+			return result, err
+		}
+		if start < 0 || start > len(input.Messages) {
+			result.Gate = "coverage-failed"
+			return result, workspace.ErrExtractionPlanConflict
+		}
+		if err := validateExtractionCoverageBinding(ctx, input, start); err != nil {
+			result.Gate = "coverage-failed"
+			return result, err
+		}
 	}
 	delta := input.Messages[start:]
 	result.DeltaCount = len(delta)

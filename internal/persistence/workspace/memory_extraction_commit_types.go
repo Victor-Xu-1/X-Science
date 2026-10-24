@@ -69,17 +69,23 @@ type ExtractionMutationPlan struct {
 	Prepared ExtractionApplyResult
 }
 
+// LegacyExtractionOrderCheck reads only the already-held strict journal
+// snapshot. It must not acquire another journal lock or read workspace DB.
+// It is host-only and does not participate in any persisted source/digest.
+type LegacyExtractionOrderCheck func(CompletedExtractionSource) (bool, error)
+
 type ExtractionCommitInput struct {
-	DeliveryClaim *MemoryExtractionDeliveryClaim
-	Source        CompletedExtractionSource
-	InputSHA256   string
-	CursorBefore  int
-	CursorNext    int
-	AdvanceCursor bool
-	Overshoot     bool
-	DeltaCount    int
-	Gate          string
-	Plan          ExtractionMutationPlan
+	LegacyOrderCheck LegacyExtractionOrderCheck `json:"-"`
+	DeliveryClaim    *MemoryExtractionDeliveryClaim
+	Source           CompletedExtractionSource
+	InputSHA256      string
+	CursorBefore     int
+	CursorNext       int
+	AdvanceCursor    bool
+	Overshoot        bool
+	DeltaCount       int
+	Gate             string
+	Plan             ExtractionMutationPlan
 }
 
 // ExtractionCommitResult is the original durable outcome. Replayed describes
