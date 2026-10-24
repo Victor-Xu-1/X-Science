@@ -1,18 +1,123 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { XScienceSkillLibraryError } from '@/renderer/services/skills/xScienceSkillLibrary';
+import type {
+  XScienceSkillLibraryError,
+  XScienceSkillRepoPreview,
+} from '@/renderer/services/skills/xScienceSkillLibrary';
 import * as skillLibrary from '@/renderer/services/skills/xScienceSkillLibrary';
 import {
   importXScienceRepositorySkills,
   importXScienceSkillFile,
   loadXScienceSkillDrafts,
   loadXScienceSkillFileContent,
+  loadXScienceSkillFileSnapshot,
   loadXScienceSkillFiles,
   loadXScienceSkillSources,
   previewXScienceSkillRepository,
+  publishXScienceSkillDraft,
   saveXScienceSkillDraftFile,
 } from '@/renderer/services/skills/xScienceSkillLibrary';
 
 describe('X-Science skill library service', () => {
+  it('publishes only the exact reviewed draft revision without a new read', async () => {
+    const revision = 'a'.repeat(64);
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(json({ ok: true }));
+    const options = { fetchImpl, expectedDraftRevision: revision };
+    await publishXScienceSkillDraft('reviewed-workflow', false, options);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/skills/reviewed-workflow/publish',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ overwrite: false, expected_draft_revision: revision }),
+      })
+    );
+  });
+
+  it('keeps required and conflicting draft identities as typed failures', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(json({ code: 'draft_revision_conflict', detail: 'Read and review the current draft.' }, 409));
+    const options = { fetchImpl, expectedDraftRevision: 'b'.repeat(64) };
+    await expect(publishXScienceSkillDraft('reviewed-workflow', false, options)).rejects.toMatchObject({
+      status: 409,
+      code: 'draft_revision_conflict',
+    });
+  });
+
+  it('reads the explicitly selected draft instead of a same-named published package', async () => {
+    const payload = {
+      content: '# Reviewed workflow',
+      origin: 'draft',
+      draft_revision: 'c'.repeat(64),
+      files: ['SKILL.md'],
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(json(payload));
+    const options = { fetchImpl, source: 'draft' as const };
+    await expect(loadXScienceSkillFileContent('reviewed-workflow', 'SKILL.md', options)).resolves.toBe(
+      '# Reviewed workflow'
+    );
+    expect(fetchImpl).toHaveBeenCalledWith(
+      '/api/skills/catalog/reviewed-workflow/content?path=SKILL.md&source=draft',
+      expect.anything()
+    );
+  });
+
+  it('never turns a published or malformed snapshot identity into draft authorization', async () => {
+    for (const [origin, draft_revision, source] of [
+      ['personal', 'a'.repeat(64), 'draft'],
+      ['draft', 'not-a-package-hash', 'draft'],
+      ['draft', 'a'.repeat(64), 'published'],
+    ] as const) {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(json({ content: '# Workflow', origin, draft_revision }));
+      await expect(loadXScienceSkillFileSnapshot('workflow', 'SKILL.md', { source, fetchImpl })).resolves.toMatchObject(
+        {
+          content: '# Workflow',
+          draftRevision: null,
+        }
+      );
+    }
+  });
+
+  it('rejects an incomplete draft snapshot instead of pairing its token with a preceding file list', async () => {
+    const invalidInventories: unknown[] = [
+      undefined,
+      [],
+      ['other.md'],
+      ['SKILL.md', 'SKILL.md'],
+      ['SKILL.md', 7],
+      ['SKILL.md', '../outside.md'],
+    ];
+    const draft = { content: '# Draft', origin: 'draft', draft_revision: 'd'.repeat(64) };
+    for (const files of invalidInventories) {
+      const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(json({ ...draft, files }));
+      const read = loadXScienceSkillFileSnapshot('workflow', 'SKILL.md', { source: 'draft', fetchImpl });
+      await expect(read).rejects.toMatchObject({
+        status: 502,
+        code: 'draft_snapshot_invalid',
+      });
+    }
+    const validFiles: string[] = ['SKILL.md', 'references/current.md'];
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(json({ ...draft, files: validFiles }));
+    const resolved = await loadXScienceSkillFileSnapshot('workflow', 'SKILL.md', { source: 'draft', fetchImpl });
+    expect(resolved).toMatchObject({
+      files: validFiles,
+      draftRevision: draft.draft_revision,
+    });
+  });
+
+  it('does not send an unbound publish request when the revision is malformed', async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    await expect(
+      publishXScienceSkillDraft('workflow', true, { fetchImpl, expectedDraftRevision: 'unreviewed' })
+    ).rejects.toMatchObject({
+      status: 428,
+      code: 'draft_revision_required',
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('normalizes drafts, imported sources, repository previews and file content', async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -112,7 +217,7 @@ describe('X-Science skill library service', () => {
       throw new Error(`unexpected URL: ${url}`);
     });
     const options = { baseUrl: 'http://fusion.test', fetchImpl };
-    const preview = {
+    const preview: XScienceSkillRepoPreview = {
       repo: 'https://github.com/example/research-skills',
       slug: 'research-skills',
       sha: 'abc123',
@@ -158,7 +263,10 @@ describe('X-Science skill library service', () => {
     await expect(
       previewXScienceSkillRepository('file:///etc/passwd', { baseUrl: 'http://fusion.test', fetchImpl })
     ).rejects.toEqual(
-      expect.objectContaining<XScienceSkillLibraryError>({ status: 400, message: 'Repository is not allowed' })
+      expect.objectContaining<Pick<XScienceSkillLibraryError, 'status' | 'message'>>({
+        status: 400,
+        message: 'Repository is not allowed',
+      })
     );
   });
 });

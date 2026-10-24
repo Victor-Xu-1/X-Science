@@ -141,7 +141,8 @@ func (s *Server) handleCompatibilitySkillDuplicate(w http.ResponseWriter, r *htt
 
 func (s *Server) handleCompatibilitySkillPublish(w http.ResponseWriter, r *http.Request, name string) {
 	var input struct {
-		Overwrite bool `json:"overwrite"`
+		Overwrite             bool   `json:"overwrite"`
+		ExpectedDraftRevision string `json:"expected_draft_revision"`
 	}
 	if err := decodeAgentCompatJSON(r, &input); err != nil {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid skill publish request: "+err.Error())
@@ -149,8 +150,16 @@ func (s *Server) handleCompatibilitySkillPublish(w http.ResponseWriter, r *http.
 	}
 	s.skillMutationMu.Lock()
 	defer s.skillMutationMu.Unlock()
-	skill, err := s.publishCompatibilitySkillDraft(name, input.Overwrite)
+	skill, err := s.publishCompatibilitySkillDraft(name, input.Overwrite, input.ExpectedDraftRevision)
 	if err != nil {
+		if failure, ok := skillDraftRevisionError(err); ok {
+			status := http.StatusConflict
+			if failure.Code == "draft_revision_required" {
+				status = http.StatusPreconditionRequired
+			}
+			writeJSON(w, status, map[string]any{"code": failure.Code, "detail": failure.Message})
+			return
+		}
 		writeV11Detail(w, http.StatusBadRequest, err.Error())
 		return
 	}

@@ -3,6 +3,15 @@ export type XScienceSkillLibraryOptions = {
   fetchImpl?: typeof fetch;
 };
 
+export type XScienceSkillReadOptions = XScienceSkillLibraryOptions & { source?: 'draft' | 'published' };
+export type XScienceSkillFileSnapshot = {
+  content: string;
+  origin: string;
+  draftRevision: string | null;
+  files: string[] | null;
+};
+export type XScienceSkillPublishOptions = XScienceSkillLibraryOptions & { expectedDraftRevision: string };
+
 export type XScienceSkillDraft = {
   name: string;
   displayName: string;
@@ -46,11 +55,13 @@ export type XScienceSkillImportResult = {
 
 export class XScienceSkillLibraryError extends Error {
   readonly status: number;
+  readonly code: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code: string | null = null) {
     super(message);
     this.name = 'XScienceSkillLibraryError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -129,11 +140,11 @@ export async function importXScienceSkillFile(
   return asRecord(payload) ?? {};
 }
 
-export async function loadXScienceSkillFiles(
-  name: string,
-  options: XScienceSkillLibraryOptions = {}
-): Promise<string[]> {
-  const payload = asRecord(await requestJson(`/api/skills/catalog/${encodeURIComponent(name)}/files`, options));
+export async function loadXScienceSkillFiles(name: string, options: XScienceSkillReadOptions = {}): Promise<string[]> {
+  const source = options.source ? `?source=${options.source}` : '';
+  const payload = asRecord(
+    await requestJson(`/api/skills/catalog/${encodeURIComponent(name)}/files${source}`, options)
+  );
   return Array.isArray(payload?.files)
     ? payload.files.filter((value): value is string => typeof value === 'string')
     : [];
@@ -142,15 +153,63 @@ export async function loadXScienceSkillFiles(
 export async function loadXScienceSkillFileContent(
   name: string,
   path: string,
-  options: XScienceSkillLibraryOptions = {}
+  options: XScienceSkillReadOptions = {}
 ): Promise<string> {
+  return (await loadXScienceSkillFileSnapshot(name, path, options)).content;
+}
+
+/** A draft identity belongs to these displayed bytes, never a later publish-time read. */
+export async function loadXScienceSkillFileSnapshot(
+  name: string,
+  path: string,
+  options: XScienceSkillReadOptions = {}
+): Promise<XScienceSkillFileSnapshot> {
+  const source = options.source ? `&source=${options.source}` : '';
   const payload = asRecord(
     await requestJson(
-      `/api/skills/catalog/${encodeURIComponent(name)}/content?path=${encodeURIComponent(path)}`,
+      `/api/skills/catalog/${encodeURIComponent(name)}/content?path=${encodeURIComponent(path)}${source}`,
       options
     )
   );
-  return stringValue(payload?.content);
+  if (typeof payload?.content !== 'string') {
+    throw new XScienceSkillLibraryError(502, 'Skill file response is invalid');
+  }
+  const origin = typeof payload.origin === 'string' ? payload.origin : '';
+  const revision = payload.draft_revision;
+  const draftRevision =
+    options.source !== 'published' &&
+    origin === 'draft' &&
+    typeof revision === 'string' &&
+    /^[a-f0-9]{64}$/i.test(revision)
+      ? revision
+      : null;
+  const files = snapshotFiles(payload.files, path);
+  if (draftRevision && !files) {
+    throw new XScienceSkillLibraryError(502, 'Skill draft snapshot inventory is invalid', 'draft_snapshot_invalid');
+  }
+  return {
+    content: payload.content,
+    origin,
+    draftRevision,
+    files,
+  };
+}
+
+/** The server owns package policy; this checks the frozen receipt's wire shape. */
+function snapshotFiles(value: unknown, selectedPath: string): string[] | null {
+  // Mirrors the existing maxSkillArchiveFiles wire inventory bound, not a new limit.
+  if (!Array.isArray(value) || value.length === 0 || value.length > 512) return null;
+  if (
+    !value.every(
+      (file): file is string =>
+        typeof file === 'string' &&
+        !file.includes('\0') &&
+        file.split('/').every((part) => part !== '' && part !== '.' && part !== '..')
+    )
+  )
+    return null;
+  if (new Set(value).size !== value.length || !value.includes(selectedPath)) return null;
+  return [...value];
 }
 
 export async function saveXScienceSkillDraftFile(
@@ -184,12 +243,20 @@ export async function duplicateXScienceSkill(
 export async function publishXScienceSkillDraft(
   name: string,
   overwrite: boolean,
-  options: XScienceSkillLibraryOptions = {}
+  options: XScienceSkillPublishOptions
 ): Promise<RecordValue> {
+  const revision = options?.expectedDraftRevision;
+  if (typeof revision !== 'string' || !/^[a-f0-9]{64}$/i.test(revision)) {
+    throw new XScienceSkillLibraryError(
+      428,
+      'Read and review the current skill draft before publishing.',
+      'draft_revision_required'
+    );
+  }
   const payload = await requestJson(`/api/skills/${encodeURIComponent(name)}/publish`, options, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ overwrite }),
+    body: JSON.stringify({ overwrite, expected_draft_revision: revision }),
   });
   return asRecord(payload) ?? {};
 }
@@ -300,7 +367,8 @@ async function requestJson(
     const row = asRecord(payload);
     throw new XScienceSkillLibraryError(
       response.status,
-      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`
+      stringValue(row?.detail ?? row?.message ?? row?.error) || `Skill library request failed (${response.status})`,
+      typeof row?.code === 'string' ? row.code : null
     );
   }
   return payload;

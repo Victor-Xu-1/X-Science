@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "13c6a75203f81bd8998e733d64c97f8f87f563d1a847f339b9587947dc3f4b1e",
+  "lockfileSHA256": "3c2008b8a03e5fb1d6ecf7519d6bb0cd1057debc3b731a1450fb056eef2e38f2",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -3323,7 +3323,7 @@
     },
     {
       "name": "body-parser",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -6445,7 +6445,7 @@
     },
     {
       "name": "qs",
-      "version": "6.16.0",
+      "version": "6.16.1",
       "license": "BSD-3-Clause",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7952,7 +7952,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.3.13",
+      "version": "0.3.17",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

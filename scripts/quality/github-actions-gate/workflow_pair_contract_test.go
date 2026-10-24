@@ -69,16 +69,8 @@ func TestRepositoryWorkflowRoutingAndChangedScopeRuntimeEnvironment(t *testing.T
 	pr := repositoryWorkflow(t, "quality-pr.yml")
 	main := repositoryWorkflow(t, "quality-main.yml")
 	fullEvents := mappingValue(full, "on")
-	if fullEvents == nil || len(fullEvents.Content) != 4 || mappingValue(fullEvents, "workflow_dispatch") == nil {
-		t.Fatal("full CI must be scheduled and manually dispatched, without redundant push/PR runs")
-	}
-	schedule := mappingValue(fullEvents, "schedule")
-	if schedule == nil || len(schedule.Content) != 1 {
-		t.Fatal("expected one daily full-quality schedule")
-	}
-	cron, timezone := mappingValue(schedule.Content[0], "cron"), mappingValue(schedule.Content[0], "timezone")
-	if cron == nil || cron.Value != "0 2 * * *" || timezone == nil || timezone.Value != "Asia/Shanghai" {
-		t.Fatal("full CI must run daily at 02:00 Asia/Shanghai")
+	if fullEvents == nil || fullEvents.Kind != yaml.MappingNode || len(fullEvents.Content) != 2 || mappingValue(fullEvents, "workflow_dispatch") == nil {
+		t.Fatal("full CI must require explicit manual dispatch, without automatic triggers")
 	}
 	prEvents := mappingValue(pr, "on")
 	if prEvents == nil || len(prEvents.Content) != 2 || mappingValue(prEvents, "pull_request") == nil {

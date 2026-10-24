@@ -116,7 +116,16 @@ func (s *Server) handleCompatibilityCatalogSkill(w http.ResponseWriter, r *http.
 	skill, found := findCatalogSkill(s.skillCatalog, name)
 	if r.Method == http.MethodGet && (segments[1] == "content" || segments[1] == "files") {
 		var resolveErr error
-		skill, found, resolveErr = s.compatibilityAuthorSkill(name)
+		switch r.URL.Query().Get("source") {
+		case "":
+			skill, found, resolveErr = s.compatibilityAuthorSkill(name)
+		case "draft":
+			skill, found, resolveErr = s.findCompatibilitySkillDraft(name)
+		case "published": // Retain the catalog selection; never substitute its same-name draft.
+		default:
+			writeV11Detail(w, http.StatusBadRequest, "Invalid Skill source")
+			return
+		}
 		if resolveErr != nil {
 			writeV11Detail(w, http.StatusBadRequest, "Skill authoring path is unavailable")
 			return
@@ -145,7 +154,25 @@ func (s *Server) handleCompatibilityCatalogSkillFiles(w http.ResponseWriter, r *
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	files, err := workspaceSkillFiles(skill)
+	if r.URL.Query().Get("source") == "draft" || r.URL.Query().Get("source") != "published" && managedSkillDraftPath(skill.Path, s.fileRoot) {
+		result, err := s.compatibilityDraftReadback(skill, "", false)
+		if err != nil {
+			status := http.StatusBadRequest
+			if errors.Is(err, os.ErrNotExist) {
+				status = http.StatusNotFound
+			}
+			writeV11Detail(w, status, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
+	var files []workspaceSkillFile
+	err := s.withPublishedRuntimeSkillSnapshot(skill, func() error {
+		var readErr error
+		files, readErr = workspaceSkillFiles(skill)
+		return readErr
+	})
 	if err != nil {
 		writeV11Detail(w, http.StatusBadRequest, err.Error())
 		return
@@ -194,7 +221,25 @@ func (s *Server) handleCompatibilityCatalogSkillContent(w http.ResponseWriter, r
 		writeV11Detail(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	content, err := compatibilityCatalogSkillContent(skill, r.URL.Query().Get("path"))
+	if r.URL.Query().Get("source") == "draft" || r.URL.Query().Get("source") != "published" && managedSkillDraftPath(skill.Path, s.fileRoot) {
+		result, err := s.compatibilityDraftReadback(skill, r.URL.Query().Get("path"), true)
+		if err != nil {
+			status := http.StatusBadRequest
+			if errors.Is(err, os.ErrNotExist) {
+				status = http.StatusNotFound
+			}
+			writeV11Detail(w, status, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
+	var content string
+	err := s.withPublishedRuntimeSkillSnapshot(skill, func() error {
+		var readErr error
+		content, readErr = compatibilityCatalogSkillContent(skill, r.URL.Query().Get("path"))
+		return readErr
+	})
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			writeV11Detail(w, http.StatusNotFound, err.Error())
@@ -203,7 +248,7 @@ func (s *Server) handleCompatibilityCatalogSkillContent(w http.ResponseWriter, r
 		}
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"content": content})
+	writeJSON(w, http.StatusOK, map[string]any{"content": content, "origin": s.compatibilitySkillSource(skill)})
 }
 
 func compatibilityCatalogSkillContent(skill skills.Skill, requested string) (string, error) {

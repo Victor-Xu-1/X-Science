@@ -184,7 +184,7 @@ func TestCompatibilitySkillFilesDownloadEditConcurrencyAndRestart(t *testing.T) 
 	if _, err := os.Stat(filepath.Join(skillRoot, "references", "new.md")); !os.IsNotExist(err) {
 		t.Fatalf("unpublished draft reached live package, stat=%v", err)
 	}
-	compatJSONRequest(t, restarted.Handler(), http.MethodPost, "/api/skills/editable/publish", "user-1", map[string]any{"overwrite": true}, http.StatusOK)
+	compatJSONRequest(t, restarted.Handler(), http.MethodPost, "/api/skills/editable/publish", "user-1", map[string]any{"overwrite": true, "expected_draft_revision": restartedContent["draft_revision"]}, http.StatusOK)
 	publishedCatalog, _, failures := loadSkillCatalog(nil, []string{filepath.Dir(externalRoot)}, root)
 	if len(failures) != 0 {
 		t.Fatalf("published restart failures=%#v", failures)
