@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ca7edace60a7be5d6a9a908255f2bb2ece2bf599c11d4fbffe5f70df0a53c923",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9044690332b03da5c43db6f8a704b89b409968fcdb0135ca170105ac8aba4592",
+  "additionFingerprintSHA256": "b8f84e3bb1eded64a6d8cade49081db9d5e6bd3cb0b4b04e297c4aee29a484a5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -8115,8 +8115,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.module.css",
-      "sha256": "452232977e6ae8f29298e7060301aceefaadc6d226bfa9b22fcdf0cf4068f5bc",
-      "bytes": 8570,
+      "sha256": "fe5db4a2408ebd7702d6366c217aa9b08c77fe39df985b9dd9cbad2e54d8849f",
+      "bytes": 9259,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8691,8 +8691,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePdfReadingContext.tsx",
-      "sha256": "eeaf471b44f3823cb6116d3c990b11fc1e6acf54d9b242aaa848d8220518314f",
-      "bytes": 1823,
+      "sha256": "2dce03d93a00492155eccf865d5612980698dd7994b22b8c7286f2d3813aa55b",
+      "bytes": 1821,
       "reason": "Adapt the reference historical reading badge to canonical Go snapshots and reopen the original immutable version/page without relinking it. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/WorkspaceMessageItem.tsx, src/renderer/src/pages/workspace/pdf-reading-reveal.ts."
     },
     {
@@ -9993,8 +9993,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/archived/archivedSettings.css",
-      "sha256": "65d099f4df168c1be5f2a92e18aed303796fa5b194e0a4bd9b0975312e6c7331",
-      "bytes": 2054,
+      "sha256": "f10918312e8f06713bffe38fb971e8adc26fdcd2fc7869e868359e15bda3278b",
+      "bytes": 2303,
       "reason": "Style the compact archived-conversation settings page using shared visual tokens and no dark backdrop."
     },
     {
