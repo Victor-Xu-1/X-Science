@@ -55,8 +55,18 @@ func TestKernelSkillReadManifestInventoryUsesSelectedPackage(t *testing.T) {
 			if err != nil || stringValue(mapValue(resource)["content"]) != "Nested." {
 				t.Fatalf("resource read=%#v err=%v", resource, err)
 			}
-			if _, found := mapValue(resource)["files"]; found {
-				t.Fatalf("non-manifest read exposed an inventory: %#v", resource)
+			if reference == name {
+				assertKernelSkillInventory(t, resource, want)
+				if revision := stringValue(mapValue(resource)["draft_revision"]); len(revision) != 64 || revision != stringValue(mapValue(result)["draft_revision"]) {
+					t.Fatalf("draft resource inventory and revision came from different snapshots: %#v", resource)
+				}
+			} else {
+				if _, found := mapValue(resource)["files"]; found {
+					t.Fatalf("published non-manifest read exposed an inventory: %#v", resource)
+				}
+				if _, found := mapValue(resource)["draft_revision"]; found {
+					t.Fatalf("published resource read granted a draft revision: %#v", resource)
+				}
 			}
 			nested, err := fixture.call("host.skills.read", reference, "nested/"+compatibilitySkillDraftMarker)
 			if err != nil || stringValue(mapValue(nested)["content"]) != "Ordinary nested author resource." {
@@ -88,9 +98,16 @@ func TestKernelSkillReadNormalizesResourcePathOnce(t *testing.T) {
 			if mapValue(result)["path"] != want {
 				t.Errorf("response path=%#v want=%q", mapValue(result)["path"], want)
 			}
-			_, hasFiles := mapValue(result)["files"]
-			if hasFiles != (want == "SKILL.md") {
-				t.Errorf("manifest-only inventory mismatch: %#v", result)
+			assertKernelSkillInventory(t, result, []string{"SKILL.md", "references/guide.md"})
+			if revision := stringValue(mapValue(result)["draft_revision"]); len(revision) != 64 {
+				t.Errorf("draft resource read omitted its snapshot revision: %#v", result)
+			}
+			wantContent := "Repairable draft without frontmatter."
+			if want == "references/guide.md" {
+				wantContent = "Guide."
+			}
+			if stringValue(mapValue(result)["content"]) != wantContent {
+				t.Errorf("normalized draft path selected different content: %#v", result)
 			}
 		})
 	}
@@ -152,6 +169,15 @@ func TestKernelSkillReadPrivateControlResourcesCannotBeRead(t *testing.T) {
 			result, err := fixture.call("host.skills.read", name, path)
 			if err == nil || result != nil || strings.Contains(fmt.Sprint(err), fixture.server.fileRoot) {
 				t.Errorf("control resource %q was exposed: %#v err=%v", path, result, err)
+			}
+		}
+		if marker != compatibilitySkillDraftMarker {
+			result, err := fixture.call("host.skills.read", name)
+			if err == nil || result != nil || strings.Contains(fmt.Sprint(err), fixture.server.fileRoot) {
+				t.Errorf("reserved publication control yielded a partial draft snapshot: %#v err=%v", result, err)
+			}
+			if err := os.Remove(filepath.Join(root, marker)); err != nil {
+				t.Fatal(err)
 			}
 		}
 	}
