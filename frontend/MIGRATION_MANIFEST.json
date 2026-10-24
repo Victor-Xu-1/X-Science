@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1093438ca8c6bc1a9468ccf90a74799e74906aea30d354c352fd725c22809048",
+  "adaptationFingerprintSHA256": "8a4c539d996dcea1fcb735633c2240111ad0446df11dfc170fcc7e95fb120e3f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "cb2dbc926cda9a358c9ca84f1009d523f2a7ce9dd2f5947d01606bb26ee98e80",
+  "additionFingerprintSHA256": "884d5b490bbe7e2afebbeddb1009d486bcf2c545f1387a28999c3df9c3ef2f54",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1205
+    "addedFiles": 1206
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "ec39d908e53738bcdd1b726efea346e2d63a9815056c2380c43a445d04429006",
+      "targetSHA256": "5188502015361a7e40460d9232ab130e2e62b1f0a871b45df496b3ee5e02dd9e",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "7429ee9613021ead6e57a766802f1c3e874904e8e7e8c52085ce430a2e4d32f5",
+      "targetSHA256": "3c09755921ed30ee958f785f1db3b3d18d0496b5c5c639dccc56909b3ae4188a",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2812,8 +2812,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/skills/XScienceSkillLibraryModals.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/skills/SynonBiomedSkillLibraryModals.tsx",
       "sourceSHA256": "9492e57942849493523265d620c77a96a1fae42069b838f6076c5293ef4e4b1e",
-      "targetSHA256": "4ac938e52ddf07139aa329e6c9c5750aafb20b308a8f42b8a95c99c3110b5a67",
-      "bytes": 26813,
+      "targetSHA256": "fa6c827520aa5ea0398b7320019289722c38496b6a7a27f5d0c26d72078fe59f",
+      "bytes": 27371,
       "reason": "Move genuine imported source to the current X-Science namespace. Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2931,8 +2931,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "aaf3b1addaf8ab381c028ebfd0b6e0311fdbd98eeef199a5099b367e3fc9cb78",
-      "bytes": 139241,
+      "targetSHA256": "6e816d76310324215e2c9ffda46d08614037afaa5ba1fc6b7931280c170b913c",
+      "bytes": 139469,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3022,8 +3022,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "e18e45d41efc5531aa1148ac76678d34abe149cc1f5ad76bfd0b60de75bbc551",
-      "bytes": 133892,
+      "targetSHA256": "c228276e846a0101cd8363631bf10721931d834c493fd172f794df6eafeb075d",
+      "bytes": 134099,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },
     {
@@ -5192,8 +5192,8 @@
       "path": "tests/unit/settings/XScienceSkillLibraryModals.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedSkillLibraryModals.dom.test.tsx",
       "sourceSHA256": "6ccc1ed946a7637ba5fc14fda963e7eff87bd1fa3f70f90ac33a3f40f3622bbc",
-      "targetSHA256": "72e6360a668c5415bd5bb6a6af6677943aa1a37d43bd6fa7d8dd744f26ca4bf1",
-      "bytes": 20814,
+      "targetSHA256": "f71fd403eb901594af1ca8ee5db67de12cd3d0b43cac79f6a8c759087f5156a5",
+      "bytes": 21518,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5482,8 +5482,8 @@
       "path": "tests/unit/xscience/skillLibrary.test.ts",
       "originalPath": "tests/unit/synonbiomed/skillLibrary.test.ts",
       "sourceSHA256": "9b21e72b1a699f283a4af3a0b87db42b4780c676c78a54704f1d3d46486087a0",
-      "targetSHA256": "0d117fa1a261ffb27c9ab54a35925a76add8e240bc60b91d7a8c575097a96b77",
-      "bytes": 6416,
+      "targetSHA256": "ec94344ba6649deb9ea8379adcf6dc865367b50e393b36f71c501e808585e71d",
+      "bytes": 10712,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "13c6a75203f81bd8998e733d64c97f8f87f563d1a847f339b9587947dc3f4b1e",
+      "sha256": "6ea1bd361c50115f48ed56021e60e12c4e36243b404e986973901b9d4eaf5ef7",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -10311,14 +10311,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailFiles.ts",
-      "sha256": "e47b14205e68b35a8ce60f95786aeb6e53eef89c64810090c2492ee9effc676d",
-      "bytes": 3467,
+      "sha256": "ba3953e48d7cb10ee081e09654d1c8841183d7b2643e5b285978e2f933861dd3",
+      "bytes": 4907,
       "reason": "Own ordered source-file reads, visible failure, exact-read retry and retained draft content behind the existing Skill library services."
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/skills/useSkillDetailMutations.ts",
-      "sha256": "ba22f06f45d63b127df076cabf4e8b668c5bb8c4e51e118ef7381a1ca8bf968b",
-      "bytes": 4584,
+      "sha256": "2a8741c4231ddcaf6188ead2cfd7da9882fd2e9e365a45f4716c59b12c66d43c",
+      "bytes": 6008,
       "reason": "Serialize original Skill mutations, fence late receipts and distinguish completed changes from retryable library-refresh failure without replaying writes."
     },
     {
@@ -10905,8 +10905,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/skills/xScienceSkillLibrary.ts",
-      "sha256": "c76058edd82281a5dc9ac5d61cac4bd55091931171eb83fc131479ca7d19866f",
-      "bytes": 10781,
+      "sha256": "ba9cb7f161e8acb1d5737068f6d8fb84f9bf3003fee64f7d9b8655327e7c5270",
+      "bytes": 13459,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13715,6 +13715,12 @@
       "path": "tests/unit/settings/SettingsPagination.dom.test.tsx",
       "sha256": "c7d8121ec34834f52469d08c099d06b229efa75421195a7c65f8ce70109cb3d8",
       "bytes": 1520,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/SkillDraftPublication.dom.test.tsx",
+      "sha256": "909aa75285431289778585caa945086c82b5ac57d33c8279b3ba96ff00188f17",
+      "bytes": 10148,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

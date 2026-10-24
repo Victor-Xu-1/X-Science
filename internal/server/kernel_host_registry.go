@@ -143,7 +143,7 @@ func (s *Server) handleKernelSkillHostCall(
 		}
 		return s.kernelHostInstallMarketplaceSkill(ctx, access, callID, repo, selected, sha, commit)
 	case "host.skills.publish":
-		name, overwrite, err := kernelHostSkillPublishInput(args, kwargs)
+		name, overwrite, revision, err := kernelHostSkillPublishInput(args, kwargs)
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
@@ -156,7 +156,7 @@ func (s *Server) handleKernelSkillHostCall(
 		if err != nil {
 			return nil, err
 		}
-		skill, err := s.publishCompatibilitySkillDraftWithCommit(name, overwrite, commit)
+		skill, err := s.publishCompatibilitySkillDraftWithCommit(name, overwrite, revision, commit)
 		if err != nil {
 			return nil, kernelHostRegistryError(err)
 		}
@@ -530,6 +530,9 @@ func kernelHostRegistryError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if failure, ok := skillDraftRevisionError(err); ok {
+		return failure
+	}
 	if errors.Is(err, os.ErrNotExist) {
 		return kernelruntime.NewHostCallError("not_found", err.Error())
 	}
@@ -649,29 +652,41 @@ func kernelHostSkillEditInput(args []any, kwargs map[string]any) (string, string
 	return strings.TrimSpace(name), filepath.ToSlash(strings.TrimSpace(path)), content, oldString, nil
 }
 
-func kernelHostSkillPublishInput(args []any, kwargs map[string]any) (string, bool, error) {
+func kernelHostSkillPublishInput(args []any, kwargs map[string]any) (string, bool, string, error) {
 	name, err := kernelHostStringAt(args, kwargs, 0, "name")
 	if err != nil {
-		return "", false, err
+		return "", false, "", err
 	}
-	if len(args) > 2 {
-		return "", false, errors.New("host.skills.publish received too many positional arguments")
+	if len(args) > 3 {
+		return "", false, "", errors.New("host.skills.publish received too many positional arguments")
 	}
 	overwrite := false
 	if value, found := kwargs["overwrite"]; found {
 		parsed, ok := value.(bool)
 		if !ok {
-			return "", false, errors.New("overwrite must be a bool")
+			return "", false, "", errors.New("overwrite must be a bool")
 		}
 		overwrite = parsed
 	} else if len(args) > 1 {
 		parsed, ok := args[1].(bool)
 		if !ok {
-			return "", false, errors.New("overwrite must be a bool")
+			return "", false, "", errors.New("overwrite must be a bool")
 		}
 		overwrite = parsed
 	}
-	return name, overwrite, nil
+	var revision string
+	if value, found := kwargs["expected_draft_revision"]; found {
+		revision, _ = value.(string)
+		if len(args) > 2 {
+			positional, ok := args[2].(string)
+			if !ok || positional != revision {
+				return "", false, "", errors.New("expected_draft_revision was provided twice")
+			}
+		}
+	} else if len(args) > 2 {
+		revision, _ = args[2].(string)
+	}
+	return name, overwrite, revision, nil
 }
 
 func kernelHostSkillInstallInput(args []any, kwargs map[string]any) (string, []string, string, error) {

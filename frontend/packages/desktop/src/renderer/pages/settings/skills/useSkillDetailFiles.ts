@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { loadXScienceSkillFileContent, loadXScienceSkillFiles } from '@/renderer/services/skills/xScienceSkillLibrary';
+import { loadXScienceSkillFileSnapshot, loadXScienceSkillFiles } from '@/renderer/services/skills/xScienceSkillLibrary';
 import type { SkillDetailSession } from './useSkillDetailSession';
 
 const emptyFile = {
@@ -8,6 +8,7 @@ const emptyFile = {
   path: '',
   content: '',
   original: '',
+  draftRevision: null as string | null,
   status: 'idle' as const,
   failedAt: 'list' as const,
 };
@@ -20,7 +21,8 @@ export function useSkillDetailFiles(
   session: SkillDetailSession,
   name: string | undefined,
   visible: boolean,
-  mode: string
+  mode: string,
+  draft: boolean
 ) {
   const [file, setFile] = useState<FileState>(emptyFile);
   const readRevision = useRef(0);
@@ -28,38 +30,67 @@ export function useSkillDetailFiles(
   const read = useCallback(
     async (selectedPath?: string) => {
       const ticket = capture();
-      if (!ticket) return;
+      if (!ticket) return false;
       const request = ++readRevision.current;
       const current = () => isCurrent(ticket) && readRevision.current === request;
       let failedAt: FileState['failedAt'] = selectedPath ? 'content' : 'list';
-      setFile((previous) => ({
-        ...previous,
-        scope: ticket.scope,
-        path: selectedPath ?? '',
-        content: '',
-        original: '',
-        status: 'loading',
-      }));
+      setFile((previous) =>
+        current()
+          ? {
+              ...previous,
+              scope: ticket.scope,
+              path: selectedPath ?? '',
+              content: '',
+              original: '',
+              draftRevision: null,
+              status: 'loading',
+            }
+          : previous
+      );
       try {
         let nextPath = selectedPath;
         if (!nextPath) {
-          const files = await loadXScienceSkillFiles(ticket.name);
-          if (!current()) return;
+          const files = await loadXScienceSkillFiles(ticket.name, { source: draft ? 'draft' : 'published' });
+          if (!current()) return false;
           nextPath = files.includes('SKILL.md') ? 'SKILL.md' : (files[0] ?? '');
-          setFile({ ...emptyFile, scope: ticket.scope, files, path: nextPath, status: nextPath ? 'loading' : 'ready' });
-          if (!nextPath) return;
+          const selected = nextPath;
+          setFile((previous) =>
+            current()
+              ? { ...emptyFile, scope: ticket.scope, files, path: selected, status: selected ? 'loading' : 'ready' }
+              : previous
+          );
+          if (!nextPath) return true;
           failedAt = 'content';
         }
-        const content = await loadXScienceSkillFileContent(ticket.name, nextPath);
+        const snapshot = await loadXScienceSkillFileSnapshot(ticket.name, nextPath, {
+          source: draft ? 'draft' : 'published',
+        });
+        const selected = nextPath;
         if (current())
-          setFile((previous) => ({ ...previous, path: nextPath, content, original: content, status: 'ready' }));
+          setFile((previous) =>
+            current()
+              ? {
+                  ...previous,
+                  files: snapshot.files ?? previous.files,
+                  path: selected,
+                  content: snapshot.content,
+                  original: snapshot.content,
+                  draftRevision: draft ? snapshot.draftRevision : null,
+                  status: 'ready',
+                }
+              : previous
+          );
+        return current();
       } catch (error) {
-        if (!current()) return;
+        if (!current()) return false;
         console.error('Failed to read skill files:', error);
-        setFile((previous) => ({ ...previous, status: 'failed', failedAt }));
+        setFile((previous) =>
+          current() ? { ...previous, draftRevision: null, status: 'failed', failedAt } : previous
+        );
+        return false;
       }
     },
-    [capture, isCurrent]
+    [capture, isCurrent, draft]
   );
 
   useEffect(() => {
@@ -79,10 +110,26 @@ export function useSkillDetailFiles(
     loading: presentation.status === 'idle' || presentation.status === 'loading',
     ready: presentation.status === 'ready' && !!presentation.path,
     selectFile: (path: string) => (file.files.includes(path) ? read(path) : Promise.resolve()),
+    reload: (path?: string) => read(path),
     retry: () => read(file.failedAt === 'content' ? file.path : undefined),
     setContent: (content: string) => setFile((previous) => ({ ...previous, content })),
-    markSaved: (path: string, content: string) =>
-      setFile((previous) => (previous.path === path ? { ...previous, original: content } : previous)),
+    markSaved: (path: string, content: string) => {
+      const ticket = capture();
+      if (!ticket) return;
+      setFile((previous) =>
+        isCurrent(ticket) && previous.scope === ticket.scope && previous.path === path
+          ? { ...previous, original: content, draftRevision: null }
+          : previous
+      );
+    },
+    invalidateDraftRevision: () => {
+      const ticket = capture();
+      if (!ticket) return;
+      readRevision.current += 1;
+      setFile((previous) =>
+        isCurrent(ticket) && previous.scope === ticket.scope ? { ...previous, draftRevision: null } : previous
+      );
+    },
     clear: () => {
       if (!capture()) setFile(emptyFile);
     },

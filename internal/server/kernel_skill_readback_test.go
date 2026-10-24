@@ -19,7 +19,7 @@ func TestKernelSkillReadPublishedReceiptKeepsNamespaceAndDraftIsolation(t *testi
 	if _, err := fixture.call("host.skills.edit", name, "references/guide.md", "Published reference."); err != nil {
 		t.Fatal(err)
 	}
-	published, err := fixture.call("host.skills.publish", name, false)
+	published, err := fixture.publishReviewed(name, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestKernelSkillReadOriginFollowsSelectedPublicationSnapshot(t *testing.T) {
 	}
 	assertOrigin(name, "SKILL.md", "draft", manifest)
 	assertOrigin(name, "references/guide.md", "draft", "Published origin reference.")
-	published, err := fixture.call("host.skills.publish", name, false)
+	published, err := fixture.publishReviewed(name, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func TestKernelSkillReadPublishedReferenceUsesManagedDirectory(t *testing.T) {
 	if _, err := fixture.call("host.skills.edit", name, "SKILL.md", manifest); err != nil {
 		t.Fatal(err)
 	}
-	result, err := fixture.call("host.skills.publish", name, false)
+	result, err := fixture.publishReviewed(name, false)
 	if err != nil {
 		t.Fatal(err)
 	}
