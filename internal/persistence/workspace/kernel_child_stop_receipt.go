@@ -34,7 +34,7 @@ func (s *Store) AdmitKernelChildStop(ctx context.Context, owner string, expected
 			return err
 		}
 		if found {
-			if len(expectedTargets) == 1 && expectedTargets[0] != nil && (existing.Receipt.Request.Target == nil || *existing.Receipt.Request.Target != *expectedTargets[0]) {
+			if len(expectedTargets) == 1 && expectedTargets[0] != nil && (existing.Receipt.Request.Target == nil || !kernelChildStopTargetMatches(*expectedTargets[0], *existing.Receipt.Request.Target)) {
 				return ErrDelegatedStopTargetStale
 			}
 			if existing.HostCallID != callID || existing.HostReason != reason || existing.Receipt.Request.Target.FrameID != childID {
@@ -58,10 +58,7 @@ func (s *Store) AdmitKernelChildStop(ctx context.Context, owner string, expected
 		if len(expectedTargets) == 1 && expectedTargets[0] != nil {
 			expected := *expectedTargets[0]
 			// The blocking delegate owns its original input, not any later prompt.
-			if expected.FrameID != target.FrameID || expected.FrameIncarnationID != target.FrameIncarnationID || expected.StreamUID != target.StreamUID || expected.StreamEpoch != target.StreamEpoch || expected.InputMessageID != target.InputMessageID || expected.InputRevision != target.InputRevision {
-				return ErrDelegatedStopTargetStale
-			}
-			if expected.RunnerAttempt == 0 && target.RunnerAttempt > 1 || expected.RunnerAttempt > 0 && target.RunnerAttempt != expected.RunnerAttempt {
+			if !kernelChildStopTargetMatches(expected, target) {
 				return ErrDelegatedStopTargetStale
 			}
 		}
@@ -100,6 +97,17 @@ func (s *Store) AdmitKernelChildStop(ctx context.Context, owner string, expected
 		return writeDelegatedRecord(ctx, tx, scope.ParentFrameID, delegatedRecordID("stop", owner, scope.ParentFrameIncarnationID, requestID), DelegatedStopReceiptEventType, "", record, s.now().UTC())
 	})
 	return result, err
+}
+
+// Initial admission and receipt replay share the same original-input fence.
+// A queued origin may become only the first claimed attempt; positive attempts
+// remain exact, and replay never substitutes a newly selected current target.
+func kernelChildStopTargetMatches(expected, actual DelegatedStopTarget) bool {
+	sameInput := expected.FrameID == actual.FrameID && expected.FrameIncarnationID == actual.FrameIncarnationID &&
+		expected.StreamUID == actual.StreamUID && expected.StreamEpoch == actual.StreamEpoch &&
+		expected.InputMessageID == actual.InputMessageID && expected.InputRevision == actual.InputRevision
+	return sameInput && (expected.RunnerAttempt == 0 && (actual.RunnerAttempt == 0 || actual.RunnerAttempt == 1) ||
+		expected.RunnerAttempt > 0 && actual.RunnerAttempt == expected.RunnerAttempt)
 }
 
 func delegatedDescendantsTx(ctx context.Context, tx workspaceTransaction, owner, childID string) ([]KernelSupervisedChild, error) {
