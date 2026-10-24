@@ -73,8 +73,7 @@ required_fragments=(
   'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1'
   'scripts/release-windows-test.ps1'
   './scripts/release-windows-environment-test.ps1'
-  '0 2 * * *'
-  'timezone: Asia/Shanghai'
+  '  workflow_dispatch:'
 )
 for fragment in "${required_fragments[@]}"; do
   if ! grep -Fq -- "$fragment" "$WORKFLOW"; then
@@ -82,6 +81,11 @@ for fragment in "${required_fragments[@]}"; do
     exit 1
   fi
 done
+
+if grep -Eq '^  schedule[[:space:]]*:' "$WORKFLOW"; then
+  echo 'ERROR: full quality must require explicit dispatch, not an automatic schedule' >&2
+  exit 1
+fi
 
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_runtime_test_shards
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope

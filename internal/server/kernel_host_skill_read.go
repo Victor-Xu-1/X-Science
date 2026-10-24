@@ -51,6 +51,7 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 	var content string
 	var files []string
 	var origin string
+	var draftRevision string
 	read := func() error {
 		if publishedReference && namespace == "local" {
 			// Under the existing snapshot lock, retain the same regular-root and
@@ -87,13 +88,21 @@ func (s *Server) kernelHostReadSkill(reference, path string) (any, error) {
 		if !found || current.Name != skill.Name || !sameCleanPath(current.Path, skill.Path) {
 			return nil, kernelruntime.NewHostCallError("not_found", "Selected Skill draft changed before reading")
 		}
-		err = read()
+		snapshot, snapshotErr := captureSkillDraftSnapshot(current)
+		if snapshotErr != nil {
+			return nil, kernelHostRegistryError(snapshotErr)
+		}
+		content, files, err = snapshot.read(path)
+		draftRevision, origin = snapshot.revision, "draft"
 	}
 	if err != nil {
 		return nil, kernelHostRegistryError(err)
 	}
 	result := map[string]any{"name": skill.Name, "origin": origin, "path": path, "content": content}
-	if path == "SKILL.md" {
+	if draftRevision != "" {
+		result["draft_revision"] = draftRevision
+	}
+	if path == "SKILL.md" || draftRevision != "" {
 		result["files"] = files
 	}
 	return result, nil

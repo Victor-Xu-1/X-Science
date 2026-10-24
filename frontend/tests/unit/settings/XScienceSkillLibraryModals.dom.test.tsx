@@ -31,6 +31,12 @@ vi.mock('@/renderer/components/Markdown', () => ({
 vi.mock('@/renderer/services/skills/xScienceSkillLibrary', () => ({
   loadXScienceSkillFiles: mocks.loadFiles,
   loadXScienceSkillFileContent: mocks.loadContent,
+  loadXScienceSkillFileSnapshot: async (name: string, path: string, options: { source: 'draft' | 'published' }) => ({
+    content: await mocks.loadContent(name, path),
+    origin: options.source === 'draft' ? 'draft' : 'bundled',
+    draftRevision: options.source === 'draft' ? 'a'.repeat(64) : null,
+    files: (await mocks.loadFiles.mock.results.at(-1)?.value) ?? ['SKILL.md'],
+  }),
   saveXScienceSkillDraftFile: mocks.saveFile,
   duplicateXScienceSkill: mocks.duplicate,
   publishXScienceSkillDraft: mocks.publish,
@@ -90,7 +96,10 @@ describe('X-Science skill library detail modal', () => {
     mocks.loadFiles.mockResolvedValue(['SKILL.md']);
     mocks.loadContent.mockResolvedValue('# AlphaFold2\n\nDetailed workflow.');
     mocks.duplicate.mockResolvedValue({});
-    mocks.saveFile.mockResolvedValue({});
+    mocks.saveFile.mockImplementation(async (_name: string, _path: string, _original: string, content: string) => {
+      mocks.loadContent.mockResolvedValue(content);
+      return {};
+    });
     mocks.publish.mockResolvedValue({});
     mocks.deleteDraft.mockResolvedValue({});
   });
@@ -280,6 +289,7 @@ describe('X-Science skill library detail modal', () => {
     expect(
       screen.getAllByRole('button', { name: '关闭' }).some((button) => !(button as HTMLButtonElement).disabled)
     ).toBe(true);
+    mocks.loadContent.mockResolvedValue('# Retained draft');
     await act(async () => receipt.resolve({}));
     expect(editor).toBeEnabled();
     expect(editor).toHaveValue('# Retained draft');
@@ -299,6 +309,7 @@ describe('X-Science skill library detail modal', () => {
 
   it('retries only library refresh after a successful save, never repeats the mutation', async () => {
     mocks.saveFile.mockResolvedValue({});
+    mocks.loadContent.mockResolvedValueOnce('# AlphaFold2\n\nDetailed workflow.').mockResolvedValue('# Saved source');
     const onChanged = vi.fn().mockRejectedValueOnce(new Error('refresh unavailable')).mockResolvedValue(undefined);
     await renderModal({ skill: bundledSkill, draft: true, editable: true, onChanged });
     const editor = await readyEditor();
@@ -391,7 +402,7 @@ describe('X-Science skill library detail modal', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to save the skill draft.');
     expect(screen.getByRole('alert')).not.toHaveTextContent('private backend detail');
     expect(editor).toHaveValue('# Unsaved draft');
-    fireEvent.click(screen.getByRole('button', { name: 'Save', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(mocks.saveFile).toHaveBeenCalledTimes(2));
     expect(mocks.saveFile).toHaveBeenLastCalledWith(
       'alphafold2',

@@ -120,6 +120,8 @@ func validateCompatibilitySkillManifest(directory *os.Root, name string) error {
 }
 
 func (s *Server) kernelHostValidateSkill(name string) (any, error) {
+	s.skillMutationMu.Lock()
+	defer s.skillMutationMu.Unlock()
 	skill, found, err := s.compatibilityAuthorSkill(name)
 	if err != nil {
 		return nil, err
@@ -136,7 +138,18 @@ func (s *Server) kernelHostValidateSkill(name string) (any, error) {
 	if strings.HasPrefix(skill.Path, "builtin:") {
 		return report, nil
 	}
-	if _, err := validateCompatibilitySkillPackage(filepath.Dir(skill.Path), skill.Name); err != nil {
+	var validationErr error
+	if origin == "draft" {
+		snapshot, err := captureSkillDraftSnapshot(skill)
+		validationErr = err
+		if err == nil {
+			report["draft_revision"] = snapshot.revision
+			validationErr = s.validateSkillDraftSnapshot(snapshot)
+		}
+	} else {
+		_, validationErr = validateCompatibilitySkillPackage(filepath.Dir(skill.Path), skill.Name)
+	}
+	if err := validationErr; err != nil {
 		report["valid"] = false
 		code, message := "validation_unavailable", "Skill package validation could not complete safely"
 		var diagnostic *compatibilitySkillValidationError

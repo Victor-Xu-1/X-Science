@@ -291,7 +291,7 @@ func publishLoadedClosureFixture(t *testing.T, fixture *kernelSkillDraftFixture,
 		report, _ := json.Marshal(validated)
 		t.Fatalf("validate synthetic Skill draft %q: report=%s err=%v", name, report, err)
 	}
-	published, err := fixture.call("host.skills.publish", name, overwrite)
+	published, err := fixture.publishReviewed(name, overwrite)
 	if err != nil || mapValue(published)["status"] != "published" {
 		t.Fatalf("explicitly publish synthetic Skill draft: status=%q err=%v", stringValue(mapValue(published)["status"]), err)
 	}

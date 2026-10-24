@@ -1620,6 +1620,8 @@
         "draftSaveFailed": "Failed to save the skill draft.",
         "published": "Skill published",
         "publishFailed": "Failed to publish the skill.",
+        "draftReviewRequired": "Reload this draft and review its current contents before publishing.",
+        "draftChanged": "This draft changed after it was loaded. Reload and review the current contents before publishing.",
         "draftDeleted": "Skill draft deleted",
         "draftDeleteFailed": "Failed to delete the skill draft.",
         "invalidCopyName": "Start with a letter or number and use only letters, numbers, periods, underscores, and hyphens.",
