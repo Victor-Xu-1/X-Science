@@ -55,21 +55,36 @@ func mutationRequestHash(value any) (string, error) {
 	return hex.EncodeToString(digest[:]), nil
 }
 
-func lookupMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation, requestHash string, output any) (bool, error) {
+func readMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation string) (string, string, bool, error) {
 	var storedHash, raw string
 	err := tx.QueryRowContext(ctx, `SELECT request_hash, result_json FROM mutation_result_ledger
 		WHERE owner_user_id = ? AND idempotency_key = ? AND operation = ?`, ownerUserID, idempotencyKey, operation).Scan(&storedHash, &raw)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return "", "", false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("look up mutation result: %w", err)
+		return "", "", false, fmt.Errorf("look up mutation result: %w", err)
+	}
+	return storedHash, raw, true, nil
+}
+
+func decodeMutationResult(raw string, output any) error {
+	if err := json.Unmarshal([]byte(raw), output); err != nil {
+		return fmt.Errorf("decode persisted mutation result: %w", err)
+	}
+	return nil
+}
+
+func lookupMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation, requestHash string, output any) (bool, error) {
+	storedHash, raw, found, err := readMutationResultTx(ctx, tx, ownerUserID, idempotencyKey, operation)
+	if err != nil || !found {
+		return false, err
 	}
 	if storedHash != requestHash {
 		return false, ErrMutationIdempotencyConflict
 	}
-	if err := json.Unmarshal([]byte(raw), output); err != nil {
-		return false, fmt.Errorf("decode persisted mutation result: %w", err)
+	if err := decodeMutationResult(raw, output); err != nil {
+		return false, err
 	}
 	return true, nil
 }

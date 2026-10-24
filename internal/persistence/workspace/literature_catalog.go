@@ -141,21 +141,19 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 	if err != nil {
 		return receipt, err
 	}
+	input = snapshotLiteraturePatchFields(input)
 	if input.Title != nil && (strings.TrimSpace(*input.Title) == "" || len(*input.Title) > 4096) {
 		return receipt, ErrLiteratureInvalid
 	}
-	hash, err := mutationRequestHash(struct {
-		ID    string
-		Input LiteraturePatch
-	}{id, input})
+	identity, err := literaturePatchRequestIdentity(id, input, metadata)
 	if err != nil {
 		return receipt, err
 	}
-	if found, err := s.lookupMutationResult(ctx, owner, input.OperationID, "literature.patch", hash, &receipt); err != nil || found {
+	if found, err := s.lookupLiteratureMutationResult(ctx, owner, input.OperationID, "literature.patch", identity, &receipt); err != nil || found {
 		return receipt, err
 	}
 	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		found, err := lookupMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", hash, &receipt)
+		found, err := lookupLiteratureMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", identity, &receipt)
 		if err != nil || found {
 			return err
 		}
@@ -190,7 +188,7 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 			return err
 		}
 		receipt = LiteratureReceipt{Schema: "x-science.literature-receipt.v1", OperationID: input.OperationID, Item: item}
-		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", hash, receipt, s.now().UTC())
+		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", identity.requestHash(), receipt, s.now().UTC())
 	})
 	if err != nil {
 		return receipt, err

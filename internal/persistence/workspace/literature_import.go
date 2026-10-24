@@ -29,11 +29,11 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 	}
 	// Inspection facts are server-derived; request identity is the caller's
 	// immutable source tuple/metadata, so retry survives source project deletion.
-	hash, err := mutationRequestHash(input)
+	identity, err := literatureImportRequestIdentity(input, metadata)
 	if err != nil {
 		return receipt, err
 	}
-	if found, err := s.lookupMutationResult(ctx, owner, input.OperationID, "literature.import", hash, &receipt); err != nil {
+	if found, err := s.lookupLiteratureMutationResult(ctx, owner, input.OperationID, "literature.import", identity, &receipt); err != nil {
 		return receipt, err
 	} else if found {
 		return receipt, s.recoverLiteratureImportContent(ctx, owner, receipt.VersionID)
@@ -90,7 +90,7 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 	receipt = LiteratureReceipt{Schema: "x-science.literature-receipt.v1", OperationID: input.OperationID, Item: item, AttachmentID: attachmentID, VersionID: versionID}
 	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
 		var prior LiteratureReceipt
-		if found, err := lookupMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", hash, &prior); err != nil {
+		if found, err := lookupLiteratureMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", identity, &prior); err != nil {
 			return err
 		} else if found {
 			receipt = prior
@@ -129,7 +129,7 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		if err := s.insertBlobCommitMarkerTx(ctx, tx, marker); err != nil {
 			return err
 		}
-		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", hash, receipt, now)
+		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", identity.requestHash(), receipt, now)
 	})
 	if err != nil {
 		return receipt, err
