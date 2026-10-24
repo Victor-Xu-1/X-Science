@@ -53,7 +53,7 @@ except TypeError:
     print("validate-name-type-rejected")
 else:
     raise AssertionError("validate accepted a non-string name")
-print(json.dumps(host.skills.publish("host_saved_skill"), sort_keys=True))
+print(json.dumps(host.skills.publish("host_saved_skill", expected_draft_revision=validated["draft_revision"]), sort_keys=True))
 created = host.agents.create("HOST_BRIDGE_TEST", "Host bridge test", "Host bridge test agent", "Use the test Skill.", ["host_saved_skill"])
 print(json.dumps(created, sort_keys=True))
 updated = host.agents.update("HOST_BRIDGE_TEST", {"description": "Updated host bridge test agent"})

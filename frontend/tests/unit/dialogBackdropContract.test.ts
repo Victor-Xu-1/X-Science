@@ -62,15 +62,31 @@ describe('all-dialog non-dimming backdrop contract', () => {
     }
   });
 
-  it.each([
-    ['components/chat/BtwOverlay/BtwOverlay.module.css', '.backdrop'],
-    ['components/chat/MobileActionSheet/MobileActionSheet.module.css', '.mask'],
-  ])('removes the independent dark backdrop in %s', (path, selector) => {
-    let background: string | undefined;
-    postcss.parse(read(path)).walkRules(selector, (rule) => {
-      background = declarations(rule).background;
+  it.each([['components/chat/MobileActionSheet/MobileActionSheet.module.css', '.mask']])(
+    'removes the independent dark backdrop in %s',
+    (path, selector) => {
+      let background: string | undefined;
+      postcss.parse(read(path)).walkRules(selector, (rule) => {
+        background = declarations(rule).background;
+      });
+      expect(background).toBe('var(--workspace-modal-backdrop)');
+    }
+  );
+
+  it('keeps BtwOverlay as an in-flow region without a modal backdrop', () => {
+    const component = read('components/chat/BtwOverlay/index.tsx');
+    expect(component).toMatch(/<section\b[^>]*\brole=['"]region['"]/);
+    expect(component).toContain('className={styles.panel}');
+    expect(component).not.toMatch(/\baria-modal\s*=|styles\.backdrop\b/);
+    const backdrops: Rule[] = [];
+    const panels: Record<string, string>[] = [];
+    postcss.parse(read('components/chat/BtwOverlay/BtwOverlay.module.css')).walkRules((rule) => {
+      if (rule.selectors.includes('.backdrop')) backdrops.push(rule);
+      if (rule.selectors.includes('.panel')) panels.push(declarations(rule));
     });
-    expect(background).toBe('var(--workspace-modal-backdrop)');
+    expect(backdrops).toHaveLength(0);
+    expect(panels[0]?.position).toBe('relative');
+    for (const panel of panels) expect(panel.position).not.toBe('fixed');
   });
 
   it.each(['components/layout/Layout.tsx', 'pages/conversation/components/ChatLayout/MobileWorkspaceOverlay.tsx'])(

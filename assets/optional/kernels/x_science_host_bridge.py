@@ -285,12 +285,17 @@ class _SkillsAccessor:
             "host.skills.edit", [name, path, content], {"old_string": old_string or ""}
         )
 
-    def publish(self, name, overwrite=False):
+    def publish(self, name, overwrite=False, expected_draft_revision=None):
         if not isinstance(name, str) or not name.strip():
             raise TypeError("host.skills.publish: name must be a non-empty str")
         if not isinstance(overwrite, bool):
             raise TypeError("host.skills.publish: overwrite must be a bool")
-        return _host_rpc("host.skills.publish", [name, overwrite], {})
+        if expected_draft_revision is not None and not isinstance(expected_draft_revision, str):
+            raise TypeError("host.skills.publish: expected_draft_revision must be a str or None")
+        # Never silently read a newer draft during publication. The host returns
+        # a recoverable precondition error when an old caller omits its revision.
+        return _host_rpc("host.skills.publish", [name, overwrite],
+                         {"expected_draft_revision": expected_draft_revision})
 
     def install(self, repo, skills=None, sha=None):
         if not isinstance(repo, str) or not repo.strip():
