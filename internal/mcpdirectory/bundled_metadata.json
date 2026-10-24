@@ -77,7 +77,7 @@
   },
   {
     "id": "bundled:structures-interactions", "name": "structures-interactions", "displayName": "Structures & Interactions", "package": "mcp_structures_interactions",
-    "description": "Structures and molecular interactions — PDB structures, AlphaFold predictions, EMDB cryo-EM entries, Complex Portal complexes, IntAct interaction networks.",
+    "description": "Structures and molecular interactions — PDB structures, protein-sequence and deposited-chain 3D similarity searches, AlphaFold predictions, EMDB cryo-EM entries, Complex Portal complexes, IntAct interaction networks.",
     "upstreams": [
       {"name": "RCSB PDB", "license": "CC0", "termsUrl": "https://www.rcsb.org/pages/usage-policy"},
       {"name": "AlphaFold DB", "license": "CC-BY-4.0", "infoUrl": "https://alphafold.ebi.ac.uk/download"},

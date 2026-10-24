@@ -152,12 +152,18 @@ exit 70
 		"HTTP_PROXY":                        proxyURL, "HTTPS_PROXY": proxyURL,
 		"http_proxy": proxyURL, "https_proxy": proxyURL,
 		"NO_PROXY": "localhost,127.0.0.1,::1", "no_proxy": "localhost,127.0.0.1,::1",
-		"GIT_SSH_COMMAND": "/bin/false",
+		// Native Node clients require startup opt-in to consume this same
+		// owned proxy; it does not grant any additional destination access.
+		"NODE_USE_ENV_PROXY": "1",
+		"GIT_SSH_COMMAND":    "/bin/false",
 	}
 	if caBundle != "" {
 		overrides["SSL_CERT_FILE"] = caBundle
 		overrides["REQUESTS_CA_BUNDLE"] = caBundle
 		overrides["CURL_CA_BUNDLE"] = caBundle
+		// Node's bundled trust store does not consume SSL_CERT_FILE by default.
+		// Reuse the same verified, read-only mounted bundle without disabling TLS.
+		overrides["NODE_EXTRA_CA_CERTS"] = caBundle
 	}
 	return "/bin/sh", wrapperArguments, mergeKernelEnvironment(environment, overrides), nil
 }

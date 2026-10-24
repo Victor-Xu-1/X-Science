@@ -137,6 +137,121 @@ class VerificationOwnershipTests(unittest.TestCase):
         entries[0]['EmbedFiles'] = [path]
         self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], ['fixture'])
 
+    def test_direct_asset_checks_require_exact_executable_test_paths(self):
+        group = self.value['groups'][0]
+        valid = ['assets/example/tests/test_contract.py', 'skills/example/tests/nested/test_contract.py']
+        for path in valid:
+            with self.subTest(path=path):
+                group['paths'] = [contract.CONTRACT, path]
+                group['checks'] = [['python3', '-B', path]]
+                self.save()
+                self.assertNotIn('packages', contract.load(self.repo)[0])
+        path = valid[0]
+        for command in [
+                ['python3', '-B', 'scripts/check.py'],
+                ['python3', '-c', 'print("not the registered test")'],
+                ['python3', '-B', 'scripts/quality/verification_scope.py', '--python-syntax', path],
+                ['python3', '-B', 'assets/example/tests/test_*.py'],
+                ['python3', path]]:
+            with self.subTest(command=command):
+                group['paths'] = [contract.CONTRACT, path]
+                group['checks'] = [command]
+                self.save()
+                with self.assertRaises(ValueError):
+                    contract.load(self.repo)
+        for path in ['assets/example/runtime.py', 'assets/example/test_contract.py',
+                     'assets/example/tests/runtime.py', 'skills/example/tests/test_contract.json',
+                     'assets/example/tests/../test_contract.py']:
+            with self.subTest(rejected_path=path):
+                group['paths'] = [contract.CONTRACT, path]
+                group['checks'] = [['python3', '-B', path]]
+                self.save()
+                with self.assertRaises(ValueError):
+                    contract.load(self.repo)
+
+    def test_direct_asset_checks_keep_runtime_declared_and_embed_owners(self):
+        path = 'assets/example/tests/test_contract.py'
+        group = self.value['groups'][0]
+        group['paths'] = [contract.CONTRACT, path]
+        group['checks'] = [['python3', '-B', path]]
+        self.save()
+        entries = [
+            {'ImportPath': 'fixture/core', 'Dir': str(self.repo)},
+            {'ImportPath': 'fixture/client', 'Dir': str(self.repo / 'client'), 'TestImports': ['fixture/core']},
+            {'ImportPath': 'fixture/unrelated', 'Dir': str(self.repo / 'unrelated')},
+        ]
+        expected = ['fixture/client', 'fixture/core']
+        self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], [])
+        for field in ('EmbedFiles', 'TestEmbedFiles', 'XTestEmbedFiles'):
+            with self.subTest(embed=field):
+                entries[0][field] = [path]
+                self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], expected)
+                del entries[0][field]
+        group['packages'] = ['fixture/core']
+        self.save()
+        self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], expected)
+        del group['packages']
+        self.save()
+        (self.repo / scope.runtime_input_scope.CONTRACT).write_text(json.dumps({
+            'schema': 'x-science.runtime-input-scope.v1', 'groups': [{
+                'name': 'runtime-check-input', 'paths': [path], 'packages': ['fixture/core'],
+            }],
+        }))
+        self.assertEqual(scope.select_packages(self.repo, [path], entries)[0], expected)
+        self.assertEqual(scope.select_packages(self.repo, [path + '.unregistered'], entries)[0],
+                         sorted(entry['ImportPath'] for entry in entries))
+
+    @staticmethod
+    def pdb_contract_paths():
+        return ['assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_' + name + '_contract.py'
+                for name in ('catalog', 'http', 'protocol', 'sequence', 'similarity')]
+
+    def test_pdb_verification_group_is_exact_and_runtime_modules_stay_owned(self):
+        repo = Path(__file__).resolve().parents[2]
+        scripts = self.pdb_contract_paths()
+        paths = scripts + ['docs/licenses/open-science-pdb-search-80a262e/LICENSE']
+        commands = [['python3', '-B', path] for path in scripts]
+        roots = ['x-science/internal/assets', 'x-science/internal/mcpdirectory',
+                 'x-science/internal/server', 'x-science/internal/tools/mcpstdio']
+        entries = [{'ImportPath': name, 'Dir': str(repo / name.removeprefix('x-science/'))} for name in roots]
+        entries += [
+            {'ImportPath': 'fixture/client', 'Dir': str(repo / 'fixture/client'), 'Imports': [roots[2]]},
+            {'ImportPath': 'fixture/unrelated', 'Dir': str(repo / 'fixture/unrelated')},
+        ]
+        for path in paths:
+            with self.subTest(path=path):
+                groups = contract.matched(repo, [path])
+                self.assertEqual([group['name'] for group in groups], ['pdb-search-contracts'])
+                self.assertEqual(groups[0]['paths'], paths)
+                self.assertNotIn('packages', groups[0])
+                self.assertFalse(groups[0]['frontend'])
+                self.assertEqual(contract.checks(groups + groups), commands)
+                self.assertEqual(scope.select_packages(repo, [path], entries)[0], [])
+        self.assertEqual(contract.checks(contract.matched(repo, paths)), commands)
+        unknown = scripts[0].replace('catalog', 'unregistered')
+        self.assertEqual(contract.matched(repo, [unknown]), [])
+        self.assertEqual(scope.select_packages(repo, [unknown], entries)[0],
+                         sorted(entry['ImportPath'] for entry in entries))
+        module_paths = ['lib/mcp_servers_common/contract_server.py'] + [
+            'lib/pdb_structures/' + name + '.py' for name in
+            ('async_client', 'contracts', 'search_validation', 'sequence', 'sequence_records', 'similarity')]
+        for path in module_paths:
+            with self.subTest(runtime=path):
+                self.assertEqual(scope.select_packages(repo,
+                    ['assets/optional/mcp-servers/bio-tools/' + path], entries)[0],
+                    sorted(roots + ['fixture/client']))
+
+    def test_pdb_checker_failure_blocks_before_go_scope(self):
+        repo = Path(__file__).resolve().parents[2]
+        argv = ['pr_fast_scope.py', '--repo', str(repo), '--base', 'a' * 40, '--head', 'b' * 40]
+        with patch.object(sys, 'argv', argv), patch.object(scope, 'changed_paths',
+                return_value=self.pdb_contract_paths()), patch.object(scope, 'run',
+                return_value=subprocess.CompletedProcess([], 17)) as invoke, \
+                patch.object(scope, 'resolve_packages') as go_scope:
+            self.assertEqual(scope.main(), 17)
+        go_scope.assert_not_called()
+        invoke.assert_called_once_with(repo, 'python3', '-B', self.pdb_contract_paths()[0])
+
     def test_shared_verification_runs_once_across_required_partitions(self):
         with patch.object(scope, 'changed_paths', return_value=['scripts/check.py']), patch.object(
             scope, 'resolve_packages', return_value=([], 'verification only'),

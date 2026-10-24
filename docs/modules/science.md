@@ -37,6 +37,32 @@ Linux/WSL。不要把 native 安装成功写成该平台已能执行科学任务
 核心 Python 的额外包沿已有不可变派生环境流程安装；原始核心代际不会就地修改。
 目录可用、包已安装、引擎具备能力和实际计算完成是不同状态，不能相互替代。
 
+## Native Node HTTPS · 原生 Node HTTPS
+
+An admitted kernel egress session enables `NODE_USE_ENV_PROXY=1` at the existing
+worker launch boundary. Default native Node HTTPS clients then use that same
+owned proxy; a configured, verified CA bundle also supplies `NODE_EXTRA_CA_CERTS`.
+TLS verification, HTTPS443, public-destination checks, deny precedence and the
+original cancellation/cleanup owner remain in force. No egress admission means
+no new proxy grant. Python stdio control is unchanged.
+
+This requires the selected Node executable to support environment proxies:
+[Node22.21+](https://github.com/nodejs/node/blob/v22.22.0/doc/api/cli.md#node_use_env_proxy1)
+or [Node24.5+ default agents](https://nodejs.org/download/release/v24.5.0/docs/api/http.html#built-in-proxy-support).
+The frontend engine range does not certify a scientific environment's Node;
+older versions, raw sockets and custom agents are not made proxy-aware by this
+setting. The runtime does not silently replace Node, disable certificates or
+relax the existing plain-HTTP/port80 restriction.
+
+已准入的内核会话在同一工作器启动边界开启原生 Node 环境代理，并只复用已验证的
+CA。不会增加网络授权、另建执行链或改变 Python stdio 控制协议。实际 Node 版本
+必须支持该机制；前端依赖范围不是科研环境的版本证明，也不自动替换用户解释器。
+受控回归只证明本次默认 HTTPS 客户端路由及收尾，不等于全部版本或真实任务验收。
+
+```sh
+go test ./internal/kernel -run '^(TestKernelNativeNodeHTTPSUsesOwnedEgress|TestKernelNativeNodeEgressRetainsTLSVerification|TestKernelNativeNodeEgressCancellationClosesOwnedResources)$' -count=1
+```
+
 ## Optional chemical validation · 可选化学验证与产物完整性
 
 保存成功只表示真实文件已按其不可变版本保存，不等于化学结构已经验证。缺少可选的

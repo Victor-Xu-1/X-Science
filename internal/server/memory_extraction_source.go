@@ -22,6 +22,10 @@ type memoryExtractionSource struct {
 	legacyIncarnation  string
 	legacyPrefixSHA256 [sha256.Size]byte
 	request            *agentruntime.ModelRequest
+	extractMode        string
+	model              workspace.MemoryExtractionModelIdentity
+	deliveryClaim      *workspace.MemoryExtractionDeliveryClaim
+	cadence            *workspace.MemoryExtractionCadence
 	captured           bool
 }
 
