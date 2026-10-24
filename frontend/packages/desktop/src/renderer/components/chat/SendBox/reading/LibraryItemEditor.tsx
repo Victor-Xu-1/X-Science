@@ -55,22 +55,29 @@ export function LibraryItemEditor({
           type='button'
           disabled={busy || !title.trim() || Boolean(year && !/^\d{4}$/.test(year))}
           onClick={() =>
-            run({
-              kind: 'edit',
-              operation_id: crypto.randomUUID(),
-              item_id: item.id,
-              expected_revision: item.metadata_revision,
-              title: title.trim(),
-              ...(authorsChanged || yearChanged
+            run(
+              authorsChanged || yearChanged
                 ? {
-                    metadata: {
-                      ...item.metadata,
-                      ...(authorsChanged ? { authors: authors.trim() } : {}),
-                      ...(yearChanged ? { year: year.trim() } : {}),
+                    kind: 'edit-metadata',
+                    operation_id: crypto.randomUUID(),
+                    item_id: item.id,
+                    expected_revision: item.metadata_revision,
+                    ...(title.trim() !== item.title ? { title: title.trim() } : {}),
+                    metadata_patch: {
+                      set: {
+                        ...(authorsChanged ? { authors: authors.trim() } : {}),
+                        ...(yearChanged ? { year: year.trim() } : {}),
+                      },
                     },
                   }
-                : {}),
-            })
+                : {
+                    kind: 'edit',
+                    operation_id: crypto.randomUUID(),
+                    item_id: item.id,
+                    expected_revision: item.metadata_revision,
+                    title: title.trim(),
+                  }
+            )
           }
         >
           {t('common.save')}

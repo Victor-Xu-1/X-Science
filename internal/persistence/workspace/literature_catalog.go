@@ -142,6 +142,11 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 		return receipt, err
 	}
 	input = snapshotLiteraturePatchFields(input)
+	fields, frozenPatch, err := normalizeLiteratureMetadataPatch(input.MetadataPatch)
+	if err != nil || fields != nil && (input.Metadata != nil || input.Deleted != nil) {
+		return receipt, ErrLiteratureInvalid
+	}
+	input.MetadataPatch = frozenPatch
 	if input.Title != nil && (strings.TrimSpace(*input.Title) == "" || len(*input.Title) > 4096) {
 		return receipt, ErrLiteratureInvalid
 	}
@@ -175,6 +180,12 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 		}
 		if input.Metadata != nil {
 			raw = metadata
+		}
+		if fields != nil {
+			raw, err = mergeLiteratureMetadataFields(raw, fields)
+			if err != nil {
+				return err
+			}
 		}
 		if input.Deleted != nil {
 			deleted = sql.NullString{String: s.now().UTC().Format("2006-01-02T15:04:05.999999999Z07:00"), Valid: *input.Deleted}

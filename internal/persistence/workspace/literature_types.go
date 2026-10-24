@@ -66,11 +66,12 @@ type LiteratureImport struct {
 }
 
 type LiteraturePatch struct {
-	OperationID      string         `json:"operation_id"`
-	ExpectedRevision int64          `json:"expected_revision"`
-	Title            *string        `json:"title,omitempty"`
-	Metadata         map[string]any `json:"metadata,omitempty"`
-	Deleted          *bool          `json:"deleted,omitempty"`
+	OperationID      string          `json:"operation_id"`
+	ExpectedRevision int64           `json:"expected_revision"`
+	Title            *string         `json:"title,omitempty"`
+	Metadata         map[string]any  `json:"metadata,omitempty"`
+	MetadataPatch    json.RawMessage `json:"metadata_patch,omitempty"`
+	Deleted          *bool           `json:"deleted,omitempty"`
 }
 
 func validLiteratureID(value string) bool {
