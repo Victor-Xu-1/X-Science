@@ -1,10 +1,16 @@
 package memoryextract
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 func TestWorkspaceForkedResponseParsesFirstBalancedJSONObject(t *testing.T) {
 	input := "```json\nmodel preface {\"append\":[{\"text\":\"brace } and \\\"quote\\\"\",\"evidence\":\"stated\"}],\"nested\":{\"ok\":true}} ignored {\"remove\":[\"later\"]}\n```"
-	got := ParseForkedResponse(input)
+	got, err := ParseForkedResponse(input)
+	if err != nil {
+		t.Fatal(err)
+	}
 	appendRows, ok := got["append"].([]any)
 	if !ok || len(appendRows) != 1 {
 		t.Fatalf("forked response = %#v", got)
@@ -17,17 +23,30 @@ func TestWorkspaceForkedResponseParsesFirstBalancedJSONObject(t *testing.T) {
 	}
 }
 
-func TestWorkspaceForkedResponseFallsBackToEmptyObject(t *testing.T) {
+func TestWorkspaceForkedResponseRejectsMalformedObject(t *testing.T) {
 	for name, input := range map[string]string{
-		"no object":    "nothing durable",
-		"unterminated": `before {"append": [`,
-		"invalid":      `before {append: []} after`,
-		"json null":    `before {"append": null,} after`,
+		"no object":            "nothing durable",
+		"unterminated":         `before {"append": [`,
+		"invalid":              `before {append: []} after`,
+		"json null":            `before {"append": null,} after`,
+		"empty text":           "",
+		"scalar null":          "null",
+		"empty array":          "[]",
+		"invalid first object": "before {bad} after {}",
 	} {
 		t.Run(name, func(t *testing.T) {
-			if got := ParseForkedResponse(input); len(got) != 0 {
-				t.Fatalf("ParseForkedResponse(%q) = %#v", input, got)
+			if got, err := ParseForkedResponse(input); got != nil || !errors.Is(err, ErrInvalidResponse) {
+				t.Fatalf("invalid response was acknowledged: result=%#v err=%v", got, err)
 			}
 		})
+	}
+}
+
+func TestWorkspaceForkedResponseAcceptsExplicitEmptyObject(t *testing.T) {
+	for _, input := range []string{"{}", "before {} after", "```json\n{}\n```", `{"append":[],"replace":[],"remove":[]}`} {
+		got, err := ParseForkedResponse(input)
+		if err != nil || got == nil || len(ParseEmitted(got, nil, 10).Append) != 0 {
+			t.Fatalf("explicit valid empty acknowledgement was rejected: result=%#v err=%v", got, err)
+		}
 	}
 }

@@ -218,24 +218,30 @@ func TestWorkspaceLiteralRepairProviderContract(t *testing.T) {
 	}
 }
 
-func TestWorkspaceCompactExtractionMissingToolReturnsEmptyAndCancellationPropagates(t *testing.T) {
-	t.Run("missing tool", func(t *testing.T) {
-		provider := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
-			response.Header().Set("Content-Type", "application/json")
-			_, _ = response.Write([]byte(`{"id":"msg_none","role":"assistant","content":[{"type":"text","text":"no tool"}],"stop_reason":"end_turn"}`))
-		}))
-		defer provider.Close()
-		server := openWorkspaceMemoryToolServer(t)
-		registerMemoryExtractionTestProvider(t, server, provider.URL)
-		server.httpClient = provider.Client()
-		result, err := server.newMemoryCompactExtractor(memorytools.Scope{UserID: "user-1", ProjectID: "project-1"}).ExtractMemories(context.Background(), memoryextract.ExtractRequest{
-			Mode: "compact", Model: memoryExtractionTestModel, Transcript: "user: three words here", Prompt: "extract",
-			SchemaJSON: memoryextract.EmitSchemaJSON(),
+func TestWorkspaceCompactExtractionRequiresEmissionAndPropagatesCancellation(t *testing.T) {
+	for name, body := range map[string]string{
+		"missing tool":       `{"id":"msg_none","role":"assistant","content":[{"type":"text","text":"no tool"}],"stop_reason":"end_turn"}`,
+		"wrong tool":         `{"id":"msg_wrong","role":"assistant","content":[{"type":"tool_use","id":"toolu_wrong","name":"other_tool","input":{}}],"stop_reason":"tool_use"}`,
+		"multiple emissions": `{"id":"msg_many","role":"assistant","content":[{"type":"tool_use","id":"toolu_a","name":"emit_memories","input":{}},{"type":"tool_use","id":"toolu_b","name":"emit_memories","input":{}}],"stop_reason":"tool_use"}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			provider := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {
+				response.Header().Set("Content-Type", "application/json")
+				_, _ = response.Write([]byte(body))
+			}))
+			defer provider.Close()
+			server := openWorkspaceMemoryToolServer(t)
+			registerMemoryExtractionTestProvider(t, server, provider.URL)
+			server.httpClient = provider.Client()
+			result, err := server.newMemoryCompactExtractor(memorytools.Scope{UserID: "user-1", ProjectID: "project-1"}).ExtractMemories(context.Background(), memoryextract.ExtractRequest{
+				Mode: "compact", Model: memoryExtractionTestModel, Transcript: "user: three words here", Prompt: "extract",
+				SchemaJSON: memoryextract.EmitSchemaJSON(),
+			})
+			if !errors.Is(err, memoryextract.ErrInvalidResponse) || result != nil {
+				t.Fatalf("invalid emission was acknowledged: result=%#v err=%v", result, err)
+			}
 		})
-		if err != nil || len(result) != 0 {
-			t.Fatalf("missing-tool result = %#v, %v", result, err)
-		}
-	})
+	}
 
 	t.Run("cancellation", func(t *testing.T) {
 		release := make(chan struct{})
