@@ -93,7 +93,7 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
     editable: boolean;
   } | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (options: { requireCurrentLibrary?: boolean } = {}) => {
     const generation = ++loadGenerationRef.current;
     setLoading(true);
     setLoadError(false);
@@ -104,7 +104,10 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
       loadXScienceSkillSources(),
       loadXScienceSkillUsage(),
     ]);
-    if (generation !== loadGenerationRef.current) return;
+    if (generation !== loadGenerationRef.current) {
+      if (options.requireCurrentLibrary) throw new Error('Skill library refresh was superseded');
+      return;
+    }
 
     if (skillsResult.status === 'fulfilled') setAvailableSkills(skillsResult.value);
     if (draftsResult.status === 'fulfilled') setDrafts(draftsResult.value);
@@ -122,6 +125,12 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
       messageRef.current.error(translationRef.current('settings.skillsSettings.fetchFailed'));
     }
     setLoading(false);
+    // A completed detail mutation owns its original receipt until the current
+    // catalog and draft list have been read back. Optional usage/source reads
+    // keep their independent partial-error UI, but cannot require republishing.
+    if (options.requireCurrentLibrary && (skillsResult.status === 'rejected' || draftsResult.status === 'rejected')) {
+      throw new Error('Skill library readback is unavailable');
+    }
   }, []);
 
   useEffect(() => {
@@ -517,7 +526,7 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
         draft={detail?.draft ?? false}
         editable={detail?.editable ?? false}
         onClose={() => setDetail(null)}
-        onChanged={fetchData}
+        onChanged={() => fetchData({ requireCurrentLibrary: true })}
       />
     </div>
   );

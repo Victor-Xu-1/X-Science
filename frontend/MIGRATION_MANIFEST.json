@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1a2cbffdcbed4078b5ecec3b1fcd569e88231a7f969b6ccb14fcf937ab33e767",
+  "adaptationFingerprintSHA256": "f64ffeafd74bf904d4f20259c374c207b30a6bd01470bdaad1b69de638296bc2",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "aafac39cb6b298ca9165dc08d8bedd6f4d45f5613c5489aa09cdb8262d12beaa",
+  "additionFingerprintSHA256": "2c57a09602f7c11a562a88531f86e66d82f5f2b37dc3e7fea0687726e42ad433",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1207
+    "addedFiles": 1208
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "77246c414e98496ac36fc782b15f3f3e0414fbf890b6019465016760a1765b4a",
+      "targetSHA256": "0761a80451062efc2fd920496ed69076bd842059f59edbc8adfc34f14fad9f80",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "d179e4b0fb5a6b08cd1a234070d07c2d4d2dd0e5ab4fd5efa87c4e2c092e20fd",
+      "targetSHA256": "b753c3d1977005b84bd21e5c6c2a2f1a34b81249879f5e8b50917c8387fadbef",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2690,8 +2690,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/XScienceSkillsSettings.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/SynonBiomedSkillsSettings.tsx",
       "sourceSHA256": "c3df56872aa6777496e50f80a282ca30eed7a1d43b538bc5eb3e0cf767a635db",
-      "targetSHA256": "ad5c1aae8eaf376dc5e8d8f9543fea76e77cbff3673ee64bc90191591151e3a8",
-      "bytes": 24660,
+      "targetSHA256": "5844d6a4ac44ad41eb2bbc3337c82d9ffac13dbf5333e79c4010d55c566f0549",
+      "bytes": 25288,
       "reason": "Move genuine imported source to the current X-Science namespace. Unify installed Skill sources in one searchable library and consolidate acquisition into one action while preserving personal, import, toggle, and market workflows."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3c2008b8a03e5fb1d6ecf7519d6bb0cd1057debc3b731a1450fb056eef2e38f2",
+      "sha256": "13761f96296aa5a00ef5036f2813433759ca5c2d5d469b68579818dd4938a504",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -13739,6 +13739,12 @@
       "path": "tests/unit/settings/SkillLibraryCard.dom.test.tsx",
       "sha256": "24d99ac13268b076b28041ae94e8226c8491f6077dd930596229d35b5ce5e0ca",
       "bytes": 2838,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/SkillPublicationRefresh.dom.test.tsx",
+      "sha256": "060def7a93c77340ab3c5c2195b85ae7980483ec92b1b97eaf4a16bcffbb1b19",
+      "bytes": 9547,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -2,24 +2,27 @@ package memoryextract
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 )
 
 var (
+	ErrInvalidResponse    = errors.New("memory extraction response is invalid")
 	forkedJSONFencePrefix = regexp.MustCompile(`(?i)^\s*` + "```" + `(?:json)?\s*\n?`)
 	forkedJSONFenceSuffix = regexp.MustCompile(`\n?` + "```" + `\s*$`)
 )
 
-// ParseForkedResponse reproduces the workspace tolerant forked-extraction
-// parser: find the first balanced JSON object and treat every malformed or
-// non-object response as an empty operation batch.
-func ParseForkedResponse(value string) map[string]any {
+// ParseForkedResponse retains first-balanced-object and wrapper compatibility.
+// A malformed/missing object is not an explicit empty acknowledgement: callers
+// must preserve the uncommitted source for their existing bounded retry path.
+func ParseForkedResponse(value string) (map[string]any, error) {
 	value = forkedJSONFencePrefix.ReplaceAllString(value, "")
 	value = forkedJSONFenceSuffix.ReplaceAllString(value, "")
 	start := strings.IndexByte(value, '{')
 	if start < 0 {
-		return map[string]any{}
+		return nil, fmt.Errorf("%w: missing JSON object", ErrInvalidResponse)
 	}
 	depth := 0
 	inString := false
@@ -47,11 +50,11 @@ func ParseForkedResponse(value string) map[string]any {
 			if depth == 0 {
 				var decoded map[string]any
 				if err := json.Unmarshal([]byte(value[start:index+1]), &decoded); err != nil || decoded == nil {
-					return map[string]any{}
+					return nil, fmt.Errorf("%w: malformed JSON object", ErrInvalidResponse)
 				}
-				return decoded
+				return decoded, nil
 			}
 		}
 	}
-	return map[string]any{}
+	return nil, fmt.Errorf("%w: incomplete JSON object", ErrInvalidResponse)
 }
