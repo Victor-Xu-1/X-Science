@@ -102,7 +102,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(parts) == 2 && parts[0] == "items" && r.Method == http.MethodPatch {
 		var input workspace.LiteraturePatch
-		if decodePDFReadingBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
+		if decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
 		}
@@ -136,7 +136,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleLiteratureImport(w http.ResponseWriter, r *http.Request, owner string) {
 	var input workspace.LiteratureImport
-	if decodePDFReadingBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
+	if decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
 		writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 		return
 	}
