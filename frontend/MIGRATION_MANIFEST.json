@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cd7f00a7c29fc10335c3d26a6e35b87d996d1402715e2d26202e423dbc4e2a86",
+  "adaptationFingerprintSHA256": "60dd81dd0fb47ec6acde61091474425ddc715a8f8672c84874e99f876c6f683d",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "55f321aa397e811efd8149d7ffd12b0c2572262b6c866e98dd0b4e55088dfeb4",
+  "additionFingerprintSHA256": "2f1c499234a0e5891fdefc42ce0b2894be55da8db87419f71245806a7c7ad8b2",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1207
+    "addedFiles": 1208
   },
   "adaptations": [
     {
@@ -2690,8 +2690,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/XScienceSkillsSettings.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/SynonBiomedSkillsSettings.tsx",
       "sourceSHA256": "c3df56872aa6777496e50f80a282ca30eed7a1d43b538bc5eb3e0cf767a635db",
-      "targetSHA256": "ad5c1aae8eaf376dc5e8d8f9543fea76e77cbff3673ee64bc90191591151e3a8",
-      "bytes": 24660,
+      "targetSHA256": "5844d6a4ac44ad41eb2bbc3337c82d9ffac13dbf5333e79c4010d55c566f0549",
+      "bytes": 25288,
       "reason": "Move genuine imported source to the current X-Science namespace. Unify installed Skill sources in one searchable library and consolidate acquisition into one action while preserving personal, import, toggle, and market workflows."
     },
     {
@@ -13739,6 +13739,12 @@
       "path": "tests/unit/settings/SkillLibraryCard.dom.test.tsx",
       "sha256": "24d99ac13268b076b28041ae94e8226c8491f6077dd930596229d35b5ce5e0ca",
       "bytes": 2838,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/SkillPublicationRefresh.dom.test.tsx",
+      "sha256": "060def7a93c77340ab3c5c2195b85ae7980483ec92b1b97eaf4a16bcffbb1b19",
+      "bytes": 9547,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
