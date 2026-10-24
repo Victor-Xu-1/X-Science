@@ -11,7 +11,7 @@ import (
 // Other current facts (including original compute jobs and inputs) stay intact.
 func dropEmptyReviewedV82MemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	requireReviewedV82HistoricalFixtureMigrations(t, tx)
+	requireReviewedV83HistoricalFixtureMigrations(t, tx)
 	var facts int
 	if err := tx.QueryRowContext(t.Context(), `SELECT (SELECT COUNT(*) FROM project_literature)+
 		(SELECT COUNT(*) FROM literature_attachment_versions)+(SELECT COUNT(*) FROM literature_attachments)+
@@ -39,18 +39,25 @@ func dropEmptyReviewedV82MemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql
 	}
 }
 
-func requireReviewedV82HistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
+func requireReviewedV83HistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
 	var versions, installed int
-	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != 82 || installed != 82 {
-		t.Fatalf("historical reconstruction requires complete reviewed current82 schema: count=%d version=%d err=%v", versions, installed, err)
+	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != 83 || installed != 83 {
+		t.Fatalf("historical reconstruction requires complete reviewed current83 schema: count=%d version=%d err=%v", versions, installed, err)
 	}
+	// Reviewed83 is a journal-only reader floor: it adds no objects to remove.
+	// The prospective Memory/Library object removal is therefore still v82.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
 	// while the callers reconstruct their real v74/v76 predecessor receipts.
 	expected, err := workspace.ExpectedSchemaStatus()
-	if err != nil || expected.CurrentVersion != 82 || expected.TargetVersion != 82 || len(expected.Migrations) != 82 {
+	if err != nil || expected.CurrentVersion != 83 || expected.TargetVersion != 83 || len(expected.Migrations) != 83 {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
+	}
+	original83 := expected.Migrations[82]
+	if original83.Version != 83 || original83.Name != "literature-mutation-identity-reader-floor" ||
+		original83.Checksum != "cdcc14361344bd4be6a64413ad21a2b41ab9bdc43b8607447b23ef1ce3282613" {
+		t.Fatalf("historical reconstruction requires the reviewed journal-only83 identity: %+v", original83)
 	}
 	original81 := expected.Migrations[80]
 	if original81.Version != 81 || original81.Name != "atomic-memory-extraction-receipts" ||
