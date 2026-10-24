@@ -187,8 +187,14 @@ func (s *Server) publishPreparedSkillImports(
 	if commit == nil {
 		return nil, nil, errors.New("skill import commit authority is required")
 	}
+	catalogChanged := false
 	s.skillMutationMu.Lock()
-	defer s.skillMutationMu.Unlock()
+	defer func() {
+		s.skillMutationMu.Unlock()
+		if catalogChanged {
+			s.notifySkillCatalogChanged("")
+		}
+	}()
 	var journal []*skillDirectoryPublication
 	results := make([]skillImportResult, 0, len(prepared))
 	failed := make([]skillImportFailure, 0)
@@ -251,6 +257,7 @@ func (s *Server) publishPreparedSkillImports(
 		}
 		for _, skill := range published {
 			s.skillCatalog.UpsertSkill(skill)
+			catalogChanged = true
 		}
 		return nil
 	})

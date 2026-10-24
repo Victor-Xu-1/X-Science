@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { realtimeReconnectedEmitter, wsEmitter } from '@/common/adapter/httpBridge';
 import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
 
 export type XScienceSkillInfo = {
@@ -40,4 +41,14 @@ export async function loadAvailableSkillsWithXScience<T extends XScienceSkillInf
     attachedAgents: skill.attachedAgents,
     enabled: skill.enabled,
   })) as T[];
+}
+
+/** Read-only hints on the one account-bound realtime connection. */
+export function onSkillCatalogChanged(listener: () => void): () => void {
+  const stopChanges = wsEmitter('durable', 'skills.catalog.changed').on(listener);
+  const stopReconnect = realtimeReconnectedEmitter().on(listener);
+  return () => {
+    stopChanges();
+    stopReconnect();
+  };
 }

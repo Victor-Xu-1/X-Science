@@ -211,6 +211,12 @@ func (s *Server) deleteCompatibilitySkill(userID, name string, draftOnly bool) e
 }
 
 func (s *Server) deleteCompatibilitySkillWithCommit(userID, name string, draftOnly bool, commit skillDraftCommit) error {
+	catalogChanged := false
+	defer func() {
+		if catalogChanged {
+			s.notifySkillCatalogChanged("")
+		}
+	}()
 	skill, found := findCatalogSkill(s.skillCatalog, name)
 	if draftOnly {
 		var err error
@@ -256,12 +262,14 @@ func (s *Server) deleteCompatibilitySkillWithCommit(userID, name string, draftOn
 		if err := os.RemoveAll(trash); err != nil {
 			return errors.Join(err, os.Rename(trash, root))
 		}
+		// Match publication: project the completed filesystem change before an
+		// uncertain execution-transaction acknowledgement can return to the caller.
+		if published, found := findCatalogSkill(s.skillCatalog, name); found && sameCleanPath(filepath.Dir(published.Path), root) {
+			catalogChanged = s.skillCatalog.RemoveSkill(name)
+		}
 		return nil
 	}); err != nil {
 		return err
-	}
-	if published, found := findCatalogSkill(s.skillCatalog, name); found && sameCleanPath(filepath.Dir(published.Path), root) {
-		s.skillCatalog.RemoveSkill(name)
 	}
 	return nil
 }

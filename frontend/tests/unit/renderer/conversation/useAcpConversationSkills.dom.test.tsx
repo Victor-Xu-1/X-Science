@@ -1,7 +1,10 @@
+import { bindRealtimeRuntime } from '@/common/adapter/httpBridge';
+import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
+import { createRealtimeRuntime, type RealtimeRuntimeClientObservers } from '@/common/adapter/realtimeRuntime';
 import React, { type PropsWithChildren } from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import useSWR, { SWRConfig } from 'swr';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpConversationSkills } from '@/renderer/pages/conversation/platforms/acp/useAcpConversationSkills';
 import type { XScienceComposerCapabilities } from '@/renderer/services/xScienceGateway';
 import type { XScienceSkill } from '@/renderer/services/xScienceCapabilities';
@@ -72,7 +75,88 @@ const wrapper = () => {
   };
 };
 
+let releaseCatalogRuntime: (() => void) | undefined;
+
+async function connectCatalogRuntime() {
+  let observers!: RealtimeRuntimeClientObservers;
+  const runtime = createRealtimeRuntime({
+    createClient: (next) => {
+      observers = next;
+      return { setIdentity: async () => undefined, dispose: () => undefined };
+    },
+  });
+  const unbind = bindRealtimeRuntime(runtime);
+  releaseCatalogRuntime = () => {
+    unbind();
+    runtime.dispose();
+    releaseCatalogRuntime = undefined;
+  };
+  await runtime.setIdentity('catalog-owner');
+  let sequence = 0;
+  return () => {
+    sequence += 1;
+    const parsed = parseRealtimeMessage(
+      JSON.stringify({
+        type: 'skills.catalog.changed',
+        _event_id: `catalog-${sequence}`,
+        _sequence: sequence,
+        _kind: 'invalidate',
+      })
+    );
+    if (!parsed.ok) throw new Error('Controlled catalog event must satisfy the real protocol');
+    observers.onMessage(parsed.message);
+  };
+}
+
+afterEach(() => releaseCatalogRuntime?.());
+
 describe('conversation Skill catalog readback barrier', () => {
+  it('refreshes the current conversation and mobile library after a remote catalog invalidation', async () => {
+    const invalidate = await connectCatalogRuntime();
+    const options = makeOptions();
+    const view = renderHook(() => useSubject(options), { wrapper: wrapper() });
+    await waitFor(() => expect(mocks.library).toHaveBeenCalledTimes(1));
+    mocks.library.mockResolvedValue([skill('remote-workflow')]);
+    await act(async () => invalidate());
+    await waitFor(() => expect(view.result.current.mobileLibraryNames).toEqual(['remote-workflow']));
+    expect(mocks.capabilities).toHaveBeenCalledExactlyOnceWith('conversation-a');
+    expect(options.fetchSlashCommands).toHaveBeenCalledExactlyOnceWith({ fresh: true });
+    expect(options.onSelectSkill).not.toHaveBeenCalled();
+    view.unmount();
+    await act(async () => invalidate());
+    expect(mocks.capabilities).toHaveBeenCalledTimes(1);
+  });
+
+  it('coalesces remote catalog invalidations behind the existing conversation readback barrier', async () => {
+    const invalidate = await connectCatalogRuntime();
+    const options = makeOptions();
+    const view = renderHook(() => useSubject(options), { wrapper: wrapper() });
+    await waitFor(() => expect(mocks.library).toHaveBeenCalledTimes(1));
+    const required = deferred<XScienceComposerCapabilities>();
+    mocks.capabilities.mockReturnValueOnce(required.promise);
+    mocks.library.mockResolvedValue([skill('remote-workflow')]);
+    let settled!: Promise<string[]>;
+    await act(async () => {
+      settled = view.result.current.refreshCatalogs(() => true);
+      await Promise.resolve();
+    });
+    expect(mocks.capabilities).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      invalidate();
+      invalidate();
+      await Promise.resolve();
+    });
+    expect(mocks.capabilities).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      required.resolve({ skills: ['new-workflow'], mcpStatuses: [] });
+      await expect(settled).resolves.toEqual(['new-workflow']);
+    });
+    await waitFor(() => expect(mocks.capabilities).toHaveBeenCalledTimes(2));
+    expect(mocks.library).toHaveBeenCalledTimes(3);
+    expect(options.fetchSlashCommands).toHaveBeenCalledTimes(2);
+    expect(options.onSelectSkill).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.library.mockResolvedValue([]);
@@ -116,6 +200,7 @@ describe('conversation Skill catalog readback barrier', () => {
   });
 
   it.each(['owner', 'conversation'] as const)('fences the old mobile response after a %s switch', async (change) => {
+    const invalidate = await connectCatalogRuntime();
     const options = makeOptions();
     const pending = deferred<XScienceSkill[]>();
     let initial = true;
@@ -144,6 +229,7 @@ describe('conversation Skill catalog readback barrier', () => {
         );
       await Promise.resolve();
     });
+    await act(async () => invalidate());
     current = false;
     switched = true;
     view.rerender({
@@ -161,6 +247,7 @@ describe('conversation Skill catalog readback barrier', () => {
     });
     expect(outcome).toBeInstanceOf(Error);
     expect(view.result.current.mobileLibraryNames).toEqual(['new-scope-workflow']);
+    expect(mocks.capabilities).toHaveBeenCalledTimes(1);
     expect(options.onSelectSkill).not.toHaveBeenCalled();
   });
 

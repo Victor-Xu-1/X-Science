@@ -84,6 +84,7 @@ var eventSpecs = map[string]EventSpec{
 }
 
 var extensionEventSpecs = map[string]EventSpec{
+	"skills.catalog.changed":      {Name: "skills.catalog.changed", Kind: DeliveryFanout, Via: "raw", Owner: "skill-catalog"},
 	"confirmation.add":            {Name: "confirmation.add", Kind: DeliveryFanout, Owner: "x-science-web"},
 	"confirmation.remove":         {Name: "confirmation.remove", Kind: DeliveryFanout, Owner: "x-science-web"},
 	"confirmation.update":         {Name: "confirmation.update", Kind: DeliveryFanout, Owner: "x-science-web"},

@@ -18,6 +18,7 @@ import {
 } from '@/renderer/services/xScienceCapabilities';
 import { iconColors } from '@/renderer/styles/colors';
 import { resolveLocaleKey } from '@/common/utils';
+import { onSkillCatalogChanged } from '@/renderer/services/skills/skillsCatalog';
 import { resolveSkillDisplayName } from '@/renderer/services/skills/xScienceSkillDescriptions';
 import { useComposerSubmenu } from './useComposerSubmenu';
 
@@ -284,6 +285,8 @@ const ComposerCapabilityPicker: React.FC<ComposerCapabilityPickerProps> = ({
       cancelled = true;
     };
   }, [localeKey, skillCatalogEpoch]);
+
+  useEffect(() => onSkillCatalogChanged(() => setSkillCatalogEpoch((epoch) => epoch + 1)), []);
 
   useEffect(() => {
     let cancelled = false;

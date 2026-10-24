@@ -142,6 +142,8 @@ func (s *Server) handleWorkspaceSkillEnabled(w http.ResponseWriter, r *http.Requ
 		writeWorkspaceJSON(w, workspaceStatus(err), map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
+	// The legacy _runtime preference is installation-wide, not body.userId.
+	s.notifySkillCatalogChanged("")
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{"ok": true, "name": skill.Name, "enabled": input.Enabled})
 }
 

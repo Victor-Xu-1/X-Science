@@ -418,8 +418,16 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 	// Read provenance and verify the actual directories only after joining
 	// the same publication lock as installers. Pre-lock hashes can describe
 	// a directory that another import has already replaced.
+	catalogChanged, sourceChanged := false, false
 	s.skillMutationMu.Lock()
-	defer s.skillMutationMu.Unlock()
+	defer func() {
+		s.skillMutationMu.Unlock()
+		if catalogChanged {
+			s.notifySkillCatalogChanged("")
+		} else if sourceChanged {
+			s.notifySkillCatalogChanged(userID)
+		}
+	}()
 	filesystem, err := openSkillImportFilesystem(s.fileRoot, false)
 	if err != nil {
 		return err
@@ -501,8 +509,11 @@ func (s *Server) removeWebSkillMarketplaceSource(userID, slug string) error {
 	if err := s.saveWebSkillMarketplaceSources(userID, next); err != nil {
 		return rollback(err)
 	}
+	sourceChanged = true
 	for _, name := range selected.Skills {
-		s.skillCatalog.RemoveSkill(name)
+		if s.skillCatalog.RemoveSkill(name) {
+			catalogChanged = true
+		}
 	}
 	current, err := filesystem.lstat(quarantine)
 	if err != nil || !os.SameFile(current, quarantineOwner) {
