@@ -1,3 +1,9 @@
+import { decodeLiteratureMetadataPatch, type LiteratureMetadataPatch } from './literatureMetadataPatch';
+import { literatureValueIdentity } from './literatureValueIdentity';
+
+export { literatureValueIdentity } from './literatureValueIdentity';
+export type { LiteratureMetadataPatch } from './literatureMetadataPatch';
+
 export type LiteratureVersion = {
   id: string;
   attachment_id: string;
@@ -48,6 +54,14 @@ export type LiteratureCommand =
       title?: string;
       metadata?: Record<string, unknown>;
       deleted?: boolean;
+    }
+  | {
+      kind: 'edit-metadata';
+      operation_id: string;
+      item_id: string;
+      expected_revision: number;
+      title?: string;
+      metadata_patch: LiteratureMetadataPatch;
     }
   | { kind: 'membership'; operation_id: string; item_id: string; project_id: string; included: boolean };
 
@@ -186,6 +200,34 @@ export function decodeLiteratureCommand(value: unknown): LiteratureCommand {
     !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value.operation_id)
   )
     return fail();
+  if (value.kind === 'edit-metadata') {
+    if (
+      Reflect.ownKeys(value).some(
+        (key) =>
+          typeof key !== 'string' ||
+          !['kind', 'operation_id', 'item_id', 'expected_revision', 'title', 'metadata_patch'].includes(key)
+      ) ||
+      !identity(value.item_id) ||
+      !count(value.expected_revision) ||
+      (value.title !== undefined &&
+        (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 4096)) ||
+      !Object.hasOwn(value, 'metadata_patch')
+    )
+      return fail();
+    const command: LiteratureCommand = {
+      kind: 'edit-metadata',
+      operation_id: value.operation_id,
+      item_id: value.item_id,
+      expected_revision: value.expected_revision,
+      ...(typeof value.title === 'string' ? { title: value.title.trim() } : {}),
+      metadata_patch: decodeLiteratureMetadataPatch(value.metadata_patch),
+    };
+    // The existing pending owner compares this whole immutable command.
+    literatureValueIdentity(command);
+    return command;
+  }
+  // A patch is never silently stripped into an old edit/import/membership.
+  if (Object.hasOwn(value, 'metadata_patch')) return fail();
   const metadata = value.metadata === undefined ? undefined : decodeLiteratureMetadata(value.metadata);
   if (
     value.kind === 'import' &&
@@ -247,22 +289,4 @@ function decodeLiteratureMetadata(value: unknown): Record<string, unknown> {
   const normalized: unknown = JSON.parse(raw);
   literatureValueIdentity(normalized);
   return normalized as Record<string, unknown>;
-}
-/** Canonical JSON equality for immutable requests and acknowledgements, never an execution authority. */
-export function literatureValueIdentity(value: unknown, depth = 0): string {
-  if (depth > 16) return fail();
-  if (Array.isArray(value)) return `[${value.map((child) => literatureValueIdentity(child, depth + 1)).join(',')}]`;
-  if (record(value))
-    return `{${Object.entries(value)
-      .toSorted(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-      .map(([key, child]) => `${JSON.stringify(key)}:${literatureValueIdentity(child, depth + 1)}`)
-      .join(',')}}`;
-  if (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'boolean' ||
-    (typeof value === 'number' && Number.isFinite(value))
-  )
-    return JSON.stringify(value);
-  return fail();
 }

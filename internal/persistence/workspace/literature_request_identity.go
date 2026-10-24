@@ -27,6 +27,9 @@ func (identity literatureRequestIdentity) matches(stored string) bool {
 		// Exact historical Number("1e400") needs no valid float64 projection.
 		return true
 	}
+	if identity.legacy == nil {
+		return false
+	}
 	legacy, err := identity.legacy()
 	return err == nil && stored == legacy
 }
@@ -73,6 +76,7 @@ func literatureImportRequestIdentity(input LiteratureImport, metadata string) (l
 }
 
 func snapshotLiteraturePatchFields(input LiteraturePatch) LiteraturePatch {
+	input.MetadataPatch = append(json.RawMessage(nil), input.MetadataPatch...)
 	if input.Title != nil {
 		title := *input.Title
 		input.Title = &title
@@ -86,6 +90,9 @@ func snapshotLiteraturePatchFields(input LiteraturePatch) LiteraturePatch {
 
 func literaturePatchRequestIdentity(id string, input LiteraturePatch, metadata string) (literatureRequestIdentity, error) {
 	input = snapshotLiteraturePatchFields(input)
+	if len(input.MetadataPatch) != 0 {
+		return literatureMetadataFieldsRequestIdentity(id, input)
+	}
 	request := struct {
 		ID    string
 		Input LiteraturePatch
@@ -115,4 +122,24 @@ func literaturePatchRequestIdentity(id string, input LiteraturePatch, metadata s
 		}
 		return mutationRequestHash(projected)
 	}}, nil
+}
+
+// New field deltas have no historical aliases. In particular, matching a
+// final object or its old float projection must not borrow another ACK.
+func literatureMetadataFieldsRequestIdentity(id string, input LiteraturePatch) (literatureRequestIdentity, error) {
+	exact, err := mutationRequestHash(struct {
+		Mode             string          `json:"mode"`
+		ID               string          `json:"item_id"`
+		OperationID      string          `json:"operation_id"`
+		ExpectedRevision int64           `json:"expected_revision"`
+		Title            *string         `json:"title,omitempty"`
+		Patch            json.RawMessage `json:"metadata_patch"`
+	}{"metadata-fields.v1", id, input.OperationID, input.ExpectedRevision, input.Title, input.MetadataPatch})
+	if err != nil {
+		return literatureRequestIdentity{}, err
+	}
+	return literatureRequestIdentity{
+		exact:  exact,
+		legacy: func() (string, error) { return "", ErrMutationIdempotencyConflict },
+	}, nil
 }
