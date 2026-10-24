@@ -74,7 +74,7 @@ func TestOptionalScientificRecoveryKeepsTypedInvalidityAndPublishesNoticeOnce(t 
 			}
 			run := &sessionRunnerChatRun{SessionID: session.ID, Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim}}
 			for replay := 0; replay < 2; replay++ {
-				status, detail, _, handled, err := f.server.recoverTranscriptCompletionOnly(ctx, session, run)
+				status, detail, _, handled, err := consumeCompletionRecoveryFixture(ctx, f.server, session, run)
 				want := "completed"
 				if knownInvalid {
 					want = "failed"

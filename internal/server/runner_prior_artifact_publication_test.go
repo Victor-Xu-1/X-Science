@@ -74,7 +74,7 @@ func TestPriorArtifactRelationPublicationCompletesAndReplaysWithRealSQLite(t *te
 	authority := &transcriptRunnerAuthority{Stream: stream, Claim: second}
 	payload := map[string]any{"text": "The summary uses [the prior input]({{artifact:" + prior.versionID + "}})."}
 	for replay := 0; replay < 2; replay++ {
-		if err := app.appendTranscriptAssistantEvent(ctx, authority, "final", payload); err != nil {
+		if _, err := app.persistTranscriptRunnerFinalization(ctx, authority, transcriptRunnerFinalization{Content: payload["text"].(string), Status: "completed", Detail: "runner chat completed", AssistantIdentity: "final", SegmentOrdinal: 1}); err != nil {
 			t.Fatalf("publishing/replaying citation to consumed and produced input failed: %v", err)
 		}
 	}
@@ -94,11 +94,6 @@ func TestPriorArtifactRelationPublicationCompletesAndReplaysWithRealSQLite(t *te
 	}
 	if err := db.QueryRow(`SELECT COUNT(*) FROM transcript_artifact_commits WHERE stream_uid=? AND runner_attempt=? AND bound_event_id=?`, stream.UID, second.Attempt, assistantID).Scan(&currentBound); err != nil || currentBound != 1 {
 		t.Fatalf("current output did not bind to final answer: %d %v", currentBound, err)
-	}
-	if _, _, _, err := repo.FinishRunner(ctx, transcriptstore.FinishRunnerInput{
-		Claim: second, ClientMessageID: "finish-second", Status: "completed", PayloadJSON: []byte(`{"status":"completed"}`),
-	}); err != nil {
-		t.Fatal(err)
 	}
 	state, err := repo.GetRunnerRuntimeState(ctx, stream.UID, stream.OwnerID, second.Attempt)
 	if err != nil || state.Status != "completed" {
