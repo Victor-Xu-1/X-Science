@@ -11,6 +11,12 @@ import (
 )
 
 func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite bool, expectedRevision string, commit skillDraftCommit) (skills.Skill, error) {
+	catalogChanged := false
+	defer func() {
+		if catalogChanged {
+			s.notifySkillCatalogChanged("")
+		}
+	}()
 	if err := requireSkillDraftRevision(expectedRevision); err != nil {
 		return skills.Skill{}, err
 	}
@@ -71,6 +77,7 @@ func (s *Server) publishCompatibilitySkillDraftWithCommit(name string, overwrite
 			return err
 		}
 		s.skillCatalog.UpsertSkill(installed)
+		catalogChanged = true
 		return nil
 	}); err != nil {
 		return skills.Skill{}, err

@@ -1,4 +1,7 @@
 import { ConfigProvider } from '@arco-design/web-react';
+import { bindRealtimeRuntime } from '@/common/adapter/httpBridge';
+import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
+import { createRealtimeRuntime, type RealtimeRuntimeClientObservers } from '@/common/adapter/realtimeRuntime';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
@@ -30,7 +33,8 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
     },
   };
 });
-vi.mock('@/renderer/services/skills/skillsCatalog', () => ({
+vi.mock('@/renderer/services/skills/skillsCatalog', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/services/skills/skillsCatalog')>()),
   loadAvailableSkillsWithXScience: mocks.loadSkills,
 }));
 vi.mock('@/renderer/services/skills/xScienceSkillUsage', () => ({
@@ -81,7 +85,43 @@ beforeEach(() => {
   mocks.publish.mockResolvedValue({ status: 'published', name, origin: 'personal' });
   mocks.importFile.mockResolvedValue({});
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  releaseCatalogRuntime?.();
+  vi.restoreAllMocks();
+});
+
+let releaseCatalogRuntime: (() => void) | undefined;
+
+async function connectCatalogRuntime() {
+  let observers!: RealtimeRuntimeClientObservers;
+  const runtime = createRealtimeRuntime({
+    createClient: (next) => {
+      observers = next;
+      return { setIdentity: async () => undefined, dispose: () => undefined };
+    },
+  });
+  const unbind = bindRealtimeRuntime(runtime);
+  releaseCatalogRuntime = () => {
+    unbind();
+    runtime.dispose();
+    releaseCatalogRuntime = undefined;
+  };
+  await runtime.setIdentity('catalog-owner');
+  let sequence = 0;
+  return () => {
+    sequence += 1;
+    const parsed = parseRealtimeMessage(
+      JSON.stringify({
+        type: 'skills.catalog.changed',
+        _event_id: `catalog-${sequence}`,
+        _sequence: sequence,
+        _kind: 'invalidate',
+      })
+    );
+    if (!parsed.ok) throw new Error('Controlled catalog event must satisfy the real protocol');
+    observers.onMessage(parsed.message);
+  };
+}
 
 async function renderPage() {
   await renderWithSettingsI18n(
@@ -113,6 +153,42 @@ function deferred<T>() {
 }
 
 describe('actual Skill settings publication readback', () => {
+  it('refreshes the mounted library after a remote catalog invalidation', async () => {
+    const invalidate = await connectCatalogRuntime();
+    await renderPage();
+    mocks.loadSkills.mockResolvedValue([published]);
+    mocks.loadDrafts.mockResolvedValue([]);
+    await act(async () => invalidate());
+    await screen.findByTestId(`x-science-skill-row-${name}`);
+    expect(screen.queryByTestId(`x-science-skill-draft-${name}`)).not.toBeInTheDocument();
+    expect(mocks.loadSkills).toHaveBeenCalledTimes(2);
+    expect(mocks.publish).not.toHaveBeenCalled();
+    expect(mocks.importFile).not.toHaveBeenCalled();
+  });
+
+  it('queues remote catalog invalidations behind the required publication readback', async () => {
+    const invalidate = await connectCatalogRuntime();
+    await renderPage();
+    await openDraft();
+    const requiredRead = deferred<Array<typeof published>>();
+    mocks.loadSkills.mockReturnValueOnce(requiredRead.promise);
+    fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
+    await waitFor(() => expect(mocks.loadSkills).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      invalidate();
+      invalidate();
+      await Promise.resolve();
+    });
+    expect(mocks.loadSkills).toHaveBeenCalledTimes(2);
+    await act(async () => requiredRead.resolve([published]));
+    await waitFor(() => expect(mocks.success).toHaveBeenCalledWith('Skill published'));
+    await waitFor(() => expect(mocks.loadSkills).toHaveBeenCalledTimes(3));
+    expect(screen.getByTestId(`x-science-skill-row-${name}`)).toBeInTheDocument();
+    expect(mocks.error).not.toHaveBeenCalled();
+    expect(mocks.publish).toHaveBeenCalledTimes(1);
+    expect(mocks.snapshot).toHaveBeenCalledTimes(1);
+  });
+
   it.each(['loadSkills', 'loadDrafts'] as const)(
     'retains the completed publication when %s fails and retries only catalog reads',
     async (failedRead) => {

@@ -31,6 +31,7 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
 });
 
 vi.mock('@/renderer/services/skills/skillsCatalog', () => ({
+  onSkillCatalogChanged: vi.fn(() => () => undefined),
   loadAvailableSkillsWithXScience: mocks.loadSkills,
 }));
 

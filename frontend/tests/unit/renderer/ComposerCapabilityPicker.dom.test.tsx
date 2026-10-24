@@ -4,10 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { bindRealtimeRuntime } from '@/common/adapter/httpBridge';
+import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
+import { createRealtimeRuntime, type RealtimeRuntimeClientObservers } from '@/common/adapter/realtimeRuntime';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const capabilityMocks = vi.hoisted(() => ({
@@ -76,7 +79,80 @@ const personalSkill = (name: string) => ({
   enabled: true,
 });
 
+let releaseCatalogRuntime: (() => void) | undefined;
+
+async function connectCatalogRuntime() {
+  let observers!: RealtimeRuntimeClientObservers;
+  const runtime = createRealtimeRuntime({
+    createClient: (next) => {
+      observers = next;
+      return { setIdentity: async () => undefined, dispose: () => undefined };
+    },
+  });
+  const unbind = bindRealtimeRuntime(runtime);
+  releaseCatalogRuntime = () => {
+    unbind();
+    runtime.dispose();
+    releaseCatalogRuntime = undefined;
+  };
+  await runtime.setIdentity('catalog-owner');
+  let sequence = 0;
+  return () => {
+    sequence += 1;
+    const parsed = parseRealtimeMessage(
+      JSON.stringify({
+        type: 'skills.catalog.changed',
+        _event_id: `catalog-${sequence}`,
+        _sequence: sequence,
+        _kind: 'invalidate',
+      })
+    );
+    if (!parsed.ok) throw new Error('Controlled catalog event must satisfy the real protocol');
+    observers.onMessage(parsed.message);
+  };
+}
+
+afterEach(() => releaseCatalogRuntime?.());
+
 describe('ComposerCapabilityPicker', () => {
+  it('refreshes the already-open submenu after a remote catalog invalidation without selecting', async () => {
+    const invalidate = await connectCatalogRuntime();
+    const onSelectSkill = vi.fn();
+    const onEnableSkill = vi.fn();
+    capabilityMocks.loadSkills.mockResolvedValue([personalSkill('existing-personal-workflow')]);
+    const view = await renderPicker(
+      <ComposerCapabilityPicker
+        skillNames={[]}
+        mcpStatuses={[]}
+        selectedSkillNames={[]}
+        selectedMcpServerIds={[]}
+        onSelectSkill={onSelectSkill}
+        onEnableSkill={onEnableSkill}
+        onOpenMcpSettings={vi.fn()}
+      />,
+      'en-US',
+      { wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter> }
+    );
+    await waitFor(() => expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByRole('menuitem', { name: /^Skills ·/ }));
+    });
+    await screen.findByRole('menuitemcheckbox', { name: 'existing-personal-workflow' });
+    capabilityMocks.loadSkills.mockResolvedValue([personalSkill('remotely-published-workflow')]);
+    await act(async () => invalidate());
+    expect(await screen.findByRole('menuitemcheckbox', { name: 'remotely-published-workflow' })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
+    expect(screen.queryByRole('menuitemcheckbox', { name: 'existing-personal-workflow' })).not.toBeInTheDocument();
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(3);
+    expect(onEnableSkill).not.toHaveBeenCalled();
+    expect(onSelectSkill).not.toHaveBeenCalled();
+    view.unmount();
+    await act(async () => invalidate());
+    expect(capabilityMocks.loadSkills).toHaveBeenCalledTimes(3);
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     capabilityMocks.loadSkills.mockResolvedValue([]);

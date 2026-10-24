@@ -213,6 +213,7 @@ func (s *Server) handleCompatibilityCatalogSkillEnabled(w http.ResponseWriter, r
 		writeV11StoreError(w, err)
 		return
 	}
+	s.notifySkillCatalogChanged(compatAgentUserID(r))
 	writeJSON(w, http.StatusOK, map[string]any{"name": skill.Name, "enabled": *input.Enabled})
 }
 

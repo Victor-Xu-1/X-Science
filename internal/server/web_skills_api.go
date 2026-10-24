@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -296,7 +297,11 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11StoreError(w, err)
 			return
 		}
-		s.upsertExternalWebSkills(items)
+		if s.upsertExternalWebSkills(items) {
+			s.notifySkillCatalogChanged("")
+		} else {
+			s.notifySkillCatalogChanged(userID)
+		}
 		writeJSON(w, http.StatusOK, nil)
 	case http.MethodDelete:
 		requested := strings.TrimSpace(r.URL.Query().Get("path"))
@@ -332,7 +337,11 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 				writeV11StoreError(w, err)
 				return
 			}
-			s.skillCatalog.RemoveSkillsUnder(canonical)
+			if len(s.skillCatalog.RemoveSkillsUnder(canonical)) > 0 {
+				s.notifySkillCatalogChanged("")
+			} else {
+				s.notifySkillCatalogChanged(userID)
+			}
 		}
 		writeJSON(w, http.StatusOK, nil)
 	default:
@@ -545,23 +554,34 @@ func (s *Server) syncWebExternalSkills(userID string) error {
 	if err != nil {
 		return err
 	}
+	catalogChanged := false
 	for _, source := range paths {
 		items, _, loadErr := s.loadGrantedWebSkills(userID, source.Path)
-		if loadErr == nil {
-			s.upsertExternalWebSkills(items)
+		if loadErr == nil && s.upsertExternalWebSkills(items) {
+			catalogChanged = true
 		}
+	}
+	if catalogChanged {
+		s.notifySkillCatalogChanged("")
 	}
 	return nil
 }
 
-func (s *Server) upsertExternalWebSkills(items []skills.Skill) {
+func (s *Server) upsertExternalWebSkills(items []skills.Skill) bool {
+	changed := false
 	for _, skill := range items {
 		existing, found := findCatalogSkill(s.skillCatalog, skill.Name)
 		if found && !sameCleanPath(existing.Path, skill.Path) {
 			continue
 		}
+		// Reads also reconcile external directories. Only a real projection
+		// difference invalidates readers; equal GETs must not feed themselves.
+		if !found || !reflect.DeepEqual(existing, skill) {
+			changed = true
+		}
 		s.skillCatalog.UpsertSkill(skill)
 	}
+	return changed
 }
 
 func webSkillBridgeSource(s *Server, skill skills.Skill) string {

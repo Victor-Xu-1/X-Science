@@ -1,9 +1,10 @@
-import { useCallback, useMemo, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type RefObject } from 'react';
 import useSWR, { type KeyedMutator } from 'swr';
 import {
   loadXScienceComposerCapabilities,
   type XScienceComposerCapabilities,
 } from '@/renderer/services/xScienceGateway';
+import { onSkillCatalogChanged } from '@/renderer/services/skills/skillsCatalog';
 import { loadXScienceSkills } from '@/renderer/services/xScienceCapabilities';
 import { canActivateConversationSkill, useConversationSkillActivation } from './useConversationSkillActivation';
 
@@ -42,34 +43,82 @@ export function useAcpConversationSkills(options: Options) {
     () => loadXScienceSkills(),
     { keepPreviousData: false }
   );
-  const refreshCatalogs = useCallback(
-    async (isCurrent: () => boolean) => {
-      if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-      const readCurrent = async <T>(load: () => Promise<T>) => {
-        if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-        const value = await load();
-        if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-        return value;
-      };
-      // Start the bound mutation before yielding so SWR captures this conversation's
-      // key. The mounted mobile library shares the same readback barrier.
-      const refreshed = await Promise.allSettled([
-        mutateComposerCapabilities(() => readCurrent(() => loadXScienceComposerCapabilities(conversationId)), {
-          revalidate: false,
-        }),
-        readCurrent(() => fetchSlashCommands({ fresh: true })),
-        mobileLibraryActive
-          ? mutateMobileSkillLibrary(() => readCurrent(loadXScienceSkills), { revalidate: false })
-          : undefined,
-      ]);
-      if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
-      if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
-      const capabilities = refreshed[0];
-      if (capabilities.status !== 'fulfilled' || !capabilities.value) throw new Error('Skill capabilities unavailable');
-      return capabilities.value.skills;
-    },
-    [conversationId, fetchSlashCommands, mobileLibraryActive, mutateComposerCapabilities, mutateMobileSkillLibrary]
+  const catalogScope = useMemo(
+    () => ({ activeReads: 0, dirty: false, active: false }),
+    [authority, conversationId, ownerId]
   );
+  const currentCatalogScope = useRef(catalogScope);
+  currentCatalogScope.current = catalogScope;
+  const latestRefreshCatalogs = useRef<((isCurrent: () => boolean) => Promise<string[]>) | null>(null);
+  const requestCatalogRefresh = useCallback(() => {
+    const isCurrent = () =>
+      catalogScope.active && mountedRef.current === true && currentCatalogScope.current === catalogScope;
+    if (!options.isXScience || !isCurrent()) return;
+    if (catalogScope.activeReads > 0) {
+      catalogScope.dirty = true;
+      return;
+    }
+    void latestRefreshCatalogs.current?.(isCurrent).catch(() => {
+      console.error('Failed to refresh Skill catalog after invalidation');
+    });
+  }, [catalogScope, mountedRef, options.isXScience]);
+  const refreshCatalogs = useCallback(
+    async (isCurrent: () => boolean): Promise<string[]> => {
+      if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+      catalogScope.activeReads += 1;
+      try {
+        const readCurrent = async <T>(load: () => Promise<T>) => {
+          if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+          const value = await load();
+          if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+          return value;
+        };
+        // Start the bound mutation before yielding so SWR captures this conversation's
+        // key. The mounted mobile library shares the same readback barrier.
+        const refreshed = await Promise.allSettled([
+          mutateComposerCapabilities(() => readCurrent(() => loadXScienceComposerCapabilities(conversationId)), {
+            revalidate: false,
+          }),
+          readCurrent(() => fetchSlashCommands({ fresh: true })),
+          mobileLibraryActive
+            ? mutateMobileSkillLibrary(() => readCurrent(loadXScienceSkills), { revalidate: false })
+            : undefined,
+        ]);
+        if (!isCurrent()) throw new Error('Skill catalog refresh no longer current');
+        if (refreshed.some((result) => result.status === 'rejected')) throw new Error('Skill catalog refresh failed');
+        const capabilities = refreshed[0];
+        if (capabilities.status !== 'fulfilled' || !capabilities.value)
+          throw new Error('Skill capabilities unavailable');
+        return capabilities.value.skills;
+      } finally {
+        catalogScope.activeReads -= 1;
+        if (catalogScope.activeReads === 0 && catalogScope.dirty) {
+          catalogScope.dirty = false;
+          queueMicrotask(requestCatalogRefresh);
+        }
+      }
+    },
+    [
+      catalogScope,
+      conversationId,
+      fetchSlashCommands,
+      mobileLibraryActive,
+      mutateComposerCapabilities,
+      mutateMobileSkillLibrary,
+      requestCatalogRefresh,
+    ]
+  );
+  latestRefreshCatalogs.current = refreshCatalogs;
+  useEffect(() => {
+    if (!options.isXScience) return;
+    catalogScope.active = true;
+    const stopCatalogChanges = onSkillCatalogChanged(requestCatalogRefresh);
+    return () => {
+      catalogScope.active = false;
+      catalogScope.dirty = false;
+      stopCatalogChanges();
+    };
+  }, [catalogScope, options.isXScience, requestCatalogRefresh]);
   const skillActivation = useConversationSkillActivation({
     authority,
     ownerId,

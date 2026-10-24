@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { bindRealtimeRuntime } from '@/common/adapter/httpBridge';
+import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
+import { createRealtimeRuntime, type RealtimeRuntimeClientObservers } from '@/common/adapter/realtimeRuntime';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -25,7 +28,7 @@ vi.mock('@/renderer/services/xScienceCapabilities', () => ({
   loadXScienceSkills: mocks.loadXScienceSkills,
 }));
 
-import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience, onSkillCatalogChanged } from '@/renderer/services/skills/skillsCatalog';
 
 describe('loadAvailableSkillsWithXScience', () => {
   beforeEach(() => {
@@ -101,4 +104,45 @@ describe('loadAvailableSkillsWithXScience', () => {
     await expect(loadAvailableSkillsWithXScience()).resolves.toEqual([]);
     expect(mocks.listAvailableSkills).not.toHaveBeenCalled();
   });
+});
+
+it('uses the bound catalog hint and reconnect subscriptions without creating another transport', async () => {
+  let observers!: RealtimeRuntimeClientObservers;
+  const createClient = vi.fn((next: RealtimeRuntimeClientObservers) => {
+    observers = next;
+    return { setIdentity: async () => undefined, dispose: () => undefined };
+  });
+  const runtime = createRealtimeRuntime({ createClient });
+  const unbind = bindRealtimeRuntime(runtime);
+  const changed = vi.fn();
+  const stop = onSkillCatalogChanged(changed);
+  const receive = (payload: Record<string, unknown>) => {
+    const parsed = parseRealtimeMessage(JSON.stringify(payload));
+    if (!parsed.ok) throw new Error('Controlled message must satisfy the real protocol');
+    observers.onMessage(parsed.message);
+  };
+  try {
+    expect(createClient).not.toHaveBeenCalled();
+    await runtime.setIdentity('owner-a');
+    observers.onStatus('connected');
+    receive({ type: 'connected', cursor: 0 });
+    expect(changed).not.toHaveBeenCalled();
+    receive({ type: 'skills.catalog.changed', _event_id: 'catalog-1', _sequence: 1, _kind: 'invalidate' });
+    expect(changed).toHaveBeenCalledTimes(1);
+    observers.onStatus('reconnecting');
+    observers.onStatus('connected');
+    receive({ type: 'connected', cursor: 1 });
+    expect(changed).toHaveBeenCalledTimes(2);
+    stop();
+    receive({ type: 'skills.catalog.changed', _event_id: 'catalog-2', _sequence: 2, _kind: 'invalidate' });
+    observers.onStatus('reconnecting');
+    observers.onStatus('connected');
+    receive({ type: 'connected', cursor: 2 });
+    expect(changed).toHaveBeenCalledTimes(2);
+    expect(createClient).toHaveBeenCalledTimes(1);
+  } finally {
+    stop();
+    unbind();
+    runtime.dispose();
+  }
 });
