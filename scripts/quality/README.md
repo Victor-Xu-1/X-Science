@@ -198,13 +198,14 @@ The root npm manifest and lockfile retain locked installation, canonical
 dependency/provenance, type/lint/format and product-build checks. They are build
 inputs, not documentation and not executable Vitest modules.
 
-The authoritative full workflow is `.github/workflows/quality.yml`. It runs by
-manual dispatch and daily at 02:00 in the explicit `Asia/Shanghai` timezone on
-the default branch, combining these gates with frontend type/lint/test/build checks,
+The authoritative full workflow is `.github/workflows/quality.yml`. It runs only
+through `workflow_dispatch` after explicit authorization for full qualification,
+combining these gates with frontend type/lint/test/build checks,
 Go formatting, vet and race tests, source/security audits, clean-copy builds,
 and release lifecycle verification. Routine PR review uses the required scoped
-checks; comprehensive qualification remains the scheduled/manual full workflow,
-not a claim inferred from a fast check. Native Windows release validation first
+checks; comprehensive qualification remains an explicit opt-in full workflow,
+not a claim inferred from a fast check. Ordinary PR validation must not dispatch
+the full workflow automatically. Native Windows release validation first
 tests its environment isolation, then performs the complete installed lifecycle.
 A promotion of an exact verified revision does not repeat checks merely because
 the branch name changed. Changed inputs require fresh applicable evidence.
@@ -212,8 +213,8 @@ This split does not waive configured required checks or release qualification.
 Non-embedded runtime assets use exact declarations in
 `runtime_input_scope.json` to select their Go owners and every production/test
 import consumer. Missing declarations or unavailable owners retain conservative
-coverage. These declarations cannot exempt runtime tests or replace the scheduled
-full release matrix. Installer build inputs retain the same runtime consumers
+coverage. These declarations cannot exempt runtime tests or replace the explicitly
+authorized full release matrix. Installer build inputs retain the same runtime consumers
 as the resulting installer, including the asset-integrity and environment tests.
 An exact manifest/root declaration expands only that manifest's listed regular
 files, not a directory or wildcard. Immutable Git counterparts can route retired
@@ -226,7 +227,7 @@ Optional scientific-engine test sources have an explicit inert Python syntax
 check and retain their declared Go consumers. This does not claim RDKit,
 single-cell analysis, scientific-task execution, or native Windows lifecycle
 acceptance; those require their own appropriate environment and evidence.
-GitHub's scheduled execution can be delayed by runner/platform load. When hosted
+Hosted execution can be delayed by runner/platform load. When hosted
 execution is unavailable, local evidence must identify the exact revision,
 environment, tested scope and missing gates under a distinct local status; it
 must not be represented as a completed GitHub-hosted workflow or as full quality
