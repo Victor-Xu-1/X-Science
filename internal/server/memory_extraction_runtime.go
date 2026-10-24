@@ -325,6 +325,7 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		Scope:             applyScope,
 		Source:            &commitSource,
 		CommitGuard:       runtime.extractionCommitGuard(source, applyScope, len(snapshot.Messages)),
+		CoveredPrefix:     runtime.coveredMemoryPrefix(sessionID, source, snapshot, commitSource),
 		SessionMemoryMode: mode,
 		Model:             model,
 		Messages:          snapshot.Messages,
