@@ -90,6 +90,9 @@ func (tx *ImmediateTransaction) FinalizeRunner(ctx context.Context, input Runner
 	if err != nil || found {
 		return receipt, false, err
 	}
+	if cancelled, found, err := tx.inspectCancelledRunnerFinalization(ctx, input); err != nil || found {
+		return cancelled, false, err
+	}
 	if input.Assistant != nil {
 		if _, _, err := tx.AppendFinalAssistant(ctx, *input.Assistant); err != nil {
 			return RunnerFinalizationReceipt{}, false, err

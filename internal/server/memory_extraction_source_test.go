@@ -415,7 +415,7 @@ func TestMemoryExtractionOlderReleaseRetainsNextAttemptRequest(t *testing.T) {
 	}
 }
 
-func TestMemoryExtractionCommittedFinishEarlyReturnReleasesOnlyOwnRequest(t *testing.T) {
+func TestMemoryExtractionAtomicFinalizationReleasesOnlyCommittedRequest(t *testing.T) {
 	for _, nextAttempt := range []bool{false, true} {
 		name := "release settled request"
 		if nextAttempt {
@@ -448,13 +448,38 @@ func TestMemoryExtractionCommittedFinishEarlyReturnReleasesOnlyOwnRequest(t *tes
 				&activeSessionRun{}, sessionstore.RunnerMutationClaim{}, authority, run, sessionstore.Session{ID: run.SessionID}, nil,
 				"Completed response before the failing Aside projection.", nil, "")
 			if err == nil || !strings.Contains(err.Error(), "synthetic aside output failure") {
-				t.Fatalf("fixture did not reach the post-finish early return: %v", err)
+				t.Fatalf("fixture did not reach the atomic Aside failure: %v", err)
+			}
+			if result.FinishEventID != 0 {
+				t.Fatal("rolled-back finalization exposed an accepted terminal")
+			}
+			var finalEvents int
+			if err := f.db.QueryRow(`SELECT COUNT(*) FROM transcript_events WHERE stream_uid=? AND event_type IN ('assistant_message','runner_finished')`, f.stream.UID).Scan(&finalEvents); err != nil || finalEvents != 0 {
+				t.Fatalf("Aside failure left partial final events: count=%d err=%v", finalEvents, err)
+			}
+			state := runtime.sessions[f.stream.SessionID]
+			if state == nil || state.request == nil || state.requestAttempt != attempt {
+				t.Fatal("uncommitted finalization discarded an owned request")
+			}
+			// The known rollback preserves the original claim and deterministic
+			// identities. Retry only after removing the explicit fixture fault.
+			if _, err := f.db.Exec(`DROP TRIGGER memory_test_aside_output_failure`); err != nil {
+				t.Fatal(err)
+			}
+			err = f.server.settleSessionRunnerChatOutcome(ctx, SessionRunnerChatOptions{RunnerID: f.claim.RunnerID}, result,
+				&activeSessionRun{}, sessionstore.RunnerMutationClaim{}, authority, run, sessionstore.Session{ID: run.SessionID}, nil,
+				"Completed response before the failing Aside projection.", nil, "")
+			if err != nil || result.Status != "completed" || result.FinishEventID <= 0 {
+				t.Fatalf("original finalization did not commit after known rollback: result=%#v err=%v", result, err)
+			}
+			if err := f.db.QueryRow(`SELECT COUNT(*) FROM transcript_events WHERE stream_uid=? AND event_type IN ('assistant_message','runner_finished')`, f.stream.UID).Scan(&finalEvents); err != nil || finalEvents != 2 {
+				t.Fatalf("finalization was missing or duplicated: count=%d err=%v", finalEvents, err)
 			}
 			terminal, err := f.repo.GetTerminalProjection(ctx, f.stream.OwnerID, f.stream.UID, result.FinishEventID)
 			if err != nil || terminal.TerminalStatus != "completed" {
 				t.Fatalf("fixture did not commit the real terminal receipt: %#v %v", terminal, err)
 			}
-			state := runtime.sessions[f.stream.SessionID]
+			state = runtime.sessions[f.stream.SessionID]
 			if nextAttempt {
 				if state == nil || state.request == nil || state.requestAttempt != attempt {
 					t.Fatal("settled A discarded the next attempt's owned request")
