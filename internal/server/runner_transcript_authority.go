@@ -521,31 +521,6 @@ func (s *Server) appendTranscriptRunnerEvent(
 	return event, err
 }
 
-func (s *Server) appendTranscriptAssistantEvent(
-	ctx context.Context,
-	authority *transcriptRunnerAuthority,
-	identity string,
-	payload map[string]any,
-) error {
-	if authority == nil {
-		return nil
-	}
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	input := transcriptstore.AppendEventInput{
-		Claim: authority.Claim, ClientMessageID: transcriptRunnerClientMessageID(authority.Claim, identity),
-		Type: "assistant_message", Source: transcriptstore.EventSourcePayload, PayloadJSON: raw,
-		Destinations: transcriptRunnerDestinations(authority),
-	}
-	err = s.appendTranscriptAssistantEventWithTurnArtifacts(ctx, authority, input)
-	if err == nil && len(transcriptRunnerDestinations(authority)) > 0 {
-		s.signalTranscriptWebDelivery()
-	}
-	return err
-}
-
 func (s *Server) finishTranscriptRunner(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,

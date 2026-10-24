@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 )
@@ -211,57 +210,15 @@ func (r *Repository) AppendAssistantEventWithCommittedArtifacts(
 	ctx context.Context,
 	input AppendEventInput,
 ) (Event, []ArtifactReference, bool, error) {
-	if input.Type != "assistant_message" {
-		return Event{}, nil, false, errors.New("assistant_message event is required")
-	}
-	if err := validateRunnerEventInput(input); err != nil {
+	if err := validateAssistantEventWithCommittedArtifactsInput(input); err != nil {
 		return Event{}, nil, false, err
 	}
 	var event Event
 	var refs []ArtifactReference
 	var created bool
 	err := r.withImmediate(ctx, func(conn *sql.Conn) error {
-		now := r.now().UTC()
-		stream, err := getStreamConn(ctx, conn, input.Claim.StreamUID, input.Claim.OwnerID)
-		if err != nil {
-			return err
-		}
-		record := eventRecord{
-			clientMessageID: input.ClientMessageID, eventType: input.Type, source: input.Source,
-			runnerAttempt: &input.Claim.Attempt, payloadJSON: input.PayloadJSON,
-			frameEventID: input.FrameEventID, destinations: input.Destinations, createdAt: now,
-		}
-		if existing, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID); err != nil {
-			return err
-		} else if found {
-			if _, err := validateClaimConn(ctx, conn, input.Claim, now, false); err != nil {
-				return err
-			}
-			if !eventMatches(existing, record) {
-				return ErrEventConflict
-			}
-			destinations, err := deliveryDestinations(ctx, conn, existing.StreamUID, existing.PublicationSeq)
-			if err != nil {
-				return err
-			}
-			if !stringSlicesEqual(destinations, normalizedDestinations(input.Destinations)) {
-				return ErrEventConflict
-			}
-			event = existing
-		} else {
-			stream, err = validateClaimConn(ctx, conn, input.Claim, now, true)
-			if err != nil {
-				return err
-			}
-			if err := validateFrameEventReferenceConn(ctx, conn, stream, input.Type, input.Source, input.FrameEventID); err != nil {
-				return err
-			}
-			event, created, err = appendEventConn(ctx, conn, stream, record)
-			if err != nil {
-				return err
-			}
-		}
-		refs, err = bindCommittedArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, now)
+		var err error
+		event, refs, created, err = appendAssistantEventWithCommittedArtifactsConn(ctx, conn, input, r.now().UTC())
 		return err
 	})
 	if err != nil {
@@ -274,18 +231,7 @@ func (r *Repository) AppendAssistantEventWithArtifacts(
 	ctx context.Context,
 	input AppendAssistantEventWithArtifactsInput,
 ) (Event, []ArtifactReference, bool, error) {
-	eventInput := AppendEventInput{
-		Claim: input.Claim, ClientMessageID: input.ClientMessageID, Type: "assistant_message",
-		Source: input.Source, PayloadJSON: input.PayloadJSON, FrameEventID: input.FrameEventID,
-		Destinations: input.Destinations,
-	}
-	if err := validateRunnerEventInput(eventInput); err != nil {
-		return Event{}, nil, false, err
-	}
-	if len(input.References) == 0 || len(input.References) > maxArtifactReferencesPerAttempt {
-		return Event{}, nil, false, fmt.Errorf("1-%d artifact references are required", maxArtifactReferencesPerAttempt)
-	}
-	normalized, err := normalizeArtifactReferenceInputs(input.References)
+	normalized, err := normalizeAssistantEventWithArtifactsInput(input)
 	if err != nil {
 		return Event{}, nil, false, err
 	}
@@ -293,73 +239,8 @@ func (r *Repository) AppendAssistantEventWithArtifacts(
 	var refs []ArtifactReference
 	var created bool
 	err = r.withImmediate(ctx, func(conn *sql.Conn) error {
-		now := r.now().UTC()
-		stream, err := getStreamConn(ctx, conn, input.Claim.StreamUID, input.Claim.OwnerID)
-		if err != nil {
-			return err
-		}
-		if existingEvent, found, err := findEventByClientID(ctx, conn, stream.UID, input.ClientMessageID); err != nil {
-			return err
-		} else if found {
-			if _, err := validateClaimConn(ctx, conn, input.Claim, now, false); err != nil {
-				return err
-			}
-			record := eventRecord{
-				clientMessageID: input.ClientMessageID, eventType: "assistant_message", source: input.Source,
-				runnerAttempt: &input.Claim.Attempt, payloadJSON: input.PayloadJSON,
-				frameEventID: input.FrameEventID, destinations: input.Destinations, createdAt: existingEvent.CreatedAt,
-			}
-			if !eventMatches(existingEvent, record) {
-				return ErrEventConflict
-			}
-			destinations, err := deliveryDestinations(ctx, conn, stream.UID, existingEvent.PublicationSeq)
-			if err != nil {
-				return err
-			}
-			if !stringSlicesEqual(destinations, normalizedDestinations(input.Destinations)) {
-				return ErrEventConflict
-			}
-			existingRefs, err := listArtifactReferencesForEventConn(ctx, conn, stream.UID, input.Claim.Attempt, existingEvent.EventID)
-			if err != nil {
-				return err
-			}
-			if !artifactReferencesMatch(existingRefs, existingEvent.EventID, normalized) {
-				return ErrEventConflict
-			}
-			event = existingEvent
-			refs = existingRefs
-			return nil
-		}
-		stream, err = validateClaimConn(ctx, conn, input.Claim, now, true)
-		if err != nil {
-			return err
-		}
-		if err := validateFrameEventReferenceConn(ctx, conn, stream, "assistant_message", input.Source, input.FrameEventID); err != nil {
-			return err
-		}
-		event, created, err = appendEventConn(ctx, conn, stream, eventRecord{
-			clientMessageID: input.ClientMessageID, eventType: "assistant_message", source: input.Source,
-			runnerAttempt: &input.Claim.Attempt, payloadJSON: input.PayloadJSON,
-			frameEventID: input.FrameEventID, destinations: input.Destinations, createdAt: now,
-		})
-		if err != nil {
-			return err
-		}
-		existing, err := listArtifactReferencesForEventConn(ctx, conn, stream.UID, input.Claim.Attempt, event.EventID)
-		if err != nil {
-			return err
-		}
-		if len(existing) > 0 {
-			if artifactReferencesMatch(existing, event.EventID, normalized) {
-				refs = existing
-				return nil
-			}
-			return ErrEventConflict
-		}
-		if !created {
-			return ErrEventConflict
-		}
-		refs, err = insertArtifactReferencesConn(ctx, conn, stream, input.Claim.Attempt, event.EventID, normalized, now)
+		var err error
+		event, refs, created, err = appendAssistantEventWithArtifactsConn(ctx, conn, input, normalized, r.now().UTC())
 		return err
 	})
 	if err != nil {
@@ -657,25 +538,50 @@ func (r *Repository) CurrentRoundArtifactCommitSnapshot(ctx context.Context, str
 func (r *Repository) currentArtifactCommitSnapshot(
 	ctx context.Context, streamUID, ownerID string, throughAttempt int64, roundOnly bool,
 ) (ArtifactCommitSnapshot, error) {
-	streamUID = strings.TrimSpace(streamUID)
-	ownerID = strings.TrimSpace(ownerID)
-	if throughAttempt <= 0 {
-		return ArtifactCommitSnapshot{}, errors.New("positive through runner attempt is required")
-	}
-	if r == nil || r.db == nil {
-		return ArtifactCommitSnapshot{}, ErrSchemaUnavailable
-	}
-	if streamUID == "" || ownerID == "" {
-		return ArtifactCommitSnapshot{}, errors.New("stream and owner are required")
+	streamUID, ownerID, err := normalizeArtifactCommitSnapshotInput(streamUID, ownerID, throughAttempt, r != nil && r.db != nil)
+	if err != nil {
+		return ArtifactCommitSnapshot{}, err
 	}
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return ArtifactCommitSnapshot{}, schemaError(err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	result, err := currentArtifactCommitSnapshotQuery(ctx, tx, streamUID, ownerID, throughAttempt, roundOnly)
+	if err != nil {
+		return ArtifactCommitSnapshot{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return ArtifactCommitSnapshot{}, schemaError(err)
+	}
+	return result, nil
+}
+
+func normalizeArtifactCommitSnapshotInput(streamUID, ownerID string, throughAttempt int64, available bool) (string, string, error) {
+	streamUID = strings.TrimSpace(streamUID)
+	ownerID = strings.TrimSpace(ownerID)
+	if throughAttempt <= 0 {
+		return "", "", errors.New("positive through runner attempt is required")
+	}
+	if !available {
+		return "", "", ErrSchemaUnavailable
+	}
+	if streamUID == "" || ownerID == "" {
+		return "", "", errors.New("stream and owner are required")
+	}
+	return streamUID, ownerID, nil
+}
+
+func currentArtifactCommitSnapshotQuery(
+	ctx context.Context,
+	queryer transcriptQueryer,
+	streamUID, ownerID string,
+	throughAttempt int64,
+	roundOnly bool,
+) (ArtifactCommitSnapshot, error) {
 	result := ArtifactCommitSnapshot{StreamUID: streamUID, ThroughAttempt: throughAttempt}
 	var storedOwner string
-	if err := tx.QueryRowContext(ctx, `
+	if err := queryer.QueryRowContext(ctx, `
 		SELECT stream.owner_id,state.active_branch_id,state.generation
 		FROM transcript_streams stream
 		JOIN transcript_branch_state state ON state.stream_uid=stream.stream_uid
@@ -701,7 +607,7 @@ func (r *Repository) currentArtifactCommitSnapshot(
 		arguments = append(arguments, streamUID, throughAttempt)
 	}
 	arguments = append(arguments, streamUID)
-	rows, err := tx.QueryContext(ctx, `
+	rows, err := queryer.QueryContext(ctx, `
 		WITH ranked AS (
 			SELECT commit_row.runner_attempt,commit_row.source_event_id,commit_row.ordinal,
 				commit_row.artifact_id,commit_row.version_id,commit_row.relation,
@@ -764,9 +670,6 @@ func (r *Repository) currentArtifactCommitSnapshot(
 		return ArtifactCommitSnapshot{}, schemaError(err)
 	}
 	result.References = refs
-	if err := tx.Commit(); err != nil {
-		return ArtifactCommitSnapshot{}, schemaError(err)
-	}
 	return result, nil
 }
 

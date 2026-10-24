@@ -68,7 +68,7 @@ func TestCompletionRecoveryPersistsSceneNoticeOnceWithoutRewritingPriorCandidate
 	}
 	run := &sessionRunnerChatRun{SessionID: session.ID, Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim}}
 	for replay := 0; replay < 2; replay++ {
-		status, _, _, handled, err := srv.recoverTranscriptCompletionOnly(ctx, session, run)
+		status, _, _, handled, err := consumeCompletionRecoveryFixture(ctx, srv, session, run)
 		if err != nil || !handled || status != "completed" {
 			t.Fatalf("replay=%d status=%s handled=%t error=%v", replay, status, handled, err)
 		}

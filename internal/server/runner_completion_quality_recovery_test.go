@@ -58,7 +58,7 @@ func TestQualityRecoveryPersistsOneNoticeWithoutReplayingWork(t *testing.T) {
 	}
 	run := &sessionRunnerChatRun{SessionID: session.ID, Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim}}
 	for retry := 0; retry < 2; retry++ {
-		status, detail, _, handled, err := f.server.recoverTranscriptCompletionOnly(ctx, session, run)
+		status, detail, _, handled, err := consumeCompletionRecoveryFixture(ctx, f.server, session, run)
 		if err != nil || !handled || status != "completed" {
 			t.Fatalf("recovery=%d status=%s handled=%t detail=%s error=%v", retry, status, handled, detail, err)
 		}
@@ -148,7 +148,7 @@ func TestMolecularCompanionCountRecoveryPersistsOriginalOnce(t *testing.T) {
 	}
 	run := &sessionRunnerChatRun{SessionID: session.ID, Transcript: &transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim}}
 	for retry := 0; retry < 2; retry++ {
-		status, detail, _, handled, err := f.server.recoverTranscriptCompletionOnly(ctx, session, run)
+		status, detail, _, handled, err := consumeCompletionRecoveryFixture(ctx, f.server, session, run)
 		if err != nil || !handled || status != "completed" {
 			t.Fatalf("count recovery=%d status=%s handled=%t detail=%s err=%v", retry, status, handled, detail, err)
 		}

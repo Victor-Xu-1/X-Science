@@ -52,7 +52,7 @@ func TestCompletionRecoveryRestoresCanonicalDeliverableIntent(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			status, detail, _, handled, err := server.recoverTranscriptCompletionOnly(context.Background(), session,
+			status, detail, _, handled, err := consumeCompletionRecoveryFixture(context.Background(), server, session,
 				&sessionRunnerChatRun{SessionID: session.ID, Transcript: authority})
 			if err != nil || handled || status != "" || detail != "" {
 				t.Fatalf("missing deliverable did not enter ordinary checkpoint repair: status=%q detail=%q handled=%t err=%v", status, detail, handled, err)
