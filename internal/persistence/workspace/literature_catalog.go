@@ -32,7 +32,7 @@ func readLiteratureItem(ctx context.Context, query literatureItemQuery, owner, i
 	if err != nil {
 		return item, err
 	}
-	if err = json.Unmarshal([]byte(raw), &item.Metadata); err != nil {
+	if item.Metadata, err = decodeLiteratureMetadataObject(raw); err != nil {
 		return item, err
 	}
 	item.Deleted = deleted.Valid
