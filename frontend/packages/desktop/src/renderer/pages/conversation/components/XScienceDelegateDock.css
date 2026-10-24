@@ -238,7 +238,7 @@
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   color: var(--color-text-3);
 }
 
@@ -255,7 +255,7 @@
   flex: 0 0 32px;
   padding: 0;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
   color: var(--color-text-1);
   background: var(--color-fill-2);
   cursor: pointer;
@@ -265,7 +265,7 @@
 .delegate-dock__stop-state button {
   border: 0;
   padding: 4px;
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   color: rgb(var(--primary-6));
   background: transparent;
   cursor: pointer;
@@ -273,8 +273,8 @@
 
 .delegate-dock__stop-button:focus-visible,
 .delegate-dock__stop-text:focus-visible {
-  outline: 2px solid rgb(var(--primary-6));
-  outline-offset: 2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 
 .delegate-dock__stop-controls button:disabled {

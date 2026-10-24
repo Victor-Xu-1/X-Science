@@ -878,6 +878,11 @@
   "speechToTextStreamingBadge": "实时",
   "speechToTextWholeBadge": "整段",
   "mcp": "MCP 集成",
+  "xScienceMcpPermissionsLoadError": "无法加载工具权限。",
+  "mcpBuiltinToolDescriptions": {
+    "pdb_search_sequence": "按蛋白质序列、序列一致性和查询覆盖度检索实验测定的 PDB 结构，返回实体、链及比对详情。",
+    "pdb_search_structure_similarity": "使用已收录的链查找三维结构相似的实验 PDB 链。"
+  },
   "mcpBuiltinDescriptions": {
     "x-science-research": "科研能力检索与调用：通过统一入口发现并执行管理员已验证的能力包，无需将每个数据源单独安装为技能。",
     "open-targets-official": "Open Targets 官方服务：查询靶点与疾病证据、成药性、安全性、遗传关联、药物机制及临床候选药物。",
@@ -895,7 +900,7 @@
     "regulation": "基因调控：ENCODE 实验、JASPAR 转录因子结合矩阵及 UniBind TFBS。",
     "protein-annotation": "蛋白质注释：InterPro/Pfam 结构域、Human Protein Atlas 与 STRING 互作网络。",
     "rna": "非编码 RNA：Rfam 家族、种子比对、协方差模型、系统树和序列区域。",
-    "structures-interactions": "结构与分子互作：PDB、AlphaFold、EMDB、Complex Portal 与 IntAct 数据资源。",
+    "structures-interactions": "结构与分子互作：PDB 结构、蛋白质序列与三维结构相似性检索，以及 AlphaFold 预测、EMDB、Complex Portal 和 IntAct 数据资源。",
     "omics-archives": "组学数据归档：ArrayExpress/BioStudies、GEO、MGnify 与 PRIDE 蛋白质组学项目。",
     "genes-ontologies": "基因与本体：MyGene、OLS4、GO、UniProt 与 Reactome 通路查询。",
     "drug-regulatory": "药品监管数据：申请、批准信息、药理分类、仿制药等效信息与 SPL 标签。",
@@ -1615,6 +1620,8 @@
         "draftSaveFailed": "Skill 草稿保存失败。",
         "published": "Skill 已发布",
         "publishFailed": "Skill 发布失败。",
+        "draftReviewRequired": "请重新载入草稿并审阅当前内容后再发布。",
+        "draftChanged": "草稿在载入后已发生变化。请重新载入并审阅当前内容后再发布。",
         "draftDeleted": "Skill 草稿已删除",
         "draftDeleteFailed": "Skill 草稿删除失败。",
         "invalidCopyName": "名称需以字母或数字开头，仅可包含字母、数字、点、下划线和连字符。",

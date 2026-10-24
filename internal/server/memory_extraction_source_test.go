@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
@@ -78,7 +79,7 @@ func TestMemoryExtractionCompletedSourceRejectsUnconsumedAdmittedInput(t *testin
 				})
 			})
 			runtime.rememberLastRequest(f.stream.SessionID, f.claim.Attempt, agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "A_REQUEST_VIEW"}}})
-			if err := <-runtime.ScheduleCompletedRootEvent(f.stream.SessionID, finishA.EventID); err != nil {
+			if err := runCapturedMemorySourceFixture(ctx, runtime, f.stream.SessionID, finishA.EventID); err != nil {
 				t.Fatal(err)
 			}
 			cursor, err := f.store.LastExtractMessageIndex(ctx, f.stream.FrameID)
@@ -103,7 +104,7 @@ func TestMemoryExtractionCompletedSourceRejectsUnconsumedAdmittedInput(t *testin
 			}
 			finishB := finish("memory-unconsumed-b", "B_COMPLETED_EVIDENCE")
 			runtime.rememberLastRequest(f.stream.SessionID, f.claim.Attempt, agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "B_REQUEST_VIEW"}}})
-			if err := <-runtime.ScheduleCompletedRootEvent(f.stream.SessionID, finishB.EventID); err != nil {
+			if err := runCapturedMemorySourceFixture(ctx, runtime, f.stream.SessionID, finishB.EventID); err != nil {
 				t.Fatal(err)
 			}
 			if calls.Load() != 1 {
@@ -258,16 +259,12 @@ func TestMemoryExtractionQueuedCompletionDoesNotBorrowLaterTurn(t *testing.T) {
 			if scope, err := runtime.resolveCompletedRootMemoryScope(ctx, f.stream.SessionID); err != nil || !scope.Enabled {
 				t.Fatalf("fixture memory policy must be enabled: %#v %v", scope, err)
 			}
-			state := runtime.sessions[f.stream.SessionID]
-			// Hold the existing owner's queue, not a synthetic sleep or model call.
-			state.runMu.Lock()
-			released := false
-			t.Cleanup(func() {
-				if !released {
-					state.runMu.Unlock()
-				}
-			})
-			done := runtime.ScheduleCompletedRootEvent(f.stream.SessionID, finish.EventID)
+			// Source binding is tested directly, not through the retired canonical
+			// RAM scheduler. Durable producer/delivery has its own restart tests.
+			source, err := runtime.captureCompletedMemorySource(ctx, f.stream.SessionID, finish.EventID)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if fork {
 				branch, err := f.repo.GetBranchState(ctx, f.stream.UID, f.stream.OwnerID)
 				if err != nil {
@@ -288,10 +285,10 @@ func TestMemoryExtractionQueuedCompletionDoesNotBorrowLaterTurn(t *testing.T) {
 				claimSkillControlInput(t, f)
 			}
 			runtime.rememberLastRequest(f.stream.SessionID, f.claim.Attempt, agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "B_REQUEST_VIEW"}}})
-			state.runMu.Unlock()
-			released = true
-			if err := <-done; err != nil {
-				t.Fatal(err)
+			_, runErr := runtime.runCompletedRoot(ctx, f.stream.SessionID, source)
+			runtime.discardAttemptRequest(f.stream.SessionID, source.attempt)
+			if runErr != nil {
+				t.Fatal(runErr)
 			}
 			if fork {
 				if calls.Load() != 0 {
@@ -321,7 +318,7 @@ func TestMemoryExtractionQueuedCompletionDoesNotBorrowLaterTurn(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := <-runtime.ScheduleCompletedRootEvent(f.stream.SessionID, finishB.EventID); err != nil {
+			if err := runCapturedMemorySourceFixture(ctx, runtime, f.stream.SessionID, finishB.EventID); err != nil {
 				t.Fatal(err)
 			}
 			if calls.Load() != 2 || !strings.HasPrefix(completedMemorySourceObservation(t, observed), "B_REQUEST_VIEW\n") {
@@ -343,6 +340,21 @@ func completedMemorySourceObservation(t *testing.T, observed <-chan string) stri
 		t.Fatal("completed extraction did not invoke its extractor")
 		return ""
 	}
+}
+
+// Exercises the internal source reader/write authority only. Canonical
+// automatic scheduling is exclusively covered through the durable producer.
+func runCapturedMemorySourceFixture(ctx context.Context, runtime *memoryExtractionRuntime, sessionID string, eventID int64) error {
+	source, err := runtime.captureCompletedMemorySource(ctx, sessionID, eventID)
+	if errors.Is(err, errMemoryExtractionSource) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer runtime.discardAttemptRequest(sessionID, source.attempt)
+	_, err = runtime.runCompletedRoot(ctx, sessionID, source)
+	return err
 }
 
 func TestMemoryExtractionRequestSnapshotIsDeepAndAttemptScoped(t *testing.T) {

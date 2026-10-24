@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { decodeLiteratureItem, type LiteratureCommand } from '@/common/adapter/literatureLibrary';
 import {
   loadLibraryReadingOptions,
@@ -8,6 +8,7 @@ import {
 import { LiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { deferredPdf, pdfContext } from './pdfReadingFixtures';
+import { installLiteratureLocks } from './literatureMutationLockFixtures';
 
 const mocks = vi.hoisted(() => ({ http: vi.fn() }));
 vi.mock('@/common/adapter/httpBridge', () => ({ httpRequest: mocks.http, isBackendHttpError: () => false }));
@@ -73,7 +74,9 @@ describe('L382 independent Library service and mutation owner', () => {
     resetRendererAccountScopeForTest();
     setRendererAccountOwner('owner');
     mocks.http.mockReset();
+    installLiteratureLocks();
   });
+  afterEach(() => vi.unstubAllGlobals());
   it('reads the owner catalog and inspects a real independent attachment through the existing reading API', async () => {
     mocks.http
       .mockResolvedValueOnce({ schema: 'x-science.literature-page.v1', items: [item()], next_cursor: 'next' })
@@ -197,7 +200,7 @@ describe('L382 independent Library service and mutation owner', () => {
     const first = controller.submit(command());
     const second = controller.submit(command());
     expect(first).toBe(second);
-    expect(run).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
     pending.resolve(receipt());
     await first;
   });

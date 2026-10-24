@@ -26,6 +26,24 @@ Skill 的检索得分只是发现依据，不授予执行权限。MCP 的 runtim
 按用户解析连接器、禁用状态及授权；调用时仍须遵守已有工具和权限边界。
 连接器目录缓存也不是永远有效的工具 schema，运行路径要使用相应的稳定目录检查。
 
+### PDB sequence and structure search · PDB 序列与结构检索
+
+The existing Structures connector offers `pdb_search_sequence` for experimental
+protein entities and `pdb_search_structure_similarity` for deposited-chain 3D
+embedding search. Sequence identity is a fraction; query coverage uses inclusive
+input-sequence coordinates, not resolved-residue coverage. Label and author
+chain identifiers remain distinct. Similarity scores are upstream rankings, not
+returned alignments, RMSD, locally computed TM-scores or proof of equal function.
+Both methods preserve provider totals and explicit truncation without downloading
+coordinates. Invalid data and provider failures are errors, not empty successes.
+
+序列检索的分页、实体元数据和全调用至多两次瞬态重试，共用 50 秒期限，适配当前
+MCP 外围调用；参考实现的序列默认期限为 120 秒。结构检索为单请求、25 秒、最多
+500000 响应字节且不重试。两者沿同一工具发现、逐方法权限、真实 SDK 调用和结果链路，
+保留操作者代理、CA 与 TLS 配置并禁止供应商重定向。它们不新建任务执行器、后台任务或
+许可状态；Python 内供应商请求的固定 HTTPS 边界不等于已证明所有用户级网络域策略。
+来源和修改说明见 [PDB search notice](../licenses/open-science-pdb-search-80a262e/NOTICE.md)。
+
 ## Save a conversation as a Skill · 从对话保存技能
 
 工作区的“Save as Skill”不打开保存弹窗。点击沿原有消息入口持久化

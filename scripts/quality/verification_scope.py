@@ -29,6 +29,18 @@ def _validate_packages(packages: object) -> None:
         raise ValueError("duplicate verification Go package owner")
 
 
+def _direct_asset_test(path: str, commands: list) -> bool:
+    """Admit only explicitly executed test entrypoints, not runtime assets.
+
+    This declares verification ownership, never a runtime/embed exemption.
+    Syntax-only commands, inline code and directory/glob discovery do not count.
+    """
+    relative = PurePosixPath(path)
+    return (path.startswith(("assets/", "skills/")) and "tests" in relative.parts[1:-1]
+            and re.fullmatch(r"test_[A-Za-z0-9_]+\.py", relative.name) is not None
+            and ["python3", "-B", path] in commands)
+
+
 def load(repo: Path) -> list[dict]:
     path = repo / CONTRACT
     if not path.exists():
@@ -58,6 +70,7 @@ def load(repo: Path) -> list[dict]:
             if (not isinstance(item, str) or not (
                     item.startswith(("scripts/", ".github/", "docs/governance/", "docs/licenses/", "docs/compatibility/"))
                     or item.startswith(("assets/", "skills/")) and "packages" in group
+                    or _direct_asset_test(item, group["checks"])
                     or item in {".env.example", "docs/non-web-asset-boundary.json"})
                     or PurePosixPath(item).as_posix() != item
                     or any(part in {".", ".."} for part in item.split("/"))

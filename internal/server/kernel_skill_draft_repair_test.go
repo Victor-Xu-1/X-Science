@@ -56,7 +56,7 @@ func TestKernelSkillIncompleteDraftCanBeRepairedBeforePublication(t *testing.T) 
 				}
 			}
 			requireRepairableKernelSkillDraft(t, fixture, name, initial)
-			if _, err := fixture.call("host.skills.publish", name, false); err == nil {
+			if _, err := fixture.publishReviewed(name, false); err == nil {
 				t.Fatal("incomplete draft was published")
 			}
 			if _, found := findCatalogSkill(fixture.server.skillCatalog, name); found {
@@ -75,7 +75,7 @@ func TestKernelSkillIncompleteDraftCanBeRepairedBeforePublication(t *testing.T) 
 			if err != nil || mapValue(validation)["valid"] != true {
 				t.Fatalf("repaired validation=%#v err=%v", validation, err)
 			}
-			if _, err := fixture.call("host.skills.publish", name, false); err != nil {
+			if _, err := fixture.publishReviewed(name, false); err != nil {
 				t.Fatal(err)
 			}
 			published, found := findCatalogSkill(fixture.server.skillCatalog, name)
@@ -103,7 +103,7 @@ func TestKernelSkillInvalidEditedDraftPreservesPublishedPackageUntilRepair(t *te
 		t.Fatalf("stage invalid edit: %v", err)
 	}
 	requireRepairableKernelSkillDraft(t, fixture, name, incomplete)
-	if _, err := fixture.call("host.skills.publish", name, true); err == nil {
+	if _, err := fixture.publishReviewed(name, true); err == nil {
 		t.Fatal("invalid edited draft replaced the published package")
 	}
 	livePath := filepath.Join(fixture.server.fileRoot, "skills", name, "SKILL.md")
@@ -123,10 +123,10 @@ func TestKernelSkillInvalidEditedDraftPreservesPublishedPackageUntilRepair(t *te
 	if err != nil || mapValue(validation)["valid"] != true {
 		t.Fatalf("repaired validation=%#v err=%v", validation, err)
 	}
-	if _, err := fixture.call("host.skills.publish", name, false); err == nil {
+	if _, err := fixture.publishReviewed(name, false); err == nil {
 		t.Fatal("repair bypassed the explicit overwrite contract")
 	}
-	if _, err := fixture.call("host.skills.publish", name, true); err != nil {
+	if _, err := fixture.publishReviewed(name, true); err != nil {
 		t.Fatal(err)
 	}
 	live, err = os.ReadFile(livePath)
@@ -172,7 +172,7 @@ func TestKernelSkillResourcesFirstDraftRequiresExplicitManifestAndPublication(t 
 	if err != nil || mapValue(validation)["valid"] != false || !ok || len(diagnostics) != 1 || diagnostics[0]["code"] != "missing_skill_document" {
 		t.Fatalf("missing manifest diagnostic=%#v err=%v", validation, err)
 	}
-	if _, err := fixture.call("host.skills.publish", name, false); err == nil {
+	if _, err := fixture.publishReviewed(name, false); err == nil {
 		t.Fatal("resources-only draft was published")
 	}
 	if _, found := findCatalogSkill(fixture.server.skillCatalog, name); found {
@@ -186,7 +186,7 @@ func TestKernelSkillResourcesFirstDraftRequiresExplicitManifestAndPublication(t 
 	if err != nil || mapValue(validation)["valid"] != true {
 		t.Fatalf("completed draft validation=%#v err=%v", validation, err)
 	}
-	if _, err := fixture.call("host.skills.publish", name, false); err != nil {
+	if _, err := fixture.publishReviewed(name, false); err != nil {
 		t.Fatal(err)
 	}
 	liveHelper, err := os.ReadFile(filepath.Join(fixture.server.fileRoot, "skills", name, "scripts", "helper.py"))

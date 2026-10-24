@@ -16,6 +16,35 @@ import (
 	workspace "x-science/internal/persistence/workspace"
 )
 
+func TestMCPPermissionProjectionPreservesReadonlyToolAnnotation(t *testing.T) {
+	for _, readOnly := range []bool{true, false} {
+		t.Run(map[bool]string{true: "readonly", false: "not-readonly"}[readOnly], func(t *testing.T) {
+			root := t.TempDir()
+			mcpURL, mcpClient, toolCalls := workspaceMCPCompatibilityFixture(t, readOnly)
+			store, err := workspace.Open(filepath.Join(root, "workspace.db"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = store.Close() })
+			srv := New(Options{Workspace: store, FileRoot: root, HTTPClient: mcpClient})
+			t.Cleanup(func() { _ = srv.Close(context.Background()) })
+			app := srv.Handler()
+			created := runtimeCompatJSON(t, app, http.MethodPost, "/api/mcp-servers", "local", map[string]any{
+				"name": "readonly-fixture", "url": mcpURL, "transport": "streamable_http",
+			}, http.StatusCreated)
+			permissions := runtimeCompatJSON(t, app, http.MethodGet,
+				"/api/mcp-servers/"+created["id"].(string)+"/tool-permissions", "local", nil, http.StatusOK)
+			tools := permissions["tools"].([]any)
+			if len(tools) != 1 || tools[0].(map[string]any)["readOnlyHint"] != readOnly {
+				t.Fatalf("actual discovered readOnlyHint=%t was lost from permissions=%#v", readOnly, permissions)
+			}
+			if toolCalls.Load() != 0 {
+				t.Fatal("permission discovery executed the tool")
+			}
+		})
+	}
+}
+
 func TestMCPPermissionsOAuthCompatibilityAndRuntimeEnforcement(t *testing.T) {
 	root := t.TempDir()
 	mcpURL, mcpClient, toolCalls := workspaceMCPCompatibilityFixture(t)
@@ -223,7 +252,7 @@ func hasAgentRuntimeSchema(schemas []agentruntime.ToolSchema, name string) bool 
 	return false
 }
 
-func workspaceMCPCompatibilityFixture(t *testing.T) (string, *http.Client, *atomic.Int64) {
+func workspaceMCPCompatibilityFixture(t *testing.T, readOnlyHint ...bool) (string, *http.Client, *atomic.Int64) {
 	t.Helper()
 	var toolCalls atomic.Int64
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -257,12 +286,16 @@ func workspaceMCPCompatibilityFixture(t *testing.T) (string, *http.Client, *atom
 			w.WriteHeader(http.StatusAccepted)
 		case "tools/list":
 			w.Header().Set("Content-Type", "application/json")
+			tool := map[string]any{
+				"name": "echo", "description": "echo input",
+				"inputSchema": map[string]any{"type": "object", "properties": map[string]any{"text": map[string]any{"type": "string"}}},
+			}
+			if len(readOnlyHint) > 0 {
+				tool["annotations"] = map[string]any{"readOnlyHint": readOnlyHint[0]}
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"jsonrpc": "2.0", "id": request.ID,
-				"result": map[string]any{"tools": []any{map[string]any{
-					"name": "echo", "description": "echo input",
-					"inputSchema": map[string]any{"type": "object", "properties": map[string]any{"text": map[string]any{"type": "string"}}},
-				}}},
+				"result": map[string]any{"tools": []any{tool}},
 			})
 		case "tools/call":
 			toolCalls.Add(1)

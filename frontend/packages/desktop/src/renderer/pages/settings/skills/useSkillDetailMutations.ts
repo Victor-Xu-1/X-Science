@@ -47,9 +47,14 @@ export function useSkillDetailMutations({
   onCommitted: (action: DetailAction) => void;
   onSuccess: (action: DetailAction) => void;
 }) {
-  const [pending, setPending] = useState<DetailAction | 'refresh' | null>(null);
+  const [pending, setPending] = useState<DetailAction | 'refresh' | 'reload' | null>(null);
   const [failure, setFailure] = useState<
-    (typeof failureKeys)[DetailAction] | 'invalidCopyName' | 'refreshFailed' | null
+    | (typeof failureKeys)[DetailAction]
+    | 'invalidCopyName'
+    | 'refreshFailed'
+    | 'draftReviewRequired'
+    | 'draftChanged'
+    | null
   >(null);
   const lock = useRef(false);
   const receipt = useRef<Receipt | null>(null);
@@ -78,27 +83,37 @@ export function useSkillDetailMutations({
     }
   };
 
+  const canPublish = draft && editable && files.ready && !!files.draftRevision && files.content === files.original;
   const run = async (action: DetailAction, copyName = '') => {
     const ticket = session.capture();
     if (!ticket || lock.current || receipt.current) return;
     if ((action === 'save' || action === 'publish') && (!editable || !files.ready)) return;
     if ((action === 'publish' || action === 'delete') && !draft) return;
+    if (action === 'publish' && !canPublish) return;
     const normalized = copyName.trim();
     if (action === 'duplicate' && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(normalized)) {
       setFailure('invalidCopyName');
       return;
     }
-    const { path, content, original } = files;
+    const { path, content, original, draftRevision } = files;
     lock.current = true;
     setPending(action);
     setFailure(null);
     try {
       if (action === 'save') await saveXScienceSkillDraftFile(ticket.name, path, original, content);
-      else if (action === 'publish') await publishXScienceSkillDraft(ticket.name, false);
-      else if (action === 'delete') await deleteXScienceSkillDraft(ticket.name);
+      else if (action === 'publish') {
+        if (!draftRevision) return;
+        await publishXScienceSkillDraft(ticket.name, false, { expectedDraftRevision: draftRevision });
+      } else if (action === 'delete') await deleteXScienceSkillDraft(ticket.name);
       else await duplicateXScienceSkill(ticket.name, normalized);
       if (!session.isCurrent(ticket)) return;
-      if (action === 'save') files.markSaved(path, content);
+      if (action === 'save') {
+        files.markSaved(path, content);
+        // Saving is not review: display the real stored snapshot through the
+        // same read owner before a later explicit publication may use its hash.
+        if (draft) await files.reload(path);
+        if (!session.isCurrent(ticket)) return;
+      }
       const saved = { ticket, action };
       receipt.current = saved;
       callbacks.current.onCommitted(action);
@@ -106,7 +121,27 @@ export function useSkillDetailMutations({
     } catch (error) {
       if (!session.isCurrent(ticket)) return;
       console.error('Failed to change the skill:', error);
-      setFailure(failureKeys[action]);
+      const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : null;
+      if (action === 'publish' && (code === 'draft_revision_required' || code === 'draft_revision_conflict')) {
+        files.invalidateDraftRevision();
+        setFailure(code === 'draft_revision_conflict' ? 'draftChanged' : 'draftReviewRequired');
+      } else setFailure(failureKeys[action]);
+    } finally {
+      if (session.isCurrent(ticket)) {
+        lock.current = false;
+        setPending(null);
+      }
+    }
+  };
+
+  const reloadDraft = async () => {
+    const ticket = session.capture();
+    if (!ticket || !draft || lock.current || receipt.current) return;
+    lock.current = true;
+    setPending('reload');
+    setFailure(null);
+    try {
+      await files.reload();
     } finally {
       if (session.isCurrent(ticket)) {
         lock.current = false;
@@ -129,5 +164,14 @@ export function useSkillDetailMutations({
       }
     }
   };
-  return { run, retryRefresh, failure, busy: pending !== null, pending, needsRefresh: failure === 'refreshFailed' };
+  return {
+    run,
+    reloadDraft,
+    retryRefresh,
+    canPublish,
+    failure,
+    busy: pending !== null,
+    pending,
+    needsRefresh: failure === 'refreshFailed',
+  };
 }

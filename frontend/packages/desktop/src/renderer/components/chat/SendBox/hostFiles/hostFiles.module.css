@@ -31,18 +31,18 @@
   gap: 6px;
   padding: 4px 6px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
   background: transparent;
   color: var(--conversation-menu-muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
 }
 .note,
 .warning {
   margin: 4px 0;
   padding: 4px 8px;
   color: var(--conversation-menu-muted, var(--text-secondary));
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 16px;
   overflow-wrap: anywhere;
 }
@@ -53,8 +53,8 @@
   box-sizing: border-box;
   height: 30px;
   padding-right: 6px;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: var(--ui-radius-sm);
+  font-size: var(--ui-font-body);
   color: var(--conversation-menu-text);
 }
 .folder {
@@ -97,11 +97,11 @@
 .badge {
   flex-shrink: 0;
   padding: 0 4px;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-xs);
   color: var(--conversation-menu-text);
   background: var(--conversation-menu-hover);
   font:
-    600 10px/16px ui-monospace,
+    var(--ui-weight-semibold) 10px/16px ui-monospace,
     SFMono-Regular,
     Menlo,
     monospace;
@@ -126,7 +126,7 @@
   height: 22px;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius-sm) - 1px);
   background: transparent;
   color: var(--conversation-menu-muted);
   transition: opacity 150ms;
@@ -146,8 +146,8 @@
 .remove:focus-visible,
 .grant:focus-visible,
 .trigger:focus-visible {
-  outline: 2px solid var(--color-primary-6);
-  outline-offset: -2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: calc(-1 * var(--ui-focus-offset));
 }
 .actions {
   display: flex;
@@ -160,7 +160,7 @@
   display: grid;
   gap: 4px;
   margin: 8px 0;
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
 }
 @media (hover: hover) {
   .row .remove,

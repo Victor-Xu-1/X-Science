@@ -467,6 +467,25 @@
       ]
     },
     {
+      "name": "pdb-search-contracts",
+      "paths": [
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_catalog_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_http_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_protocol_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_sequence_contract.py",
+        "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_similarity_contract.py",
+        "docs/licenses/open-science-pdb-search-80a262e/LICENSE"
+      ],
+      "frontend": false,
+      "checks": [
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_catalog_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_http_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_protocol_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_sequence_contract.py"],
+        ["python3", "-B", "assets/optional/mcp-servers/bio-tools/tests/test_pdb_search_similarity_contract.py"]
+      ]
+    },
+    {
       "name": "optional-websearch-security-contract",
       "paths": [
         "scripts/optional/test_security_boundaries.py"
