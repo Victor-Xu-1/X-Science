@@ -352,7 +352,7 @@ func TestWorkspaceExtractionRunnerConcurrentPlansReplayOneWinningReceipt(t *test
 			return map[string]any{"append": []any{map[string]any{"text": bodies[id], "evidence": "observed"}}}, nil
 		}))
 		captured := input
-		captured.CommitGuard = func(ctx context.Context, commit func() error) error {
+		captured.CommitGuard = func(ctx context.Context, commit func(workspace.LegacyExtractionOrderCheck) error) error {
 			// Preparation, including distinct IDs and accepted bodies, is finished
 			// before either runner may enter the real strict journal/SQL guard.
 			prepared <- id

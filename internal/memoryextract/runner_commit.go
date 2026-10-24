@@ -13,10 +13,16 @@ import (
 // extractionInputDigest binds the immutable completed snapshot, not mutable
 // model/configuration defaults or newly recalled facts on a later retry.
 func extractionInputDigest(input RunInput) (string, error) {
+	return ExtractionSnapshotDigest(input.Messages, input.FinalResponseText)
+}
+
+// ExtractionSnapshotDigest is the original completed-input digest. Coverage
+// reads use the same encoding without changing existing receipt identities.
+func ExtractionSnapshotDigest(messages []Message, final string) (string, error) {
 	raw, err := json.Marshal(struct {
 		Messages []Message
 		Final    string
-	}{input.Messages, input.FinalResponseText})
+	}{messages, final})
 	if err != nil {
 		return "", err
 	}
@@ -62,11 +68,12 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 		return result, err
 	}
 	var saved workspace.ExtractionCommitResult
-	commit := func() error {
+	commit := func(check workspace.LegacyExtractionOrderCheck) error {
 		var commitErr error
 		saved, commitErr = r.store.CommitMemoryExtraction(ctx, workspace.ExtractionCommitInput{
-			DeliveryClaim: input.DeliveryClaim,
-			Source:        *input.Source, InputSHA256: digest,
+			DeliveryClaim:    input.DeliveryClaim,
+			LegacyOrderCheck: check,
+			Source:           *input.Source, InputSHA256: digest,
 			CursorBefore: result.CursorBefore, CursorNext: len(input.Messages),
 			AdvanceCursor: config.ExtractDelta, Overshoot: result.Overshoot,
 			DeltaCount: result.DeltaCount, Gate: result.Gate, Plan: plan,
@@ -76,7 +83,7 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 	if input.CommitGuard != nil {
 		err = input.CommitGuard(ctx, commit)
 	} else {
-		err = commit()
+		err = commit(nil)
 	}
 	if err != nil {
 		// A competing identical completion, or a committed reply whose outcome

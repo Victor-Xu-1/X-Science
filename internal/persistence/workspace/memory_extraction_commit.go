@@ -83,8 +83,8 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 		if cursor != input.CursorBefore {
 			return ErrExtractionCursorChanged
 		}
-		if input.Overshoot {
-			if err := fenceExtractionOvershootTx(ctx, tx, identity); err != nil {
+		if input.AdvanceCursor || input.Overshoot {
+			if err := fenceExtractionSourceOrderTx(ctx, tx, identity, input.LegacyOrderCheck); err != nil {
 				return err
 			}
 		}
