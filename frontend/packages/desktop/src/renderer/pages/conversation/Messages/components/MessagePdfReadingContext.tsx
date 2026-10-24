@@ -31,7 +31,7 @@ export function MessagePdfReadingContext({
     <button
       type='button'
       data-slot='message-pdf-reading-context'
-      className='mb-6px inline-flex items-center gap-6px rounded-6px border border-solid border-border-2 bg-fill-2 px-8px py-2px text-13px leading-20px hover:bg-fill-1'
+      className='mb-6px inline-flex items-center gap-6px rounded-6px border border-solid border-arco-2 bg-fill-2 px-8px py-2px text-13px leading-20px hover:bg-fill-1'
       title={binding.name}
       aria-label={`${label} · ${binding.name}`}
       onClick={() => {
