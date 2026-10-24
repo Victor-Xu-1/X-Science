@@ -53,7 +53,7 @@ export function LibraryItemEditor({
       <div className='pdf-library-editor__buttons'>
         <button
           type='button'
-          disabled={busy || !title.trim() || Boolean(year && !/^\d{4}$/.test(year))}
+          disabled={busy || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
           onClick={() =>
             run({
               kind: 'edit',
