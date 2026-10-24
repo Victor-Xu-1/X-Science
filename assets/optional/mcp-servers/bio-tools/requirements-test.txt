@@ -4,6 +4,6 @@ jsonschema==4.26.0
 lxml==6.1.0
 mcp==2.2.0
 pandas==3.0.2
-Pillow==12.3.0
+Pillow==13.0.0
 requests==2.33.1
 urllib3==2.8.0
