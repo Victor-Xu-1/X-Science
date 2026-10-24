@@ -1,6 +1,6 @@
 {
   "schema": "x-science.product-identity.v1",
   "display_name": "X-Science",
-  "version": "0.3.14",
+  "version": "0.3.15",
   "machine_slug": "x-science"
 }
