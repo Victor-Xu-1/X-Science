@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "d5cc476dc6c8fcf913902eb25253397ba61140c735f717eb84fe25ffaf9e45c8",
+  "adaptationFingerprintSHA256": "29956ea528b662cbe46df24f924f2fb9f128b9a03f151b0a10d537e30b5b6b12",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "6edb15d789e1f8fa2afe975754a92e29042b57aea73fc8752d1d15bd777196d0",
   "summary": {
@@ -2755,8 +2755,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/XScienceMemoryManager.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/components/SynonBiomedMemoryManager.tsx",
       "sourceSHA256": "01aafac0f7c8dbec2ef0b6191b405d6db58a805080c0ac12c189ecb5e5ec530a",
-      "targetSHA256": "d75512989005278cef4f01f2b54ff1ae5d3ee89d2c614014d02eed0f225593e7",
-      "bytes": 48085,
+      "targetSHA256": "95a1c9bbb72b112b7540d9fb11c2885946325f655083fc93f4def8c4664b1881",
+      "bytes": 48288,
       "reason": "Move genuine imported source to the current X-Science namespace. Render a recoverable inline memory-load failure state with an explicit retry action."
     },
     {
@@ -5183,8 +5183,8 @@
       "path": "tests/unit/settings/XScienceMemoryManager.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMemoryManager.dom.test.tsx",
       "sourceSHA256": "6afdab37284d5d4223eeac6a27f3dc622bfd9c13b8dc79bc9b15b39ddf953638",
-      "targetSHA256": "2c121a3d787d0c03b21a9c4bb6f33dc02d830cf7e27b0d54ff83d2bd5ae515bc",
-      "bytes": 23117,
+      "targetSHA256": "f207ae67d2c60564efd3d1baa8fa415b78a98169e65ab7e9515046804e017d15",
+      "bytes": 30124,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify the explicit memory-load failure and retry state."
     },
     {
