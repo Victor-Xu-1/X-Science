@@ -98,10 +98,13 @@ func TestStructureSceneCompletionReportsMissingManifestWithoutBlocking(t *testin
 	}); err != nil {
 		t.Fatal(err)
 	}
-	writeSceneTestArtifact(t, store, "mother-artifact", "project-scene-missing", "mother.pdb", "ATOM mother", "frame-scene-missing")
-	writeSceneTestArtifact(t, store, "derived-artifact", "project-scene-missing", "derived.pdb", "ATOM derived", "frame-scene-missing")
+	mother := writeSceneTestArtifact(t, store, "mother-artifact", "project-scene-missing", "mother.pdb", "ATOM mother", "frame-scene-missing")
+	derived := writeSceneTestArtifact(t, store, "derived-artifact", "project-scene-missing", "derived.pdb", "ATOM derived", "frame-scene-missing")
 	srv := New(Options{FileRoot: root, Workspace: store})
-	advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(sessionForSceneTest("frame-scene-missing", root), nil)
+	advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(sessionForSceneTest("frame-scene-missing", root), []transcriptstore.ArtifactReferenceInput{
+		{ArtifactID: "mother-artifact", VersionID: mother.ID, Relation: transcriptstore.ArtifactRelationProduced},
+		{ArtifactID: "derived-artifact", VersionID: derived.ID, Relation: transcriptstore.ArtifactRelationProduced},
+	})
 	if err != nil || advisory == nil || advisory.Code != completionAdvisoryStructurePreview ||
 		!strings.Contains(strings.Join(advisory.Findings, " "), structureSceneManifestSchema) {
 		t.Fatalf("missing scene was blocked or silently certified: advisory=%#v error=%v", advisory, err)
@@ -143,19 +146,23 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeSceneTestArtifactBytes(t, store, "scene-manifest-artifact", "project-scene-valid", "scene.json", manifestBytes, "application/json", "frame-scene-valid")
+	currentManifest := writeSceneTestArtifactBytes(t, store, "scene-manifest-artifact", "project-scene-valid", "scene.json", manifestBytes, "application/json", "frame-scene-valid")
 	// Retain a failed earlier attempt. It must not shadow the valid immutable
 	// replacement merely because its filename sorts before the new manifest.
-	writeSceneTestArtifactBytes(t, store, "old-manifest", "project-scene-valid", "0-old-scene.json",
+	oldManifest := writeSceneTestArtifactBytes(t, store, "old-manifest", "project-scene-valid", "0-old-scene.json",
 		[]byte(`{"schema":"x-science.structure-scene.v1","preview_image":"old.png"}`), "application/json", "frame-scene-valid")
 	srv := New(Options{FileRoot: root, Workspace: store})
 	disabled := sessionForSceneTest("frame-scene-valid", root)
-	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, nil); err != nil || advisory != nil {
+	publishedSelection := []transcriptstore.ArtifactReferenceInput{
+		{ArtifactID: "scene-manifest-artifact", VersionID: currentManifest.ID, Relation: transcriptstore.ArtifactRelationProduced},
+		{ArtifactID: "old-manifest", VersionID: oldManifest.ID, Relation: transcriptstore.ArtifactRelationProduced},
+	}
+	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, publishedSelection); err != nil || advisory != nil {
 		t.Fatalf("disabled independent verifier rejected a structurally valid bound scene: %v", err)
 	}
 	enabled := disabled
 	enabled.Orchestration = map[string]any{"sessionConfig": map[string]any{"verifier_mode": "on"}}
-	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, nil); err != nil || advisory != nil {
+	if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(enabled, publishedSelection); err != nil || advisory != nil {
 		t.Fatalf("valid bound scene must reach the independent reviewer: %v", err)
 	}
 	// Save uses staged versions: completion must validate the selected draft
@@ -181,7 +188,12 @@ func TestStructureSceneCompletionGateBindsPreviewBeforeIndependentReview(t *test
 		"cited only": {ArtifactID: selected.ArtifactID, VersionID: selected.VersionID, Relation: transcriptstore.ArtifactRelationCited},
 	} {
 		t.Run(name, func(t *testing.T) {
-			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, []transcriptstore.ArtifactReferenceInput{candidate}); err != nil || advisory == nil {
+			comparison := []transcriptstore.ArtifactReferenceInput{
+				{ArtifactID: "mother-artifact", VersionID: mother.ID, Relation: transcriptstore.ArtifactRelationProduced},
+				{ArtifactID: "derived-artifact", VersionID: derived.ID, Relation: transcriptstore.ArtifactRelationProduced},
+				candidate,
+			}
+			if advisory, err := srv.verifySessionRunnerVisualArtifactEvidence(disabled, comparison); err != nil || advisory == nil {
 				t.Fatalf("unselected draft was certified or blocked completion: advisory=%#v error=%v", advisory, err)
 			}
 		})

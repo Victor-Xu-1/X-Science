@@ -48,10 +48,10 @@ func TestVisualDeliveryUsesOnlyExactSelectedImages(t *testing.T) {
 	}
 	wrong := selected
 	wrong.ArtifactID = "different-artifact"
-	if _, err := f.server.sessionRunnerVisualDeliveryEvidence("project-save", []transcriptstore.ArtifactReferenceInput{wrong}); err == nil {
+	if _, err := f.server.sessionRunnerDeliveryEvidence("project-save", []transcriptstore.ArtifactReferenceInput{wrong}); err == nil {
 		t.Fatal("mismatched artifact/version pair passed")
 	}
-	if _, err := f.server.sessionRunnerVisualDeliveryEvidence("another-project", []transcriptstore.ArtifactReferenceInput{selected}); err == nil {
+	if _, err := f.server.sessionRunnerDeliveryEvidence("another-project", []transcriptstore.ArtifactReferenceInput{selected}); err == nil {
 		t.Fatal("foreign project received selected image evidence")
 	}
 }
