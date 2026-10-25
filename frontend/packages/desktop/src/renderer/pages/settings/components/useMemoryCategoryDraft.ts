@@ -12,13 +12,14 @@ import {
 } from '@/renderer/services/runtime/memoryCategoryDraft';
 
 export type CategoryCommitDelivery = {
+  outcome: 'saved' | 'missing';
   isCurrent: () => boolean;
   claimChanged: () => boolean;
   claimSaved: () => boolean;
 };
 type Callbacks = {
   onCommitted: (delivery: CategoryCommitDelivery) => Promise<void>;
-  onFailed: (isCurrent: () => boolean) => void;
+  onFailed: (isCurrent: () => boolean, kind: 'rejected' | 'uncertain' | 'conflict') => void;
   onRefreshFailed: (isCurrent: () => boolean) => void;
 };
 
@@ -60,6 +61,7 @@ export function useMemoryCategoryDraft(callbacks: Callbacks) {
       getRendererAccountScopeToken() === lease.view.scope &&
       memoryCategoryDraftOwner.isRefreshCurrent(lease);
     const delivery: CategoryCommitDelivery = {
+      outcome: snapshot.commitOutcome,
       isCurrent: current,
       claimChanged: () => current() && memoryCategoryDraftOwner.claimChanged(lease),
       claimSaved: () => current() && memoryCategoryDraftOwner.claimSaved(lease),
@@ -86,14 +88,15 @@ export function useMemoryCategoryDraft(callbacks: Callbacks) {
       visibleRef.current &&
       getRendererAccountScopeToken() === lease.view.scope &&
       memoryCategoryDraftOwner.getSnapshot().activation === lease.activation;
-    if (current() && memoryCategoryDraftOwner.claimFailure(lease)) callbacksRef.current.onFailed(current);
+    if (current() && memoryCategoryDraftOwner.claimFailure(lease))
+      callbacksRef.current.onFailed(current, snapshot.failureKind ?? 'uncertain');
   }, [hostVisible, scope, view, snapshot.activation, snapshot.failedAttempt]);
 
   const owns =
     hostVisible &&
     Boolean(view && view.scope === scope && snapshot.scope === scope && snapshot.visibleView === view.id);
   const action = owns ? memoryCategoryDraftOwner.actionLease(view) : null;
-  const editor = owns ? snapshot.draft : null;
+  const editor = owns && snapshot.editorVisible ? snapshot.draft : null;
   const draft: CategorySeed | null = editor ? { ...(editor.id ? { id: editor.id } : {}), ...editor.value } : null;
   const canAct = () =>
     visibleRef.current &&
@@ -103,10 +106,13 @@ export function useMemoryCategoryDraft(callbacks: Callbacks) {
     available: hostVisible && memoryCategoryDraftOwner.isViewRegistered(view),
     draft,
     busy: snapshot.draft?.phase === 'saving',
+    fieldsFrozen: snapshot.draft?.phase === 'saving' || snapshot.draft?.phase === 'uncertain',
+    uncertain: snapshot.draft?.phase === 'uncertain',
+    retained: snapshot.draft !== null,
     openCreate: () => canAct() && memoryCategoryDraftOwner.open(view),
     openEdit: (seed: CategorySeed) => canAct() && memoryCategoryDraftOwner.open(view, seed),
     update: (patch: Partial<CategoryFields>) => canAct() && memoryCategoryDraftOwner.update(action, patch),
-    discard: () => canAct() && memoryCategoryDraftOwner.discard(action),
+    close: () => canAct() && memoryCategoryDraftOwner.close(action),
     save: () => (canAct() ? memoryCategoryDraftOwner.save(action) : Promise.resolve({ kind: 'denied' as const })),
   };
 }

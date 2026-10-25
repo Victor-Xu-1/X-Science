@@ -510,7 +510,10 @@ describe('XScienceMemoryManager', () => {
             postAttempt += 1;
             if (postAttempt === 1) {
               await failedAttempt.promise;
-              return Response.json({ error: 'category write unavailable' }, { status: 503 });
+              return Response.json(
+                { detail: 'category validation rejected', code: 'MEMORY_CATEGORY_WRITE_REJECTED' },
+                { status: 400 }
+              );
             }
             if (postAttempt !== 2) throw new Error('Unexpected category write without an explicit retry');
             await successfulAttempt.promise;
@@ -538,7 +541,7 @@ describe('XScienceMemoryManager', () => {
       const attemptClosingWhilePending = () => {
         expectCategoryInputsDisabled();
         clickNativeClose();
-        // Primary current-source RED: onCancel has already set categoryDraft=null.
+        // The same draft remains mounted until the in-flight write settles.
         expectCategoryDraft();
         clickNativeCancel();
         expectCategoryDraft();
@@ -595,6 +598,89 @@ describe('XScienceMemoryManager', () => {
           successfulAttempt.release();
         });
       }
+    });
+
+    it('retains an untyped503 operation and resumes the same save at the category limit', async () => {
+      const { fetchMock: healthy } = createFetchMock();
+      const categories = Array.from({ length: 10 }, (_, index) => ({
+        ...memoryContext.categories[0],
+        id: index === 0 ? 'memcat_1' : `category-${index}`,
+        name: index === 0 ? memoryContext.categories[0].name : `Category ${index}`,
+      }));
+      const writes: Array<{ key: string | null; body: string }> = [];
+      let acknowledged = false;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          const url = String(input);
+          if (url === '/api/memory/context') return Response.json({ ...memoryContext, categories });
+          if (url === '/api/memory/categories/memcat_1' && init?.method === 'PUT') {
+            writes.push({ key: new Headers(init.headers).get('Idempotency-Key'), body: String(init.body) });
+            if (writes.length === 1) return Response.json({ detail: 'legacy unavailable' }, { status: 503 });
+            if (writes.length !== 2) throw new Error('Unexpected automatic retry');
+            acknowledged = true;
+            return Response.json({ id: 'memcat_1', ...JSON.parse(String(init.body)), row_count: 1 });
+          }
+          return healthy(input, init);
+        })
+      );
+      const onChanged = vi.fn();
+      await renderWithI18n(<XScienceMemoryManager onChanged={onChanged} />, 'zh-CN');
+      await chooseMemoryScope('category:memcat_1');
+      expect(screen.getByTestId('memory-category-add')).toBeDisabled();
+      fireEvent.click(screen.getByTestId('memory-category-edit-memcat_1'));
+      fireEvent.change(screen.getByTestId('memory-category-name'), { target: { value: '保留原分类修改' } });
+      fireEvent.click(document.querySelector<HTMLButtonElement>('#memory-category-save')!);
+      await screen.findByTestId('memory-category-uncertain');
+      expectCategoryInputsDisabled();
+      expect(screen.getByRole('button', { name: '重试同一次保存' })).toBeEnabled();
+      expect(writes).toHaveLength(1);
+      expect(writes[0].key).toBeTruthy();
+      clickNativeClose();
+      await expectCategoryClosed();
+      const resume = screen.getByTestId('memory-category-add');
+      expect(resume).toBeEnabled();
+      expect(resume).toHaveTextContent('继续保存分类');
+      fireEvent.click(resume);
+      expect(screen.getByTestId('memory-category-name')).toHaveValue('保留原分类修改');
+      expectCategoryInputsDisabled();
+      fireEvent.click(screen.getByRole('button', { name: '重试同一次保存' }));
+      await expectCategoryClosed();
+      expect(acknowledged).toBe(true);
+      expect(writes).toHaveLength(2);
+      expect(writes[1]).toEqual(writes[0]);
+      expect(onChanged).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('memory-category-add')).toBeDisabled();
+    });
+
+    it('delivers a committed missing category as a warning and refreshes without resubmitting', async () => {
+      const { fetchMock: healthy } = createFetchMock();
+      let writes = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          if (String(input) === '/api/memory/categories' && init?.method === 'POST') {
+            writes += 1;
+            return Response.json(
+              { detail: 'result missing', code: 'MEMORY_CATEGORY_COMMITTED_RESULT_MISSING' },
+              { status: 410 }
+            );
+          }
+          return healthy(input, init);
+        })
+      );
+      const onChanged = vi.fn();
+      const view = await renderWithI18n(<XScienceMemoryManager onChanged={onChanged} />, 'en-US');
+      await screen.findByTestId('memory-category-add');
+      fillCategory();
+      fireEvent.click(document.querySelector<HTMLButtonElement>('#memory-category-save')!);
+      await expectCategoryClosed();
+      await waitFor(() =>
+        expect(Message.warning).toHaveBeenCalledWith(view.i18n.t('settings.memoryCategorySavedMissing'))
+      );
+      expect(Message.success).not.toHaveBeenCalled();
+      expect(onChanged).toHaveBeenCalledTimes(1);
+      expect(writes).toBe(1);
     });
   });
 });

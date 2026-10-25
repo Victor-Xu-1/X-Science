@@ -3,7 +3,11 @@ import {
   getRendererAccountScopeToken,
   registerRendererAccountReset,
 } from '@/renderer/services/rendererAccountScope';
-import { createXScienceMemoryCategory, updateXScienceMemoryCategory } from '@/renderer/services/xScienceMemory';
+import {
+  createXScienceMemoryCategory,
+  updateXScienceMemoryCategory,
+  memoryCategoryWriteOutcome,
+} from '@/renderer/services/xScienceMemory';
 
 export type CategoryFields = Readonly<{ name: string; guidance: string; autoRecall: boolean }>;
 export type CategorySeed = CategoryFields & { id?: string };
@@ -13,7 +17,7 @@ export type CategoryDraft = Readonly<{
   baseline: CategoryFields;
   value: CategoryFields;
   revision: number;
-  phase: 'editing' | 'saving' | 'failed';
+  phase: 'editing' | 'saving' | 'failed' | 'uncertain';
 }>;
 export type ViewLease = Readonly<{ id: number; scope: string }>;
 export type ActionLease = Readonly<{ view: ViewLease; activation: number; episode: number }>;
@@ -26,17 +30,28 @@ export type CategorySnapshot = Readonly<{
   activation: number;
   commitSerial: number;
   failedAttempt: number | null;
+  failureKind: 'rejected' | 'uncertain' | 'conflict' | null;
+  editorVisible: boolean;
+  commitOutcome: 'saved' | 'missing';
 }>;
-export type SaveOutcome = Readonly<{ kind: 'committed' | 'failed' | 'stale' | 'denied' }>;
+export type SaveOutcome = Readonly<{ kind: 'committed' | 'failed' | 'uncertain' | 'stale' | 'denied' }>;
 export type CategoryOwnerEnvironment = {
   account: () => { id: string; scope: string };
   registerReset: (reset: () => void) => () => void;
-  write: (value: CategorySeed, signal: AbortSignal) => Promise<unknown>;
+  write: (value: CategorySeed, signal: AbortSignal, operationId: string) => Promise<unknown>;
+  operationId?: () => string;
   reportError?: (error: unknown) => void;
 };
 
 type ViewRecord = { lease: ViewLease; priority: number; seenCommit: number; changedCommit: number };
-type SaveToken = { scope: string; episode: number; revision: number; attempt: number };
+type SaveToken = { scope: string; episode: number; revision: number; attempt: number; operationId: string };
+type FrozenOperation = Readonly<{
+  id: string;
+  scope: string;
+  episode: number;
+  revision: number;
+  payload: CategorySeed;
+}>;
 type Inflight = { token: SaveToken; abort: AbortController; promise: Promise<SaveOutcome> };
 
 const emptyFields = (): CategoryFields => Object.freeze({ name: '', guidance: '', autoRecall: true });
@@ -55,6 +70,7 @@ export class MemoryCategoryDraftOwner {
   private savedAnnouncement = 0;
   private failureAnnouncement = 0;
   private inflight: Inflight | null = null;
+  private operation: FrozenOperation | null = null;
   private refreshClaim: RefreshLease | null = null;
   private releaseReset: () => void;
 
@@ -71,6 +87,9 @@ export class MemoryCategoryDraftOwner {
       activation: 0,
       commitSerial: 0,
       failedAttempt: null,
+      failureKind: null,
+      editorVisible: false,
+      commitOutcome: 'saved',
     });
   }
 
@@ -82,6 +101,7 @@ export class MemoryCategoryDraftOwner {
   private resetAccount(): void {
     this.inflight?.abort.abort();
     this.inflight = null;
+    this.operation = null;
     this.refreshClaim = null;
     this.views.clear();
     this.savedAnnouncement = 0;
@@ -167,7 +187,8 @@ export class MemoryCategoryDraftOwner {
       draft,
       visibleView: view.id,
       activation: this.snapshot.activation + 1,
-      failedAttempt: draft?.phase === 'failed' ? this.snapshot.failedAttempt : null,
+      editorVisible: true,
+      failedAttempt: draft?.phase === 'failed' || draft?.phase === 'uncertain' ? this.snapshot.failedAttempt : null,
     });
     return true;
   }
@@ -185,14 +206,21 @@ export class MemoryCategoryDraftOwner {
     return Boolean(
       action &&
       this.owns(action.view) &&
+      this.snapshot.editorVisible &&
       action.activation === this.snapshot.activation &&
       action.episode === this.snapshot.draft?.episode
     );
   }
 
   update(action: ActionLease | null, patch: Partial<CategoryFields>): boolean {
-    if (!this.currentAction(action) || this.snapshot.draft?.phase === 'saving') return false;
+    if (
+      !this.currentAction(action) ||
+      this.snapshot.draft?.phase === 'saving' ||
+      this.snapshot.draft?.phase === 'uncertain'
+    )
+      return false;
     const draft = this.snapshot.draft!;
+    this.operation = null;
     this.publish({
       draft: Object.freeze({
         ...draft,
@@ -204,9 +232,14 @@ export class MemoryCategoryDraftOwner {
     return true;
   }
 
-  discard(action: ActionLease | null): boolean {
+  close(action: ActionLease | null): boolean {
     if (!this.currentAction(action) || this.snapshot.draft?.phase === 'saving') return false;
-    this.publish({ draft: null, failedAttempt: null });
+    if (this.snapshot.draft?.phase === 'uncertain') {
+      this.publish({ editorVisible: false, activation: this.snapshot.activation + 1 });
+    } else {
+      this.operation = null;
+      this.publish({ draft: null, failedAttempt: null, failureKind: null, editorVisible: false });
+    }
     return true;
   }
 
@@ -215,6 +248,7 @@ export class MemoryCategoryDraftOwner {
       this.env.account().scope === token.scope &&
       this.snapshot.scope === token.scope &&
       this.inflight?.token === token &&
+      this.operation?.id === token.operationId &&
       this.snapshot.draft?.episode === token.episode &&
       this.snapshot.draft.revision === token.revision
     );
@@ -231,6 +265,7 @@ export class MemoryCategoryDraftOwner {
       episode: draft.episode,
       revision: draft.revision,
       attempt: ++this.nextAttempt,
+      operationId: this.operation?.id ?? this.env.operationId?.() ?? crypto.randomUUID(),
     };
     const abort = new AbortController();
     const payload: CategorySeed = {
@@ -239,36 +274,53 @@ export class MemoryCategoryDraftOwner {
       guidance: draft.value.guidance.trim(),
       autoRecall: draft.value.autoRecall,
     };
+    this.operation ??= Object.freeze({
+      id: token.operationId,
+      scope: token.scope,
+      episode: token.episode,
+      revision: token.revision,
+      payload: Object.freeze(payload),
+    });
+    const operation = this.operation;
+    const commit = (missing: boolean): SaveOutcome => {
+      if (!this.currentSave(token)) return { kind: 'stale' };
+      this.inflight = null;
+      this.operation = null;
+      this.refreshClaim = null;
+      this.publish({
+        draft: null,
+        failedAttempt: null,
+        failureKind: null,
+        editorVisible: false,
+        commitSerial: this.snapshot.commitSerial + 1,
+        commitOutcome: missing ? 'missing' : 'saved',
+      });
+      return { kind: 'committed' };
+    };
     const promise: Promise<SaveOutcome> = Promise.resolve()
       .then(() => {
         if (!this.currentSave(token)) throw new Error('Memory category request superseded before dispatch');
-        return this.env.write(payload, abort.signal);
+        return this.env.write(operation.payload, abort.signal, operation.id);
       })
       .then(
-        (): SaveOutcome => {
-          if (!this.currentSave(token)) return { kind: 'stale' };
-          this.inflight = null;
-          this.refreshClaim = null;
-          this.publish({
-            draft: null,
-            failedAttempt: null,
-            commitSerial: this.snapshot.commitSerial + 1,
-          });
-          return { kind: 'committed' };
-        },
+        (): SaveOutcome => commit(false),
         (error): SaveOutcome => {
           if (!this.currentSave(token)) return { kind: 'stale' };
+          const outcome = memoryCategoryWriteOutcome(error);
+          if (outcome === 'committed-missing') return commit(true);
           this.env.reportError?.(error);
+          const rejected = outcome === 'rejected';
           this.inflight = null;
           this.publish({
-            draft: Object.freeze({ ...this.snapshot.draft!, phase: 'failed' }),
+            draft: Object.freeze({ ...this.snapshot.draft!, phase: rejected ? 'failed' : 'uncertain' }),
+            failureKind: rejected ? 'rejected' : outcome === 'conflict' ? 'conflict' : 'uncertain',
             failedAttempt: token.attempt,
           });
-          return { kind: 'failed' };
+          return { kind: rejected ? 'failed' : 'uncertain' };
         }
       );
     this.inflight = { token, abort, promise };
-    this.publish({ draft: Object.freeze({ ...draft, phase: 'saving' }), failedAttempt: null });
+    this.publish({ draft: Object.freeze({ ...draft, phase: 'saving' }), failedAttempt: null, failureKind: null });
     return promise;
   }
 
@@ -348,8 +400,10 @@ export const memoryCategoryDraftOwner = new MemoryCategoryDraftOwner({
   account: () => ({ id: getRendererAccountOwnerId(), scope: getRendererAccountScopeToken() }),
   registerReset: (reset) => registerRendererAccountReset('memory-category-draft-owner', reset),
   reportError: (error) => console.error('X-Science memory mutation failed:', error),
-  write: (value, signal) => {
+  write: (value, signal, operationId) => {
     const { id, ...input } = value;
-    return id ? updateXScienceMemoryCategory(id, input, { signal }) : createXScienceMemoryCategory(input, { signal });
+    return id
+      ? updateXScienceMemoryCategory(id, input, { signal, operationId })
+      : createXScienceMemoryCategory(input, { signal, operationId });
   },
 });

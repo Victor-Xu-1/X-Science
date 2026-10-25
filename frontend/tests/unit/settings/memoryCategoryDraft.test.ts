@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MemoryCategoryDraftOwner } from '@/renderer/services/runtime/memoryCategoryDraft';
+import { XScienceMemoryRequestError } from '@/renderer/services/xScienceMemory';
 
 function deferred() {
   let complete!: (value: unknown) => void;
@@ -20,7 +21,10 @@ afterEach(() => {
 function fixture() {
   let account = { id: 'owner-a', scope: 'generation-1:owner-a' };
   let reset = () => {};
-  const write = vi.fn((_value: unknown, _signal: AbortSignal) => Promise.resolve<unknown>(undefined));
+  let nextOperation = 0;
+  const write = vi.fn((_value: unknown, _signal: AbortSignal, _operationId: string) =>
+    Promise.resolve<unknown>(undefined)
+  );
   const owner = new MemoryCategoryDraftOwner({
     account: () => account,
     registerReset: (next) => {
@@ -28,6 +32,7 @@ function fixture() {
       return () => {};
     },
     write,
+    operationId: () => `synthetic-operation-${++nextOperation}`,
   });
   owners.add(owner);
   const switchAccount = (id: string, scope: string) => {
@@ -72,14 +77,14 @@ describe('Memory category document/account owner', () => {
     const p2 = f.owner.save(action);
     expect(p2).toBe(p1);
     expect(f.owner.update(action, { name: 'Unsent edit' })).toBe(false);
-    expect(f.owner.discard(action)).toBe(false);
+    expect(f.owner.close(action)).toBe(false);
     await Promise.resolve();
     expect(f.write).toHaveBeenCalledTimes(1);
     ack.resolve();
     expect(await p1).toEqual({ kind: 'committed' });
     expect(f.owner.getSnapshot().draft).toBeNull();
     f.owner.open(view);
-    expect(f.owner.discard(action)).toBe(false); // Old episode cannot clear the next operation.
+    expect(f.owner.close(action)).toBe(false); // Old episode cannot clear the next operation.
   });
 
   it('keeps failed values and requires an explicit retry', async () => {
@@ -90,7 +95,14 @@ describe('Memory category document/account owner', () => {
     const view = f.open();
     const failed = f.owner.save(f.owner.actionLease(view));
     await Promise.resolve();
-    first.reject(new Error('unavailable'));
+    first.reject(
+      new XScienceMemoryRequestError({
+        reason: 'http',
+        stage: 'decode',
+        status: 400,
+        code: 'MEMORY_CATEGORY_WRITE_REJECTED',
+      })
+    );
     expect(await failed).toEqual({ kind: 'failed' });
     expect(f.owner.getSnapshot().draft?.phase).toBe('failed');
     expect(f.owner.getSnapshot().draft?.value.name).toBe('Methods');
@@ -147,4 +159,62 @@ describe('Memory category document/account owner', () => {
     expect(f.owner.acknowledgeRefresh(current)).toBe(true);
     expect(f.owner.captureRefresh(a)).toBeNull();
   });
+});
+
+it('retains an uncertain frozen operation through close and retries its original identity', async () => {
+  const f = fixture();
+  f.write.mockRejectedValueOnce(new Error('legacy unavailable')).mockResolvedValueOnce(undefined);
+  const view = f.open();
+  expect(await f.owner.save(f.owner.actionLease(view))).toEqual({ kind: 'uncertain' });
+  const original = f.write.mock.calls[0];
+  expect(f.owner.getSnapshot().draft?.phase).toBe('uncertain');
+  expect(f.owner.update(f.owner.actionLease(view), { name: 'Changed while unknown' })).toBe(false);
+  expect(f.owner.close(f.owner.actionLease(view))).toBe(true);
+  expect(f.owner.getSnapshot().editorVisible).toBe(false);
+  expect(f.owner.getSnapshot().draft?.value.name).toBe('Methods');
+  f.owner.open(view, { name: 'Different seed', guidance: 'Must not replace the original', autoRecall: false });
+  const action = f.owner.actionLease(view);
+  const first = f.owner.save(action);
+  expect(f.owner.save(action)).toBe(first);
+  expect(await first).toEqual({ kind: 'committed' });
+  expect(f.write.mock.calls[1][0]).toBe(original[0]);
+  expect(f.write.mock.calls[1][2]).toBe(original[2]);
+  expect(f.owner.getSnapshot().draft).toBeNull();
+});
+
+it('acknowledges a committed missing result without another write and preserves warning delivery', async () => {
+  const f = fixture();
+  f.write.mockRejectedValueOnce(
+    new XScienceMemoryRequestError({
+      reason: 'http',
+      stage: 'decode',
+      status: 410,
+      code: 'MEMORY_CATEGORY_COMMITTED_RESULT_MISSING',
+    })
+  );
+  const view = f.open();
+  expect(await f.owner.save(f.owner.actionLease(view))).toEqual({ kind: 'committed' });
+  expect(f.owner.getSnapshot()).toMatchObject({ draft: null, commitSerial: 1, commitOutcome: 'missing' });
+  expect(f.write).toHaveBeenCalledTimes(1);
+});
+
+it('starts a new explicit edited operation only after a proven rejection', async () => {
+  const f = fixture();
+  f.write
+    .mockRejectedValueOnce(
+      new XScienceMemoryRequestError({
+        reason: 'http',
+        stage: 'decode',
+        status: 400,
+        code: 'MEMORY_CATEGORY_WRITE_REJECTED',
+      })
+    )
+    .mockResolvedValueOnce(undefined);
+  const view = f.open();
+  expect(await f.owner.save(f.owner.actionLease(view))).toEqual({ kind: 'failed' });
+  const key = f.write.mock.calls[0][2];
+  expect(f.owner.update(f.owner.actionLease(view), { name: 'Corrected methods' })).toBe(true);
+  expect(await f.owner.save(f.owner.actionLease(view))).toEqual({ kind: 'committed' });
+  expect(f.write.mock.calls[1][2]).not.toBe(key);
+  expect(f.write.mock.calls[1][0]).toMatchObject({ name: 'Corrected methods' });
 });

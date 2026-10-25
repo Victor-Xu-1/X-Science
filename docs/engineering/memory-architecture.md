@@ -10,7 +10,8 @@ X-Science implements one workspace memory lifecycle. It does not maintain a para
 | User/project/session enablement | workspace user settings, project auto-recall setting, exact session `memory_mode` |
 | Automatic extraction preference | user-scoped control-plane setting `memory.autoExtractionEnabled`, inheriting the deployment capability default |
 | Durable facts and categories | workspace SQLite memory tables |
-| Interactive mutations | claimed `write_memory` transcript receipt |
+| Agent fact mutations | claimed `write_memory` transcript receipt |
+| Category settings writes | workspace category transaction and canonical mutation result ledger |
 | Automatic recall | `Store.RecallMemories` |
 | Explicit search | `Store.SearchMemories` over the authenticated user's full pool |
 | Prompt rendering | `internal/memoryprompt` |
@@ -47,6 +48,48 @@ Receipt replay returns the original IDs, cursor outcome and diagnostics before m
 - Extractor successors use compare-and-swap supersession; stale model output cannot overwrite a newer fact.
 - Prompt-injection classification, literal preservation, secret redaction, hostile-memory sanitization and owner/scope validation are enforced before persistence or rendering.
 
+## Category settings writes and response loss
+
+The category editor has one document/account-scoped draft and save owner.
+Settings navigation disposes a view, not its draft or in-flight operation.
+Only the current visible page/modal lease may edit or deliver a result.
+
+Category POST/PUT accept the existing optional `Idempotency-Key` header and
+server alias. A logical save freezes its key and original typed payload.
+Authenticated owner, key, operation kind and exact request hash identify a
+canonical `mutation_result_ledger` entry committed in the same transaction as
+the category change. The result retains only the category ID. Replay reads
+that owner's current category without applying the old mutation again; an
+intervening edit is preserved and a deleted category is never recreated.
+Legacy calls without a client key retain independent-operation semantics.
+
+Normal success retains the existing category JSON and HTTP201 for POST or HTTP200 for PUT.
+Category errors retain `detail` and may include these machine-readable codes:
+
+| Code | Meaning |
+| --- | --- |
+| `MEMORY_CATEGORY_WRITE_REJECTED` | An authoritative rejection permits correcting the draft. |
+| `MEMORY_CATEGORY_OUTCOME_UNKNOWN` | HTTP503: preserve the original key/payload and retry that operation explicitly. |
+| `MEMORY_CATEGORY_COMMITTED_RESULT_MISSING` | HTTP410: the receipt proves a prior commit, but the category is now gone; acknowledge with a warning and attempt current readback. |
+| `MEMORY_CATEGORY_IDEMPOTENCY_CONFLICT` | HTTP409: the original key and request do not agree; do not generate a replacement key automatically. |
+
+A network, response-body, decoding, database or unclassified HTTP error does
+not prove that a write failed before commit. Uncertain saves keep fields frozen
+while allowing a bounded, explicit retry of the original save. Closing the editor
+hides it without discarding its operation. Its resume action remains available
+even when the new-category limit has been reached. Known acknowledgements use
+the existing current-view refresh/notification path and never re-submit because
+that readback failed. Account reset invalidates old callbacks; it does not undo
+an earlier server commit. Recovery of a lost client UUID across refresh/logout
+is outside this document-local editor contract.
+
+Memory metadata requests have a 30,000 ms default total fetch/body wait budget,
+with a finite positive timer-range override and real abort/listener cleanup.
+This transport budget does not limit research tasks, model turns or jobs.
+Other Memory writes gain finite transport waiting; durable keyed replay in
+this contract covers category Create/Update only. There is no automatic write
+retry, additional journal, receipt endpoint or parallel memory store.
+
 ## Removed competing path
 
 The legacy `autoMemoryEnabled` session-summary path, runtime-KV `memory`/`memory-schedule` namespaces, generated Markdown mirror, schedule pruning, token thresholds and duplicate provider call were removed. Durable transcript compaction remains the sole conversation-continuity mechanism; workspace memory remains the sole cross-session fact mechanism.
@@ -60,6 +103,6 @@ Choose exact named regressions for the changed behavior from the affected surfac
 - `go test ./internal/persistence/transcript -run Memory`
 - `go test ./internal/server -run 'Memory|Workspace|RunnerTaskMemory|SessionRunnerModulesBindOnePhaseMachine'`
 - `vitest run --project node tests/unit/xscience/xScienceMemory.test.ts`
-- `vitest run --project dom tests/unit/xscience/XScienceMemoryManager.dom.test.tsx`
+- `vitest run --project dom tests/unit/settings/XScienceMemoryManager.dom.test.tsx`
 
 Release acceptance additionally requires a real configured model to complete one root scientific task, create a durable memory, recall it in a fresh session, preserve it across reload/compaction, and prove that an opted-out session and another user cannot receive it.

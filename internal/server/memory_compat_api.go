@@ -383,9 +383,9 @@ func (s *Server) handleMemoryCategoriesCompatibility(w http.ResponseWriter, r *h
 		if input.AutoRecall != nil {
 			autoRecall = *input.AutoRecall
 		}
-		category, err := store.CreateMemoryCategory(r.Context(), userID, input.Name, input.Guidance, autoRecall)
+		category, err := store.CreateMemoryCategory(workspaceMutationContext(r), userID, input.Name, input.Guidance, autoRecall)
 		if err != nil {
-			writeMemoryCompatibilityError(w, err)
+			writeMemoryCategoryMutationError(w, err)
 			return
 		}
 		writeWorkspaceJSON(w, http.StatusCreated, category)
@@ -420,11 +420,11 @@ func (s *Server) handleMemoryCategoryCompatibility(w http.ResponseWriter, r *htt
 			writeV11Detail(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		category, err := store.UpdateMemoryCategory(r.Context(), userID, categoryID, workspace.UpdateMemoryCategoryInput{
+		category, err := store.UpdateMemoryCategory(workspaceMutationContext(r), userID, categoryID, workspace.UpdateMemoryCategoryInput{
 			Name: input.Name, Guidance: input.Guidance, AutoRecall: input.AutoRecall,
 		})
 		if err != nil {
-			writeMemoryCompatibilityError(w, err)
+			writeMemoryCategoryMutationError(w, err)
 			return
 		}
 		writeWorkspaceJSON(w, http.StatusOK, category)
@@ -713,4 +713,29 @@ func memoryRelativeAge(updated time.Time) string {
 	default:
 		return fmt.Sprintf("%d weeks ago", int(age.Hours()/(24*7)))
 	}
+}
+
+// Category writes expose certainty without changing generic workspaceStatus or
+// other Memory CRUD. Database details and private guidance are never echoed.
+func writeMemoryCategoryMutationError(w http.ResponseWriter, err error) {
+	status, code, detail := http.StatusServiceUnavailable, "MEMORY_CATEGORY_OUTCOME_UNKNOWN", "The category save outcome could not be confirmed. Retry the same save."
+	switch {
+	case errors.Is(err, workspace.ErrMemoryCategoryOutcomeUnknown):
+		// A failed readback can wrap a prior business rejection. Uncertainty
+		// remains authoritative over nested sql.ErrNoRows/rejected causes.
+	case errors.Is(err, workspace.ErrMemoryCategoryCommittedResultMissing):
+		status, code, detail = http.StatusGone, "MEMORY_CATEGORY_COMMITTED_RESULT_MISSING", "This save was committed, but the category is no longer available."
+	case errors.Is(err, workspace.ErrMutationIdempotencyConflict):
+		status, code, detail = http.StatusConflict, "MEMORY_CATEGORY_IDEMPOTENCY_CONFLICT", "This save identity belongs to a different request."
+	case errors.Is(err, workspace.ErrMemoryCategoryWriteRejected):
+		status = workspaceStatus(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		if status < 400 || status >= 500 {
+			status = http.StatusBadRequest
+		}
+		code, detail = "MEMORY_CATEGORY_WRITE_REJECTED", err.Error()
+	}
+	writeWorkspaceJSON(w, status, map[string]any{"detail": detail, "code": code})
 }

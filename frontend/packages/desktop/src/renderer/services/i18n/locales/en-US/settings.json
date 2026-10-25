@@ -1472,7 +1472,7 @@
   "xScienceSkillsManage": "Manage skills",
   "skillsSettings": {
     "title": "Skills",
-    "paginationLabel": "Skill list pages",
+    "paginationLabel": "Expert card pages",
     "fetchFailed": "Unable to load the skill library.",
     "partialLoadFailed": "Some skill data could not be loaded. Existing results remain available.",
     "enabledMessage": "Skill enabled",
@@ -1508,7 +1508,6 @@
     "drafts": "Drafts",
     "draftsDescription": "Personal skills that have not been published.",
     "noMatches": "No matching skills",
-    "paginationLabel": "Expert card pages",
     "noImported": "No imported skills",
     "noPersonal": "No personal skills",
     "viewNamed": "View {{name}}",
@@ -2129,7 +2128,10 @@
         "label": "Package management",
         "description": "pip, conda, npm, CRAN, Bioconductor, GitHub"
       },
-      "nih": { "label": "NCBI / NIH", "description": "PubMed, Entrez, NIH" },
+      "nih": {
+        "label": "NCBI / NIH",
+        "description": "PubMed, Entrez, NIH"
+      },
       "genomics": {
         "label": "Genomics and biology",
         "description": "Ensembl, Reactome, KEGG, gnomAD, GTEx, ENCODE"
@@ -2251,39 +2253,90 @@
           "label": "Name",
           "placeholder": "Distinguish environments or accounts"
         },
-        "accessKeyId": { "label": "Access key ID" },
-        "secretAccessKey": { "label": "Secret access key" },
-        "region": { "label": "Region" },
+        "accessKeyId": {
+          "label": "Access key ID"
+        },
+        "secretAccessKey": {
+          "label": "Secret access key"
+        },
+        "region": {
+          "label": "Region"
+        },
         "s3Buckets": {
           "label": "S3 buckets",
           "helper": "Separate multiple buckets with commas."
         },
-        "s3Endpoint": { "label": "S3-compatible endpoint" },
-        "personalAccessToken": { "label": "Personal access token" },
-        "serviceAccountKey": { "label": "Service account key" },
+        "s3Endpoint": {
+          "label": "S3-compatible endpoint"
+        },
+        "personalAccessToken": {
+          "label": "Personal access token"
+        },
+        "serviceAccountKey": {
+          "label": "Service account key"
+        },
         "gcsBuckets": {
           "label": "GCS buckets",
           "helper": "Separate multiple buckets with commas."
         },
-        "elsevierApiKey": { "label": "Elsevier API key" },
-        "elsevierInstitutionToken": { "label": "Elsevier institutional token" },
-        "springerApiKey": { "label": "Springer Nature API key" },
-        "semanticScholarApiKey": { "label": "Semantic Scholar API key" },
-        "ncbiApiKey": { "label": "NCBI API key" },
-        "coreApiKey": { "label": "CORE API key" },
-        "ezproxyUrl": { "label": "EZproxy URL" },
-        "sessionCookie": { "label": "Session cookie" },
-        "tenantId": { "label": "Tenant ID" },
-        "clientId": { "label": "Client ID" },
-        "clientSecret": { "label": "Client secret" },
-        "subscriptionId": { "label": "Subscription ID" },
-        "storageAccount": { "label": "Storage account" },
-        "blobContainers": { "label": "Blob containers" },
-        "tokenId": { "label": "Token ID" },
-        "tokenSecret": { "label": "Token secret" },
-        "nvidiaApiKey": { "label": "NVIDIA API key" },
-        "value": { "label": "Value", "placeholder": "Secret value" },
-        "description": { "label": "Description" }
+        "elsevierApiKey": {
+          "label": "Elsevier API key"
+        },
+        "elsevierInstitutionToken": {
+          "label": "Elsevier institutional token"
+        },
+        "springerApiKey": {
+          "label": "Springer Nature API key"
+        },
+        "semanticScholarApiKey": {
+          "label": "Semantic Scholar API key"
+        },
+        "ncbiApiKey": {
+          "label": "NCBI API key"
+        },
+        "coreApiKey": {
+          "label": "CORE API key"
+        },
+        "ezproxyUrl": {
+          "label": "EZproxy URL"
+        },
+        "sessionCookie": {
+          "label": "Session cookie"
+        },
+        "tenantId": {
+          "label": "Tenant ID"
+        },
+        "clientId": {
+          "label": "Client ID"
+        },
+        "clientSecret": {
+          "label": "Client secret"
+        },
+        "subscriptionId": {
+          "label": "Subscription ID"
+        },
+        "storageAccount": {
+          "label": "Storage account"
+        },
+        "blobContainers": {
+          "label": "Blob containers"
+        },
+        "tokenId": {
+          "label": "Token ID"
+        },
+        "tokenSecret": {
+          "label": "Token secret"
+        },
+        "nvidiaApiKey": {
+          "label": "NVIDIA API key"
+        },
+        "value": {
+          "label": "Value",
+          "placeholder": "Secret value"
+        },
+        "description": {
+          "label": "Description"
+        }
       }
     }
   },
@@ -2449,5 +2502,10 @@
       "selectTargetProject": "Select the destination project",
       "selectProject": "Select project"
     }
-  }
+  },
+  "memoryCategoryUncertain": "The save is not confirmed. Retry the same save, or close and resume later.",
+  "memoryCategoryRetrySameSave": "Retry same save",
+  "memoryCategoryCloseRetained": "Close",
+  "memoryCategoryResumeSave": "Resume category save",
+  "memoryCategorySavedMissing": "The save was confirmed, but the category is no longer available."
 }
