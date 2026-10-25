@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "faa04c9d1d0b24255e02d07b9a5d3ba372a52feb3519c515d08cba3cf10cc8c9",
+  "adaptationFingerprintSHA256": "61071b724afb365ec94adb3416c24eb80ee54d58fe62b80f887a638a70c40ecd",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "7f6f880c41f64007a1cedcb04c1b5d5c610f0169a9520e6ed0fb3e3edf4712e3",
+  "additionFingerprintSHA256": "b41bcdf96e3839b1c6a27669786e3f92fa8c5c00f6449047251731f65e2f32b3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1216
+    "addedFiles": 1217
   },
   "adaptations": [
     {
@@ -2755,8 +2755,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/XScienceMemoryManager.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/components/SynonBiomedMemoryManager.tsx",
       "sourceSHA256": "01aafac0f7c8dbec2ef0b6191b405d6db58a805080c0ac12c189ecb5e5ec530a",
-      "targetSHA256": "d504485c7895b0d3912ad9e4ff5f4a7615fbcf5bdcda33e8dfb6d8995ff4e24e",
-      "bytes": 45545,
+      "targetSHA256": "d75512989005278cef4f01f2b54ff1ae5d3ee89d2c614014d02eed0f225593e7",
+      "bytes": 48085,
       "reason": "Move genuine imported source to the current X-Science namespace. Render a recoverable inline memory-load failure state with an explicit retry action."
     },
     {
@@ -5176,8 +5176,8 @@
       "path": "tests/unit/settings/XScienceMemoryManager.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMemoryManager.dom.test.tsx",
       "sourceSHA256": "6afdab37284d5d4223eeac6a27f3dc622bfd9c13b8dc79bc9b15b39ddf953638",
-      "targetSHA256": "3e92b69469aae675dd56d7e72bc58c5b10cb26250bf6466bc81384bbc5cb9488",
-      "bytes": 23061,
+      "targetSHA256": "2c121a3d787d0c03b21a9c4bb6f33dc02d830cf7e27b0d54ff83d2bd5ae515bc",
+      "bytes": 23117,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify the explicit memory-load failure and retry state."
     },
     {
@@ -13793,6 +13793,12 @@
       "path": "tests/unit/settings/SkillPublicationRefresh.dom.test.tsx",
       "sha256": "687ffa445d364a25fea4b9ff3c11d7a383f1d7f14f7ca41de2f679bbc7db464f",
       "bytes": 12632,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/XScienceMemoryPendingScope.dom.test.tsx",
+      "sha256": "f97733813fbc2feda5a0201b8a50d536a0320a979b03a43b09e87b203fd8d895",
+      "bytes": 11592,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
