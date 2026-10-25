@@ -38,9 +38,34 @@ func TestCompletionAdvisoryIsLocalizedIdempotentAndCannotReplaceAnAnswer(t *test
 
 func TestCompletionRecoveryPersistsSceneNoticeOnceWithoutRewritingPriorCandidate(t *testing.T) {
 	ctx := context.Background()
-	srv, session, priorAuthority := completionIntentRecoveryFixture(t, "Explain the result in chat", false)
-	writeSceneTestArtifact(t, srv.workspaceStore, "base", session.Project.ID, "base.pdb", "ATOM base", session.ID)
-	writeSceneTestArtifact(t, srv.workspaceStore, "derived", session.Project.ID, "derived.pdb", "ATOM derived", session.ID)
+	srv, session, priorAuthority := completionIntentRecoveryFixtureWithSetup(t, "Explain the result in chat", false,
+		func(server *Server, stream transcriptstore.Stream, claim transcriptstore.RunnerClaim) {
+			access, found, err := server.workspaceStore.GetKernelFrameAccessContext(ctx, stream.FrameID)
+			if err != nil || !found {
+				t.Fatalf("recovery output access: found=%t error=%v", found, err)
+			}
+			projectPath := t.TempDir()
+			if _, err := server.upsertHostGrant(stream.OwnerID, projectPath, "read_write"); err != nil {
+				t.Fatal(err)
+			}
+			fixture := &agentSaveArtifactsFixture{
+				server: server, store: server.workspaceStore, repo: server.transcriptStore,
+				stream: stream, claim: claim, projectPath: projectPath,
+				identity: &agentKernelContext{access: access, workspaceDir: projectPath},
+			}
+			const structure = "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n"
+			saveRoundPresentationFile(t, fixture, "recovered-scene-base", "base.pdb", structure)
+			saveRoundPresentationFile(t, fixture, "recovered-scene-derived", "derived.pdb", structure)
+			current, err := server.transcriptStore.CurrentRoundArtifactCommitSnapshot(ctx, stream.UID, stream.OwnerID, claim.Attempt)
+			if err != nil || len(current.References) != 2 {
+				t.Fatalf("original live input did not produce two structures: %#v error=%v", current, err)
+			}
+			for _, reference := range current.References {
+				if reference.Relation != transcriptstore.ArtifactRelationProduced {
+					t.Fatalf("comparison input is not a produced receipt: %#v", reference)
+				}
+			}
+		})
 	prior, found, err := srv.loadTranscriptCompletionRecoveryCandidate(ctx, priorAuthority)
 	if err != nil || !found {
 		t.Fatalf("prior candidate: found=%t error=%v", found, err)

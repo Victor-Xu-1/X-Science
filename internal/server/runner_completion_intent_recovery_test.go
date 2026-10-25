@@ -102,6 +102,11 @@ func TestCompletionRecoveryPreservesStandaloneIntent(t *testing.T) {
 
 func completionIntentRecoveryFixture(t *testing.T, text string, standalone bool, continued ...bool) (*Server, sessionstore.Session, *transcriptRunnerAuthority) {
 	t.Helper()
+	return completionIntentRecoveryFixtureWithSetup(t, text, standalone, nil, continued...)
+}
+
+func completionIntentRecoveryFixtureWithSetup(t *testing.T, text string, standalone bool, setup func(*Server, transcriptstore.Stream, transcriptstore.RunnerClaim), continued ...bool) (*Server, sessionstore.Session, *transcriptRunnerAuthority) {
+	t.Helper()
 	ctx := context.Background()
 	store, repo, _ := newTranscriptWebFixture(t)
 	seedTranscriptWebFrame(t, store, "local", "intent-recovery-project", "intent-recovery-frame")
@@ -148,6 +153,19 @@ func completionIntentRecoveryFixture(t *testing.T, text string, standalone bool,
 	})
 	if err != nil || !claim.Claimed {
 		t.Fatalf("claim=%#v err=%v", claim, err)
+	}
+	if setup != nil {
+		// Optional artifact setup runs under the original live claim, before
+		// the immutable candidate/checkpoint and terminal interruption exist.
+		server = New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+		t.Cleanup(func() {
+			cleanup, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			if err := server.Close(cleanup); err != nil {
+				t.Errorf("close recovery setup server: %v", err)
+			}
+		})
+		setup(server, stream, claim.Claim)
 	}
 	checkpoint, _, _, err := repo.AppendRunnerCheckpoint(ctx, transcriptstore.AppendRunnerCheckpointInput{
 		Claim: claim.Claim, ClientMessageID: "intent-recovery-checkpoint", Phase: transcriptstore.RunnerPhaseExecuting,
