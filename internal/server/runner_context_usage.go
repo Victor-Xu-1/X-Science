@@ -26,6 +26,7 @@ type runnerContextUsage struct {
 	Model           string                                  `json:"model"`
 	ObservedAt      time.Time                               `json:"observedAt"`
 	State           string                                  `json:"state"`
+	FailureKind     string                                  `json:"failureKind,omitempty"`
 	Source          string                                  `json:"source"`
 	UsedTokens      int                                     `json:"usedTokens"`
 	LimitTokens     int                                     `json:"limitTokens"`
@@ -199,6 +200,7 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 		return
 	}
 	snapshot.State = "failed"
+	snapshot.FailureKind = runnerContextFailureKind(callErr)
 	snapshot.ObservedAt = time.Now().UTC()
 	snapshot.CallUsage = nil
 	if callErr == nil {
@@ -222,6 +224,19 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 	// On failure the durable request estimate remains explicitly an estimate.
 	if err := recorder.persist(*snapshot, true); err != nil {
 		log.Printf("context_usage_write_failed session=%s request=%s: %v", recorder.sessionID, snapshot.RequestID, err)
+	}
+}
+
+// Preserve only typed transport evidence. A cancelled runner attempt does not
+// prove why an earlier request failed, and raw provider errors stay private.
+func runnerContextFailureKind(callErr error) string {
+	switch {
+	case errors.Is(callErr, context.Canceled):
+		return "cancelled"
+	case errors.Is(callErr, context.DeadlineExceeded):
+		return "deadline"
+	default:
+		return ""
 	}
 }
 
@@ -285,6 +300,10 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	}
 	if _, present := fields["observationKind"]; present && snapshot.ObservationKind != "model_call" && snapshot.ObservationKind != "context_preparation" {
 		return snapshot, errors.New("invalid context observation kind")
+	}
+	if _, present := fields["failureKind"]; present && (snapshot.State != "failed" ||
+		(snapshot.FailureKind != "cancelled" && snapshot.FailureKind != "deadline")) {
+		return snapshot, errors.New("invalid context call failure kind")
 	}
 	if raw, present := fields["callUsage"]; present {
 		if snapshot.State != "complete" || snapshot.CallUsage == nil || !validContextCallUsageCounters(*snapshot.CallUsage) || !validContextCallUsageWire(raw) {

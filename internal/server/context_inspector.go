@@ -20,6 +20,7 @@ type contextInspectionCall struct {
 	RunnerAttempt  int                      `json:"runnerAttempt"`
 	Model          string                   `json:"model"`
 	State          string                   `json:"state"`
+	FailureKind    string                   `json:"failureKind,omitempty"`
 	ObservedAt     time.Time                `json:"observedAt"`
 	UsedTokens     int                      `json:"usedTokens"`
 	LimitTokens    int                      `json:"limitTokens"`
@@ -170,7 +171,7 @@ func projectContextInspection(authority transcriptstore.ContextInspectionSnapsho
 		}
 		result.Calls = append(result.Calls, contextInspectionCall{ID: sample.RequestID, InputMessageID: association.InputMessageID,
 			InputEventID: association.InputEventID, InputRevision: association.InputRevision, RunnerAttempt: sample.Attempt,
-			Model: sample.Model, State: sample.State, ObservedAt: sample.ObservedAt, UsedTokens: sample.UsedTokens,
+			Model: sample.Model, State: sample.State, FailureKind: sample.FailureKind, ObservedAt: sample.ObservedAt, UsedTokens: sample.UsedTokens,
 			LimitTokens: sample.LimitTokens, LimitSource: sample.LimitSource, OutputTokens: sample.OutputTokens, CallUsage: sample.CallUsage})
 		turn := &result.Turns[turns[input.EventID]]
 		turn.CallIDs = append(turn.CallIDs, sample.RequestID)
