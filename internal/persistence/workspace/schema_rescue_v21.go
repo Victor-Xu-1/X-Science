@@ -190,6 +190,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == memoryExtractionCadenceV82PreflightIdentity && identity.RuleSpec == memoryExtractionCadenceV82RuleSpec
 	case literatureMutationIdentityV83CallbackID:
 		return identity.PreflightIdentity == literatureMutationIdentityV83PreflightIdentity && identity.RuleSpec == literatureMutationIdentityV83RuleSpec
+	case literatureCollectionsV84CallbackID:
+		return identity.PreflightIdentity == literatureCollectionsV84PreflightIdentity && identity.RuleSpec == literatureCollectionsV84RuleSpec
 	default:
 		return false
 	}
@@ -328,6 +330,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightMemoryExtractionCadenceV82(ctx, executor)
 	case literatureMutationIdentityV83PreflightIdentity:
 		return nil
+	case literatureCollectionsV84PreflightIdentity:
+		return preflightLiteratureCollectionsV84(ctx, executor)
 	default:
 		return errors.New("schema migration preflight is not registered")
 	}
@@ -443,6 +447,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 	case memoryExtractionCadenceV82CallbackID:
 		return nil
 	case literatureMutationIdentityV83CallbackID:
+		return nil
+	case literatureCollectionsV84CallbackID:
 		return nil
 	default:
 		return errors.New("schema migration callback is not registered")

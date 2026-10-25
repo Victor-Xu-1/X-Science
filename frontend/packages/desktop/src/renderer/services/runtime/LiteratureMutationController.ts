@@ -5,8 +5,14 @@ import {
   type LiteratureCommand,
   type LiteratureReceipt,
 } from '@/common/adapter/literatureLibrary';
+import {
+  decodeLiteratureCollectionCommand,
+  type LiteratureCollectionCommand,
+  type LiteratureCollectionReceipt,
+} from '@/common/adapter/literatureCollections';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '../rendererAccountScope';
 import { runLiteratureCommand } from './literatureLibrary';
+import { runLiteratureCollectionCommand } from './literatureCollections';
 import { withLiteratureMutationLock } from './literatureMutationLock';
 
 class OriginalPendingConflict extends Error {
@@ -15,11 +21,31 @@ class OriginalPendingConflict extends Error {
   }
 }
 
+export type LiteratureMutationCommand = LiteratureCommand | LiteratureCollectionCommand;
+export type LiteratureMutationReceipt = LiteratureReceipt | LiteratureCollectionReceipt;
+type ReceiptFor<Command extends LiteratureMutationCommand> = Command extends LiteratureCollectionCommand
+  ? LiteratureCollectionReceipt
+  : LiteratureReceipt;
+
+const isCollectionCommand = (command: LiteratureMutationCommand): command is LiteratureCollectionCommand =>
+  command.kind.startsWith('collection-');
+const decodeMutationCommand = (value: unknown): LiteratureMutationCommand => {
+  if (
+    value &&
+    typeof value === 'object' &&
+    'kind' in value &&
+    typeof value.kind === 'string' &&
+    value.kind.startsWith('collection-')
+  )
+    return decodeLiteratureCollectionCommand(value);
+  return decodeLiteratureCommand(value);
+};
+
 export type LiteratureMutationView = {
-  pending: LiteratureCommand | null;
+  pending: LiteratureMutationCommand | null;
   mutating: boolean;
   error: 'uncertain' | 'rejected' | 'storage' | null;
-  receipt?: LiteratureReceipt;
+  receipt?: LiteratureMutationReceipt;
 };
 
 /** One renderer-account mutation owner. The server ledger remains the commit authority. */
@@ -27,14 +53,15 @@ export class LiteratureMutationController {
   private view: LiteratureMutationView = { pending: null, mutating: false, error: null };
   private listeners = new Set<() => void>();
   private readonly account = getRendererAccountScopeToken();
-  private promise?: Promise<LiteratureReceipt>;
-  private flightCommand?: LiteratureCommand;
+  private promise?: Promise<LiteratureMutationReceipt>;
+  private flightCommand?: LiteratureMutationCommand;
   private readonly key: string;
   constructor(
     private ownerId: string,
     private options: {
       storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
       run?: typeof runLiteratureCommand;
+      runCollection?: typeof runLiteratureCollectionCommand;
     } = {}
   ) {
     this.key = `x-science.literature-mutation.v1:${encodeURIComponent(ownerId)}`;
@@ -58,7 +85,7 @@ export class LiteratureMutationController {
     this.view = { ...this.view, ...patch };
     for (const listener of this.listeners) listener();
   }
-  private readPending(): LiteratureCommand | null {
+  private readPending(): LiteratureMutationCommand | null {
     const raw = this.storage().getItem(this.key);
     if (!raw) return null;
     const value: unknown = JSON.parse(raw);
@@ -70,9 +97,9 @@ export class LiteratureMutationController {
       !('command' in value)
     )
       throw new Error('Library pending request scope changed');
-    return decodeLiteratureCommand(value.command);
+    return decodeMutationCommand(value.command);
   }
-  private sameCommand(left: LiteratureCommand, right: LiteratureCommand) {
+  private sameCommand(left: LiteratureMutationCommand, right: LiteratureMutationCommand) {
     return literatureValueIdentity(left) === literatureValueIdentity(right);
   }
   private async locked(critical: () => void) {
@@ -84,7 +111,7 @@ export class LiteratureMutationController {
       throw new Error('Library pending storage unavailable', { cause: error });
     }
   }
-  private reserve(command: LiteratureCommand) {
+  private reserve(command: LiteratureMutationCommand) {
     return this.locked(() => {
       const pending = this.readPending();
       if (pending && !this.sameCommand(pending, command)) {
@@ -96,7 +123,11 @@ export class LiteratureMutationController {
       this.emit({ pending: command, error: null });
     });
   }
-  private settle(command: LiteratureCommand, outcome: 'ack' | 'rejected' | 'uncertain', receipt?: LiteratureReceipt) {
+  private settle(
+    command: LiteratureMutationCommand,
+    outcome: 'ack' | 'rejected' | 'uncertain',
+    receipt?: LiteratureMutationReceipt
+  ) {
     return this.locked(() => {
       const pending = this.readPending();
       const matching = pending && this.sameCommand(pending, command);
@@ -111,13 +142,15 @@ export class LiteratureMutationController {
       });
     });
   }
-  private async execute(command: LiteratureCommand) {
+  private async execute(command: LiteratureMutationCommand) {
     await this.reserve(command);
     if (!this.current()) throw new Error('Library account changed');
-    let receipt: LiteratureReceipt;
+    let receipt: LiteratureMutationReceipt;
     try {
       // Deliberately outside the storage lock; synchronous transport exceptions are recoverable too.
-      receipt = await (this.options.run ?? runLiteratureCommand)(command);
+      receipt = isCollectionCommand(command)
+        ? await (this.options.runCollection ?? runLiteratureCollectionCommand)(command)
+        : await (this.options.run ?? runLiteratureCommand)(command);
     } catch (error) {
       if (this.current()) {
         const rejected = isBackendHttpError(error) && error.status >= 400 && error.status < 500;
@@ -138,12 +171,12 @@ export class LiteratureMutationController {
       this.emit({ error: 'storage' });
     }
   };
-  submit = (input: LiteratureCommand): Promise<LiteratureReceipt> => {
+  submit = <Command extends LiteratureMutationCommand>(input: Command): Promise<ReceiptFor<Command>> => {
     if (!this.current()) return Promise.reject(new Error('Library account changed'));
-    const command = decodeLiteratureCommand(input);
+    const command = decodeMutationCommand(input);
     if (this.promise) {
       return this.flightCommand && this.sameCommand(this.flightCommand, command)
-        ? this.promise
+        ? (this.promise as Promise<ReceiptFor<Command>>)
         : Promise.reject(new OriginalPendingConflict());
     }
     const promise = Promise.resolve()
@@ -159,7 +192,7 @@ export class LiteratureMutationController {
     this.flightCommand = command;
     // Establish the flight before notifying subscribers, which may synchronously submit again.
     this.emit({ mutating: true });
-    return promise;
+    return promise as Promise<ReceiptFor<Command>>;
   };
   retry = () =>
     this.view.pending ? this.submit(this.view.pending) : Promise.reject(new Error('No Library request to retry'));

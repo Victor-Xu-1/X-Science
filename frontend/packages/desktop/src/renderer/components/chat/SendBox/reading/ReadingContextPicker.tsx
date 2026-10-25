@@ -68,6 +68,7 @@ export function ReadingContextPicker({
     const receipt = mutation.view.receipt;
     if (!receipt) return;
     setRetry((value) => value + 1);
+    if (receipt.schema !== 'x-science.literature-receipt.v1') return;
     setEditing((previous) =>
       previous?.id === receipt.item.id ? (receipt.item.deleted ? null : receipt.item) : previous
     );
@@ -260,11 +261,13 @@ export function ReadingContextPicker({
               </button>
             </div>
           )}
-          {lastAction && mutation.view.receipt?.operation_id === lastAction && (
-            <div role='status' className='pdf-reading-notice'>
-              {t('conversation.reading.libraryUpdated', { name: mutation.view.receipt.item.title })}
-            </div>
-          )}
+          {lastAction &&
+            mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' &&
+            mutation.view.receipt.operation_id === lastAction && (
+              <div role='status' className='pdf-reading-notice'>
+                {t('conversation.reading.libraryUpdated', { name: mutation.view.receipt.item.title })}
+              </div>
+            )}
           {editing && (
             <LibraryItemEditor
               key={`${editing.id}:${editing.metadata_revision}`}

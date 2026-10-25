@@ -5,6 +5,14 @@ import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literat
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import type {
+  LiteratureCollectionCommand,
+  LiteratureCollectionReceipt,
+  LiteratureCollectionPage,
+  LiteratureCollectionMembership,
+} from '@/common/adapter/literatureCollections';
+import type { LibraryReadView } from './useLibraryWorkbench';
+import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 
 export const libraryAuthors = (item: LiteratureItem): string => {
@@ -19,6 +27,10 @@ export const libraryAuthors = (item: LiteratureItem): string => {
 export function LibraryItemDetails({
   item,
   account,
+  collections,
+  memberships,
+  submitCollection,
+  refreshCollections,
   projects,
   projectStatus,
   busy,
@@ -27,6 +39,10 @@ export function LibraryItemDetails({
 }: {
   item: LiteratureItem;
   account: string;
+  collections: LibraryReadView<LiteratureCollectionPage>;
+  memberships: LibraryReadView<LiteratureCollectionMembership | undefined>;
+  submitCollection: (command: LiteratureCollectionCommand) => Promise<LiteratureCollectionReceipt>;
+  refreshCollections: () => void;
   projects: XScienceProject[];
   projectStatus: 'loading' | 'ready' | 'error';
   busy: boolean;
@@ -77,6 +93,15 @@ export function LibraryItemDetails({
           </dd>
         </div>
       </dl>
+      <LibraryCollectionMembershipPicker
+        item={item}
+        account={account}
+        collections={collections}
+        memberships={memberships}
+        busy={busy}
+        submit={submitCollection}
+        retry={refreshCollections}
+      />
       <LibraryAttachmentBrowser account={account} item={item} />
       {editing ? (
         <div className='library-workbench__editor'>

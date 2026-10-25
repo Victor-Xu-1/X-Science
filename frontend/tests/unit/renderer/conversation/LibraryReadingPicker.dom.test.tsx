@@ -9,8 +9,9 @@ import { renderWithI18n } from '../../i18nTestUtils';
 import { deferredPdf, pdfContext } from './pdfReadingFixtures';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks } from './literatureMutationLockFixtures';
+import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 
-const mocks = vi.hoisted(() => ({ project: vi.fn(), library: vi.fn(), run: vi.fn() }));
+const mocks = vi.hoisted(() => ({ project: vi.fn(), library: vi.fn(), run: vi.fn(), runCollection: vi.fn() }));
 vi.mock('@/renderer/services/runtime/pdfReadingContext', async (original) => ({
   ...(await original<typeof import('@/renderer/services/runtime/pdfReadingContext')>()),
   loadProjectReadingOptions: mocks.project,
@@ -19,6 +20,10 @@ vi.mock('@/renderer/services/runtime/literatureLibrary', async (original) => ({
   ...(await original<typeof import('@/renderer/services/runtime/literatureLibrary')>()),
   loadLibraryReadingOptions: mocks.library,
   runLiteratureCommand: mocks.run,
+}));
+vi.mock('@/renderer/services/runtime/literatureCollections', async (original) => ({
+  ...(await original<typeof import('@/renderer/services/runtime/literatureCollections')>()),
+  runLiteratureCollectionCommand: mocks.runCollection,
 }));
 const option = {
   name: 'Independent paper',
@@ -42,12 +47,55 @@ describe('L382 Library reading picker', () => {
       unavailable: 0,
     }));
     mocks.run.mockReset();
+    mocks.runCollection.mockReset();
     installLiteratureLocks();
   });
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+  it('keeps the mounted reading picker usable after the shared owner acknowledges a collection', async () => {
+    const select = vi.fn().mockResolvedValue(undefined);
+    mocks.runCollection.mockImplementation(async (command) => ({
+      schema: 'x-science.literature-collection-receipt.v1',
+      operation_id: command.operation_id,
+      action: 'create',
+      collection_id: 'collection',
+      collection: {
+        id: 'collection',
+        revision: 1,
+        name: 'Methods',
+        description: '',
+        parent_id: null,
+        sort_order: 0,
+        item_count: 0,
+      },
+    }));
+    await renderWithI18n(
+      <ReadingContextPicker context={pdfContext([], 0)} pending={false} onSelect={select}>
+        <button>choose source</button>
+      </ReadingContextPicker>,
+      'en-US'
+    );
+    fireEvent.click(screen.getByText('choose source'));
+    fireEvent.click(await screen.findByRole('button', { name: /^Library$/ }));
+    await screen.findByRole('option', { name: 'Independent paper' });
+    const readsBefore = mocks.library.mock.calls.length;
+    const command = {
+      kind: 'collection-create' as const,
+      operation_id: crypto.randomUUID(),
+      name: 'Methods',
+      description: '',
+    };
+    await act(async () => {
+      await getLiteratureMutationController('owner').submit(command);
+    });
+    await waitFor(() => expect(mocks.library.mock.calls.length).toBeGreaterThan(readsBefore));
+    fireEvent.click(await screen.findByRole('option', { name: 'Independent paper' }));
+    await waitFor(() => expect(select).toHaveBeenCalledExactlyOnceWith(option.source));
+    expect(mocks.runCollection).toHaveBeenCalledExactlyOnceWith(command);
+    expect(mocks.run).not.toHaveBeenCalled();
   });
   it('offers a first Library selection from the real empty conversation bar', async () => {
     const link = vi.fn().mockResolvedValue(undefined);
