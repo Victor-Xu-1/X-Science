@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -560,5 +560,177 @@ describe('XScienceMemoryManager', () => {
     expect(Message.error).not.toHaveBeenCalled();
     expect(Message.warning).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('memory-new-input')).not.toBeInTheDocument();
+  });
+
+  describe('Memory category pending-close admission', () => {
+    const draftName = 'Methods';
+    const draftGuidance = 'Recall only for experimental methods and protocol decisions.';
+
+    function deferredAck() {
+      let release!: () => void;
+      const promise = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { promise, release };
+    }
+
+    function fillCategory() {
+      fireEvent.click(screen.getByTestId('memory-category-add'));
+      fireEvent.change(screen.getByTestId('memory-category-name'), { target: { value: draftName } });
+      fireEvent.change(screen.getByTestId('memory-category-guidance'), { target: { value: draftGuidance } });
+    }
+
+    function expectCategoryDraft() {
+      expect(screen.getByTestId('memory-category-name')).toBeVisible();
+      expect(screen.getByTestId('memory-category-name')).toHaveValue(draftName);
+      expect(screen.getByTestId('memory-category-guidance')).toHaveValue(draftGuidance);
+    }
+
+    function expectCategoryInputsEnabled() {
+      expect(screen.getByTestId('memory-category-name')).toBeEnabled();
+      expect(screen.getByTestId('memory-category-guidance')).toBeEnabled();
+    }
+
+    function expectCategoryInputsDisabled() {
+      expect(screen.getByTestId('memory-category-name')).toBeDisabled();
+      expect(screen.getByTestId('memory-category-guidance')).toBeDisabled();
+    }
+
+    function categoryDialog() {
+      const dialog = screen.getByTestId('memory-category-name').closest<HTMLElement>('.arco-modal');
+      expect(dialog).not.toBeNull();
+      return dialog!;
+    }
+
+    function clickNativeClose() {
+      const close = categoryDialog().querySelector<HTMLButtonElement>('button.workbench-modal-close');
+      expect(close).not.toBeNull();
+      fireEvent.click(close!); // Real WorkbenchCloseButton -> Arco -> original onCancel.
+    }
+
+    function clickNativeCancel() {
+      const cancel = categoryDialog().querySelector<HTMLButtonElement>(
+        '.arco-modal-footer button:not(#memory-category-save)'
+      );
+      expect(cancel).not.toBeNull();
+      fireEvent.click(cancel!); // Actual footer button; no locale guess or callback stub.
+    }
+
+    function pressNativeEscape() {
+      const close = categoryDialog().querySelector<HTMLButtonElement>('button.workbench-modal-close');
+      expect(close).not.toBeNull();
+      close!.focus();
+      expect(close).toHaveFocus();
+      fireEvent.keyDown(close!, { key: 'Escape', code: 'Escape', keyCode: 27, which: 27 });
+    }
+
+    async function expectCategoryClosed() {
+      await waitFor(() => expect(screen.queryByTestId('memory-category-name')).not.toBeInTheDocument());
+      await screen.findByTestId('memory-category-add');
+    }
+
+    it('guards the same category producer during pending close, retry and ACK', async () => {
+      const { fetchMock, observed } = createFetchMock();
+      const failedAttempt = deferredAck();
+      const successfulAttempt = deferredAck();
+      let postAttempt = 0;
+      let acknowledged = false;
+      const writes = () => observed.filter(({ url, method }) => url === '/api/memory/categories' && method === 'POST');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+          const method = init?.method ?? 'GET';
+          const response = await fetchMock(input, init); // Reuse original fixture/recorder.
+          if (url === '/api/memory/categories' && method === 'POST') {
+            postAttempt += 1;
+            if (postAttempt === 1) {
+              await failedAttempt.promise;
+              return Response.json({ error: 'category write unavailable' }, { status: 503 });
+            }
+            if (postAttempt !== 2) throw new Error('Unexpected category write without an explicit retry');
+            await successfulAttempt.promise;
+            acknowledged = true;
+          }
+          if (url === '/api/memory/context' && method === 'GET' && acknowledged) {
+            return Response.json({
+              ...memoryContext,
+              categories: [
+                ...memoryContext.categories,
+                {
+                  id: 'memcat_created',
+                  name: draftName,
+                  guidance: draftGuidance,
+                  auto_recall: true,
+                  row_count: 0,
+                },
+              ],
+            });
+          }
+          return response;
+        })
+      );
+
+      const attemptClosingWhilePending = () => {
+        expectCategoryInputsDisabled();
+        clickNativeClose();
+        // Primary current-source RED: onCancel has already set categoryDraft=null.
+        expectCategoryDraft();
+        clickNativeCancel();
+        expectCategoryDraft();
+        pressNativeEscape();
+        expectCategoryDraft();
+      };
+
+      try {
+        const view = await renderWithI18n(<XScienceMemoryManager />, 'en-US');
+        await screen.findByTestId('memory-category-add');
+        fillCategory();
+        expectCategoryInputsEnabled();
+        const firstSave = document.querySelector<HTMLButtonElement>('#memory-category-save');
+        expect(firstSave).toBeEnabled();
+        fireEvent.click(firstSave!);
+        await waitFor(() => expect(writes()).toHaveLength(1));
+
+        attemptClosingWhilePending();
+        expect(writes()).toHaveLength(1);
+
+        // Failure belongs to this same editor: retain values and permit an
+        // explicit retry, without creating another producer or auto-retrying.
+        await act(async () => failedAttempt.release());
+        await waitFor(() => expect(Message.error).toHaveBeenCalledWith(view.i18n.t('settings.memoryMutationError')));
+        expectCategoryDraft();
+        expectCategoryInputsEnabled();
+        const retrySave = document.querySelector<HTMLButtonElement>('#memory-category-save');
+        await waitFor(() => expect(retrySave).toBeEnabled());
+        expect(writes()).toHaveLength(1);
+        fireEvent.click(retrySave!);
+        await waitFor(() => expect(writes()).toHaveLength(2));
+
+        attemptClosingWhilePending();
+        expect(writes()).toHaveLength(2);
+        await act(async () => successfulAttempt.release());
+        await expectCategoryClosed();
+        expect(writes()).toHaveLength(2); // Exactly one POST for each explicit Save.
+
+        // Completion unlocks the next operation and proves all three native
+        // cancellation paths are reachable when idle, rather than no-ops.
+        fillCategory();
+        pressNativeEscape();
+        await expectCategoryClosed();
+        fillCategory();
+        clickNativeCancel();
+        await expectCategoryClosed();
+        fillCategory();
+        clickNativeClose();
+        await expectCategoryClosed();
+        expect(writes()).toHaveLength(2);
+      } finally {
+        await act(async () => {
+          failedAttempt.release();
+          successfulAttempt.release();
+        });
+      }
+    });
   });
 });
