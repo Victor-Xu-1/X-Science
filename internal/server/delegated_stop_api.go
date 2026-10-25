@@ -76,6 +76,7 @@ func (s *Server) handleDelegatedStopSubmit(w http.ResponseWriter, r *http.Reques
 		writeDelegatedStopError(w, err)
 		return
 	}
+	admissionReplayed := receipt.Replayed
 	// Exact durable cancellation won. No whole-root, weak execution-ID or
 	// current/latest fallback is used for a missing physical registration.
 	if _, err := s.signalDelegatedStop(r.Context(), owner, &receipt); err != nil {
@@ -91,6 +92,8 @@ func (s *Server) handleDelegatedStopSubmit(w http.ResponseWriter, r *http.Reques
 		writeDelegatedStopError(w, err)
 		return
 	}
+	// Replay describes this POST admission; canonical readback owns the outcome.
+	receipt.Replayed = admissionReplayed
 	s.observeDelegatedStop(r.Context(), owner, &receipt)
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, receipt)
