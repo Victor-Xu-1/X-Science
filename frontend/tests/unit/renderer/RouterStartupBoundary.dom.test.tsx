@@ -26,6 +26,7 @@ vi.mock('@/renderer/components/layout/routeModules', () => ({
   },
   loadGuidRoute: () => Promise.resolve({ default: () => null }),
   loadProjectRoute: () => Promise.resolve({ default: () => null }),
+  loadLibraryRoute: () => Promise.resolve({ default: () => null }),
   loadArtifactPreviewRoute: () => Promise.resolve({ default: () => null }),
   loadSettingsRoute: () => Promise.resolve({ default: () => null }),
 }));
