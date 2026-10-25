@@ -7,6 +7,7 @@ import {
   callSegments,
   reportedCallToken,
   summarizeInspectionCalls,
+  inspectionTurnPoints,
 } from '@/renderer/components/xScience/runtime/contextInspectionModel';
 import { fetchContextUsage, parseContextUsage, type ContextUsageSnapshot } from '@/renderer/services/contextUsage';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
@@ -207,6 +208,7 @@ describe('Transcript-bound context inspector', () => {
       ...data.turns[1],
       id: 'pending-turn',
       inputMessageId: 'input-pending',
+      inputRevision: 3,
       status: 'running',
       runnerAttempts: [6],
       callIds: [],
@@ -219,7 +221,7 @@ describe('Transcript-bound context inspector', () => {
     await openMenu();
     const points = screen.getAllByTestId('context-inspector-turn-point');
     expect(points).toHaveLength(4);
-    expect(screen.getByTestId('context-inspector-in-progress')).toHaveTextContent('Turn 3');
+    expect(screen.getByTestId('context-inspector-in-progress')).toHaveTextContent('Input revision 3');
     expect(screen.getByTestId('context-inspector-in-progress')).toHaveTextContent('Running');
     fireEvent.click(points[0]);
     expect(screen.getByTestId('context-inspector-turn-details')).toHaveTextContent('Failed');
@@ -269,7 +271,7 @@ describe('Transcript-bound context inspector', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Calls' }));
     expect(screen.getAllByTestId('context-inspector-call-point')).toHaveLength(2);
     expect(screen.getAllByTestId('context-inspector-call-band')).toHaveLength(1);
-    expect(screen.getByTestId('context-inspector-call-band')).toHaveTextContent('Turn 1');
+    expect(screen.getByTestId('context-inspector-call-band')).toHaveTextContent('Input revision 1');
     expect(screen.getByTestId('context-inspector-token-input')).toHaveTextContent('11');
     expect(screen.getByTestId('context-inspector-token-cache_read')).toHaveTextContent('Not reported');
     expect(screen.getByTestId('context-inspector-coverage')).toHaveTextContent('3 historical context samples');
@@ -596,6 +598,78 @@ describe('Transcript-bound context inspector', () => {
     );
   });
 
+  it('uses durable input revisions and attempts instead of retained turn positions', async () => {
+    const data = inspection();
+    data.turns[0].inputRevision = 25;
+    data.turns[0].runnerAttempts = [77];
+    data.turns[0].outcomes[0].runnerAttempt = 77;
+    data.calls[0].inputRevision = 25;
+    data.calls[0].runnerAttempt = 77;
+    data.turns[1].inputRevision = 33;
+    const parsed = parseContextUsage({ status: 'unavailable', inspection: data }, conversationId).inspection!;
+    expect(inspectionTurnPoints(parsed)[0]).toMatchObject({ inputRevision: 25, runnerAttempt: 77 });
+    expect(inspectionTurnPoints({ ...parsed, turns: parsed.turns.slice(0, 1) })[0]).toMatchObject({
+      inputRevision: 25,
+      runnerAttempt: 77,
+    });
+    vi.mocked(fetch).mockImplementation(
+      async () => new Response(JSON.stringify({ status: 'unavailable', inspection: data }))
+    );
+    await renderWithI18n(<MenuHarness />, 'en-US');
+    await openMenu();
+    fireEvent.click(screen.getAllByTestId('context-inspector-turn-point')[0]);
+    expect(screen.getByTestId('context-inspector-turn-details')).toHaveTextContent('Input revision 25 · Attempt 77');
+    expect(screen.getByTestId('context-inspector-turn-details')).not.toHaveTextContent('Turn 1');
+    fireEvent.click(screen.getByRole('tab', { name: 'Calls' }));
+    expect(screen.getByTestId('context-inspector-call-band')).toHaveTextContent('Input revision 25');
+    expect(screen.getByTestId('context-inspector-call-details')).toHaveTextContent('Input revision 25 · Attempt 77');
+  });
+
+  it.each([
+    ['cancelled', 'Call interrupted'],
+    ['deadline', 'Call timed out'],
+    [undefined, 'Failed or interrupted'],
+  ] as const)('uses only recorded call failure evidence for %s', async (kind, label) => {
+    const data = inspection();
+    data.turns[0].status = 'cancelled';
+    data.turns[0].outcomes[0].status = 'cancelled';
+    const payload = {
+      ...data,
+      calls: data.calls.map((call) => ({
+        ...call,
+        state: 'failed',
+        callUsage: undefined,
+        ...(kind ? { failureKind: kind } : {}),
+      })),
+    };
+    vi.mocked(fetch).mockImplementation(
+      async () => new Response(JSON.stringify({ status: 'unavailable', inspection: payload }))
+    );
+    await renderWithI18n(<MenuHarness />, 'en-US');
+    await openMenu();
+    fireEvent.click(screen.getByRole('tab', { name: 'Calls' }));
+    const details = screen.getByTestId('context-inspector-call-details');
+    expect(details).toHaveTextContent(label);
+    if (!kind) expect(details).toHaveTextContent('The failure cause was not recorded.');
+    else expect(details).not.toHaveTextContent('The failure cause was not recorded.');
+  });
+
+  it('rejects malformed failure evidence and never gives missing identities a chart index', () => {
+    const data = inspection();
+    const parsed = parseContextUsage({ status: 'unavailable', inspection: data }, conversationId).inspection!;
+    parsed.turns[0].inputRevision = 0;
+    expect(inspectionTurnPoints(parsed)[0].inputRevision).toBeUndefined();
+    for (const kind of [null, '', 'other', true, { kind: 'cancelled' }]) {
+      const payload = {
+        ...data,
+        calls: data.calls.map((call) => ({ ...call, state: 'failed', callUsage: undefined, failureKind: kind })),
+      };
+      expect(() => parseContextUsage({ status: 'unavailable', inspection: payload }, conversationId)).toThrow(
+        'Invalid context inspection call'
+      );
+    }
+  });
+
   it('keeps reclaimed usage unknown and distinguishes consumed-but-unassociated inputs from pending or completed runs', async () => {
     const data = inspection();
     data.turns[0].outcomes.unshift({
@@ -610,6 +684,7 @@ describe('Transcript-bound context inspector', () => {
       ...data.turns[1],
       id: 'unassociated-input',
       inputMessageId: 'input-unknown',
+      inputRevision: 3,
       status: 'unknown',
       runnerAttempts: [],
       callIds: [],
@@ -622,7 +697,7 @@ describe('Transcript-bound context inspector', () => {
     await openMenu();
     expect(screen.getAllByTestId('context-inspector-turn-point')).toHaveLength(3);
     expect(screen.queryByTestId('context-inspector-in-progress')).not.toBeInTheDocument();
-    expect(screen.getByTestId('context-inspector-unresolved-turns')).toHaveTextContent('Turn 3');
+    expect(screen.getByTestId('context-inspector-unresolved-turns')).toHaveTextContent('Input revision 3');
     expect(screen.getByTestId('context-inspector-unresolved-turns')).toHaveTextContent('Status unavailable');
     fireEvent.click(screen.getAllByTestId('context-inspector-turn-point')[0]);
     expect(screen.getByTestId('context-inspector-turn-details')).toHaveTextContent('Reclaimed');

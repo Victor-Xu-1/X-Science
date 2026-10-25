@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { parseContextInspection, type ContextInspection } from './runtime/contextInspection';
+import {
+  parseContextInspection,
+  validContextCallFailureKind,
+  type ContextCallFailureKind,
+  type ContextInspection,
+} from './runtime/contextInspection';
 
 export const CONTEXT_USAGE_CATEGORIES = ['systemPrompt', 'tools', 'messages', 'mcp', 'skills'] as const;
 export type ContextUsageCategory = (typeof CONTEXT_USAGE_CATEGORIES)[number];
@@ -43,6 +48,7 @@ export type ContextUsageSnapshot = {
   model: string;
   observedAt: string;
   state: 'request' | 'complete' | 'failed';
+  failureKind?: ContextCallFailureKind;
   source: 'provider' | 'estimated';
   usedTokens: number;
   limitTokens: number;
@@ -164,6 +170,7 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
     typeof value.observedAt !== 'string' ||
     !Number.isFinite(Date.parse(value.observedAt)) ||
     !['request', 'complete', 'failed'].includes(String(value.state)) ||
+    (Object.hasOwn(value, 'failureKind') && !validContextCallFailureKind(value.failureKind, value.state)) ||
     !['provider', 'estimated'].includes(String(value.source)) ||
     !['configured', 'model_profile', 'unknown', 'runner_default'].includes(String(value.limitSource)) ||
     !isTokenCount(value.usedTokens) ||
@@ -266,6 +273,7 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
       latest.usedTokens !== value.usedTokens ||
       latest.outputTokens !== value.outputTokens ||
       latest.state !== value.state ||
+      latest.failureKind !== value.failureKind ||
       latest.source !== value.source ||
       latest.observedAt !== value.observedAt ||
       latest.limitTokens !== (legacyDefault ? 0 : value.limitTokens) ||

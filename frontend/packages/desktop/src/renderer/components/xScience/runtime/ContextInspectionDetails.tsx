@@ -8,6 +8,7 @@ import {
   CONTEXT_CALL_FIELDS,
   INSPECTION_COLORS,
   reportedCallToken,
+  knownInspectionNumber,
   type ContextInspectionTurnPoint,
 } from './contextInspectionModel';
 import styles from './ContextWindowInspector.module.css';
@@ -77,18 +78,20 @@ export function InspectionComposition({ sample, title }: { sample: ContextUsageS
   );
 }
 
-export function InspectionTurnDetails({ turn, index }: { turn: ContextInspectionTurnPoint; index: number }) {
+export function InspectionTurnDetails({ turn }: { turn: ContextInspectionTurnPoint }) {
   const { t } = useTranslation();
   const known = ['completed', 'failed', 'cancelled', 'reclaimed', 'pending', 'running'].includes(turn.status);
   return (
     <section className={styles.details} data-testid='context-inspector-turn-details'>
       <div className={styles.detailHeading}>
-        <h3>{t(PREFIX + 'outcomeNumber', { turn: turn.turnNumber, run: index + 1 })}</h3>
+        <h3>
+          {t(PREFIX + 'outcomeNumber', {
+            revision: turn.inputRevision ?? '—',
+            attempt: knownInspectionNumber(turn.runnerAttempt) ?? '—',
+          })}
+        </h3>
         <span>{known ? t(PREFIX + 'status_' + turn.status) : t(PREFIX + 'statusUnknown')}</span>
       </div>
-      <p className={styles.muted}>
-        {t(PREFIX + 'attempts')}: {turn.runnerAttempt}
-      </p>
       {turn.sample ? (
         <InspectionComposition sample={turn.sample} title={t(PREFIX + 'windowUsed')} />
       ) : (
@@ -105,11 +108,20 @@ export function InspectionCallDetails({ call, index }: { call: ContextInspection
     <section className={styles.details} data-testid='context-inspector-call-details'>
       <div className={styles.detailHeading}>
         <h3>{t(PREFIX + 'callNumber', { count: index + 1 })}</h3>
-        <span>{t(PREFIX + 'callState_' + call.state)}</span>
+        <span>{t(PREFIX + 'callState_' + (call.failureKind ?? call.state))}</span>
       </div>
       <p className={styles.muted}>
         {call.model} · {new Date(call.observedAt).toLocaleString()}
       </p>
+      <p className={styles.muted}>
+        {t(PREFIX + 'outcomeNumber', {
+          revision: knownInspectionNumber(call.inputRevision) ?? '—',
+          attempt: knownInspectionNumber(call.runnerAttempt) ?? '—',
+        })}
+      </p>
+      {call.state === 'failed' && !call.failureKind && (
+        <p className={styles.muted}>{t(PREFIX + 'failureCauseUnknown')}</p>
+      )}
       <div className={styles.callGrid}>
         <div>
           <span className={styles.muted}>{t(PREFIX + 'windowUsed')}</span>
