@@ -338,7 +338,7 @@ export async function stageOnboardingTask(
       artifact = await uploadArtifactAttachment(
         input.projectId,
         file,
-        { fetchImpl },
+        { fetchImpl, signal: options.signal },
         {
           pending,
           onInitialized: (next) => options.onUploadInitialized?.(file, next),
@@ -346,6 +346,7 @@ export async function stageOnboardingTask(
         }
       );
     }
+    throwIfAttachmentAborted(options.signal);
     assertAuthority();
     if (!uploaded) options.onArtifactUploaded?.(file, { projectId: input.projectId, artifact });
     uploadedArtifacts.push(artifact);
@@ -362,7 +363,7 @@ export async function stageOnboardingTask(
     profileArtifact = await uploadArtifactAttachment(
       input.projectId,
       input.profileFile,
-      { fetchImpl },
+      { fetchImpl, signal: options.signal },
       {
         pending: pendingProfile,
         onInitialized: (next) => options.onUploadInitialized?.(input.profileFile, next),
@@ -370,6 +371,7 @@ export async function stageOnboardingTask(
       }
     );
   }
+  throwIfAttachmentAborted(options.signal);
   assertAuthority();
   if (!cachedProfile) {
     options.onArtifactUploaded?.(input.profileFile, { projectId: input.projectId, artifact: profileArtifact });
@@ -501,13 +503,14 @@ export async function prepareOnboardingSuggestionArtifacts(
       artifact = await uploadArtifactAttachment(
         projectId,
         file,
-        { fetchImpl },
+        { fetchImpl, signal: options.signal },
         {
           pending,
           onInitialized: (next) => options.onUploadInitialized?.(file, next),
           onAbandoned: () => options.onUploadAbandoned?.(file),
         }
       );
+      throwIfAttachmentAborted(options.signal);
       assertAuthority();
       options.onArtifactUploaded?.(file, { projectId, artifact });
     }
@@ -609,6 +612,9 @@ async function uploadArtifactAttachment(
   } = {}
 ): Promise<OnboardingUploadedArtifact> {
   const fetchImpl = options.fetchImpl ?? fetch;
+  const signal = options.signal;
+  // An already-cancelled operation must not even dispatch recovery cleanup.
+  throwIfAttachmentAborted(signal);
   let uploadId = recovery.pending?.uploadId ?? '';
   let resumed = Boolean(recovery.pending);
   let finalizeStarted = false;
@@ -617,12 +623,15 @@ async function uploadArtifactAttachment(
     let missingChunks: number[] = [];
     if (uploadId) {
       try {
-        const status = await loadOnboardingUploadStatus(uploadId, file, fetchImpl);
+        const status = await loadOnboardingUploadStatus(uploadId, file, fetchImpl, signal);
+        throwIfAttachmentAborted(signal);
         chunkSize = status.chunkSize;
         missingChunks = status.missingChunks;
       } catch (error) {
+        throwIfAttachmentAborted(signal);
         if (!isBackendHttpError(error) || error.status !== 404) throw error;
         recovery.onAbandoned?.();
+        throwIfAttachmentAborted(signal);
         uploadId = '';
         resumed = false;
       }
@@ -632,6 +641,7 @@ async function uploadArtifactAttachment(
         fetchImpl,
         init: {
           method: 'POST',
+          signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             project_id: projectId,
@@ -641,49 +651,60 @@ async function uploadArtifactAttachment(
           }),
         },
       });
+      throwIfAttachmentAborted(signal);
       if (!isRecord(initPayload) || typeof initPayload.upload_id !== 'string' || !initPayload.upload_id.trim()) {
         throw new Error('Attachment upload initialization response is invalid');
       }
       uploadId = initPayload.upload_id.trim();
       recovery.onInitialized?.({ projectId, uploadId });
+      throwIfAttachmentAborted(signal);
       const initializedChunkSize = positiveInteger(initPayload.chunk_size);
       if (initializedChunkSize === null) throw new Error('Attachment upload initialization response is invalid');
       chunkSize = initializedChunkSize;
       missingChunks = Array.from({ length: Math.ceil(file.size / chunkSize) }, (_, index) => index);
     }
     for (const chunkIndex of missingChunks) {
+      throwIfAttachmentAborted(signal);
       if (chunkIndex < 0 || chunkIndex >= Math.ceil(file.size / chunkSize)) {
         throw new Error('Attachment upload status response is invalid');
       }
-      // The upload protocol requires chunks to arrive in index order. Status
-      // recovery returns only missing indices, so committed chunks are not
-      // retransmitted after an uncertain response.
+      // The original ordered, idempotent chunk protocol remains authoritative.
       // eslint-disable-next-line no-await-in-loop
       await uploadOnboardingChunk(
         uploadId,
         chunkIndex,
         file.slice(chunkIndex * chunkSize, Math.min(file.size, (chunkIndex + 1) * chunkSize)),
-        fetchImpl
+        fetchImpl,
+        signal
       );
     }
+    throwIfAttachmentAborted(signal);
     finalizeStarted = true;
-    return await finalizeOnboardingUpload(uploadId, fetchImpl);
+    const artifact = await finalizeOnboardingUpload(uploadId, fetchImpl, signal);
+    throwIfAttachmentAborted(signal);
+    return artifact;
   } catch (error) {
-    const preserveResumableUpload = resumed && !finalizeStarted && retryAttachmentChunkResponse(error);
-    if (uploadId && !preserveResumableUpload && (!finalizeStarted || !finalizeOutcomeUncertain(error))) {
+    const failure = signal?.aborted ? attachmentAbortError(signal) : error;
+    const preserveResumableUpload = resumed && !finalizeStarted && retryAttachmentChunkResponse(failure);
+    // Cancelling a finalize cannot prove that its transaction did not commit.
+    if (uploadId && !preserveResumableUpload && (!finalizeStarted || !finalizeOutcomeUncertain(failure))) {
       const abandoned = await abandonOnboardingUpload(uploadId, fetchImpl);
-      if (abandoned) recovery.onAbandoned?.();
+      if (abandoned && !signal?.aborted) recovery.onAbandoned?.();
     }
-    throw error;
+    throwIfAttachmentAborted(signal);
+    throw failure;
   }
 }
-
 async function loadOnboardingUploadStatus(
   uploadId: string,
   file: File,
-  fetchImpl: typeof fetch
+  fetchImpl: typeof fetch,
+  signal?: AbortSignal
 ): Promise<{ chunkSize: number; missingChunks: number[] }> {
-  const payload = await requestJson(`/api/artifacts/upload/status/${encodeURIComponent(uploadId)}`, { fetchImpl });
+  const payload = await requestJson(`/api/artifacts/upload/status/${encodeURIComponent(uploadId)}`, {
+    fetchImpl,
+    init: { signal },
+  });
   if (!isRecord(payload)) throw new Error('Attachment upload status response is invalid');
   const chunkSize = positiveInteger(payload.chunk_size);
   const totalSize = positiveInteger(payload.total_size);
@@ -711,10 +732,12 @@ async function uploadOnboardingChunk(
   uploadId: string,
   chunkIndex: number,
   chunk: Blob,
-  fetchImpl: typeof fetch
+  fetchImpl: typeof fetch,
+  signal?: AbortSignal
 ): Promise<void> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    throwIfAttachmentAborted(signal);
     const body = new FormData();
     body.append('upload_id', uploadId);
     body.append('chunk_index', String(chunkIndex));
@@ -725,10 +748,11 @@ async function uploadOnboardingChunk(
       // eslint-disable-next-line no-await-in-loop
       await requestJson('/api/artifacts/upload/chunk', {
         fetchImpl,
-        init: { method: 'POST', body },
+        init: { method: 'POST', body, signal },
       });
       return;
     } catch (error) {
+      throwIfAttachmentAborted(signal);
       lastError = error;
       if (attempt >= 2 || !retryAttachmentChunkResponse(error)) throw error;
       console.warn('[onboardingService] Retrying attachment chunk after a transient failure', {
@@ -739,7 +763,7 @@ async function uploadOnboardingChunk(
       // Bounded exponential backoff avoids hammering the same reverse-proxy
       // or storage failure while keeping an interactive retry responsive.
       // eslint-disable-next-line no-await-in-loop
-      await waitBeforeAttachmentRetry(attempt);
+      await waitBeforeAttachmentRetry(attempt, signal);
     }
   }
   throw lastError;
@@ -754,37 +778,57 @@ function retryAttachmentChunkResponse(error: unknown): boolean {
   return error.status >= 500 && error.status !== 507;
 }
 
-function waitBeforeAttachmentRetry(attempt: number): Promise<void> {
-  return new Promise((resolve) => globalThis.setTimeout(resolve, 150 * 2 ** attempt));
+function waitBeforeAttachmentRetry(attempt: number, signal?: AbortSignal): Promise<void> {
+  let timer: ReturnType<typeof globalThis.setTimeout> | undefined;
+  const clear = () => {
+    if (timer !== undefined) globalThis.clearTimeout(timer);
+  };
+  return withAttachmentAbort(
+    signal,
+    () =>
+      new Promise<void>((resolve) => {
+        timer = globalThis.setTimeout(resolve, 150 * 2 ** attempt);
+      }),
+    clear
+  ).finally(clear);
 }
-
 async function abandonOnboardingUpload(uploadId: string, fetchImpl: typeof fetch): Promise<boolean> {
   const controller = new AbortController();
   const timer = globalThis.setTimeout(
     () => controller.abort(new DOMException('upload cleanup timed out', 'TimeoutError')),
     5_000
   );
+  let response: Response | undefined;
   try {
-    const response = await fetchImpl(`/api/artifacts/upload/${encodeURIComponent(uploadId)}`, {
-      method: 'DELETE',
-      credentials: 'include',
-      signal: controller.signal,
-    });
-    return response.ok || response.status === 404;
+    return await withAttachmentAbort(
+      controller.signal,
+      async () => {
+        response = await fetchImpl(`/api/artifacts/upload/${encodeURIComponent(uploadId)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) cancelAttachmentResponse(response);
+        throwIfAttachmentAborted(controller.signal);
+        return response.ok || response.status === 404;
+      },
+      () => cancelAttachmentResponse(response)
+    );
   } catch {
     return false;
   } finally {
     globalThis.clearTimeout(timer);
   }
 }
-
 async function finalizeOnboardingUpload(
   uploadId: string,
-  fetchImpl: typeof fetch
+  fetchImpl: typeof fetch,
+  signal?: AbortSignal
 ): Promise<OnboardingUploadedArtifact> {
   const path = `/api/artifacts/upload/finalize?upload_id=${encodeURIComponent(uploadId)}`;
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt += 1) {
+    throwIfAttachmentAborted(signal);
     try {
       // A retry must reuse the same upload id and idempotency key in order.
       // eslint-disable-next-line no-await-in-loop
@@ -792,11 +836,13 @@ async function finalizeOnboardingUpload(
         fetchImpl,
         init: {
           method: 'POST',
+          signal,
           headers: { 'Idempotency-Key': `onboarding-artifact-finalize-${uploadId}` },
         },
       });
       return parseFinalizedArtifact(finalized);
     } catch (error) {
+      throwIfAttachmentAborted(signal);
       lastError = error;
       if (attempt > 0 || !retryFinalizeResponse(error)) throw error;
     }
@@ -830,25 +876,82 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError';
 }
 
-async function requestJson(path: string, options: { fetchImpl: typeof fetch; init?: RequestInit }): Promise<unknown> {
-  const response = await options.fetchImpl(path, {
-    credentials: 'include',
-    ...options.init,
-    headers: { Accept: 'application/json', ...options.init?.headers },
-  });
-  const text = await response.text();
-  const payload = text ? safeJson(text) : null;
-  if (!response.ok) {
-    throw new BackendHttpError({
-      method: options.init?.method ?? 'GET',
-      path,
-      status: response.status,
-      body: payload ?? response.statusText,
-    });
-  }
-  return payload;
+function attachmentAbortError(signal: AbortSignal): DOMException {
+  return isAbortError(signal.reason)
+    ? (signal.reason as DOMException)
+    : new DOMException('Attachment upload was cancelled', 'AbortError');
 }
 
+function throwIfAttachmentAborted(signal?: AbortSignal | null): void {
+  if (signal?.aborted) throw attachmentAbortError(signal);
+}
+
+function cancelAttachmentResponse(response?: Response): void {
+  try {
+    void response?.body?.cancel().catch(() => undefined);
+  } catch {
+    // Fetch's original signal owns a locked body reader; cancellation is best effort.
+  }
+}
+
+function withAttachmentAbort<T>(
+  signal: AbortSignal | null | undefined,
+  operation: () => Promise<T>,
+  onAbort?: () => void
+): Promise<T> {
+  if (!signal) return operation();
+  if (signal.aborted) return Promise.reject(attachmentAbortError(signal));
+  let rejectAbort!: (reason: unknown) => void;
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    rejectAbort = reject;
+  });
+  const abort = () => {
+    onAbort?.();
+    rejectAbort(attachmentAbortError(signal));
+  };
+  signal.addEventListener('abort', abort, { once: true });
+  const work = Promise.resolve()
+    .then(() => {
+      throwIfAttachmentAborted(signal);
+      return operation();
+    })
+    .then((value) => {
+      throwIfAttachmentAborted(signal);
+      return value;
+    });
+  // Both promises remain observed, including a noncooperative late response.
+  return Promise.race([work, cancelled]).finally(() => signal.removeEventListener('abort', abort));
+}
+
+async function requestJson(path: string, options: { fetchImpl: typeof fetch; init?: RequestInit }): Promise<unknown> {
+  const signal = options.init?.signal;
+  let response: Response | undefined;
+  return withAttachmentAbort(
+    signal,
+    async () => {
+      response = await options.fetchImpl(path, {
+        credentials: 'include',
+        ...options.init,
+        headers: { Accept: 'application/json', ...options.init?.headers },
+      });
+      if (signal?.aborted) cancelAttachmentResponse(response);
+      throwIfAttachmentAborted(signal);
+      const text = await response.text();
+      throwIfAttachmentAborted(signal);
+      const payload = text ? safeJson(text) : null;
+      if (!response.ok) {
+        throw new BackendHttpError({
+          method: options.init?.method ?? 'GET',
+          path,
+          status: response.status,
+          body: payload ?? response.statusText,
+        });
+      }
+      return payload;
+    },
+    () => cancelAttachmentResponse(response)
+  );
+}
 function enabledKeys(values: Record<string, boolean>): string[] {
   return Object.entries(values)
     .filter(([, enabled]) => enabled)
