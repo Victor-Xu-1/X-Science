@@ -70,6 +70,9 @@ func (s *Server) flushDelegatedStopProofsForIdle(ctx context.Context) error {
 		}
 		started, done, err := proof.begin()
 		if err != nil {
+			if delegatedStopProofRetired(err) {
+				continue
+			}
 			return err
 		}
 		if started {
@@ -81,7 +84,7 @@ func (s *Server) flushDelegatedStopProofsForIdle(ctx context.Context) error {
 				return ctx.Err()
 			}
 		}
-		if err := proof.result(); err != nil {
+		if err := proof.result(); err != nil && !delegatedStopProofRetired(err) {
 			return err
 		}
 	}

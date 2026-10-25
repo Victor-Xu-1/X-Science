@@ -57,8 +57,16 @@ func (s *Server) retainDelegatedStopProof(key delegatedStopCompletionKey, observ
 	return proof
 }
 
+// These canonical domain errors reject the original observation authority.
+// A deleted scope retires its metadata; it is not a successful Stop ACK.
+// SQL failures and context deadlines retain the proof for a later attempt.
+func delegatedStopProofRetired(err error) bool {
+	return errors.Is(err, workspace.ErrDelegatedStopScopeStale) || errors.Is(err, workspace.ErrDelegatedStopRequestConflict) ||
+		errors.Is(err, workspace.ErrDelegatedStopUnavailable)
+}
+
 func (s *Server) completeDelegatedStopProof(proof *delegatedStopPendingProof, err error) {
-	resolved := err == nil || errors.Is(err, workspace.ErrDelegatedStopScopeStale) || errors.Is(err, workspace.ErrDelegatedStopRequestConflict)
+	resolved := err == nil || delegatedStopProofRetired(err)
 	proof.mu.Lock()
 	proof.writing, proof.resolved, proof.err = false, resolved, err
 	if resolved {
@@ -70,7 +78,9 @@ func (s *Server) completeDelegatedStopProof(proof *delegatedStopPendingProof, er
 	}
 	close(proof.done)
 	proof.mu.Unlock()
-	if err != nil {
+	if delegatedStopProofRetired(err) {
+		log.Printf("delegated Stop observation retired after canonical scope/request rejection: %v", err)
+	} else if err != nil {
 		log.Printf("delegated Stop observation persistence failed: %v", err)
 	}
 }
