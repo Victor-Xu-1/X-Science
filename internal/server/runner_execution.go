@@ -178,9 +178,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	options = toolAuthority.Options
 	preparationSubstage = "prepare_conversation_control"
-	options, err = s.prepareConversationSkillContinuation(ctx, options, run)
+	options, currentControl, err := s.prepareConversationSkillContinuation(ctx, options, run)
 	if err != nil {
 		return "", err
+	}
+	if run != nil {
+		run.currentControl = currentControl
 	}
 	runtimeToolUniverse := toolAuthority.Schemas
 	policyContext := toolAuthority.PolicyContext
@@ -223,6 +226,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if err != nil {
 		return "", err
 	}
+	taskLanguage := sessionRunnerResponseLanguage(promptContextFromMessages(messages))
+	messages = appendSessionRunnerCurrentControl(messages, currentControl)
 	if !hasChatRole(messages, "user") {
 		return "", errors.New("runner chat requires at least one user message")
 	}
@@ -279,7 +284,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		run.ContinuationArtifactReferences = artifactReferencesFromRunnerEntries(scientificEntries)
 	}
 	taskIntent := promptContextFromMessages(messages)
-	taskLanguage := sessionRunnerResponseLanguage(taskIntent)
 	options.sourceToolActivity = newSessionRunnerSourceToolActivity(
 		sessionRunnerGenericSourceToolAttemptCount(currentLogicalEntries),
 	)
@@ -302,6 +306,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		} else {
 			taskIntentID = fmt.Sprintf("%s:input:%d", run.Transcript.Stream.UID, run.Transcript.Claim.ClaimedInputRevision)
 			taskIntentRevision = run.Transcript.Claim.ClaimedInputRevision
+		}
+		if currentControl != nil {
+			// The current action owns this run's completion scope. Keep the
+			// persisted scientific intent and its language intact for later work.
+			taskIntent = currentControl.instruction()
+			taskIntentID, taskIntentRevision = currentControl.taskIdentity(run.Transcript.Stream.UID)
 		}
 		if err := applySessionRunnerTaskIntent(run, taskIntent, taskLanguage, taskIntentID, taskIntentRevision); err != nil {
 			return "", err

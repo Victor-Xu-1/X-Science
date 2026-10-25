@@ -201,6 +201,9 @@ func (s *Server) sessionRunnerDurableTaskBoundary(
 	if run.frameOwnedJob {
 		return "", false, nil
 	}
+	if run.currentControl != nil {
+		return run.currentControl.clientMessageID, true, nil
+	}
 	intent, found, err := s.transcriptStore.GetActiveFrameTaskIntent(
 		ctx, run.Transcript.Stream.UID, run.Transcript.Stream.OwnerID,
 	)

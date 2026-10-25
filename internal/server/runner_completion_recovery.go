@@ -75,6 +75,17 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	if stream.InputRevision != previous.ClaimedInputRevision || stream.Epoch != authority.Stream.Epoch {
 		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
 	}
+	previousInput, err := s.transcriptStore.RunnerInputContext(ctx, stream.UID, stream.OwnerID, previous.Attempt)
+	if err != nil {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, fmt.Errorf("load completion recovery input: %w", err)
+	}
+	if previousInput != nil && previousInput.InputData["turn_intent"] == conversationSkillControlIntent {
+		// This shortcut reconstructs a source run from the durable scientific
+		// task intent. A hidden control has its own current-run scope, so let
+		// ordinary checkpoint continuation rebuild it through the original
+		// claimed-input preparer instead of settling under the earlier task.
+		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+	}
 
 	snapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, authority.Stream.UID, authority.Stream.OwnerID)
 	if err != nil {
