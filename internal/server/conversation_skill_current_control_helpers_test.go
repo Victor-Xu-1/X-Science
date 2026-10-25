@@ -9,6 +9,7 @@ import (
 	"time"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func submitSkillControlHTTPInput(t *testing.T, f *agentSaveArtifactsFixture, id, text string, typed bool) string {
@@ -101,6 +102,7 @@ func resumeSkillControlCheckpoint(t *testing.T, f *agentSaveArtifactsFixture, fa
 		t.Fatal(err)
 	}
 	expectedAttempt := f.claim.Attempt
+	runnerID := "skill-control-recovered"
 	if failed {
 		expectedAttempt++
 		// This is an otherwise recoverable completed segment. Without the
@@ -131,12 +133,30 @@ func resumeSkillControlCheckpoint(t *testing.T, f *agentSaveArtifactsFixture, fa
 		}); err != nil {
 			t.Fatal(err)
 		}
+		// A failed Frame cannot be reclaimed by an arbitrary checkpoint runner.
+		// Exercise the normal explicit-resume transaction and its dedicated
+		// dispatch owner instead of bypassing that production authority fence.
+		if unauthorized, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
+			StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: runnerID, TTL: time.Minute,
+			ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
+		}); err != nil || unauthorized.Claimed {
+			t.Fatalf("terminal control accepted an unauthorized reclaim: %#v err=%v", unauthorized, err)
+		}
+		resume, err := f.store.ResumeCompatibilityFrameConversation(f.stream.FrameID, workspace.ResumeCompatibilityFrameInput{})
+		if err != nil || resume.Event == nil || resume.ResumedFrameID != f.stream.FrameID {
+			t.Fatalf("explicit control resume=%#v err=%v", resume, err)
+		}
+		dispatch, claimed, err := f.store.ClaimNextCompatibilityFrameResumeDispatch("skill-control-recovery", time.Minute)
+		if err != nil || !claimed || dispatch.ResumeEvent.ID != resume.Event.ID || dispatch.FrameID != f.stream.FrameID {
+			t.Fatalf("control resume dispatch=%#v claimed=%t err=%v", dispatch, claimed, err)
+		}
+		runnerID = frameResumeRunnerID(dispatch.ResumeEvent.ID)
 	} else if _, err := f.db.Exec(`UPDATE transcript_runner_attempts SET expires_at=? WHERE stream_uid=? AND attempt=?`,
 		time.Now().UTC().Add(-time.Minute), f.stream.UID, f.claim.Attempt); err != nil {
 		t.Fatal(err)
 	}
 	resumed, err := f.repo.ClaimRunner(context.Background(), transcriptstore.ClaimRunnerInput{
-		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: "skill-control-recovered", TTL: time.Minute,
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, RunnerID: runnerID, TTL: time.Minute,
 		ResumeSource: transcriptstore.ResumeSourceCheckpoint, ResumeCheckpoint: checkpoint.Sequence,
 	})
 	if err != nil || !resumed.Claimed || resumed.Claim.Attempt != expectedAttempt || resumed.Claim.ClaimedInputRevision != f.claim.ClaimedInputRevision {
