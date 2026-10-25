@@ -198,6 +198,7 @@ describe('XScienceMemoryManager', () => {
     await renderWithI18n(<XScienceMemoryManager onChanged={() => undefined} />, 'zh-CN');
 
     await waitFor(() => expect(screen.getByTestId('memory-manager')).toBeInTheDocument());
+    await screen.findByTestId('memory-enabled-toggle');
     expect(screen.getByTestId('memory-enabled-toggle')).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByTestId('memory-scope-select')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '记忆范围' })).not.toBeInTheDocument();
