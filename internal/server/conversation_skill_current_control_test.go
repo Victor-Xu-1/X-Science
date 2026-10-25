@@ -23,6 +23,7 @@ func TestConversationSkillCurrentControlHTTPReplayAndRecovery(t *testing.T) {
 			enabled := true
 			if _, err := f.store.CreateAgent(workspace.CreateAgentInput{
 				ID: "skill-control-agent", UserID: f.stream.OwnerID, Name: "OPERON", DisplayName: "Evidence assistant",
+				Description:  "Synthetic assistant for current-control provider capture",
 				SystemPrompt: "PROFILE_PROMPT_MUST_SURVIVE", Unrestricted: true, Enabled: &enabled,
 				SkillNames: []string{"customize", "skill-creator"},
 			}); err != nil {
