@@ -9,6 +9,7 @@ import (
 	"x-science/internal/memorypolicy"
 	"x-science/internal/memorytools"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/providers"
 )
 
 var ErrLiteralRepairFailed = errors.New("memory replacement literal repair failed")
@@ -42,6 +43,11 @@ func (r *ModelLiteralRepairer) RepairMemoryReplacement(ctx context.Context, oldT
 	if r == nil || r.model == nil {
 		return "", fmt.Errorf("%w: repair model is unavailable", ErrLiteralRepairFailed)
 	}
+	if ctx == nil {
+		return "", fmt.Errorf("%w: repair context is required", ErrLiteralRepairFailed)
+	}
+	ctx, cancel := context.WithTimeout(ctx, memorypolicy.ExtractionDeadline)
+	defer cancel()
 	maxChars := memorypolicy.TextMaxUTF16Units
 	basePrompt := fmt.Sprintf(`An existing memory row is being replaced with updated text. The updated text was written from a truncated preview of the old row, so it may accidentally drop details it did not mean to change.
 
@@ -55,16 +61,29 @@ Write the final row: the UPDATED text wins for anything it explicitly updates or
 		oldText, updatedText, maxChars-memorypolicy.LiteralRepairPromptHeadroom)
 	feedback := ""
 	var lastProblem string
+	maxTokens := memorypolicy.LiteralRepairMaxTokens
 	for attempt := 0; attempt < memorypolicy.LiteralRepairAttempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return "", fmt.Errorf("%w: %w", ErrLiteralRepairFailed, errors.Join(err, context.Cause(ctx)))
+		}
 		prompt := basePrompt
 		if feedback != "" {
 			prompt += "\n\n" + feedback
 		}
 		candidate, err := r.model.RepairMemoryText(ctx, RepairRequest{
-			Prompt: prompt, MaxTokens: memorypolicy.LiteralRepairMaxTokens, Temperature: 0,
+			Prompt: prompt, MaxTokens: maxTokens, Temperature: 0,
 		})
+		if ctx.Err() != nil {
+			return "", fmt.Errorf("%w: %w", ErrLiteralRepairFailed, errors.Join(err, ctx.Err(), context.Cause(ctx)))
+		}
 		if err != nil {
-			return "", fmt.Errorf("%w: %v", ErrLiteralRepairFailed, err)
+			if next, recoverable := literalRepairRecoveryBudget(maxTokens, err); recoverable && attempt+1 < memorypolicy.LiteralRepairAttempts {
+				// Discard every partial byte and regenerate the same full input.
+				// Output recovery consumes the existing validation-attempt budget.
+				maxTokens = next
+				continue
+			}
+			return "", fmt.Errorf("%w: %w", ErrLiteralRepairFailed, err)
 		}
 		candidate = strings.TrimSpace(candidate)
 		if candidate == "" || memorypolicy.UTF16Length(candidate) > maxChars {
@@ -89,6 +108,19 @@ Write the final row: the UPDATED text wins for anything it explicitly updates or
 		return candidate, nil
 	}
 	return "", fmt.Errorf("%w after %d attempts: %s", ErrLiteralRepairFailed, memorypolicy.LiteralRepairAttempts, lastProblem)
+}
+
+func literalRepairRecoveryBudget(current int, err error) (int, bool) {
+	if !providers.IsProviderOutputTokenLimit(err) {
+		return 0, false
+	}
+	// Reuse the existing finite Memory reasoning headroom. A profile's saved
+	// allowance or generated usage is not evidence of a model's hard maximum.
+	next := memorypolicy.ExtractionForkedMaxTokens
+	if maximum, known := providers.ProviderOutputTokenMaximum(err); known {
+		next = min(next, maximum)
+	}
+	return next, next > current
 }
 
 func missingLiteralRepairValues(oldText, updatedText, candidate string) []string {
