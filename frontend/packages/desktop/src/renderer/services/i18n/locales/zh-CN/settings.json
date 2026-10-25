@@ -1472,7 +1472,7 @@
   "xScienceSkillsManage": "管理技能",
   "skillsSettings": {
     "title": "技能",
-    "paginationLabel": "技能列表分页",
+    "paginationLabel": "专家卡片分页",
     "fetchFailed": "无法加载技能库。",
     "partialLoadFailed": "部分技能数据加载失败，已加载的结果仍可使用。",
     "enabledMessage": "Skill 已启用",
@@ -1508,7 +1508,6 @@
     "drafts": "草稿",
     "draftsDescription": "尚未发布的个人 Skill。",
     "noMatches": "没有匹配的 Skill",
-    "paginationLabel": "专家卡片分页",
     "noImported": "尚未导入 Skill",
     "noPersonal": "尚未创建个人 Skill",
     "viewNamed": "查看 {{name}}",
@@ -2503,5 +2502,10 @@
       "selectTargetProject": "选择导入目标项目",
       "selectProject": "选择项目"
     }
-  }
+  },
+  "memoryCategoryUncertain": "保存结果尚未确认。请重试同一次保存，或关闭后稍后继续。",
+  "memoryCategoryRetrySameSave": "重试同一次保存",
+  "memoryCategoryCloseRetained": "关闭",
+  "memoryCategoryResumeSave": "继续保存分类",
+  "memoryCategorySavedMissing": "保存已确认，但分类已不在列表中。"
 }

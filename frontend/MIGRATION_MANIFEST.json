@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cc4d7ca071f398581bafab70318c85c6488db1c8d35b302993f27da64a19578a",
+  "adaptationFingerprintSHA256": "c65805a2d0a7928b00693bf3d014fb713072ab92a348a49becfae87036714940",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "718ca3ec0e0ed5027fa057dd69f18f95c88556a16f7768fa9ffaaf1eebdef8b4",
+  "additionFingerprintSHA256": "9a6ef5bbfd170f25b8925e4e2d4890fb9d9cd342c7ba1c2432c39b59ed604a4a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1244
+    "addedFiles": 1245
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "d3c5b02fe7ffeff143c69c60f4dcb09609aec9a9272d0e0ca394e4c97c7fba3e",
+      "targetSHA256": "3ba74ca8b07c5a2285816f704e3a91231d2ed48c6386143948ce883bc0a9aadc",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "b0960b994275d5f82099157c2d82ad7c0555c7ff13233010d99578e0ceafd114",
+      "targetSHA256": "23ec293478cbbce61cbe028831ea3a925e3b609935c2442bb3eb2d2ecb354278",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2762,8 +2762,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/XScienceMemoryManager.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/components/SynonBiomedMemoryManager.tsx",
       "sourceSHA256": "01aafac0f7c8dbec2ef0b6191b405d6db58a805080c0ac12c189ecb5e5ec530a",
-      "targetSHA256": "af34518262f4c06345eacd19bed1c1ba5a7d1f4bf290699072cc8b1dcb36c314",
-      "bytes": 48350,
+      "targetSHA256": "6d77d8d3528dc1fcfd69cfe4c1f40bf9b0e66630745166174bcd287d2878ff20",
+      "bytes": 49336,
       "reason": "Move genuine imported source to the current X-Science namespace. Render a recoverable inline memory-load failure state with an explicit retry action."
     },
     {
@@ -2938,8 +2938,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "6e816d76310324215e2c9ffda46d08614037afaa5ba1fc6b7931280c170b913c",
-      "bytes": 139469,
+      "targetSHA256": "d504fb226c92142ab7691854b71d742680464d441c27d2dfc3eea8d302e6b9a2",
+      "bytes": 140263,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3029,8 +3029,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "c228276e846a0101cd8363631bf10721931d834c493fd172f794df6eafeb075d",
-      "bytes": 134099,
+      "targetSHA256": "adfc9f77af90d25f3f7cdfc0ec1e3874196efea38712b7aeaf8f453eab7ec79a",
+      "bytes": 134405,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },
     {
@@ -3248,8 +3248,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceMemory.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedMemory.ts",
       "sourceSHA256": "ca769a8e1d81595bc1dbf57f1caed5aa28a1727f0d6d4923cbfc8efe4775a516",
-      "targetSHA256": "11d05c078389c28b28973fd2a79bf45fa1ae9cd229ad0ecdba91636cbc51c94b",
-      "bytes": 11861,
+      "targetSHA256": "e5a6fff7db714998ff283737fe8407d7197b2f57665e96ea923167455b85a31b",
+      "bytes": 16894,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -5190,8 +5190,8 @@
       "path": "tests/unit/settings/XScienceMemoryManager.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMemoryManager.dom.test.tsx",
       "sourceSHA256": "6afdab37284d5d4223eeac6a27f3dc622bfd9c13b8dc79bc9b15b39ddf953638",
-      "targetSHA256": "921ac09d6896e8577bb27d631d2d860d3a08cdc4d01c880cb95b28285ddea676",
-      "bytes": 26331,
+      "targetSHA256": "1afa8fcf653196d4a8db5195090fdf6d90fc8289037d0e3d79260a6d5c9afef2",
+      "bytes": 30628,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify the explicit memory-load failure and retry state."
     },
     {
@@ -7577,7 +7577,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "9e411fb2c3b8ae9e261e3d9f0a607c09719eb0e161ca730f55c898b3e7852530",
+      "sha256": "a2f8bb91cc4a68c270e42a7ad62a7100a85274d1379aefd54b74eec732d690d3",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -10319,8 +10319,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/useMemoryCategoryDraft.ts",
-      "sha256": "6d27247cc4e4f1b67f27daf914a9ef6646a481e28eaecaae09a2539e0e160fac",
-      "bytes": 4563,
+      "sha256": "fe1e7e7d3e1c73a0b9ffc02ef5e17aedf5f3fa7b3fe683eccec78b1eae93a0d2",
+      "bytes": 4932,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10913,8 +10913,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/memoryCategoryDraft.ts",
-      "sha256": "37ab15c3c2c4f1755f42e0c44d183651249f77ce6436d48e00a6bef94ab35f34",
-      "bytes": 12523,
+      "sha256": "f71c9d294556e9d585626abab5ce76e2501edec684e39b9213aadaa3d359f75b",
+      "bytes": 14482,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12881,8 +12881,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSessionMemoryAvailability.dom.test.tsx",
-      "sha256": "5f185330957b616e63acf6445e290932bb6326328f415dad3c2000eb458b5ccc",
-      "bytes": 28103,
+      "sha256": "09533383db6fa197b92ca4f003b9078af082c61b345ec2f9402405ae00b7ca51",
+      "bytes": 28258,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13985,8 +13985,8 @@
     },
     {
       "path": "tests/unit/settings/memoryCategoryDraft.test.ts",
-      "sha256": "4fdf02f65b31ffdc1f7ad192453596fbab881615df36fa0b78939cd79f3cf003",
-      "bytes": 5943,
+      "sha256": "8f2171e5becb234f2e9554edf02fc17d6797411d1145e15617b699fbe0df8039",
+      "bytes": 8914,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14437,6 +14437,12 @@
       "path": "tests/unit/xscience/mcpDescriptions.test.ts",
       "sha256": "8e57d28f6f8c5b0ac0936d3097ae39d7e10d7e0a2c203258744903d2cb90284f",
       "bytes": 2900,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/memoryCategoryRequestDeadline.test.ts",
+      "sha256": "4b935edaa79fef769bbc4b9c0e0ecc616f55e2243e487bd967cd75e872d5a869",
+      "bytes": 8042,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -149,11 +149,16 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
         }
       }
       if (!delivery.isCurrent()) return;
-      if (delivery.claimSaved()) Message.success(t('settings.memoryCategorySaved'));
+      if (delivery.claimSaved()) {
+        if (delivery.outcome === 'missing') Message.warning(t('settings.memoryCategorySavedMissing'));
+        else Message.success(t('settings.memoryCategorySaved'));
+      }
       if (refreshFailed) Message.warning(t('settings.memoryRefreshError'));
     },
-    onFailed: (current) => {
-      if (current()) Message.error(t('settings.memoryMutationError'));
+    onFailed: (current, kind) => {
+      if (!current()) return;
+      if (kind === 'rejected') Message.error(t('settings.memoryMutationError'));
+      else Message.warning(t('settings.memoryCategoryUncertain'));
     },
     onRefreshFailed: (current) => {
       if (current()) Message.warning(t('settings.memoryRefreshError'));
@@ -758,10 +763,14 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                             ? t('settings.memoryCategoryLimit', { count: MAX_MEMORY_CATEGORIES })
                             : t('settings.memoryCategoryAdd')
                         }
-                        disabled={pending || categoryLimitReached || !categoryEditor.available}
+                        disabled={
+                          pending || (!categoryEditor.retained && categoryLimitReached) || !categoryEditor.available
+                        }
                         onClick={() => categoryEditor.openCreate()}
                       >
-                        {t('settings.memoryCategoryAdd')}
+                        {t(
+                          categoryEditor.retained ? 'settings.memoryCategoryResumeSave' : 'settings.memoryCategoryAdd'
+                        )}
                       </Button>
                     </Tooltip>
                   </div>
@@ -965,10 +974,12 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
           visible
           onCancel={() => {
             if (pending) return;
-            categoryEditor.discard();
+            categoryEditor.close();
           }}
           onOk={() => void categoryEditor.save()}
           confirmLoading={pending}
+          okText={categoryEditor.uncertain ? t('settings.memoryCategoryRetrySameSave') : undefined}
+          cancelText={categoryEditor.uncertain ? t('settings.memoryCategoryCloseRetained') : undefined}
           cancelButtonProps={{ disabled: pending }}
           escToExit={!pending}
           okButtonProps={{
@@ -978,11 +989,16 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
           unmountOnExit
         >
           <div className='flex flex-col gap-12px'>
+            {categoryEditor.uncertain ? (
+              <div role='status' data-testid='memory-category-uncertain' className='text-12px text-t-secondary'>
+                {t('settings.memoryCategoryUncertain')}
+              </div>
+            ) : null}
             <label className='flex flex-col gap-5px text-12px text-t-secondary'>
               {t('settings.memoryCategoryName')}
               <Input
                 data-testid='memory-category-name'
-                disabled={pending}
+                disabled={pending || categoryEditor.fieldsFrozen}
                 value={categoryDraft.name}
                 onChange={(name) => categoryEditor.update({ name })}
               />
@@ -991,7 +1007,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
               {t('settings.memoryCategoryGuidance')}
               <Input.TextArea
                 data-testid='memory-category-guidance'
-                disabled={pending}
+                disabled={pending || categoryEditor.fieldsFrozen}
                 value={categoryDraft.guidance}
                 rows={4}
                 onChange={(guidance) => categoryEditor.update({ guidance })}
@@ -1002,7 +1018,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
               <Switch
                 data-testid='memory-category-draft-auto-recall'
                 checked={categoryDraft.autoRecall}
-                disabled={pending}
+                disabled={pending || categoryEditor.fieldsFrozen}
                 onChange={(autoRecall) => categoryEditor.update({ autoRecall })}
               />
             </div>

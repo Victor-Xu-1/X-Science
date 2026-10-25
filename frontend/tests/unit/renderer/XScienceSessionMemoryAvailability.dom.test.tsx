@@ -540,6 +540,8 @@ describe('session Memory availability', () => {
       initialProps: { owner: 'account-a:conversation-a' },
     });
     const previous = result.current;
+    // Exercise a genuinely dispatched old response arriving after the owner changes.
+    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(1));
     act(() => setRendererAccountOwner('account-b'));
     rerender({ owner: 'account-b:conversation-b' });
     await waitFor(() => expect(result.current.availability).toEqual({ status: 'ready', enabled: false }));
