@@ -24,3 +24,8 @@ export const SettingsTabNavigateProvider = SettingsTabNavigateContext.Provider;
 export const useSettingsTabNavigate = (): SettingsTabNavigate | undefined => {
   return React.useContext(SettingsTabNavigateContext);
 };
+
+/** Whether this host is actually presented; portals must not rely on mount alone. */
+const SettingsHostVisibleContext = React.createContext(true);
+export const SettingsHostVisibleProvider = SettingsHostVisibleContext.Provider;
+export const useSettingsHostVisible = (): boolean => React.useContext(SettingsHostVisibleContext);

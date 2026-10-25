@@ -15,7 +15,11 @@ import { ComputeSettingsContent } from '@/renderer/pages/settings/ComputeSetting
 import { GovernanceSettingsContent } from '@/renderer/pages/settings/GovernanceSettings';
 import { XScienceModelsSettingsContent } from '@/renderer/pages/settings/XScienceModelsSettings';
 import XScienceSkillsSettings from '@/renderer/pages/settings/XScienceSkillsSettings';
-import { SettingsTabNavigateProvider, SettingsViewModeProvider } from './settingsViewContext';
+import {
+  SettingsHostVisibleProvider,
+  SettingsTabNavigateProvider,
+  SettingsViewModeProvider,
+} from './settingsViewContext';
 
 const MOBILE_BREAKPOINT = 768;
 const SIDEBAR_WIDTH = 200;
@@ -240,38 +244,43 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
   return (
     <SettingsViewModeProvider value='modal'>
-      <SettingsTabNavigateProvider value={handleTabChange}>
-        <XScienceModal
-          visible={visible}
-          onCancel={onCancel}
-          footer={null}
-          className='settings-modal'
-          style={{
-            width: isMobile
-              ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)`
-              : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
-            maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
-            borderRadius: '16px',
-          }}
-          contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
-          title={t('settings.title')}
-        >
-          <div
-            className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+      <SettingsHostVisibleProvider value={visible}>
+        <SettingsTabNavigateProvider value={handleTabChange}>
+          <XScienceModal
+            visible={visible}
+            onCancel={onCancel}
+            footer={null}
+            className='settings-modal'
             style={{
-              height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+              width: isMobile
+                ? `min(calc(100vw - 32px), ${MODAL_WIDTH.mobile}px)`
+                : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+              maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
+              borderRadius: '16px',
             }}
+            contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
+            title={t('settings.title')}
           >
-            {isMobile ? mobileMenu : desktopMenu}
-
-            <XScienceScrollArea
-              className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+            <div
+              className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+              style={{
+                height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+              }}
             >
-              {renderContent()}
-            </XScienceScrollArea>
-          </div>
-        </XScienceModal>
-      </SettingsTabNavigateProvider>
+              {isMobile ? mobileMenu : desktopMenu}
+
+              <XScienceScrollArea
+                className={classNames(
+                  'flex-1 min-h-0',
+                  isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px'
+                )}
+              >
+                {renderContent()}
+              </XScienceScrollArea>
+            </div>
+          </XScienceModal>
+        </SettingsTabNavigateProvider>
+      </SettingsHostVisibleProvider>
     </SettingsViewModeProvider>
   );
 };

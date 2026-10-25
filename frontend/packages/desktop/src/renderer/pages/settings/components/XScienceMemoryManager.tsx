@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import {
   clearXScienceMemories,
   createXScienceMemory,
-  createXScienceMemoryCategory,
   deleteXScienceMemory,
   deleteXScienceMemoryCategory,
   loadXScienceAutoMemoryEnabled,
@@ -24,6 +23,7 @@ import {
 } from '@/renderer/services/xScienceMemory';
 import { loadXScienceProjects, type XScienceProject } from '@/renderer/services/xScienceGateway';
 import { SettingsGeneratedIcon, type SettingsGeneratedIconId } from './SettingsGeneratedAsset';
+import { useMemoryCategoryDraft } from './useMemoryCategoryDraft';
 
 type MemoryScope =
   | { kind: 'profile'; key: 'profile' }
@@ -32,13 +32,6 @@ type MemoryScope =
   | { kind: 'session'; key: string; frameId: string };
 
 type MemoryLayer = 'global' | 'project';
-
-type CategoryDraft = {
-  id?: string;
-  name: string;
-  guidance: string;
-  autoRecall: boolean;
-};
 
 const MAX_MEMORY_CATEGORIES = 10;
 
@@ -69,7 +62,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   // undefined is not loaded, and a project id never stands for another project.
   const [loadedProjectId, setLoadedProjectId] = useState<string | null | undefined>(undefined);
   const [loadError, setLoadError] = useState('');
-  const [pending, setPending] = useState(false);
+  const [localPending, setLocalPending] = useState(false);
   const [scope, setScope] = useState<MemoryScope>({ kind: 'profile', key: 'profile' });
   const [sessionRows, setSessionRows] = useState<XScienceMemoryRow[]>([]);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -79,7 +72,6 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   const [newMemory, setNewMemory] = useState('');
   const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
   const [editingMemoryText, setEditingMemoryText] = useState('');
-  const [categoryDraft, setCategoryDraft] = useState<CategoryDraft | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<XScienceMemoryCategory | null>(null);
   const [deleteCategoryFacts, setDeleteCategoryFacts] = useState(false);
   const loadGenerationRef = useRef(0);
@@ -92,7 +84,8 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   const awaitingContext = !hasCurrentContext && (layer === 'global' || selectedProjectId !== null);
 
   const load = useCallback(
-    async (projectId?: string): Promise<boolean> => {
+    async (projectId?: string, isCurrent: () => boolean = () => true): Promise<boolean> => {
+      if (!isCurrent()) return true;
       loadControllerRef.current?.controller.abort();
       const controller = new AbortController();
       loadControllerRef.current = { controller, projectId };
@@ -107,7 +100,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
           projectId ? Promise.resolve(null) : loadXScienceMemoryEnabled({ signal: controller.signal }),
           projectId ? Promise.resolve(null) : loadXScienceAutoMemoryEnabled({ signal: controller.signal }),
         ]);
-        if (generation !== loadGenerationRef.current || controller.signal.aborted) return true;
+        if (generation !== loadGenerationRef.current || controller.signal.aborted || !isCurrent()) return true;
         setContext(nextContext);
         if (projectId) {
           setProjectEnabled(nextContext.enabled ?? true);
@@ -119,7 +112,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
         setLoadedProjectId(projectId ?? null);
         return true;
       } catch (error) {
-        if (controller.signal.aborted || generation !== loadGenerationRef.current) return true;
+        if (controller.signal.aborted || generation !== loadGenerationRef.current || !isCurrent()) return true;
         console.error('Failed to load X-Science memory:', error);
         setLoadError(t('settings.memoryLoadError'));
         return false;
@@ -140,6 +133,34 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
       setProjectLoadError(t('settings.memoryProjectLoadError'));
     }
   }, [t]);
+
+  const categoryEditor = useMemoryCategoryDraft({
+    onCommitted: async (delivery) => {
+      if (!delivery.isCurrent()) return;
+      let refreshFailed = !(await load(loadControllerRef.current?.projectId, delivery.isCurrent));
+      if (!delivery.isCurrent()) return;
+      if (delivery.claimChanged()) {
+        try {
+          await onChanged();
+        } catch (error) {
+          if (!delivery.isCurrent()) return;
+          console.error('Failed to notify current memory consumers after category save:', error);
+          refreshFailed = true;
+        }
+      }
+      if (!delivery.isCurrent()) return;
+      if (delivery.claimSaved()) Message.success(t('settings.memoryCategorySaved'));
+      if (refreshFailed) Message.warning(t('settings.memoryRefreshError'));
+    },
+    onFailed: (current) => {
+      if (current()) Message.error(t('settings.memoryMutationError'));
+    },
+    onRefreshFailed: (current) => {
+      if (current()) Message.warning(t('settings.memoryRefreshError'));
+    },
+  });
+  const categoryDraft = categoryEditor.draft;
+  const pending = localPending || categoryEditor.busy;
 
   useEffect(() => {
     // A locale refresh must reload the same owned scope, not the global default.
@@ -366,7 +387,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
 
   const runMutation = useCallback(
     async (operation: () => Promise<unknown>, successMessage?: string): Promise<boolean> => {
-      setPending(true);
+      setLocalPending(true);
       try {
         await operation();
         if (successMessage) Message.success(successMessage);
@@ -385,7 +406,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
         Message.error(t('settings.memoryMutationError'));
         return false;
       } finally {
-        setPending(false);
+        setLocalPending(false);
       }
     },
     [load, onChanged, t]
@@ -454,22 +475,6 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
       onOk: () => runMutation(() => clearXScienceMemories(), t('settings.memoryCleared')),
     });
   }, [runMutation, t]);
-
-  const saveCategory = useCallback(async () => {
-    if (!categoryDraft?.name.trim() || !categoryDraft.guidance.trim()) return;
-    const input = {
-      name: categoryDraft.name.trim(),
-      guidance: categoryDraft.guidance.trim(),
-      autoRecall: categoryDraft.autoRecall,
-    };
-    const succeeded = await runMutation(
-      () =>
-        categoryDraft.id ? updateXScienceMemoryCategory(categoryDraft.id, input) : createXScienceMemoryCategory(input),
-      t('settings.memoryCategorySaved')
-    );
-    if (!succeeded) return;
-    setCategoryDraft(null);
-  }, [categoryDraft, runMutation, t]);
 
   const toggleCategoryAutoRecall = useCallback(
     async (category: XScienceMemoryCategory) => {
@@ -753,8 +758,8 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                             ? t('settings.memoryCategoryLimit', { count: MAX_MEMORY_CATEGORIES })
                             : t('settings.memoryCategoryAdd')
                         }
-                        disabled={pending || categoryLimitReached}
-                        onClick={() => setCategoryDraft({ name: '', guidance: '', autoRecall: true })}
+                        disabled={pending || categoryLimitReached || !categoryEditor.available}
+                        onClick={() => categoryEditor.openCreate()}
                       >
                         {t('settings.memoryCategoryAdd')}
                       </Button>
@@ -808,15 +813,8 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                         size='small'
                         icon={<Edit theme='outline' size='15' />}
                         aria-label={`${t('common.edit')} ${selectedCategory.name}`}
-                        disabled={pending}
-                        onClick={() =>
-                          setCategoryDraft({
-                            id: selectedCategory.id,
-                            name: selectedCategory.name,
-                            guidance: selectedCategory.guidance,
-                            autoRecall: selectedCategory.autoRecall,
-                          })
-                        }
+                        disabled={pending || !categoryEditor.available}
+                        onClick={() => categoryEditor.openEdit(selectedCategory)}
                       />
                     </Tooltip>
                     <Tooltip content={t('common.delete')}>
@@ -961,24 +959,24 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
         )}
       </div>
 
-      <Modal
-        title={categoryDraft?.id ? t('settings.memoryCategoryEdit') : t('settings.memoryCategoryAdd')}
-        visible={categoryDraft !== null}
-        onCancel={() => {
-          if (pending) return;
-          setCategoryDraft(null);
-        }}
-        onOk={() => void saveCategory()}
-        confirmLoading={pending}
-        cancelButtonProps={{ disabled: pending }}
-        escToExit={!pending}
-        okButtonProps={{
-          id: 'memory-category-save',
-          disabled: !categoryDraft?.name.trim() || !categoryDraft.guidance.trim(),
-        }}
-        unmountOnExit
-      >
-        {categoryDraft ? (
+      {categoryDraft ? (
+        <Modal
+          title={categoryDraft.id ? t('settings.memoryCategoryEdit') : t('settings.memoryCategoryAdd')}
+          visible
+          onCancel={() => {
+            if (pending) return;
+            categoryEditor.discard();
+          }}
+          onOk={() => void categoryEditor.save()}
+          confirmLoading={pending}
+          cancelButtonProps={{ disabled: pending }}
+          escToExit={!pending}
+          okButtonProps={{
+            id: 'memory-category-save',
+            disabled: !categoryDraft.name.trim() || !categoryDraft.guidance.trim(),
+          }}
+          unmountOnExit
+        >
           <div className='flex flex-col gap-12px'>
             <label className='flex flex-col gap-5px text-12px text-t-secondary'>
               {t('settings.memoryCategoryName')}
@@ -986,7 +984,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                 data-testid='memory-category-name'
                 disabled={pending}
                 value={categoryDraft.name}
-                onChange={(name) => setCategoryDraft((current) => (current ? { ...current, name } : current))}
+                onChange={(name) => categoryEditor.update({ name })}
               />
             </label>
             <label className='flex flex-col gap-5px text-12px text-t-secondary'>
@@ -996,7 +994,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                 disabled={pending}
                 value={categoryDraft.guidance}
                 rows={4}
-                onChange={(guidance) => setCategoryDraft((current) => (current ? { ...current, guidance } : current))}
+                onChange={(guidance) => categoryEditor.update({ guidance })}
               />
             </label>
             <div className='flex items-center justify-between gap-12px text-12px text-t-secondary'>
@@ -1005,14 +1003,12 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                 data-testid='memory-category-draft-auto-recall'
                 checked={categoryDraft.autoRecall}
                 disabled={pending}
-                onChange={(autoRecall) =>
-                  setCategoryDraft((current) => (current ? { ...current, autoRecall } : current))
-                }
+                onChange={(autoRecall) => categoryEditor.update({ autoRecall })}
               />
             </div>
           </div>
-        ) : null}
-      </Modal>
+        </Modal>
+      ) : null}
 
       <Modal
         title={t('settings.memoryCategoryDeleteTitle')}
