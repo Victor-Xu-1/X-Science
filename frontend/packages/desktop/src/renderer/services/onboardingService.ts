@@ -888,7 +888,7 @@ function throwIfAttachmentAborted(signal?: AbortSignal | null): void {
 
 function cancelAttachmentResponse(response?: Response): void {
   try {
-    void response?.body?.cancel().catch(() => undefined);
+    void response?.body?.cancel().catch((): void => undefined);
   } catch {
     // Fetch's original signal owns a locked body reader; cancellation is best effort.
   }

@@ -718,7 +718,7 @@ describe('onboarding service', () => {
     });
     mocks.updateProject.mockRejectedValueOnce(new Error('temporary project write failure')).mockResolvedValueOnce({});
     mocks.createConversation.mockResolvedValue({ id: 'conversation-retry' });
-    const input = {
+    const input: Parameters<typeof stageOnboardingTask>[0] = {
       projectId: 'project-1',
       projectName: 'Getting started',
       assistantId: 'xscience:operon',
@@ -772,7 +772,7 @@ describe('onboarding service', () => {
         },
       ],
     ]);
-    const input = {
+    const input: Parameters<typeof stageOnboardingTask>[0] = {
       projectId: 'project-1',
       projectName: 'Getting started',
       assistantId: 'xscience:operon',
