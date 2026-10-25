@@ -1,4 +1,4 @@
-import type { NormalizedToolProgress } from '@/common/chat/normalizeToolCall';
+import { normalizeResourceAdmissionProgress, resourceAdmissionMatchesPhase, type NormalizedToolProgress } from '@/common/chat/normalizeToolCall';
 import { toolPublicDetailText, type ToolPublicDetailTextKey } from '@/renderer/services/i18n/toolPublicDetailLocale';
 
 export type ToolProgressPublicPresentation = {
@@ -154,6 +154,22 @@ export function buildToolProgressPublicPresentation(
       label: toolPublicDetailText(chinese, 'progressElapsed'),
       value: elapsed,
     });
+
+  const admission = normalizeResourceAdmissionProgress(progress.resourceAdmission);
+  const admissionMatchesPhase = resourceAdmissionMatchesPhase(admission, progress.phase);
+  if (admission && admissionMatchesPhase) {
+    const decisionKey = admission.reason === 'earlier_waiter'
+      ? 'progressAdmissionFairnessWait'
+      : admission.reason === 'admitted' ? 'progressAdmissionGranted' : 'progressAdmissionCapacityWait';
+    rows.push(
+      { label: toolPublicDetailText(chinese, 'progressAdmissionSnapshot'), value: admission.decisionAt.replace('T', ' ').replace(/Z$/u, ' UTC') },
+      { label: toolPublicDetailText(chinese, 'progressAdmissionRequirement'), value: `${byteCountLabel(admission.requiredBytes)} / ${byteCountLabel(admission.netAvailableBytes)}` },
+      { label: toolPublicDetailText(chinese, 'progressAdmissionDecision'), value: toolPublicDetailText(chinese, decisionKey, { count: admission.precedingWaiters }) }
+    );
+    if (admission.unusedPromisedBytes > 0) {
+      rows.push({ label: toolPublicDetailText(chinese, 'progressAdmissionPromises'), value: byteCountLabel(admission.unusedPromisedBytes) });
+    }
+  }
 
   return {
     phaseLabel,

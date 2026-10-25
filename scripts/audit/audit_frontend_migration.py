@@ -291,6 +291,7 @@ ALLOWED_ADDITIONS = {
     "tests/fixtures/sequence-joined-location/dispatch-comment.jbei": "Provide a small first-party synthetic JBEI fixture with a leading comment to verify locked-parser dispatch priority is preserved.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
+    "packages/desktop/src/common/chat/toolProgressObservation.ts": "Extract and adapt the existing migrated chatLib.ts/normalizeToolCall.ts progress model and history/live same-ID merge into one pure observation helper, retaining imported-source provenance while adding X-Science resource-admission validation and revision fencing without another cache, timer, transport, request, or lifecycle owner.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
@@ -683,9 +684,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "3f79f9ef5cfd55cc35abb66972d492d2069fec5c5436267fcb3bd86bb7e1f122"
+APPROVED_ADAPTATION_FINGERPRINT = "22a7d7287fc1282df88c0abb1fa4fd0e544c51364ef3ee5c4df1baf2a56c7067"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "354b1e804b745684542514aae57e6f5357a6cdeb087996c3f4aae3f0b6aafe30"
+APPROVED_ADDITION_FINGERPRINT = "c173f28c30399ec0e9e54ea3f8a3ab7b0a01891729709b86a4513e92d786161b"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

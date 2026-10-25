@@ -10,6 +10,7 @@ import type { PdfReadingSnapshot } from '../adapter/pdfReadingContext';
 import type { ArtifactReferenceWire, IResponseMessage, ToolLifecycleStatus } from '../adapter/messageStreamProtocol';
 import { uuid } from '../utils';
 import { decodeRoundSummary, type RoundSummary } from './roundSummary';
+import type { ToolProgressWire } from './toolProgressObservation';
 import { sanitizeAcpToolCallContent, sanitizeAcpToolUpdate } from './acpToolCallOutput';
 import {
   isTextPublicationCovered,
@@ -282,18 +283,7 @@ export type IMessageToolCall = IMessage<
     /** The auxiliary stdout snapshot could not be recovered after a gap or reconnect. */
     streamingRecoveryError?: boolean;
     /** Observed progress for the same durable tool call. */
-    progress?: {
-      phase: string;
-      message?: string;
-      phasePercent?: number;
-      bytesPerSecond?: number;
-      bytesCompleted?: number;
-      bytesTotal?: number;
-      completedItems?: number;
-      totalItems?: number;
-      elapsedMs?: number;
-      indeterminate?: boolean;
-    };
+    progress?: ToolProgressWire;
     /** Immutable source coordinates for canonical Transcript history actions. */
     xScience?: XScienceMessageCoordinates;
   }

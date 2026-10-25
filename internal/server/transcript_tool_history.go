@@ -266,27 +266,29 @@ func transcriptAssistantSegmentResetTarget(
 }
 
 type transcriptToolHistoryFact struct {
-	attempt               int64
-	observedAttempt       int64
-	explicitOriginAttempt bool
-	callID                string
-	name                  string
-	status                string
-	phase                 string
-	revision              int64
-	parentID              string
-	settlement            string
-	provisional           bool
-	description           string
-	input                 map[string]any
-	inputSet              bool
-	result                any
-	resultSet             bool
-	progress              map[string]any
-	progressSet           bool
-	background            bool
-	backgroundAdmission   bool
-	backgroundObservation bool
+	attempt                int64
+	observedAttempt        int64
+	explicitOriginAttempt  bool
+	callID                 string
+	name                   string
+	status                 string
+	phase                  string
+	revision               int64
+	parentID               string
+	settlement             string
+	provisional            bool
+	description            string
+	input                  map[string]any
+	inputSet               bool
+	result                 any
+	resultSet              bool
+	progress               map[string]any
+	progressSet            bool
+	progressStreamUID      string
+	progressSourceRevision int64
+	background             bool
+	backgroundAdmission    bool
+	backgroundObservation  bool
 }
 
 type transcriptToolHistoryRecord struct {
@@ -579,7 +581,9 @@ func transcriptToolHistoryFactFromEvent(
 		provisional: visibility == "provisional",
 		description: description, input: input, inputSet: inputSet,
 		result: result, resultSet: resultSet, progress: progress, progressSet: progressSet,
-		background: background, backgroundAdmission: backgroundAdmission, backgroundObservation: projected.Event.Type == transcriptstore.ToolOperationObservationEventType,
+		progressStreamUID:      projected.Event.StreamUID,
+		progressSourceRevision: projected.Event.PublicationSeq,
+		background:             background, backgroundAdmission: backgroundAdmission, backgroundObservation: projected.Event.Type == transcriptstore.ToolOperationObservationEventType,
 	}, true, nil
 }
 
@@ -595,7 +599,7 @@ func transcriptToolHistoryProgress(value any) (map[string]any, bool, error) {
 		"phase": true, "message": true, "phasePercent": true, "bytesPerSecond": true,
 		"bytesCompleted": true, "bytesTotal": true,
 		"completedItems": true, "totalItems": true, "elapsedMs": true, "indeterminate": true,
-		"process": true,
+		"process": true, "resourceAdmission": true,
 	}
 	for key := range progress {
 		if !allowed[key] {
@@ -658,6 +662,13 @@ func transcriptToolHistoryProgress(value any) (map[string]any, bool, error) {
 	for key, candidate := range progress {
 		result[key] = candidate
 	}
+	if value, present := progress["resourceAdmission"]; present {
+		admission, err := transcriptResourceAdmissionProgress(value, phase)
+		if err != nil {
+			return nil, false, err
+		}
+		result["resourceAdmission"] = admission
+	}
 	return result, true, nil
 }
 
@@ -705,6 +716,13 @@ func mergeTranscriptToolHistoryFact(current, update transcriptToolHistoryFact) (
 	if !current.background && !update.backgroundObservation && transcriptToolExecutionAttempt(update) < transcriptToolExecutionAttempt(current) {
 		return transcriptToolHistoryFact{}, fmt.Errorf("tool execution attempt regressed: %w", transcriptstore.ErrEventConflict)
 	}
+	if current.progressStreamUID != "" && current.progressStreamUID == update.progressStreamUID &&
+		current.progressSourceRevision > 0 && update.progressSourceRevision > 0 && update.progressSourceRevision < current.progressSourceRevision {
+		return current, nil
+	}
+	// A newly bound input cannot retroactively authorize an observation made
+	// while the tool's input was still unknown.
+	progressOwner := current
 	if !current.inputSet && update.inputSet {
 		current.input = update.input
 		current.inputSet = true
@@ -732,10 +750,7 @@ func mergeTranscriptToolHistoryFact(current, update transcriptToolHistoryFact) (
 	if update.description != "" {
 		current.description = update.description
 	}
-	if update.progressSet {
-		current.progress = update.progress
-		current.progressSet = true
-	}
+	current.progress, current.progressSet = mergeTranscriptResourceProgress(progressOwner, update)
 	if update.phase != "" {
 		current.phase = update.phase
 	}
@@ -756,6 +771,10 @@ func mergeTranscriptToolHistoryFact(current, update transcriptToolHistoryFact) (
 		current.settlement = ""
 	}
 	current.observedAttempt = max(transcriptToolExecutionAttempt(current), transcriptToolExecutionAttempt(update))
+	if update.progressStreamUID != "" {
+		current.progressStreamUID = update.progressStreamUID
+		current.progressSourceRevision = update.progressSourceRevision
+	}
 	current.status = update.status
 	current.background = update.background
 	return current, nil
@@ -836,7 +855,7 @@ func transcriptToolHistoryMessage(action transcriptToolHistoryAction, sessionID 
 		}
 	}
 	if action.fact.progressSet {
-		content["progress"] = action.fact.progress
+		content["progress"] = copyTranscriptResourceProgress(action.fact.progress, action.fact.status)
 	}
 	status := "finish"
 	if transcriptToolStatusActive(action.fact.status) {

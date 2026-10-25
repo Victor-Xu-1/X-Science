@@ -9,6 +9,7 @@ import (
 	"time"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	"x-science/internal/toolprogress"
 )
 
 type KernelResourceReservation struct {
@@ -18,6 +19,7 @@ type KernelResourceReservation struct {
 	RequestedBytes int64
 	ReservedBytes  int64
 	State          string
+	Admission      *toolprogress.ResourceAdmissionSnapshot
 }
 
 // CountPendingKernelResourceWaits projects the existing startup supervisor's
@@ -72,9 +74,19 @@ func (s *Store) ListKernelResourceReservations(ctx context.Context, bootID strin
 
 func (s *Store) KernelResourceReservation(ctx context.Context, id string, generation int64) (KernelResourceReservation, bool, error) {
 	var result KernelResourceReservation
-	err := s.db.QueryRowContext(ctx, `SELECT backend_id,backend_generation,machine_boot_id,requested_bytes,reserved_bytes,state FROM kernel_resource_reservations WHERE backend_id=? AND backend_generation=?`, id, generation).Scan(&result.BackendID, &result.Generation, &result.BootID, &result.RequestedBytes, &result.ReservedBytes, &result.State)
+	var payload sql.NullString
+	err := s.db.QueryRowContext(ctx, `SELECT r.backend_id,r.backend_generation,r.machine_boot_id,r.requested_bytes,r.reserved_bytes,r.state,n.payload_json
+		FROM kernel_resource_reservations r LEFT JOIN notifications n ON n.id=? AND n.notification_type='resource_capacity_admitted'
+		WHERE r.backend_id=? AND r.backend_generation=?`, kernelResourceAdmissionNotificationID(id, generation), id, generation).Scan(&result.BackendID, &result.Generation, &result.BootID, &result.RequestedBytes, &result.ReservedBytes, &result.State, &payload)
 	if errors.Is(err, sql.ErrNoRows) {
 		return result, false, nil
+	}
+	if err == nil && payload.Valid {
+		if observation := decodeKernelResourceAdmissionSnapshot(payload.String); observation != nil &&
+			observation.Reason == toolprogress.ResourceAdmissionGranted && observation.RequestedBytes == result.RequestedBytes &&
+			observation.ReservedBytes == result.ReservedBytes {
+			result.Admission = observation
+		}
 	}
 	return result, err == nil, err
 }
@@ -133,30 +145,13 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM kernel_resource_reservations r JOIN kernel_execution_backends b ON b.backend_id=r.backend_id AND b.backend_generation=r.backend_generation JOIN frames f ON f.id=b.frame_id WHERE r.machine_boot_id=? AND r.state='waiting' AND r.sequence<? AND b.state='starting' AND f.status='processing' AND r.requested_bytes<=?`, boot, sequence, maximum).Scan(&preceding); err != nil {
 			return err
 		}
-		if preceding > 0 {
-			return nil
-		}
-		rows, err := tx.QueryContext(ctx, `SELECT backend_id,backend_generation,reserved_bytes FROM kernel_resource_reservations WHERE machine_boot_id=? AND state='reserved'`, boot)
+		promised, err := kernelUnusedResourcePromises(ctx, tx, boot, capacity.Usage)
 		if err != nil {
-			return err
-		}
-		promised := int64(0)
-		for rows.Next() {
-			var id string
-			var gen, bytes int64
-			if err := rows.Scan(&id, &gen, &bytes); err != nil {
-				_ = rows.Close()
-				return err
+			if preceding > 0 {
+				// Fairness already decides this wait. Optional observation failure
+				// must not replace that existing decision with an execution error.
+				return nil
 			}
-			usage := max(0, capacity.Usage[KernelResourceUsageKey(id, gen)])
-			unused := max(0, bytes-usage)
-			if unused > math.MaxInt64-promised {
-				_ = rows.Close()
-				return errors.New("kernel resource reservation overflow")
-			}
-			promised += unused
-		}
-		if err := errors.Join(rows.Err(), rows.Close()); err != nil {
 			return err
 		}
 		available := max(0, capacity.AvailableBytes-promised)
@@ -165,7 +160,15 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 			want = min(capacity.DefaultBytes, available)
 		}
 		want = max(want, capacity.MinimumBytes)
+		// Observe the exact inputs used by this serialized decision. This DTO is
+		// telemetry only; the original fairness and allocation checks stay below.
+		observation := kernelResourceAdmissionSnapshot(now, requested, want, capacity.AvailableBytes, promised, available, preceding)
+		if preceding > 0 {
+			reservation.Admission = observation
+			return nil
+		}
 		if want > available {
+			reservation.Admission = observation
 			return nil
 		}
 		// Only recovery of a previously persisted resource wait requires the
@@ -182,21 +185,24 @@ func (s *Store) AdmitKernelResources(ctx context.Context, backend KernelExecutio
 			// Its existing notice must commit with the promise so startup cannot
 			// become invisible between reservation and a later publication.
 			if _, _, err := createNotificationTx(ctx, tx, CreateNotificationInput{
-				ID:            "kernel-resources-" + backend.BackendID + "-" + strconv.FormatInt(generation, 10),
+				ID:            kernelResourceAdmissionNotificationID(backend.BackendID, generation),
 				SenderFrameID: backend.FrameID, RecipientFrameID: backend.FrameID, RootFrameID: backend.RootFrameID,
 				OwnerUserID: backend.OwnerUserID, NotificationType: "resource_capacity_admitted",
 				Payload: map[string]any{"backend_id": backend.BackendID, "backend_generation": generation,
-					"kernel_id": backend.KernelID, "executed": false, "status": "execution_capacity_admitted", "memory_budget_bytes": requested},
+					"kernel_id": backend.KernelID, "executed": false, "status": "execution_capacity_admitted", "memory_budget_bytes": requested,
+					"resource_admission": observation},
 			}, s.now().UTC()); err != nil {
 				return err
 			}
 			noticeAdded = true
 		}
 		reservation.ReservedBytes, reservation.State, admitted = want, "reserved", true
+		reservation.Admission = observation
 		return nil
 	})
 	if err != nil {
 		admitted = false
+		reservation.Admission = nil
 	} else if noticeAdded {
 		s.signalOutboxWake()
 	}
