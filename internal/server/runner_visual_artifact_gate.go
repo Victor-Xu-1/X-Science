@@ -77,18 +77,20 @@ func (s *Server) verifySessionRunnerVisualArtifactEvidence(session sessionstore.
 	if rootFrameID == "" {
 		rootFrameID = strings.TrimSpace(frame.ID)
 	}
-	workspaceEvidence, err := s.sessionReviewerWorkspaceEvidence(session, rootFrameID)
-	if err != nil {
-		return nil, err
-	}
-	deliveryEvidence, err := s.sessionRunnerVisualDeliveryEvidence(frame.ProjectID, candidates)
+	deliveryEvidence, err := s.sessionRunnerDeliveryEvidence(frame.ProjectID, candidates)
 	if err != nil {
 		return nil, err
 	}
 	if err := s.verifyVisualArtifactEvidence(deliveryEvidence); err != nil {
 		return nil, err
 	}
-	return s.verifyStructureSceneEvidence(workspaceEvidence.Artifacts, candidates)
+	// An unrelated historical scene must not suppress current image validation
+	// or attach a new obligation to a delivery with no comparison artifacts.
+	scope, err := s.sessionRunnerStructureSceneScope(session, rootFrameID, deliveryEvidence)
+	if err != nil {
+		return nil, err
+	}
+	return s.verifyStructureSceneEvidence(scope)
 }
 
 // Validate actual immutable bytes without treating metadata as semantic review.

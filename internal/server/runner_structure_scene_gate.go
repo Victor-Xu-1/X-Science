@@ -7,8 +7,6 @@ import (
 	"io"
 	"path/filepath"
 	"strings"
-
-	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 // structureSceneManifestSchema is deliberately a single, versioned contract.
@@ -49,49 +47,23 @@ type structureScenePreviewImage struct {
 // verifyStructureSceneEvidence reports optional comparison-preview gaps without
 // imposing another model/tool round. It still validates the actual bytes of an
 // exact bound preview; an advisory is never an image-integrity waiver.
-func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifactEvidence, candidates []transcriptstore.ArtifactReferenceInput) (*sessionRunnerCompletionAdvisory, error) {
+func (s *Server) verifyStructureSceneEvidence(scope *structureSceneDeliveryScope) (*sessionRunnerCompletionAdvisory, error) {
+	if scope == nil {
+		return nil, nil
+	}
 	if s == nil || s.workspaceStore == nil {
 		return nil, errors.New("structure scene workspace store is unavailable")
 	}
-	// Completion validates before publishing. Only exact produced versions in
-	// its canonical delivery selection may participate while still staged;
-	// unrelated drafts and cited-only inputs remain outside this delivery.
-	selectedVersions := make(map[string]string, len(candidates))
-	for _, candidate := range candidates {
-		if candidate.Relation == transcriptstore.ArtifactRelationProduced && candidate.ArtifactID != "" && candidate.VersionID != "" {
-			selectedVersions[candidate.ArtifactID] = candidate.VersionID
-		}
-	}
-	snapshotArtifacts := make([]sessionReviewerArtifactEvidence, 0, len(artifacts))
-	for _, artifact := range artifacts {
-		retention, found, err := s.workspaceStore.ArtifactRetentionMode(artifact.ArtifactID)
-		if err != nil {
-			return nil, fmt.Errorf("read structure scene retention for %s: %w", artifact.Name, err)
-		}
-		if !found || retention != "snapshot" {
-			continue
-		}
-		intermediate, found, err := s.workspaceStore.ArtifactVersionIntermediate(artifact.VersionID)
-		if err != nil {
-			return nil, fmt.Errorf("read structure scene version state for %s: %w", artifact.Name, err)
-		}
-		if found && intermediate && selectedVersions[artifact.ArtifactID] != artifact.VersionID {
-			continue
-		}
-		snapshotArtifacts = append(snapshotArtifacts, artifact)
-	}
-
+	// The scope contains exact produced snapshots and only the published
+	// context explicitly referenced by a selected native manifest.
+	snapshotArtifacts := scope.artifacts
 	structures := make([]sessionReviewerArtifactEvidence, 0, len(snapshotArtifacts))
 	for _, artifact := range snapshotArtifacts {
 		if structureArtifactName(artifact.Name) {
 			structures = append(structures, artifact)
 		}
 	}
-	if len(structures) < 2 {
-		return nil, nil
-	}
-
-	manifestArtifact, manifest, failures := s.findStructureSceneManifest(snapshotArtifacts)
+	manifestArtifact, manifest, failures := s.findStructureSceneManifest(snapshotArtifacts, scope.producedStructures)
 	if manifestArtifact == nil || len(failures) > 0 {
 		return &sessionRunnerCompletionAdvisory{Code: completionAdvisoryStructurePreview, Findings: failures}, nil
 	}
@@ -119,6 +91,7 @@ func (s *Server) verifyStructureSceneEvidence(artifacts []sessionReviewerArtifac
 
 func (s *Server) findStructureSceneManifest(
 	artifacts []sessionReviewerArtifactEvidence,
+	producedStructures map[string]struct{},
 ) (*sessionReviewerArtifactEvidence, structureSceneManifest, []string) {
 	var structures, images []sessionReviewerArtifactEvidence
 	for _, artifact := range artifacts {
@@ -153,6 +126,7 @@ func (s *Server) findStructureSceneManifest(
 			failures = []string{"structure-scene manifest is not valid JSON: " + err.Error()}
 		} else {
 			failures = validateStructureSceneManifest(manifest, structures, images)
+			failures = append(failures, structureSceneDeliveryCoverage(manifest, producedStructures)...)
 		}
 		if len(failures) > 0 {
 			// Failed attempts remain evidence, not a permanent authority over a

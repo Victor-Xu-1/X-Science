@@ -17,14 +17,16 @@ import (
 
 func TestStructureSceneMissingPreviewCompletesWithVisibleNotice(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
-	writeSceneTestArtifact(t, f.store, "base", f.stream.ProjectID, "base.pdb", "ATOM base", f.stream.SessionID)
-	writeSceneTestArtifact(t, f.store, "derived", f.stream.ProjectID, "derived.pdb", "ATOM derived", f.stream.SessionID)
+	const structure = "ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N\nEND\n"
+	saveRoundPresentationFile(t, f, "base", "base.pdb", structure)
+	saveRoundPresentationFile(t, f, "derived", "derived.pdb", structure)
+	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
 	model := &artifactReferenceRepairModel{content: "Existing results are available.", testing: t}
 	result, err := f.server.runSessionAgentWithArtifactReferenceRepair(context.Background(),
 		sessionstore.Session{ID: f.stream.SessionID, Project: &sessionstore.Project{ID: f.stream.ProjectID}},
 		agentruntime.Engine{Model: model}, agentruntime.RunRequest{
 			Messages: []agentruntime.Message{{Role: "user", Content: "Summarize the supplied results."}},
-		}, nil, nil)
+		}, run, nil)
 	if err != nil {
 		t.Fatalf("optional preview blocked delivery: %v", err)
 	}

@@ -8,9 +8,9 @@ import (
 )
 
 // Read the same immutable produced selection that completion will publish.
-// The current workspace inventory also contains unfinished attempts and inputs;
-// neither can replace or invalidate the selected delivery's exact image bytes.
-func (s *Server) sessionRunnerVisualDeliveryEvidence(projectID string, candidates []transcriptstore.ArtifactReferenceInput) ([]sessionReviewerArtifactEvidence, error) {
+// This metadata owner is shared by image integrity and scene scope; the mutable
+// workspace inventory cannot replace the selected delivery's exact versions.
+func (s *Server) sessionRunnerDeliveryEvidence(projectID string, candidates []transcriptstore.ArtifactReferenceInput) ([]sessionReviewerArtifactEvidence, error) {
 	var result []sessionReviewerArtifactEvidence
 	for _, candidate := range latestSessionRunnerArtifactReferences(candidates) {
 		if candidate.Relation != transcriptstore.ArtifactRelationProduced {
@@ -23,15 +23,17 @@ func (s *Server) sessionRunnerVisualDeliveryEvidence(projectID string, candidate
 		if !found || artifact.ID != candidate.ArtifactID || artifact.ProjectID != projectID {
 			return nil, errors.New("visual delivery artifact is outside the selected project or version")
 		}
-		if !visualArtifactName(artifact.Name) {
-			continue
-		}
 		retention, found, err := s.workspaceStore.ArtifactRetentionMode(artifact.ID)
 		if err != nil {
 			return nil, err
 		}
 		if !found || retention != "snapshot" {
 			continue
+		}
+		// Exact produced candidates may still be staged; storage errors must
+		// not turn an unknown presentation state into accepted evidence.
+		if _, _, err := s.workspaceStore.ArtifactVersionIntermediate(version.ID); err != nil {
+			return nil, err
 		}
 		result = append(result, sessionReviewerArtifactEvidence{
 			ArtifactID: artifact.ID, VersionID: version.ID, Name: artifact.Name, Kind: artifact.Kind,
