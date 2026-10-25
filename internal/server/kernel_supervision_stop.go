@@ -39,7 +39,7 @@ func (s *Server) stopKernelChildTarget(ctx context.Context, access workspace.Ker
 	}
 	done, err := s.signalDelegatedStop(ctx, access.UserID, &receipt)
 	if err != nil {
-		return map[string]any{"child_frame_id": frameID, "status": "stopping", "execution_observation": "unavailable", "error": err.Error()}
+		return map[string]any{"child_frame_id": frameID, "status": "stopping", "execution_observation": "unavailable", "request_id": receipt.Request.RequestID, "error": err.Error()}
 	}
 	waitCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -49,8 +49,11 @@ func (s *Server) stopKernelChildTarget(ctx context.Context, access workspace.Ker
 	}
 	readCtx, readCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer readCancel()
-	if observed, found, err := s.workspaceStore.ReadDelegatedStop(readCtx, access.UserID, access.Frame.ID, receipt.Request.RequestID); err == nil && found {
+	observed, observedFound, observationErr := s.readDelegatedStopReceipt(readCtx, access.UserID, access.Frame.ID, receipt.Request.RequestID)
+	if observationErr == nil && observedFound {
 		receipt = observed
+	} else if observationErr == nil {
+		observationErr = workspace.ErrDelegatedStopUnavailable
 	}
 	result := map[string]any{"child_frame_id": frameID, "frame_id": frameID, "agent_name": child.AgentName,
 		"status": "stopping", "execution_observation": "unavailable", "request_id": receipt.Request.RequestID}
@@ -72,5 +75,9 @@ func (s *Server) stopKernelChildTarget(ctx context.Context, access workspace.Ker
 		}
 	}
 	result["stopped_descendants"] = descendants
+	if observationErr != nil {
+		result["status"], result["execution_observation"] = "stopping", "unavailable"
+		result["error"], result["diagnostic"] = observationErr.Error(), "observation_persistence_pending"
+	}
 	return result
 }

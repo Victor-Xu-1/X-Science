@@ -96,7 +96,15 @@ func (s *Server) startKernelChildRun(child workspace.KernelSupervisedChild, gate
 	cancel := func() { cancelCause(context.Canceled) }
 	run := &kernelChildRun{target: &target, stop: func() { cancelCause(ErrGenerationStopped) }, cancel: cancel, done: make(chan struct{}), wake: make(chan struct{}, 1)}
 	ctx = context.WithValue(ctx, kernelChildOwnerContextKey{}, run)
-	if existing, loaded := kernelChildRuns.LoadOrStore(key, run); loaded {
+	s.sessionRunsMu.Lock()
+	if s.sessionRunsDraining {
+		s.sessionRunsMu.Unlock()
+		cancel()
+		return
+	}
+	existing, loaded := kernelChildRuns.LoadOrStore(key, run)
+	s.sessionRunsMu.Unlock()
+	if loaded {
 		cancel()
 		existing.(*kernelChildRun).signal()
 		return

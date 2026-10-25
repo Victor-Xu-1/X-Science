@@ -275,6 +275,8 @@ type Server struct {
 	sessionSockets                        *sessionWebSocketHub
 	sessionRunsMu                         sync.Mutex
 	sessionRuns                           map[string]*activeSessionRun
+	delegatedStopProofsMu                 sync.Mutex
+	delegatedStopProofs                   map[delegatedStopCompletionKey]*delegatedStopPendingProof
 	activeRuntimeOperations               int
 	sessionRunsDraining                   bool
 	sessionRunsDrainEvaluating            bool
