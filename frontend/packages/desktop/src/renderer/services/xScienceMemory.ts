@@ -302,6 +302,7 @@ async function requestJson(path: string, init: RequestInit, options: XScienceMem
   const controller = new AbortController();
   const caller = options.signal ?? init.signal;
   let stage: MemoryRequestStage = 'headers';
+  const currentStage = (): MemoryRequestStage => stage;
   let stopped: XScienceMemoryRequestError | null = null;
   let response: Response | undefined;
   let rejectStop!: (error: XScienceMemoryRequestError) => void;
@@ -368,7 +369,12 @@ async function requestJson(path: string, init: RequestInit, options: XScienceMem
   } catch (error) {
     if (stopped) throw stopped;
     if (error instanceof XScienceMemoryRequestError) throw error;
-    throw new XScienceMemoryRequestError({ reason: stage === 'decode' ? 'decode' : 'transport', stage, path });
+    const failedStage = currentStage();
+    throw new XScienceMemoryRequestError({
+      reason: failedStage === 'decode' ? 'decode' : 'transport',
+      stage: failedStage,
+      path,
+    });
   } finally {
     clearTimeout(timer);
     caller?.removeEventListener('abort', fromCaller);
