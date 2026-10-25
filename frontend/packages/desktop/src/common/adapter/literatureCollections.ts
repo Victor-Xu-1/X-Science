@@ -80,7 +80,7 @@ export function decodeLiteratureCollection(value: unknown): LiteratureCollection
     revision: value.revision,
     name: value.name,
     description: value.description,
-    parent_id: value.parent_id,
+    parent_id: typeof value.parent_id === 'string' ? value.parent_id : null,
     sort_order: value.sort_order,
     item_count: value.item_count,
   };
@@ -141,7 +141,10 @@ export function decodeLiteratureCollectionCommand(value: unknown): LiteratureCol
       ...base,
       kind: value.kind,
       name: normalizeLiteratureCollectionText(value.name),
-      description: normalizeLiteratureCollectionText(value.description ?? '', true),
+      description: normalizeLiteratureCollectionText(
+        typeof value.description === 'string' ? value.description : '',
+        true
+      ),
       ...(typeof value.parent_id === 'string' ? { parent_id: value.parent_id } : {}),
     };
   }
@@ -161,7 +164,10 @@ export function decodeLiteratureCollectionCommand(value: unknown): LiteratureCol
       kind: value.kind,
       expected_revision: value.expected_revision,
       name: normalizeLiteratureCollectionText(value.name),
-      description: normalizeLiteratureCollectionText(value.description ?? '', true),
+      description: normalizeLiteratureCollectionText(
+        typeof value.description === 'string' ? value.description : '',
+        true
+      ),
     };
   }
   if (value.kind === 'collection-delete' && keys(value, ['kind', 'operation_id', 'collection_id']))
