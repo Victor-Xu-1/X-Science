@@ -106,9 +106,17 @@ func TestMemoryExtractionV81MigrationRollsBackAndPreservesHistory(t *testing.T) 
 	if len(reopenedJournal) < len(current) || !reflect.DeepEqual(current, reopenedJournal[:len(current)]) {
 		t.Fatal("reopen changed the existing v81 schema journal prefix")
 	}
-	// The current binary appends only the dedicated v82 cadence column. Compare
-	// the exact v81 projection; the v82 regression checks its new value/constraint.
+	// Reopen upgrades to the current registry. Compare the exact v81 projection;
+	// the later cadence column and initially empty collections have their own
+	// migration tests. Still reject any missing, populated or unexpected table.
 	retained = memoryExtractionRowsBeforeCadenceColumn(t, reopened.db)
+	for _, table := range []string{"literature_collections", "literature_collection_items"} {
+		rows, found := retained[table]
+		if !found || len(rows) != 0 {
+			t.Fatalf("current-schema collection table %q missing or populated on reopen: rows=%#v found=%t", table, rows, found)
+		}
+		delete(retained, table)
+	}
 	delete(retained, "memory_extraction_receipts")
 	assertMemoryExtractionMigrationRows(t, before, retained)
 	var violations int
