@@ -13,23 +13,39 @@ func (s *Server) waitKernelChildren(ctx context.Context, access workspace.Kernel
 		deadline = time.Now().Add(timeout)
 	}
 	ids := make([]string, len(children))
-	originalInputs := make(map[string]*workspace.DelegatedStopTarget, len(children))
 	valid := make([]bool, len(children))
 	for index := range children {
 		ids[index], valid[index] = children[index].FrameID, true
+	}
+	var origins []kernelBlockingChildOrigin
+	if cancelOnContext {
+		origins = s.captureBlockingKernelChildOrigins(ctx, children)
+	}
+	cancelled := func() []any {
 		if cancelOnContext {
-			originalInputs[children[index].FrameID], _ = s.workspaceStore.KernelChildInitialTarget(ctx, children[index])
+			return s.cancelBlockingKernelChildren(ctx, access, origins, valid)
 		}
+		return s.kernelChildrenResultsAndCollect(access, children, valid)
 	}
 	for {
+		// Cancellation must reach cleanup before a poll can wait for storage.
+		if ctx.Err() != nil {
+			return cancelled()
+		}
 		allTerminal := true
 		for index := range children {
-			current, found, _ := s.workspaceStore.GetKernelSupervisedChild(context.Background(), access.Frame.ID, ids[index], access.UserID)
-			if found {
-				children[index] = current
-				if !kernelChildTerminal(current.Status) {
-					allTerminal = false
-				}
+			current, found, err := s.workspaceStore.GetKernelSupervisedChild(ctx, access.Frame.ID, ids[index], access.UserID)
+			if ctx.Err() != nil {
+				return cancelled()
+			}
+			if err != nil || !found {
+				results := s.kernelChildrenResultsAndCollect(access, children, valid)
+				results[index] = kernelChildWaitFailure(children[index], "delegated child state is unavailable", err)
+				return results
+			}
+			children[index] = current
+			if !kernelChildTerminal(current.Status) {
+				allTerminal = false
 			}
 		}
 		if allTerminal || (!deadline.IsZero() && !time.Now().Before(deadline)) {
@@ -37,16 +53,7 @@ func (s *Server) waitKernelChildren(ctx context.Context, access workspace.Kernel
 		}
 		select {
 		case <-ctx.Done():
-			if cancelOnContext {
-				for _, child := range children {
-					if !kernelChildTerminal(child.Status) {
-						if original := originalInputs[child.FrameID]; original != nil {
-							_ = s.stopKernelChildTarget(context.WithoutCancel(ctx), access, child.FrameID, "blocking delegation was cancelled", "blocking-delegate-cancel:"+child.ToolUseID+":"+child.FrameID, original)
-						}
-					}
-				}
-			}
-			return s.kernelChildrenResultsAndCollect(access, children, valid)
+			return cancelled()
 		case <-time.After(20 * time.Millisecond):
 		}
 	}
