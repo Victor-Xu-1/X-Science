@@ -26,7 +26,7 @@ func TestConversationSkillContinuationUsesNormalRunnerTools(t *testing.T) {
 		t.Fatal(err)
 	}
 	finishSkillControlInput(t, f)
-	appendSkillControlInput(t, f, "control-current", "INTERNAL_CONTROL_NOT_MODEL_USER", true)
+	submitSkillControlHTTPInput(t, f, "control-current", "INTERNAL_CONTROL_NOT_MODEL_USER", true)
 	run := claimSkillControlInput(t, f)
 	entries, err := f.server.loadTranscriptRunnerReplay(context.Background(), run.Transcript, 20, 100)
 	if err != nil {
@@ -55,6 +55,7 @@ func TestConversationSkillContinuationUsesNormalRunnerTools(t *testing.T) {
 			content, _ := message["content"].(string)
 			modelText.WriteString(content)
 		}
+		assertCurrentSkillControlMessage(t, messages, true)
 		for _, required := range []string{"PROFILE_PROMPT_MUST_SURVIVE", "<recorded_skill_source>", "Create scientific artifacts."} {
 			if !strings.Contains(modelText.String(), required) {
 				t.Errorf("provider missing %q", required)
@@ -90,6 +91,7 @@ func TestConversationSkillContinuationUsesNormalRunnerTools(t *testing.T) {
 	if calls.Load() != 2 || !strings.Contains(result, "no Skill was published") {
 		t.Fatalf("ordinary completion is not publication: calls=%d result=%q", calls.Load(), result)
 	}
+	assertSkillControlTaskScope(t, f, run)
 }
 
 func TestConversationSkillContinuationEvidenceKeepsInputCutoffAndToolOwnership(t *testing.T) {
@@ -161,7 +163,7 @@ func TestConversationSkillContinuationRejectsCancelledAndStaleClaims(t *testing.
 				appendSkillControlInput(t, f, "new-input", "Ordinary next task", false)
 				claimSkillControlInput(t, f)
 			}
-			if _, err := f.server.prepareConversationSkillContinuation(context.Background(), SessionRunnerChatOptions{}, run); err == nil {
+			if _, _, err := f.server.prepareConversationSkillContinuation(context.Background(), SessionRunnerChatOptions{}, run); err == nil {
 				t.Fatal("terminal or superseded claim retained Skill preparation authority")
 			}
 		})

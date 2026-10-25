@@ -13,35 +13,41 @@ const conversationSkillControlIntent = "save-as-skill"
 // This is a typed continuation of the current agent, not a separate authoring
 // service or synthetic tool run. The ordinary runner owns model calls, Skill
 // loads, package edits, validation, publishing, recovery and final delivery.
-func (s *Server) prepareConversationSkillContinuation(ctx context.Context, options SessionRunnerChatOptions, run *sessionRunnerChatRun) (SessionRunnerChatOptions, error) {
+func (s *Server) prepareConversationSkillContinuation(ctx context.Context, options SessionRunnerChatOptions, run *sessionRunnerChatRun) (SessionRunnerChatOptions, *sessionRunnerCurrentControl, error) {
 	if run == nil || run.Transcript == nil {
-		return options, nil
+		return options, nil, nil
 	}
 	control, err := s.transcriptStore.ClaimedRunnerInputContext(ctx, run.Transcript.Claim)
 	if err != nil {
-		return options, err
+		return options, nil, err
 	}
 	if control == nil || control.InputData["turn_intent"] != conversationSkillControlIntent {
-		return options, nil
+		return options, nil, nil
 	}
 	if control.EventID <= 0 || control.PublicationSeq <= 0 || control.ClientMessageID == "" {
-		return options, errors.New("Skill continuation input authority is unavailable")
+		return options, nil, errors.New("Skill continuation input authority is unavailable")
 	}
 	if _, err := s.runtimeSkillsByName([]string{"customize"}, options.ExcludedSkillNames); err != nil {
-		return options, err
+		return options, nil, err
 	}
 	if options.RestrictSkillDiscovery {
 		if _, allowed := normalizedSkillNameSet(options.AllowedSkillNames)["customize"]; !allowed {
-			return options, selectedSkillContractUnavailable{detail: "Customize is unavailable to the current assistant"}
+			return options, nil, selectedSkillContractUnavailable{detail: "Customize is unavailable to the current assistant"}
 		}
 	}
 	source, err := s.conversationSkillControlEvidence(ctx, run.Transcript, *control)
 	if err != nil {
-		return options, err
+		return options, nil, err
 	}
-	options.SystemPrompt = strings.TrimSpace(options.SystemPrompt) + "\n\n" + conversationSkillContinuationInstruction +
+	// Recorded content remains evidence in the existing system data boundary.
+	// The action itself is projected once as the current user continuation,
+	// separately from both that evidence and historical hidden controls.
+	options.SystemPrompt = strings.TrimSpace(options.SystemPrompt) +
 		"\n\n<recorded_skill_source>\n" + source.Transcript + "\n</recorded_skill_source>"
-	return options, nil
+	return options, &sessionRunnerCurrentControl{
+		intent: conversationSkillControlIntent, eventID: control.EventID,
+		publicationSeq: control.PublicationSeq, clientMessageID: control.ClientMessageID,
+	}, nil
 }
 
 // The instruction describes the user's product action. It does not select a

@@ -107,6 +107,7 @@ func (s *Server) newSessionAutomaticReviewCoordinator(
 		AfterEventID: run.AfterEventID, Transcript: run.Transcript,
 		TaskIntent: run.TaskIntent, TaskIntentID: run.TaskIntentID,
 		TaskIntentRevision: run.TaskIntentRevision, ReviewPolicy: run.ReviewPolicy,
+		currentControl:            run.currentControl,
 		SuppressReviewCheckpoints: true,
 	}
 	coordinator := &sessionAutomaticReviewCoordinator{
