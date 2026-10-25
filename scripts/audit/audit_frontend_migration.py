@@ -453,6 +453,9 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/pages/library/LibraryPage.tsx": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created.",
     "packages/desktop/src/renderer/pages/library/libraryWorkbench.css": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted.",
     "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentBrowser.tsx": "Connect immutable Library versions to the existing owner-authorized content route and shared PDF core with account-scoped preview, download, cancellation and exact-version retry.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced.",
+    "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths.",
 }
 
 ALLOWED_ADDITION_RULES = (

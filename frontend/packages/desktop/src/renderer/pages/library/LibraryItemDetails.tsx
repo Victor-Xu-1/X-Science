@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { FileText, Pencil, X } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 
 export const libraryAuthors = (item: LiteratureItem): string => {
   const value = item.metadata.authors;
@@ -17,6 +18,7 @@ export const libraryAuthors = (item: LiteratureItem): string => {
 
 export function LibraryItemDetails({
   item,
+  account,
   projects,
   projectStatus,
   busy,
@@ -24,6 +26,7 @@ export function LibraryItemDetails({
   close,
 }: {
   item: LiteratureItem;
+  account: string;
   projects: XScienceProject[];
   projectStatus: 'loading' | 'ready' | 'error';
   busy: boolean;
@@ -74,39 +77,7 @@ export function LibraryItemDetails({
           </dd>
         </div>
       </dl>
-      <div className='library-workbench__section-heading'>
-        <h3>{t('conversation.libraryWorkbench.attachments')}</h3>
-        <span>{item.attachments.length}</span>
-      </div>
-      {item.attachments.length === 0 ? (
-        <p className='library-workbench__muted'>{t('conversation.libraryWorkbench.noAttachments')}</p>
-      ) : (
-        <ul className='library-workbench__attachments'>
-          {item.attachments.map((attachment) => {
-            const version = attachment.versions.reduce<(typeof attachment.versions)[number] | undefined>(
-              (latest, value) => (!latest || value.version_number > latest.version_number ? value : latest),
-              undefined
-            );
-            return (
-              <li key={attachment.id}>
-                <FileText size={15} aria-hidden='true' />
-                <div>
-                  <strong>{version?.filename || attachment.kind}</strong>
-                  <span>
-                    {version
-                      ? t('conversation.libraryWorkbench.latestVersion', { number: version.version_number })
-                      : t('conversation.libraryWorkbench.unavailable')}{' '}
-                    ·{' '}
-                    {version?.available
-                      ? t('conversation.libraryWorkbench.available')
-                      : t('conversation.libraryWorkbench.unavailable')}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      <LibraryAttachmentBrowser account={account} item={item} />
       {editing ? (
         <div className='library-workbench__editor'>
           <label>

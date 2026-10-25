@@ -220,6 +220,7 @@ export default function LibraryPage() {
               <LibraryItemDetails
                 key={`${reads.account}:${selected.id}`}
                 item={selected}
+                account={reads.account}
                 projects={reads.projects.value ?? []}
                 projectStatus={reads.projects.status}
                 busy={busy}
