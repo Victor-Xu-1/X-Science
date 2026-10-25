@@ -2,8 +2,13 @@ import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup } from '.
 import { getAcpImagePath } from './acpToolCallOutput';
 import { parseLargeToolResultReference } from './largeToolResultReference';
 import {
-  normalizeResourceAdmissionProgress, resourceAdmissionMatchesPhase, mergeToolObservationRecords, toolObservationCallKey,
-  toolObservationOwnerKey, isToolObservationTerminal, type NormalizedToolProgress,
+  normalizeResourceAdmissionProgress,
+  resourceAdmissionMatchesPhase,
+  mergeToolObservationRecords,
+  toolObservationCallKey,
+  toolObservationOwnerKey,
+  isToolObservationTerminal,
+  type NormalizedToolProgress,
 } from './toolProgressObservation';
 export type { NormalizedToolProgress, ResourceAdmissionProgress } from './toolProgressObservation';
 export { normalizeResourceAdmissionProgress, resourceAdmissionMatchesPhase } from './toolProgressObservation';
@@ -388,8 +393,7 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
   const transportStatus = normalizeToolCallStatus(status);
   const normalizedStatus =
     transportStatus === 'completed' && outputReportsSemanticFailure(output ?? error) ? 'error' : transportStatus;
-  const operationKey =
-    toolObservationCallKey(call_id, attempt, operation_id);
+  const operationKey = toolObservationCallKey(call_id, attempt, operation_id);
   const largeResult = parseLargeToolResultReference(output ?? error);
   const normalizedProgress = normalizeToolProgress(progress);
   if (isTerminalToolStatus(normalizedStatus) && normalizedProgress?.resourceAdmission) {
@@ -439,12 +443,23 @@ export const isActiveToolStatus = (status: NormalizedToolStatus): boolean =>
   status === 'pending' || status === 'running' || status === 'waiting' || status === 'blocked';
 
 const normalizedToolObservationScope = (tool: NormalizedToolCall) => ({
-  identity: tool.key, conversationId: tool.conversationId, branchId: tool.branchId,
-  attempt: tool.attempt, revision: tool.revision, status: tool.status, input: tool.input,
+  identity: tool.key,
+  conversationId: tool.conversationId,
+  branchId: tool.branchId,
+  attempt: tool.attempt,
+  revision: tool.revision,
+  status: tool.status,
+  input: tool.input,
 });
 
 const mergeNormalizedToolCall = (existing: NormalizedToolCall, incoming: NormalizedToolCall): NormalizedToolCall =>
-  mergeToolObservationRecords(existing, incoming, normalizedToolObservationScope(existing), normalizedToolObservationScope(incoming), 'normalized');
+  mergeToolObservationRecords(
+    existing,
+    incoming,
+    normalizedToolObservationScope(existing),
+    normalizedToolObservationScope(incoming),
+    'normalized'
+  );
 
 export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCall[] {
   const normalized = messages

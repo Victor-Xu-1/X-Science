@@ -8,9 +8,14 @@ import { ipcBridge } from '@/common';
 import { decodePdfReadingProjection } from '@/common/adapter/pdfReadingContext';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import {
-  mergeToolObservationRecords, toolObservationCallKey, toolObservationOwnerKey, toolObservationBranch,
-  toolObservationInputsCompatible, toolObservationOwnersCompatible,
-  isToolObservationTerminal, isToolObservationActive,
+  mergeToolObservationRecords,
+  toolObservationCallKey,
+  toolObservationOwnerKey,
+  toolObservationBranch,
+  toolObservationInputsCompatible,
+  toolObservationOwnersCompatible,
+  isToolObservationTerminal,
+  isToolObservationActive,
 } from '@/common/chat/toolProgressObservation';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type {
@@ -266,10 +271,14 @@ function getMessageIndexKey(message: TMessage): string | undefined {
 function toolCallObservationScope(message: Extract<TMessage, { type: 'tool_call' }>) {
   const callId = message.content?.call_id?.trim();
   return {
-    identity: callId ? toolObservationCallKey(callId, message.content.attempt, message.content.operation_id?.trim()) : undefined,
+    identity: callId
+      ? toolObservationCallKey(callId, message.content.attempt, message.content.operation_id?.trim())
+      : undefined,
     conversationId: message.conversation_id,
     branchId: toolObservationBranch(message.content.xScience?.branchId),
-    attempt: message.content.attempt, revision: message.content.revision, status: message.content.status,
+    attempt: message.content.attempt,
+    revision: message.content.revision,
+    status: message.content.status,
     input: message.content.input ?? message.content.args,
   };
 }
@@ -443,8 +452,12 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'tool_call') {
-        const merged = mergeToolObservationRecords(existingMsg.content, message.content,
-          toolCallObservationScope(existingMsg), toolCallObservationScope(message));
+        const merged = mergeToolObservationRecords(
+          existingMsg.content,
+          message.content,
+          toolCallObservationScope(existingMsg),
+          toolCallObservationScope(message)
+        );
         if (merged === existingMsg.content) return list;
         const newList = list.slice();
         const existingTerminal = isTerminalToolCallStatus(existingMsg.content.status);

@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9ec348912a1f8bc0936568e227440b1133ec81ca044d5854c4a4cd87df299664",
+  "adaptationFingerprintSHA256": "faa04c9d1d0b24255e02d07b9a5d3ba372a52feb3519c515d08cba3cf10cc8c9",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "5c15ee47f6b3052f290e5ddc6ee91f2a184739762145722dfc52fc60f6ce236c",
+  "additionFingerprintSHA256": "7f6f880c41f64007a1cedcb04c1b5d5c610f0169a9520e6ed0fb3e3edf4712e3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
@@ -80,8 +80,8 @@
     {
       "path": "packages/desktop/src/common/chat/normalizeToolCall.ts",
       "sourceSHA256": "f29b817f1c1a91fdfca53d54fa6d00ce9e0e92d2fcafc0a5b34221e03eb5e41e",
-      "targetSHA256": "3fdc475acfb029692f46a1200d77caa74d216f85705058f3e2b15f333e018f2a",
-      "bytes": 17406,
+      "targetSHA256": "a1976b435453e00cb04fc6adfc9e888f0203b37165c219f6ae62775c812b3e6c",
+      "bytes": 17446,
       "reason": "Normalize the canonical cancelled tool-call status without guessing terminal state."
     },
     {
@@ -1558,8 +1558,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "c1a506f5c85be0ba98c90f92888e01065c4f3d8928696f2b0646d8282d63ce32",
-      "bytes": 62884,
+      "targetSHA256": "5cfeba17d82de407bc0a4ecdf594c5f2108bafa3bd641f78071c1c36393eed4a",
+      "bytes": 62954,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3949,8 +3949,8 @@
     {
       "path": "tests/unit/chat/normalizeToolCall.test.ts",
       "sourceSHA256": "2aa6fe08f7ef94ef0b1204a7681363065814f846f202e9a7bfc895ddd1224546",
-      "targetSHA256": "2dacb05e011c7a3cdd0849edc1c9b0aaeed041aee5ed9374250ce03217a827ec",
-      "bytes": 13043,
+      "targetSHA256": "0b017a85dff88efaaf50c88b854c289815f27eecbba4ca1445dcd43e9fb280b2",
+      "bytes": 13156,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7725,8 +7725,8 @@
     },
     {
       "path": "packages/desktop/src/common/chat/toolProgressObservation.ts",
-      "sha256": "71a3b0060a78815c7d63abba240d9a1f7d5d53633d868b1a151582d0a206fad5",
-      "bytes": 8589,
+      "sha256": "f75ad5d7b55914ea62c3a886453cafd3179f60c34d6d75bc96d5d65536910828",
+      "bytes": 8808,
       "reason": "Extract and adapt the existing migrated chatLib.ts/normalizeToolCall.ts progress model and history/live same-ID merge into one pure observation helper, retaining imported-source provenance while adding X-Science resource-admission validation and revision fencing without another cache, timer, transport, request, or lifecycle owner."
     },
     {
@@ -8835,8 +8835,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/toolProgressPresentation.ts",
-      "sha256": "df329e617b0175983904cab02cb82ef03ce2a71ffa43e2cc50123850c9e9f921",
-      "bytes": 8161,
+      "sha256": "a411a3298ce6699399cd7609f88d38990cdc07e4a715a346c8d98bfc14a6a07c",
+      "bytes": 8290,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13311,8 +13311,8 @@
     },
     {
       "path": "tests/unit/renderer/messageLiveWindow.dom.test.tsx",
-      "sha256": "347dfcfdf4a36ba23a306d9fbf4237c5877dd87d8de44fdbfaf21a4638e878b0",
-      "bytes": 16078,
+      "sha256": "25b4bd7a1bcc63d39eb847d19d929783ebc16559450be0630d8ed98a9fc8ce15",
+      "bytes": 16180,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

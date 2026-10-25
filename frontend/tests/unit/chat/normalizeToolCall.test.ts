@@ -292,11 +292,24 @@ describe('resource admission progress snapshots', () => {
     const first = message('first', 1, 'waiting_for_resources', admission());
     const heartbeat = message('heartbeat', 2, 'waiting_for_resources');
     expect(normalize([first, heartbeat])[0].progress?.resourceAdmission).toEqual(admission());
-    const granted = { ...admission(), decisionAt: '2026-01-02T03:04:06Z', reason: 'admitted', unusedPromisedBytes: 0, netAvailableBytes: 900, reservedBytes: 400 };
+    const granted = {
+      ...admission(),
+      decisionAt: '2026-01-02T03:04:06Z',
+      reason: 'admitted',
+      unusedPromisedBytes: 0,
+      netAvailableBytes: 900,
+      reservedBytes: 400,
+    };
     const starting = message('starting', 3, 'starting', granted);
     expect(normalize([first, heartbeat, starting])[0].progress?.resourceAdmission?.reason).toBe('admitted');
     const executing = message('executing', 4, 'executing');
-    const [advanced] = normalize([first, heartbeat, starting, executing, message('late', 2, 'waiting_for_resources', admission())]);
+    const [advanced] = normalize([
+      first,
+      heartbeat,
+      starting,
+      executing,
+      message('late', 2, 'waiting_for_resources', admission()),
+    ]);
     expect(advanced.progress?.phase).toBe('executing');
     expect(advanced.progress?.resourceAdmission).toBeUndefined();
     const finished = message('finished', 5, 'operation_completed');
@@ -321,7 +334,13 @@ describe('resource admission progress snapshots', () => {
   });
 
   it('uses localized existing detail rows and labels the decision time as a snapshot rather than live memory', () => {
-    const fairness = { ...admission(), reason: 'earlier_waiter', unusedPromisedBytes: 0, netAvailableBytes: 900, precedingWaiters: 2 };
+    const fairness = {
+      ...admission(),
+      reason: 'earlier_waiter',
+      unusedPromisedBytes: 0,
+      netAvailableBytes: 900,
+      precedingWaiters: 2,
+    };
     const [tool] = normalize([message('fairness', 1, 'waiting_for_resources', fairness)]);
     const english = buildToolProgressPublicPresentation(tool.progress!, 'en-US');
     const chinese = buildToolProgressPublicPresentation(tool.progress!, 'zh-CN');

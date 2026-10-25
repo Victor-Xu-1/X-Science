@@ -347,7 +347,10 @@ describe('live resource admission progress', () => {
       act(() => result.current.merge(message, add));
       if (!add) act(() => frames.shift()?.(16));
     };
-    const tools = () => normalizeToolMessages(result.current.messages.filter((message): message is ToolMessage => message.type === 'tool_call'));
+    const tools = () =>
+      normalizeToolMessages(
+        result.current.messages.filter((message): message is ToolMessage => message.type === 'tool_call')
+      );
     return { result, deliver, tools };
   };
   afterEach(() => vi.restoreAllMocks());
@@ -358,13 +361,17 @@ describe('live resource admission progress', () => {
     deliver(packet(2, 'waiting_for_resources'));
 
     expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0]).toMatchObject({ content: { revision: 2, progress: { resourceAdmission: snapshot() } } });
+    expect(result.current.messages[0]).toMatchObject({
+      content: { revision: 2, progress: { resourceAdmission: snapshot() } },
+    });
     const [waiting] = tools();
     expect(buildToolProgressPublicPresentation(waiting.progress!, 'en-US').rows).toContainEqual({
-      label: 'Required / unreserved at decision', value: '400 B / 300 B',
+      label: 'Required / unreserved at decision',
+      value: '400 B / 300 B',
     });
     expect(buildToolProgressPublicPresentation(waiting.progress!, 'zh-CN').rows).toContainEqual({
-      label: '当次准入快照（非实时）', value: '2026-01-02 03:04:05 UTC',
+      label: '当次准入快照（非实时）',
+      value: '2026-01-02 03:04:05 UTC',
     });
 
     deliver(packet(4, 'executing'));
@@ -375,7 +382,9 @@ describe('live resource admission progress', () => {
     expect(result.current.messages[0]).toBe(executing);
     expect(result.current.messages[0]).toMatchObject({ content: { revision: 4, progress: { phase: 'executing' } } });
     expect(tools()[0].progress?.resourceAdmission).toBeUndefined();
-    expect(JSON.stringify(buildToolProgressPublicPresentation(tools()[0].progress!, 'en-US'))).not.toContain('Admission snapshot');
+    expect(JSON.stringify(buildToolProgressPublicPresentation(tools()[0].progress!, 'en-US'))).not.toContain(
+      'Admission snapshot'
+    );
   });
 
   it('clears resource facts at the actual terminal upsert and preserves its output over later activity', () => {
@@ -392,26 +401,31 @@ describe('live resource admission progress', () => {
     deliver(packet(4, 'waiting_for_resources', snapshot()));
 
     expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0]).toMatchObject({ content: { status: 'completed', output: 'synthetic terminal evidence' } });
+    expect(result.current.messages[0]).toMatchObject({
+      content: { status: 'completed', output: 'synthetic terminal evidence' },
+    });
     expect(result.current.messages[0]).not.toHaveProperty('content.streaming');
     expect(result.current.messages[0]).not.toHaveProperty('content.streamingRecoveryError');
     expect(tools()[0].status).toBe('completed');
     expect(tools()[0].progress?.resourceAdmission).toBeUndefined();
   });
 
-  it.each(['branch', 'conversation', 'attempt', 'input'] as const)('does not lend a snapshot across a changed %s owner', (boundary) => {
-    const { result, deliver, tools } = setup();
-    deliver(packet(1, 'waiting_for_resources', snapshot()), true);
-    const other = packet(2, 'waiting_for_resources');
-    if (boundary === 'branch') other.content.xScience = { messageIndex: 0, blockIndex: 0, branchId: 'br_00000002' };
-    if (boundary === 'conversation') other.conversation_id = 'other-resource-conversation';
-    if (boundary === 'attempt') other.content.attempt = 2;
-    if (boundary === 'input') other.content.input = { purpose: 'different synthetic input' };
-    deliver(other);
+  it.each(['branch', 'conversation', 'attempt', 'input'] as const)(
+    'does not lend a snapshot across a changed %s owner',
+    (boundary) => {
+      const { result, deliver, tools } = setup();
+      deliver(packet(1, 'waiting_for_resources', snapshot()), true);
+      const other = packet(2, 'waiting_for_resources');
+      if (boundary === 'branch') other.content.xScience = { messageIndex: 0, blockIndex: 0, branchId: 'br_00000002' };
+      if (boundary === 'conversation') other.conversation_id = 'other-resource-conversation';
+      if (boundary === 'attempt') other.content.attempt = 2;
+      if (boundary === 'input') other.content.input = { purpose: 'different synthetic input' };
+      deliver(other);
 
-    expect(result.current.messages).toHaveLength(boundary === 'input' ? 1 : 2);
-    expect(tools().at(-1)?.progress?.resourceAdmission).toBeUndefined();
-  });
+      expect(result.current.messages).toHaveLength(boundary === 'input' ? 1 : 2);
+      expect(tools().at(-1)?.progress?.resourceAdmission).toBeUndefined();
+    }
+  );
 
   it('keeps legacy no-revision updates compatible without manufacturing a determinate flag', () => {
     const { result, deliver, tools } = setup();
