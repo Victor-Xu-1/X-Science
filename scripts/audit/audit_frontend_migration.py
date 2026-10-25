@@ -456,6 +456,11 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/pages/library/LibraryAttachmentBrowser.tsx": "Connect immutable Library versions to the existing owner-authorized content route and shared PDF core with account-scoped preview, download, cancellation and exact-version retry.",
     "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced.",
     "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths.",
+    'packages/desktop/src/common/adapter/literatureCollections.ts': 'Define strict command-bound ordinary Library collection, membership and receipt contracts without substituting item results or creating another mutation authority.',
+    'packages/desktop/src/renderer/services/runtime/literatureCollections.ts': 'Route ordinary Library collection reads and original operation retries through the authenticated existing HTTP bridge and renderer account scope.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionSidebar.tsx': 'Project the owned ordinary collection tree and server order into real filtering and creation controls without decorative smart or batch entries.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionEditor.tsx': 'Bind collection create, revision edits, deletion and exact uncertain-request retry to the existing account-wide mutation owner and form generation.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionMembership.tsx': 'Read and mutate the selected owned paper memberships through the same Library slot while fencing old item and account responses.',
 }
 
 ALLOWED_ADDITION_RULES = (
@@ -692,9 +697,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "61d1f6cfa5d91403f52d4655aa101e11b9b686258562dcdfff5a0cee66571386"
+APPROVED_ADAPTATION_FINGERPRINT = "d5cc476dc6c8fcf913902eb25253397ba61140c735f717eb84fe25ffaf9e45c8"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "b9e8df25ce4173838fe16073d13c76a08e4685329f937350fe0687b70ae7a758"
+APPROVED_ADDITION_FINGERPRINT = "6edb15d789e1f8fa2afe975754a92e29042b57aea73fc8752d1d15bd777196d0"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

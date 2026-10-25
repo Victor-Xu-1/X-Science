@@ -47,6 +47,18 @@ async function mount(path = '/library', onNavigate?: () => void) {
   );
 }
 const projects = () => json({ projects: [{ project_id: 'project', name: 'Research project' }] });
+const collectionReads = (url: URL) => {
+  if (url.pathname === '/api/literature/collections')
+    return json({ schema: 'x-science.literature-collections.v1', collections: [] });
+  const membership = url.pathname.match(/^\/api\/literature\/items\/([^/]+)\/collections$/);
+  if (membership)
+    return json({
+      schema: 'x-science.literature-collection-membership.v1',
+      item_id: decodeURIComponent(membership[1]),
+      collection_ids: [],
+    });
+  return undefined;
+};
 
 describe('Library workbench entry and original HTTP owners', () => {
   beforeEach(() => {
@@ -68,6 +80,8 @@ describe('Library workbench entry and original HTTP owners', () => {
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(String(input), 'http://localhost');
         requests.push(url.pathname + url.search);
+        const collections = collectionReads(url);
+        if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items')
           return json(url.searchParams.has('cursor') ? page([item('b', 'Paper B')]) : page([item()], 'next-page'));
@@ -102,6 +116,8 @@ describe('Library workbench entry and original HTTP owners', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(String(input), 'http://localhost');
+        const collections = collectionReads(url);
+        if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {
           if (url.searchParams.get('query') === 'old') {
@@ -145,6 +161,8 @@ describe('Library workbench entry and original HTTP owners', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = new URL(String(input), 'http://localhost');
+        const collections = collectionReads(url);
+        if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {
           if (!nextOwner) {
@@ -178,6 +196,8 @@ describe('Library workbench entry and original HTTP owners', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
+        const collections = collectionReads(url);
+        if (collections) return collections;
         if (url.pathname === '/api/projects') {
           if (!stalled) return projects();
           return new Promise<Response>((_resolve, reject) => {
@@ -220,6 +240,8 @@ describe('Library workbench entry and original HTTP owners', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
+        const collections = collectionReads(url);
+        if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {
           if (failing) return json({ code: 'UNAVAILABLE' }, 503);

@@ -9,13 +9,14 @@ import (
 
 // Only private historical test fixtures may remove these prospective objects.
 // Other current facts (including original compute jobs and inputs) stay intact.
-func dropEmptyReviewedV82MemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx) {
+func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	requireReviewedV83HistoricalFixtureMigrations(t, tx)
+	requireReviewedHistoricalFixtureMigrations(t, tx)
 	var facts int
 	if err := tx.QueryRowContext(t.Context(), `SELECT (SELECT COUNT(*) FROM project_literature)+
 		(SELECT COUNT(*) FROM literature_attachment_versions)+(SELECT COUNT(*) FROM literature_attachments)+
-		(SELECT COUNT(*) FROM literature_items)+(SELECT COUNT(*) FROM memory_extraction_receipts)`).Scan(&facts); err != nil || facts != 0 {
+		(SELECT COUNT(*) FROM literature_items)+(SELECT COUNT(*) FROM memory_extraction_receipts)+
+		(SELECT COUNT(*) FROM literature_collections)+(SELECT COUNT(*) FROM literature_collection_items)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical reconstruction requires empty private Memory/Library tables: facts=%d err=%v", facts, err)
 	}
 	var cadenceFacts int
@@ -30,6 +31,9 @@ func dropEmptyReviewedV82MemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql
 		// The table owns its index and immutability trigger; dropping only a
 		// migration receipt would make the subsequent real v81 Open fail.
 		`DROP TABLE memory_extraction_receipts`,
+		// Remove reviewed v84 children before the Library parent. The emptiness
+		// check above protects every prospective row, including these two tables.
+		`DROP TABLE literature_collection_items`, `DROP TABLE literature_collections`,
 		`DROP TABLE project_literature`, `DROP TABLE literature_attachment_versions`,
 		`DROP TABLE literature_attachments`, `DROP TABLE literature_items`,
 	} {
@@ -39,20 +43,26 @@ func dropEmptyReviewedV82MemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql
 	}
 }
 
-func requireReviewedV83HistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
+func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
+	const reviewedTarget = 84
 	var versions, installed int
-	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != 83 || installed != 83 {
-		t.Fatalf("historical reconstruction requires complete reviewed current83 schema: count=%d version=%d err=%v", versions, installed, err)
+	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
+		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
 	}
 	// Reviewed83 is a journal-only reader floor: it adds no objects to remove.
-	// The prospective Memory/Library object removal is therefore still v82.
+	// Reviewed84 adds only the two empty collection tables and table-owned indexes.
+	// Both must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
 	// while the callers reconstruct their real v74/v76 predecessor receipts.
 	expected, err := workspace.ExpectedSchemaStatus()
-	if err != nil || expected.CurrentVersion != 83 || expected.TargetVersion != 83 || len(expected.Migrations) != 83 {
+	if err != nil || expected.CurrentVersion != reviewedTarget || expected.TargetVersion != reviewedTarget || len(expected.Migrations) != reviewedTarget {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
+	}
+	current := expected.Migrations[reviewedTarget-1]
+	if current.Version != reviewedTarget || current.Name != "literature-ordinary-collections" || len(current.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed collections identity: %+v", current)
 	}
 	original83 := expected.Migrations[82]
 	if original83.Version != 83 || original83.Name != "literature-mutation-identity-reader-floor" ||

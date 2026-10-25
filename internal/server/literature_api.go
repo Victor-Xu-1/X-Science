@@ -19,6 +19,8 @@ func writeLiteratureError(w http.ResponseWriter, err error) {
 		status, code = 400, "LITERATURE_INVALID"
 	case errors.Is(err, workspace.ErrLiteratureUnavailable):
 		status, code = 404, "LITERATURE_UNAVAILABLE"
+	case errors.Is(err, workspace.ErrLiteratureCollectionNameConflict):
+		status, code = 409, "LITERATURE_COLLECTION_NAME_CONFLICT"
 	case errors.Is(err, workspace.ErrLiteratureConflict), errors.Is(err, workspace.ErrMutationIdempotencyConflict):
 		status, code = 409, "LITERATURE_CONFLICT"
 	}
@@ -40,6 +42,9 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/literature"), "/"), "/")
+	if s.handleLiteratureCollectionRoute(w, r, owner, parts) {
+		return
+	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
 		limit := 20
 		var err error
@@ -47,7 +52,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 			limit, err = strconv.Atoi(raw)
 		}
 		for key, values := range r.URL.Query() {
-			if len(values) != 1 || (key != "query" && key != "project_id" && key != "cursor" && key != "limit") {
+			if len(values) != 1 || (key != "query" && key != "project_id" && key != "collection_id" && key != "cursor" && key != "limit") {
 				err = workspace.ErrLiteratureInvalid
 			}
 		}
@@ -55,7 +60,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
 		}
-		page, err := s.workspaceStore.ListLiteratureItems(r.Context(), owner, r.URL.Query().Get("query"), r.URL.Query().Get("project_id"), r.URL.Query().Get("cursor"), limit)
+		page, err := s.workspaceStore.ListLiteratureItemsInCollection(r.Context(), owner, r.URL.Query().Get("query"), r.URL.Query().Get("project_id"), r.URL.Query().Get("collection_id"), r.URL.Query().Get("cursor"), limit)
 		if err != nil {
 			writeLiteratureError(w, err)
 			return

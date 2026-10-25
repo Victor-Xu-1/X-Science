@@ -26,6 +26,7 @@ export async function loadLiteraturePage(
   options: {
     query?: string;
     projectId?: string;
+    collectionId?: string;
     cursor?: string;
     signal?: AbortSignal;
   } = {}
@@ -34,6 +35,7 @@ export async function loadLiteraturePage(
   const query = new URLSearchParams({ limit: '20' });
   if (options.query?.trim()) query.set('query', options.query.trim());
   if (options.projectId) query.set('project_id', options.projectId);
+  if (options.collectionId) query.set('collection_id', options.collectionId);
   if (options.cursor) query.set('cursor', options.cursor);
   const raw = await httpRequest<unknown>('GET', `/api/literature/items?${query}`, undefined, {
     signal: options.signal,
