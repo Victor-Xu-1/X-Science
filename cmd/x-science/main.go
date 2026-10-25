@@ -534,7 +534,7 @@ func runServer(info buildinfo.Info, cfg config.Config, tlsResolver *networktls.R
 		select {
 		case sig := <-stop:
 			if isRuntimeIdleReloadSignal(sig) && !app.TryDrainIdle() {
-				fmt.Println("verified runtime reload deferred while tasks are active")
+				fmt.Println("verified runtime reload deferred until runtime work and storage observations are confirmed")
 				continue
 			}
 			fmt.Printf("received %s, shutting down\n", sig)

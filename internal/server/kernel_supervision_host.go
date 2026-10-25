@@ -88,6 +88,7 @@ type kernelChildRunKey struct {
 type kernelChildOwnerContextKey struct{}
 
 type kernelChildRun struct {
+	stopCompletion  delegatedStopRegistrationCompletion
 	targetMu        sync.Mutex
 	target          *workspace.DelegatedStopTarget
 	canonicalStop   *workspace.DelegatedStopTarget

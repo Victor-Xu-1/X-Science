@@ -57,7 +57,14 @@ func (r *kernelChildRun) completionFences() []workspace.KernelChildCompletionFen
 func (s *Server) finishKernelChildRegistration(ctx context.Context, child workspace.KernelSupervisedChild, run *kernelChildRun) {
 	stopped := run.stopSnapshot()
 	wakePending := ctx.Err() == nil || stopped != nil
+	s.sessionRunsMu.Lock()
+	// Keep actual supervisor cleanup visible while its map entry is removed,
+	// including its existing pending-input handoff and completion callbacks.
+	s.activeRuntimeOperations++
 	removed := kernelChildRuns.CompareAndDelete(kernelChildRunKey{server: s, frameID: child.FrameID}, run)
+	s.sessionRunsMu.Unlock()
+	defer s.endRuntimeOperation()
+	defer run.stopCompletion.finish()
 	run.cancel()
 	close(run.done)
 	if !removed || !wakePending || s.isDraining() {

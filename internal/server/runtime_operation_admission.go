@@ -22,12 +22,31 @@ func (s *Server) beginRuntimeOperation() (func(), error) {
 	s.sessionRunsMu.Unlock()
 	var once sync.Once
 	return func() {
-		once.Do(func() {
-			s.sessionRunsMu.Lock()
-			s.activeRuntimeOperations--
-			s.sessionRunsMu.Unlock()
-		})
+		once.Do(s.endRuntimeOperation)
 	}, nil
+}
+
+// A canonical Stop has already committed. Its bounded signal/subscription
+// and completed-proof handoff continue that accepted work during idle checks;
+// the final original drain recheck observes this operation. Actual draining
+// still refuses it. New HTTP/business admission keeps its stricter contract.
+func (s *Server) beginAcceptedStopContinuation() (func(), error) {
+	s.sessionRunsMu.Lock()
+	if s.sessionRunsDraining {
+		s.sessionRunsMu.Unlock()
+		return nil, ErrRuntimeDraining
+	}
+	s.activeRuntimeOperations++
+	s.sessionRunsMu.Unlock()
+	var once sync.Once
+	return func() { once.Do(s.endRuntimeOperation) }, nil
+}
+
+// Releasing an already-owned cleanup/operation never admits new work.
+func (s *Server) endRuntimeOperation() {
+	s.sessionRunsMu.Lock()
+	s.activeRuntimeOperations--
+	s.sessionRunsMu.Unlock()
 }
 
 func (s *Server) withRuntimeOperation(next http.HandlerFunc) http.HandlerFunc {
@@ -56,5 +75,24 @@ func (s *Server) runtimeActivity() (sessions, operations int, draining bool) {
 // Requires sessionRunsMu. Both ownership classes block idle admission, while
 // health continues to distinguish real chat sessions from HTTP-owned work.
 func (s *Server) hasActiveRuntimeOwnersLocked() bool {
-	return len(s.sessionRuns) != 0 || s.activeRuntimeOperations != 0
+	if len(s.sessionRuns) != 0 || s.activeRuntimeOperations != 0 {
+		return true
+	}
+	// The existing supervisor registration also owns queued/pre-claim work.
+	// Production insertion/removal shares this mutex with idle admission.
+	active := false
+	kernelChildRuns.Range(func(key, value any) bool {
+		if key.(kernelChildRunKey).server != s {
+			return true
+		}
+		select {
+		case <-value.(*kernelChildRun).done:
+			// A physically completed registration is not active ownership.
+			return true
+		default:
+			active = true
+			return false
+		}
+	})
+	return active
 }

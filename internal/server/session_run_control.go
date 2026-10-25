@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ var (
 )
 
 type activeSessionRun struct {
+	stopCompletion    delegatedStopRegistrationCompletion
 	delegatedOwner    *kernelChildRun
 	runnerID          string
 	cancel            context.CancelCauseFunc
@@ -101,13 +103,19 @@ func (s *Server) registerActiveSessionRun(parent context.Context, sessionID, run
 	cleanup := func() {
 		once.Do(func() {
 			s.sessionRunsMu.Lock()
+			// Transfer the actual owner into its short cleanup before its map
+			// identity can disappear. Completion callbacks hand over to a finite
+			// writer before this existing-operation guard is released.
+			s.activeRuntimeOperations++
 			if s.sessionRuns[sessionID] == run {
 				delete(s.sessionRuns, sessionID)
 			}
 			s.sessionRunsMu.Unlock()
+			defer s.endRuntimeOperation()
 			cancel(nil)
 			close(run.done)
 			s.publishContextCompactionDrainedRun(run)
+			run.stopCompletion.finish()
 		})
 	}
 	return ctx, run, cleanup, nil
@@ -403,6 +411,12 @@ func (s *Server) TryDrainIdle() bool {
 		s.sessionRunsMu.Unlock()
 	}
 
+	if err := s.flushDelegatedStopProofsForIdle(context.Background()); err != nil {
+		clearDrainEvaluating()
+		log.Printf("verified runtime reload deferred: storage_unconfirmed: %v", err)
+		return false
+	}
+
 	if wait := s.tryDrainIdleDurableWait; wait != nil {
 		wait()
 	}
@@ -444,6 +458,14 @@ func (s *Server) TryDrainIdle() bool {
 	if s.hasActiveRuntimeOwnersLocked() {
 		s.sessionRunsDrainEvaluating = false
 		s.sessionRunsMu.Unlock()
+		return false
+	}
+	// A concurrent owner can complete during durable checks. Its failed proof
+	// must be confirmed by a later finite evaluation, never discarded on reload.
+	if s.hasPendingDelegatedStopProofs() {
+		s.sessionRunsDrainEvaluating = false
+		s.sessionRunsMu.Unlock()
+		log.Printf("verified runtime reload deferred: storage_unconfirmed: completed Stop observation arrived during idle evaluation")
 		return false
 	}
 	// A durable local operation can outlive the runner cycle that submitted it.

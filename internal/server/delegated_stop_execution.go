@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -14,8 +13,8 @@ func delegatedStopMatchesRun(target workspace.DelegatedStopTarget, authority *tr
 }
 
 type delegatedStopDrainObservation struct {
-	index int
-	done  []<-chan struct{}
+	index         int
+	registrations []delegatedStopRegistration
 }
 
 func (s *Server) signalDelegatedStop(ctx context.Context, owner string, receipt *workspace.DelegatedStopReceipt) (<-chan struct{}, error) {
@@ -24,6 +23,14 @@ func (s *Server) signalDelegatedStop(ctx context.Context, owner string, receipt 
 		close(complete)
 		return complete, nil
 	}
+	// Retain actual signal/subscription ownership until its captured cleanup
+	// callbacks have either stayed attached or handed over a finite writer.
+	finishSignal, err := s.beginAcceptedStopContinuation()
+	if err != nil {
+		close(complete)
+		return complete, err
+	}
+	defer finishSignal()
 	// Admission has committed before this shared SDK/HTTP seam. Transport
 	// cancellation cannot revoke that fact, but final exact-identity reads
 	// remain bounded and fail closed if storage cannot confirm the target.
@@ -64,7 +71,7 @@ func (s *Server) signalDelegatedStop(ctx context.Context, owner string, receipt 
 						supervisor = nil
 					}
 					run.cancel(fmt.Errorf("%w: exact delegated child stop", ErrGenerationStopped))
-					observation.done = append(observation.done, run.done)
+					observation.registrations = append(observation.registrations, delegatedStopRegistration{run.done, &run.stopCompletion})
 					matched = true
 					outcome.ExecutionObservation = "running"
 				}
@@ -89,7 +96,7 @@ func (s *Server) signalDelegatedStop(ctx context.Context, owner string, receipt 
 				if allowed {
 					run.markCanonicalStopLocked(target)
 					run.stop()
-					observation.done = append(observation.done, run.done)
+					observation.registrations = append(observation.registrations, delegatedStopRegistration{run.done, &run.stopCompletion})
 					matched = true
 				}
 			}
@@ -103,54 +110,45 @@ func (s *Server) signalDelegatedStop(ctx context.Context, owner string, receipt 
 }
 
 func (s *Server) startDelegatedStopDrainObservation(owner string, receipt workspace.DelegatedStopReceipt, observations []delegatedStopDrainObservation, complete chan struct{}) {
-	// Retain captured registration pointers through their own done channels.
-	// Never infer death from absence/replacement of a weak frame-ID map entry.
-	// This also runs after a later target fails: an already signalled exact
-	// registration still owns its cleanup and must not lose its observation.
-	captured := make([]delegatedStopDrainObservation, 0, len(observations))
+	// Seal every exact owner set before subscribing: an already-finished first
+	// registration cannot acknowledge a target with another owner still alive.
+	frozen := freezeDelegatedStopReceipt(receipt)
+	bindings := make([]*delegatedStopCompletion, 0, len(observations))
 	for _, observation := range observations {
-		if len(observation.done) > 0 {
-			captured = append(captured, observation)
+		if len(observation.registrations) > 0 {
+			bindings = append(bindings, &delegatedStopCompletion{server: s, owner: owner, receipt: frozen,
+				index: observation.index, registrations: append([]delegatedStopRegistration(nil), observation.registrations...)})
 		}
 	}
-	if len(captured) > 0 {
-		frozen := receipt
-		frozen.Targets = append([]workspace.DelegatedStopOutcome(nil), receipt.Targets...)
-		go func() { defer close(complete); s.observeDelegatedStopDrain(owner, frozen, captured) }()
-	} else {
-		close(complete)
+	for _, binding := range bindings {
+		binding.subscribe()
 	}
+	if len(bindings) == 0 {
+		close(complete)
+		return
+	}
+	go func() { defer close(complete); s.observeDelegatedStopDrain(bindings) }()
 }
 
-func (s *Server) observeDelegatedStopDrain(owner string, receipt workspace.DelegatedStopReceipt, observations []delegatedStopDrainObservation) {
-	// Bounded join of existing execution owners, not a new scheduler.
-	// Slow/unknown cleanup remains explicitly unconfirmed in the receipt.
+func (s *Server) observeDelegatedStopDrain(bindings []*delegatedStopCompletion) {
+	// The caller still has a bounded observation window. Registration-lifetime
+	// completion retains the same acknowledgement after this observer returns.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	changed := false
-	for _, observation := range observations {
-		complete := true
-		for _, done := range observation.done {
+	for _, binding := range bindings {
+		for _, registration := range binding.registrations {
 			select {
-			case <-done:
+			case <-registration.done:
 			case <-ctx.Done():
-				complete = false
-			}
-			if !complete {
-				break
 			}
 		}
-		if complete {
-			receipt.Targets[observation.index].ExecutionObservation = "stopped"
-			changed = true
-		}
+		// Existing raw done-channel consumers share the same retained proof.
+		binding.enqueueIfDrained()
 	}
-	if changed {
-		persistCtx, persistCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer persistCancel()
-		if _, err := s.workspaceStore.RecordDelegatedStopObservation(persistCtx, owner, receipt); err != nil {
-			log.Printf("delegated Stop observation persistence failed: %v", err)
-		}
+	if ctx.Err() == nil && len(bindings) > 0 {
+		// Preserve bounded done/readback semantics without making cleanup or
+		// the signal defer wait for storage. Write failures retain their proof.
+		_, _ = s.flushDelegatedStopProofs(ctx, bindings[0].owner, bindings[0].receipt)
 	}
 }
 
