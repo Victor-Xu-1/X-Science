@@ -13,6 +13,7 @@ import {
 type GuidRouteModule = typeof import('@renderer/pages/guid');
 type AuthenticatedWorkspaceRouteModule = typeof import('@renderer/components/layout/AuthenticatedWorkspace');
 type ProjectRouteModule = typeof import('@renderer/pages/project/ProjectRoute');
+type LibraryRouteModule = typeof import('@renderer/pages/library/LibraryPage');
 type ArtifactPreviewModule = typeof import('@renderer/pages/artifact/ArtifactPreview');
 type SettingsRouteModule = typeof import('@renderer/pages/settings/SettingsRoute');
 type SettingsSiderModule = typeof import('@renderer/pages/settings/components/SettingsSider');
@@ -20,6 +21,7 @@ type SettingsSiderModule = typeof import('@renderer/pages/settings/components/Se
 let guidRoutePromise: Promise<GuidRouteModule> | null = null;
 let authenticatedWorkspaceRoutePromise: Promise<AuthenticatedWorkspaceRouteModule> | null = null;
 let projectRoutePromise: Promise<ProjectRouteModule> | null = null;
+let libraryRoutePromise: Promise<LibraryRouteModule> | null = null;
 let artifactPreviewPromise: Promise<ArtifactPreviewModule> | null = null;
 let settingsRoutePromise: Promise<SettingsRouteModule> | null = null;
 let settingsSiderPromise: Promise<SettingsSiderModule> | null = null;
@@ -40,6 +42,11 @@ export function loadAuthenticatedWorkspaceRoute(): Promise<AuthenticatedWorkspac
 export function loadProjectRoute(): Promise<ProjectRouteModule> {
   projectRoutePromise ??= import('@renderer/pages/project/ProjectRoute');
   return projectRoutePromise;
+}
+
+export function loadLibraryRoute(): Promise<LibraryRouteModule> {
+  libraryRoutePromise ??= import('@renderer/pages/library/LibraryPage');
+  return libraryRoutePromise;
 }
 
 export function loadArtifactPreviewRoute(): Promise<ArtifactPreviewModule> {

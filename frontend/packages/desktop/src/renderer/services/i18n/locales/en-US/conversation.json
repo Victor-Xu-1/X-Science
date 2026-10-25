@@ -2083,5 +2083,33 @@
     "returnProjects": "Return to project list"
   },
   "notFound": "Conversation not found or has been deleted",
-  "loading": "Loading conversation"
+  "loading": "Loading conversation",
+  "libraryWorkbench": {
+    "eyebrow": "Your research references",
+    "title": "Library",
+    "description": "Browse saved literature and manage its details across projects.",
+    "search": "Search Library",
+    "details": "Literature details",
+    "items": "Library papers",
+    "loadFailed": "Could not load Library",
+    "detailFailed": "This literature item is unavailable",
+    "empty": "Your Library is empty",
+    "emptyHint": "Save an existing paper from the Reading picker to add it here.",
+    "noMatches": "No matching papers",
+    "searchHint": "Try a different title or clear your search.",
+    "selectHint": "Select a paper to see its details.",
+    "noAuthors": "Authors not recorded",
+    "attachments": "Attachments",
+    "noAttachments": "No attachments",
+    "latestVersion": "Latest version {{number}}",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "edit": "Edit details",
+    "projects": "Projects",
+    "projectsFailed": "Project names are unavailable. Metadata can still be viewed.",
+    "projectAction": "Project membership",
+    "chooseProject": "Choose a project",
+    "firstPage": "Back to first page",
+    "nextPage": "Next page"
+  }
 }

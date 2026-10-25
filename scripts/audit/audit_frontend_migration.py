@@ -448,6 +448,11 @@ ALLOWED_ADDITIONS = {
     "tests/web-e2e/xscienceThirdPartyLicenses.e2e.ts-snapshots/third-party-licenses-desktop-linux.png": "Reviewed desktop visual baseline for the third-party license inventory.",
     "tests/web-e2e/xscienceThirdPartyLicenses.e2e.ts-snapshots/third-party-licenses-narrow-linux.png": "Reviewed narrow visual baseline for the third-party license inventory.",
     "tests/web-e2e/xscienceTranscriptRebase.e2e.ts": "Verify canonical Transcript rebase and reload behavior without restoring a legacy message authority.",
+    "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.tsx": "Expose the native Library route in the existing sidebar while retaining navigation cleanup, keyboard semantics and account authority; no task admission or catalogue mutation owner is added.",
+    "packages/desktop/src/renderer/pages/library/LibraryItemDetails.tsx": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated.",
+    "packages/desktop/src/renderer/pages/library/LibraryPage.tsx": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created.",
+    "packages/desktop/src/renderer/pages/library/libraryWorkbench.css": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted.",
+    "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities.",
 }
 
 ALLOWED_ADDITION_RULES = (
@@ -684,9 +689,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "4babb7ff4f072aa41474f480f2bb77bdcb45ef1a4a689ced796b558e07684c11"
+APPROVED_ADAPTATION_FINGERPRINT = "84118e4868a1007d8e04a05e7123125f7c066cefee9ced5496b4eb2b7e61f06c"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "648c7154da4557a9a35c69e983cdb59018e0c16f5351aa35dc530eee3c52be36"
+APPROVED_ADDITION_FINGERPRINT = "b196d896920ee9d747018df397efee34c73a62c178101660fe4bfd080e9b8c7e"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

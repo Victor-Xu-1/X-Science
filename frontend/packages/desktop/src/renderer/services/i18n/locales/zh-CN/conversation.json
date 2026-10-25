@@ -2083,5 +2083,33 @@
     "returnProjects": "返回项目列表"
   },
   "notFound": "会话不存在或已被删除",
-  "loading": "正在加载对话"
+  "loading": "正在加载对话",
+  "libraryWorkbench": {
+    "eyebrow": "你的研究文献",
+    "title": "文献库",
+    "description": "浏览已保存的文献，管理文献信息与项目归属。",
+    "search": "搜索文献库",
+    "details": "文献信息",
+    "items": "文献库条目",
+    "loadFailed": "无法加载文献库",
+    "detailFailed": "此文献条目暂不可用",
+    "empty": "文献库暂无条目",
+    "emptyHint": "在阅读选择器中保存已有文献，即可在这里查看。",
+    "noMatches": "没有匹配的文献",
+    "searchHint": "请尝试其他标题，或清除搜索。",
+    "selectHint": "选择文献以查看详细信息。",
+    "noAuthors": "未记录作者",
+    "attachments": "附件",
+    "noAttachments": "暂无附件",
+    "latestVersion": "最新版本 {{number}}",
+    "available": "可用",
+    "unavailable": "不可用",
+    "edit": "编辑信息",
+    "projects": "项目",
+    "projectsFailed": "项目名称暂不可用，仍可查看文献信息。",
+    "projectAction": "项目归属",
+    "chooseProject": "选择项目",
+    "firstPage": "返回首页",
+    "nextPage": "下一页"
+  }
 }

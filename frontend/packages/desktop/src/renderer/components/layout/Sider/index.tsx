@@ -10,6 +10,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useXScienceUserProfile } from '@renderer/hooks/useXScienceUserProfile';
 import { SiderSearchEntry } from './SiderNav';
+import { SiderLibraryEntry } from './SiderNav/SiderLibraryEntry';
 import SiderFooter from './SiderFooter';
 import siderStyles from './Sider.module.css';
 import { loadSettingsSider, prefetchSettingsRoute } from '../routeModules';
@@ -197,6 +198,13 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 onSessionClick={onSessionClick}
               />
             )}
+            <SiderLibraryEntry
+              collapsed={collapsed}
+              onNavigate={() => {
+                handleConversationSelect();
+                onSessionClick?.();
+              }}
+            />
             {/* Divider between fixed top nav and scrollable content area */}
             {isMobile && (
               <div

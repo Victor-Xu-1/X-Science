@@ -2,6 +2,7 @@ import { literatureMetadataPatchMatches } from '@/common/adapter/literatureMetad
 import { httpRequest } from '@/common/adapter/httpBridge';
 import {
   decodeLiteratureCommand,
+  decodeLiteratureItem,
   decodeLiteraturePage,
   decodeLiteratureReceipt,
   literatureValueIdentity,
@@ -41,6 +42,19 @@ export async function loadLiteraturePage(
   requireAccount(account);
   return decodeLiteraturePage(raw);
 }
+/** Reads the existing owner-authorized catalogue item, independent of PDF eligibility. */
+export async function loadLiteratureItem(itemId: string, signal?: AbortSignal): Promise<LiteratureItem> {
+  const account = getRendererAccountScopeToken();
+  const raw = await httpRequest<unknown>('GET', `/api/literature/items/${encodeURIComponent(itemId)}`, undefined, {
+    signal,
+    timeoutMs: 15_000,
+  });
+  requireAccount(account);
+  const item = decodeLiteratureItem(raw);
+  if (item.id !== itemId || item.deleted) throw new Error('Literature detail identity changed');
+  return item;
+}
+
 export async function runLiteratureCommand(input: LiteratureCommand): Promise<LiteratureReceipt> {
   const account = getRendererAccountScopeToken();
   const command = decodeLiteratureCommand(input);
