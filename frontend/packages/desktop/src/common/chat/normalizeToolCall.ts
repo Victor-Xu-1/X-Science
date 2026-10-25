@@ -1,6 +1,17 @@
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup } from './chatLib';
 import { getAcpImagePath } from './acpToolCallOutput';
 import { parseLargeToolResultReference } from './largeToolResultReference';
+import {
+  normalizeResourceAdmissionProgress,
+  resourceAdmissionMatchesPhase,
+  mergeToolObservationRecords,
+  toolObservationCallKey,
+  toolObservationOwnerKey,
+  isToolObservationTerminal,
+  type NormalizedToolProgress,
+} from './toolProgressObservation';
+export type { NormalizedToolProgress, ResourceAdmissionProgress } from './toolProgressObservation';
+export { normalizeResourceAdmissionProgress, resourceAdmissionMatchesPhase } from './toolProgressObservation';
 
 export type NormalizedToolStatus =
   | 'pending'
@@ -12,20 +23,6 @@ export type NormalizedToolStatus =
   | 'canceled'
   | 'interrupted'
   | 'unknown';
-
-export type NormalizedToolProgress = {
-  phase: string;
-  message?: string;
-  process?: string;
-  phasePercent?: number;
-  bytesPerSecond?: number;
-  bytesCompleted?: number;
-  bytesTotal?: number;
-  completedItems?: number;
-  totalItems?: number;
-  elapsedMs?: number;
-  indeterminate: boolean;
-};
 
 export interface NormalizedToolCall {
   key: string;
@@ -94,11 +91,14 @@ const normalizeToolProgress = (value: unknown): NormalizedToolProgress | undefin
   const totalItems = boundedProgressNumber(record.totalItems, Number.MAX_SAFE_INTEGER);
   const elapsedMs = boundedProgressNumber(record.elapsedMs, 365 * 24 * 60 * 60 * 1000);
   const message = normalizeHumanDescription(record.message);
+  const observedAdmission = normalizeResourceAdmissionProgress(record.resourceAdmission);
+  const resourceAdmission = resourceAdmissionMatchesPhase(observedAdmission, phase) ? observedAdmission : undefined;
   const process =
     typeof record.process === 'string' && /^[a-z0-9._-]{1,40}$/u.test(record.process) ? record.process : undefined;
   return {
     phase,
     ...(message ? { message } : {}),
+    ...(resourceAdmission ? { resourceAdmission } : {}),
     ...(process ? { process } : {}),
     ...(phasePercent === undefined ? {} : { phasePercent }),
     ...(bytesPerSecond === undefined ? {} : { bytesPerSecond }),
@@ -393,9 +393,12 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
   const transportStatus = normalizeToolCallStatus(status);
   const normalizedStatus =
     transportStatus === 'completed' && outputReportsSemanticFailure(output ?? error) ? 'error' : transportStatus;
-  const operationKey =
-    Number.isSafeInteger(attempt) && Number(attempt) >= 1 ? `${Number(attempt)}:${operation_id || call_id}` : call_id;
+  const operationKey = toolObservationCallKey(call_id, attempt, operation_id);
   const largeResult = parseLargeToolResultReference(output ?? error);
+  const normalizedProgress = normalizeToolProgress(progress);
+  if (isTerminalToolStatus(normalizedStatus) && normalizedProgress?.resourceAdmission) {
+    delete normalizedProgress.resourceAdmission;
+  }
 
   return {
     key: operationKey,
@@ -409,7 +412,7 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
     output: output ?? error,
     truncated: content._compact?.truncated === true || largeResult !== null,
     compactResultCount: normalizeCompactResultCount(content._compact?.result_count) ?? largeResult?.sourceCount,
-    progress: normalizeToolProgress(progress),
+    progress: normalizedProgress,
     ...(Number.isSafeInteger(attempt) && Number(attempt) >= 1 ? { attempt: Number(attempt) } : {}),
     ...(operation_id ? { operationId: operation_id } : {}),
     ...(parent_operation_id ? { parentOperationId: parent_operation_id } : {}),
@@ -434,35 +437,29 @@ function normalizeCompactResultCount(value: unknown): number | undefined {
 
 export type ToolMessage = IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall;
 
-const isTerminalToolStatus = (status: NormalizedToolStatus): boolean =>
-  status === 'completed' ||
-  status === 'error' ||
-  status === 'canceled' ||
-  status === 'interrupted' ||
-  status === 'unknown';
+const isTerminalToolStatus = isToolObservationTerminal;
 
 export const isActiveToolStatus = (status: NormalizedToolStatus): boolean =>
   status === 'pending' || status === 'running' || status === 'waiting' || status === 'blocked';
 
-const mergeNormalizedToolCall = (existing: NormalizedToolCall, incoming: NormalizedToolCall): NormalizedToolCall => {
-  // A terminal receipt is one coherent snapshot, not just immutable output.
-  // Never pair its evidence with a later input, revision or history pointer.
-  if (isTerminalToolStatus(existing.status)) {
-    const settled = { ...incoming };
-    for (const [key, value] of Object.entries(existing)) {
-      if (value !== undefined) Object.assign(settled, { [key]: value });
-    }
-    return settled;
-  }
-  if (existing.revision !== undefined && incoming.revision !== undefined && incoming.revision < existing.revision) {
-    return existing;
-  }
-  const merged = { ...existing };
-  for (const [key, value] of Object.entries(incoming)) {
-    if (value !== undefined) Object.assign(merged, { [key]: value });
-  }
-  return merged;
-};
+const normalizedToolObservationScope = (tool: NormalizedToolCall) => ({
+  identity: tool.key,
+  conversationId: tool.conversationId,
+  branchId: tool.branchId,
+  attempt: tool.attempt,
+  revision: tool.revision,
+  status: tool.status,
+  input: tool.input,
+});
+
+const mergeNormalizedToolCall = (existing: NormalizedToolCall, incoming: NormalizedToolCall): NormalizedToolCall =>
+  mergeToolObservationRecords(
+    existing,
+    incoming,
+    normalizedToolObservationScope(existing),
+    normalizedToolObservationScope(incoming),
+    'normalized'
+  );
 
 export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCall[] {
   const normalized = messages
@@ -475,7 +472,7 @@ export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCa
     .filter((item): item is NormalizedToolCall => item !== undefined);
   const byKey = new Map<string, NormalizedToolCall>();
   for (const item of normalized) {
-    const identity = JSON.stringify([item.conversationId, item.branchId, item.key]);
+    const identity = toolObservationOwnerKey(item.conversationId, item.branchId, item.key);
     const existing = byKey.get(identity);
     byKey.set(identity, existing ? mergeNormalizedToolCall(existing, item) : item);
   }

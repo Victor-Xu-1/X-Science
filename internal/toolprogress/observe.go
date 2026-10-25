@@ -69,6 +69,7 @@ func Observe[T any](ctx context.Context, interval time.Duration, execute func(co
 	structuredPublished := false
 	dirty := false
 	var current *Update
+	var lastAdmission *ResourceAdmissionSnapshot
 	emit := func(progress *Update) {
 		lastPublished = time.Now()
 		dirty = false
@@ -76,6 +77,15 @@ func Observe[T any](ctx context.Context, interval time.Duration, execute func(co
 		var snapshot *Update
 		if progress != nil {
 			value := Clone(*progress)
+			if admission := value.ResourceAdmission; admission != nil {
+				if lastAdmission != nil && *admission == *lastAdmission {
+					// Keep the original progress heartbeat, but do not append the
+					// same historical capacity decision on every heartbeat.
+					value.ResourceAdmission = nil
+				} else {
+					lastAdmission = NormalizeResourceAdmission(admission)
+				}
+			}
 			snapshot = &value
 		}
 		publish(snapshot, time.Since(started), progressOrdinal)

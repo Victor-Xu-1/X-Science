@@ -13,6 +13,7 @@ import (
 	"time"
 
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolprogress"
 )
 
 type executorResourcePlanner interface {
@@ -187,7 +188,7 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 		return 0, err
 	}
 	if !admitted {
-		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration}
+		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration, Admission: toolprogress.NormalizeResourceAdmission(reservation.Admission)}
 	}
 	// Use the exact allocation returned by the serialized admission, including
 	// concurrent replays. Neither an earlier inventory nor the default floor

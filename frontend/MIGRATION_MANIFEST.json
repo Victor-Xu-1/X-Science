@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "3f79f9ef5cfd55cc35abb66972d492d2069fec5c5436267fcb3bd86bb7e1f122",
+  "adaptationFingerprintSHA256": "faa04c9d1d0b24255e02d07b9a5d3ba372a52feb3519c515d08cba3cf10cc8c9",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "354b1e804b745684542514aae57e6f5357a6cdeb087996c3f4aae3f0b6aafe30",
+  "additionFingerprintSHA256": "7f6f880c41f64007a1cedcb04c1b5d5c610f0169a9520e6ed0fb3e3edf4712e3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 270,
     "adaptedSourceFiles": 789,
     "removedSourceFiles": 295,
-    "addedFiles": 1215
+    "addedFiles": 1216
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "51eb7ce58c7384efb23f96617f395d935e09bb7ef60d086479f081227d642fb4",
+      "targetSHA256": "99438849f4583bd0df367520ba615967080e2934a961de75855abd293a889a44",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "f86ee2b1f0ea815cd08e23c3954ea89ece5b731ab2fe3f8607373224f5f34be9",
+      "targetSHA256": "51575f10eda1da950a6b1782d80b9a5791592573b816bf9572a1e7157e158769",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -73,15 +73,15 @@
     {
       "path": "packages/desktop/src/common/chat/chatLib.ts",
       "sourceSHA256": "fc5bdff3c76b7826754ce2285a76c6215d797f0d21940d3518bdf8b1e4919c63",
-      "targetSHA256": "ff2fdecba1ddce9c8eb8ed842fbf80a90880de2dc3681ac015ef5f196388a409",
-      "bytes": 41059,
+      "targetSHA256": "89e79c508e64518f2cfa82d215594ad09e61e18c6acedc14734c3b02cec3c2d6",
+      "bytes": 40857,
       "reason": "Carry validated canonical Transcript message coordinates and cancelled tool-call status through the migrated message model."
     },
     {
       "path": "packages/desktop/src/common/chat/normalizeToolCall.ts",
       "sourceSHA256": "f29b817f1c1a91fdfca53d54fa6d00ce9e0e92d2fcafc0a5b34221e03eb5e41e",
-      "targetSHA256": "080d2adffb14c389949bd82cfe3773d7e4be55bc5aa22e7f9823897341f311cc",
-      "bytes": 17321,
+      "targetSHA256": "a1976b435453e00cb04fc6adfc9e888f0203b37165c219f6ae62775c812b3e6c",
+      "bytes": 17446,
       "reason": "Normalize the canonical cancelled tool-call status without guessing terminal state."
     },
     {
@@ -1558,8 +1558,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "7711f5bd20309fc7b4a98e6e68313a148b6aac9761c05150ce84b892359b150d",
-      "bytes": 62609,
+      "targetSHA256": "5cfeba17d82de407bc0a4ecdf594c5f2108bafa3bd641f78071c1c36393eed4a",
+      "bytes": 62954,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2917,8 +2917,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/messages.json",
       "sourceSHA256": "979d2f26c0896cfa1633a6123c5053deeb72741747136c25f461498dbe910986",
-      "targetSHA256": "90284230e7df57f533a5bf23cc6eb4a37b280242e48e1e4a15e6a979a22706e6",
-      "bytes": 22045,
+      "targetSHA256": "c2ff713e83e7f01026bb2ecc018c42deb3ac2deaae5608acaba58a551f99ec18",
+      "bytes": 22501,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3008,8 +3008,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/messages.json",
       "sourceSHA256": "899c3e67af597e892606fac249fcaabb066316bc3190ee4d6f16a3947222d4bf",
-      "targetSHA256": "6b3ff983e767ceaf725f5fb263d0a9c81b3dbeaca401021d22d56e64b29010c7",
-      "bytes": 21560,
+      "targetSHA256": "cd2b2478cb9b31c236369e511f2232608badec01e276c93ca68333a301293157",
+      "bytes": 21990,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3949,8 +3949,8 @@
     {
       "path": "tests/unit/chat/normalizeToolCall.test.ts",
       "sourceSHA256": "2aa6fe08f7ef94ef0b1204a7681363065814f846f202e9a7bfc895ddd1224546",
-      "targetSHA256": "a0dba452cad4fd52542e2feb51b6ca2f79f04215f04bf87b133c081e0b375fcd",
-      "bytes": 6993,
+      "targetSHA256": "0b017a85dff88efaaf50c88b854c289815f27eecbba4ca1445dcd43e9fb280b2",
+      "bytes": 13156,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7563,7 +7563,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "acd69c3900b4fc087190a379878211bb533ff5c84eb6148b796dddac010f81c3",
+      "sha256": "8f43c730caeef837990f9e85f0d3a6eaf53b352e8df4ed1241a6130bac883936",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7722,6 +7722,12 @@
       "sha256": "ba87e41427df027745bbce285172b5eab98a74f65b691c3d16ce040cb8c0286e",
       "bytes": 2906,
       "reason": "Bind X-Science text replay suppression to conversation, segment, and durable publication coverage without discarding unseen publications."
+    },
+    {
+      "path": "packages/desktop/src/common/chat/toolProgressObservation.ts",
+      "sha256": "f75ad5d7b55914ea62c3a886453cafd3179f60c34d6d75bc96d5d65536910828",
+      "bytes": 8808,
+      "reason": "Extract and adapt the existing migrated chatLib.ts/normalizeToolCall.ts progress model and history/live same-ID merge into one pure observation helper, retaining imported-source provenance while adding X-Science resource-admission validation and revision fencing without another cache, timer, transport, request, or lifecycle owner."
     },
     {
       "path": "packages/desktop/src/common/config/productIdentity.ts",
@@ -8829,8 +8835,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/toolProgressPresentation.ts",
-      "sha256": "b9062507dda92e3ac4eb24a3505373c80b00448c320a910401344b0929022499",
-      "bytes": 6955,
+      "sha256": "a411a3298ce6699399cd7609f88d38990cdc07e4a715a346c8d98bfc14a6a07c",
+      "bytes": 8290,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13305,8 +13311,8 @@
     },
     {
       "path": "tests/unit/renderer/messageLiveWindow.dom.test.tsx",
-      "sha256": "dd23a980c8c4adf7daee7cc8992c15eaaca7afa1f340b1308242f9ecf17580b6",
-      "bytes": 9666,
+      "sha256": "25b4bd7a1bcc63d39eb847d19d929783ebc16559450be0630d8ed98a9fc8ce15",
+      "bytes": 16180,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

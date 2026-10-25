@@ -12,16 +12,17 @@ import (
 // to known workflow milestones, while PhasePercent refers only to the current
 // phase (for example a package download reported by the installer).
 type Update struct {
-	Phase          string
-	Message        string
-	Process        string
-	PhasePercent   *float64
-	BytesPerSecond *float64
-	BytesCompleted *int64
-	BytesTotal     *int64
-	CompletedItems *int64
-	TotalItems     *int64
-	Indeterminate  bool
+	Phase             string
+	Message           string
+	Process           string
+	PhasePercent      *float64
+	BytesPerSecond    *float64
+	BytesCompleted    *int64
+	BytesTotal        *int64
+	CompletedItems    *int64
+	TotalItems        *int64
+	Indeterminate     bool
+	ResourceAdmission *ResourceAdmissionSnapshot
 }
 
 type reporterKey struct{}
@@ -56,7 +57,7 @@ func Report(ctx context.Context, update Update) {
 	update = Normalize(update)
 	if update.Phase == "" && update.Message == "" && update.PhasePercent == nil &&
 		update.BytesPerSecond == nil && update.BytesCompleted == nil && update.BytesTotal == nil &&
-		update.CompletedItems == nil && update.TotalItems == nil && update.Process == "" {
+		update.CompletedItems == nil && update.TotalItems == nil && update.Process == "" && update.ResourceAdmission == nil {
 		return
 	}
 	reporter(update)
@@ -66,6 +67,7 @@ func Normalize(update Update) Update {
 	update.Phase = boundedText(update.Phase, 80)
 	update.Message = boundedText(update.Message, 240)
 	update.Process = normalizedProcess(update.Process)
+	update.ResourceAdmission = NormalizeResourceAdmission(update.ResourceAdmission)
 	update.PhasePercent = normalizedPercent(update.PhasePercent)
 	if update.BytesPerSecond != nil &&
 		(math.IsNaN(*update.BytesPerSecond) || math.IsInf(*update.BytesPerSecond, 0) || *update.BytesPerSecond < 0) {
@@ -122,6 +124,9 @@ func Merge(current, incoming Update) Update {
 		merged.BytesTotal = nil
 	}
 	if incoming.Phase != "" {
+		if incoming.Phase != current.Phase {
+			merged.ResourceAdmission = nil
+		}
 		if incoming.Phase != current.Phase && incoming.PhasePercent == nil {
 			merged.PhasePercent = nil
 		}
@@ -142,6 +147,9 @@ func Merge(current, incoming Update) Update {
 	}
 	if incoming.Process != "" {
 		merged.Process = incoming.Process
+	}
+	if incoming.ResourceAdmission != nil {
+		merged.ResourceAdmission = NormalizeResourceAdmission(incoming.ResourceAdmission)
 	}
 	// Milestone-only phase updates are workflow metadata; retain the latest
 	// transfer snapshot so the public view does not blink empty between phases.

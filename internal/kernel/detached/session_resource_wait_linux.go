@@ -5,6 +5,7 @@ package detached
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	kernelruntime "x-science/internal/kernel"
@@ -28,10 +29,10 @@ func (b *Backend) launchExecutorWithResourceWait(ctx context.Context, backend wo
 	if unavailable.BackendID != backend.BackendID || unavailable.Generation != backend.BackendGeneration {
 		return workspace.ErrKernelExecutionBackendConflict
 	}
-	return b.waitForSessionResourceCapacity(ctx, backend)
+	return b.waitForSessionResourceCapacity(ctx, backend, unavailable.Admission)
 }
 
-func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected workspace.KernelExecutionBackend) error {
+func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected workspace.KernelExecutionBackend, initial *toolprogress.ResourceAdmissionSnapshot) error {
 	capacityScope, _ := ctx.(kernelruntime.ResourceCapacityWaitScopeSource)
 	ctx, cancelWait := resourceAdmissionContext(ctx)
 	defer cancelWait()
@@ -78,7 +79,7 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 			if err := ctx.Err(); err != nil {
 				return resourceWaitContextError(ctx)
 			}
-			toolprogress.Report(ctx, toolprogress.Update{Phase: "starting", Message: "Execution capacity admitted; waiting for the original runtime to become ready.", Indeterminate: true})
+			toolprogress.Report(ctx, resourceAdmissionProgress("starting", reservation.Admission))
 			return nil
 		case "waiting":
 			if current.State != workspace.KernelExecutionBackendStateStarting {
@@ -93,7 +94,7 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 					endCapacityWait = cleanup
 				}
 			}
-			toolprogress.Report(ctx, toolprogress.Update{Phase: "waiting_for_resources", Message: "Waiting for execution capacity; the original operation is preserved and no computation has started.", Indeterminate: true})
+			toolprogress.Report(ctx, resourceAdmissionProgress("waiting_for_resources", initial))
 			waitingObserved = true
 		}
 		select {
@@ -104,6 +105,22 @@ func (b *Backend) waitForSessionResourceCapacity(ctx context.Context, expected w
 		case <-ticker.C:
 		}
 	}
+}
+
+func resourceAdmissionProgress(phase string, snapshot *toolprogress.ResourceAdmissionSnapshot) toolprogress.Update {
+	snapshot = toolprogress.NormalizeResourceAdmission(snapshot)
+	message := "Waiting for execution capacity; the original operation is preserved and no computation has started."
+	if phase == "starting" {
+		message = "Execution capacity admitted; waiting for the original runtime to become ready."
+	}
+	if snapshot != nil {
+		if snapshot.Reason == toolprogress.ResourceAdmissionGranted {
+			message = fmt.Sprintf("Execution capacity admitted: reserved %d B; net available at admission %d B. Waiting for the original runtime.", snapshot.ReservedBytes, snapshot.NetAvailableBytes)
+		} else {
+			message = fmt.Sprintf("Waiting for execution capacity (initial decision): required %d B; available %d B; unused promises %d B; net %d B; earlier waits %d.", snapshot.RequiredBytes, snapshot.CapacityAvailableBytes, snapshot.UnusedPromisedBytes, snapshot.NetAvailableBytes, snapshot.PrecedingWaiters)
+		}
+	}
+	return toolprogress.Update{Phase: phase, Message: message, Indeterminate: true, ResourceAdmission: snapshot}
 }
 
 // Merge cancellation once per admission wait, including SQLite reads, not once

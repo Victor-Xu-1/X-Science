@@ -128,7 +128,7 @@ func TestResourceWaitCancellationInterruptsSQLiteConnectionWait(t *testing.T) {
 	defer cancelRequest()
 	ctx := resourceWaitRequestContext{Context: context.Background(), request: request}
 	done := make(chan error, 1)
-	go func() { done <- b.waitForSessionResourceCapacity(ctx, backend) }()
+	go func() { done <- b.waitForSessionResourceCapacity(ctx, backend, nil) }()
 	select {
 	case err := <-done:
 		t.Fatalf("expected an occupied SQLite connection, got %v", err)
@@ -210,7 +210,7 @@ func TestResourceWaitRejectsDifferentImmutableAuthority(t *testing.T) {
 			test.change(&expected)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			if err := b.waitForSessionResourceCapacity(ctx, expected); !errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
+			if err := b.waitForSessionResourceCapacity(ctx, expected, nil); !errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
 				t.Fatalf("foreign wait authority was admitted: %v", err)
 			}
 		})
