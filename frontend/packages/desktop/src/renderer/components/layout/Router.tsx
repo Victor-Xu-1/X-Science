@@ -16,6 +16,7 @@ import {
   loadAuthenticatedWorkspaceRoute,
   loadGuidRoute,
   loadProjectRoute,
+  loadLibraryRoute,
   loadSettingsRoute,
 } from './routeModules';
 import './AuthUnavailablePanel.css';
@@ -25,6 +26,7 @@ const Conversation = React.lazy(loadConversationRoute);
 const Guid = React.lazy(loadGuidRoute);
 const Onboarding = React.lazy(() => import('@renderer/pages/onboarding'));
 const ProjectRoute = React.lazy(loadProjectRoute);
+const LibraryPage = React.lazy(loadLibraryRoute);
 const ArtifactPreview = React.lazy(loadArtifactPreviewRoute);
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const SettingsRoute = React.lazy(loadSettingsRoute);
@@ -175,6 +177,7 @@ const PanelRoute: React.FC = () => {
           <Route element={<FirstUseGate />}>
             <Route index element={<Navigate to='/guid' replace />} />
             <Route path='/guid' element={withRouteFallback(Guid)} />
+            <Route path='/library' element={withRouteFallback(LibraryPage)} />
             <Route path='/projects/:projectId' element={withRouteFallback(ProjectRoute)} />
             <Route path='/projects/:projectId/workbench' element={<Navigate to='..' relative='path' replace />} />
             <Route path='/artifacts/:artifactId' element={withRouteFallback(ArtifactPreview)} />

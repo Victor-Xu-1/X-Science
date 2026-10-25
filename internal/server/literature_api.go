@@ -100,6 +100,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, version.Filename, time.Time{}, reader)
 		return
 	}
+	if len(parts) == 2 && parts[0] == "items" && r.Method == http.MethodGet {
+		s.handleLiteratureItemRead(w, r, owner, parts[1])
+		return
+	}
 	if len(parts) == 2 && parts[0] == "items" && r.Method == http.MethodPatch {
 		var input workspace.LiteraturePatch
 		if decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
