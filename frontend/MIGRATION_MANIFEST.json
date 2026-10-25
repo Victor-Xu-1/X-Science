@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "00309f1e3f35f1f6690f5af3a11aba466435ce1c86f87df8cb2b12013f1899ac",
+  "adaptationFingerprintSHA256": "ab6c71de3e383ab095f6a33d72b69a5330f2f579e96bebbcf6e31462ceafa19f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "f609c8d60b7bfd61a83c332ea2a6089f3837759cb1cc297571ac9910d2c35f2c",
+  "additionFingerprintSHA256": "00a1303ee6ab206f812fb0e75a4b61986d72b05c167b51ad68820babae778c72",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 269,
-    "adaptedSourceFiles": 790,
+    "unchangedSourceFiles": 268,
+    "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1239
+    "addedFiles": 1244
   },
   "adaptations": [
     {
@@ -701,8 +701,15 @@
     {
       "path": "packages/desktop/src/renderer/components/settings/SettingsModal/index.tsx",
       "sourceSHA256": "904def2041e3698e3aa495d219ddd961b2677e1e9b8cfaf59c291ecfa658f7f9",
-      "targetSHA256": "3f30e2f6ed99441c2d670a8ce926b26545d2a566a1a1b9d19d67ee5156dbb719",
-      "bytes": 8861,
+      "targetSHA256": "a1eae33c7bf926826bde7122c5ca00a108d39eb0a45aa7e415de3b8d6ed1e1ba",
+      "bytes": 9102,
+      "reason": "Adapt shared settings dialogs and language controls to the Go configuration and browser filesystem contracts."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/settings/SettingsModal/settingsViewContext.tsx",
+      "sourceSHA256": "8ee2cba33d342d2697896b0ab75883bca4414d6531362b522794cc688cc6f1bb",
+      "targetSHA256": "b016f0c0239a0d9fe1d0dc1be42fe93769a538797a29bba2cfb91d71da140df1",
+      "bytes": 1292,
       "reason": "Adapt shared settings dialogs and language controls to the Go configuration and browser filesystem contracts."
     },
     {
@@ -2755,8 +2762,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/XScienceMemoryManager.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/components/SynonBiomedMemoryManager.tsx",
       "sourceSHA256": "01aafac0f7c8dbec2ef0b6191b405d6db58a805080c0ac12c189ecb5e5ec530a",
-      "targetSHA256": "95a1c9bbb72b112b7540d9fb11c2885946325f655083fc93f4def8c4664b1881",
-      "bytes": 48288,
+      "targetSHA256": "af34518262f4c06345eacd19bed1c1ba5a7d1f4bf290699072cc8b1dcb36c314",
+      "bytes": 48350,
       "reason": "Move genuine imported source to the current X-Science namespace. Render a recoverable inline memory-load failure state with an explicit retry action."
     },
     {
@@ -5183,8 +5190,8 @@
       "path": "tests/unit/settings/XScienceMemoryManager.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMemoryManager.dom.test.tsx",
       "sourceSHA256": "6afdab37284d5d4223eeac6a27f3dc622bfd9c13b8dc79bc9b15b39ddf953638",
-      "targetSHA256": "f207ae67d2c60564efd3d1baa8fa415b78a98169e65ab7e9515046804e017d15",
-      "bytes": 30124,
+      "targetSHA256": "921ac09d6896e8577bb27d631d2d860d3a08cdc4d01c880cb95b28285ddea676",
+      "bytes": 26331,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify the explicit memory-load failure and retry state."
     },
     {
@@ -10311,6 +10318,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/settings/components/useMemoryCategoryDraft.ts",
+      "sha256": "6d27247cc4e4f1b67f27daf914a9ef6646a481e28eaecaae09a2539e0e160fac",
+      "bytes": 4563,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/settings/components/useSettingsReadResource.ts",
       "sha256": "176540c3a37ecff7465d0565932d3447279ee85ddb5eb1d978c603d512b16df7",
       "bytes": 2272,
@@ -10896,6 +10909,12 @@
       "path": "packages/desktop/src/renderer/services/runtime/literatureMutationLock.ts",
       "sha256": "84603c5ea61732fb2a5d18c1fe847c335881beebfe5b451b76cc70a0aa0abf40",
       "bytes": 1337,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/memoryCategoryDraft.ts",
+      "sha256": "37ab15c3c2c4f1755f42e0c44d183651249f77ce6436d48e00a6bef94ab35f34",
+      "bytes": 12523,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13962,6 +13981,24 @@
       "path": "tests/unit/settings/mcpConnectorVisuals.test.ts",
       "sha256": "974c871f1ce3ad4f65d5980d8de0230c5b228f5eb094304698db4d9bda233cef",
       "bytes": 1000,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/memoryCategoryDraft.test.ts",
+      "sha256": "4fdf02f65b31ffdc1f7ad192453596fbab881615df36fa0b78939cd79f3cf003",
+      "bytes": 5943,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/memoryCategoryHosts.dom.test.tsx",
+      "sha256": "0575c2cf924f5e8a923b9c93832fcbabfe6dc46675ea48a4ff123137f0b95326",
+      "bytes": 10484,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/settings/memoryManagerFixtures.ts",
+      "sha256": "bee9597bf51863a965f7433611fd322dccbc01cee0b666161bfabfcc4ad6bf4a",
+      "bytes": 4138,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
