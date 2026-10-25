@@ -964,9 +964,14 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
       <Modal
         title={categoryDraft?.id ? t('settings.memoryCategoryEdit') : t('settings.memoryCategoryAdd')}
         visible={categoryDraft !== null}
-        onCancel={() => setCategoryDraft(null)}
+        onCancel={() => {
+          if (pending) return;
+          setCategoryDraft(null);
+        }}
         onOk={() => void saveCategory()}
         confirmLoading={pending}
+        cancelButtonProps={{ disabled: pending }}
+        escToExit={!pending}
         okButtonProps={{
           id: 'memory-category-save',
           disabled: !categoryDraft?.name.trim() || !categoryDraft.guidance.trim(),
@@ -979,6 +984,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
               {t('settings.memoryCategoryName')}
               <Input
                 data-testid='memory-category-name'
+                disabled={pending}
                 value={categoryDraft.name}
                 onChange={(name) => setCategoryDraft((current) => (current ? { ...current, name } : current))}
               />
@@ -987,6 +993,7 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
               {t('settings.memoryCategoryGuidance')}
               <Input.TextArea
                 data-testid='memory-category-guidance'
+                disabled={pending}
                 value={categoryDraft.guidance}
                 rows={4}
                 onChange={(guidance) => setCategoryDraft((current) => (current ? { ...current, guidance } : current))}
