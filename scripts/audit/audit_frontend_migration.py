@@ -453,6 +453,9 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/pages/library/LibraryPage.tsx": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created.",
     "packages/desktop/src/renderer/pages/library/libraryWorkbench.css": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted.",
     "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentBrowser.tsx": "Connect immutable Library versions to the existing owner-authorized content route and shared PDF core with account-scoped preview, download, cancellation and exact-version retry.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced.",
+    "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths.",
 }
 
 ALLOWED_ADDITION_RULES = (
@@ -689,9 +692,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "25f3d0003e59b0949b79ebef40ea5040cd3e4d1c659de35d9bafc5bfa81e58d5"
+APPROVED_ADAPTATION_FINGERPRINT = "61d1f6cfa5d91403f52d4655aa101e11b9b686258562dcdfff5a0cee66571386"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "ce0687698c8a821cc8321b73e2df34cb26ada27ac5993fe84be3c222c92103d2"
+APPROVED_ADDITION_FINGERPRINT = "b9e8df25ce4173838fe16073d13c76a08e4685329f937350fe0687b70ae7a758"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

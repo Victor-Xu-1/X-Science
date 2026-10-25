@@ -2112,6 +2112,16 @@
     "projectAction": "项目归属",
     "chooseProject": "选择项目",
     "firstPage": "返回首页",
-    "nextPage": "下一页"
+    "nextPage": "下一页",
+    "attachmentVersion": "版本 {{number}}",
+    "openAttachment": "预览 PDF",
+    "chooseAttachmentVersion": "选择版本",
+    "latestAttachmentVersion": "最新版本",
+    "attachmentUnavailable": "所选附件版本不可用，未打开其他版本。",
+    "attachmentDownloadOnly": "目前支持 PDF 附件预览，可下载此原始版本后使用其他软件打开。",
+    "attachmentDownloading": "正在下载 {{name}}…",
+    "attachmentDownloadFailed": "无法下载 {{name}}，可重试同一版本。",
+    "attachmentDownloadStarted": "已发起下载 · {{name}}",
+    "attachmentPreview": "附件预览"
   }
 }

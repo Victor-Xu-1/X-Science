@@ -367,3 +367,58 @@
     animation: none;
   }
 }
+
+/* The existing PDF renderer is mounted in this page, without a modal/backdrop. */
+.library-workbench__attachment-copy {
+  min-width: 0;
+  flex: 1;
+}
+.library-workbench__attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.library-workbench__attachment-actions button,
+.library-workbench__attachment-preview button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 6px;
+  color: var(--color-text-1);
+  background: var(--color-bg-1);
+  font-size: 11px;
+}
+.library-workbench__attachment-versions {
+  display: grid;
+  gap: 6px;
+  margin-top: 9px;
+  font-size: 11px;
+}
+.library-workbench__attachment-versions select {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 6px;
+  color: var(--color-text-1);
+  background: var(--color-bg-1);
+}
+.library-workbench__attachment-preview {
+  min-width: 0;
+  margin: 14px 0;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.library-workbench__attachment-preview > .library-workbench__detail-heading {
+  padding: 9px;
+  font-size: 11px;
+}
+.library-workbench__attachment-preview > .library-workbench__detail-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.library-workbench__attachment-preview-canvas {
+  height: min(65vh, 700px);
+  min-height: 360px;
+}

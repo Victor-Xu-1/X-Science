@@ -36,12 +36,28 @@ export async function downloadFileFromPath(file_path: string, file_name: string,
 /**
  * Download a backend-owned artifact through its same-origin content endpoint.
  */
-export async function downloadFileFromUrl(contentUrl: string, fileName: string): Promise<void> {
-  const response = await fetch(contentUrl, { headers: { accept: 'application/octet-stream,*/*' } });
+export type DownloadFileOptions = { signal?: AbortSignal; isCurrent?: () => boolean };
+export async function downloadFileFromUrl(
+  contentUrl: string,
+  fileName: string,
+  options: DownloadFileOptions = {}
+): Promise<void> {
+  const requireCurrent = () => {
+    options.signal?.throwIfAborted();
+    if (options.isCurrent?.() === false) throw new DOMException('Download view changed', 'AbortError');
+  };
+  requireCurrent();
+  const response = await fetch(contentUrl, {
+    headers: { accept: 'application/octet-stream,*/*' },
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
+  requireCurrent();
   if (!response.ok) {
     throw new Error(`Artifact download failed: ${response.status}`);
   }
-  triggerBlobDownload(await response.blob(), fileName);
+  const blob = await response.blob();
+  requireCurrent();
+  triggerBlobDownload(blob, fileName);
 }
 /**
  * Download in-memory text content as a file.

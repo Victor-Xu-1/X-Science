@@ -2112,6 +2112,16 @@
     "projectAction": "Project membership",
     "chooseProject": "Choose a project",
     "firstPage": "Back to first page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "attachmentVersion": "Version {{number}}",
+    "openAttachment": "Preview PDF",
+    "chooseAttachmentVersion": "Choose version",
+    "latestAttachmentVersion": "Latest version",
+    "attachmentUnavailable": "The selected attachment version is unavailable. No other version was opened.",
+    "attachmentDownloadOnly": "Preview is available for PDF attachments. Download this original version to open it elsewhere.",
+    "attachmentDownloading": "Downloading {{name}}…",
+    "attachmentDownloadFailed": "Could not download {{name}}. Retry the same version.",
+    "attachmentDownloadStarted": "Download started · {{name}}",
+    "attachmentPreview": "Attachment preview"
   }
 }
