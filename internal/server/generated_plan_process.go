@@ -25,7 +25,7 @@ func (g serverAgentRuntimeToolGateway) RecoverRequiredToolCall(
 	if normalizeAgentToolName(stringValue(choice["name"])) != normalizeAgentToolName(requiredTool) {
 		return agentruntime.ToolCall{}, false
 	}
-	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID)
+	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID, g.taskRun)
 	if !found || len(snapshot.actionable) == 0 {
 		return agentruntime.ToolCall{}, false
 	}
@@ -101,7 +101,7 @@ type generatedPlanProcessSnapshot struct {
 	actionable []map[string]any
 }
 
-func (s *Server) generatedPlanProcessSnapshot(frameID string) (generatedPlanProcessSnapshot, bool) {
+func (s *Server) generatedPlanProcessSnapshot(frameID string, runs ...*sessionRunnerChatRun) (generatedPlanProcessSnapshot, bool) {
 	if s == nil || s.workspaceStore == nil || strings.TrimSpace(frameID) == "" {
 		return generatedPlanProcessSnapshot{}, false
 	}
@@ -110,6 +110,9 @@ func (s *Server) generatedPlanProcessSnapshot(frameID string) (generatedPlanProc
 		return generatedPlanProcessSnapshot{}, false
 	}
 	data := mapValue(metadata.ContextData)
+	if len(runs) > 1 || len(runs) == 1 && !generatedPlanMatchesCurrentControl(data, runs[0]) {
+		return generatedPlanProcessSnapshot{}, false
+	}
 	if strings.TrimSpace(stringValue(data["_plan_artifact_id"])) == "" ||
 		!generatedPlanExecutionAuthorized(data) {
 		return generatedPlanProcessSnapshot{}, false
@@ -123,6 +126,32 @@ func (s *Server) generatedPlanProcessSnapshot(frameID string) (generatedPlanProc
 		document: document, data: data,
 		actionable: generatedPlanActionableInvestigations(navigation["current_investigations"]),
 	}, true
+}
+
+// Server-only reads retain historical navigation. Runtime control work may
+// consume a frame plan only when the existing canonical task binding matches.
+// The predicate runs on the same metadata snapshot that its consumer receives.
+func generatedPlanMatchesCurrentControl(data map[string]any, run *sessionRunnerChatRun) bool {
+	if run == nil || run.currentControl == nil {
+		return true
+	}
+	return strings.TrimSpace(run.TaskIntentID) != "" && run.TaskIntentRevision > 0 &&
+		strings.TrimSpace(run.TaskIntent) != "" && sessionRunnerPlanMatchesTask(data, run)
+}
+
+func (s *Server) generatedPlanRuntimeNavigationContext(frameID string, run *sessionRunnerChatRun) string {
+	if run == nil || run.currentControl == nil {
+		return s.generatedPlanDesiredOutputsContext(frameID)
+	}
+	snapshot, found := s.generatedPlanProcessSnapshot(frameID, run)
+	if !found {
+		return ""
+	}
+	state, err := json.Marshal(generatedPlanResearchModelNavigation(snapshot.document, snapshot.data))
+	if err != nil {
+		return ""
+	}
+	return string(state)
 }
 
 func generatedPlanExecutionAuthorized(data map[string]any) bool {
@@ -219,8 +248,8 @@ func (snapshot generatedPlanProcessSnapshot) hasTypedResearchModules() bool {
 	return false
 }
 
-func (s *Server) generatedPlanActiveStep(frameID string) (generatedPlanStepIdentity, map[string]any, bool) {
-	snapshot, found := s.generatedPlanProcessSnapshot(frameID)
+func (s *Server) generatedPlanActiveStep(frameID string, runs ...*sessionRunnerChatRun) (generatedPlanStepIdentity, map[string]any, bool) {
+	snapshot, found := s.generatedPlanProcessSnapshot(frameID, runs...)
 	if !found || len(snapshot.actionable) == 0 {
 		return generatedPlanStepIdentity{}, nil, false
 	}
@@ -229,8 +258,8 @@ func (s *Server) generatedPlanActiveStep(frameID string) (generatedPlanStepIdent
 	return step, action, found
 }
 
-func (s *Server) generatedPlanActiveResearchStep(frameID string) (generatedPlanStepIdentity, map[string]any, bool) {
-	snapshot, found := s.generatedPlanProcessSnapshot(frameID)
+func (s *Server) generatedPlanActiveResearchStep(frameID string, runs ...*sessionRunnerChatRun) (generatedPlanStepIdentity, map[string]any, bool) {
+	snapshot, found := s.generatedPlanProcessSnapshot(frameID, runs...)
 	if !found || !snapshot.hasTypedResearchModules() || len(snapshot.actionable) == 0 {
 		return generatedPlanStepIdentity{}, nil, false
 	}
@@ -247,8 +276,9 @@ func (s *Server) generatedPlanActiveResearchStep(frameID string) (generatedPlanS
 func (s *Server) generatedPlanResearchReconciliationToolChoice(
 	frameID string,
 	tools []agentruntime.ToolSchema,
+	runs ...*sessionRunnerChatRun,
 ) any {
-	snapshot, found := s.generatedPlanProcessSnapshot(frameID)
+	snapshot, found := s.generatedPlanProcessSnapshot(frameID, runs...)
 	if !found || len(snapshot.actionable) == 0 ||
 		!boolValue(snapshot.data["_plan_approved"], false) ||
 		!agentRuntimeToolSchemaNamed(tools, updateStepStatusToolName) {
@@ -273,10 +303,10 @@ func (g serverAgentRuntimeToolGateway) generatedPlanPriorityToolChoice(
 	if g.server == nil {
 		return nil
 	}
-	if choice := g.server.generatedPlanResearchReconciliationToolChoice(g.sessionID, tools); choice != nil {
+	if choice := g.server.generatedPlanResearchReconciliationToolChoice(g.sessionID, tools, g.taskRun); choice != nil {
 		return choice
 	}
-	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID)
+	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID, g.taskRun)
 	if !found || len(snapshot.actionable) == 0 {
 		return nil
 	}
@@ -317,11 +347,11 @@ func (g serverAgentRuntimeToolGateway) generatedPlanPriorityToolChoice(
 // currently actionable step. This is control identity, not scientific
 // content: providers may choose the transition and notes, while stale titles
 // or guessed IDs cannot orphan subsequent source receipts.
-func (s *Server) generatedPlanUpdateStepStatusInput(frameID, toolName string, input map[string]any) map[string]any {
+func (s *Server) generatedPlanUpdateStepStatusInput(frameID, toolName string, input map[string]any, runs ...*sessionRunnerChatRun) map[string]any {
 	if normalizeAgentToolName(toolName) != normalizeAgentToolName(updateStepStatusToolName) {
 		return input
 	}
-	snapshot, found := s.generatedPlanProcessSnapshot(frameID)
+	snapshot, found := s.generatedPlanProcessSnapshot(frameID, runs...)
 	if !found || len(snapshot.actionable) == 0 {
 		return input
 	}
@@ -404,6 +434,15 @@ func (s *Server) generatedPlanResearchQueryInput(
 	input map[string]any,
 	capabilitySets ...[]string,
 ) map[string]any {
+	return s.generatedPlanResearchQueryInputForRun(frameID, toolName, input, nil, capabilitySets...)
+}
+
+func (s *Server) generatedPlanResearchQueryInputForRun(
+	frameID, toolName string,
+	input map[string]any,
+	run *sessionRunnerChatRun,
+	capabilitySets ...[]string,
+) map[string]any {
 	for _, key := range []string{"query", "url", "doi", "pmid", "pmcid", "identifier", "accession", "publication_number"} {
 		value, supplied := input[key]
 		text, isText := value.(string)
@@ -442,7 +481,7 @@ func (s *Server) generatedPlanResearchQueryInput(
 	if !researchTool && !searchTool && !discoveryTool && !evidenceReader {
 		return input
 	}
-	step, action, found := s.generatedPlanActiveResearchStep(frameID)
+	step, action, found := s.generatedPlanActiveResearchStep(frameID, run)
 	if !found {
 		return input
 	}
@@ -606,7 +645,7 @@ func (g serverAgentRuntimeToolGateway) generatedPlanRequiredToolChoice(
 	if g.server == nil {
 		return nil
 	}
-	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID)
+	snapshot, found := g.server.generatedPlanProcessSnapshot(g.sessionID, g.taskRun)
 	if !found || len(snapshot.actionable) == 0 {
 		return nil
 	}

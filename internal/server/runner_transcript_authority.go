@@ -437,11 +437,17 @@ func (s *Server) checkpointTranscriptRunnerEventWithDestinationsAndHook(
 	resumable bool,
 	destinations []string,
 	commitHook transcriptstore.RunnerCheckpointCommitHook,
+	runs ...*sessionRunnerChatRun,
 ) (transcriptstore.Event, error) {
 	if authority == nil {
 		return transcriptstore.Event{}, nil
 	}
-	if s.generatedPlanResearchSourceCheckpoint(authority.Stream.FrameID, payload) && s.workspaceStore != nil {
+	if (len(runs) == 0 || len(runs) == 1 && runs[0] == nil) && ctx != nil {
+		if run, found := transcriptRunnerChatRunFromContext(ctx); found {
+			runs = []*sessionRunnerChatRun{run}
+		}
+	}
+	if s.generatedPlanResearchSourceCheckpoint(authority.Stream.FrameID, payload, runs...) && s.workspaceStore != nil {
 		priorHook := commitHook
 		commitHook = func(
 			ctx context.Context,
@@ -479,11 +485,11 @@ func (s *Server) checkpointTranscriptRunnerEventWithDestinationsAndHook(
 	return event, err
 }
 
-func (s *Server) generatedPlanResearchSourceCheckpoint(frameID string, payload map[string]any) bool {
+func (s *Server) generatedPlanResearchSourceCheckpoint(frameID string, payload map[string]any, runs ...*sessionRunnerChatRun) bool {
 	if s == nil {
 		return false
 	}
-	if _, _, found := s.generatedPlanActiveResearchStep(frameID); !found {
+	if _, _, found := s.generatedPlanActiveResearchStep(frameID, runs...); !found {
 		return false
 	}
 	raw, err := json.Marshal(payload)

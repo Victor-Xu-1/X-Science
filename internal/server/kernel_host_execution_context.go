@@ -27,5 +27,24 @@ func (s *Server) agentKernelExecutionHostPolicy(
 			policyContext = withSessionReviewerEvidenceScope(policyContext, reviewerScope)
 		}
 	}
-	return s.agentKernelHostCallPolicy(policyContext, access, workspaceDir, allowedTools, fresh, binding)
+	policy := s.agentKernelHostCallPolicy(policyContext, access, workspaceDir, allowedTools, fresh, binding)
+	if ctx == nil {
+		return policy
+	}
+	run, found := transcriptRunnerChatRunFromContext(ctx)
+	if !found || policy.Handler == nil || run.Transcript.Stream != binding.stream ||
+		run.Transcript.Claim != binding.claim || binding.operationID == "" ||
+		run.KernelOperationIDs[binding.outerToolUseID] != binding.operationID {
+		return policy
+	}
+	// Carry the same bound task identity into detached callbacks without
+	// extending their cancellation, method, reviewer or live-claim authority.
+	handler := policy.Handler
+	policy.Handler = func(callCtx context.Context, call kernelruntime.HostCall) (any, error) {
+		if callCtx != nil {
+			callCtx = withTranscriptRunnerChatRun(callCtx, run)
+		}
+		return handler(callCtx, call)
+	}
+	return policy
 }

@@ -612,7 +612,7 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 		}
 	}
 	if status == "completed" && gateway.server.sessionRunnerEvidenceTool(name) {
-		if state := gateway.server.generatedPlanResearchHandoffContext(gateway.sessionID, execution.call, response); state != "" {
+		if state := gateway.server.generatedPlanResearchHandoffContext(gateway.sessionID, execution.call, response, gateway.taskRun); state != "" {
 			var modelContext map[string]any
 			if json.Unmarshal([]byte(state), &modelContext) == nil {
 				execution.result.ModelContext = modelContext
