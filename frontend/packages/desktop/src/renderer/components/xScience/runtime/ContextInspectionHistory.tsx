@@ -190,12 +190,7 @@ export default function ContextInspectionHistory({
             <span>0</span>
           </div>
           <div className={styles.chartScroller} ref={scroller}>
-            <div
-              className={styles.chart}
-              style={{ minWidth: Math.max(560, items.length * (calls ? 48 : 40)) + 'px' }}
-              role='group'
-              aria-label={t(PREFIX + (calls ? 'callChart' : 'turnChart'))}
-            >
+            <div className={styles.chart} role='group' aria-label={t(PREFIX + (calls ? 'callChart' : 'turnChart'))}>
               {calls
                 ? bands.map((band) => (
                     <div key={band.turnId} className={styles.callBand} data-testid='context-inspector-call-band'>
