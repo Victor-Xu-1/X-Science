@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	settingsstore "x-science/internal/persistence/settings"
 	workspace "x-science/internal/persistence/workspace"
@@ -13,25 +12,13 @@ import (
 const memoryAutoExtractionSettingKey = "memory.autoExtractionEnabled"
 
 func (s *Server) memoryAutoExtractionEnabled(userID string) (bool, error) {
-	if s == nil || s.settingsStore == nil {
-		return false, errors.New("automatic memory settings are unavailable")
-	}
-	setting, found, err := s.settingsStore.Get(userPreferenceSettingKey(memoryAutoExtractionSettingKey, strings.TrimSpace(userID)))
-	if err != nil {
-		return false, fmt.Errorf("read automatic memory setting: %w", err)
-	}
-	return s.memoryAutoExtractionValue(setting, found)
+	preference, err := s.memoryAutomaticPreferences(userID)
+	return preference.Enabled, err
 }
 
 func (s *Server) memoryAutoExtractionValue(setting settingsstore.Setting, found bool) (bool, error) {
-	if !found {
-		return s.memoryConfig.ExtractEnabled, nil
-	}
-	enabled, ok := setting.Value.(bool)
-	if !ok {
-		return false, errors.New("automatic memory setting is invalid")
-	}
-	return enabled, nil
+	preference, err := s.decodeMemoryAutomaticPreferences(setting.Value, found)
+	return preference.Enabled, err
 }
 
 // An opt-out that completes while classification is waiting revokes the pending
@@ -39,7 +26,7 @@ func (s *Server) memoryAutoExtractionValue(setting settingsstore.Setting, found 
 // setter against the final short commit, never model/classifier/repair calls.
 // Do not hold the shared settings-file mutex while waiting for SQLite: Skill
 // publication already writes its unrelated settings while holding that DB.
-func (s *Server) withAutomaticMemoryCommit(ctx context.Context, userID string, commit func() error) error {
+func (s *Server) withAutomaticMemoryCommit(ctx context.Context, userID string, commit func() error, decisions ...*workspace.MemoryExtractionModeDecision) error {
 	if s == nil || s.settingsStore == nil {
 		return errors.New("automatic memory settings are unavailable")
 	}
@@ -48,28 +35,20 @@ func (s *Server) withAutomaticMemoryCommit(ctx context.Context, userID string, c
 	}
 	s.memoryAutoExtractionCommitMu.RLock()
 	defer s.memoryAutoExtractionCommitMu.RUnlock()
-	enabled, err := s.memoryAutoExtractionEnabled(userID)
+	preference, err := s.memoryAutomaticPreferences(userID)
 	if err != nil {
 		return err
 	}
-	if !enabled {
+	if !preference.Enabled {
 		return fmt.Errorf("%w: automatic memory extraction is disabled", workspace.ErrAgentMemoryMutationForbidden)
+	}
+	if len(decisions) > 1 || len(decisions) == 1 && !automaticMemoryDecisionAllowed(preference, decisions[0]) {
+		return fmt.Errorf("%w: automatic Memory recovery policy changed", workspace.ErrAgentMemoryMutationForbidden)
 	}
 	return commit()
 }
 
 func (s *Server) setMemoryAutoExtractionEnabled(userID string, enabled bool) error {
-	if s == nil || s.settingsStore == nil {
-		return errors.New("automatic memory settings are unavailable")
-	}
-	s.memoryAutoExtractionCommitMu.Lock()
-	defer s.memoryAutoExtractionCommitMu.Unlock()
-	_, err := s.settingsStore.Set(
-		userPreferenceSettingKey(memoryAutoExtractionSettingKey, strings.TrimSpace(userID)),
-		enabled,
-	)
-	if err != nil {
-		return fmt.Errorf("persist automatic memory setting: %w", err)
-	}
-	return nil
+	_, err := s.updateMemoryAutomaticPreferences(userID, &enabled, nil)
+	return err
 }

@@ -279,6 +279,9 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		result.Gate = "disabled-auto"
 		return result, nil
 	}
+	if err := runtime.server.checkMemoryRecoveryPolicy(ctx, resolved.Scope.UserID, source.modeDecision); err != nil {
+		return result, err
+	}
 	snapshot, err := runtime.readMemoryExtractionSnapshot(ctx, resolved.Scope.UserID, sessionID, source)
 	if err != nil {
 		result.Gate = "skipped-source"
@@ -322,6 +325,7 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 	return runner.Run(ctx, memoryextract.RunInput{
 		DeliveryClaim:     source.deliveryClaim,
 		CadenceDecision:   source.cadence,
+		ModeDecision:      source.modeDecision.Clone(),
 		Scope:             applyScope,
 		Source:            &commitSource,
 		CommitGuard:       runtime.extractionCommitGuard(source, applyScope, len(snapshot.Messages)),

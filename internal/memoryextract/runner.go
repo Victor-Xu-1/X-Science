@@ -69,8 +69,9 @@ type RunInput struct {
 	RecalledBodies    []string
 	Config            Config
 	// Source and CommitGuard are host-captured authority, never model output.
-	Source      *workspace.CompletedExtractionSource
-	CommitGuard func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error `json:"-"`
+	Source       *workspace.CompletedExtractionSource
+	ModeDecision *workspace.MemoryExtractionModeDecision
+	CommitGuard  func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error `json:"-"`
 	// CoveredPrefix derives examined selected history from original receipts.
 	// It is host-captured, read-only and never replaces the stored cursor CAS.
 	CoveredPrefix func(context.Context) (int, error) `json:"-"`
@@ -80,6 +81,7 @@ type RunResult struct {
 	DeliverySettled bool
 	ExtractorCause  error `json:"-"`
 	Gate            string
+	ModeDecision    *workspace.MemoryExtractionModeDecision `json:",omitempty"`
 	CursorBefore    int
 	CursorAfter     int
 	CursorAdvanced  bool
@@ -145,6 +147,9 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		return result, nil
 	}
 	config := normalizeConfig(input.Config)
+	if input.ModeDecision != nil && (input.Source == nil || input.ModeDecision.Validate(*input.Source) != nil || input.ModeDecision.EffectiveMode != config.ExtractMode) {
+		return result, workspace.ErrExtractionPlanConflict
+	}
 	enabled, err := r.store.MemoryEnabledWithDefault(ctx, input.Scope.UserID, config.Enabled)
 	if err != nil {
 		return result, err

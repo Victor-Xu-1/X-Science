@@ -1,7 +1,7 @@
 import { Button, Input, Message, Select, Spin, Switch, Tag, Tooltip } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Check, Copy, Delete, Edit, Plus, Refresh } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   clearXScienceMemories,
@@ -20,10 +20,14 @@ import {
   type XScienceMemoryCategory,
   type XScienceMemoryContext,
   type XScienceMemoryRow,
+  type XScienceForkedViewRecovery,
+  type XScienceMemoryOptions,
 } from '@/renderer/services/xScienceMemory';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import { loadXScienceProjects, type XScienceProject } from '@/renderer/services/xScienceGateway';
 import { SettingsGeneratedIcon, type SettingsGeneratedIconId } from './SettingsGeneratedAsset';
 import { useMemoryCategoryDraft } from './useMemoryCategoryDraft';
+import { MemoryRecoveryPolicy } from './MemoryRecoveryPolicy';
 
 type MemoryScope =
   | { kind: 'profile'; key: 'profile' }
@@ -49,6 +53,12 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   onChanged = () => undefined,
 }) => {
   const { t } = useTranslation();
+  const viewId = useId();
+  const subscribeAccount = useCallback(
+    (notify: () => void) => registerRendererAccountReset('memory-manager:' + viewId, notify),
+    [viewId]
+  );
+  const account = useSyncExternalStore(subscribeAccount, getRendererAccountScopeToken, getRendererAccountScopeToken);
   const [context, setContext] = useState(EMPTY_CONTEXT);
   const [layer, setLayer] = useState<MemoryLayer>('global');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -75,17 +85,20 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   const [categoryToDelete, setCategoryToDelete] = useState<XScienceMemoryCategory | null>(null);
   const [deleteCategoryFacts, setDeleteCategoryFacts] = useState(false);
   const loadGenerationRef = useRef(0);
+  const [loadedAccount, setLoadedAccount] = useState<string | null>(null);
+  const mutationRef = useRef<{ controller: AbortController; account: string } | null>(null);
   const loadControllerRef = useRef<{ controller: AbortController; projectId?: string } | null>(null);
   const hasLoaded = loadedProjectId !== undefined;
   const hasCurrentContext =
     hasLoaded &&
+    loadedAccount === account &&
     loadedProjectId === (layer === 'project' ? selectedProjectId : null) &&
     (layer === 'global' || selectedProjectId !== null);
   const awaitingContext = !hasCurrentContext && (layer === 'global' || selectedProjectId !== null);
 
   const load = useCallback(
     async (projectId?: string, isCurrent: () => boolean = () => true): Promise<boolean> => {
-      if (!isCurrent()) return true;
+      if (!isCurrent() || account !== getRendererAccountScopeToken()) return true;
       loadControllerRef.current?.controller.abort();
       const controller = new AbortController();
       loadControllerRef.current = { controller, projectId };
@@ -100,7 +113,13 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
           projectId ? Promise.resolve(null) : loadXScienceMemoryEnabled({ signal: controller.signal }),
           projectId ? Promise.resolve(null) : loadXScienceAutoMemoryEnabled({ signal: controller.signal }),
         ]);
-        if (generation !== loadGenerationRef.current || controller.signal.aborted || !isCurrent()) return true;
+        if (
+          generation !== loadGenerationRef.current ||
+          controller.signal.aborted ||
+          !isCurrent() ||
+          account !== getRendererAccountScopeToken()
+        )
+          return true;
         setContext(nextContext);
         if (projectId) {
           setProjectEnabled(nextContext.enabled ?? true);
@@ -110,29 +129,38 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
           setProjectEnabled(null);
         }
         setLoadedProjectId(projectId ?? null);
+        setLoadedAccount(account);
         return true;
       } catch (error) {
-        if (controller.signal.aborted || generation !== loadGenerationRef.current || !isCurrent()) return true;
+        if (
+          controller.signal.aborted ||
+          generation !== loadGenerationRef.current ||
+          !isCurrent() ||
+          account !== getRendererAccountScopeToken()
+        )
+          return true;
         console.error('Failed to load X-Science memory:', error);
         setLoadError(t('settings.memoryLoadError'));
         return false;
       } finally {
-        if (generation === loadGenerationRef.current) setLoading(false);
+        if (generation === loadGenerationRef.current && account === getRendererAccountScopeToken()) setLoading(false);
       }
     },
-    [t]
+    [account, t]
   );
 
   const loadProjects = useCallback(async () => {
     setProjectLoadError('');
     try {
-      setProjects(await loadXScienceProjects());
+      const nextProjects = await loadXScienceProjects();
+      if (account === getRendererAccountScopeToken()) setProjects(nextProjects);
     } catch (error) {
+      if (account !== getRendererAccountScopeToken()) return;
       console.error('Failed to load X-Science projects:', error);
       setProjects([]);
       setProjectLoadError(t('settings.memoryProjectLoadError'));
     }
-  }, [t]);
+  }, [account, t]);
 
   const categoryEditor = useMemoryCategoryDraft({
     onCommitted: async (delivery) => {
@@ -168,12 +196,15 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   const pending = localPending || categoryEditor.busy;
 
   useEffect(() => {
+    setLocalPending(false);
     // A locale refresh must reload the same owned scope, not the global default.
     void load(loadControllerRef.current?.projectId);
     void loadProjects();
     return () => {
       loadGenerationRef.current += 1;
       loadControllerRef.current?.controller.abort();
+      mutationRef.current?.controller.abort();
+      mutationRef.current = null;
     };
   }, [load, loadProjects]);
 
@@ -190,21 +221,21 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
     setSessionError(false);
     void loadXScienceSessionMemories(scope.frameId, { signal: controller.signal })
       .then((rows) => {
-        if (!controller.signal.aborted) setSessionRows(rows);
+        if (!controller.signal.aborted && account === getRendererAccountScopeToken()) setSessionRows(rows);
       })
       .catch((error) => {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && account === getRendererAccountScopeToken()) {
           console.error('Failed to load X-Science session memory:', error);
           setSessionError(true);
         }
       })
       .finally(() => {
-        if (!controller.signal.aborted) setSessionLoading(false);
+        if (!controller.signal.aborted && account === getRendererAccountScopeToken()) setSessionLoading(false);
       });
     return () => {
       controller.abort();
     };
-  }, [scope, sessionReloadToken]);
+  }, [account, scope, sessionReloadToken]);
 
   const profile = useMemo(() => context.entities.find((entity) => entity.entityKey === 'profile'), [context.entities]);
   const selectedProject = useMemo(
@@ -391,30 +422,48 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   }, [hasLoaded, layer, loading, projects, selectedProjectId, selectProject]);
 
   const runMutation = useCallback(
-    async (operation: () => Promise<unknown>, successMessage?: string): Promise<boolean> => {
+    async (
+      operation: (options: XScienceMemoryOptions) => Promise<unknown>,
+      successMessage?: string
+    ): Promise<boolean> => {
+      if (!hasCurrentContext || mutationRef.current || account !== getRendererAccountScopeToken()) return false;
+      const flight = { controller: new AbortController(), account };
+      mutationRef.current = flight;
+      const current = () =>
+        mutationRef.current === flight &&
+        !flight.controller.signal.aborted &&
+        account === getRendererAccountScopeToken();
       setLocalPending(true);
       try {
-        await operation();
+        await operation({ signal: flight.controller.signal });
+        if (!current()) return false;
         if (successMessage) Message.success(successMessage);
         const activeProjectId = loadControllerRef.current?.projectId;
-        let refreshFailed = !(await load(activeProjectId));
+        let refreshFailed = !(await load(activeProjectId, current));
+        if (!current()) return false;
         try {
           await onChanged();
+          if (!current()) return false;
         } catch (error) {
+          if (!current()) return false;
           console.error('Failed to notify memory consumers after mutation:', error);
           refreshFailed = true;
         }
         if (refreshFailed) Message.warning(t('settings.memoryRefreshError'));
         return true;
       } catch (error) {
+        if (!current()) return false;
         console.error('X-Science memory mutation failed:', error);
         Message.error(t('settings.memoryMutationError'));
         return false;
       } finally {
-        setLocalPending(false);
+        if (mutationRef.current === flight) {
+          mutationRef.current = null;
+          if (account === getRendererAccountScopeToken()) setLocalPending(false);
+        }
       }
     },
-    [load, onChanged, t]
+    [account, hasCurrentContext, load, onChanged, t]
   );
 
   // Keep the last acknowledged preference while busy. Only the scoped readback
@@ -433,8 +482,18 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
   const handleAutoToggle = useCallback(async () => {
     if (layer !== 'global' || !enabled) return;
     const next = !autoEnabled;
-    await runMutation(() => setXScienceAutoMemoryEnabled(next));
+    await runMutation((options) => setXScienceAutoMemoryEnabled(next, options));
   }, [autoEnabled, enabled, layer, runMutation]);
+
+  const handleRecoveryPolicy = useCallback(
+    async (policy: XScienceForkedViewRecovery) => {
+      if (layer !== 'global' || !enabled || !autoEnabled) return;
+      await runMutation((options) =>
+        setXScienceAutoMemoryEnabled(autoEnabled, { ...options, forkedViewRecovery: policy })
+      );
+    },
+    [autoEnabled, enabled, layer, runMutation]
+  );
 
   const handleCreateMemory = useCallback(async () => {
     const text = newMemory.trim();
@@ -596,6 +655,15 @@ export const XScienceMemoryManager: React.FC<{ onChanged?: () => void | Promise<
                   )}
                 </div>
               </Tooltip>
+              {hasCurrentContext ? (
+                <MemoryRecoveryPolicy
+                  value={context.forkedViewRecovery ?? 'strict'}
+                  disabled={pending || loading || !enabled || !autoEnabled}
+                  onChange={(policy) => void handleRecoveryPolicy(policy)}
+                />
+              ) : (
+                unknownPreference('memory-recovery-policy-pending')
+              )}
               <Button
                 data-testid='memory-clear-all'
                 type='text'
