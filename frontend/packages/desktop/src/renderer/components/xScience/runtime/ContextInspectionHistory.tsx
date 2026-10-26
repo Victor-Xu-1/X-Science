@@ -192,7 +192,6 @@ export default function ContextInspectionHistory({
           <div className={styles.chartScroller} ref={scroller}>
             <div
               className={styles.chart}
-              style={{ minWidth: Math.max(560, items.length * (calls ? 48 : 40)) + 'px' }}
               role='group'
               aria-label={t(PREFIX + (calls ? 'callChart' : 'turnChart'))}
             >
