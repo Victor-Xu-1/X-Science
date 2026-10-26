@@ -23,9 +23,10 @@ func TestExplicitExecutorBudgetUsesLargeHostCapacityWithoutDefaultShareCeiling(t
 	if err != nil || observation.ReserveBytes != executorControlReserveBytes || observation.AvailableBytes != 112<<30 || capacity.AvailableBytes < 100<<30 {
 		t.Fatalf("explicit large-host capacity=%#v observation=%#v err=%v", capacity, observation, err)
 	}
-	defaultCapacity, _, err := launcher.ResourceCapacity(context.Background(), 0)
-	if err != nil || defaultCapacity.AvailableBytes >= capacity.AvailableBytes {
-		t.Fatal("conservative default was not kept separate from explicit allocation")
+	defaultCapacity, defaultObservation, err := launcher.ResourceCapacity(context.Background(), 0)
+	if err != nil || defaultObservation.ReserveBytes != executorControlReserveBytes || defaultCapacity.AvailableBytes != capacity.AvailableBytes ||
+		defaultCapacity.MaximumBytes != capacity.MaximumBytes || defaultCapacity.DefaultBytes != memoryFraction(128<<30, executorMemoryTotalFraction) || defaultCapacity.DefaultBytes >= 100<<30 {
+		t.Fatalf("automatic headroom withheld large-host capacity or changed the 45%% preference: capacity=%+v observation=%+v err=%v", defaultCapacity, defaultObservation, err)
 	}
 }
 
