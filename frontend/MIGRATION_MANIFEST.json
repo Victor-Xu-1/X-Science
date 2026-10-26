@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "65bf870ab12ea6eaae0e14b5b67249a4d5ac4bed8e562bc27ecc89306821443d",
+  "adaptationFingerprintSHA256": "1cf780b0e4485cb1f440ec43ae4d0c07cafc05e520cd0a4e2eaddf0f20317705",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e1cb6285397ad71d407014f2499844c478a48754cf4e58ccaac8f78cbe5bec44",
+  "additionFingerprintSHA256": "19e8ea37ddcc61e17e3e45408b28bdcd27c027ef44e085367cf46b69707fe004",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1245
+    "addedFiles": 1246
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "10f330e2d5bda61207d5c48b138373c4978ec6c5963f9cb686a990a260778a0a",
+      "targetSHA256": "6ba6664771ac2135bba427b22d07bcc6920421a17c19550ee8847113b8984bd0",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "88cb3f671c66e5406e887c6ec322245ce693a69c9316320d026d3eb3fd5c9264",
+      "targetSHA256": "501587ac8678eba10a64da4a03a40f91ae40e12edbf915a0559ef301c83a2ab2",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7577,7 +7577,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "b51b5625ea8f820e3faf67b1a3fa92850742e89ef56560d607011e6dd0737b28",
+      "sha256": "9670aff511c842dbd852bc0eb7b00003965bdcbd3653e3181b89175cc6f2cede",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9857,8 +9857,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.css",
-      "sha256": "7847f28de5480286a3580825a8ccb29c60c770c3ae97865d466c5756c524687f",
-      "bytes": 15373,
+      "sha256": "7a1dc7b1afbaced229ea300ab07e904a1a63aad819f10cf261a85efffb1bb2e1",
+      "bytes": 16547,
       "reason": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted."
     },
     {
@@ -12373,6 +12373,12 @@
       "path": "tests/unit/previews/dockingEnsemble.test.ts",
       "sha256": "99008707f7495c825bf926fd3dc69e83075578715c115a092469858fc9d8111f",
       "bytes": 8334,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/dompurifyShadowSafety.dom.test.ts",
+      "sha256": "3455033126823d19f7a399773bb66b016c7abc87c046be219172f2d8f458bb3c",
+      "bytes": 998,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

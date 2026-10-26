@@ -7,7 +7,7 @@ Code is bundled/minified for browser use; upstream package implementations are n
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: b51b5625ea8f820e3faf67b1a3fa92850742e89ef56560d607011e6dd0737b28
+Package lock SHA-256: 9670aff511c842dbd852bc0eb7b00003965bdcbd3653e3181b89175cc6f2cede
 
 Package index
 -------------
@@ -382,8 +382,9 @@ diff2html@3.4.56 — notice 61
   Source: https://registry.npmjs.org/diff2html/-/diff2html-3.4.56.tgz
 dom-helpers@5.2.1 — notice 72
   Source: https://registry.npmjs.org/dom-helpers/-/dom-helpers-5.2.1.tgz
-dompurify@3.4.16 — notice 37, 14
-  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.16.tgz
+dompurify@3.4.17 — notice 37, 14
+  Source: https://registry.npmjs.org/dompurify/-/dompurify-3.4.17.tgz
+  Attribution: (c) Cure53 and other contributors
 es-toolkit@1.49.0 — notice 39
   Source: https://registry.npmjs.org/es-toolkit/-/es-toolkit-1.49.0.tgz
 escape-string-regexp@5.0.0 — notice 48
