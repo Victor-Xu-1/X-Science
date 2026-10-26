@@ -714,6 +714,10 @@ async function uploadArtifactAttachment(
     throw failure;
   }
 }
+// Match Go strings.TrimSpace. JS trim also strips BOM, which remains part of a valid basename.
+function attachmentFilenameForComparison(filename: string): string {
+  return filename.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '');
+}
 async function loadOnboardingUploadStatus(
   uploadId: string,
   file: File,
@@ -728,12 +732,13 @@ async function loadOnboardingUploadStatus(
   const chunkSize = positiveInteger(payload.chunk_size);
   const totalSize = positiveInteger(payload.total_size);
   const totalChunks = positiveInteger(payload.total_chunks);
-  const filename = nonEmptyString(payload.filename);
+  const filename = typeof payload.filename === 'string' ? attachmentFilenameForComparison(payload.filename) : null;
   if (
     chunkSize === null ||
     totalSize !== file.size ||
     totalChunks !== Math.ceil(file.size / chunkSize) ||
-    filename !== file.name ||
+    !filename ||
+    filename !== attachmentFilenameForComparison(file.name) ||
     !Array.isArray(payload.missing_chunks)
   ) {
     throw new Error('Attachment upload status response is invalid');
