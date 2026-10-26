@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "0f19092f713239852e090fa91b2e64a18b4af1bf975eebbc0653e62e091ca4fc",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "2322c3eb0bf603510544ef3cf42935dfcf0438146fbbf36dab910f17cae7a93f",
+  "additionFingerprintSHA256": "ef2e8f179803e4af25bb19ff016a06c39c5d00fff3283e3385d310008e7b99ea",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1246
+    "addedFiles": 1247
   },
   "adaptations": [
     {
@@ -8165,8 +8165,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.tsx",
-      "sha256": "bf066e2b79941fcf899baad5373d1c0186c8e48713fd1e29a342c202a90887a5",
-      "bytes": 9788,
+      "sha256": "705768adaf9bc0e082632247915df95d545352cbcc21fa4d0d807111418da4b7",
+      "bytes": 9973,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8531,8 +8531,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/xScience/useContextUsage.ts",
-      "sha256": "43ca4185c7ef59201dfb0d971ba4b0729874284390fa32fb034b676a4684b0cc",
-      "bytes": 5814,
+      "sha256": "7ab3e5c4c0e4c1a3facf0c27cc432c2af0c8ec2d66699e550c681f082451804c",
+      "bytes": 7216,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12661,6 +12661,12 @@
       "path": "tests/unit/renderer/ComputeSettings.dom.test.tsx",
       "sha256": "57eff4c389cff7862dff1405b3b586fb40cf42ea719c093358e51d9ae3a0fe12",
       "bytes": 3436,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/ContextInspectionLoading.dom.test.tsx",
+      "sha256": "6f579d2c22c2772c83e14024d5985163794037799cfd763ca7f40eaa46376a96",
+      "bytes": 10001,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
