@@ -511,7 +511,10 @@ func attachmentUserID(w http.ResponseWriter, r *http.Request) (string, bool) {
 }
 
 func decodeAttachmentJSON(r *http.Request, target any) error {
-	decoder := json.NewDecoder(io.LimitReader(r.Body, 1<<20))
+	const limit = int64(1 << 20)
+	// One extra byte distinguishes a real EOF from the reader's size boundary.
+	body := &io.LimitedReader{R: r.Body, N: limit + 1}
+	decoder := json.NewDecoder(body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {
 		return err
@@ -521,6 +524,9 @@ func decodeAttachmentJSON(r *http.Request, target any) error {
 			return errors.New("request body must contain one JSON value")
 		}
 		return err
+	}
+	if body.N == 0 {
+		return errors.New("request body exceeds 1 MiB")
 	}
 	return nil
 }
