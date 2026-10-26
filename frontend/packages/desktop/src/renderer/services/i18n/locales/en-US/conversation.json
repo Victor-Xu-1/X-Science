@@ -48,7 +48,9 @@
     "pageLabel": "Reading · Page {{page}}",
     "historyUnavailable": "The original PDF reading context is unavailable.",
     "queuedOriginal": "This edited message keeps its original queued PDF selection.",
-    "useCurrent": "Use current PDF selection"
+    "useCurrent": "Use current PDF selection",
+    "libraryUploadNotice": "Manage or continue this PDF import in Library. The original upload request is retained.",
+    "libraryUploadContinue": "Continue PDF import in Library"
   },
   "manualCompaction": {
     "capacityLimited": "Context maintenance session capacity reached. Reconcile pending requests in their original conversations, then retry.",

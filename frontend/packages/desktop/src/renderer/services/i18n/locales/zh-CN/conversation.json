@@ -48,7 +48,9 @@
     "pageLabel": "正在阅读 · 第 {{page}} 页",
     "historyUnavailable": "原始 PDF 阅读上下文不可用。",
     "queuedOriginal": "此编辑消息保留原队列中的 PDF 选择。",
-    "useCurrent": "使用当前 PDF 选择"
+    "useCurrent": "使用当前 PDF 选择",
+    "libraryUploadNotice": "请前往 Library 查看或继续 PDF 导入。原上传请求已保留。",
+    "libraryUploadContinue": "前往 Library 继续导入 PDF"
   },
   "manualCompaction": {
     "capacityLimited": "上下文维护会话已达容量上限。请在原对话核对待定请求后重试。",
