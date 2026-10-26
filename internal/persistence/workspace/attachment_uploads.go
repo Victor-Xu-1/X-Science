@@ -51,51 +51,75 @@ func (s *Store) InitAttachmentUpload(ctx context.Context, input InitAttachmentUp
 	if s == nil || s.db == nil {
 		return AttachmentUpload{}, errors.New("workspace store is closed")
 	}
-	normalized, err := normalizeAttachmentInput(CreateAttachmentInput{
-		UserID: input.UserID, ProjectID: input.ProjectID, Filename: input.Filename,
-		ContentType: input.ContentType, Ephemeral: input.Ephemeral, FolderID: input.FolderID,
-	})
+	input, chunks, err := normalizeAttachmentUploadInput(input)
 	if err != nil {
 		return AttachmentUpload{}, err
-	}
-	if input.TotalSize <= 0 {
-		return AttachmentUpload{}, errors.New("attachment total size must be positive")
-	}
-	if input.ChunkSize <= 0 || input.ChunkSize > maxAttachmentChunk {
-		return AttachmentUpload{}, fmt.Errorf("attachment chunk size must be between 1 and %d bytes", maxAttachmentChunk)
-	}
-	expectedChunks64 := (input.TotalSize-1)/input.ChunkSize + 1
-	if expectedChunks64 > int64(^uint(0)>>1) {
-		return AttachmentUpload{}, errors.New("attachment upload has too many chunks")
 	}
 	s.attachmentMu.Lock()
 	defer s.attachmentMu.Unlock()
 	if err := s.expireStaleAttachmentUploads(ctx); err != nil {
 		return AttachmentUpload{}, err
 	}
-	owned, err := s.ProjectOwnedBy(normalized.ProjectID, normalized.UserID)
+	owned, err := s.ProjectOwnedBy(input.ProjectID, input.UserID)
 	if err != nil {
 		return AttachmentUpload{}, err
 	}
 	if !owned {
-		return AttachmentUpload{}, fmt.Errorf("project %q is unavailable to owner", normalized.ProjectID)
+		return AttachmentUpload{}, fmt.Errorf("project %q is unavailable to owner", input.ProjectID)
 	}
 	if err := s.checkAttachmentUploadSpace(ctx, input.TotalSize); err != nil {
 		return AttachmentUpload{}, err
 	}
-	now := s.now().UTC()
-	upload := AttachmentUpload{
-		ID: uuid.NewString(), UserID: normalized.UserID, ProjectID: normalized.ProjectID,
-		Filename: normalized.Filename, ContentType: normalized.ContentType,
-		TotalSize: input.TotalSize, ChunkSize: input.ChunkSize, ExpectedChunks: int(expectedChunks64),
-		ReceivedChunks: []int{}, Ephemeral: normalized.Ephemeral, FolderID: normalized.FolderID,
-		CreatedAt: now, UpdatedAt: now,
-	}
+	upload := newAttachmentUpload(input, chunks, s.now().UTC())
 	uploadDir := filepath.Join(s.blobRoot, "uploads", upload.ID)
 	if err := ensurePrivateDirectory(uploadDir); err != nil {
 		return AttachmentUpload{}, fmt.Errorf("prepare attachment upload: %w", err)
 	}
-	_, err = s.db.ExecContext(ctx, `
+	if err := insertAttachmentUploadRow(ctx, s.db, upload); err != nil {
+		_ = os.RemoveAll(uploadDir)
+		return AttachmentUpload{}, err
+	}
+	return upload, nil
+}
+
+func normalizeAttachmentUploadInput(input InitAttachmentUploadInput) (InitAttachmentUploadInput, int, error) {
+	normalized, err := normalizeAttachmentInput(CreateAttachmentInput{
+		UserID: input.UserID, ProjectID: input.ProjectID, Filename: input.Filename,
+		ContentType: input.ContentType, Ephemeral: input.Ephemeral, FolderID: input.FolderID,
+	})
+	if err != nil {
+		return InitAttachmentUploadInput{}, 0, err
+	}
+	if input.TotalSize <= 0 {
+		return InitAttachmentUploadInput{}, 0, errors.New("attachment total size must be positive")
+	}
+	if input.ChunkSize <= 0 || input.ChunkSize > maxAttachmentChunk {
+		return InitAttachmentUploadInput{}, 0, fmt.Errorf("attachment chunk size must be between 1 and %d bytes", maxAttachmentChunk)
+	}
+	expectedChunks64 := (input.TotalSize-1)/input.ChunkSize + 1
+	if expectedChunks64 > int64(^uint(0)>>1) {
+		return InitAttachmentUploadInput{}, 0, errors.New("attachment upload has too many chunks")
+	}
+	input.UserID, input.ProjectID = normalized.UserID, normalized.ProjectID
+	input.Filename, input.ContentType = normalized.Filename, normalized.ContentType
+	input.Ephemeral, input.FolderID = normalized.Ephemeral, normalized.FolderID
+	return input, int(expectedChunks64), nil
+}
+
+func newAttachmentUpload(input InitAttachmentUploadInput, chunks int, now time.Time) AttachmentUpload {
+	return AttachmentUpload{
+		ID: uuid.NewString(), UserID: input.UserID, ProjectID: input.ProjectID,
+		Filename: input.Filename, ContentType: input.ContentType,
+		TotalSize: input.TotalSize, ChunkSize: input.ChunkSize, ExpectedChunks: chunks,
+		ReceivedChunks: []int{}, Ephemeral: input.Ephemeral, FolderID: input.FolderID,
+		CreatedAt: now, UpdatedAt: now,
+	}
+}
+
+func insertAttachmentUploadRow(ctx context.Context, writer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}, upload AttachmentUpload) error {
+	_, err := writer.ExecContext(ctx, `
 		INSERT INTO attachment_uploads
 			(id, user_id, project_id, filename, content_type, total_size, chunk_size,
 			 expected_chunks, ephemeral, folder_id, created_at, updated_at)
@@ -104,10 +128,9 @@ func (s *Store) InitAttachmentUpload(ctx context.Context, input InitAttachmentUp
 		upload.TotalSize, upload.ChunkSize, upload.ExpectedChunks, upload.Ephemeral,
 		nullableString(upload.FolderID), upload.CreatedAt, upload.UpdatedAt)
 	if err != nil {
-		_ = os.RemoveAll(uploadDir)
-		return AttachmentUpload{}, fmt.Errorf("insert attachment upload: %w", err)
+		return fmt.Errorf("insert attachment upload: %w", err)
 	}
-	return upload, nil
+	return nil
 }
 
 func (s *Store) SaveAttachmentChunk(ctx context.Context, userID, uploadID string, chunkIndex int, content io.Reader) (AttachmentUpload, error) {
