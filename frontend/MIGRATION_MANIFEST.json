@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "65bd41cfc78183004bf538b22b03c722c9545b3b07e65071e650f254e5388510",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1609c2f44e17870f7b759cd490c33a2037b2a6af2b83bc1a09c754ffc47db6b5",
+  "additionFingerprintSHA256": "2de4a0b67839b3623719764e1634a8107c5af060b80a833ea0150249d87f24a5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -8135,8 +8135,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionHistory.tsx",
-      "sha256": "b786a3e640596ad5d275a3224ca076e91d6733485f629fd7e97bdd05dbb1b5ee",
-      "bytes": 9210,
+      "sha256": "2f89d57bdd4e32f2e63bbd85440485ac5f65dc158806f1eb2874ff20370d6d7f",
+      "bytes": 9155,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
