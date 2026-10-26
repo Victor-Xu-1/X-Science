@@ -259,7 +259,7 @@ func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, op
 		}
 		_, err := s.checkpointTranscriptRunnerEventWithDestinationsAndHook(
 			context.Background(), run.Transcript, transcriptstore.RunnerPhaseExecuting,
-			cacheKey, payload, true, destinations, commitHook,
+			cacheKey, payload, true, destinations, commitHook, run,
 		)
 		if err != nil {
 			return err
@@ -600,7 +600,7 @@ func (s *Server) checkpointChatToolWithObservers(options SessionRunnerChatOption
 	}
 	transcriptEvent, err := s.checkpointTranscriptRunnerEventWithDestinationsAndHook(
 		context.Background(), run.Transcript, transcriptstore.RunnerPhaseExecuting,
-		checkpointIdentity, payload, true, destinations, commitHook,
+		checkpointIdentity, payload, true, destinations, commitHook, run,
 	)
 	if err != nil {
 		if kernelAdmission != nil {
