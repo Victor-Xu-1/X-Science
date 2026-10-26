@@ -19,7 +19,22 @@ type pdfReadingCandidateError struct{ reason string }
 
 func (err *pdfReadingCandidateError) Error() string { return err.reason }
 
+// Reading eligibility stays separate from authorized PDF document facts.
 func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project string, source transcriptstore.PDFReadingSource) (transcriptstore.PDFReadingBinding, error) {
+	facts, err := s.inspectPDFSourceDocument(ctx, owner, project, source)
+	if err != nil {
+		return transcriptstore.PDFReadingBinding{}, err
+	}
+	if facts.PageCount < 2 {
+		return transcriptstore.PDFReadingBinding{}, &pdfReadingCandidateError{"single_page"}
+	}
+	return facts, nil
+}
+
+// inspectPDFSourceDocument returns the existing provisional inspection tuple,
+// never an accepted Reading binding. Every Reading consumer must use the
+// qualifier above; catalogue import can accept a real one-page document.
+func (s *Server) inspectPDFSourceDocument(ctx context.Context, owner, project string, source transcriptstore.PDFReadingSource) (transcriptstore.PDFReadingBinding, error) {
 	var binding transcriptstore.PDFReadingBinding
 	if !source.Valid() {
 		return binding, transcriptstore.ErrPDFReadingInvalid
@@ -35,9 +50,6 @@ func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project str
 		}
 		if version.SizeBytes > transcriptstore.MaxPDFReadingBytes {
 			return binding, &pdfReadingCandidateError{"too_large"}
-		}
-		if version.PageCount < 2 {
-			return binding, &pdfReadingCandidateError{"single_page"}
 		}
 		return transcriptstore.PDFReadingBinding{BindingID: "inspected", SourceKind: source.Kind(), ItemID: item, AttachmentID: version.AttachmentID, VersionID: version.ID,
 			Name: version.Filename, MIMEType: version.MIMEType, SizeBytes: version.SizeBytes, Checksum: version.Checksum, PageCount: version.PageCount, LinkedAt: time.Now().UTC().Format(time.RFC3339Nano)}, nil
@@ -97,9 +109,6 @@ func (s *Server) inspectPDFReadingSource(ctx context.Context, owner, project str
 	}
 	if inspection.Encrypted {
 		return binding, &pdfReadingCandidateError{"invalid_pdf"}
-	}
-	if inspection.PageCount == 1 {
-		return binding, &pdfReadingCandidateError{"single_page"}
 	}
 	return transcriptstore.PDFReadingBinding{BindingID: "inspected", SourceKind: "artifact-version", ArtifactID: artifact.ID, VersionID: version.ID,
 		Name: artifact.Name, MIMEType: "application/pdf", SizeBytes: version.SizeBytes, Checksum: strings.ToLower(version.ContentSHA256),

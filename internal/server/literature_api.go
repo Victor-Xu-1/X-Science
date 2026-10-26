@@ -169,7 +169,7 @@ func (s *Server) handleLiteratureImport(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	_ = reader.Close()
-	binding, err := s.inspectPDFReadingSource(r.Context(), owner, artifact.ProjectID, transcriptstore.PDFReadingSource{ArtifactID: input.ArtifactID, VersionID: input.VersionID})
+	binding, err := s.inspectPDFSourceDocument(r.Context(), owner, artifact.ProjectID, transcriptstore.PDFReadingSource{ArtifactID: input.ArtifactID, VersionID: input.VersionID})
 	if err != nil {
 		writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 		return
