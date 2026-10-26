@@ -56,7 +56,7 @@ func TestReservedDefaultKernelBudgetRechecksProvenHostMaximum(t *testing.T) {
 				if budget != 0 || !errors.As(reserveErr, &exceeds) {
 					t.Errorf("reserved default survived a proven smaller host maximum: budget=%d err=%v", budget, reserveErr)
 				} else if exceeds.BackendID != backend.BackendID || exceeds.Generation != backend.BackendGeneration ||
-					exceeds.RequestedBytes != 0 || exceeds.HostTotalBytes != tc.total || exceeds.MaximumBytes != 6<<30 ||
+					exceeds.RequestedBytes != 0 || exceeds.HostTotalBytes != tc.total || exceeds.ReserveBytes != 3<<30 || exceeds.MaximumBytes != 7<<30 ||
 					exceeds.MaximumBytes <= executorMemoryFloorBytes || exceeds.MaximumBytes >= original.ReservedBytes {
 					t.Errorf("replay rejection lost original demand/current hard evidence: %+v", exceeds)
 				}
