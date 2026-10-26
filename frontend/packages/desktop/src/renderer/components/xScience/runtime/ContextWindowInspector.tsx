@@ -166,13 +166,18 @@ export default function ContextWindowInspector({
               {coverage.truncated && <span>{t(PREFIX + 'truncated')}</span>}
             </div>
           )}
-          {state.status === 'loading' ? (
+          {state.status === 'loading' || (!inspection && state.inspectionRequest === 'loading') ? (
             <div role='status' className={styles.empty}>
               {t(PREFIX + 'loading')}
             </div>
           ) : !inspection ? (
             <div role='status' className={styles.empty}>
-              <h3>{t(PREFIX + (state.status === 'error' ? 'loadFailed' : 'unavailable'))}</h3>
+              <h3>
+                {t(
+                  PREFIX +
+                    (state.status === 'error' || state.inspectionRequest === 'error' ? 'loadFailed' : 'unavailable')
+                )}
+              </h3>
               <p>{t(PREFIX + 'associationUnavailable')}</p>
               <button type='button' onClick={retry}>
                 {t('conversation.contextUsage.retry')}
