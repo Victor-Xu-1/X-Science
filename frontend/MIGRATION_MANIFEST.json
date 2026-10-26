@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "c65805a2d0a7928b00693bf3d014fb713072ab92a348a49becfae87036714940",
+  "adaptationFingerprintSHA256": "15aabc63b0856a3365bd0a6eb36c8e3804f4102845086ee4528f7aa27700242a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9a6ef5bbfd170f25b8925e4e2d4890fb9d9cd342c7ba1c2432c39b59ed604a4a",
+  "additionFingerprintSHA256": "0b329f60f0af30a184741d39e454b43506be23d31ddc820a920ace61a5029eed",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "3ba74ca8b07c5a2285816f704e3a91231d2ed48c6386143948ce883bc0a9aadc",
+      "targetSHA256": "7a0a683a1126f5762fd647c236d2b0b6f8a4521c50769cb9679934123a9649ce",
       "bytes": 4422,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "23ec293478cbbce61cbe028831ea3a925e3b609935c2442bb3eb2d2ecb354278",
+      "targetSHA256": "4b51214fb0181849e1a3e876f12eed1c9e5fab5139dbe8bdcf3d893b843ee7bc",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -3057,8 +3057,8 @@
     {
       "path": "packages/desktop/src/renderer/services/onboardingService.ts",
       "sourceSHA256": "3436645659c5d1ace153db431fa806a6f383fbede21efc79a33b6cfda8086027",
-      "targetSHA256": "c74aa3cb2b29e084371f7b178468a1fb550bf347d0bb8c9625ab13dc23f75b31",
-      "bytes": 36281,
+      "targetSHA256": "1c892d3c4935917371d1c6524552f8641794301be750106dc16d621c3a00919b",
+      "bytes": 39973,
       "reason": "Validate and persist the server-owned scientific-runtime selection without imposing client storage ceilings, while preserving exact Artifact and launch authority."
     },
     {
@@ -4814,8 +4814,8 @@
     {
       "path": "tests/unit/renderer/onboardingService.test.ts",
       "sourceSHA256": "5a83a0499204558283f3391d150821b0e0b804cb49acaa055540b85fbe93870b",
-      "targetSHA256": "902f2beda1ea4d4de811887dadf4e6cdfb15981f96bee1645255fb2f7ff97b24",
-      "bytes": 34462,
+      "targetSHA256": "0a972b5b1276b8996de512f1526959badcc7f024f4b7fb969a3f300d9a96509a",
+      "bytes": 49784,
       "reason": "Verify scientific-runtime snapshot validation and exact selected-ID persistence alongside existing onboarding mutations."
     },
     {
@@ -7577,7 +7577,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "a2f8bb91cc4a68c270e42a7ad62a7100a85274d1379aefd54b74eec732d690d3",
+      "sha256": "f215a8f423d103091ea55323ee8b2f09ba8d7e13bc38ed442e682863df39e42f",
       "bytes": 558638,
       "reason": "Deterministic npm build dependency lock."
     },
