@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "b51b5625ea8f820e3faf67b1a3fa92850742e89ef56560d607011e6dd0737b28",
+  "lockfileSHA256": "b95606c1d9b11467419b29feb1f49f4b3270cebcc75bca16a0714e10052a00ee",
   "summary": {
     "records": 1131,
     "workspaceLinkRecords": 1,
@@ -4121,7 +4121,7 @@
     },
     {
       "name": "dompurify",
-      "version": "3.4.16",
+      "version": "3.4.17",
       "license": "(MPL-2.0 OR Apache-2.0)",
       "directKind": "runtime-build",
       "basis": "package-lock metadata"
