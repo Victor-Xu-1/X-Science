@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "65bd41cfc78183004bf538b22b03c722c9545b3b07e65071e650f254e5388510",
+  "adaptationFingerprintSHA256": "21bfaa773df1edc9043b3edd588bbd80facbf23fd7c90f8ae8e24db4d0dcda72",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "2de4a0b67839b3623719764e1634a8107c5af060b80a833ea0150249d87f24a5",
+  "additionFingerprintSHA256": "4f6363516c4ac09c0f41b04f9ec643bb9da8f7aee344b0b01f0bd9d46ff1b1c8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1262
+    "addedFiles": 1265
   },
   "adaptations": [
     {
@@ -2762,8 +2762,8 @@
       "path": "packages/desktop/src/renderer/pages/settings/components/XScienceMemoryManager.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/settings/components/SynonBiomedMemoryManager.tsx",
       "sourceSHA256": "01aafac0f7c8dbec2ef0b6191b405d6db58a805080c0ac12c189ecb5e5ec530a",
-      "targetSHA256": "6d77d8d3528dc1fcfd69cfe4c1f40bf9b0e66630745166174bcd287d2878ff20",
-      "bytes": 49336,
+      "targetSHA256": "6414896873232ae46a89c45198c5acbaee1dfcbf12ac9b5baf06f328b070677d",
+      "bytes": 52510,
       "reason": "Move genuine imported source to the current X-Science namespace. Render a recoverable inline memory-load failure state with an explicit retry action."
     },
     {
@@ -2938,8 +2938,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "d504fb226c92142ab7691854b71d742680464d441c27d2dfc3eea8d302e6b9a2",
-      "bytes": 140263,
+      "targetSHA256": "d0bbe6647aa486189ac4060fccc0afd97d40fb845c312137eccd377751665c17",
+      "bytes": 140672,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3029,8 +3029,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "adfc9f77af90d25f3f7cdfc0ec1e3874196efea38712b7aeaf8f453eab7ec79a",
-      "bytes": 134405,
+      "targetSHA256": "4e16dc9003ffda37268538a34c99fd1e24141716ced60c0a59e4dd0aabaaf711",
+      "bytes": 134798,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },
     {
@@ -3248,8 +3248,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceMemory.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedMemory.ts",
       "sourceSHA256": "ca769a8e1d81595bc1dbf57f1caed5aa28a1727f0d6d4923cbfc8efe4775a516",
-      "targetSHA256": "e5a6fff7db714998ff283737fe8407d7197b2f57665e96ea923167455b85a31b",
-      "bytes": 16894,
+      "targetSHA256": "cdbd25ee2dc1981fd227cd2490fb74c92bd38cfba6de6f0724d77135d3790416",
+      "bytes": 18240,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -10132,6 +10132,12 @@
       "reason": "Own account-fenced archive paging and restore refresh without converting unknown presentation state into write authority."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/settings/components/MemoryRecoveryPolicy.tsx",
+      "sha256": "ed0c04d0427bf14b0df8b533a069daa3bd4742007246b1aa154a39cb390c6cdf",
+      "bytes": 1319,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsGeneratedAsset.tsx",
       "sha256": "326ae48035d6e9b5e8344ff917c67d886778da3df4797c3c46139595d8395f3f",
       "bytes": 6900,
@@ -13984,6 +13990,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/settings/MemoryRecoveryPolicy.dom.test.tsx",
+      "sha256": "bd510cad7df0fa9490d37b565ea5a6ab08bb09b269b9b6e0e7eeda4299ddd30a",
+      "bytes": 7690,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/settings/MessageChannelsSettings.dom.test.tsx",
       "sha256": "04010dc214a542313f00942920770eea9e71183faf3c9e3b952e6c9f50d06fb7",
       "bytes": 8660,
@@ -14545,6 +14557,12 @@
       "path": "tests/unit/xscience/memoryCategoryRequestDeadline.test.ts",
       "sha256": "4b935edaa79fef769bbc4b9c0e0ecc616f55e2243e487bd967cd75e872d5a869",
       "bytes": 8042,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/xscience/memoryRecoveryPreferences.test.ts",
+      "sha256": "456ac12cfd8723bc8f33b6595ef330e1dbf54888244eff9053e136251f8112a8",
+      "bytes": 1986,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
