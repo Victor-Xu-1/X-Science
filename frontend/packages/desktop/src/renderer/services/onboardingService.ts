@@ -6,14 +6,14 @@ import {
   withAttachmentAbort,
   requestJson,
   safeJson,
-} from './onboardingAttachmentTransport';
+} from './attachments/onboardingAttachmentTransport';
 export {
   initializeXScienceProjectAttachment,
   classifyXScienceAttachmentInitFailure,
   decodeOnboardingAttachmentInitReceipt,
   type OnboardingAttachmentInitRequest,
   type OnboardingAttachmentInitReceipt,
-} from './attachmentUploadInit';
+} from './attachments/attachmentUploadInit';
 import { ipcBridge } from '@/common';
 import {
   loadScientificRuntimeSettings,

@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "3542d7f78a10d1daa8a6926999ad9b43b3a3916467457e69870e0f6c14be027d",
+  "adaptationFingerprintSHA256": "db6794841ed86fd1b342a6e5aa4308d2449d3a3fe49f739de9e664e70d33350a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "0878fffb040b2a5219990825da243a72a350043b47d09270ca8e2c8b17393469",
+  "additionFingerprintSHA256": "039a554451deb4ee95a47e540118163ccc7fed0c4f2c0fa661b20db0728eb471",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -3057,8 +3057,8 @@
     {
       "path": "packages/desktop/src/renderer/services/onboardingService.ts",
       "sourceSHA256": "3436645659c5d1ace153db431fa806a6f383fbede21efc79a33b6cfda8086027",
-      "targetSHA256": "fb5a9361999bc11817e14a786382f04bb679492643d64630c9cea0660bc5eda8",
-      "bytes": 38081,
+      "targetSHA256": "f9391469a4ffffb51cc9e751b5559ce4ea16fa9e3cbf787524e02c4e453f8208",
+      "bytes": 38105,
       "reason": "Validate and persist the server-owned scientific-runtime selection without imposing client storage ceilings, while preserving exact Artifact and launch authority."
     },
     {
@@ -10558,9 +10558,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/services/attachmentUploadInit.ts",
+      "path": "packages/desktop/src/renderer/services/attachments/attachmentUploadInit.ts",
       "sha256": "70eca954a6c39c1988c46e4b1dfe489aa5b77430b4d71b38666bb9ecc47c7cc2",
       "bytes": 3544,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/attachments/onboardingAttachmentTransport.ts",
+      "sha256": "065e87405247731e5688ac18ebfee3755fb79d049db143868b3c72f7a32a2dc1",
+      "bytes": 2891,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10754,12 +10760,6 @@
       "sha256": "75beb9839d5fab7d6be69b577eb0091285530f1134eeeb6a32fb398ce0b1e627",
       "bytes": 1243,
       "reason": "Declare immutable human-inbox snapshot, scope, mutation and explicit incomplete-history state types."
-    },
-    {
-      "path": "packages/desktop/src/renderer/services/onboardingAttachmentTransport.ts",
-      "sha256": "065e87405247731e5688ac18ebfee3755fb79d049db143868b3c72f7a32a2dc1",
-      "bytes": 2891,
-      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/onboardingCompletionAuthority.ts",
@@ -13505,8 +13505,8 @@
     },
     {
       "path": "tests/unit/renderer/library/attachmentUploadInit.test.ts",
-      "sha256": "04323cdb0ad041f72aa5f77ad177bec108c4b1caf6bae70c4b1152202b86b782",
-      "bytes": 8027,
+      "sha256": "85fce55517a32aead33a16f11cca2049a165af875b120beb7475b4c0a01f877c",
+      "bytes": 8039,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

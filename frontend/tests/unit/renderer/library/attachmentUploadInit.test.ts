@@ -5,7 +5,7 @@ import {
   decodeOnboardingAttachmentInitReceipt,
   initializeXScienceProjectAttachment,
   type OnboardingAttachmentInitRequest,
-} from '@/renderer/services/attachmentUploadInit';
+} from '@/renderer/services/attachments/attachmentUploadInit';
 
 const raw: OnboardingAttachmentInitRequest = Object.freeze({
   operation_id: '47581341-e76e-4e23-a532-15f487dfd914',
