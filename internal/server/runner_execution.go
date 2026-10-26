@@ -715,7 +715,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
 		}
 	}
-	if desiredOutputs := s.generatedPlanDesiredOutputsContext(intakeFrameID); desiredOutputs != "" {
+	if desiredOutputs := s.generatedPlanRuntimeNavigationContext(intakeFrameID, run); desiredOutputs != "" {
 		messages = attachRuntimeResearchNavigationState(messages, desiredOutputs)
 	}
 	advertisedRuntimeToolSchemas := partitionAgentRuntimeToolSchemasForModelWithSkills(runtimeToolSchemas, selectedSkills)
@@ -1211,7 +1211,7 @@ func sessionRunnerStatefulInitialToolChoice(
 		return nil
 	}
 	if gateway, gatewayOK := engine.Tools.(serverAgentRuntimeToolGateway); gatewayOK && gateway.server != nil {
-		if _, _, activePlanStep := gateway.server.generatedPlanActiveStep(gateway.sessionID); activePlanStep {
+		if _, _, activePlanStep := gateway.server.generatedPlanActiveStep(gateway.sessionID, gateway.taskRun); activePlanStep {
 			// Durable plan state survives history compaction. It is sufficient
 			// authority to constrain the first round even when no settled tool
 			// message remains in the compact provider replay.

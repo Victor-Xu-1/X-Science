@@ -503,7 +503,7 @@ func (g serverAgentRuntimeToolGateway) RequiredToolChoice(
 	var activePlanAction map[string]any
 	hasActivePlanAction := false
 	if g.server != nil {
-		_, activePlanAction, hasActivePlanAction = g.server.generatedPlanActiveStep(g.sessionID)
+		_, activePlanAction, hasActivePlanAction = g.server.generatedPlanActiveStep(g.sessionID, g.taskRun)
 	}
 	lastSettledPlanCall, hasLastSettledPlanCall := generatedPlanLastSettledToolCall(messages)
 	planHasSourceContinuation := researchContinuationRequiresExecution(
@@ -570,7 +570,11 @@ func (g serverAgentRuntimeToolGateway) AdditionalModelToolSchemas(
 			}
 		}
 	}
-	if g.taskRun.planProgressAvailable.Load() {
+	progressAvailable := g.taskRun.planProgressAvailable.Load()
+	if progressAvailable && g.taskRun.currentControl != nil {
+		_, progressAvailable = g.server.generatedPlanProcessSnapshot(g.sessionID, g.taskRun)
+	}
+	if progressAvailable {
 		activated[normalizeAgentToolName(updateStepStatusToolName)] = struct{}{}
 	}
 	additions := make([]agentruntime.ToolSchema, 0, len(activated))

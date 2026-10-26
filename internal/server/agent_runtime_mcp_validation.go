@@ -38,12 +38,12 @@ func (g serverAgentRuntimeToolGateway) normalizeAdmittedToolArguments(name strin
 		input = sessionRunnerNormalizeExplicitDeliverableDestinations(g.taskRun.TaskIntent, input)
 	}
 	if g.server != nil {
-		input = g.server.generatedPlanUpdateStepStatusInput(g.sessionID, name, input)
+		input = g.server.generatedPlanUpdateStepStatusInput(g.sessionID, name, input, g.taskRun)
 		capabilities := []string(nil)
 		if g.taskRun != nil {
 			capabilities = g.taskRun.toolCapabilities(name)
 		}
-		input = g.server.generatedPlanResearchQueryInput(g.sessionID, name, input, capabilities)
+		input = g.server.generatedPlanResearchQueryInputForRun(g.sessionID, name, input, g.taskRun, capabilities)
 	}
 	validator, found := g.toolValidators[name]
 	if !found {
