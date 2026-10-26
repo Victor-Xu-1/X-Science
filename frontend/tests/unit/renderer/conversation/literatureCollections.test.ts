@@ -18,8 +18,18 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import { deferredPdf } from './pdfReadingFixtures';
 import { installLiteratureLocks } from './literatureMutationLockFixtures';
 
-const mocks = vi.hoisted(() => ({ http: vi.fn() }));
-vi.mock('@/common/adapter/httpBridge', () => ({ httpRequest: mocks.http, isBackendHttpError: () => false }));
+const mocks = vi.hoisted(() => {
+  const unexpectedFetch = vi.fn(() => {
+    throw new Error('Unexpected unmocked HTTP in a Library contract test');
+  });
+  vi.stubGlobal('fetch', unexpectedFetch);
+  return { http: vi.fn(), unexpectedFetch };
+});
+vi.mock('@/common/adapter/httpBridge', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/common/adapter/httpBridge')>()),
+  httpRequest: mocks.http,
+  isBackendHttpError: () => false,
+}));
 const operation = '00000000-0000-4000-8000-000000000084';
 const collection = (patch: Partial<LiteratureCollection> = {}): LiteratureCollection => ({
   id: 'collection',
@@ -63,8 +73,17 @@ describe('ordinary collections share the Library authority', () => {
     setRendererAccountOwner('owner');
     installLiteratureLocks();
     mocks.http.mockReset();
+    expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    mocks.unexpectedFetch.mockClear();
+    vi.stubGlobal('fetch', mocks.unexpectedFetch);
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    try {
+      expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 
   it('normalizes the reference name grammar and counts UTF-16 units after normalization', () => {
     expect(normalizeLiteratureCollectionText('  Ｒesearch\t  e\u0301\n')).toBe('Research é');
@@ -252,7 +271,8 @@ describe('ordinary collections share the Library authority', () => {
     await vi.waitFor(() => expect(runCollection).toHaveBeenCalledTimes(1));
     setRendererAccountOwner('other');
     pending.resolve(created());
-    await expect(request).rejects.toThrow('account changed');
+    await expect(request).rejects.toBeInstanceOf(DOMException);
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
     expect(saved.values.size).toBe(1);
     const other = new LiteratureMutationController('other', { storage: saved, runCollection });
     expect(other.getSnapshot().pending).toBeNull();

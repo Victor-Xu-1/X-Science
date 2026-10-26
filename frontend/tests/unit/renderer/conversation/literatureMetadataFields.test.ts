@@ -9,8 +9,18 @@ import { LiteratureMutationController } from '@/renderer/services/runtime/Litera
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks, literaturePendingStorage } from './literatureMutationLockFixtures';
 
-const mocks = vi.hoisted(() => ({ http: vi.fn() }));
-vi.mock('@/common/adapter/httpBridge', () => ({ httpRequest: mocks.http, isBackendHttpError: () => false }));
+const mocks = vi.hoisted(() => {
+  const unexpectedFetch = vi.fn(() => {
+    throw new Error('Unexpected unmocked HTTP in a Library contract test');
+  });
+  vi.stubGlobal('fetch', unexpectedFetch);
+  return { http: vi.fn(), unexpectedFetch };
+});
+vi.mock('@/common/adapter/httpBridge', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/common/adapter/httpBridge')>()),
+  httpRequest: mocks.http,
+  isBackendHttpError: () => false,
+}));
 const operationId = '00000000-0000-4000-8000-000000000023';
 const pendingKey = 'x-science.literature-mutation.v1:owner';
 const command = (): Extract<LiteratureCommand, { kind: 'edit-metadata' }> => ({
@@ -41,11 +51,18 @@ describe('Library field metadata command contract', () => {
     resetRendererAccountScopeForTest();
     setRendererAccountOwner('owner');
     mocks.http.mockReset();
+    expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    mocks.unexpectedFetch.mockClear();
+    vi.stubGlobal('fetch', mocks.unexpectedFetch);
     installLiteratureLocks();
   });
   afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    try {
+      expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('snapshots changed JSON fields while keeping null removal and own proto keys distinct', () => {

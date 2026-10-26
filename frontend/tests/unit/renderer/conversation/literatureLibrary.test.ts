@@ -10,8 +10,18 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import { deferredPdf, pdfContext } from './pdfReadingFixtures';
 import { installLiteratureLocks } from './literatureMutationLockFixtures';
 
-const mocks = vi.hoisted(() => ({ http: vi.fn() }));
-vi.mock('@/common/adapter/httpBridge', () => ({ httpRequest: mocks.http, isBackendHttpError: () => false }));
+const mocks = vi.hoisted(() => {
+  const unexpectedFetch = vi.fn(() => {
+    throw new Error('Unexpected unmocked HTTP in a Library contract test');
+  });
+  vi.stubGlobal('fetch', unexpectedFetch);
+  return { http: vi.fn(), unexpectedFetch };
+});
+vi.mock('@/common/adapter/httpBridge', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/common/adapter/httpBridge')>()),
+  httpRequest: mocks.http,
+  isBackendHttpError: () => false,
+}));
 const operationId = '00000000-0000-4000-8000-000000000001';
 const item = () => ({
   id: 'paper',
@@ -74,9 +84,18 @@ describe('L382 independent Library service and mutation owner', () => {
     resetRendererAccountScopeForTest();
     setRendererAccountOwner('owner');
     mocks.http.mockReset();
+    expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    mocks.unexpectedFetch.mockClear();
+    vi.stubGlobal('fetch', mocks.unexpectedFetch);
     installLiteratureLocks();
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    try {
+      expect(mocks.unexpectedFetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it('reads the owner catalog and inspects a real independent attachment through the existing reading API', async () => {
     mocks.http
       .mockResolvedValueOnce({ schema: 'x-science.literature-page.v1', items: [item()], next_cursor: 'next' })

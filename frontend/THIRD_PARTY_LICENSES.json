@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "7e520fd51fbf87d757ebd1a52f167d66ec25aa1a03a5bf4c6f5ebb98c3623072",
+  "lockfileSHA256": "520850e4d1ee5f2fb40dc54489f21aaaa63d4bb15114fa99afead34e1adbcccc",
   "summary": {
-    "records": 1131,
+    "records": 1132,
     "workspaceLinkRecords": 1,
-    "directRuntimeBuildDependencies": 63,
+    "directRuntimeBuildDependencies": 64,
     "directDevelopmentDependencies": 26,
     "licenseCounts": {
       "(MIT AND Zlib)": 1,
@@ -20,7 +20,7 @@
       "CC-BY-4.0": 1,
       "CC0-1.0": 2,
       "ISC": 54,
-      "MIT": 1007,
+      "MIT": 1008,
       "MIT-0": 2,
       "Python-2.0": 1,
       "SEE LICENSE IN LICENSE.txt": 1,
@@ -1149,6 +1149,13 @@
       "version": "5.6.0",
       "license": "MIT",
       "directKind": null,
+      "basis": "package-lock metadata"
+    },
+    {
+      "name": "@noble/hashes",
+      "version": "2.4.0",
+      "license": "MIT",
+      "directKind": "runtime-build",
       "basis": "package-lock metadata"
     },
     {
@@ -7952,7 +7959,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.3.54",
+      "version": "0.3.55",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }

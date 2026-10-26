@@ -7,7 +7,7 @@ Code is bundled/minified for browser use; upstream package implementations are n
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: 7e520fd51fbf87d757ebd1a52f167d66ec25aa1a03a5bf4c6f5ebb98c3623072
+Package lock SHA-256: 520850e4d1ee5f2fb40dc54489f21aaaa63d4bb15114fa99afead34e1adbcccc
 
 Package index
 -------------
@@ -138,6 +138,8 @@ Package index
   Source: https://registry.npmjs.org/@nightingale-elements/nightingale-msa/-/nightingale-msa-5.6.0.tgz
 @nightingale-elements/nightingale-new-core@5.6.0 — notice 100
   Source: https://registry.npmjs.org/@nightingale-elements/nightingale-new-core/-/nightingale-new-core-5.6.0.tgz
+@noble/hashes@2.4.0 — notice 160
+  Source: https://registry.npmjs.org/@noble/hashes/-/hashes-2.4.0.tgz
 @office-ai/platform@0.3.16 — notice 31
   Source: https://registry.npmjs.org/@office-ai/platform/-/platform-0.3.16.tgz
 @profoundlogic/hogan@3.0.4 — notice 108
@@ -12100,6 +12102,32 @@ The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+NOTICE 160
+========================================================================
+Source notice: https://registry.npmjs.org/@noble/hashes/-/hashes-2.4.0.tgz#package/LICENSE
+
+The MIT License (MIT)
+
+Copyright (c) 2022 Paul Miller (https://paulmillr.com)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the “Software”), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER

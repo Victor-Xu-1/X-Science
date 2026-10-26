@@ -6,7 +6,8 @@ import { deferredPdf } from './pdfReadingFixtures';
 import { installLiteratureLocks, literaturePendingStorage } from './literatureMutationLockFixtures';
 
 const mocks = vi.hoisted(() => ({ http: vi.fn() }));
-vi.mock('@/common/adapter/httpBridge', () => ({
+vi.mock('@/common/adapter/httpBridge', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/common/adapter/httpBridge')>()),
   httpRequest: mocks.http,
   isBackendHttpError: (value: unknown) => Boolean(value && typeof value === 'object' && 'status' in value),
 }));

@@ -5,11 +5,14 @@ import { useTranslation } from 'react-i18next';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
 import { LibraryCollectionSidebar } from './LibraryCollectionSidebar';
 import { LibraryCollectionEditor, type LibraryCollectionEditorMode } from './LibraryCollectionEditor';
-import type { LiteratureCommand } from '@/common/adapter/literatureLibrary';
+import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { LibraryItemDetails, libraryAuthors } from './LibraryItemDetails';
 import { useLibraryWorkbench } from './useLibraryWorkbench';
+import { LibraryPdfImport } from './LibraryPdfImport';
+import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
+import { useLibraryPdfImport } from './useLibraryPdfImport';
 import './libraryWorkbench.css';
 
 type CollectionEditorState = { owner: object; id: number; mode: LibraryCollectionEditorMode };
@@ -36,6 +39,25 @@ export default function LibraryPage() {
   const editorSequence = useRef(0);
   const [editor, setEditor] = useState<CollectionEditorState>();
   const visibleEditor = editor?.owner === editorBoundary.current ? editor : undefined;
+  const [pdfEditor, setPdfEditor] = useState({ account: reads.account, open: false });
+  const pdfOpen = pdfEditor.account === reads.account && pdfEditor.open;
+  const setPdfOpen = useCallback(
+    (open: boolean) => {
+      setPdfEditor((previous) =>
+        reads.account === getRendererAccountScopeToken() ? { account: reads.account, open } : previous
+      );
+    },
+    [reads.account]
+  );
+  const pdfImport = useLibraryPdfImport({
+    account: reads.account,
+    controller: mutation.controller,
+    view: mutation.view,
+    projects: reads.projects,
+    open: pdfOpen,
+    setOpen: setPdfOpen,
+    blockedByEditor: Boolean(visibleEditor),
+  });
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
       setEditor({ owner: editorBoundary.current, id: ++editorSequence.current, mode });
@@ -54,6 +76,15 @@ export default function LibraryPage() {
     const next = new URLSearchParams(params);
     if (id) next.set('item', id);
     else next.delete('item');
+    setParams(next);
+  };
+  const viewImportedReference = (receipt: LiteratureReceipt) => {
+    if (reads.account !== getRendererAccountScopeToken()) return;
+    const next = new URLSearchParams(params);
+    next.delete('q');
+    next.delete('collection');
+    next.delete('cursor');
+    next.set('item', receipt.item.id);
     setParams(next);
   };
   const closeDetails = () => {
@@ -108,6 +139,10 @@ export default function LibraryPage() {
     [mutation.controller, reads.account]
   );
   const retryMutation = async () => {
+    if (mutation.view.pending?.kind === 'pdf-upload') {
+      pdfImport.retry();
+      return;
+    }
     const account = reads.account;
     setAction({ account, failed: false, operationId: mutation.view.pending?.operation_id ?? null });
     try {
@@ -122,7 +157,7 @@ export default function LibraryPage() {
         setAction((value) => (value.account === account ? { ...value, failed: true } : value));
     }
   };
-  const busy = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage';
+  const busy = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
   const items = reads.list.value?.items ?? [];
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
   const selectedCollection =
@@ -133,7 +168,7 @@ export default function LibraryPage() {
     lastAction && mutation.view.receipt?.operation_id === lastAction ? mutation.view.receipt : undefined;
   return (
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
-      <header className='library-workbench__header'>
+      <header className='library-workbench__header library-pdf-import__page-header'>
         <div>
           <p className='library-workbench__eyebrow'>{t('conversation.libraryWorkbench.eyebrow')}</p>
           <h1 id='library-workbench-title'>
@@ -142,11 +177,15 @@ export default function LibraryPage() {
           </h1>
           <p>{t('conversation.libraryWorkbench.description')}</p>
         </div>
-        <button type='button' className='library-workbench__button' onClick={reads.refresh}>
-          <RefreshCw size={15} aria-hidden='true' />
-          {t('common.refresh')}
-        </button>
+        <div className='library-pdf-import__header-actions'>
+          <LibraryPdfImport model={pdfImport} />
+          <button type='button' className='library-workbench__button' onClick={reads.refresh}>
+            <RefreshCw size={15} aria-hidden='true' />
+            {t('common.refresh')}
+          </button>
+        </div>
       </header>
+      <LibraryPdfImportPanel model={pdfImport} refreshProjects={reads.refresh} viewReference={viewImportedReference} />
       <div className='library-workbench__toolbar'>
         <label className='library-workbench__search'>
           <Search size={16} aria-hidden='true' />
@@ -167,7 +206,7 @@ export default function LibraryPage() {
           />
         </label>
       </div>
-      {(mutation.view.error || actionFailed) && (
+      {!pdfImport.noticeOwned && (mutation.view.error || actionFailed) && (
         <div role='alert' className='library-workbench__notice'>
           <span>
             {t(
@@ -262,7 +301,7 @@ export default function LibraryPage() {
                     {t(query ? 'conversation.libraryWorkbench.noMatches' : 'conversation.libraryWorkbench.empty')}
                   </h2>
                   <p>
-                    {t(query ? 'conversation.libraryWorkbench.searchHint' : 'conversation.libraryWorkbench.emptyHint')}
+                    {t(query ? 'conversation.libraryWorkbench.searchHint' : 'conversation.libraryPdfImport.emptyHint')}
                   </p>
                 </div>
               ) : (
