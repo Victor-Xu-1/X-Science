@@ -616,7 +616,7 @@ async function uploadArtifactAttachment(
   // An already-cancelled operation must not even dispatch recovery cleanup.
   throwIfAttachmentAborted(signal);
   let uploadId = recovery.pending?.uploadId ?? '';
-  let resumed = Boolean(recovery.pending);
+  const resumed = Boolean(recovery.pending);
   let finalizeStarted = false;
   try {
     let chunkSize = 0;
@@ -630,10 +630,12 @@ async function uploadArtifactAttachment(
       } catch (error) {
         throwIfAttachmentAborted(signal);
         if (!isBackendHttpError(error) || error.status !== 404) throw error;
-        recovery.onAbandoned?.();
+        // A finalized upload loses its staging row, but its original receipt remains.
+        // Status404 therefore permits only same-identity replay, never a new upload.
+        finalizeStarted = true;
+        const artifact = await finalizeOnboardingUpload(uploadId, fetchImpl, signal);
         throwIfAttachmentAborted(signal);
-        uploadId = '';
-        resumed = false;
+        return artifact;
       }
     }
     if (!uploadId) {
@@ -685,9 +687,10 @@ async function uploadArtifactAttachment(
     return artifact;
   } catch (error) {
     const failure = signal?.aborted ? attachmentAbortError(signal) : error;
-    const preserveResumableUpload = resumed && !finalizeStarted && retryAttachmentChunkResponse(failure);
-    // Cancelling a finalize cannot prove that its transaction did not commit.
-    if (uploadId && !preserveResumableUpload && (!finalizeStarted || !finalizeOutcomeUncertain(failure))) {
+    // A pending record has no phase proof; even4xx cannot disprove a prior commit.
+    // Preserve every resumed/finalize identity until an authoritative result arrives.
+    const preserveIdentity = resumed || finalizeStarted;
+    if (uploadId && !preserveIdentity) {
       const abandoned = await abandonOnboardingUpload(uploadId, fetchImpl);
       if (abandoned && !signal?.aborted) recovery.onAbandoned?.();
     }
@@ -865,10 +868,6 @@ function parseFinalizedArtifact(finalized: unknown): OnboardingUploadedArtifact 
 
 function retryFinalizeResponse(error: unknown): boolean {
   if (isAbortError(error)) return false;
-  return !isBackendHttpError(error) || error.status >= 500;
-}
-
-function finalizeOutcomeUncertain(error: unknown): boolean {
   return !isBackendHttpError(error) || error.status >= 500;
 }
 

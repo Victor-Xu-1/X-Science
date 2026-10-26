@@ -1018,7 +1018,8 @@ describe('onboarding service', () => {
       expect(f.onAbandoned).not.toHaveBeenCalled();
       expect(f.onInitialized).toHaveBeenCalledTimes(stage === 'init' || stage === 'status' ? 0 : 1);
       const cleanup = f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE');
-      expect(cleanup).toHaveLength(stage === 'status' || stage === 'chunk' ? 1 : 0);
+      // Legacy pending may already have finalized; only a fresh chunk failure can clean up.
+      expect(cleanup).toHaveLength(stage === 'chunk' ? 1 : 0);
       if (cleanup[0]) expect(cleanup[0][1]?.signal).not.toBe(f.controller.signal);
       expect(add.mock.calls.filter(([type]) => type === 'abort').length).toBeGreaterThan(0);
       expect(remove.mock.calls.filter(([type]) => type === 'abort').length).toBe(
@@ -1044,7 +1045,7 @@ describe('onboarding service', () => {
       expect(f.fetchImpl).toHaveBeenCalledTimes(settledCalls);
       expect(f.onAbandoned).not.toHaveBeenCalled();
       expect(f.onInitialized).toHaveBeenCalledTimes(stage === 'init' || stage === 'status' ? 0 : 1);
-      if (stage === 'finalize')
+      if (stage === 'finalize' || stage === 'status')
         expect(f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(0);
     }
   });
@@ -1219,5 +1220,127 @@ describe('onboarding service', () => {
     expect(onArtifactUploaded).not.toHaveBeenCalled();
     expect(onUploadInitialized).not.toHaveBeenCalled();
     expect(f.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  it('replays the original finalize receipt after both acknowledgements were lost and upload status is gone', async () => {
+    const file = new File(['content'], 'notes.txt', { type: 'text/plain' });
+    let pending: { projectId: string; uploadId: string } | undefined;
+    let initializations = 0;
+    let originalFinalizations = 0;
+    const finalizeKeys: string[] = [];
+    const original = {
+      artifact_id: 'artifact-original',
+      version_id: 'version-original',
+      filename: file.name,
+      size_bytes: file.size,
+      checksum: 'a'.repeat(64),
+    };
+    const json = (value: unknown, status = 200) =>
+      new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const path = String(input);
+      if (path === '/api/artifacts/upload/init') {
+        initializations += 1;
+        return json({
+          upload_id: initializations === 1 ? 'upload-original' : 'upload-replacement',
+          chunk_size: 1024,
+          total_chunks: 1,
+        });
+      }
+      if (path === '/api/artifacts/upload/chunk') return json({ received: true, chunks_remaining: 0 });
+      if (path === '/api/artifacts/upload/status/upload-original') {
+        // The canonical backend removes the transient row after committing the
+        // immutable version and its finalize ledger receipt. 404 is not a proof
+        // that finalization never committed.
+        return json({ error: 'Upload no longer pending' }, 404);
+      }
+      if (path === '/api/artifacts/upload/finalize?upload_id=upload-original') {
+        originalFinalizations += 1;
+        finalizeKeys.push(new Headers(init?.headers).get('Idempotency-Key') ?? '');
+        if (originalFinalizations <= 2) throw new TypeError('original committed acknowledgement lost');
+        return json(original);
+      }
+      if (path === '/api/artifacts/upload/finalize?upload_id=upload-replacement') {
+        return json({ ...original, artifact_id: 'artifact-replacement', version_id: 'version-replacement' });
+      }
+      throw new Error(`Unexpected synthetic upload request: ${path}`);
+    };
+    const onInitialized = (next: { projectId: string; uploadId: string }) => {
+      pending = next;
+    };
+    await expect(uploadXScienceProjectAttachment('owned-project', file, { fetchImpl, onInitialized })).rejects.toThrow(
+      'original committed acknowledgement lost'
+    );
+    expect(pending?.uploadId).toBe('upload-original');
+    expect(initializations).toBe(1);
+    const recovered = await uploadXScienceProjectAttachment('owned-project', file, {
+      fetchImpl,
+      pending,
+      onInitialized,
+    });
+    expect(recovered).toMatchObject({ artifactId: original.artifact_id, versionId: original.version_id });
+    expect(initializations).toBe(1);
+    expect(originalFinalizations).toBe(3);
+    expect(new Set(finalizeKeys)).toEqual(new Set(['onboarding-artifact-finalize-upload-original']));
+  });
+  it('preserves original upload identity for unproven resumed and finalize failures', async () => {
+    const file = new File(['content'], 'notes.txt', { type: 'text/plain' });
+    const rows = [
+      { name: 'replay404', status: 404, finalize: 404, expectedFinalizes: 1 },
+      { name: 'replay400', status: 404, finalize: 400, expectedFinalizes: 1 },
+      { name: 'replay503', status: 404, finalize: 503, expectedFinalizes: 2 },
+      { name: 'replay410', status: 404, finalize: 410, expectedFinalizes: 1 },
+      { name: 'status400', status: 400, finalize: 0, expectedFinalizes: 0 },
+      { name: 'status503', status: 503, finalize: 0, expectedFinalizes: 0 },
+      { name: 'malformedStatus', status: 200, finalize: 0, expectedFinalizes: 0 },
+      { name: 'freshFinalize400', status: 0, finalize: 400, expectedFinalizes: 1 },
+    ];
+    for (const row of rows) {
+      const original = { projectId: 'owned-project', uploadId: 'upload-original' };
+      let pending: typeof original | undefined = row.status === 0 ? undefined : original;
+      const onInitialized = vi.fn((next: typeof original) => {
+        pending = next;
+      });
+      const onAbandoned = vi.fn(() => {
+        pending = undefined;
+      });
+      let initializations = 0;
+      let finalizes = 0;
+      let cleanups = 0;
+      const keys: string[] = [];
+      const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+        const path = String(input);
+        if (path.endsWith('/init')) {
+          initializations += 1;
+          return jsonResponse({ upload_id: 'upload-original', chunk_size: 1024, total_chunks: 1 });
+        }
+        if (path.endsWith('/chunk')) return jsonResponse({ chunk_index: 0, received: true, chunks_remaining: 0 });
+        if (path.includes('/status/'))
+          return jsonResponse(row.status === 200 ? {} : { detail: 'synthetic status not confirmed' }, row.status);
+        if (path.includes('/finalize?')) {
+          finalizes += 1;
+          keys.push(new Headers(init?.headers).get('Idempotency-Key') ?? '');
+          return jsonResponse({ detail: 'synthetic finalize not confirmed' }, row.finalize);
+        }
+        if (init?.method === 'DELETE') {
+          cleanups += 1;
+          return jsonResponse({ cancelled: true });
+        }
+        throw new Error('Unexpected synthetic upload request');
+      });
+      const result = await uploadXScienceProjectAttachment('owned-project', file, {
+        fetchImpl,
+        pending,
+        onInitialized,
+        onAbandoned,
+      }).catch((error: unknown) => error);
+      expect(result, row.name).toBeInstanceOf(Error);
+      expect(pending?.uploadId, row.name).toBe('upload-original');
+      expect(initializations, row.name).toBe(row.status === 0 ? 1 : 0);
+      expect(finalizes, row.name).toBe(row.expectedFinalizes);
+      expect(cleanups, row.name).toBe(0);
+      expect(onAbandoned, row.name).not.toHaveBeenCalled();
+      expect(onInitialized, row.name).toHaveBeenCalledTimes(row.status === 0 ? 1 : 0);
+      for (const key of keys) expect(key, row.name).toBe('onboarding-artifact-finalize-upload-original');
+    }
   });
 });
