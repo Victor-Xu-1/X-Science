@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -266,16 +269,42 @@ func (s *Server) handleAttachmentUploadInit(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var input struct {
-		ProjectID   string `json:"project_id"`
-		Filename    string `json:"filename"`
-		TotalSize   int64  `json:"total_size"`
-		ContentType string `json:"content_type"`
-		ChunkSize   int64  `json:"chunk_size"`
-		FolderID    string `json:"folder_id"`
-		Ephemeral   bool   `json:"ephemeral"`
+		OperationID json.RawMessage `json:"operation_id"`
+		ProjectID   string          `json:"project_id"`
+		Filename    string          `json:"filename"`
+		TotalSize   int64           `json:"total_size"`
+		ContentType string          `json:"content_type"`
+		ChunkSize   int64           `json:"chunk_size"`
+		FolderID    string          `json:"folder_id"`
+		Ephemeral   bool            `json:"ephemeral"`
 	}
 	if err := decodeAttachmentJSON(r, &input); err != nil {
-		writeAttachmentError(w, http.StatusBadRequest, err.Error())
+		if input.OperationID != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"code": "ATTACHMENT_INIT_WRITE_REJECTED", "detail": "Upload admission request body was rejected"})
+		} else {
+			writeAttachmentError(w, http.StatusBadRequest, err.Error())
+		}
+		return
+	}
+	if input.OperationID != nil {
+		var operationID string
+		parsedErr := json.Unmarshal(input.OperationID, &operationID)
+		parsed, uuidErr := uuid.Parse(operationID)
+		primary, alias := r.Header.Values("Idempotency-Key"), r.Header.Values("X-Science-Idempotency-Key")
+		if parsedErr != nil || uuidErr != nil || parsed.String() != operationID || len(primary) > 1 || len(alias) > 1 || len(primary)+len(alias) == 0 || len(primary) == 1 && primary[0] != operationID || len(alias) == 1 && alias[0] != operationID {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"code": "ATTACHMENT_INIT_WRITE_REJECTED", "detail": "operation_id must be a canonical UUID matching the idempotency header"})
+			return
+		}
+		receipt, err := store.InitAttachmentUploadWithReceipt(r.Context(), operationID, workspace.InitAttachmentUploadInput{
+			UserID: userID, ProjectID: input.ProjectID, Filename: input.Filename,
+			TotalSize: input.TotalSize, ContentType: input.ContentType, ChunkSize: input.ChunkSize,
+			FolderID: input.FolderID, Ephemeral: input.Ephemeral,
+		}, workspace.AttachmentUploadInitPolicy{DefaultChunkSize: defaultUploadChunkSize, MinChunkSize: minUploadChunkSize, MaxChunkSize: maxUploadChunkSize})
+		if err != nil {
+			writeAttachmentInitStoreError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, receipt)
 		return
 	}
 	if input.ChunkSize == 0 {
@@ -297,6 +326,33 @@ func (s *Server) handleAttachmentUploadInit(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, map[string]any{
 		"upload_id": upload.ID, "chunk_size": upload.ChunkSize, "total_chunks": upload.ExpectedChunks,
 	})
+}
+
+func writeAttachmentInitStoreError(w http.ResponseWriter, err error) {
+	// Unknown wins even when its retained diagnostic cause was a rejection.
+	if errors.Is(err, workspace.ErrAttachmentInitOutcomeUnknown) {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"code": "ATTACHMENT_INIT_OUTCOME_UNKNOWN", "detail": "Upload admission outcome is unknown; retry with the same operation identity"})
+		return
+	}
+	if errors.Is(err, workspace.ErrMutationIdempotencyConflict) {
+		writeJSON(w, http.StatusConflict, map[string]any{"code": "ATTACHMENT_INIT_IDEMPOTENCY_CONFLICT", "detail": "The operation identity belongs to a different upload request"})
+		return
+	}
+	if errors.Is(err, workspace.ErrAttachmentInitWriteRejected) {
+		status := http.StatusBadRequest
+		if errors.Is(err, sql.ErrNoRows) {
+			status = http.StatusNotFound
+		}
+		var capacity *workspace.InsufficientAttachmentSpaceError
+		if errors.As(err, &capacity) {
+			writeJSON(w, http.StatusInsufficientStorage, map[string]any{"code": "ATTACHMENT_INIT_WRITE_REJECTED", "detail": "Insufficient upload storage", "required_bytes": capacity.RequiredBytes, "available_bytes": capacity.AvailableBytes})
+			return
+		}
+		writeJSON(w, status, map[string]any{"code": "ATTACHMENT_INIT_WRITE_REJECTED", "detail": "Upload admission request was rejected"})
+		return
+	}
+	// Untyped database and transport failures do not prove noncommit.
+	writeJSON(w, http.StatusServiceUnavailable, map[string]any{"code": "ATTACHMENT_INIT_OUTCOME_UNKNOWN", "detail": "Upload admission outcome is unknown; retry with the same operation identity"})
 }
 
 func (s *Server) handleAttachmentUploadChunk(w http.ResponseWriter, r *http.Request, store *workspace.Store, userID string) {
