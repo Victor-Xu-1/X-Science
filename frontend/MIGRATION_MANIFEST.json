@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "a5edd23eced271ef478af4080c46603173dfd67741bc4d99d38728bbc5e3cce9",
+  "adaptationFingerprintSHA256": "5b0f9dfcd3c8d31d38081cc7ceeddf46683d5e6ae31800f6b9158c6d2a7f0161",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "4cc8f6090846caad0d0d54bf7a69aa8ce1fdcdf8e2646b36a6645e9acae47e64",
   "summary": {
@@ -3057,8 +3057,8 @@
     {
       "path": "packages/desktop/src/renderer/services/onboardingService.ts",
       "sourceSHA256": "3436645659c5d1ace153db431fa806a6f383fbede21efc79a33b6cfda8086027",
-      "targetSHA256": "1c892d3c4935917371d1c6524552f8641794301be750106dc16d621c3a00919b",
-      "bytes": 39973,
+      "targetSHA256": "3783e03f8bff764265c7c58310d00d894dc920cbcefbf919625eff04c51f2114",
+      "bytes": 40061,
       "reason": "Validate and persist the server-owned scientific-runtime selection without imposing client storage ceilings, while preserving exact Artifact and launch authority."
     },
     {
@@ -4814,8 +4814,8 @@
     {
       "path": "tests/unit/renderer/onboardingService.test.ts",
       "sourceSHA256": "5a83a0499204558283f3391d150821b0e0b804cb49acaa055540b85fbe93870b",
-      "targetSHA256": "0a972b5b1276b8996de512f1526959badcc7f024f4b7fb969a3f300d9a96509a",
-      "bytes": 49784,
+      "targetSHA256": "b42fbc891ac8326f9d51b5fd0fb06d5c74a94b2d8dc0dfc3057fbf298fbd98e8",
+      "bytes": 55964,
       "reason": "Verify scientific-runtime snapshot validation and exact selected-ID persistence alongside existing onboarding mutations."
     },
     {
