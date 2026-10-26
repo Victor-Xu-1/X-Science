@@ -70,7 +70,7 @@ describe('XScienceMemoryManager automatic memory control', () => {
     await act(async () => {
       fireEvent.click(automatic);
     });
-    await waitFor(() => expect(mocks.setAutoEnabled).toHaveBeenCalledWith(false));
+    await waitFor(() => expect(mocks.setAutoEnabled).toHaveBeenCalledWith(false, { signal: expect.any(AbortSignal) }));
     expect(mocks.loadContext).toHaveBeenCalled();
   });
 });

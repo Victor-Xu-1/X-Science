@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f2b348aa2e88bdc174804957a4c612ccb4fec646ae7ae60331119fc225894cc9",
+  "adaptationFingerprintSHA256": "f9725c2322f3a04fac6d1a5c851a5890672732185e0aa13db8d3e4abaebf6c31",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "bbc6c32f770a2fe51754140c5c0e29b82405852d52d48da389c3842bfc9293ff",
+  "additionFingerprintSHA256": "911e119751fe49f1e2eacc8c794bb01f5d358097eab1997ce5a249d092043121",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -5190,8 +5190,8 @@
       "path": "tests/unit/settings/XScienceMemoryManager.dom.test.tsx",
       "originalPath": "tests/unit/settings/SynonBiomedMemoryManager.dom.test.tsx",
       "sourceSHA256": "6afdab37284d5d4223eeac6a27f3dc622bfd9c13b8dc79bc9b15b39ddf953638",
-      "targetSHA256": "1afa8fcf653196d4a8db5195090fdf6d90fc8289037d0e3d79260a6d5c9afef2",
-      "bytes": 30628,
+      "targetSHA256": "a2fe4075268461e8b03ba53335a85183d8b491acf4eea02d7acab133108c7945",
+      "bytes": 30863,
       "reason": "Move genuine imported source to the current X-Science namespace. Verify the explicit memory-load failure and retry state."
     },
     {
@@ -14111,8 +14111,8 @@
     },
     {
       "path": "tests/unit/settings/memoryManagerFixtures.ts",
-      "sha256": "bee9597bf51863a965f7433611fd322dccbc01cee0b666161bfabfcc4ad6bf4a",
-      "bytes": 4138,
+      "sha256": "f0a811686f149df763f8bfbb88f56e952c186832b80f949bc0a6928765026805",
+      "bytes": 4252,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14357,8 +14357,8 @@
     },
     {
       "path": "tests/unit/xscience/XScienceMemoryManager.dom.test.tsx",
-      "sha256": "6db192d20ec56cac11660d4441591587fbd64f4ae2631c4cf1e55f3fce3f12bf",
-      "bytes": 2675,
+      "sha256": "f6d69944a3dfa3e1d55da263abc70d881d140d50148f9ab88e54f83071c9b22b",
+      "bytes": 2712,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
