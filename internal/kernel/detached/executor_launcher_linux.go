@@ -118,7 +118,8 @@ func executorMemoryBudget(path string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	budget := min(memoryFraction(total, executorMemoryTotalFraction), available-reserve)
+	preferred := max(executorMemoryFloorBytes, memoryFraction(total, executorMemoryTotalFraction))
+	budget := min(preferred, available-reserve)
 	if budget < executorMemoryFloorBytes {
 		return 0, &ExecutorResourceUnavailableError{AvailableBytes: available, ReserveBytes: reserve, RequiredBytes: executorMemoryFloorBytes}
 	}

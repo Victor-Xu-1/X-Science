@@ -123,7 +123,9 @@ func readExecutorMemory(location string) (total, available, reserve int64, err e
 	if total <= 0 || !hasAvailable || available < 0 || available > total {
 		return 0, 0, 0, errors.New("machine memory observation incomplete")
 	}
-	reserve = max(executorControlReserveBytes, memoryFraction(total, executorMemoryReserveFraction))
+	// Automatic headroom scales down on small hosts and is capped on large
+	// hosts. Actual usage and outstanding promises are accounted separately.
+	reserve = min(executorControlReserveBytes, memoryFraction(total, executorMemoryReserveFraction))
 	return total, available, reserve, nil
 }
 

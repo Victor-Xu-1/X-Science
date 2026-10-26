@@ -49,13 +49,13 @@ func TestExecutorCapacityRejectionReportsObservedMemory(t *testing.T) {
 		available, requested, reserve int64
 		reserved                      bool
 	}{
-		{"default_below", 2 << 30, 0, 4 << 30, false},
-		{"default_equal", 4 << 30, 0, 4 << 30, false},
-		{"default_above", (4 << 30) + (512 << 20), 0, 4 << 30, false},
+		{"default_below", 2 << 30, 0, 3 << 30, false},
+		{"default_equal", 3 << 30, 0, 3 << 30, false},
+		{"default_above", (3 << 30) + (512 << 20), 0, 3 << 30, false},
 		{"explicit_below", 2 << 30, 2 << 30, 3 << 30, false},
 		{"explicit_equal", 3 << 30, 2 << 30, 3 << 30, false},
 		{"explicit_above", 4 << 30, 2 << 30, 3 << 30, false},
-		{"default_outstanding_reservation", 5 << 30, 0, 4 << 30, true},
+		{"default_outstanding_reservation", 4 << 30, 0, 3 << 30, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			store, base := startupBackendFixture(t)
