@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "db6794841ed86fd1b342a6e5aa4308d2449d3a3fe49f739de9e664e70d33350a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "039a554451deb4ee95a47e540118163ccc7fed0c4f2c0fa661b20db0728eb471",
+  "additionFingerprintSHA256": "5580094cfdd29af8a98b88ae6d5a729a6ad937ceab186d0e4f0febce94822455",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -13199,20 +13199,20 @@
     },
     {
       "path": "tests/unit/renderer/conversation/literatureCollections.test.ts",
-      "sha256": "c3f3b2a36882067afebbd124500821d9562ba17acd70d149562e3bee8de99d99",
-      "bytes": 11236,
+      "sha256": "fef7e00979594cbfa76f13a48b98fe752fa37a8de4043769a5e25159ffdc4ba4",
+      "bytes": 11860,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/literatureLibrary.test.ts",
-      "sha256": "4566cdf1b2703ea1dcbb1a7595834a19ef9fab87cfdcfdc232e21114aef2489c",
-      "bytes": 8691,
+      "sha256": "09129b286f0e9c9c7ce5baaa3e1baa1eb0675809db137a354861c0c9e469de26",
+      "bytes": 9240,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/literatureMetadataFields.test.ts",
-      "sha256": "d7b2d2dc1b3855f0a29c5eaeafe94be2c0701a15ebd62ab8898dcf06dea47bdf",
-      "bytes": 10536,
+      "sha256": "90f21a172f2d527658a7c412bdab2d195cd27a3292bb4c5fc2efa63499c858cc",
+      "bytes": 11076,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
