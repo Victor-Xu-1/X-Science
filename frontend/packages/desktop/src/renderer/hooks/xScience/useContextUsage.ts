@@ -19,17 +19,27 @@ export const CONTEXT_USAGE_MAX_RETRIES = 3;
 export type ContextUsageState = (
   | { conversationId: string; status: 'loading' | 'error' }
   | (ContextUsageResult & { conversationId: string })
-) & { refreshState?: 'refreshing' | 'retrying' | 'stale' };
+) & {
+  refreshState?: 'refreshing' | 'retrying' | 'stale';
+  /** Request state is separate from a retained compact snapshot or inspection. */
+  inspectionRequest?: 'loading' | 'error';
+};
 
 /** One bounded request at a time; closing/switching aborts obsolete requests. */
 export function useContextUsage(conversationId: string, visible: boolean, active: boolean, inspect = false) {
   const accountScope = getRendererAccountScopeToken();
   const scopeKey = JSON.stringify([accountScope, conversationId]);
+  const requestMode = inspect ? 'inspect' : 'summary';
   const currentScope = useRef(scopeKey);
   currentScope.current = scopeKey;
   const resetId = useId();
-  const [ownedState, setOwnedState] = useState<{ scope: string; value: ContextUsageState }>({
+  const [ownedState, setOwnedState] = useState<{
+    scope: string;
+    requestMode: 'summary' | 'inspect';
+    value: ContextUsageState;
+  }>({
     scope: scopeKey,
+    requestMode,
     value: { conversationId, status: 'loading' },
   });
   const [refresh, setRefresh] = useState(0);
@@ -61,6 +71,7 @@ export function useContextUsage(conversationId: string, visible: boolean, active
           return previous;
         return {
           scope: scopeKey,
+          requestMode,
           value:
             typeof update === 'function'
               ? update(previous.scope === scopeKey ? previous.value : { conversationId, status: 'loading' })
@@ -69,12 +80,14 @@ export function useContextUsage(conversationId: string, visible: boolean, active
       });
     };
     setState((previous) =>
-      previous.conversationId === conversationId && previous.status === 'available'
-        ? { ...previous, refreshState: 'refreshing' }
+      previous.conversationId === conversationId &&
+      (previous.status === 'available' || (inspect && previous.status === 'unavailable' && previous.inspection))
+        ? { ...previous, refreshState: 'refreshing', inspectionRequest: inspect ? 'loading' : undefined }
         : { conversationId, status: conversationId ? 'loading' : 'unavailable' }
     );
     const load = async () => {
       if (!conversationId) return;
+      if (inspect) setState((previous) => ({ ...previous, inspectionRequest: 'loading' }));
       const requestController = new AbortController();
       controller = requestController;
       const stopped = new Promise<never>((_, reject) => {
@@ -105,14 +118,29 @@ export function useContextUsage(conversationId: string, visible: boolean, active
       } catch (error) {
         if (disposed) return;
         if (error instanceof ContextUsageRequestError && error.scopeChanged) {
-          setState({ conversationId, status: 'error', refreshState: 'stale' });
+          setState({
+            conversationId,
+            status: 'error',
+            refreshState: 'stale',
+            inspectionRequest: inspect ? 'error' : undefined,
+          });
           return;
         }
         const willRetry = (visible || active) && isContextUsageRetryable(error) && failures < CONTEXT_USAGE_MAX_RETRIES;
         setState((previous) =>
-          previous.conversationId === conversationId && previous.status === 'available'
-            ? { ...previous, refreshState: willRetry ? 'retrying' : 'stale' }
-            : { conversationId, status: 'error', refreshState: willRetry ? 'retrying' : 'stale' }
+          previous.conversationId === conversationId &&
+          (previous.status === 'available' || (inspect && previous.status === 'unavailable' && previous.inspection))
+            ? {
+                ...previous,
+                refreshState: willRetry ? 'retrying' : 'stale',
+                inspectionRequest: inspect ? 'error' : undefined,
+              }
+            : {
+                conversationId,
+                status: 'error',
+                refreshState: willRetry ? 'retrying' : 'stale',
+                inspectionRequest: inspect ? 'error' : undefined,
+              }
         );
         if (willRetry) poll = setTimeout(() => void load(), 1000 * 2 ** failures++);
         // A bounded failure episode can be restarted by explicit Retry or a
@@ -128,9 +156,17 @@ export function useContextUsage(conversationId: string, visible: boolean, active
       clearTimeout(deadline);
       controller?.abort();
     };
-  }, [conversationId, visible, active, refresh, inspect, scopeKey, accountScope]);
+  }, [conversationId, visible, active, refresh, inspect, scopeKey, accountScope, requestMode]);
+  const state: ContextUsageState =
+    ownedState.scope === scopeKey ? ownedState.value : { conversationId, status: 'loading' };
+  const inspection = state.status === 'available' || state.status === 'unavailable' ? state.inspection : undefined;
   return {
-    state: ownedState.scope === scopeKey ? ownedState.value : { conversationId, status: 'loading' as const },
+    // The inspector renders before the mode-change effect starts its request.
+    // A warm summary is still valid, but is not a completed inspection read.
+    state:
+      inspect && ownedState.requestMode !== requestMode && !inspection
+        ? { ...state, inspectionRequest: 'loading' as const }
+        : state,
     scopeKey,
     retry,
   };
