@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "1cf780b0e4485cb1f440ec43ae4d0c07cafc05e520cd0a4e2eaddf0f20317705",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "c5674b5f28d107b044cd752eedf7d8d12898fd332114a73d6e3bc6c8d90c7f6c",
+  "additionFingerprintSHA256": "19e8ea37ddcc61e17e3e45408b28bdcd27c027ef44e085367cf46b69707fe004",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -9857,8 +9857,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.css",
-      "sha256": "7847f28de5480286a3580825a8ccb29c60c770c3ae97865d466c5756c524687f",
-      "bytes": 15373,
+      "sha256": "7a1dc7b1afbaced229ea300ab07e904a1a63aad819f10cf261a85efffb1bb2e1",
+      "bytes": 16547,
       "reason": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted."
     },
     {
