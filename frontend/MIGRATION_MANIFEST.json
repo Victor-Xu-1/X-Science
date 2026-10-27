@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "9ec0fb80eec9f0c1ee0b7ed3d7fed628d8cb7fb685d8e8e8784d95a0261e92e9",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "85b6d17d4a05442372f83bc9a2a9133f3b8693304cbc2aa23ca0d54739fecd13",
+  "additionFingerprintSHA256": "e4a8c0a334341f90a0b9ab02c70f917dbea1e9c68566820c49c8522af82d4566",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -9947,8 +9947,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryPublicationCheck.ts",
-      "sha256": "fda32ec6fea67b74fe74d1b591bb71579008be815fc25bc4d130e60754b5088f",
-      "bytes": 11759,
+      "sha256": "f20ad22da7e80bc5a502ff084f0d4c1283febdf0c241118c20ade41497d28c1a",
+      "bytes": 12624,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13577,8 +13577,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryPublicationCheck.dom.test.tsx",
-      "sha256": "c5f237173dbd5301021568758c6d29738291e6b8ac6709bf2202c2523eab1181",
-      "bytes": 23095,
+      "sha256": "d2c50c53b4d9cc75893dc19417ab39a87ecbb24b81acd3a205fe2b8c7f69a3a9",
+      "bytes": 27983,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
