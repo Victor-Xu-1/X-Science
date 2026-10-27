@@ -4,6 +4,16 @@ import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LibraryColumnId, LibraryColumnPreferences } from '@/common/adapter/libraryColumnPreferences';
 import './libraryTable.css';
+import './librarySelection.css';
+
+export type LibraryTableSelection = {
+  selected: (id: string) => boolean;
+  toggle: (id: string, shift: boolean) => void;
+  pageChecked: boolean;
+  pageMixed: boolean;
+  togglePage: () => void;
+  disabled: boolean;
+};
 
 export type LibraryTableProps = {
   rows: readonly LiteratureItem[];
@@ -18,6 +28,7 @@ export type LibraryTableProps = {
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: React.ReactNode;
+  selection?: LibraryTableSelection;
 };
 const widths: Record<LibraryColumnId, number> = {
   readingStatus: 128,
@@ -43,6 +54,7 @@ export function LibraryTable({
   emptyTitle,
   emptyDescription,
   emptyAction,
+  selection,
 }: LibraryTableProps) {
   const { t } = useTranslation();
   const visible = new Set(preferences.visible);
@@ -105,9 +117,10 @@ export function LibraryTable({
         >
           <table
             aria-label={t('conversation.libraryTable.title')}
-            style={{ minWidth: 280 + columns.reduce((sum, column) => sum + widths[column], 0) }}
+            style={{ minWidth: 280 + (selection ? 40 : 0) + columns.reduce((sum, column) => sum + widths[column], 0) }}
           >
             <colgroup>
+              {selection && <col style={{ width: 40 }} />}
               <col style={{ width: 280 }} />
               {columns.map((column) => (
                 <col key={column} style={{ width: widths[column] }} />
@@ -115,6 +128,24 @@ export function LibraryTable({
             </colgroup>
             <thead>
               <tr>
+                {selection && (
+                  <th scope='col' className='library-table__selection-cell'>
+                    <input
+                      type='checkbox'
+                      className='library-table__selection'
+                      checked={selection.pageChecked}
+                      ref={(node) => {
+                        if (node) node.indeterminate = selection.pageMixed;
+                      }}
+                      disabled={selection.disabled}
+                      aria-label={t('conversation.librarySelection.selectPage')}
+                      onClick={(event) => event.stopPropagation()}
+                      onChange={() => {
+                        if (!selection.disabled) selection.togglePage();
+                      }}
+                    />
+                  </th>
+                )}
                 <th scope='col'>{t('conversation.libraryTable.titleColumn')}</th>
                 {columns.map((column) => (
                   <th scope='col' key={column}>
@@ -126,6 +157,24 @@ export function LibraryTable({
             <tbody>
               {rows.map((item) => (
                 <tr key={item.id} data-selected={item.id === selectedId}>
+                  {selection && (
+                    <td className='library-table__selection-cell'>
+                      <input
+                        type='checkbox'
+                        className='library-table__selection'
+                        checked={selection.selected(item.id)}
+                        disabled={selection.disabled}
+                        aria-label={t('conversation.librarySelection.selectPaper', { title: item.title })}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                        }}
+                        onChange={(event) => {
+                          if (!selection.disabled)
+                            selection.toggle(item.id, Boolean((event.nativeEvent as MouseEvent).shiftKey));
+                        }}
+                      />
+                    </td>
+                  )}
                   <td className='library-table__title-cell'>
                     <button
                       type='button'

@@ -2300,5 +2300,33 @@
     "success": "Reference added",
     "successDetail": "{{title}} is saved in your Library.",
     "viewReference": "View reference"
+  },
+  "librarySelection": {
+    "title": "Reference selection",
+    "selectPage": "Select this page",
+    "selectPaper": "Select {{title}}",
+    "selectedCount": "{{count}} selected",
+    "allSelected": "All matching references selected",
+    "allExcept": "All matching except {{count}}",
+    "selectAllMatching": "Select all matching references",
+    "clear": "Clear selection",
+    "readingStatus": "Reading status for selection",
+    "changeStatus": "Set reading status",
+    "resolving": "Resolving selected references…",
+    "resolveFailed": "The complete selection could not be loaded. No batch was started.",
+    "emptyResolved": "No matching references remain in this selection.",
+    "activeProgress": "Saving {{done}} of {{total}} references…",
+    "pausedProgress": "{{done}} of {{total}} saved. The remaining references are paused.",
+    "readyProgress": "{{done}} of {{total}} confirmed. Remaining work can be continued.",
+    "stoppedProgress": "Stopped after {{done}} of {{total}} references. Remaining work was discarded.",
+    "uncertainProgress": "{{done}} of {{total}} confirmed. The current batch needs confirmation.",
+    "completedProgress": "{{total}} references saved.",
+    "startFailed": "The batch could not be started. Your selection is kept.",
+    "resume": "Resume batch",
+    "stopAfterBatch": "Stop after current batch",
+    "discardRemainder": "Discard remaining work",
+    "currentBatchPending": "Confirm the current batch before changing the remaining work.",
+    "previousScope": "This batch belongs to a previous Library view.",
+    "scopeChanged": "The Library view changed. Unsent work is kept for the original scope."
   }
 }

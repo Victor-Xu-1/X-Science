@@ -3,6 +3,10 @@ import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literat
 import { loadProjectReadingOptions, type PdfReadingOption } from '@/renderer/services/runtime/pdfReadingContext';
 import { loadLibraryReadingOptions } from '@/renderer/services/runtime/literatureLibrary';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
+import {
+  isLiteratureReadingBulk,
+  literatureReadingBulkProgress,
+} from '@/renderer/services/runtime/literatureReadingBulkIntent';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { LibraryItemEditor } from './LibraryItemEditor';
 import { Trigger } from '@arco-design/web-react';
@@ -191,6 +195,7 @@ export function ReadingContextPicker({
   };
   const changingLibrary = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage';
   const pendingPdfUpload = mutation.view.pending?.kind === 'pdf-upload';
+  const pendingBulk = isLiteratureReadingBulk(mutation.view.pending) ? mutation.view.pending : undefined;
   return (
     <Trigger
       trigger='click'
@@ -243,11 +248,31 @@ export function ReadingContextPicker({
               />
             </label>
           )}
-          {pendingPdfUpload ? (
+          {pendingPdfUpload || pendingBulk ? (
             <div role='alert' className='pdf-reading-notice'>
-              <span>{t('conversation.reading.libraryUploadNotice')}</span>
+              <span>
+                {pendingBulk
+                  ? t(
+                      `conversation.librarySelection.${
+                        mutation.view.mutating
+                          ? 'activeProgress'
+                          : pendingBulk.phase === 'sending'
+                            ? 'uncertainProgress'
+                            : pendingBulk.paused
+                              ? 'pausedProgress'
+                              : 'readyProgress'
+                      }`,
+                      {
+                        done: literatureReadingBulkProgress(pendingBulk).confirmedItems,
+                        total: literatureReadingBulkProgress(pendingBulk).totalItems,
+                      }
+                    )
+                  : t('conversation.reading.libraryUploadNotice')}
+              </span>
               <Link to='/library' onClick={() => setOpen(false)}>
-                {t('conversation.reading.libraryUploadContinue')}
+                {pendingBulk
+                  ? t('conversation.librarySelection.resume')
+                  : t('conversation.reading.libraryUploadContinue')}
               </Link>
             </div>
           ) : (

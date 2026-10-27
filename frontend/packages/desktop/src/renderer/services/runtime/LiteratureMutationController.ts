@@ -12,6 +12,9 @@ import { runLiteratureCollectionCommand } from './literatureCollections';
 import { runLiteraturePublicationCommand } from './literaturePublicationCheck';
 import { runLiteratureReadingStatusCommand } from './literatureReadingStatus';
 import { withLiteratureMutationLock } from './literatureMutationLock';
+import { createLiteratureReadingBulkOperations } from './literatureReadingBulkOperations';
+import { isLiteratureReadingBulk } from './literatureReadingBulkIntent';
+import type { LiteratureReadingStatus, LiteratureReadingStatusReceipt } from '@/common/adapter/literatureReadingStatus';
 import {
   catalogueUploadFailureCertainty,
   createUploadIntent,
@@ -64,6 +67,8 @@ type Flight = {
   upload: boolean;
   pending?: LiteraturePending;
   draft?: PdfDraft;
+  bulkPause?: boolean;
+  bulkCanContinue?: () => boolean;
 };
 type Options = {
   storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -82,6 +87,7 @@ class PendingStorageError extends Error {
   }
 }
 const interrupted = () => new DOMException('Library operation was cancelled', 'AbortError');
+const definitelyRejected = (error: unknown) => isBackendHttpError(error) && error.status >= 400 && error.status < 500;
 
 /** Settle promptly, but observe both branches of even a noncooperative late operation. */
 function observeAbort<T>(signal: AbortSignal, operation: () => Promise<T>): Promise<T> {
@@ -134,6 +140,46 @@ export class LiteratureMutationController {
   private generation = 0;
   private selectedFile?: { origin: string; file: File };
   private rejectedUpload?: string;
+  private readonly bulkReading = createLiteratureReadingBulkOperations<Flight>({
+    current: () => this.current(),
+    pending: () => this.view.pending,
+    running: () => this.promise,
+    begin: (intent, work, canContinue) =>
+      this.begin(false, work, intent, undefined, canContinue) as Promise<LiteratureReadingStatusReceipt>,
+    checkActive: (flight) => this.requireActive(flight),
+    pauseRequested: (flight) =>
+      Boolean(flight.bulkPause) || Boolean(flight.bulkCanContinue && !flight.bulkCanContinue()),
+    locked: (flight, work) =>
+      this.locked(
+        () =>
+          work({
+            read: () => this.read(),
+            write: (expected, next) => this.write(expected, next, flight),
+            settle: (expected, receipt) => this.settle(expected, true, null, receipt, flight),
+            publish: (update) => this.emit(update, flight),
+          }),
+        flight
+      ),
+    send: (command, flight) => this.dispatch(command, flight.abort.signal),
+    rejected: definitelyRejected,
+    uuid: () => (this.options.uuid ? this.options.uuid() : crypto.randomUUID()),
+  });
+  startReadingStatusBulk = (
+    ids: readonly string[],
+    status: LiteratureReadingStatus,
+    scopeKey: string,
+    canContinue?: () => boolean
+  ) => this.bulkReading.start(ids, status, scopeKey, canContinue);
+  resumeReadingStatusBulk = (stopAfterCurrent = false, canContinue?: () => boolean) => {
+    if (stopAfterCurrent && this.flight && isLiteratureReadingBulk(this.flight.pending)) this.flight.bulkPause = true;
+    return this.bulkReading.resume(stopAfterCurrent, canContinue);
+  };
+  pauseReadingStatusBulk = (operationId: string) => {
+    if (this.flight && isLiteratureReadingBulk(this.flight.pending) && this.flight.pending.operation_id === operationId)
+      this.flight.bulkPause = true;
+    return this.bulkReading.pause(operationId);
+  };
+  discardReadingStatusBulk = (operationId: string) => this.bulkReading.discard(operationId);
   constructor(
     private ownerId: string,
     private options: Options = {}
@@ -150,6 +196,7 @@ export class LiteratureMutationController {
     this.restore();
   }
   getSnapshot = () => this.view;
+  isCurrentAccount = () => this.current();
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
@@ -221,8 +268,9 @@ export class LiteratureMutationController {
     }
   }
   /** Only callers holding the original slot lock may write or settle. */
-  private write(expected: LiteraturePending | null, next: LiteraturePending, flight: Flight) {
-    this.requireActive(flight);
+  private write(expected: LiteraturePending | null, next: LiteraturePending, flight?: Flight) {
+    if (flight) this.requireActive(flight);
+    else if (!this.current()) throw interrupted();
     const actual = this.read();
     if (actual ? !expected || !samePending(actual, expected) : Boolean(expected)) {
       this.emit(
@@ -276,9 +324,17 @@ export class LiteratureMutationController {
     upload: boolean,
     work: (flight: Flight) => Promise<LiteratureMutationReceipt>,
     pending?: LiteraturePending,
-    draft?: PdfDraft
+    draft?: PdfDraft,
+    bulkCanContinue?: () => boolean
   ) {
-    const flight: Flight = { generation: ++this.generation, abort: new AbortController(), upload, pending, draft };
+    const flight: Flight = {
+      generation: ++this.generation,
+      abort: new AbortController(),
+      upload,
+      pending,
+      draft,
+      bulkCanContinue,
+    };
     const promise = observeAbort(flight.abort.signal, () => work(flight)).finally(() => {
       if (this.promise === promise) {
         this.promise = undefined;
@@ -308,7 +364,7 @@ export class LiteratureMutationController {
     try {
       receipt = await this.dispatch(command, flight.abort.signal);
     } catch (error) {
-      const rejected = isBackendHttpError(error) && error.status >= 400 && error.status < 500;
+      const rejected = definitelyRejected(error);
       if (this.active(flight))
         await this.locked(
           () => this.settle(command, rejected, rejected ? 'rejected' : 'uncertain', undefined, flight),
@@ -541,6 +597,7 @@ export class LiteratureMutationController {
       uploadState: this.projection(pending),
     });
     if (!pending) return Promise.reject(new Error('No Library request to retry'));
+    if (isLiteratureReadingBulk(pending)) return this.resumeReadingStatusBulk(true);
     if (!isUploadIntent(pending)) return this.submit(pending);
     const expected = pending;
     return this.begin(

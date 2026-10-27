@@ -6,6 +6,10 @@ import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/lite
 import { ReadingContextPicker } from '@/renderer/components/chat/SendBox/reading/ReadingContextPicker';
 import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 import {
+  createLiteratureReadingBulk,
+  claimLiteratureReadingBulk,
+} from '@/renderer/services/runtime/literatureReadingBulkIntent';
+import {
   createUploadIntent,
   encodePendingRecord,
   withArtifactReceipt,
@@ -106,6 +110,44 @@ describe('PDF reading Library recovery', () => {
       expect(localStorage.getItem(key)).toBe(original);
       expect(retry).not.toHaveBeenCalled();
       expect(mocks.run).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
+      rendered.unmount();
+    }
+  });
+
+  it('routes original bulk reading work to Library without implicitly resuming any child', async () => {
+    let sequence = 20;
+    const initial = createLiteratureReadingBulk(
+      Array.from({ length: 201 }, (_, index) => `paper-${index}`),
+      'read',
+      'original-library-scope',
+      () => id(++sequence)
+    );
+    const controller = getLiteratureMutationController('owner');
+    const retry = vi.spyOn(controller, 'retry');
+    const resume = vi.spyOn(controller, 'resumeReadingStatusBulk');
+    for (const pending of [initial, claimLiteratureReadingBulk(initial)]) {
+      const original = encodePendingRecord('owner', pending);
+      localStorage.setItem(key, original);
+      controller.restore();
+      const rendered = await renderWithI18n(
+        <MemoryRouter initialEntries={['/conversation']}>
+          {picker()}
+          <Location />
+        </MemoryRouter>,
+        'en-US'
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Choose reading sources' }));
+      const link = await screen.findByRole('link', { name: 'Resume batch' });
+      const notice = link.closest('[role="alert"]') as HTMLElement;
+      expect(notice).toHaveTextContent('0 of 201 confirmed.');
+      expect(within(notice).queryByRole('button', { name: 'Retry' })).toBeNull();
+      fireEvent.click(link);
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/library'));
+      expect(localStorage.getItem(key)).toBe(original);
+      expect(controller.getSnapshot().pending).toEqual(pending);
+      expect(retry).not.toHaveBeenCalled();
+      expect(resume).not.toHaveBeenCalled();
       expect(fetch).not.toHaveBeenCalled();
       rendered.unmount();
     }
