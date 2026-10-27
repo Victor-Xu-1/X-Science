@@ -455,7 +455,7 @@ func (s *Store) activateArchivedCompactionArchives(ctx context.Context) error {
 	return s.activateArchivedCompactionArchivesWithExecutor(ctx, s.db)
 }
 
-func (s *Store) activateArchivedCompactionArchivesWithExecutor(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) activateArchivedCompactionArchivesWithExecutor(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	var tableName string
 	err := executor.QueryRowContext(ctx, `
 		SELECT name FROM sqlite_master

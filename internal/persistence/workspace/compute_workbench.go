@@ -103,7 +103,7 @@ func (s *Store) ensureComputeWorkbenchSchema(ctx context.Context) error {
 	return s.ensureComputeWorkbenchSchemaWithExecutor(ctx, s.db)
 }
 
-func (s *Store) ensureComputeWorkbenchSchemaWithExecutor(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureComputeWorkbenchSchemaWithExecutor(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	statements := []string{
 		`CREATE TABLE IF NOT EXISTS compute_host_settings (id INTEGER PRIMARY KEY CHECK (id = 1), gpu_enabled INTEGER NOT NULL DEFAULT 0, gpu_override INTEGER, gpu_present INTEGER NOT NULL DEFAULT 0, gpu_name TEXT NOT NULL DEFAULT '', updated_at TIMESTAMP NOT NULL)`,
 		`CREATE TABLE IF NOT EXISTS compute_bionemo_settings (id INTEGER PRIMARY KEY CHECK (id = 1), enabled INTEGER NOT NULL DEFAULT 0, enabled_override INTEGER, mode TEXT NOT NULL DEFAULT 'hosted', hosted_host TEXT NOT NULL DEFAULT 'health.api.nvidia.com', updated_at TIMESTAMP NOT NULL)`,
@@ -140,7 +140,7 @@ type computeSchemaColumn struct {
 	definition string
 }
 
-func (s *Store) ensureComputeWorkbenchColumns(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureComputeWorkbenchColumns(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	tables := map[string][]computeSchemaColumn{
 		"compute_host_settings": {
 			{"gpu_enabled", "INTEGER NOT NULL DEFAULT 0"},
@@ -247,7 +247,7 @@ func (s *Store) ensureComputeWorkbenchColumns(ctx context.Context, executor sche
 	return nil
 }
 
-func (s *Store) ensureSessionComputeOwnerKey(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureSessionComputeOwnerKey(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(compute_session_enabled)`)
 	if err != nil {
 		return fmt.Errorf("inspect compute session primary key: %w", err)
@@ -272,22 +272,19 @@ func (s *Store) ensureSessionComputeOwnerKey(ctx context.Context, executor schem
 		return nil
 	}
 
-	tx, err := executor.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	for _, statement := range []string{
-		`ALTER TABLE compute_session_enabled RENAME TO compute_session_enabled_legacy_owner_key`,
-		`CREATE TABLE compute_session_enabled (root_frame_id TEXT NOT NULL, owner_user_id TEXT NOT NULL, provider_name TEXT NOT NULL, checked INTEGER NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY(owner_user_id, root_frame_id, provider_name))`,
-		`INSERT INTO compute_session_enabled(root_frame_id,owner_user_id,provider_name,checked,updated_at) SELECT root_frame_id,owner_user_id,provider_name,checked,updated_at FROM compute_session_enabled_legacy_owner_key`,
-		`DROP TABLE compute_session_enabled_legacy_owner_key`,
-	} {
-		if _, err := tx.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("migrate compute session owner key: %w", err)
+	return withSchemaMigrationTransaction(ctx, executor, "", func(tx *sql.Tx) error {
+		for _, statement := range []string{
+			`ALTER TABLE compute_session_enabled RENAME TO compute_session_enabled_legacy_owner_key`,
+			`CREATE TABLE compute_session_enabled (root_frame_id TEXT NOT NULL, owner_user_id TEXT NOT NULL, provider_name TEXT NOT NULL, checked INTEGER NOT NULL, updated_at TIMESTAMP NOT NULL, PRIMARY KEY(owner_user_id, root_frame_id, provider_name))`,
+			`INSERT INTO compute_session_enabled(root_frame_id,owner_user_id,provider_name,checked,updated_at) SELECT root_frame_id,owner_user_id,provider_name,checked,updated_at FROM compute_session_enabled_legacy_owner_key`,
+			`DROP TABLE compute_session_enabled_legacy_owner_key`,
+		} {
+			if _, err := tx.ExecContext(ctx, statement); err != nil {
+				return fmt.Errorf("migrate compute session owner key: %w", err)
+			}
 		}
-	}
-	return tx.Commit()
+		return nil
+	})
 }
 
 func (s *Store) GetComputeGPUSettings() (ComputeGPUSettings, error) {

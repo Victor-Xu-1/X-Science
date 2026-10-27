@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (s *Store) ensureRoutineHostDoneSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureRoutineHostDoneSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(routine_schedules)`)
 	if err != nil {
 		return fmt.Errorf("inspect routine host done columns: %w", err)
@@ -54,7 +54,7 @@ func (s *Store) ensureRoutineHostDoneSchema(ctx context.Context, executor schema
 	return nil
 }
 
-func (s *Store) ensureComputeProviderSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureComputeProviderSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(compute_providers)`)
 	if err != nil {
 		return fmt.Errorf("inspect compute provider columns: %w", err)
@@ -103,7 +103,7 @@ func (s *Store) ensureComputeProviderSchema(ctx context.Context, executor schema
 	return nil
 }
 
-func (s *Store) ensureComputeUsageSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureComputeUsageSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(compute_usage)`)
 	if err != nil {
 		return fmt.Errorf("inspect compute usage columns: %w", err)
@@ -166,7 +166,7 @@ func (s *Store) ensureComputeUsageSchema(ctx context.Context, executor schemaMig
 	return nil
 }
 
-func (s *Store) ensureComputePendingTerminationSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureComputePendingTerminationSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(compute_pending_terminate)`)
 	if err != nil {
 		return fmt.Errorf("inspect compute pending termination columns: %w", err)
@@ -219,7 +219,7 @@ func normalizeAgentTags(values []string) []string {
 	return out
 }
 
-func (s *Store) ensureAgentProfileSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureAgentProfileSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(user_agents)`)
 	if err != nil {
 		return fmt.Errorf("inspect agent profile columns: %w", err)
@@ -261,31 +261,25 @@ func (s *Store) ensureAgentProfileSchema(ctx context.Context, executor schemaMig
 	if !strings.Contains(strings.ToLower(promptSchema), "references user_agents") {
 		return nil
 	}
-	tx, err := executor.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin custom prompt schema upgrade: %w", err)
-	}
-	defer tx.Rollback()
-	for _, statement := range []string{
-		`CREATE TABLE agent_custom_prompts_without_agent_fk (
+	return withSchemaMigrationTransaction(ctx, executor, "custom prompt schema upgrade", func(tx *sql.Tx) error {
+		for _, statement := range []string{
+			`CREATE TABLE agent_custom_prompts_without_agent_fk (
 			user_id TEXT NOT NULL, agent_name TEXT NOT NULL, prompt_text TEXT NOT NULL,
 			created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL,
 			PRIMARY KEY (user_id, agent_name))`,
-		`INSERT INTO agent_custom_prompts_without_agent_fk SELECT user_id, agent_name, prompt_text, created_at, updated_at FROM agent_custom_prompts`,
-		`DROP TABLE agent_custom_prompts`,
-		`ALTER TABLE agent_custom_prompts_without_agent_fk RENAME TO agent_custom_prompts`,
-	} {
-		if _, err := tx.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("upgrade custom prompt schema: %w", err)
+			`INSERT INTO agent_custom_prompts_without_agent_fk SELECT user_id, agent_name, prompt_text, created_at, updated_at FROM agent_custom_prompts`,
+			`DROP TABLE agent_custom_prompts`,
+			`ALTER TABLE agent_custom_prompts_without_agent_fk RENAME TO agent_custom_prompts`,
+		} {
+			if _, err := tx.ExecContext(ctx, statement); err != nil {
+				return fmt.Errorf("upgrade custom prompt schema: %w", err)
+			}
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit custom prompt schema upgrade: %w", err)
-	}
-	return nil
+		return nil
+	})
 }
 
-func (s *Store) ensureMCPServerSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureMCPServerSchema(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(custom_mcp_servers)`)
 	if err != nil {
 		return fmt.Errorf("inspect custom MCP server schema: %w", err)
@@ -328,7 +322,7 @@ func (s *Store) ensureMCPServerSchema(ctx context.Context, executor schemaMigrat
 	return nil
 }
 
-func (s *Store) ensureModelProviderDuplicateNames(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureModelProviderDuplicateNames(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	var schema string
 	if err := executor.QueryRowContext(ctx, `SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = 'model_providers'`).Scan(&schema); err != nil {
 		return fmt.Errorf("inspect model provider schema: %w", err)
@@ -337,13 +331,9 @@ func (s *Store) ensureModelProviderDuplicateNames(ctx context.Context, executor 
 	if !strings.Contains(normalized, "unique (user_id, name)") && !strings.Contains(normalized, "unique(user_id, name)") {
 		return nil
 	}
-	tx, err := executor.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin model provider schema upgrade: %w", err)
-	}
-	defer tx.Rollback()
-	for _, statement := range []string{
-		`CREATE TABLE model_providers_without_name_unique (
+	return withSchemaMigrationTransaction(ctx, executor, "model provider schema upgrade", func(tx *sql.Tx) error {
+		for _, statement := range []string{
+			`CREATE TABLE model_providers_without_name_unique (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL,
 			name TEXT NOT NULL,
@@ -355,23 +345,21 @@ func (s *Store) ensureModelProviderDuplicateNames(ctx context.Context, executor 
 			created_at TIMESTAMP NOT NULL,
 			updated_at TIMESTAMP NOT NULL
 		)`,
-		`INSERT INTO model_providers_without_name_unique
+			`INSERT INTO model_providers_without_name_unique
 			SELECT id, user_id, name, type, base_url, model, secret_ref, enabled, created_at, updated_at FROM model_providers`,
-		`DROP TABLE model_providers`,
-		`ALTER TABLE model_providers_without_name_unique RENAME TO model_providers`,
-		`CREATE INDEX model_providers_user_updated_idx ON model_providers (user_id, updated_at DESC, id DESC)`,
-	} {
-		if _, err := tx.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("upgrade model provider schema: %w", err)
+			`DROP TABLE model_providers`,
+			`ALTER TABLE model_providers_without_name_unique RENAME TO model_providers`,
+			`CREATE INDEX model_providers_user_updated_idx ON model_providers (user_id, updated_at DESC, id DESC)`,
+		} {
+			if _, err := tx.ExecContext(ctx, statement); err != nil {
+				return fmt.Errorf("upgrade model provider schema: %w", err)
+			}
 		}
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit model provider schema upgrade: %w", err)
-	}
-	return nil
+		return nil
+	})
 }
 
-func (s *Store) ensureProjectUserColumn(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureProjectUserColumn(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(projects)`)
 	if err != nil {
 		return fmt.Errorf("inspect project columns: %w", err)
@@ -425,7 +413,7 @@ func (s *Store) ProjectOwnerID(projectID string) (string, bool, error) {
 	return s.ProjectOwnerIDContext(context.Background(), projectID)
 }
 
-func (s *Store) ensureArtifactFolderColumn(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureArtifactFolderColumn(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(artifacts)`)
 	if err != nil {
 		return fmt.Errorf("inspect artifact columns: %w", err)
@@ -457,7 +445,7 @@ func (s *Store) ensureArtifactFolderColumn(ctx context.Context, executor schemaM
 	return nil
 }
 
-func (s *Store) ensureArtifactPriorityColumn(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureArtifactPriorityColumn(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(artifacts)`)
 	if err != nil {
 		return fmt.Errorf("inspect artifact priority column: %w", err)
@@ -491,7 +479,7 @@ func (s *Store) ensureArtifactPriorityColumn(ctx context.Context, executor schem
 	return nil
 }
 
-func (s *Store) ensureArtifactVersionStorageColumns(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) ensureArtifactVersionStorageColumns(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	rows, err := executor.QueryContext(ctx, `PRAGMA table_info(artifact_versions)`)
 	if err != nil {
 		return fmt.Errorf("inspect artifact version storage columns: %w", err)

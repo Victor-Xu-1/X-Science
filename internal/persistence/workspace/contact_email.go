@@ -148,7 +148,7 @@ func (s *Store) activateArchivedContactEmailDecisions(ctx context.Context) error
 	return s.activateArchivedContactEmailDecisionsWithExecutor(ctx, s.db)
 }
 
-func (s *Store) activateArchivedContactEmailDecisionsWithExecutor(ctx context.Context, executor schemaMigrationExecutor) error {
+func (s *Store) activateArchivedContactEmailDecisionsWithExecutor(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	var tableName string
 	err := executor.QueryRowContext(ctx, `
 		SELECT name FROM sqlite_master
