@@ -28,6 +28,12 @@ class PackageScopeTests(unittest.TestCase):
             "product-identity.json": "{}\n",
             "scripts/helper.go": "package scripts\nfunc Helper() {}\n",
             "lib/lib.go": "package lib\nfunc Value() int { return 1 }\n",
+            "lib/lib_test.go": 'package lib\nimport ("testing"; _ "embed")\n//go:embed testdata/template_test.go\nvar template string\nfunc TestValue(t *testing.T) { if Value()!=1 { t.Fatal("value") } }\n',
+            "lib/testdata/template_test.go": 'package template\n',
+            "lib/external_test.go": 'package lib_test\nimport ("testing"; "example/scope/lib")\nfunc TestPublicValue(t *testing.T) { if lib.Value()!=1 { t.Fatal("value") } }\n',
+            "embedded/embedded.go": 'package embedded\nimport _ "embed"\n//go:embed probe_test.go\nvar Source string\n',
+            "embedded/probe_test.go": 'package embedded\n',
+            "embeddedconsumer/consumer.go": 'package embeddedconsumer\nimport "example/scope/embedded"\nvar Source = embedded.Source\n',
             "app/app.go": 'package app\nimport ("example/scope"; "example/scope/lib")\nfunc Run() int { return scope.Root()+lib.Value() }\n',
             "integration/integration_test.go": 'package integration\nimport ("testing"; "example/scope/app")\nfunc TestRun(t *testing.T) { if app.Run()!=2 { t.Fatal("result") } }\n',
             "external/external.go": "package external\n",
@@ -55,11 +61,26 @@ class PackageScopeTests(unittest.TestCase):
         self.assertEqual(self.selected("lib/lib.go"), ["example/scope/app", "example/scope/external",
                                                      "example/scope/integration", "example/scope/lib"])
         self.assertEqual(self.selected("lib/testdata/input.json"), self.selected("lib/lib.go"))
+        self.assertEqual(self.selected("lib/testdata/template_test.go"), self.selected("lib/lib.go"))
+
+    def test_changed_test_files_run_their_owner_without_production_consumers(self):
+        for path in ["lib/lib_test.go", "lib/external_test.go", "lib/deleted_test.go"]:
+            with self.subTest(path=path):
+                self.assertEqual(self.selected(path), ["example/scope/lib"])
+
+    def test_mixed_changes_keep_only_real_production_dependency_edges(self):
+        self.assertEqual(self.selected("lib/lib_test.go", "app/app.go"),
+                         ["example/scope/app", "example/scope/integration", "example/scope/lib"])
+        self.assertEqual(self.selected("lib/lib_test.go", "lib/lib.go"), self.selected("lib/lib.go"))
+
+    def test_production_embedded_test_source_still_reaches_its_consumers(self):
+        self.assertEqual(self.selected("embedded/probe_test.go"),
+                         ["example/scope/embedded", "example/scope/embeddedconsumer"])
 
     def test_unknown_runtime_inputs_and_dependency_changes_broaden_instead_of_skip(self):
         for path in ["assets/optional/mcp-servers/tool.py", "skills/worker/SKILL.md",
                      ".github/workflows/quality.yml", "scripts/quality/new.py", "go.mod", "go.sum", "Makefile", ".env.example",
-                     "removed/package/file.go"]:
+                     "removed/package/file.go", "removed/package/file_test.go"]:
             with self.subTest(path=path):
                 self.assertEqual(self.selected(path), self.all_packages)
 
