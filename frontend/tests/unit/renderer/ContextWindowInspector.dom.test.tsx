@@ -288,7 +288,10 @@ describe('Transcript-bound context inspector', () => {
   });
 
   it.each(['en-US', 'zh-CN'] as const)('shows only drawn call-segment legends in %s', async (locale) => {
-    const normalized = parseContextUsage({ status: 'unavailable', inspection: inspection() }, conversationId).inspection!;
+    const normalized = parseContextUsage(
+      { status: 'unavailable', inspection: inspection() },
+      conversationId
+    ).inspection!;
     const call = normalized.calls[0];
     const renderCurrent = (callUsage: ContextCallUsage | undefined) => (
       <ContextWindowInspector
@@ -310,7 +313,9 @@ describe('Transcript-bound context inspector', () => {
       expect(items.map((item) => item.textContent)).toEqual(
         fields.map((field) => view.i18n.t('conversation.contextUsage.call_' + field))
       );
-      items.forEach((item, index) => expect(item.querySelector('i')).toHaveStyle({ background: CALL_COLORS[fields[index]] }));
+      items.forEach((item, index) =>
+        expect(item.querySelector('i')).toHaveStyle({ background: CALL_COLORS[fields[index]] })
+      );
     };
     expect(screen.queryByTestId('context-inspector-call-legend')).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: view.i18n.t('conversation.contextInspector.calls') }));
