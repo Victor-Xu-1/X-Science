@@ -1,0 +1,108 @@
+.library-publication-check {
+  min-width: 0;
+  margin: var(--ui-space-6) 0;
+  padding: var(--ui-space-6) 0;
+  border-top: 1px solid var(--workspace-border);
+  border-bottom: 1px solid var(--workspace-border);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+.library-publication-check__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+.library-publication-check h3 {
+  margin: 0;
+  color: var(--workspace-text);
+  font-size: var(--ui-font-subtitle);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-subtitle);
+}
+.library-publication-check > p {
+  margin: var(--ui-space-4) 0 0;
+  overflow-wrap: anywhere;
+}
+.library-publication-check__muted,
+.library-publication-check__footer {
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-publication-check__issue {
+  padding: var(--ui-space-4);
+  border-left: 2px solid var(--workspace-border-strong);
+  background: var(--workspace-subtle);
+}
+.library-publication-check__notices {
+  display: grid;
+  gap: var(--ui-space-5);
+  margin: var(--ui-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.library-publication-check__notices > li {
+  display: grid;
+  min-width: 0;
+  gap: var(--ui-space-2);
+  overflow-wrap: anywhere;
+}
+.library-publication-check__notices > li + li {
+  padding-top: var(--ui-space-5);
+  border-top: 1px solid var(--workspace-border);
+}
+.library-publication-check__notices strong {
+  color: var(--workspace-text);
+  font-weight: var(--ui-weight-medium);
+}
+.library-publication-check__notices a {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  align-items: baseline;
+  gap: var(--ui-space-2);
+  color: var(--workspace-accent);
+  font-size: var(--ui-font-meta);
+  overflow-wrap: anywhere;
+}
+.library-publication-check__notices a > svg {
+  flex-shrink: 0;
+}
+.library-publication-check__notices a:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}
+.library-publication-check__empty {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-4);
+}
+.library-publication-check__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ui-space-3) var(--ui-space-5);
+  margin-top: var(--ui-space-5);
+  padding-top: var(--ui-space-4);
+  border-top: 1px solid var(--workspace-border);
+}
+.library-publication-check__footer p {
+  width: 100%;
+  margin: 0;
+}
+.library-publication-check__spinner {
+  animation: library-publication-check-spin 1s linear infinite;
+}
+@keyframes library-publication-check-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-publication-check__spinner {
+    animation: none;
+  }
+}

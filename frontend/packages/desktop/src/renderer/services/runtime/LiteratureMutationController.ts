@@ -9,6 +9,7 @@ import {
 import { digestLibraryFile } from './libraryFileDigest';
 import { runLiteratureCommand } from './literatureLibrary';
 import { runLiteratureCollectionCommand } from './literatureCollections';
+import { runLiteraturePublicationCommand } from './literaturePublicationCheck';
 import { withLiteratureMutationLock } from './literatureMutationLock';
 import {
   catalogueUploadFailureCertainty,
@@ -47,6 +48,8 @@ export type LiteratureUploadState =
   | null;
 export type LiteratureMutationView = {
   pending: LiteraturePending | null;
+  /** Projection of this owner's last action, including a definite rejection. */
+  action?: LiteraturePending;
   mutating: boolean;
   error: 'uncertain' | 'rejected' | 'storage' | null;
   receipt?: LiteratureMutationReceipt;
@@ -65,6 +68,7 @@ type Options = {
   storage?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
   run?: typeof runLiteratureCommand;
   runCollection?: typeof runLiteratureCollectionCommand;
+  runPublication?: typeof runLiteraturePublicationCommand;
   initialize?: typeof initializeXScienceProjectAttachment;
   upload?: typeof uploadXScienceProjectAttachment;
   digest?: typeof digestLibraryFile;
@@ -219,7 +223,10 @@ export class LiteratureMutationController {
     this.requireActive(flight);
     const actual = this.read();
     if (actual ? !expected || !samePending(actual, expected) : Boolean(expected)) {
-      this.emit({ pending: actual, error: 'uncertain', uploadState: this.projection(actual) }, flight);
+      this.emit(
+        { pending: actual, action: actual ?? undefined, error: 'uncertain', uploadState: this.projection(actual) },
+        flight
+      );
       throw new OriginalPendingConflict();
     }
     this.storageAction(
@@ -227,7 +234,7 @@ export class LiteratureMutationController {
       flight
     );
     this.rejectedUpload = undefined;
-    this.emit({ pending: next, error: null }, flight);
+    this.emit({ pending: next, action: next, error: null }, flight);
   }
   private settle(
     expected: LiteraturePending,
@@ -246,6 +253,7 @@ export class LiteratureMutationController {
     this.emit(
       {
         pending: plan.pending,
+        action: plan.pending ?? expected,
         error: plan.pending ? 'uncertain' : error,
         uploadState: this.projection(plan.pending),
         ...(receipt ? { receipt } : {}),
@@ -253,7 +261,9 @@ export class LiteratureMutationController {
       flight
     );
   }
-  private dispatch(command: LiteratureMutationCommand) {
+  private dispatch(command: LiteratureMutationCommand, signal: AbortSignal) {
+    if (command.kind === 'check-publication')
+      return (this.options.runPublication ?? runLiteraturePublicationCommand)(command, signal);
     return isCollectionCommand(command)
       ? (this.options.runCollection ?? runLiteratureCollectionCommand)(command)
       : (this.options.run ?? runLiteratureCommand)(command);
@@ -277,14 +287,14 @@ export class LiteratureMutationController {
     });
     this.flight = flight;
     this.promise = promise;
-    this.emit({ mutating: true });
+    this.emit({ mutating: true, action: pending });
     return promise;
   }
   private async execute(command: LiteratureMutationCommand, flight: Flight) {
     await this.locked(() => {
       const pending = this.read();
       if (pending && !samePending(pending, command)) {
-        this.emit({ pending, error: 'uncertain', uploadState: this.projection(pending) }, flight);
+        this.emit({ pending, action: pending, error: 'uncertain', uploadState: this.projection(pending) }, flight);
         throw new OriginalPendingConflict();
       }
       this.write(pending, command, flight);
@@ -292,7 +302,7 @@ export class LiteratureMutationController {
     this.requireActive(flight);
     let receipt: LiteratureMutationReceipt;
     try {
-      receipt = await this.dispatch(command);
+      receipt = await this.dispatch(command, flight.abort.signal);
     } catch (error) {
       const rejected = isBackendHttpError(error) && error.status >= 400 && error.status < 500;
       if (this.active(flight))
@@ -310,7 +320,12 @@ export class LiteratureMutationController {
     if (!this.current() || this.promise) return;
     try {
       const pending = this.read();
-      this.emit({ pending, error: pending ? 'uncertain' : null, uploadState: this.projection(pending) });
+      this.emit({
+        pending,
+        action: pending ?? undefined,
+        error: pending ? 'uncertain' : null,
+        uploadState: this.projection(pending),
+      });
     } catch {
       this.emit({ error: 'storage' });
     }
@@ -388,7 +403,15 @@ export class LiteratureMutationController {
     try {
       intent = currentUploadPending(actual, expected);
     } catch (error) {
-      this.emit({ pending: actual, error: actual ? 'uncertain' : null, uploadState: this.projection(actual) }, flight);
+      this.emit(
+        {
+          pending: actual,
+          action: actual ?? undefined,
+          error: actual ? 'uncertain' : null,
+          uploadState: this.projection(actual),
+        },
+        flight
+      );
       throw error;
     }
     const replayingCatalogue = intent.phase === 'catalogue';
@@ -507,7 +530,12 @@ export class LiteratureMutationController {
     } catch (error) {
       return Promise.reject(error);
     }
-    this.emit({ pending, error: pending ? 'uncertain' : null, uploadState: this.projection(pending) });
+    this.emit({
+      pending,
+      action: pending ?? undefined,
+      error: pending ? 'uncertain' : null,
+      uploadState: this.projection(pending),
+    });
     if (!pending) return Promise.reject(new Error('No Library request to retry'));
     if (!isUploadIntent(pending)) return this.submit(pending);
     const expected = pending;
@@ -544,7 +572,12 @@ export class LiteratureMutationController {
         encodePendingRecord(this.ownerId, pending) !== this.rejectedUpload
       ) {
         this.rejectedUpload = undefined;
-        this.emit({ pending, error: pending ? 'uncertain' : null, uploadState: this.projection(pending) });
+        this.emit({
+          pending,
+          action: pending ?? undefined,
+          error: pending ? 'uncertain' : null,
+          uploadState: this.projection(pending),
+        });
         throw new Error('The original Library import is not definitely rejected');
       }
       this.settle(pending, true, null);

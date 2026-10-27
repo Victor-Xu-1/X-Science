@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,13 +26,13 @@ func publicationFixture(status int, body string) *PublicationChecker {
 			}
 			return &http.Response{StatusCode: status, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(body)), Request: request}, nil
 		})}, nil
-	})
+	}, nil)
 }
 
 func TestPublicationCheckUsesReverseEdgesAndPreservesProviderRecords(t *testing.T) {
 	checker := publicationFixture(200, `{"status":"ok","message-type":"work","message":{"DOI":"10.1234/SOURCE","updated-by":[{"DOI":"10.1234/notice","type":"correction","source":"publisher","updated":{"date-parts":[[2024,2,29]]}},{"DOI":"10.1234/notice","type":"correction","updated":{"date-parts":[[2024,2]]}}],"update-to":[{"DOI":"10.1234/unrelated","type":"retraction"}]}}`)
 	checker.now = func() time.Time { return time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC) }
-	snapshot, issue, err := checker.Check(context.Background(), "10.1234/source")
+	snapshot, issue, err := checker.read(context.Background(), "10.1234/source")
 	if err != nil || issue != "" || snapshot.DOI != "10.1234/source" || len(snapshot.Notices) != 2 {
 		t.Fatalf("wrong source check: %#v %s %v", snapshot, issue, err)
 	}
@@ -54,7 +56,7 @@ func TestPublicationCheckRejectsWrongSourceInvalidBodyAndRedirect(t *testing.T) 
 		{"not-found", 404, "", PublicationNotFound},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			snapshot, issue, err := publicationFixture(tc.status, tc.body).Check(context.Background(), "10.1234/source")
+			snapshot, issue, err := publicationFixture(tc.status, tc.body).read(context.Background(), "10.1234/source")
 			if err != nil || issue != tc.issue || snapshot.DOI != "" {
 				t.Fatalf("%#v %s %v", snapshot, issue, err)
 			}
@@ -69,16 +71,16 @@ func TestPublicationCheckCancellationAndRateLimitDoNotProduceSnapshots(t *testin
 		return &http.Client{Transport: publicationRoundTrip(func(request *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: 429, Header: http.Header{"Retry-After": []string{"2"}}, Body: io.NopCloser(strings.NewReader("")), Request: request}, nil
 		})}, nil
-	})
+	}, nil)
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
 	checker.now = func() time.Time { return now }
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if snapshot, _, err := checker.Check(ctx, "10.1234/source"); !errors.Is(err, context.Canceled) || snapshot.DOI != "" || calls != 0 {
+	if snapshot, _, err := checker.read(ctx, "10.1234/source"); !errors.Is(err, context.Canceled) || snapshot.DOI != "" || calls != 0 {
 		t.Fatalf("cancelled caller reached source: %#v %v calls%d", snapshot, err, calls)
 	}
 	for i := 0; i < 2; i++ {
-		if snapshot, issue, err := checker.Check(context.Background(), "10.1234/source"); err != nil || issue != PublicationRateLimited || snapshot.DOI != "" {
+		if snapshot, issue, err := checker.read(context.Background(), "10.1234/source"); err != nil || issue != PublicationRateLimited || snapshot.DOI != "" {
 			t.Fatalf("rate limit returned evidence: %#v %s %v", snapshot, issue, err)
 		}
 	}
@@ -86,7 +88,7 @@ func TestPublicationCheckCancellationAndRateLimitDoNotProduceSnapshots(t *testin
 		t.Fatalf("rate limit was ignored: %d", calls)
 	}
 	now = now.Add(3 * time.Second)
-	_, _, _ = checker.Check(context.Background(), "10.1234/source")
+	_, _, _ = checker.read(context.Background(), "10.1234/source")
 	if calls != 2 {
 		t.Fatalf("bounded retry time did not expire: %d", calls)
 	}
@@ -115,12 +117,12 @@ func TestPublicationCheckClampsLongProviderCooldownBeforeRetry(t *testing.T) {
 		return &http.Client{Transport: publicationRoundTrip(func(request *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: 429, Header: http.Header{"Retry-After": []string{"600"}}, Body: io.NopCloser(strings.NewReader("")), Request: request}, nil
 		})}, nil
-	})
+	}, nil)
 	now := time.Date(2026, 10, 27, 0, 0, 0, 0, time.UTC)
 	checker.now = func() time.Time { return now }
 	for _, seconds := range []int{0, 120, 181} {
 		now = now.Add(time.Duration(seconds) * time.Second)
-		snapshot, issue, err := checker.Check(context.Background(), "10.1234/source")
+		snapshot, issue, err := checker.read(context.Background(), "10.1234/source")
 		if err != nil || issue != PublicationRateLimited || snapshot.DOI != "" {
 			t.Fatalf("rate-limited request produced evidence: %#v %s %v", snapshot, issue, err)
 		}
@@ -131,5 +133,32 @@ func TestPublicationCheckClampsLongProviderCooldownBeforeRetry(t *testing.T) {
 		if calls != wantCalls {
 			t.Fatalf("bounded provider cooldown ignored: got%d want%d", calls, wantCalls)
 		}
+	}
+}
+
+func TestPublicationReadOmitsCookiesWithoutMutatingSharedClient(t *testing.T) {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := url.Parse("https://api.crossref.org")
+	if err != nil {
+		t.Fatal(err)
+	}
+	jar.SetCookies(source, []*http.Cookie{{Name: "private-session", Value: "must-not-send"}})
+	cookie := ""
+	base := &http.Client{Jar: jar, Transport: publicationRoundTrip(func(request *http.Request) (*http.Response, error) {
+		cookie = request.Header.Get("Cookie")
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{},
+			Body:       io.NopCloser(strings.NewReader(`{"status":"ok","message-type":"work","message":{"DOI":"10.1234/source"}}`)),
+			Request:    request,
+		}, nil
+	})}
+	checker := NewPublicationChecker(func(context.Context, string) (*http.Client, error) { return base, nil }, nil)
+	snapshot, issue, err := checker.read(context.Background(), "10.1234/source")
+	if err != nil || issue != "" || snapshot.DOI != "10.1234/source" || cookie != "" || base.Jar != jar || base.CheckRedirect != nil {
+		t.Fatalf("public read leaked cookies or changed shared policy: %#v %s %v cookie%q", snapshot, issue, err, cookie)
 	}
 }

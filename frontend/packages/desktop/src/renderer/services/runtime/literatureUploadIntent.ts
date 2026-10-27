@@ -10,17 +10,24 @@ import {
   type LiteratureCollectionReceipt,
 } from '@/common/adapter/literatureCollections';
 import {
+  decodeLiteraturePublicationCommand,
+  type LiteraturePublicationCommand,
+  type LiteraturePublicationReceipt,
+} from '@/common/adapter/literaturePublicationCheck';
+import {
   decodeOnboardingAttachmentInitReceipt,
   type OnboardingAttachmentInitRequest,
   type OnboardingAttachmentInitReceipt,
   type OnboardingUploadedArtifact,
 } from '../onboardingService';
 
-export type LiteratureMutationCommand = LiteratureCommand | LiteratureCollectionCommand;
-export type LiteratureMutationReceipt = LiteratureReceipt | LiteratureCollectionReceipt;
+export type LiteratureMutationCommand = LiteratureCommand | LiteratureCollectionCommand | LiteraturePublicationCommand;
+export type LiteratureMutationReceipt = LiteratureReceipt | LiteratureCollectionReceipt | LiteraturePublicationReceipt;
 export type ReceiptFor<Command extends LiteratureMutationCommand> = Command extends LiteratureCollectionCommand
   ? LiteratureCollectionReceipt
-  : LiteratureReceipt;
+  : Command extends LiteraturePublicationCommand
+    ? LiteraturePublicationReceipt
+    : LiteratureReceipt;
 export type LibraryPdfRawInit = Readonly<
   Required<
     Pick<
@@ -77,6 +84,7 @@ export const isUploadIntent = (pending: LiteraturePending): pending is Literatur
 export const isCollectionCommand = (command: LiteratureMutationCommand): command is LiteratureCollectionCommand =>
   command.kind.startsWith('collection-');
 export function decodeMutationCommand(value: unknown): LiteratureMutationCommand {
+  if (record(value) && value.kind === 'check-publication') return decodeLiteraturePublicationCommand(value);
   return record(value) && typeof value.kind === 'string' && value.kind.startsWith('collection-')
     ? decodeLiteratureCollectionCommand(value)
     : decodeLiteratureCommand(value);

@@ -45,6 +45,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 	if s.handleLiteratureCollectionRoute(w, r, owner, parts) {
 		return
 	}
+	if len(parts) == 3 && parts[0] == "items" && parts[2] == "publication-check" {
+		s.handleLiteraturePublication(w, r, owner, parts[1])
+		return
+	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
 		limit := 20
 		var err error

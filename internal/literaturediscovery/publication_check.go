@@ -20,33 +20,26 @@ type ClientFor func(context.Context, string) (*http.Client, error)
 
 type PublicationChecker struct {
 	clientFor ClientFor
+	catalog   PublicationCatalog
 	now       func() time.Time
 	mu        sync.Mutex
 	retryAt   time.Time
-	active    int
+	pending   map[publicationPendingKey]*publicationPendingOperation
 }
 
-func NewPublicationChecker(clientFor ClientFor) *PublicationChecker {
-	return &PublicationChecker{clientFor: clientFor, now: time.Now}
+func NewPublicationChecker(clientFor ClientFor, catalog PublicationCatalog) *PublicationChecker {
+	return &PublicationChecker{
+		clientFor: clientFor,
+		catalog:   catalog,
+		now:       time.Now,
+		pending:   make(map[publicationPendingKey]*publicationPendingOperation),
+	}
 }
 
-func (checker *PublicationChecker) begin() PublicationIssue {
+func (checker *PublicationChecker) coolingDown() bool {
 	checker.mu.Lock()
 	defer checker.mu.Unlock()
-	if checker.now().Before(checker.retryAt) {
-		return PublicationRateLimited
-	}
-	if checker.active >= 4 {
-		return PublicationUnavailable
-	}
-	checker.active++
-	return ""
-}
-
-func (checker *PublicationChecker) end() {
-	checker.mu.Lock()
-	checker.active--
-	checker.mu.Unlock()
+	return checker.now().Before(checker.retryAt)
 }
 
 func (checker *PublicationChecker) rateLimited(header string) {
@@ -70,11 +63,11 @@ func (checker *PublicationChecker) rateLimited(header string) {
 	checker.mu.Unlock()
 }
 
-// Check performs one bounded Crossref read. Store/receipt commits belong to the
+// read performs one bounded Crossref read. Store/receipt commits belong to the
 // existing Library transaction owner; cancellation never produces a snapshot.
 // The reverse updated-by edge matches Open Science9607's publication-check
 // semantics. update-to describes other works and must never be used here.
-func (checker *PublicationChecker) Check(caller context.Context, doi string) (PublicationSnapshot, PublicationIssue, error) {
+func (checker *PublicationChecker) read(caller context.Context, doi string) (PublicationSnapshot, PublicationIssue, error) {
 	var empty PublicationSnapshot
 	canonical, valid := NormalizeDOI(doi)
 	if !valid || canonical != doi {
@@ -86,10 +79,9 @@ func (checker *PublicationChecker) Check(caller context.Context, doi string) (Pu
 	if checker.clientFor == nil {
 		return empty, PublicationUnavailable, nil
 	}
-	if issue := checker.begin(); issue != "" {
-		return empty, issue, nil
+	if checker.coolingDown() {
+		return empty, PublicationRateLimited, nil
 	}
-	defer checker.end()
 	ctx, cancel := context.WithTimeout(caller, 15*time.Second)
 	defer cancel()
 	rawURL := "https://api.crossref.org/works/" + url.PathEscape(doi)
@@ -101,6 +93,7 @@ func (checker *PublicationChecker) Check(caller context.Context, doi string) (Pu
 		return empty, PublicationUnavailable, caller.Err()
 	}
 	client := *base
+	client.Jar = nil
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
