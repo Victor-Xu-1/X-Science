@@ -5,6 +5,13 @@ import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from './l
 export { literatureValueIdentity } from './literatureValueIdentity';
 export type { LiteratureMetadataPatch } from './literatureMetadataPatch';
 
+/** An authoritative detail response cannot be used for the requested item. */
+export class LiteratureDetailUnavailableError extends Error {
+  constructor() {
+    super('Literature detail is no longer valid for this view');
+  }
+}
+
 export type LiteratureVersion = {
   id: string;
   attachment_id: string;

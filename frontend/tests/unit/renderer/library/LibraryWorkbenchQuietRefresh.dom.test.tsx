@@ -1,7 +1,11 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
-import type { LiteratureItem, LiteraturePage } from '@/common/adapter/literatureLibrary';
+import {
+  LiteratureDetailUnavailableError,
+  type LiteratureItem,
+  type LiteraturePage,
+} from '@/common/adapter/literatureLibrary';
 import { useLibraryWorkbench } from '@/renderer/pages/library/useLibraryWorkbench';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
@@ -170,5 +174,18 @@ describe('Library public hook quiet data refresh', () => {
         expect(result.current.detail).toMatchObject({ status: 'ready', value: { reading_status: 'read' } });
       }
     }
+  });
+
+  it('clears a retained detail when its authoritative body is invalid or no longer belongs to that item', async () => {
+    const { result } = renderHook(() => useLibraryWorkbench('', '', 'paper-a'));
+    await startReads();
+    expect(result.current.detail.status).toBe('ready');
+    mocks.item.mockRejectedValueOnce(new LiteratureDetailUnavailableError());
+    act(() => result.current.refreshData());
+    expect(result.current.detail.refreshing).toBe(true);
+    await startReads();
+    expect(result.current.detail.status).toBe('error');
+    expect(result.current.detail.value).toBeUndefined();
+    expect(result.current.detail.refreshError).not.toBe(true);
   });
 });

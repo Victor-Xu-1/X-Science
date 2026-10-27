@@ -7,12 +7,14 @@ export function LibraryItemEditor({
   item,
   projectId,
   busy,
+  readOnly = false,
   submit,
   close,
 }: {
   item: LiteratureItem;
   projectId?: string;
   busy: boolean;
+  readOnly?: boolean;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
 }) {
@@ -32,6 +34,7 @@ export function LibraryItemEditor({
   const yearChanged = year !== initialYear;
   const [confirmRemove, setConfirmRemove] = useState(false);
   const run = (command: LiteratureCommand): void => {
+    if (busy || readOnly) return;
     void submit(command).then(close, (): undefined => undefined);
   };
   const included = Boolean(projectId && item.project_ids.includes(projectId));
@@ -39,11 +42,21 @@ export function LibraryItemEditor({
     <section className='pdf-library-editor' aria-label={t('conversation.reading.libraryDetails')}>
       <label>
         {t('conversation.reading.libraryTitle')}
-        <input value={title} maxLength={4096} disabled={busy} onChange={(event) => setTitle(event.target.value)} />
+        <input
+          value={title}
+          maxLength={4096}
+          disabled={busy || readOnly}
+          onChange={(event) => setTitle(event.target.value)}
+        />
       </label>
       <label>
         {t('conversation.reading.libraryAuthors')}
-        <input value={authors} maxLength={2048} disabled={busy} onChange={(event) => setAuthors(event.target.value)} />
+        <input
+          value={authors}
+          maxLength={2048}
+          disabled={busy || readOnly}
+          onChange={(event) => setAuthors(event.target.value)}
+        />
       </label>
       <label>
         {t('conversation.reading.libraryYear')}
@@ -51,14 +64,14 @@ export function LibraryItemEditor({
           value={year}
           maxLength={4}
           inputMode='numeric'
-          disabled={busy}
+          disabled={busy || readOnly}
           onChange={(event) => setYear(event.target.value)}
         />
       </label>
       <div className='pdf-library-editor__buttons'>
         <button
           type='button'
-          disabled={busy || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
+          disabled={busy || readOnly || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
           onClick={() =>
             run(
               authorsChanged || yearChanged
@@ -90,7 +103,7 @@ export function LibraryItemEditor({
         {projectId && (
           <button
             type='button'
-            disabled={busy}
+            disabled={busy || readOnly}
             onClick={() =>
               run({
                 kind: 'membership',
@@ -114,7 +127,7 @@ export function LibraryItemEditor({
             <span>{t('conversation.reading.libraryRemoveNote')}</span>
             <button
               type='button'
-              disabled={busy}
+              disabled={busy || readOnly}
               onClick={() =>
                 run({
                   kind: 'edit',
@@ -127,12 +140,12 @@ export function LibraryItemEditor({
             >
               {t('conversation.reading.libraryConfirmRemove')}
             </button>
-            <button type='button' disabled={busy} onClick={() => setConfirmRemove(false)}>
+            <button type='button' disabled={busy || readOnly} onClick={() => setConfirmRemove(false)}>
               {t('common.cancel')}
             </button>
           </>
         ) : (
-          <button type='button' disabled={busy} onClick={() => setConfirmRemove(true)}>
+          <button type='button' disabled={busy || readOnly} onClick={() => setConfirmRemove(true)}>
             {t('conversation.reading.libraryRemove')}
           </button>
         )}

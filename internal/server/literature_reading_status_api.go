@@ -7,8 +7,13 @@ import (
 )
 
 func (s *Server) handleLiteratureReadingStatus(w http.ResponseWriter, r *http.Request, owner string) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "POST")
+		writeWorkspaceJSON(w, http.StatusMethodNotAllowed, map[string]any{"code": "LITERATURE_METHOD_NOT_ALLOWED"})
+		return
+	}
 	var input workspace.LiteratureReadingStatusInput
-	if r.Method != http.MethodPost || r.URL.RawQuery != "" || decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
+	if r.URL.RawQuery != "" || decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
 		writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 		return
 	}

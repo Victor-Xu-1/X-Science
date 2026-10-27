@@ -15,8 +15,8 @@ const readingStatusV86OriginalItemColumns = `SELECT printf('%s:%s:%s:%d:%s:%s:%s
 
 func TestLiteratureReadingStatusV86PreservesPopulatedV85AndRollsBackColumn(t *testing.T) {
 	db, path := newTranscriptWebV78Database(t)
-	// Require the actual registered v85 predecessor. This draft must not be run
-	// against main67 or manufacture a schema while v85 is still pending merge.
+	// Construct the actual registered v85 predecessor, including its populated
+	// evidence and migration journal, rather than a hand-built schema shape.
 	if err := applyVersionedSchemaMigrationsThrough(t.Context(), db, time.Now, 85); err != nil {
 		t.Fatal(err)
 	}

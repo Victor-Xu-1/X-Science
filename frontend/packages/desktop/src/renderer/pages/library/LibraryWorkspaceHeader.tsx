@@ -10,6 +10,7 @@ export function LibraryWorkspaceHeader({
   onQueryChange,
   actions,
   collectionActions,
+  filters,
 }: {
   title: string;
   description?: string;
@@ -17,6 +18,7 @@ export function LibraryWorkspaceHeader({
   onQueryChange: (value: string) => void;
   actions: React.ReactNode;
   collectionActions?: React.ReactNode;
+  filters?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -40,6 +42,7 @@ export function LibraryWorkspaceHeader({
             placeholder={t('conversation.libraryWorkbench.search')}
           />
         </label>
+        {filters}
         <div className='library-workbench__actions'>{actions}</div>
       </div>
     </header>

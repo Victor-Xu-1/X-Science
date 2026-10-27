@@ -2090,6 +2090,13 @@
   "loading": "正在加载对话",
   "libraryReadingStatus": {
     "label": "阅读状态",
+    "all": "全部状态",
+    "forPaper": "{{title}}的阅读状态",
+    "updated": "阅读状态已保存。",
+    "refreshing": "正在更新详情，草稿已保留。",
+    "readFailed": "未能刷新详情。草稿已保留，重试后可继续编辑。",
+    "externalUpdate": "这篇文献已在其他位置更新。草稿已保留，请载入最新详情后再保存。",
+    "loadLatest": "放弃草稿并载入最新详情",
     "unread": "未读",
     "reading": "在读",
     "read": "已读"

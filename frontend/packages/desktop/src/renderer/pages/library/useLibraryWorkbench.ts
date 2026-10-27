@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { loadLiteratureItem, loadLiteraturePage } from '@/renderer/services/runtime/literatureLibrary';
+import { LiteratureDetailUnavailableError } from '@/common/adapter/literatureLibrary';
 import {
   loadLiteratureCollections,
   loadLiteratureItemCollections,
@@ -40,7 +41,9 @@ function useLibraryRead<T>(
       previous.value !== undefined;
     const failure = (error?: unknown) => {
       if (owner.current !== token || account !== getRendererAccountScopeToken()) return;
-      const unavailable = isBackendHttpError(error) && [400, 401, 403, 404].includes(error.status);
+      const unavailable =
+        error instanceof LiteratureDetailUnavailableError ||
+        (isBackendHttpError(error) && [400, 401, 403, 404].includes(error.status));
       setView((previous) =>
         !unavailable && retained(previous)
           ? { ...previous, key, refreshing: false, refreshError: true }

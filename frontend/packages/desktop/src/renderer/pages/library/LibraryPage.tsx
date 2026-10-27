@@ -6,12 +6,21 @@ import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCol
 import { LibraryCollectionSidebar } from './LibraryCollectionSidebar';
 import { LibraryCollectionEditor, type LibraryCollectionEditorMode } from './LibraryCollectionEditor';
 import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
+import {
+  literatureReadingStatuses,
+  type LiteratureReadingStatus,
+  type LiteratureReadingStatusCommand,
+} from '@/common/adapter/literatureReadingStatus';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import { LibraryItemDetails, libraryAuthors } from './LibraryItemDetails';
+import { libraryAuthors } from './LibraryItemDetails';
+import { LibraryDetailsPane } from './LibraryDetailsPane';
 import { useLibraryWorkbench } from './useLibraryWorkbench';
 import { LibraryProjectScope } from './LibraryProjectScope';
 import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
+import { LibraryReadingStatusFilter } from './LibraryReadingStatus';
+import { LibraryReferenceRow } from './LibraryReferenceRow';
+import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
@@ -27,7 +36,17 @@ export default function LibraryPage() {
   const selectedId = params.get('item') ?? '';
   const collectionId = params.get('collection') ?? '';
   const projectId = params.get('project') ?? '';
-  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId);
+  const readingStatus = literatureReadingStatuses.find((value) => value === params.get('reading_status')) ?? '';
+  useEffect(() => {
+    if (params.has('reading_status') && params.get('reading_status') !== readingStatus) {
+      const next = new URLSearchParams(params);
+      next.delete('reading_status');
+      next.delete('cursor');
+      next.delete('item');
+      setParams(next, { replace: true });
+    }
+  }, [params, readingStatus, setParams]);
+  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus);
   const mutation = useLiteratureMutation();
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
@@ -36,7 +55,7 @@ export default function LibraryPage() {
   });
   const actionFailed = action.account === reads.account && action.failed;
   const lastAction = action.account === reads.account ? action.operationId : null;
-  const formScope = JSON.stringify([reads.account, collectionId, projectId, query, cursor, selectedId]);
+  const formScope = JSON.stringify([reads.account, collectionId, projectId, query, cursor, selectedId, readingStatus]);
   const editorBoundary = useRef({ key: formScope });
   if (editorBoundary.current.key !== formScope) editorBoundary.current = { key: formScope };
   const editorSequence = useRef(0);
@@ -85,6 +104,7 @@ export default function LibraryPage() {
   };
   const observedReceipt = useRef(mutation.view.receipt);
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
+  const listElement = useRef<HTMLElement>(null);
   const selectItem = (id: string) => {
     const next = new URLSearchParams(params);
     if (id) next.set('item', id);
@@ -98,11 +118,14 @@ export default function LibraryPage() {
     next.delete('collection');
     next.delete('project');
     next.delete('cursor');
+    next.delete('reading_status');
     next.set('item', receipt.item.id);
     setParams(next);
   };
   const closeDetails = () => {
-    rowButtons.current.get(selectedId)?.focus();
+    const trigger = rowButtons.current.get(selectedId);
+    if (trigger?.isConnected && !trigger.disabled) trigger.focus();
+    else listElement.current?.focus();
     selectItem('');
   };
   const changePage = (nextCursor?: string) => {
@@ -119,6 +142,13 @@ export default function LibraryPage() {
     // Evidence is independent of metadata and is consumed by the live detail.
     // A catalogue reload would unmount it and erase a real provider failure.
     if (receipt.schema === 'x-science.literature-publication-receipt.v1') return;
+    if (receipt.schema === 'x-science.literature-reading-status-receipt.v1') {
+      // Keep the same detail/editor/preview mounted. A receipt is historical
+      // acknowledgement; only these current reads project the stored state.
+      if (listElement.current?.contains(document.activeElement)) listElement.current.focus();
+      reads.refreshData();
+      return;
+    }
     reads.refresh();
     if (
       receipt.schema === 'x-science.literature-receipt.v1' &&
@@ -141,9 +171,21 @@ export default function LibraryPage() {
       next.delete('item');
       setParams(next, { replace: true });
     }
-  }, [mutation.view.receipt, reads.refresh, reads.account, selectedId, collectionId, projectId, params, setParams]);
+  }, [
+    mutation.view.receipt,
+    reads.refresh,
+    reads.refreshData,
+    reads.account,
+    selectedId,
+    collectionId,
+    projectId,
+    params,
+    setParams,
+  ]);
   const submit = useCallback(
-    async <Command extends LiteratureCommand | LiteratureCollectionCommand>(command: Command) => {
+    async <Command extends LiteratureCommand | LiteratureCollectionCommand | LiteratureReadingStatusCommand>(
+      command: Command
+    ) => {
       const account = reads.account;
       setAction({ account, failed: false, operationId: command.operation_id });
       try {
@@ -168,7 +210,8 @@ export default function LibraryPage() {
         await mutation.controller.retry();
       } else {
         mutation.controller.restore();
-        reads.refresh();
+        if (mutation.view.action?.kind === 'set-reading-status') reads.refreshData();
+        else reads.refresh();
       }
     } catch {
       if (account === getRendererAccountScopeToken())
@@ -176,6 +219,15 @@ export default function LibraryPage() {
     }
   };
   const busy = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
+  const changeReadingStatus = (itemId: string, value: LiteratureReadingStatus) => {
+    if (busy || reads.account !== getRendererAccountScopeToken()) return;
+    void submit({
+      kind: 'set-reading-status',
+      operation_id: crypto.randomUUID(),
+      item_ids: [itemId],
+      reading_status: value,
+    }).catch((): undefined => undefined);
+  };
   const items = reads.list.value?.items ?? [];
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
   const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
@@ -185,6 +237,9 @@ export default function LibraryPage() {
       : undefined;
   const acknowledged =
     lastAction &&
+    !mutation.view.mutating &&
+    !mutation.view.pending &&
+    mutation.view.action?.operation_id === lastAction &&
     mutation.view.receipt?.operation_id === lastAction &&
     mutation.view.receipt.schema !== 'x-science.literature-publication-receipt.v1'
       ? mutation.view.receipt
@@ -197,33 +252,14 @@ export default function LibraryPage() {
   );
   return (
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
-      {!pdfImport.noticeOwned && !publicationNoticeOwned && (mutation.view.error || actionFailed) && (
-        <div role='alert' className='library-workbench__notice'>
-          <span>
-            {t(
-              mutation.view.error === 'uncertain'
-                ? 'conversation.reading.libraryUncertain'
-                : mutation.view.error === 'storage'
-                  ? 'conversation.reading.libraryStorage'
-                  : 'conversation.reading.libraryRejected'
-            )}
-          </span>
-          <button type='button' disabled={mutation.view.mutating} onClick={() => void retryMutation()}>
-            {t('common.retry')}
-          </button>
-        </div>
-      )}
-      {acknowledged && (
-        <p role='status' className='library-workbench__notice'>
-          {acknowledged.schema === 'x-science.literature-receipt.v1'
-            ? t('conversation.reading.libraryUpdated', { name: acknowledged.item.title })
-            : acknowledged.action === 'membership'
-              ? t('conversation.libraryWorkbench.membershipUpdated')
-              : acknowledged.action === 'delete'
-                ? t('conversation.libraryWorkbench.collectionDeleted')
-                : t('conversation.libraryWorkbench.collectionUpdated', { name: acknowledged.collection.name })}
-        </p>
-      )}
+      <LibraryMutationNotice
+        hidden={pdfImport.noticeOwned || publicationNoticeOwned}
+        error={mutation.view.error}
+        failed={actionFailed}
+        mutating={mutation.view.mutating}
+        acknowledged={acknowledged}
+        retry={() => void retryMutation()}
+      />
       <div className='library-workbench__workspace'>
         <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
           <div className='library-workbench__navigation-heading'>
@@ -300,6 +336,19 @@ export default function LibraryPage() {
                 </div>
               )
             }
+            filters={
+              <LibraryReadingStatusFilter
+                value={readingStatus}
+                onChange={(value) => {
+                  const next = new URLSearchParams(params);
+                  if (value) next.set('reading_status', value);
+                  else next.delete('reading_status');
+                  next.delete('cursor');
+                  next.delete('item');
+                  setParams(next);
+                }}
+              />
+            }
           />
           <LibraryPdfImportPanel
             model={pdfImport}
@@ -310,7 +359,12 @@ export default function LibraryPage() {
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>
           )}
           <div className='library-workbench__panes' data-detail-open={Boolean(selectedId)}>
-            <section className='library-workbench__list' aria-label={t('conversation.libraryWorkbench.items')}>
+            <section
+              ref={listElement}
+              tabIndex={-1}
+              className='library-workbench__list'
+              aria-label={t('conversation.libraryWorkbench.items')}
+            >
               {reads.list.status === 'loading' ? (
                 <div role='status' className='library-workbench__state'>
                   <Loader2 className='library-workbench__spin' size={20} aria-hidden='true' />
@@ -319,7 +373,7 @@ export default function LibraryPage() {
               ) : reads.list.status === 'error' ? (
                 <div role='alert' className='library-workbench__state'>
                   <h2>{t('conversation.libraryWorkbench.loadFailed')}</h2>
-                  <button type='button' onClick={reads.refresh}>
+                  <button type='button' onClick={reads.refreshData}>
                     {t('common.retry')}
                   </button>
                 </div>
@@ -328,7 +382,7 @@ export default function LibraryPage() {
                   <BookOpen size={28} aria-hidden='true' />
                   <h2>
                     {t(
-                      query
+                      query || readingStatus
                         ? 'conversation.libraryWorkbench.noMatches'
                         : projectId
                           ? 'conversation.libraryWorkbench.projectEmpty'
@@ -337,7 +391,7 @@ export default function LibraryPage() {
                   </h2>
                   <p>
                     {t(
-                      query
+                      query || readingStatus
                         ? 'conversation.libraryWorkbench.searchHint'
                         : projectId
                           ? 'conversation.libraryWorkbench.projectEmptyHint'
@@ -348,27 +402,19 @@ export default function LibraryPage() {
               ) : (
                 <ul aria-label={t('conversation.libraryWorkbench.items')}>
                   {items.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        ref={(node) => {
-                          if (node) rowButtons.current.set(item.id, node);
-                          else rowButtons.current.delete(item.id);
-                        }}
-                        type='button'
-                        className='library-workbench__item'
-                        aria-pressed={selectedId === item.id}
-                        onClick={() => selectItem(item.id)}
-                      >
-                        <span className='library-workbench__book'>
-                          <BookOpen size={16} aria-hidden='true' />
-                        </span>
-                        <span className='library-workbench__item-copy'>
-                          <strong>{item.title}</strong>
-                          <span>{libraryAuthors(item) || t('conversation.libraryWorkbench.noAuthors')}</span>
-                        </span>
-                        <ChevronRight size={14} aria-hidden='true' />
-                      </button>
-                    </li>
+                    <LibraryReferenceRow
+                      key={item.id}
+                      item={item}
+                      authors={libraryAuthors(item)}
+                      selected={selectedId === item.id}
+                      busy={busy || reads.list.status !== 'ready'}
+                      register={(node) => {
+                        if (node) rowButtons.current.set(item.id, node);
+                        else rowButtons.current.delete(item.id);
+                      }}
+                      open={() => selectItem(item.id)}
+                      changeStatus={(value) => changeReadingStatus(item.id, value)}
+                    />
                   ))}
                 </ul>
               )}
@@ -393,38 +439,13 @@ export default function LibraryPage() {
               )}
             </section>
             {selectedId && (
-              <aside aria-label={t('conversation.libraryWorkbench.details')}>
-                {reads.detail.status === 'loading' ? (
-                  <p role='status' className='library-workbench__state'>
-                    {t('common.loading')}
-                  </p>
-                ) : reads.detail.status === 'error' || !selected ? (
-                  <div role='alert' className='library-workbench__state'>
-                    <h2>{t('conversation.libraryWorkbench.detailFailed')}</h2>
-                    <button type='button' onClick={reads.refresh}>
-                      {t('common.retry')}
-                    </button>
-                    <button type='button' onClick={closeDetails}>
-                      {t('common.close')}
-                    </button>
-                  </div>
-                ) : (
-                  <LibraryItemDetails
-                    key={`${reads.account}:${selected.id}`}
-                    item={selected}
-                    account={reads.account}
-                    collections={reads.collections}
-                    memberships={reads.memberships}
-                    submitCollection={submit}
-                    refreshCollections={reads.refresh}
-                    projects={reads.projects.value ?? []}
-                    projectStatus={reads.projects.status}
-                    busy={busy}
-                    submit={submit}
-                    close={closeDetails}
-                  />
-                )}
-              </aside>
+              <LibraryDetailsPane
+                reads={reads}
+                busy={busy}
+                submit={submit}
+                changeStatus={changeReadingStatus}
+                close={closeDetails}
+              />
             )}
           </div>
           {reads.projects.status === 'error' && (
@@ -447,9 +468,10 @@ export default function LibraryPage() {
           mutating={mutation.view.mutating}
           pendingOperationId={mutation.view.pending?.operation_id}
           receipt={
-            mutation.view.receipt?.schema === 'x-science.literature-publication-receipt.v1'
-              ? undefined
-              : mutation.view.receipt
+            mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' ||
+            mutation.view.receipt?.schema === 'x-science.literature-collection-receipt.v1'
+              ? mutation.view.receipt
+              : undefined
           }
           submit={submit}
           retry={retryMutation}

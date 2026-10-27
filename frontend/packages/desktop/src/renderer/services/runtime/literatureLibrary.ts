@@ -7,6 +7,7 @@ import {
   decodeLiteraturePage,
   decodeLiteratureReceipt,
   literatureValueIdentity,
+  LiteratureDetailUnavailableError,
   type LiteratureCommand,
   type LiteratureItem,
   type LiteratureReceipt,
@@ -56,9 +57,13 @@ export async function loadLiteratureItem(itemId: string, signal?: AbortSignal): 
     timeoutMs: 15_000,
   });
   requireAccount(account);
-  const item = decodeLiteratureItem(raw);
-  if (item.id !== itemId || item.deleted) throw new Error('Literature detail identity changed');
-  return item;
+  try {
+    const item = decodeLiteratureItem(raw);
+    if (item.id !== itemId || item.deleted) throw new LiteratureDetailUnavailableError();
+    return item;
+  } catch {
+    throw new LiteratureDetailUnavailableError();
+  }
 }
 
 export async function runLiteratureCommand(input: LiteratureCommand): Promise<LiteratureReceipt> {

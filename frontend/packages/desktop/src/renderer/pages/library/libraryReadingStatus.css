@@ -67,6 +67,41 @@
   color: var(--workspace-text);
   background: var(--workspace-canvas);
 }
+.library-reading-status-filter select {
+  min-height: var(--ui-control-md);
+  max-width: 100%;
+  padding: var(--ui-space-2) var(--ui-control-padding-x);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text-secondary);
+  background: var(--workspace-canvas);
+  font: inherit;
+  font-size: var(--ui-font-meta);
+}
+.library-workbench__reference-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-bottom: 1px solid var(--workspace-border);
+}
+.library-workbench__reference-row:last-child {
+  border-bottom: 0;
+}
+.library-workbench__reference-row[data-selected='true'] {
+  background: var(--workspace-selected);
+}
+.library-workbench__reference-row > .library-workbench__item {
+  min-width: 0;
+  border-bottom: 0;
+}
+.library-workbench__reference-row > .library-reading-status-control {
+  width: 112px;
+  margin-inline-end: var(--ui-space-5);
+}
+.library-workbench__reference-row .library-reading-status-select {
+  font-size: var(--ui-font-meta);
+}
 [data-theme='dark'] :is(.library-reading-status-label, .library-reading-status-control) {
   --library-reading-status-blue: var(--workspace-link, #60a5fa);
 }

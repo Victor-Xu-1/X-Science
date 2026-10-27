@@ -27,7 +27,15 @@ const noticeKey = (type: string) => {
   }
 };
 
-export function LibraryPublicationCheck({ account, item }: { account: string; item: LiteratureItem }) {
+export function LibraryPublicationCheck({
+  account,
+  item,
+  disabled = false,
+}: {
+  account: string;
+  item: LiteratureItem;
+  disabled?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const heading = useId();
   const help = useId();
@@ -67,13 +75,14 @@ export function LibraryPublicationCheck({ account, item }: { account: string; it
           type='button'
           className='library-workbench__button'
           disabled={
-            restoreStorage
+            disabled ||
+            (restoreStorage
               ? model.busy
               : model.pending
                 ? !model.canResume
                 : retryRead
                   ? model.loading || model.busy
-                  : !model.canCheck
+                  : !model.canCheck)
           }
           aria-describedby={help}
           onClick={restoreStorage ? model.restore : model.pending ? model.resume : retryRead ? model.read : model.check}

@@ -13,7 +13,7 @@ import (
 const readingStatusTestOwner = "reading-status-owner"
 
 type readingStatusTestRow struct {
-	Status LiteratureReadingStatus
+	Status    LiteratureReadingStatus
 	UpdatedAt string
 }
 

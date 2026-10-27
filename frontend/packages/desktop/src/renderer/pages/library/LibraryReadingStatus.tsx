@@ -55,3 +55,31 @@ export function LibraryReadingStatus({ value, disabled, onChange, accessibleLabe
     </span>
   );
 }
+
+export function LibraryReadingStatusFilter({
+  value,
+  onChange,
+}: {
+  value: LiteratureReadingStatus | '';
+  onChange: (value: LiteratureReadingStatus | '') => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <label className='library-reading-status-filter'>
+      <span className='sr-only'>{t('conversation.libraryReadingStatus.label')}</span>
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(event.currentTarget.value ? decodeLiteratureReadingStatus(event.currentTarget.value) : '')
+        }
+      >
+        <option value=''>{t('conversation.libraryReadingStatus.all')}</option>
+        {literatureReadingStatuses.map((status) => (
+          <option key={status} value={status}>
+            {t(statusKey(status))}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}

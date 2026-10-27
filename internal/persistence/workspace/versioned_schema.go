@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const workspaceSchemaVersion = 85
+const workspaceSchemaVersion = 86
 
 type SchemaMigrationRecord struct {
 	Version       int       `json:"version"`
@@ -58,7 +58,7 @@ type versionedSchemaMigration struct {
 	identityV2 *schemaMigrationIdentityV2
 }
 
-var workspaceSchemaMigrations = append(workspaceSchemaMigrationsThroughV79, literatureV80Migration, memoryExtractionV81Migration, memoryExtractionCadenceV82Migration, literatureMutationIdentityV83Migration, literatureCollectionsV84Migration, literaturePublicationV85Migration)
+var workspaceSchemaMigrations = append(workspaceSchemaMigrationsThroughV79, literatureV80Migration, memoryExtractionV81Migration, memoryExtractionCadenceV82Migration, literatureMutationIdentityV83Migration, literatureCollectionsV84Migration, literaturePublicationV85Migration, literatureReadingStatusV86Migration)
 
 var workspaceSchemaMigrationsThroughV79 = append(append([]versionedSchemaMigration{
 	{
