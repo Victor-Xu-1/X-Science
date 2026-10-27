@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "df23a2c7516a51633a6306f2c620906903108404c21c77922bd84b2901647ade",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "713217d347b527158843c39c009c02adf0d308640c0d391136a0b9816b57cb39",
+  "additionFingerprintSHA256": "8dfe88f29866378fd04ceb0df63d9a00c2b47613835019167b46459542ba522a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
     "adaptedSourceFiles": 792,
     "removedSourceFiles": 295,
-    "addedFiles": 1329
+    "addedFiles": 1330
   },
   "adaptations": [
     {
@@ -9900,8 +9900,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryItemDetails.tsx",
-      "sha256": "e86acf15d72c89911f40116bab241361bed45a30c76bfb62d01e609114ff2faa",
-      "bytes": 6807,
+      "sha256": "29817a1f1c33cd67b9b4524fd4a937fa188b97d6701db4f82d904801d61efe1a",
+      "bytes": 10252,
       "reason": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated."
     },
     {
@@ -10032,8 +10032,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.detail.css",
-      "sha256": "e266117316a55c4fddc1ad03fa88f6dc877a29cc9b3a4705ef5a35e0a106f6fc",
-      "bytes": 6022,
+      "sha256": "1dd0d73dfe47c4612ef1cf3da7573d6b198d030c80ac604e5864123938bb1104",
+      "bytes": 7108,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13802,6 +13802,12 @@
       "path": "tests/unit/renderer/library/LibraryCollections.dom.test.tsx",
       "sha256": "0f3b9ceae55f34fb541874b3b5cb454c587552e134c60418858c81467c6af26f",
       "bytes": 15796,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryDetailHeader.dom.test.tsx",
+      "sha256": "14373219902704c9194692a4eabac88b4b60b306f51f49f6ee988ded28121d52",
+      "bytes": 12753,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
