@@ -3,6 +3,8 @@ import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
+import XScienceSpecialistChoices from '@/renderer/components/xScience/runtime/XScienceSpecialistChoices';
+import type { XScienceSpecialistControl } from '@/renderer/hooks/xScience/runtime/useSessionSpecialist';
 import { createXScienceSessionDefaults } from '@/renderer/services/xScienceSessionOptions';
 import { renderWithI18n } from '../i18nTestUtils';
 
@@ -15,7 +17,7 @@ vi.mock('@/renderer/services/xScienceCatalog', () => ({
 }));
 vi.mock('@/renderer/services/xScienceCompute', () => ({
   loadXScienceComputeProviders: mocks.providers,
-  loadXScienceSessionComputeProviders: async () => [],
+  loadXScienceSessionComputeProviders: async (): Promise<never[]> => [],
   setXScienceSessionComputeProvider: vi.fn(),
 }));
 const selected = {
@@ -27,7 +29,7 @@ const selected = {
   snapshot_id: 'snapshot-b',
   revision: 1,
 };
-function control(pending = false) {
+function control(pending = false): XScienceSpecialistControl {
   return {
     applied: selected,
     desired: selected,
@@ -90,3 +92,46 @@ it('allows explicit None or a new selection when the current logical binding is 
   fireEvent.click(screen.getByRole('menuitemradio', { name: 'Select expert Beta' }));
   expect(mocks.choose).toHaveBeenCalledWith('AGENT_B');
 });
+
+it.each(['en-US', 'zh-CN'] as const)(
+  'keeps catalog failure distinct from empty and recovers through the existing owners in %s',
+  async (locale) => {
+    const failed: XScienceSpecialistControl = { ...control(), choices: [], catalogError: true };
+    const view = await renderWithI18n(<XScienceSpecialistChoices control={failed} />, locale);
+    const label = (key: string) => view.i18n.t(`conversation.xscienceRuntime.sessionOptions.${key}`);
+    expect(screen.getByRole('status')).toHaveTextContent(label('specialistState.read'));
+    expect(screen.queryByText(label('noExperts'))).toBeNull();
+    fireEvent.click(screen.getByRole('menuitem', { name: label('specialistState.retry') }));
+    expect(failed.retry).toHaveBeenCalledOnce();
+    expect(failed.refresh).toHaveBeenCalledOnce();
+    expect(mocks.choose).not.toHaveBeenCalled();
+    expect(mocks.localChange).not.toHaveBeenCalled();
+    view.rerender(
+      <XScienceSpecialistChoices control={{ ...failed, catalogError: false, choices: control().choices }} />
+    );
+    expect(
+      screen.getByRole('menuitemradio', {
+        name: view.i18n.t('conversation.xscienceRuntime.sessionOptions.selectExpert', { name: 'Beta' }),
+      })
+    ).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('status')).toBeNull();
+  }
+);
+
+it.each(['en-US', 'zh-CN'] as const)('shows a genuinely empty successful catalog in %s', async (locale) => {
+  const view = await renderWithI18n(<XScienceSpecialistChoices control={{ ...control(), choices: [] }} />, locale);
+  expect(screen.getByText(view.i18n.t('conversation.xscienceRuntime.sessionOptions.noExperts'))).toBeInTheDocument();
+  expect(screen.queryByRole('status')).toBeNull();
+});
+
+it.each(['loading', 'absent', 'stale'] as const)(
+  'does not claim a successful empty catalog for a %s owner',
+  async (state) => {
+    const value: XScienceSpecialistControl | undefined =
+      state === 'absent'
+        ? undefined
+        : { ...control(), choices: [], catalogLoading: state === 'loading', current: () => state !== 'stale' };
+    const view = await renderWithI18n(<XScienceSpecialistChoices control={value} />, 'en-US');
+    expect(screen.queryByText(view.i18n.t('conversation.xscienceRuntime.sessionOptions.noExperts'))).toBeNull();
+  }
+);
