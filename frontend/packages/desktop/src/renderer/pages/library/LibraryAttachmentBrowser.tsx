@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
-import { LibraryAttachmentPreview } from './LibraryAttachmentPreview';
+import { LibraryAttachmentPane } from './LibraryAttachmentPane';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import {
@@ -110,7 +110,7 @@ export function LibraryAttachmentBrowser({ item, account }: { item: LiteratureIt
               choice?.kind === 'version' && !attachment.versions.some((value) => value.id === choice.id);
             return (
               <li key={attachment.id}>
-                <FileText size={15} aria-hidden='true' />
+                <FileText size={16} aria-hidden='true' />
                 <div className='library-workbench__attachment-copy'>
                   <strong>{target?.version.filename || attachment.kind}</strong>
                   <span>
@@ -238,41 +238,7 @@ export function LibraryAttachmentBrowser({ item, account }: { item: LiteratureIt
           )}
         </div>
       )}
-      {currentOpened && (
-        <section
-          className='library-workbench__attachment-preview'
-          aria-label={t('conversation.libraryWorkbench.attachmentPreview')}
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.stopPropagation();
-              closePreview();
-            }
-          }}
-        >
-          <div className='library-workbench__detail-heading'>
-            <strong>
-              {currentOpened.target.version.filename} ·{' '}
-              {t('conversation.libraryWorkbench.attachmentVersion', {
-                number: currentOpened.target.version.version_number,
-              })}
-            </strong>
-            <button type='button' onClick={closePreview}>
-              {t('common.close')}
-            </button>
-          </div>
-          {visiblePreview?.isPdf ? (
-            <div className='library-workbench__attachment-preview-canvas'>
-              <LibraryAttachmentPreview
-                key={JSON.stringify([scope, visiblePreview.key])}
-                filename={visiblePreview.version.filename}
-                contentUrl={visiblePreview.contentUrl}
-              />
-            </div>
-          ) : (
-            <p role='alert'>{t('conversation.libraryWorkbench.attachmentUnavailable')}</p>
-          )}
-        </section>
-      )}
+      {currentOpened && <LibraryAttachmentPane opening={currentOpened} current={visiblePreview} close={closePreview} />}
     </section>
   );
 }

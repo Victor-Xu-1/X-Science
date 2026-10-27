@@ -62,6 +62,20 @@ describe('Library attachment actions through original content owner', () => {
       'data-url',
       '/api/literature/attachment-versions/v1/content'
     );
+    const preview = screen.getByRole('region', { name: 'Attachment preview' });
+    expect(preview).toHaveFocus();
+    opener.focus();
+    fireEvent.click(opener);
+    expect(preview).toHaveFocus();
+    fireEvent.keyDown(preview, { key: 'Escape' });
+    expect(screen.queryByTestId('shared-pdf-target')).toBeNull();
+    expect(opener).toHaveFocus();
+
+    fireEvent.click(opener);
+    expect(await screen.findByTestId('shared-pdf-target')).toHaveAttribute(
+      'data-url',
+      '/api/literature/attachment-versions/v1/content'
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByTestId('shared-pdf-target')).toBeNull();
     expect(opener).toHaveFocus();
