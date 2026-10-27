@@ -135,9 +135,6 @@ body,
 .layout-sider [class*='rd-8px'] {
   border-radius: var(--ui-radius-lg) !important;
 }
-html body .layout-sider button[data-testid='sider-new-chat'] > span:first-child {
-  border-radius: var(--ui-radius-md) !important;
-}
 html body button.x-science-brand {
   border-radius: var(--ui-radius-lg) !important;
 }
@@ -1821,7 +1818,7 @@ html body .arco-table-container {
 /* Uno's legacy text-t-tertiary utility points at --bg-6, which is also used
  * as a hover fill. Override the text utility itself so dark-mode captions
  * remain readable without turning hover surfaces into bright blocks. */
-html body .text-t-tertiary,
+html body .text-t-tertiary:not(.x-science-sidebar-section-title-button .sider-section-title),
 html body .placeholder\:text-t-tertiary::placeholder {
   color: var(--workspace-text-tertiary) !important;
 }
@@ -1845,7 +1842,6 @@ html body .x-science-sidebar-project-meta {
   line-height: 18px !important;
 }
 
-html body .x-science-sidebar-section-title-button .sider-section-title,
 html body .x-science-sidebar-timeline .text-t-secondary,
 html body .x-science-sidebar-project-meta {
   color: var(--workspace-text-secondary) !important;

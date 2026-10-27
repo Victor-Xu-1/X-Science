@@ -426,22 +426,24 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
       <div className='x-science-sidebar-navigation'>
         {handleStartTask && (
-          <div className={classNames('x-science-sidebar-new-chat-wrap px-8px pt-4px pb-2px', collapsed && 'px-4px')}>
+          <div
+            className={classNames(
+              'x-science-sidebar-new-chat-wrap',
+              collapsed && 'x-science-sidebar-new-chat-wrap--collapsed'
+            )}
+          >
             <button
               type='button'
               data-testid='sider-new-chat'
               aria-label={t('conversation.history.newChat')}
-              className={classNames(
-                'x-science-sidebar-new-chat w-full h-32px flex items-center border-none bg-transparent rd-8px cursor-pointer text-t-tertiary hover:text-t-primary hover:bg-fill-2 transition-colors',
-                collapsed ? 'justify-center px-0' : 'gap-6px px-4px text-left'
-              )}
+              className={classNames('x-science-sidebar-new-chat', collapsed && 'x-science-sidebar-new-chat--collapsed')}
               onClick={handleStartTask}
             >
-              <span className='size-24px shrink-0 rd-8px flex items-center justify-center border border-solid border-arco-2 bg-transparent'>
-                <Plus theme='outline' size='16' />
+              <span className='x-science-sidebar-new-chat-icon'>
+                <Plus theme='outline' size='14' />
               </span>
               {!collapsed && (
-                <span className='text-14px font-[500] leading-none'>{t('conversation.history.newChat')}</span>
+                <span className='x-science-sidebar-new-chat-label'>{t('conversation.history.newChat')}</span>
               )}
             </button>
           </div>
