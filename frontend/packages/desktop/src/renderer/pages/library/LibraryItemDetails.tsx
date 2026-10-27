@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
@@ -18,6 +18,7 @@ import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 
 export const libraryAuthors = (item: LiteratureItem): string => {
   const value = item.metadata.authors;
@@ -62,6 +63,67 @@ export function LibraryItemDetails({
   const { t } = useTranslation();
   const [editBase, setEditBase] = useState<LiteratureItem>();
   const [projectId, setProjectId] = useState('');
+  const editorId = useId();
+  const editTrigger = useRef<HTMLButtonElement>(null);
+  const editorPanel = useRef<HTMLDivElement>(null);
+  const scope = JSON.stringify([account, item.id]);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const focusRequest = useRef<{ scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement } | undefined>(
+    undefined
+  );
+  const current = useCallback(
+    () => scopeRef.current === scope && account === getRendererAccountScopeToken(),
+    [account, scope]
+  );
+  const revealEditor = useCallback(() => {
+    const panel = editorPanel.current;
+    if (!current() || !panel?.isConnected) return;
+    const input = panel.querySelector<HTMLInputElement>('input:not(:disabled):not([readonly]):not([type="hidden"])');
+    (input ?? panel).focus({ preventScroll: true });
+    panel.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [current]);
+  useEffect(() => {
+    const request = focusRequest.current;
+    if (!request) return;
+    if (request.scope !== scope || !current()) {
+      focusRequest.current = undefined;
+      return;
+    }
+    if (request.target === 'editor' && editBase) {
+      focusRequest.current = undefined;
+      revealEditor();
+    } else if (request.target === 'trigger' && !editBase && !busy) {
+      const focused = document.activeElement;
+      if (focused?.isConnected && focused !== document.body && !request.origin?.contains(focused)) {
+        focusRequest.current = undefined;
+        return;
+      }
+      const trigger = editTrigger.current;
+      if (!trigger?.isConnected || trigger.disabled) return;
+      focusRequest.current = undefined;
+      trigger.focus({ preventScroll: true });
+    }
+  }, [busy, current, editBase, revealEditor, scope]);
+  useEffect(
+    () => () => {
+      focusRequest.current = undefined;
+    },
+    []
+  );
+  const openEditor = () => {
+    if (busy || !current()) return;
+    if (editBase) revealEditor();
+    else {
+      focusRequest.current = { scope, target: 'editor' };
+      setEditBase(item);
+    }
+  };
+  const closeEditor = useCallback(() => {
+    if (!current()) return;
+    focusRequest.current = { scope, target: 'trigger', origin: editorPanel.current ?? undefined };
+    setEditBase(undefined);
+  }, [current, scope]);
   const authors = libraryAuthors(item);
   const year =
     typeof item.metadata.year === 'string' || Number.isSafeInteger(item.metadata.year)
@@ -71,13 +133,33 @@ export function LibraryItemDetails({
   const externallyUpdated = editBase !== undefined && editBase.metadata_revision !== item.metadata_revision;
   return (
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
-      <div className='library-workbench__detail-heading'>
-        <span className='library-workbench__eyebrow'>{t('conversation.libraryWorkbench.details')}</span>
-        <button type='button' className='library-workbench__icon' onClick={close} aria-label={t('common.close')}>
-          <X size={16} aria-hidden='true' />
-        </button>
+      <div
+        className='library-workbench__detail-main-header'
+        role='group'
+        aria-label={t('conversation.libraryWorkbench.details')}
+      >
+        <div className='library-workbench__detail-main-title'>
+          <span className='library-workbench__eyebrow'>{t('conversation.libraryWorkbench.details')}</span>
+          <h2 title={item.title}>{item.title}</h2>
+        </div>
+        <div className='library-workbench__detail-main-actions'>
+          <button
+            ref={editTrigger}
+            type='button'
+            className='library-workbench__button'
+            disabled={busy}
+            aria-expanded={Boolean(editBase)}
+            aria-controls={editBase ? editorId : undefined}
+            onClick={openEditor}
+          >
+            <Pencil size={14} aria-hidden='true' />
+            {t('conversation.libraryWorkbench.edit')}
+          </button>
+          <button type='button' className='library-workbench__icon' onClick={close} aria-label={t('common.close')}>
+            <X size={16} aria-hidden='true' />
+          </button>
+        </div>
       </div>
-      <h2>{item.title}</h2>
       <LibraryReadingStatus
         value={literatureItemReadingStatus(item)}
         disabled={busy || item.deleted}
@@ -121,8 +203,15 @@ export function LibraryItemDetails({
         retry={refreshCollections}
       />
       <LibraryAttachmentBrowser account={account} item={item} />
-      {editBase ? (
-        <div className='library-workbench__editor'>
+      {editBase && (
+        <div
+          ref={editorPanel}
+          id={editorId}
+          className='library-workbench__editor'
+          role='region'
+          aria-label={t('conversation.libraryWorkbench.edit')}
+          tabIndex={-1}
+        >
           {externallyUpdated && (
             <div role='alert' className='library-workbench__notice'>
               <span>{t('conversation.libraryReadingStatus.externalUpdate')}</span>
@@ -159,14 +248,9 @@ export function LibraryItemDetails({
             readOnly={externallyUpdated}
             receipt={receipt}
             submit={submit}
-            close={() => setEditBase(undefined)}
+            close={closeEditor}
           />
         </div>
-      ) : (
-        <button type='button' className='library-workbench__button' disabled={busy} onClick={() => setEditBase(item)}>
-          <Pencil size={14} aria-hidden='true' />
-          {t('conversation.libraryWorkbench.edit')}
-        </button>
       )}
     </section>
   );
