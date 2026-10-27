@@ -1,5 +1,6 @@
 import { decodeLiteratureMetadataPatch, type LiteratureMetadataPatch } from './literatureMetadataPatch';
 import { literatureValueIdentity } from './literatureValueIdentity';
+import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from './literatureReadingStatus';
 
 export { literatureValueIdentity } from './literatureValueIdentity';
 export type { LiteratureMetadataPatch } from './literatureMetadataPatch';
@@ -19,6 +20,7 @@ export type LiteratureItem = {
   id: string;
   title: string;
   metadata_revision: number;
+  reading_status?: LiteratureReadingStatus;
   metadata: Record<string, unknown>;
   deleted: boolean;
   project_ids: string[];
@@ -74,6 +76,10 @@ const count = (value: unknown): value is number =>
 const fail = (): never => {
   throw new Error('Invalid literature Library contract');
 };
+/** A missing legacy field has one presentation default; explicit invalid values do not. */
+export function literatureItemReadingStatus(item: Pick<LiteratureItem, 'reading_status'>): LiteratureReadingStatus {
+  return item.reading_status === undefined ? 'unread' : decodeLiteratureReadingStatus(item.reading_status);
+}
 export function decodeLiteratureItem(value: unknown): LiteratureItem {
   if (
     !record(value) ||
@@ -144,6 +150,9 @@ export function decodeLiteratureItem(value: unknown): LiteratureItem {
     id: value.id,
     title: value.title,
     metadata_revision: value.metadata_revision,
+    ...(Object.hasOwn(value, 'reading_status')
+      ? { reading_status: decodeLiteratureReadingStatus(value.reading_status) }
+      : {}),
     metadata: structuredClone(value.metadata),
     deleted: value.deleted,
     project_ids: [...value.project_ids],

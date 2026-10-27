@@ -65,8 +65,8 @@ func (s *Store) SetLiteratureReadingStatus(ctx context.Context, owner string, in
 		}
 	}
 	hash, err := mutationRequestHash(struct {
-		ItemIDs []string
-		Status  LiteratureReadingStatus
+		ItemIDs []string                `json:"item_ids"`
+		Status  LiteratureReadingStatus `json:"reading_status"`
 	}{input.ItemIDs, input.ReadingStatus})
 	if err != nil {
 		return receipt, err

@@ -32,13 +32,14 @@ type LiteratureAttachment struct {
 }
 
 type LiteratureItem struct {
-	ID               string                 `json:"id"`
-	Title            string                 `json:"title"`
-	MetadataRevision int64                  `json:"metadata_revision"`
-	Metadata         map[string]any         `json:"metadata"`
-	Deleted          bool                   `json:"deleted"`
-	ProjectIDs       []string               `json:"project_ids"`
-	Attachments      []LiteratureAttachment `json:"attachments"`
+	ID               string                  `json:"id"`
+	Title            string                  `json:"title"`
+	MetadataRevision int64                   `json:"metadata_revision"`
+	ReadingStatus    LiteratureReadingStatus `json:"reading_status,omitempty"`
+	Metadata         map[string]any          `json:"metadata"`
+	Deleted          bool                    `json:"deleted"`
+	ProjectIDs       []string                `json:"project_ids"`
+	Attachments      []LiteratureAttachment  `json:"attachments"`
 }
 
 type LiteraturePage struct {

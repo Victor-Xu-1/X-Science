@@ -22,13 +22,16 @@ func readLiteratureItem(ctx context.Context, query literatureItemQuery, owner, i
 	item := LiteratureItem{ProjectIDs: []string{}, Attachments: []LiteratureAttachment{}}
 	var raw string
 	var deleted sql.NullString
-	err := query.QueryRowContext(ctx, `SELECT id,title,metadata_revision,metadata_json,deleted_at
-	 FROM literature_items WHERE id=? AND owner_user_id=?`, id, owner).Scan(&item.ID, &item.Title, &item.MetadataRevision, &raw, &deleted)
+	err := query.QueryRowContext(ctx, `SELECT id,title,metadata_revision,metadata_json,deleted_at,reading_status
+	 FROM literature_items WHERE id=? AND owner_user_id=?`, id, owner).Scan(&item.ID, &item.Title, &item.MetadataRevision, &raw, &deleted, &item.ReadingStatus)
 	if errors.Is(err, sql.ErrNoRows) {
 		return item, ErrLiteratureUnavailable
 	}
 	if err != nil {
 		return item, err
+	}
+	if !validLiteratureReadingStatus(item.ReadingStatus) {
+		return item, ErrLiteratureInvalid
 	}
 	if item.Metadata, err = decodeLiteratureMetadataObject(raw); err != nil {
 		return item, err
