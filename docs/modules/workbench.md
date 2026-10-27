@@ -868,4 +868,16 @@ commands, revision checks, receipts and attachment ownership remain unchanged.
 重复点击不重置草稿或 PDF。完成后仅在同一账号与文献中按需恢复焦点，不抢占用户在
 等待读回期间转向的其他控件；命令、版本校验、回执和附件归属继续沿用原链路。
 
+## Sidebar entry states · 侧栏入口状态
+
+Library and New task share compact row spacing, icon size and immediate pointer
+feedback. The current Library route retains its selected state; keyboard focus
+uses the existing themed ring. Project section controls retain their original
+expansion and menu behavior, with the same compact visual treatment. Navigation,
+task creation, translations and the X-Science brand keep their existing owners.
+
+文献库与新任务入口统一紧凑的行距、图标和即时指针反馈；文献库按实际路由展示
+选中态，键盘焦点沿用主题焦点环。项目区域保持原展开与菜单行为，并采用协调的
+尺寸和状态样式；导航、新建任务、翻译及 X-Science 品牌继续沿用原链路。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

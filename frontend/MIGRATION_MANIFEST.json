@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "2f6db8adcdd9a232d1b5aa910763a9438137f63aa5e13382462d60afc682c593",
+  "adaptationFingerprintSHA256": "3c49937012f7a2e1e59eb8c62cef7896851f94742276ecb43d1c61b8ea7e52c3",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "3c88cf20cfbfb102327e72f98e5c925a6ce7bfb035345bdc7f424bd842ba1727",
+  "additionFingerprintSHA256": "c088a0593ec42994139a012b96124eb1f0c80fa76705179e1d445ffaa15035d7",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
@@ -1347,8 +1347,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx",
       "sourceSHA256": "3ea1400c80e1d877f49270803b1aa590aa6c248205b365792947cc912f3a55fa",
-      "targetSHA256": "17f22418755c2a0e32657de5b48b3684b70b3e5dff54fa7e611438c103e94182",
-      "bytes": 23009,
+      "targetSHA256": "1cff35f6f4c0b79d41044abfe1a320a9da623cfb8f78f0f017ffb5a8a506e534",
+      "bytes": 22802,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3340,8 +3340,8 @@
     {
       "path": "packages/desktop/src/renderer/styles/layout.css",
       "sourceSHA256": "7c770e55d7927b0c7c3dddd607cd783fa6b2007eb3828267fe95e04bd19f8f7b",
-      "targetSHA256": "79f9d4327bcd5fe34af3764bffe3bd2e105fb7b9210bbaf3281f38ceec534255",
-      "bytes": 16145,
+      "targetSHA256": "300ff5da678625580fdea851c06b4aab3be3e28b20cf60c0543d60dc7212c946",
+      "bytes": 17019,
       "reason": "Converge global styles, builtin theme declarations, PWA assets, service-worker behavior, and renderer type declarations on the focused Web product."
     },
     {
@@ -8034,8 +8034,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.module.css",
-      "sha256": "820af24e381e060bed7893a286dd52e68c8cf2fd41fcf0b2f9b7d2608cfe6470",
-      "bytes": 1092,
+      "sha256": "b8e8f6a7ca7980c0304beb243a4dfccaa0caed53898081c67090df9baed51a97",
+      "bytes": 1236,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11394,8 +11394,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "acfbbff0957e9e0c8a2122f27700cd0585a80a47a6f0150c07fef5054b553fb2",
-      "bytes": 68327,
+      "sha256": "4e993a7b6b619a2e59fd156264eadd12362c0ad83fea619718bea15505f01f18",
+      "bytes": 68188,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
