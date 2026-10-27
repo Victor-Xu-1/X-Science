@@ -37,7 +37,10 @@ func newExtractionCommitFixture(t *testing.T) (*Store, string, ExtractionCommitI
 			PrefixSHA256: extractionDigest([]byte("strict completed journal prefix"))},
 	}
 	input := ExtractionCommitInput{Source: source, InputSHA256: extractionDigest([]byte("immutable completed messages")),
-		CursorNext: 2, AdvanceCursor: true, DeltaCount: 2, Gate: "done",
+		// This Store-only fixture has one caller-bound prefix and no later
+		// selected journal. Unexpected candidates must not be silently approved.
+		LegacyOrderCheck: func(CompletedExtractionSource) (bool, error) { return false, ErrExtractionPlanConflict },
+		CursorNext:       2, AdvanceCursor: true, DeltaCount: 2, Gate: "done",
 		Plan: ExtractionMutationPlan{Append: []AgentMemoryAppendMutation{{Input: CreateMemoryInput{
 			ID: "extracted-append", Body: "Reports preserve explicit random seeds.", Evidence: "stated", SubjectProjectID: source.ProjectID,
 		}}}},

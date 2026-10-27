@@ -1,5 +1,7 @@
 package detached
 
+import "x-science/internal/toolprogress"
+
 // An explicit budget below the observed executor minimum cannot be repaired by
 // waiting for free capacity. A new admitted request must change that budget;
 // silently increasing it would violate the immutable execution allocation.
@@ -48,6 +50,7 @@ type ExecutorResourceUnavailableError struct {
 	AvailableBytes int64
 	ReserveBytes   int64
 	RequiredBytes  int64
+	Admission      *toolprogress.ResourceAdmissionSnapshot
 }
 
 func (err *ExecutorResourceUnavailableError) Error() string {

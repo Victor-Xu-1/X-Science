@@ -161,6 +161,9 @@ func (s *Server) runnerEntriesForCurrentLogicalInput(
 	if currentRevision <= 0 {
 		return nil, errors.New("transcript input revision is unavailable while scoping scientific evidence")
 	}
+	if run.currentControl != nil {
+		return run.currentControl.scopeEntries(entries)
+	}
 	revisions := map[int]int64{run.Attempt: currentRevision}
 	for _, entry := range entries {
 		attempt, ok := exactPositiveInt(entry.Message["runnerAttempt"])

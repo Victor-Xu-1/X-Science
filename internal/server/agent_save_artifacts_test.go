@@ -25,6 +25,7 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/skills"
+	"x-science/internal/testsupport/workspacefixture"
 )
 
 type agentSaveArtifactsFixture struct {
@@ -45,7 +46,7 @@ func newAgentSaveArtifactsFixture(t *testing.T) *agentSaveArtifactsFixture {
 
 func newAgentSaveArtifactsFixtureWithKernelManager(t *testing.T, manager *kernelruntime.Manager) *agentSaveArtifactsFixture {
 	t.Helper()
-	databasePath := filepath.Join(t.TempDir(), "workspace.db")
+	databasePath := workspacefixture.DatabasePath(t)
 	store, err := workspace.Open(databasePath)
 	if err != nil {
 		t.Fatal(err)

@@ -103,8 +103,8 @@
     },
     {
       "path": "kernels/x_science_host_bridge.py",
-      "sha256": "2a5681906d86f32741b468aa5b28583167d33ffd642c2853fbc11b2ac5ed1f98",
-      "bytes": 110999
+      "sha256": "9cdc5e2d027d3f5d38bd06a2c91ab97e0eb887c2d605910d05d4c40274431637",
+      "bytes": 112400
     },
     {
       "path": "kernels/x_science_runtime/__init__.py",

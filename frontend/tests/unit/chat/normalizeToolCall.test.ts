@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { normalizeToolMessages } from '@/common/chat/normalizeToolCall';
+import { buildToolProgressPublicPresentation } from '@/renderer/pages/conversation/Messages/components/toolProgressPresentation';
 
 describe('normalizeToolMessages', () => {
   it('does not splice a conflicting later input and detail reference onto an earlier terminal receipt', () => {
@@ -218,5 +219,135 @@ describe('normalizeToolMessages', () => {
         branchId: 'br_deadbeef',
       },
     ]);
+  });
+});
+
+describe('resource admission progress snapshots', () => {
+  const admission = () => ({
+    decisionAt: '2026-01-02T03:04:05Z',
+    reason: 'insufficient_capacity',
+    capacityAvailableBytes: 900,
+    unusedPromisedBytes: 600,
+    netAvailableBytes: 300,
+    requestedBytes: 400,
+    requiredBytes: 400,
+    reservedBytes: 0,
+    precedingWaiters: 0,
+  });
+  const message = (
+    id: string,
+    revision: number,
+    phase: string,
+    snapshot?: unknown,
+    branchId = 'br_00000001',
+    conversationId = 'resource-frame'
+  ) => ({
+    id,
+    conversation_id: conversationId,
+    type: 'tool_call',
+    content: {
+      call_id: 'resource-call',
+      name: 'bash',
+      status: 'running',
+      input: { purpose: 'synthetic resource observation' },
+      revision,
+      xScience: { branchId },
+      progress: {
+        phase,
+        message: 'private runtime/process detail must never become a public row',
+        indeterminate: true,
+        ...(snapshot === undefined ? {} : { resourceAdmission: snapshot }),
+      },
+    },
+  });
+  const normalize = (messages: unknown[]) =>
+    normalizeToolMessages(messages as Parameters<typeof normalizeToolMessages>[0]);
+
+  it('copies only the bounded resource DTO through the existing tool normalizer', () => {
+    const snapshot = { ...admission(), backendId: 'private-backend', path: '/private/runtime' };
+    const [tool] = normalize([message('first', 1, 'waiting_for_resources', snapshot)]);
+    expect(tool.progress?.resourceAdmission).toEqual(admission());
+    snapshot.netAvailableBytes = 1;
+    expect(tool.progress?.resourceAdmission?.netAvailableBytes).toBe(300);
+    const view = buildToolProgressPublicPresentation(tool.progress!, 'en-US');
+    expect(JSON.stringify(view)).not.toContain('private');
+    expect(view.rows).toContainEqual({ label: 'Admission snapshot (not live)', value: '2026-01-02 03:04:05 UTC' });
+    expect(view.rows).toContainEqual({ label: 'Required / unreserved at decision', value: '400 B / 300 B' });
+  });
+
+  it.each([
+    { name: 'unknown reason', invalid: { reason: 'start another computation' } },
+    { name: 'unsafe integer', invalid: { capacityAvailableBytes: Number.MAX_SAFE_INTEGER + 1 } },
+    { name: 'changed explicit demand', invalid: { requestedBytes: 401 } },
+    { name: 'inconsistent capacity', invalid: { netAvailableBytes: 500 } },
+    { name: 'invalid date', invalid: { decisionAt: '2026-02-31T03:04:05Z' } },
+  ])('omits $name without turning telemetry into execution state', ({ invalid }) => {
+    const [tool] = normalize([message('invalid', 1, 'waiting_for_resources', { ...admission(), ...invalid })]);
+    expect(tool.status).toBe('running');
+    expect(tool.progress?.phase).toBe('waiting_for_resources');
+    expect(tool.progress?.resourceAdmission).toBeUndefined();
+  });
+
+  it('retains one historical snapshot on same-phase heartbeats and clears it on phase or terminal changes', () => {
+    const first = message('first', 1, 'waiting_for_resources', admission());
+    const heartbeat = message('heartbeat', 2, 'waiting_for_resources');
+    expect(normalize([first, heartbeat])[0].progress?.resourceAdmission).toEqual(admission());
+    const granted = {
+      ...admission(),
+      decisionAt: '2026-01-02T03:04:06Z',
+      reason: 'admitted',
+      unusedPromisedBytes: 0,
+      netAvailableBytes: 900,
+      reservedBytes: 400,
+    };
+    const starting = message('starting', 3, 'starting', granted);
+    expect(normalize([first, heartbeat, starting])[0].progress?.resourceAdmission?.reason).toBe('admitted');
+    const executing = message('executing', 4, 'executing');
+    const [advanced] = normalize([
+      first,
+      heartbeat,
+      starting,
+      executing,
+      message('late', 2, 'waiting_for_resources', admission()),
+    ]);
+    expect(advanced.progress?.phase).toBe('executing');
+    expect(advanced.progress?.resourceAdmission).toBeUndefined();
+    const finished = message('finished', 5, 'operation_completed');
+    finished.content.status = 'completed';
+    expect(normalize([starting, finished])[0].progress?.resourceAdmission).toBeUndefined();
+    const terminalWithoutProgress = { ...finished, content: { ...finished.content, progress: undefined } };
+    const [settled] = normalize([terminalWithoutProgress, first]);
+    expect(settled.status).toBe('completed');
+    expect(settled.progress?.resourceAdmission).toBeUndefined();
+  });
+
+  it('does not inherit snapshot facts across the existing branch or conversation identity fences', () => {
+    const first = message('first', 1, 'waiting_for_resources', admission());
+    for (const other of [
+      message('other-branch', 2, 'waiting_for_resources', undefined, 'br_00000002'),
+      message('other-conversation', 2, 'waiting_for_resources', undefined, 'br_00000001', 'other-frame'),
+    ]) {
+      const tools = normalize([first, other]);
+      expect(tools).toHaveLength(2);
+      expect(tools[1].progress?.resourceAdmission).toBeUndefined();
+    }
+  });
+
+  it('uses localized existing detail rows and labels the decision time as a snapshot rather than live memory', () => {
+    const fairness = {
+      ...admission(),
+      reason: 'earlier_waiter',
+      unusedPromisedBytes: 0,
+      netAvailableBytes: 900,
+      precedingWaiters: 2,
+    };
+    const [tool] = normalize([message('fairness', 1, 'waiting_for_resources', fairness)]);
+    const english = buildToolProgressPublicPresentation(tool.progress!, 'en-US');
+    const chinese = buildToolProgressPublicPresentation(tool.progress!, 'zh-CN');
+    expect(english.rows).toContainEqual({ label: 'Admission decision', value: 'Behind 2 earlier request(s)' });
+    expect(chinese.rows).toContainEqual({ label: '准入决定', value: '等待前方 2 个请求' });
+    expect(chinese.rows).toContainEqual({ label: '当次准入快照（非实时）', value: '2026-01-02 03:04:05 UTC' });
+    const advanced = { ...tool.progress!, phase: 'executing' };
+    expect(JSON.stringify(buildToolProgressPublicPresentation(advanced, 'en-US'))).not.toContain('Admission snapshot');
   });
 });

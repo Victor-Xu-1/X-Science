@@ -3,8 +3,6 @@ package workspace
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"strings"
 )
@@ -32,7 +30,7 @@ func readLiteratureItem(ctx context.Context, query literatureItemQuery, owner, i
 	if err != nil {
 		return item, err
 	}
-	if err = json.Unmarshal([]byte(raw), &item.Metadata); err != nil {
+	if item.Metadata, err = decodeLiteratureMetadataObject(raw); err != nil {
 		return item, err
 	}
 	item.Deleted = deleted.Valid
@@ -79,57 +77,9 @@ func readLiteratureItem(ctx context.Context, query literatureItemQuery, owner, i
 	return item, rows.Err()
 }
 
-// Cursor binds the query and optional membership scope, not only a row offset.
-type literatureCursor struct{ After, Query, Project, Owner string }
-
+// The original entry keeps unscoped cursor compatibility and the same item DTO.
 func (s *Store) ListLiteratureItems(ctx context.Context, owner, query, project, cursor string, limit int) (LiteraturePage, error) {
-	page := LiteraturePage{Schema: "x-science.literature-page.v1", Items: []LiteratureItem{}}
-	if !validLiteratureID(owner) || len(query) > 512 || limit < 1 || limit > 100 || len(cursor) > 4096 {
-		return page, ErrLiteratureInvalid
-	}
-	bound := literatureCursor{Query: query, Project: project, Owner: owner}
-	if cursor != "" {
-		raw, err := base64.RawURLEncoding.DecodeString(cursor)
-		if err != nil || json.Unmarshal(raw, &bound) != nil || bound.Query != query || bound.Project != project || bound.Owner != owner {
-			return page, ErrLiteratureInvalid
-		}
-	}
-	rows, err := s.readDatabase().QueryContext(ctx, `SELECT i.id FROM literature_items i WHERE i.owner_user_id=? AND i.deleted_at IS NULL AND i.id>?
-	 AND (?='' OR instr(lower(i.title),lower(?))>0) AND (?='' OR EXISTS(SELECT 1 FROM project_literature p JOIN projects project ON project.id=p.project_id WHERE p.item_id=i.id AND p.project_id=? AND project.user_id=?)) ORDER BY i.id LIMIT ?`, owner, bound.After, query, query, project, project, owner, limit+1)
-	if err != nil {
-		return page, err
-	}
-	ids := []string{}
-	for rows.Next() {
-		var id string
-		if err = rows.Scan(&id); err != nil {
-			break
-		}
-		ids = append(ids, id)
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	_ = rows.Close()
-	if err != nil {
-		return page, err
-	}
-	if len(ids) > limit {
-		ids = ids[:limit]
-		bound.After = ids[len(ids)-1]
-		raw, _ := json.Marshal(bound)
-		page.NextCursor = base64.RawURLEncoding.EncodeToString(raw)
-	}
-	for _, id := range ids {
-		item, err := s.GetLiteratureItem(ctx, owner, id)
-		if err != nil {
-			return page, err
-		}
-		if !item.Deleted {
-			page.Items = append(page.Items, item)
-		}
-	}
-	return page, nil
+	return s.ListLiteratureItemsInCollection(ctx, owner, query, project, "", cursor, limit)
 }
 
 func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input LiteraturePatch) (LiteratureReceipt, error) {
@@ -141,21 +91,24 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 	if err != nil {
 		return receipt, err
 	}
+	input = snapshotLiteraturePatchFields(input)
+	fields, frozenPatch, err := normalizeLiteratureMetadataPatch(input.MetadataPatch)
+	if err != nil || fields != nil && (input.Metadata != nil || input.Deleted != nil) {
+		return receipt, ErrLiteratureInvalid
+	}
+	input.MetadataPatch = frozenPatch
 	if input.Title != nil && (strings.TrimSpace(*input.Title) == "" || len(*input.Title) > 4096) {
 		return receipt, ErrLiteratureInvalid
 	}
-	hash, err := mutationRequestHash(struct {
-		ID    string
-		Input LiteraturePatch
-	}{id, input})
+	identity, err := literaturePatchRequestIdentity(id, input, metadata)
 	if err != nil {
 		return receipt, err
 	}
-	if found, err := s.lookupMutationResult(ctx, owner, input.OperationID, "literature.patch", hash, &receipt); err != nil || found {
+	if found, err := s.lookupLiteratureMutationResult(ctx, owner, input.OperationID, "literature.patch", identity, &receipt); err != nil || found {
 		return receipt, err
 	}
 	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		found, err := lookupMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", hash, &receipt)
+		found, err := lookupLiteratureMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", identity, &receipt)
 		if err != nil || found {
 			return err
 		}
@@ -178,6 +131,12 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 		if input.Metadata != nil {
 			raw = metadata
 		}
+		if fields != nil {
+			raw, err = mergeLiteratureMetadataFields(raw, fields)
+			if err != nil {
+				return err
+			}
+		}
 		if input.Deleted != nil {
 			deleted = sql.NullString{String: s.now().UTC().Format("2006-01-02T15:04:05.999999999Z07:00"), Valid: *input.Deleted}
 		}
@@ -190,7 +149,7 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 			return err
 		}
 		receipt = LiteratureReceipt{Schema: "x-science.literature-receipt.v1", OperationID: input.OperationID, Item: item}
-		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", hash, receipt, s.now().UTC())
+		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.patch", identity.requestHash(), receipt, s.now().UTC())
 	})
 	if err != nil {
 		return receipt, err

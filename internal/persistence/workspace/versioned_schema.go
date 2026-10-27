@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const workspaceSchemaVersion = 81
+const workspaceSchemaVersion = 84
 
 type SchemaMigrationRecord struct {
 	Version       int       `json:"version"`
@@ -58,7 +58,7 @@ type versionedSchemaMigration struct {
 	identityV2 *schemaMigrationIdentityV2
 }
 
-var workspaceSchemaMigrations = append(workspaceSchemaMigrationsThroughV79, literatureV80Migration, memoryExtractionV81Migration)
+var workspaceSchemaMigrations = append(workspaceSchemaMigrationsThroughV79, literatureV80Migration, memoryExtractionV81Migration, memoryExtractionCadenceV82Migration, literatureMutationIdentityV83Migration, literatureCollectionsV84Migration)
 
 var workspaceSchemaMigrationsThroughV79 = append(append([]versionedSchemaMigration{
 	{
@@ -108,7 +108,7 @@ func schemaMigrationNeedsDedicatedConnection(migration versionedSchemaMigration)
 	}
 }
 
-func prepareSchemaJournal(ctx context.Context, executor schemaMigrationExecutor) error {
+func prepareSchemaJournal(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	if executor == nil {
 		return errors.New("workspace schema migration executor is required")
 	}
@@ -135,6 +135,56 @@ func applyVersionedSchemaMigrations(ctx context.Context, executor schemaMigratio
 }
 
 func applyVersionedSchemaMigrationsThrough(ctx context.Context, executor schemaMigrationExecutor, now func() time.Time, targetVersion int) error {
+	return walkPendingSchemaMigrations(ctx, executor, targetVersion, func(migration versionedSchemaMigration, checksum string) error {
+		migrationExecutor := executor
+		var dedicatedConnection *sql.Conn
+		var err error
+		if schemaMigrationNeedsDedicatedConnection(migration) {
+			if database, ok := executor.(*sql.DB); ok {
+				dedicatedConnection, err = database.Conn(ctx)
+				if err != nil {
+					return fmt.Errorf("acquire dedicated workspace schema migration %d connection: %w", migration.version, err)
+				}
+				migrationExecutor = dedicatedConnection
+			}
+		}
+		if err := runSchemaMigrationPreflight(ctx, migrationExecutor, migration); err != nil {
+			if dedicatedConnection != nil {
+				_ = dedicatedConnection.Close()
+			}
+			return fmt.Errorf("preflight workspace schema migration %d: %w", migration.version, err)
+		}
+		if err := applyVersionedSchemaMigration(ctx, migrationExecutor, now, migration, checksum); err != nil {
+			if dedicatedConnection != nil {
+				_ = dedicatedConnection.Close()
+			}
+			return err
+		}
+		if dedicatedConnection != nil {
+			if err := dedicatedConnection.Close(); err != nil {
+				return fmt.Errorf("release dedicated workspace schema migration %d connection: %w", migration.version, err)
+			}
+		}
+		return nil
+	})
+}
+
+func applyVersionedSchemaMigrationsInTx(ctx context.Context, tx *sql.Tx, now func() time.Time, targetVersion int) error {
+	return walkPendingSchemaMigrations(ctx, tx, targetVersion, func(migration versionedSchemaMigration, checksum string) error {
+		if err := runSchemaMigrationPreflight(ctx, tx, migration); err != nil {
+			return fmt.Errorf("preflight workspace schema migration %d: %w", migration.version, err)
+		}
+		if err := applyVersionedSchemaMigrationBody(ctx, tx, now, migration, checksum); err != nil {
+			return err
+		}
+		if schemaMigrationNeedsDedicatedConnection(migration) {
+			return requireMigrationForeignKeys(ctx, tx)
+		}
+		return nil
+	})
+}
+
+func walkPendingSchemaMigrations(ctx context.Context, executor schemaMigrationQueryExecutor, targetVersion int, apply func(versionedSchemaMigration, string) error) error {
 	if err := validateSchemaMigrationIdentityRegistry(workspaceSchemaMigrations); err != nil {
 		return fmt.Errorf("validate workspace schema migration registry: %w", err)
 	}
@@ -163,39 +213,14 @@ func applyVersionedSchemaMigrationsThrough(ctx context.Context, executor schemaM
 		case !errors.Is(err, sql.ErrNoRows):
 			return fmt.Errorf("read workspace schema migration %d: %w", migration.version, err)
 		}
-		migrationExecutor := executor
-		var dedicatedConnection *sql.Conn
-		if schemaMigrationNeedsDedicatedConnection(migration) {
-			if database, ok := executor.(*sql.DB); ok {
-				dedicatedConnection, err = database.Conn(ctx)
-				if err != nil {
-					return fmt.Errorf("acquire dedicated workspace schema migration %d connection: %w", migration.version, err)
-				}
-				migrationExecutor = dedicatedConnection
-			}
-		}
-		if err := runSchemaMigrationPreflight(ctx, migrationExecutor, migration); err != nil {
-			if dedicatedConnection != nil {
-				_ = dedicatedConnection.Close()
-			}
-			return fmt.Errorf("preflight workspace schema migration %d: %w", migration.version, err)
-		}
-		if err := applyVersionedSchemaMigration(ctx, migrationExecutor, now, migration, checksum); err != nil {
-			if dedicatedConnection != nil {
-				_ = dedicatedConnection.Close()
-			}
+		if err := apply(migration, checksum); err != nil {
 			return err
-		}
-		if dedicatedConnection != nil {
-			if err := dedicatedConnection.Close(); err != nil {
-				return fmt.Errorf("release dedicated workspace schema migration %d connection: %w", migration.version, err)
-			}
 		}
 	}
 	return nil
 }
 
-func validateVersionedSchemaJournal(ctx context.Context, executor schemaMigrationExecutor, targetVersion int) error {
+func validateVersionedSchemaJournal(ctx context.Context, executor schemaMigrationQueryExecutor, targetVersion int) error {
 	rows, err := executor.QueryContext(ctx, `SELECT version, name, checksum FROM workspace_schema_migrations ORDER BY version`)
 	if err != nil {
 		return fmt.Errorf("validate workspace schema journal: %w", err)
@@ -275,6 +300,16 @@ func applyVersionedSchemaMigration(ctx context.Context, executor schemaMigration
 		return fmt.Errorf("begin workspace schema migration %d: %w", migration.version, err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := applyVersionedSchemaMigrationBody(ctx, tx, now, migration, checksum); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit workspace schema migration %d: %w", migration.version, err)
+	}
+	return nil
+}
+
+func applyVersionedSchemaMigrationBody(ctx context.Context, tx *sql.Tx, now func() time.Time, migration versionedSchemaMigration, checksum string) error {
 	if migration.version == 5 {
 		if _, err := tx.ExecContext(ctx, legacyMemoryCategoryAssignmentsDDL); err != nil {
 			return fmt.Errorf("prepare workspace schema migration %d: %w", migration.version, err)
@@ -309,9 +344,6 @@ func applyVersionedSchemaMigration(ctx context.Context, executor schemaMigration
 	if _, err := tx.ExecContext(ctx, `INSERT INTO workspace_schema_migrations (version, name, checksum, applied_at) VALUES (?, ?, ?, ?)`,
 		migration.version, migration.name, checksum, now().UTC()); err != nil {
 		return fmt.Errorf("record workspace schema migration %d: %w", migration.version, err)
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit workspace schema migration %d: %w", migration.version, err)
 	}
 	return nil
 }

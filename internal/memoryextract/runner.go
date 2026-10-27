@@ -58,6 +58,8 @@ func ConfigFromMemoryConfig(source memoryconfig.Config) Config {
 }
 
 type RunInput struct {
+	DeliveryClaim     *workspace.MemoryExtractionDeliveryClaim
+	CadenceDecision   *workspace.MemoryExtractionCadence
 	Scope             ApplyScope
 	AsideParent       bool
 	SessionMemoryMode string
@@ -67,21 +69,28 @@ type RunInput struct {
 	RecalledBodies    []string
 	Config            Config
 	// Source and CommitGuard are host-captured authority, never model output.
-	Source      *workspace.CompletedExtractionSource
-	CommitGuard func(context.Context, func() error) error
+	Source       *workspace.CompletedExtractionSource
+	ModeDecision *workspace.MemoryExtractionModeDecision
+	CommitGuard  func(context.Context, func(workspace.LegacyExtractionOrderCheck) error) error `json:"-"`
+	// CoveredPrefix derives examined selected history from original receipts.
+	// It is host-captured, read-only and never replaces the stored cursor CAS.
+	CoveredPrefix func(context.Context) (int, error) `json:"-"`
 }
 
 type RunResult struct {
-	Gate           string
-	CursorBefore   int
-	CursorAfter    int
-	CursorAdvanced bool
-	CursorError    string
-	ExtractorError string
-	Overshoot      bool
-	DeltaCount     int
-	Applied        ApplyResult
-	Replayed       bool
+	DeliverySettled bool
+	ExtractorCause  error `json:"-"`
+	Gate            string
+	ModeDecision    *workspace.MemoryExtractionModeDecision `json:",omitempty"`
+	CursorBefore    int
+	CursorAfter     int
+	CursorAdvanced  bool
+	CursorError     string
+	ExtractorError  string
+	Overshoot       bool
+	DeltaCount      int
+	Applied         ApplyResult
+	Replayed        bool
 }
 
 type Runner struct {
@@ -138,6 +147,9 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		return result, nil
 	}
 	config := normalizeConfig(input.Config)
+	if input.ModeDecision != nil && (input.Source == nil || input.ModeDecision.Validate(*input.Source) != nil || input.ModeDecision.EffectiveMode != config.ExtractMode) {
+		return result, workspace.ErrExtractionPlanConflict
+	}
 	enabled, err := r.store.MemoryEnabledWithDefault(ctx, input.Scope.UserID, config.Enabled)
 	if err != nil {
 		return result, err
@@ -173,8 +185,20 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 	result.CursorAfter = cursor
 	result.Overshoot = config.ExtractDelta && cursor > len(input.Messages)
 	start := 0
-	if config.ExtractDelta && !result.Overshoot {
-		start = cursor
+	if config.ExtractDelta && input.CoveredPrefix != nil {
+		start, err = input.CoveredPrefix(ctx)
+		if err != nil {
+			result.Gate = "coverage-failed"
+			return result, err
+		}
+		if start < 0 || start > len(input.Messages) {
+			result.Gate = "coverage-failed"
+			return result, workspace.ErrExtractionPlanConflict
+		}
+		if err := validateExtractionCoverageBinding(ctx, input, start); err != nil {
+			result.Gate = "coverage-failed"
+			return result, err
+		}
 	}
 	delta := input.Messages[start:]
 	result.DeltaCount = len(delta)
@@ -195,7 +219,7 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		result.Gate = "skipped-source"
 		return result, workspace.ErrExtractionSourceChanged
 	}
-	if config.ExtractEveryN > 1 && !r.cadencePass(input.Scope.ProjectID, config.ExtractEveryN) {
+	if input.CadenceDecision != nil && !input.CadenceDecision.Eligible || input.CadenceDecision == nil && config.ExtractEveryN > 1 && !r.cadencePass(input.Scope.ProjectID, config.ExtractEveryN) {
 		result.Gate = "cadence"
 		return result, nil
 	}
@@ -242,6 +266,7 @@ func (r *Runner) Run(ctx context.Context, input RunInput) (RunResult, error) {
 		// Extraction is best-effort background work:
 		// preserve diagnostics and the cursor, but never fail the user turn.
 		result.ExtractorError = err.Error()
+		result.ExtractorCause = err
 		return result, nil
 	}
 	operations := ParseEmitted(raw, KnownMutableManifestIDs(manifest), config.ExtractMax)

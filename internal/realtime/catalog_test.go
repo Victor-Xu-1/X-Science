@@ -26,7 +26,7 @@ func TestXScienceWebRealtimeExtensionsRemainSeparateFromRecoveredBaseline(t *tes
 	extensions := ExtensionEventSpecs()
 	wantExtensions := []string{
 		"confirmation.add", "confirmation.remove", "confirmation.update", "conversation.historyRebased",
-		"conversation.listChanged", "message.stream", "message.userCreated", "runtime.statusChanged", "turn.completed",
+		"conversation.listChanged", "message.stream", "message.userCreated", "runtime.statusChanged", "skills.catalog.changed", "turn.completed",
 	}
 	if len(extensions) != len(wantExtensions) {
 		t.Fatalf("web realtime extension count=%d want=%d: %#v", len(extensions), len(wantExtensions), extensions)
@@ -34,6 +34,14 @@ func TestXScienceWebRealtimeExtensionsRemainSeparateFromRecoveredBaseline(t *tes
 	for index, name := range wantExtensions {
 		if extensions[index].Name != name {
 			t.Fatalf("web realtime extension[%d]=%#v want %q", index, extensions[index], name)
+		}
+		if name == "skills.catalog.changed" {
+			want := EventSpec{Name: name, Kind: DeliveryFanout, Via: "raw", Owner: "skill-catalog"}
+			spec, found := LookupEvent(name)
+			if !found || !reflect.DeepEqual(spec, want) || !reflect.DeepEqual(extensions[index], want) {
+				t.Fatalf("skill catalog extension=%#v lookup=%#v found=%v want %#v", extensions[index], spec, found, want)
+			}
+			continue
 		}
 		if name == "conversation.historyRebased" {
 			if extensions[index].Owner != "transcript-history" || extensions[index].Kind != DeliveryInvalidate {

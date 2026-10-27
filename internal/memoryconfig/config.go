@@ -12,32 +12,33 @@ import (
 )
 
 type Config struct {
-	Enabled                    bool    `json:"enabled"`
-	PIClassifierEnabled        bool    `json:"pi_classifier_enabled"`
-	ExtractEnabled             bool    `json:"extract_enabled"`
-	ExtractMode                string  `json:"extract_mode"`
-	ExtractEveryN              int     `json:"extract_every_n"`
-	ExtractMaxPerRun           int     `json:"extract_max_per_run"`
-	ExtractDelta               bool    `json:"extract_delta"`
-	ContextInSystemPrompt      bool    `json:"context_in_system_prompt"`
-	ListingMaxEntities         int     `json:"listing_max_entities"`
-	ProfileMaxRows             int     `json:"profile_max_rows"`
-	FrameMaxRows               int     `json:"frame_max_rows"`
-	RecallRRFThreshold         float64 `json:"recall_rrf_threshold"`
-	RecallInjectMax            int     `json:"recall_inject_max"`
-	RecallProjectBoost         float64 `json:"recall_project_boost"`
-	RecallCrossProjectRankMax  int     `json:"recall_xproj_rank_max"`
-	RecallCrossProjectMax      int     `json:"recall_xproj_max"`
-	RecallProfileMax           int     `json:"recall_profile_max"`
-	RecallReserveMax           int     `json:"recall_reserve_max"`
-	RecallSpawnQueryMaxTokens  int     `json:"recall_spawn_query_max_tokens"`
-	RecallSpawnQueryDFMaxRatio float64 `json:"recall_spawn_query_df_max_ratio"`
-	SearchToolMax              int     `json:"search_tool_max"`
-	SearchToolRRFThreshold     float64 `json:"search_tool_rrf_threshold"`
-	ReadToolMax                int     `json:"read_tool_max"`
-	DedupWarnThreshold         float64 `json:"dedup_warn_threshold"`
-	StaleAgeDays               int     `json:"stale_age_days"`
-	StaleRankDecay             float64 `json:"stale_rank_decay"`
+	Enabled                    bool               `json:"enabled"`
+	PIClassifierEnabled        bool               `json:"pi_classifier_enabled"`
+	ExtractEnabled             bool               `json:"extract_enabled"`
+	ExtractMode                string             `json:"extract_mode"`
+	ForkedViewRecovery         ForkedViewRecovery `json:"forked_view_recovery"`
+	ExtractEveryN              int                `json:"extract_every_n"`
+	ExtractMaxPerRun           int                `json:"extract_max_per_run"`
+	ExtractDelta               bool               `json:"extract_delta"`
+	ContextInSystemPrompt      bool               `json:"context_in_system_prompt"`
+	ListingMaxEntities         int                `json:"listing_max_entities"`
+	ProfileMaxRows             int                `json:"profile_max_rows"`
+	FrameMaxRows               int                `json:"frame_max_rows"`
+	RecallRRFThreshold         float64            `json:"recall_rrf_threshold"`
+	RecallInjectMax            int                `json:"recall_inject_max"`
+	RecallProjectBoost         float64            `json:"recall_project_boost"`
+	RecallCrossProjectRankMax  int                `json:"recall_xproj_rank_max"`
+	RecallCrossProjectMax      int                `json:"recall_xproj_max"`
+	RecallProfileMax           int                `json:"recall_profile_max"`
+	RecallReserveMax           int                `json:"recall_reserve_max"`
+	RecallSpawnQueryMaxTokens  int                `json:"recall_spawn_query_max_tokens"`
+	RecallSpawnQueryDFMaxRatio float64            `json:"recall_spawn_query_df_max_ratio"`
+	SearchToolMax              int                `json:"search_tool_max"`
+	SearchToolRRFThreshold     float64            `json:"search_tool_rrf_threshold"`
+	ReadToolMax                int                `json:"read_tool_max"`
+	DedupWarnThreshold         float64            `json:"dedup_warn_threshold"`
+	StaleAgeDays               int                `json:"stale_age_days"`
+	StaleRankDecay             float64            `json:"stale_rank_decay"`
 }
 
 func Default() Config {
@@ -46,6 +47,7 @@ func Default() Config {
 		PIClassifierEnabled:        memorypolicy.PIClassifierEnabledDefault,
 		ExtractEnabled:             memorypolicy.ExtractEnabledDefault,
 		ExtractMode:                memorypolicy.ExtractModeDefault,
+		ForkedViewRecovery:         ForkedViewRecoveryCompact,
 		ExtractEveryN:              memorypolicy.ExtractEveryNDefault,
 		ExtractMaxPerRun:           memorypolicy.ExtractMaxPerRun,
 		ExtractDelta:               memorypolicy.ExtractDeltaDefault,
@@ -72,6 +74,9 @@ func Default() Config {
 }
 
 func (config Config) Validate() error {
+	if !config.ForkedViewRecovery.Effective().Valid() {
+		return errors.New("memory.forked_view_recovery must be strict or compact-on-oversize")
+	}
 	if config.ExtractMode != "forked" && config.ExtractMode != "haiku" {
 		return fmt.Errorf("memory.extract_mode must be forked or haiku, got %q", config.ExtractMode)
 	}
@@ -121,6 +126,8 @@ func (config *Config) UnmarshalJSON(data []byte) error {
 		}
 	}
 	next := Default()
+	// Missing policy in a persisted configuration is not consent to recovery.
+	next.ForkedViewRecovery = ForkedViewRecoveryStrict
 	type plainConfig Config
 	if err := json.Unmarshal(data, (*plainConfig)(&next)); err != nil {
 		return fmt.Errorf("decode memory config fields: %w", err)
@@ -133,7 +140,7 @@ func (config *Config) UnmarshalJSON(data []byte) error {
 }
 
 var memoryConfigFieldNames = map[string]struct{}{
-	"enabled": {}, "pi_classifier_enabled": {}, "extract_enabled": {}, "extract_mode": {},
+	"enabled": {}, "pi_classifier_enabled": {}, "extract_enabled": {}, "extract_mode": {}, "forked_view_recovery": {},
 	"extract_every_n": {}, "extract_max_per_run": {}, "extract_delta": {}, "context_in_system_prompt": {},
 	"listing_max_entities": {}, "profile_max_rows": {}, "frame_max_rows": {}, "recall_rrf_threshold": {},
 	"recall_inject_max": {}, "recall_project_boost": {}, "recall_xproj_rank_max": {}, "recall_xproj_max": {},

@@ -23,6 +23,10 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 		return ExtractionCommitResult{}, err
 	}
 	input.Source = identity.source
+	input.ModeDecision = input.ModeDecision.Clone()
+	if err := input.ModeDecision.Validate(input.Source); err != nil {
+		return ExtractionCommitResult{}, err
+	}
 	input.InputSHA256 = normalizedExtractionDigest(input.InputSHA256)
 	if input.InputSHA256 == "" || input.CursorBefore < 0 || input.CursorNext < 0 || input.DeltaCount < 0 ||
 		input.Gate == "" || input.Gate != strings.TrimSpace(input.Gate) || len(input.Gate) > 64 ||
@@ -56,7 +60,22 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			}
 			result = saved.result
 			result.Replayed = true
+			if input.DeliveryClaim != nil {
+				return settleMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key, "")
+			}
 			return nil
+		}
+		if input.DeliveryClaim != nil {
+			if err := requireMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key); err != nil {
+				return err
+			}
+			var cancelled bool
+			if err := tx.QueryRowContext(ctx, `SELECT status IN ('cancelled','canceled') FROM frames WHERE id=?`, input.Source.FrameID).Scan(&cancelled); err != nil {
+				return err
+			}
+			if cancelled {
+				return ErrExtractionSourceChanged
+			}
 		}
 		if err := requireFreshExtractionSourceTx(ctx, tx, identity); err != nil {
 			return err
@@ -68,8 +87,8 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 		if cursor != input.CursorBefore {
 			return ErrExtractionCursorChanged
 		}
-		if input.Overshoot {
-			if err := fenceExtractionOvershootTx(ctx, tx, identity); err != nil {
+		if input.AdvanceCursor || input.Overshoot {
+			if err := fenceExtractionSourceOrderTx(ctx, tx, identity, input.LegacyOrderCheck); err != nil {
 				return err
 			}
 		}
@@ -78,7 +97,8 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			return err
 		}
 		result = ExtractionCommitResult{
-			InputSHA256: input.InputSHA256, Gate: input.Gate, CursorBefore: cursor, CursorAfter: cursor,
+			ModeDecision: input.ModeDecision.Clone(),
+			InputSHA256:  input.InputSHA256, Gate: input.Gate, CursorBefore: cursor, CursorAfter: cursor,
 			Overshoot: input.Overshoot, DeltaCount: input.DeltaCount, Applied: applied,
 		}
 		if input.AdvanceCursor && input.CursorNext != cursor {
@@ -87,10 +107,20 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			}
 			result.CursorAfter, result.CursorAdvanced = input.CursorNext, true
 		}
-		return s.insertExtractionReceiptTx(ctx, tx, identity, input.InputSHA256, planDigest, result)
+		if err := s.insertExtractionReceiptTx(ctx, tx, identity, input.InputSHA256, planDigest, result); err != nil {
+			return err
+		}
+		if input.DeliveryClaim != nil {
+			return settleMemoryExtractionClaimTx(ctx, tx, *input.DeliveryClaim, identity.key, "")
+		}
+		return nil
 	})
 	if err != nil {
 		return ExtractionCommitResult{}, err
+	}
+	result.DeliverySettled = input.DeliveryClaim != nil
+	if result.DeliverySettled {
+		s.signalOutboxWake()
 	}
 	return result, nil
 }

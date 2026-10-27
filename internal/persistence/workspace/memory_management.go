@@ -10,8 +10,6 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -163,92 +161,6 @@ func (s *Store) ListMemoryCategories(ctx context.Context, userID string) ([]Memo
 		return nil, errors.New("workspace store is closed")
 	}
 	return s.listMemoryCategories(ctx, strings.TrimSpace(userID))
-}
-
-func (s *Store) CreateMemoryCategory(ctx context.Context, userID, name, guidance string, autoRecall bool) (MemoryCategory, error) {
-	if s == nil || s.db == nil {
-		return MemoryCategory{}, errors.New("workspace store is closed")
-	}
-	userID = strings.TrimSpace(userID)
-	name, guidance, err := normalizeMemoryCategory(name, guidance)
-	if err != nil {
-		return MemoryCategory{}, err
-	}
-	var category MemoryCategory
-	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		var count int
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM memory_categories WHERE user_id = ?`, userID).Scan(&count); err != nil {
-			return fmt.Errorf("count memory categories: %w", err)
-		}
-		if count >= maxMemoryCategoriesPerUser {
-			return fmt.Errorf("category limit reached (%d)", maxMemoryCategoriesPerUser)
-		}
-		now := s.now().UTC()
-		category = MemoryCategory{
-			ID: "memcat_" + strings.ReplaceAll(uuid.NewString(), "-", "")[:12], UserID: userID,
-			Name: name, Guidance: guidance, AutoRecall: autoRecall, CreatedAt: now, UpdatedAt: now,
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO memory_categories
-			(id, user_id, name, name_lower, guidance, auto_recall, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, category.ID, userID, name, strings.ToLower(name), guidance, autoRecall, now, now); err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "unique") {
-				return fmt.Errorf("a category named %q already exists", name)
-			}
-			return fmt.Errorf("insert memory category: %w", err)
-		}
-		return nil
-	})
-	return category, err
-}
-
-func (s *Store) UpdateMemoryCategory(ctx context.Context, userID, categoryID string, input UpdateMemoryCategoryInput) (MemoryCategory, error) {
-	if s == nil || s.db == nil {
-		return MemoryCategory{}, errors.New("workspace store is closed")
-	}
-	if input.Name == nil && input.Guidance == nil && input.AutoRecall == nil {
-		return MemoryCategory{}, errors.New("at least one category field is required")
-	}
-	var updated MemoryCategory
-	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		var current MemoryCategory
-		err := tx.QueryRowContext(ctx, `SELECT id, user_id, name, guidance, auto_recall, created_at, updated_at
-			FROM memory_categories WHERE id = ? AND user_id = ?`, strings.TrimSpace(categoryID), strings.TrimSpace(userID)).Scan(
-			&current.ID, &current.UserID, &current.Name, &current.Guidance, &current.AutoRecall, &current.CreatedAt, &current.UpdatedAt)
-		if err != nil {
-			return err
-		}
-		name, guidance := current.Name, current.Guidance
-		if input.Name != nil {
-			name = *input.Name
-		}
-		if input.Guidance != nil {
-			guidance = *input.Guidance
-		}
-		name, guidance, err = normalizeMemoryCategory(name, guidance)
-		if err != nil {
-			return err
-		}
-		autoRecall := current.AutoRecall
-		if input.AutoRecall != nil {
-			autoRecall = *input.AutoRecall
-		}
-		now := s.now().UTC()
-		if _, err := tx.ExecContext(ctx, `UPDATE memory_categories SET name = ?, name_lower = ?, guidance = ?, auto_recall = ?, updated_at = ?
-			WHERE id = ? AND user_id = ?`, name, strings.ToLower(name), guidance, autoRecall, now, current.ID, current.UserID); err != nil {
-			if strings.Contains(strings.ToLower(err.Error()), "unique") {
-				return fmt.Errorf("a category named %q already exists", name)
-			}
-			return fmt.Errorf("update memory category: %w", err)
-		}
-		updated = current
-		updated.Name, updated.Guidance, updated.AutoRecall, updated.UpdatedAt = name, guidance, autoRecall, now
-		updated.RowCount, err = countMemoryCategoryRowsTx(ctx, tx, current.ID, current.UserID)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return updated, err
 }
 
 func (s *Store) DeleteMemoryCategory(ctx context.Context, userID, categoryID string, deleteFacts bool) (DeleteMemoryCategoryResult, error) {

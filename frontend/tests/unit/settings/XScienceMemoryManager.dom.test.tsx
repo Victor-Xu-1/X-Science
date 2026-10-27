@@ -1,149 +1,11 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { XScienceMemoryManager } from '@/renderer/pages/settings/components/XScienceMemoryManager';
 import { renderWithI18n } from '../i18nTestUtils';
-
-const memoryContext = {
-  entities: [
-    {
-      entity_key: 'profile',
-      label: '关于你',
-      project_id: null,
-      rows: [
-        {
-          id: 'mem_profile',
-          body: '关注肿瘤免疫研究',
-          categoryId: null,
-          origin: 'user',
-          evidence: 'stated',
-          createdAt: '2026-07-10T00:00:00.000Z',
-          updatedAt: '2026-07-10T00:00:00.000Z',
-        },
-      ],
-    },
-    {
-      entity_key: 'project:proj_a',
-      label: 'CRBN 项目',
-      project_id: 'proj_a',
-      rows: [
-        {
-          id: 'mem_project',
-          body: '项目采用 CRBN 数据集',
-          categoryId: 'memcat_1',
-          origin: 'assistant',
-          evidence: 'inferred',
-          createdAt: '2026-07-10T01:00:00.000Z',
-          updatedAt: '2026-07-10T01:00:00.000Z',
-        },
-      ],
-    },
-  ],
-  sessions: [
-    {
-      frame_id: 'frame_1',
-      project_id: 'proj_a',
-      label: 'CRBN 结构分析',
-      row_count: 1,
-      newest_at: '2026-07-10T02:00:00.000Z',
-    },
-  ],
-  categories: [
-    {
-      id: 'memcat_1',
-      name: '研究偏好',
-      guidance: '用于研究规划',
-      auto_recall: true,
-      row_count: 1,
-    },
-  ],
-  memory_enabled: false,
-  total_user_rows: 2,
-};
-
-const projectMemoryContext = {
-  ...memoryContext,
-  entities: [memoryContext.entities[1]],
-  total_user_rows: 1,
-};
-
-const projectCatalog = {
-  projects: [
-    {
-      project_id: 'proj_a',
-      name: 'CRBN 项目',
-      description: 'CRBN 结构分析与设计规则',
-      context: null,
-      conversation_count: 1,
-      artifact_count: 0,
-      created_at: '2026-07-10T00:00:00.000Z',
-      updated_at: '2026-07-10T00:00:00.000Z',
-      last_active_at: '2026-07-10T00:00:00.000Z',
-    },
-  ],
-};
-
-function createFetchMock(options: { failEnable?: boolean } = {}) {
-  const observed: Array<{ url: string; method: string; body?: unknown }> = [];
-  const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-    const method = init?.method ?? 'GET';
-    observed.push({
-      url,
-      method,
-      body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
-    });
-    if (url === '/api/projects' && method === 'GET') return Response.json(projectCatalog);
-    if (url === '/api/memory/context' && method === 'GET') return Response.json(memoryContext);
-    if (url === '/api/memory/context?project_id=proj_a' && method === 'GET') {
-      return Response.json(projectMemoryContext);
-    }
-    if (url === '/api/memory/enabled' && method === 'GET') return Response.json({ enabled: false });
-    if (url === '/api/memory/enabled' && method === 'PUT' && options.failEnable) {
-      return Response.json({ error: 'memory unavailable' }, { status: 503 });
-    }
-    if (url === '/api/memory/sessions/frame_1' && method === 'GET') {
-      return Response.json({
-        rows: [
-          {
-            id: 'mem_session',
-            body: '会话使用 CRBN 结构数据',
-            origin: 'assistant',
-            evidence: 'inferred',
-            createdAt: '2026-07-10T02:00:00.000Z',
-            updatedAt: '2026-07-10T02:00:00.000Z',
-          },
-        ],
-      });
-    }
-    if (url === '/api/memories' && method === 'POST') {
-      return Response.json({
-        id: 'mem_created',
-        body: '新的研究偏好',
-        origin: 'user',
-        evidence: 'stated',
-        createdAt: '2026-07-10T03:00:00.000Z',
-        updatedAt: '2026-07-10T03:00:00.000Z',
-      });
-    }
-    if (url === '/api/memory/categories' && method === 'POST') {
-      const body = typeof init?.body === 'string' ? JSON.parse(init.body) : {};
-      return Response.json(
-        {
-          id: 'memcat_created',
-          name: body.name,
-          guidance: body.guidance,
-          auto_recall: body.auto_recall,
-          row_count: 0,
-        },
-        { status: 201 }
-      );
-    }
-    return new Response(null, { status: 204 });
-  });
-  return { fetchMock, observed };
-}
+import { createFetchMock, memoryContext, projectMemoryContext, projectCatalog } from './memoryManagerFixtures';
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
 async function chooseMemoryScope(value: string) {
   const select = await screen.findByTestId('memory-scope-select');
@@ -180,13 +42,15 @@ async function waitForProjectLayer() {
 
 describe('XScienceMemoryManager', () => {
   beforeEach(() => {
+    setRendererAccountOwner('memory-component-fixture');
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.spyOn(Message, 'success').mockReturnValue({ close: () => undefined });
-    vi.spyOn(Message, 'warning').mockReturnValue({ close: () => undefined });
-    vi.spyOn(Message, 'error').mockReturnValue({ close: () => undefined });
+    vi.spyOn(Message, 'success').mockReturnValue((): void => undefined);
+    vi.spyOn(Message, 'warning').mockReturnValue((): void => undefined);
+    vi.spyOn(Message, 'error').mockReturnValue((): void => undefined);
   });
 
   afterEach(() => {
+    setRendererAccountOwner(null);
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
@@ -198,6 +62,7 @@ describe('XScienceMemoryManager', () => {
     await renderWithI18n(<XScienceMemoryManager onChanged={() => undefined} />, 'zh-CN');
 
     await waitFor(() => expect(screen.getByTestId('memory-manager')).toBeInTheDocument());
+    await screen.findByTestId('memory-enabled-toggle');
     expect(screen.getByTestId('memory-enabled-toggle')).toHaveAttribute('aria-checked', 'false');
     expect(screen.getByTestId('memory-scope-select')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '记忆范围' })).not.toBeInTheDocument();
@@ -271,6 +136,7 @@ describe('XScienceMemoryManager', () => {
         return Response.json(memoryContext);
       }
       if (url === '/api/memory/enabled' && method === 'GET') return Response.json({ enabled: false });
+      if (url === '/api/memory/auto-enabled' && method === 'GET') return Response.json({ enabled: false });
       if (url === '/api/memory/enabled' && method === 'PUT') return new Response(null, { status: 204 });
       if (url === '/api/projects/proj_a/memory/enabled' && method === 'PUT') {
         projectEnabled = (typeof init?.body === 'string' ? JSON.parse(init.body) : {}).enabled === true;
@@ -399,7 +265,7 @@ describe('XScienceMemoryManager', () => {
     const editor = document.querySelector<HTMLTextAreaElement>('textarea');
     expect(editor).not.toBeNull();
     fireEvent.change(editor!, { target: { value: '项目规则已更新，保留完整可复现实验记录' } });
-    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^保存$/ }));
 
     await waitFor(() =>
       expect(observed).toContainEqual({
@@ -484,10 +350,12 @@ describe('XScienceMemoryManager', () => {
         row_count: 0,
       })),
     };
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       if (url === '/api/memory/context') return Response.json(fullContext);
       if (url === '/api/memory/enabled') return Response.json({ enabled: true });
+      if (url === '/api/memory/auto-enabled' && (init?.method ?? 'GET') === 'GET')
+        return Response.json({ enabled: false });
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -559,5 +427,263 @@ describe('XScienceMemoryManager', () => {
     expect(Message.error).not.toHaveBeenCalled();
     expect(Message.warning).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('memory-new-input')).not.toBeInTheDocument();
+  });
+
+  describe('Memory category pending-close admission', () => {
+    const draftName = 'Methods';
+    const draftGuidance = 'Recall only for experimental methods and protocol decisions.';
+
+    function deferredAck() {
+      let release!: () => void;
+      const promise = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { promise, release };
+    }
+
+    function fillCategory() {
+      fireEvent.click(screen.getByTestId('memory-category-add'));
+      fireEvent.change(screen.getByTestId('memory-category-name'), { target: { value: draftName } });
+      fireEvent.change(screen.getByTestId('memory-category-guidance'), { target: { value: draftGuidance } });
+    }
+
+    function expectCategoryDraft() {
+      expect(screen.getByTestId('memory-category-name')).toBeVisible();
+      expect(screen.getByTestId('memory-category-name')).toHaveValue(draftName);
+      expect(screen.getByTestId('memory-category-guidance')).toHaveValue(draftGuidance);
+    }
+
+    function expectCategoryInputsEnabled() {
+      expect(screen.getByTestId('memory-category-name')).toBeEnabled();
+      expect(screen.getByTestId('memory-category-guidance')).toBeEnabled();
+    }
+
+    function expectCategoryInputsDisabled() {
+      expect(screen.getByTestId('memory-category-name')).toBeDisabled();
+      expect(screen.getByTestId('memory-category-guidance')).toBeDisabled();
+    }
+
+    function categoryDialog() {
+      const dialog = screen.getByTestId('memory-category-name').closest<HTMLElement>('.arco-modal');
+      expect(dialog).not.toBeNull();
+      return dialog!;
+    }
+
+    function clickNativeClose() {
+      const close = categoryDialog().querySelector<HTMLButtonElement>('button.workbench-modal-close');
+      expect(close).not.toBeNull();
+      fireEvent.click(close!); // Real WorkbenchCloseButton -> Arco -> original onCancel.
+    }
+
+    function clickNativeCancel() {
+      const cancel = categoryDialog().querySelector<HTMLButtonElement>(
+        '.arco-modal-footer button:not(#memory-category-save)'
+      );
+      expect(cancel).not.toBeNull();
+      fireEvent.click(cancel!); // Actual footer button; no locale guess or callback stub.
+    }
+
+    function pressNativeEscape() {
+      const close = categoryDialog().querySelector<HTMLButtonElement>('button.workbench-modal-close');
+      expect(close).not.toBeNull();
+      close!.focus();
+      expect(close).toHaveFocus();
+      fireEvent.keyDown(close!, { key: 'Escape', code: 'Escape', keyCode: 27, which: 27 });
+    }
+
+    async function expectCategoryClosed() {
+      await waitFor(() => expect(screen.queryByTestId('memory-category-name')).not.toBeInTheDocument());
+      await screen.findByTestId('memory-category-add');
+    }
+
+    it('guards the same category producer during pending close, retry and ACK', async () => {
+      const { fetchMock, observed } = createFetchMock();
+      const failedAttempt = deferredAck();
+      const successfulAttempt = deferredAck();
+      let postAttempt = 0;
+      let acknowledged = false;
+      const writes = () => observed.filter(({ url, method }) => url === '/api/memory/categories' && method === 'POST');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+          const method = init?.method ?? 'GET';
+          const response = await fetchMock(input, init); // Reuse original fixture/recorder.
+          if (url === '/api/memory/categories' && method === 'POST') {
+            postAttempt += 1;
+            if (postAttempt === 1) {
+              await failedAttempt.promise;
+              return Response.json(
+                { detail: 'category validation rejected', code: 'MEMORY_CATEGORY_WRITE_REJECTED' },
+                { status: 400 }
+              );
+            }
+            if (postAttempt !== 2) throw new Error('Unexpected category write without an explicit retry');
+            await successfulAttempt.promise;
+            acknowledged = true;
+          }
+          if (url === '/api/memory/context' && method === 'GET' && acknowledged) {
+            return Response.json({
+              ...memoryContext,
+              categories: [
+                ...memoryContext.categories,
+                {
+                  id: 'memcat_created',
+                  name: draftName,
+                  guidance: draftGuidance,
+                  auto_recall: true,
+                  row_count: 0,
+                },
+              ],
+            });
+          }
+          return response;
+        })
+      );
+
+      const attemptClosingWhilePending = () => {
+        expectCategoryInputsDisabled();
+        clickNativeClose();
+        // The same draft remains mounted until the in-flight write settles.
+        expectCategoryDraft();
+        clickNativeCancel();
+        expectCategoryDraft();
+        pressNativeEscape();
+        expectCategoryDraft();
+      };
+
+      try {
+        const view = await renderWithI18n(<XScienceMemoryManager />, 'en-US');
+        await screen.findByTestId('memory-category-add');
+        fillCategory();
+        expectCategoryInputsEnabled();
+        const firstSave = document.querySelector<HTMLButtonElement>('#memory-category-save');
+        expect(firstSave).toBeEnabled();
+        fireEvent.click(firstSave!);
+        await waitFor(() => expect(writes()).toHaveLength(1));
+
+        attemptClosingWhilePending();
+        expect(writes()).toHaveLength(1);
+
+        // Failure belongs to this same editor: retain values and permit an
+        // explicit retry, without creating another producer or auto-retrying.
+        await act(async () => failedAttempt.release());
+        await waitFor(() => expect(Message.error).toHaveBeenCalledWith(view.i18n.t('settings.memoryMutationError')));
+        expectCategoryDraft();
+        expectCategoryInputsEnabled();
+        const retrySave = document.querySelector<HTMLButtonElement>('#memory-category-save');
+        await waitFor(() => expect(retrySave).toBeEnabled());
+        expect(writes()).toHaveLength(1);
+        fireEvent.click(retrySave!);
+        await waitFor(() => expect(writes()).toHaveLength(2));
+
+        attemptClosingWhilePending();
+        expect(writes()).toHaveLength(2);
+        await act(async () => successfulAttempt.release());
+        await expectCategoryClosed();
+        expect(writes()).toHaveLength(2); // Exactly one POST for each explicit Save.
+
+        // Completion unlocks the next operation and proves all three native
+        // cancellation paths are reachable when idle, rather than no-ops.
+        fillCategory();
+        pressNativeEscape();
+        await expectCategoryClosed();
+        fillCategory();
+        clickNativeCancel();
+        await expectCategoryClosed();
+        fillCategory();
+        clickNativeClose();
+        await expectCategoryClosed();
+        expect(writes()).toHaveLength(2);
+      } finally {
+        await act(async () => {
+          failedAttempt.release();
+          successfulAttempt.release();
+        });
+      }
+    });
+
+    it('retains an untyped503 operation and resumes the same save at the category limit', async () => {
+      const { fetchMock: healthy } = createFetchMock();
+      const categories = Array.from({ length: 10 }, (_, index) => ({
+        ...memoryContext.categories[0],
+        id: index === 0 ? 'memcat_1' : `category-${index}`,
+        name: index === 0 ? memoryContext.categories[0].name : `Category ${index}`,
+      }));
+      const writes: Array<{ key: string | null; body: string }> = [];
+      let acknowledged = false;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          const url = String(input);
+          if (url === '/api/memory/context') return Response.json({ ...memoryContext, categories });
+          if (url === '/api/memory/categories/memcat_1' && init?.method === 'PUT') {
+            writes.push({ key: new Headers(init.headers).get('Idempotency-Key'), body: String(init.body) });
+            if (writes.length === 1) return Response.json({ detail: 'legacy unavailable' }, { status: 503 });
+            if (writes.length !== 2) throw new Error('Unexpected automatic retry');
+            acknowledged = true;
+            return Response.json({ id: 'memcat_1', ...JSON.parse(String(init.body)), row_count: 1 });
+          }
+          return healthy(input, init);
+        })
+      );
+      const onChanged = vi.fn();
+      await renderWithI18n(<XScienceMemoryManager onChanged={onChanged} />, 'zh-CN');
+      await chooseMemoryScope('category:memcat_1');
+      expect(screen.getByTestId('memory-category-add')).toBeDisabled();
+      fireEvent.click(screen.getByTestId('memory-category-edit-memcat_1'));
+      fireEvent.change(screen.getByTestId('memory-category-name'), { target: { value: '保留原分类修改' } });
+      fireEvent.click(document.querySelector<HTMLButtonElement>('#memory-category-save')!);
+      await screen.findByTestId('memory-category-uncertain');
+      expectCategoryInputsDisabled();
+      expect(screen.getByRole('button', { name: '重试同一次保存' })).toBeEnabled();
+      expect(writes).toHaveLength(1);
+      expect(writes[0].key).toBeTruthy();
+      clickNativeClose();
+      await expectCategoryClosed();
+      const resume = screen.getByTestId('memory-category-add');
+      expect(resume).toBeEnabled();
+      expect(resume).toHaveTextContent('继续保存分类');
+      fireEvent.click(resume);
+      expect(screen.getByTestId('memory-category-name')).toHaveValue('保留原分类修改');
+      expectCategoryInputsDisabled();
+      fireEvent.click(screen.getByRole('button', { name: '重试同一次保存' }));
+      await expectCategoryClosed();
+      expect(acknowledged).toBe(true);
+      expect(writes).toHaveLength(2);
+      expect(writes[1]).toEqual(writes[0]);
+      expect(onChanged).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('memory-category-add')).toBeDisabled();
+    });
+
+    it('delivers a committed missing category as a warning and refreshes without resubmitting', async () => {
+      const { fetchMock: healthy } = createFetchMock();
+      let writes = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+          if (String(input) === '/api/memory/categories' && init?.method === 'POST') {
+            writes += 1;
+            return Response.json(
+              { detail: 'result missing', code: 'MEMORY_CATEGORY_COMMITTED_RESULT_MISSING' },
+              { status: 410 }
+            );
+          }
+          return healthy(input, init);
+        })
+      );
+      const onChanged = vi.fn();
+      const view = await renderWithI18n(<XScienceMemoryManager onChanged={onChanged} />, 'en-US');
+      await screen.findByTestId('memory-category-add');
+      fillCategory();
+      fireEvent.click(document.querySelector<HTMLButtonElement>('#memory-category-save')!);
+      await expectCategoryClosed();
+      await waitFor(() =>
+        expect(Message.warning).toHaveBeenCalledWith(view.i18n.t('settings.memoryCategorySavedMissing'))
+      );
+      expect(Message.success).not.toHaveBeenCalled();
+      expect(onChanged).toHaveBeenCalledTimes(1);
+      expect(writes).toBe(1);
+    });
   });
 });

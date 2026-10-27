@@ -12,6 +12,7 @@ import (
 	"x-science/internal/memoryextract"
 	"x-science/internal/memorytools"
 	sessionstore "x-science/internal/persistence/sessions"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 type memoryExtractionExtractorFactory func(memorytools.Scope, string, *agentruntime.ModelRequest) memoryextract.Extractor
@@ -27,12 +28,13 @@ type memoryExtractionSessionState struct {
 	latestEventID  int64
 	request        *agentruntime.ModelRequest
 	requestAttempt int64
+	model          workspace.MemoryExtractionModelIdentity
 	queued         int
 }
 
-// memoryExtractionRuntime is the sole post-completion memory authority. It
-// owns cadence, request snapshots, event de-duplication and detached task
-// draining; durable facts remain owned by workspace persistence.
+// memoryExtractionRuntime owns extraction preparation and the legacy journal
+// fallback. Canonical automatic delivery is exclusively the durable outbox;
+// mutations, cursor and immutable outcome remain owned by workspace persistence.
 type memoryExtractionRuntime struct {
 	server  *Server
 	tasks   *memoryextract.PostCompletionTasks
@@ -66,8 +68,12 @@ func newMemoryExtractionRuntimeWithFactory(server *Server, factory memoryExtract
 }
 
 func (runtime *memoryExtractionRuntime) rememberLastRequest(sessionID string, attempt int64, request agentruntime.ModelRequest) {
+	runtime.recordLastRequest(sessionID, attempt, request)
+}
+
+func (runtime *memoryExtractionRuntime) recordLastRequest(sessionID string, attempt int64, request agentruntime.ModelRequest) *agentruntime.ModelRequest {
 	if runtime == nil || strings.TrimSpace(sessionID) == "" || attempt <= 0 {
-		return
+		return nil
 	}
 	copyRequest := agentruntime.SnapshotModelRequest(request)
 	runtime.mu.Lock()
@@ -78,7 +84,34 @@ func (runtime *memoryExtractionRuntime) rememberLastRequest(sessionID string, at
 	}
 	state.request = &copyRequest
 	state.requestAttempt = attempt
+	state.model = workspace.MemoryExtractionModelIdentity{}
 	runtime.mu.Unlock()
+	return &copyRequest
+}
+
+func (runtime *memoryExtractionRuntime) bindRecordedModel(sessionID string, attempt int64, request *agentruntime.ModelRequest, model workspace.MemoryExtractionModelIdentity) {
+	if runtime == nil || request == nil {
+		return
+	}
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	if state := runtime.sessions[sessionID]; state != nil && state.requestAttempt == attempt && state.request == request {
+		state.model = model
+	}
+}
+
+func (runtime *memoryExtractionRuntime) bindRecordedRequest(sessionID string, attempt int64, original, actual *agentruntime.ModelRequest, model workspace.MemoryExtractionModelIdentity) {
+	if runtime == nil || original == nil {
+		return
+	}
+	runtime.mu.Lock()
+	defer runtime.mu.Unlock()
+	if state := runtime.sessions[sessionID]; state != nil && state.requestAttempt == attempt && state.request == original {
+		if actual != nil {
+			state.request = actual
+		}
+		state.model = model
+	}
 }
 
 func (runtime *memoryExtractionRuntime) ScheduleCompletedRootEvent(sessionID string, eventID int64) <-chan error {
@@ -93,6 +126,9 @@ func (runtime *memoryExtractionRuntime) ScheduleCompletedRootEvent(sessionID str
 	if sourceErr != nil {
 		log.Printf("extract completed root memory gate=%q", "skipped-source")
 		return completedMemoryExtractionResult(nil)
+	}
+	if source.proof != nil {
+		return completedMemoryExtractionResult(errors.New("canonical Memory extraction requires durable completion delivery"))
 	}
 	runtime.mu.Lock()
 	state := runtime.sessions[sessionID]
@@ -243,6 +279,9 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		result.Gate = "disabled-auto"
 		return result, nil
 	}
+	if err := runtime.server.checkMemoryRecoveryPolicy(ctx, resolved.Scope.UserID, source.modeDecision); err != nil {
+		return result, err
+	}
 	snapshot, err := runtime.readMemoryExtractionSnapshot(ctx, resolved.Scope.UserID, sessionID, source)
 	if err != nil {
 		result.Gate = "skipped-source"
@@ -253,6 +292,10 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		return result, nil
 	}
 	request := source.request
+	if source.deliveryClaim != nil {
+		config.ExtractMode = source.extractMode
+		ctx = context.WithValue(ctx, memoryExtractionModelContextKey{}, source.model)
+	}
 	if config.ExtractMode == "forked" && request == nil {
 		result.Gate = "no-last-request-view"
 		return result, nil
@@ -261,9 +304,13 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		return result, errors.New("memory extraction model factory is unavailable")
 	}
 	extractor := runtime.sourceBoundMemoryExtractor(source, runtime.factory(resolved.Scope, config.ExtractMode, request))
+	model := sessionWorkspaceModel(resolved.Session)
+	if source.deliveryClaim != nil {
+		model = source.model.Model
+	}
 	service := memoryextract.NewService(
 		runtime.server.workspaceStore,
-		runtime.server.newMemoryClassifierForModel(resolved.Scope, sessionWorkspaceModel(resolved.Session)),
+		runtime.server.newMemoryClassifierForModel(resolved.Scope, model),
 		runtime.server.newMemoryLiteralRepairer(resolved.Scope),
 	)
 	runner := memoryextract.NewRunnerWithCadence(runtime.server.workspaceStore, service, extractor, runtime.cadence)
@@ -276,11 +323,15 @@ func (runtime *memoryExtractionRuntime) runCompletedRoot(ctx context.Context, se
 		}
 	}
 	return runner.Run(ctx, memoryextract.RunInput{
+		DeliveryClaim:     source.deliveryClaim,
+		CadenceDecision:   source.cadence,
+		ModeDecision:      source.modeDecision.Clone(),
 		Scope:             applyScope,
 		Source:            &commitSource,
 		CommitGuard:       runtime.extractionCommitGuard(source, applyScope, len(snapshot.Messages)),
+		CoveredPrefix:     runtime.coveredMemoryPrefix(sessionID, source, snapshot, commitSource),
 		SessionMemoryMode: mode,
-		Model:             sessionWorkspaceModel(resolved.Session),
+		Model:             model,
 		Messages:          snapshot.Messages,
 		FinalResponseText: snapshot.FinalResponseText,
 		RecalledBodies:    recalledBodies,
@@ -416,14 +467,42 @@ type memoryExtractionRecordingModelClient struct {
 }
 
 func (client *memoryExtractionRecordingModelClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
-	client.runtime.rememberLastRequest(client.sessionID, client.attempt, request)
-	return client.delegate.Complete(ctx, request)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	snapshot := client.runtime.recordLastRequest(client.sessionID, client.attempt, request)
+	capture := &memoryExtractionCallIdentity{}
+	response, err := client.delegate.Complete(context.WithValue(ctx, memoryExtractionCallIdentityKey{}, capture), request)
+	client.bindModel(snapshot, response, err, capture)
+	return response, err
 }
 
 func (client *memoryExtractionRecordingModelClient) CompleteStream(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
-	client.runtime.rememberLastRequest(client.sessionID, client.attempt, request)
-	if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
-		return streaming.CompleteStream(ctx, request, emit)
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	return client.delegate.Complete(ctx, request)
+	snapshot := client.runtime.recordLastRequest(client.sessionID, client.attempt, request)
+	capture := &memoryExtractionCallIdentity{}
+	ctx = context.WithValue(ctx, memoryExtractionCallIdentityKey{}, capture)
+	var response agentruntime.ModelResponse
+	var err error
+	if streaming, ok := client.delegate.(agentruntime.StreamingModelClient); ok {
+		response, err = streaming.CompleteStream(ctx, request, emit)
+	} else {
+		response, err = client.delegate.Complete(ctx, request)
+	}
+	client.bindModel(snapshot, response, err, capture)
+	return response, err
+}
+
+func (client *memoryExtractionRecordingModelClient) bindModel(snapshot *agentruntime.ModelRequest, response agentruntime.ModelResponse, err error, capture *memoryExtractionCallIdentity) {
+	if err != nil {
+		return
+	}
+	identity := workspace.MemoryExtractionModelIdentity{Model: strings.TrimSpace(response.Model)}
+	actual, captured := capture.read()
+	if captured.Model != "" {
+		identity = captured
+	}
+	client.runtime.bindRecordedRequest(client.sessionID, client.attempt, snapshot, actual, identity)
 }

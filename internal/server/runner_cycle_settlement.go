@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
-	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 )
 
@@ -154,17 +152,6 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		}
 	}
 	if transcriptAuthority != nil {
-		if assistantMessage != "" {
-			if err := s.appendTranscriptAssistantEvent(context.WithoutCancel(ctx), transcriptAuthority, "assistant-message", map[string]any{
-				"text":              assistantMessage,
-				"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(chatRun.assistantSegmentOrdinal(), ""),
-			}); err != nil {
-				status = "failed"
-				message = fmt.Sprintf("append transcript assistant message failed: %v", err)
-				failureReason = "runner_response_persistence_failed"
-				assistantMessage = ""
-			}
-		}
 		if status == "failed" {
 			failureLanguage := ""
 			if chatRun != nil {
@@ -172,9 +159,10 @@ func (s *Server) settleSessionRunnerChatOutcome(
 			}
 			message = publicSessionRunnerFailureMessage(message, failureLanguage, failureReason)
 		}
-		terminalEvent, finishTranscriptErr := s.finishTranscriptRunnerWithReason(
-			context.WithoutCancel(ctx), transcriptAuthority, status, message, failureReason, chatRun.assistantSegmentOrdinal(),
-		)
+		receipt, finishTranscriptErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{
+			Content: assistantMessage, Status: status, Detail: message, ReasonCode: failureReason,
+			AssistantIdentity: "assistant-message", SegmentOrdinal: chatRun.assistantSegmentOrdinal(), PrepareMemory: true, ResponseLanguage: chatRun.ResponseLanguage,
+		})
 		if finishTranscriptErr == nil {
 			activeRun.settled = true
 			canonicalSettled = true
@@ -183,20 +171,8 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		if finishTranscriptErr != nil {
 			return finishTranscriptErr
 		}
-		result.FinishEventID = terminalEvent.EventID
-		if status == "completed" && assistantMessage != "" && s.workspaceStore != nil {
-			if asideFrame, found, getErr := s.workspaceStore.GetCompatibilityFrame(transcriptAuthority.Stream.FrameID); getErr == nil &&
-				found && strings.HasPrefix(asideFrame.Name, "Aside") {
-				// v1.1 side chats surface the final model reply through
-				// output_data.response; persist it when the aside frame
-				// completes so side-chat readers can consume the answer.
-				if outputErr := s.workspaceStore.SetFrameOutputData(asideFrame.ID, map[string]any{
-					"response": assistantMessage,
-				}); outputErr != nil {
-					return outputErr
-				}
-			}
-		}
+		status = receipt.Finish.Status
+		result.FinishEventID = receipt.Terminal.EventID
 	} else {
 		if status == "failed" {
 			failureLanguage := ""
@@ -255,7 +231,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		}
 	}
 	result.Status = status
-	if status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && result.FinishEventID > 0 {
+	if transcriptAuthority == nil && status == "completed" && assistantMessage != "" && s.memoryExtraction != nil && result.FinishEventID > 0 {
 		s.memoryExtraction.ScheduleCompletedRootEvent(session.ID, result.FinishEventID)
 	}
 	if transcriptAuthority == nil && s.memoryExtraction != nil {

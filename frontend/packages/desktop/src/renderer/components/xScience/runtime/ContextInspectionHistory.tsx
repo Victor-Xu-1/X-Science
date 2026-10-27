@@ -9,6 +9,7 @@ import {
   callSegments,
   inspectionCallBands,
   inspectionTurnPoints,
+  knownInspectionNumber,
 } from './contextInspectionModel';
 import { formatContextTokens } from './contextWindowHistoryModel';
 import styles from './ContextWindowInspector.module.css';
@@ -55,7 +56,10 @@ export default function ContextInspectionHistory({
     const categoryTotal = rows.reduce((sum, row) => sum + row.tokens, 0);
     const label = calls
       ? t(PREFIX + 'callNumber', { count: itemIndex + 1 })
-      : t(PREFIX + 'outcomeNumber', { turn: turnPoints[itemIndex].turnNumber, run: itemIndex + 1 });
+      : t(PREFIX + 'outcomeNumber', {
+          revision: turnPoints[itemIndex].inputRevision ?? '—',
+          attempt: knownInspectionNumber(turnPoints[itemIndex].runnerAttempt) ?? '—',
+        });
     const value = values[itemIndex];
     return (
       <div className={styles.pointColumn} key={item.id}>
@@ -132,36 +136,32 @@ export default function ContextInspectionHistory({
         </button>
         {!calls && (
           <span className={styles.pointLabel} aria-hidden='true'>
-            {itemIndex + 1}
+            {turnPoints[itemIndex].inputRevision ?? '—'}
           </span>
         )}
       </div>
     );
   };
-  const inProgress = !calls
-    ? inspection.turns.flatMap((turn, index) =>
-        ['pending', 'running'].includes(turn.status) ? [{ ...turn, turnNumber: index + 1 }] : []
-      )
-    : [];
+  const inProgress = !calls ? inspection.turns.filter((turn) => ['pending', 'running'].includes(turn.status)) : [];
   const progressNotice = inProgress.length > 0 && (
     <div className={styles.notice} data-testid='context-inspector-in-progress' role='status'>
       <strong>{t(PREFIX + 'inProgress')}</strong>
       {inProgress.map((turn) => (
         <span key={turn.id}>
-          {t(PREFIX + 'turnNumber', { count: turn.turnNumber })} · {t(PREFIX + 'status_' + turn.status)}
+          {t(PREFIX + 'inputNumber', { revision: knownInspectionNumber(turn.inputRevision) ?? '—' })} ·{' '}
+          {t(PREFIX + 'status_' + turn.status)}
         </span>
       ))}
     </div>
   );
-  const unknownTurns = !calls
-    ? inspection.turns.flatMap((turn, index) => (turn.status === 'unknown' ? [index + 1] : []))
-    : [];
+  const unknownTurns = !calls ? inspection.turns.filter((turn) => turn.status === 'unknown') : [];
   const unresolvedNotice = unknownTurns.length > 0 && (
     <div className={styles.notice} data-testid='context-inspector-unresolved-turns' role='status'>
       <strong>{t(PREFIX + 'unresolvedTurns')}</strong>
       {unknownTurns.map((turn) => (
-        <span key={turn}>
-          {t(PREFIX + 'turnNumber', { count: turn })} · {t(PREFIX + 'statusUnknown')}
+        <span key={turn.id}>
+          {t(PREFIX + 'inputNumber', { revision: knownInspectionNumber(turn.inputRevision) ?? '—' })} ·{' '}
+          {t(PREFIX + 'statusUnknown')}
         </span>
       ))}
     </div>
@@ -190,18 +190,13 @@ export default function ContextInspectionHistory({
             <span>0</span>
           </div>
           <div className={styles.chartScroller} ref={scroller}>
-            <div
-              className={styles.chart}
-              style={{ minWidth: Math.max(560, items.length * (calls ? 48 : 40)) + 'px' }}
-              role='group'
-              aria-label={t(PREFIX + (calls ? 'callChart' : 'turnChart'))}
-            >
+            <div className={styles.chart} role='group' aria-label={t(PREFIX + (calls ? 'callChart' : 'turnChart'))}>
               {calls
                 ? bands.map((band) => (
                     <div key={band.turnId} className={styles.callBand} data-testid='context-inspector-call-band'>
                       {band.calls.map((call) => renderPoint(orderedCalls.indexOf(call)))}
                       <span className={styles.turnLane} aria-hidden='true'>
-                        {t(PREFIX + 'turnNumber', { count: band.turnIndex + 1 })}
+                        {t(PREFIX + 'inputNumber', { revision: band.inputRevision ?? '—' })}
                       </span>
                     </div>
                   ))
@@ -213,7 +208,7 @@ export default function ContextInspectionHistory({
           (calls ? (
             <InspectionCallDetails call={orderedCalls[index]} index={index} />
           ) : (
-            <InspectionTurnDetails turn={turnPoints[index]} index={index} />
+            <InspectionTurnDetails turn={turnPoints[index]} />
           ))}
       </div>
     </section>

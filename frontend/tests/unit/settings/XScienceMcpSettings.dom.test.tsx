@@ -1,8 +1,9 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { XScienceMcpSettingsContent } from '@/renderer/pages/settings/ToolsSettings/XScienceMcpSettings';
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { renderWithI18n } from '../i18nTestUtils';
 
 async function clickConnectorAction(name: string, action: 'configure' | 'permissions'): Promise<void> {
@@ -12,6 +13,7 @@ async function clickConnectorAction(name: string, action: 'configure' | 'permiss
 
 describe('XScienceMcpSettingsContent', () => {
   beforeEach(() => {
+    setRendererAccountOwner('mcp-settings-owner');
     const originalConsoleError = console.error;
     vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
       if (typeof args[0] === 'string' && args[0].startsWith('Accessing element.ref was removed in React 19.')) {
@@ -24,6 +26,8 @@ describe('XScienceMcpSettingsContent', () => {
   });
 
   afterEach(() => {
+    cleanup();
+    setRendererAccountOwner(null);
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });

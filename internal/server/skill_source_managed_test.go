@@ -28,7 +28,7 @@ func TestManagedSkillSourceCatalogMatchesPublishedAuthority(t *testing.T) {
 			if _, err := fixture.call("host.skills.edit", test.name, "SKILL.md", manifest); err != nil {
 				t.Fatal(err)
 			}
-			published, err := fixture.call("host.skills.publish", test.name, false)
+			published, err := fixture.publishReviewed(test.name, false)
 			if err != nil {
 				t.Fatal(err)
 			}

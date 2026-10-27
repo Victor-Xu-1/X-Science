@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/renderer/services/skills/skillsCatalog', () => ({
+  onSkillCatalogChanged: vi.fn(() => () => undefined),
   loadAvailableSkillsWithXScience: mocks.loadAvailableSkillsWithXScience,
 }));
 

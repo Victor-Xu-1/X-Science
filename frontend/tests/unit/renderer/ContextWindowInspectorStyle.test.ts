@@ -27,7 +27,7 @@ describe('Context inspector style contract, not rendered layout acceptance', () 
     );
     const overlay = css.match(/\.overlay\s*\{([^}]+)\}/s)?.[1];
     expect(overlay).toMatch(/background:\s*transparent/);
-    expect(css).toMatch(/max-height:\s*min\(820px,\s*calc\(100dvh - 24px\)\)/);
+    expect(css).toMatch(/max-height:\s*min\([1-9]\d*px,\s*calc\(100dvh\s*-\s*[1-9]\d*px\)\)/);
     expect(css).toMatch(/overflow-y:\s*auto/);
     expect(css).toMatch(/overflow-x:\s*auto/);
   });

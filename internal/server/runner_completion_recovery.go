@@ -75,6 +75,17 @@ func (s *Server) loadTranscriptCompletionRecoveryCandidate(
 	if stream.InputRevision != previous.ClaimedInputRevision || stream.Epoch != authority.Stream.Epoch {
 		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
 	}
+	previousInput, err := s.transcriptStore.RunnerInputContext(ctx, stream.UID, stream.OwnerID, previous.Attempt)
+	if err != nil {
+		return sessionRunnerCompletionRecoveryCandidate{}, false, fmt.Errorf("load completion recovery input: %w", err)
+	}
+	if previousInput != nil && previousInput.InputData["turn_intent"] == conversationSkillControlIntent {
+		// This shortcut reconstructs a source run from the durable scientific
+		// task intent. A hidden control has its own current-run scope, so let
+		// ordinary checkpoint continuation rebuild it through the original
+		// claimed-input preparer instead of settling under the earlier task.
+		return sessionRunnerCompletionRecoveryCandidate{}, false, nil
+	}
 
 	snapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, authority.Stream.UID, authority.Stream.OwnerID)
 	if err != nil {
@@ -414,47 +425,33 @@ func (s *Server) validateRecoveredTranscriptCompletionCandidate(
 	}
 }
 
-func (s *Server) recoverTranscriptCompletionOnly(
-	ctx context.Context,
-	session sessionstore.Session,
-	run *sessionRunnerChatRun,
-) (status, detail string, segment transcriptstore.AssistantSegmentV1, handled bool, err error) {
+// Prepare the exact recovered outcome; the original caller owns its lock and
+// no-Stop/no-cleanup/no-Memory policy and invokes the sole atomic finalizer.
+func (s *Server) recoverTranscriptCompletionOnly(ctx context.Context, session sessionstore.Session, run *sessionRunnerChatRun) (transcriptRunnerFinalization, bool, error) {
 	if run == nil || run.Transcript == nil {
-		return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
+		return transcriptRunnerFinalization{}, false, nil
 	}
 	candidate, found, err := s.loadTranscriptCompletionRecoveryCandidate(ctx, run.Transcript)
 	if err != nil || !found {
-		return "", "", transcriptstore.AssistantSegmentV1{}, false, err
+		return transcriptRunnerFinalization{}, false, err
 	}
 	if !transcriptCompletionOnlyRecoveryHandles(candidate.ReasonCode) {
-		return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
+		return transcriptRunnerFinalization{}, false, nil
 	}
 	if candidate.ReasonCode == "artifact_reference_correction_required" {
 		advisories, validationErr := s.validateRecoveredTranscriptCompletionCandidate(ctx, session, candidate)
 		if validationErr != nil {
 			var integrityErr *sessionRunnerReferenceIntegrityError
 			if errors.As(validationErr, &integrityErr) && len(integrityErr.MissingRequiredDeliverables) > 0 {
-				// An absent original deliverable requires execution, not another
-				// validation-only terminal failure. Keep the published candidate
-				// immutable and let the existing checkpoint repair path finish the
-				// work, including when other reference issues also remain.
-				return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
+				return transcriptRunnerFinalization{}, false, nil
 			}
-			return "failed", validationErr.Error(), candidate.Segment, true, nil
+			return transcriptRunnerFinalization{Status: "failed", Detail: validationErr.Error(), SegmentOrdinal: candidate.Segment.Ordinal}, true, nil
 		}
 		content := appendSessionRunnerCompletionAdvisories(candidate.Content, candidate.SourceRun.ResponseLanguage, advisories...)
-		if err := s.appendTranscriptAssistantEvent(context.WithoutCancel(ctx), run.Transcript, "completion-recovery-assistant", map[string]any{
-			"text": content, "assistant_segment": transcriptstore.AssistantSegmentPayloadV1(candidate.Segment.Ordinal, ""),
-		}); err != nil {
-			return "failed", fmt.Sprintf("append recovered transcript assistant message failed: %v", err), candidate.Segment, true, nil
-		}
-		return "completed", "runner completion validation recovered immutable published candidate", candidate.Segment, true, nil
+		return transcriptRunnerFinalization{Content: content, Status: "completed", Detail: "runner completion validation recovered immutable published candidate",
+			AssistantIdentity: "completion-recovery-assistant", SegmentOrdinal: candidate.Segment.Ordinal, ResponseLanguage: candidate.SourceRun.ResponseLanguage}, true, nil
 	}
-	// Semantic reviews enter ordinary continuation under the current advisory
-	// policy, not this completion-only path. Their summary is not a preserved
-	// answer or proof of current artifact identity; do not synthesize completion
-	// from it or replay a reviewer/provider here.
-	return "", "", transcriptstore.AssistantSegmentV1{}, false, nil
+	return transcriptRunnerFinalization{}, false, nil
 }
 
 func transcriptCompletionOnlyRecoveryHandles(reasonCode string) bool {

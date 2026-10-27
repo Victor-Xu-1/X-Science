@@ -1,0 +1,201 @@
+.library-workbench__detail {
+  padding: var(--ui-space-6);
+}
+.library-workbench__eyebrow {
+  margin: 0;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+.library-workbench__detail > h2 {
+  margin: var(--ui-space-4) 0 var(--ui-space-6);
+  overflow-wrap: anywhere;
+  font-size: var(--ui-font-title);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-line-height-title);
+}
+.library-workbench__facts {
+  display: grid;
+  gap: var(--ui-space-4);
+  margin: 0 0 var(--ui-space-6);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__facts > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--ui-space-4);
+}
+.library-workbench__facts dt {
+  color: var(--workspace-text-tertiary);
+  overflow-wrap: anywhere;
+}
+.library-workbench__facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.library-workbench__section-heading {
+  display: flex;
+  min-height: var(--ui-control-sm);
+  align-items: center;
+  gap: var(--ui-space-4);
+  color: var(--workspace-text-tertiary);
+}
+.library-workbench__section-heading h3 {
+  margin: 0;
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__section-heading > span {
+  font-size: var(--ui-font-micro);
+}
+.library-workbench__attachments {
+  display: grid;
+  gap: var(--ui-space-5);
+  margin: var(--ui-space-4) 0 var(--ui-space-6);
+  padding: 0;
+  list-style: none;
+}
+.library-workbench__attachments li {
+  display: flex;
+  align-items: start;
+  gap: var(--ui-space-4);
+  color: var(--workspace-text-tertiary);
+}
+.library-workbench__attachments li > svg {
+  flex-shrink: 0;
+  margin-top: var(--ui-space-1);
+}
+.library-workbench__attachment-copy {
+  min-width: 0;
+  flex: 1;
+}
+.library-workbench__attachment-copy > strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--workspace-text);
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__attachment-copy > span {
+  display: block;
+  margin-top: var(--ui-space-1);
+  font-size: var(--ui-font-micro);
+  line-height: var(--ui-line-height-micro);
+}
+.library-workbench__attachment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+  margin-top: var(--ui-space-4);
+}
+.library-workbench__attachment-actions > button,
+.library-workbench__attachment-preview > .library-workbench__detail-heading > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__attachment-actions > button {
+  min-height: var(--ui-control-md);
+}
+.library-workbench__attachment-actions > button:hover:not(:disabled),
+.library-workbench__attachment-preview > .library-workbench__detail-heading > button:hover:not(:disabled) {
+  background: var(--workspace-hover);
+}
+.library-workbench__attachment-versions {
+  display: grid;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-4);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__attachment-versions select,
+.library-workbench__editor select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ui-control-md);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+/* Keep shared PDF controls under their existing stylesheet owner. */
+.library-workbench__attachment-preview {
+  min-width: 0;
+  margin: var(--ui-space-6) 0;
+  overflow: hidden;
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-md);
+  scroll-margin-block: var(--ui-space-6);
+}
+.library-workbench__attachment-preview:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}
+.library-workbench__attachment-preview > .library-workbench__detail-heading {
+  align-items: start;
+  padding: var(--ui-space-4) var(--ui-space-5);
+  border-bottom: 1px solid var(--workspace-border);
+}
+.library-workbench__attachment-preview > .library-workbench__detail-heading > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__attachment-preview > .library-workbench__detail-heading > button {
+  min-height: var(--ui-control-sm);
+  flex-shrink: 0;
+}
+.library-workbench__attachment-preview-canvas {
+  height: clamp(260px, 52svh, 560px);
+  min-height: 260px;
+  background: var(--workspace-sidebar);
+}
+.library-workbench__attachment-preview > p[role='alert'] {
+  margin: 0;
+  padding: var(--ui-space-5);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-workbench__editor > label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  margin: var(--ui-space-6) 0 var(--ui-space-5);
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+}
+.library-workbench__editor .pdf-library-editor {
+  padding: var(--ui-space-5);
+}
+@container library-content (max-width: 560px) {
+  .library-workbench__attachment-preview-canvas {
+    height: clamp(240px, 48svh, 420px);
+    min-height: 240px;
+  }
+}

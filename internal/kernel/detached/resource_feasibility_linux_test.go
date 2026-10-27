@@ -84,13 +84,13 @@ func TestExplicitKernelBudgetExceedsCurrentHostCapacityWithoutReservation(t *tes
 
 func TestDefaultKernelMinimumExceedsProvenHostCapacityWithoutWaiting(t *testing.T) {
 	for _, test := range []struct {
-		name, state      string
-		total, available int64
+		name, state                     string
+		total, available, want, reserve int64
 	}{
-		{"host_below_reserve", "infeasible", 2 << 30, 2 << 30},
-		{"host_below_runtime_floor", "infeasible", executorControlReserveBytes + executorMemoryFloorBytes - 1024, executorControlReserveBytes + executorMemoryFloorBytes - 1024},
-		{"exact_runtime_floor_is_feasible", "reserved", executorControlReserveBytes + executorMemoryFloorBytes, executorControlReserveBytes + executorMemoryFloorBytes},
-		{"temporary_default_pressure_still_waits", "waiting", 12 << 30, 2 << 30},
+		{"healthy_small_host_is_feasible", "reserved", 2 << 30, 2 << 30, (2 << 30) * 45 / 100, (2 << 30) * 40 / 100},
+		{"host_below_runtime_floor", "infeasible", (1280 << 20) - 1024, (1280 << 20) - 1024, 0, ((1280 << 20) - 1024) * 40 / 100},
+		{"exact_runtime_floor_is_feasible", "reserved", 1280 << 20, 1280 << 20, executorMemoryFloorBytes, 512 << 20},
+		{"temporary_default_pressure_still_waits", "waiting", 12 << 30, 2 << 30, 0, 3 << 30},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			store, base := startupBackendFixture(t)
@@ -109,14 +109,14 @@ func TestDefaultKernelMinimumExceedsProvenHostCapacityWithoutWaiting(t *testing.
 				if budget != 0 || !errors.As(err, &exceeds) {
 					t.Errorf("default minimum entered a permanent wait: budget=%d err=%v", budget, err)
 				} else if exceeds.RequestedBytes != 0 || exceeds.MinimumBytes != executorMemoryFloorBytes || exceeds.RequiredBytes() != executorMemoryFloorBytes ||
-					exceeds.HostTotalBytes != test.total || exceeds.ReserveBytes != executorControlReserveBytes || exceeds.MaximumBytes != max(0, test.total-executorControlReserveBytes) {
+					exceeds.HostTotalBytes != test.total || exceeds.ReserveBytes != test.reserve || exceeds.MaximumBytes != max(0, test.total-test.reserve) {
 					t.Errorf("default upper-bound evidence rewrote its request: %+v", exceeds)
 				}
 				if found {
 					t.Errorf("physically infeasible default created a durable wait: %+v", reservation)
 				}
 			case "reserved":
-				if err != nil || !found || budget != executorMemoryFloorBytes || reservation.State != "reserved" || reservation.RequestedBytes != 0 || reservation.ReservedBytes != executorMemoryFloorBytes {
+				if err != nil || !found || budget != test.want || reservation.State != "reserved" || reservation.RequestedBytes != 0 || reservation.ReservedBytes != test.want {
 					t.Errorf("a viable default was rejected because its preference exceeds the floor: budget=%d reservation=%+v err=%v", budget, reservation, err)
 				}
 			case "waiting":

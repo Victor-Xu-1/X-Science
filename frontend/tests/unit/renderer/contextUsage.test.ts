@@ -37,6 +37,53 @@ const snapshot = (): ContextUsageSnapshot => ({
 describe('context usage contract', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it('retains only typed failure reasons on failed calls without inventing reasons for legacy records', () => {
+    const failed = { ...snapshot(), state: 'failed', source: 'estimated', outputTokens: 0 };
+    for (const kind of ['cancelled', 'deadline']) {
+      expect(
+        parseContextUsage({ status: 'available', snapshot: { ...failed, failureKind: kind } }, 'one')
+      ).toHaveProperty('snapshot.failureKind', kind);
+    }
+    expect(parseContextUsage({ status: 'available', snapshot: failed }, 'one')).not.toHaveProperty(
+      'snapshot.failureKind'
+    );
+    for (const kind of [null, '', 'other', true]) {
+      expect(() =>
+        parseContextUsage({ status: 'available', snapshot: { ...failed, failureKind: kind } }, 'one')
+      ).toThrow('Invalid context usage record');
+    }
+    for (const state of ['request', 'complete']) {
+      expect(() =>
+        parseContextUsage({ status: 'available', snapshot: { ...failed, state, failureKind: 'cancelled' } }, 'one')
+      ).toThrow('Invalid context usage record');
+    }
+  });
+
+  it('binds the latest failed request to the same failure evidence in its existing history', () => {
+    const failed = {
+      ...snapshot(),
+      state: 'failed',
+      source: 'estimated',
+      outputTokens: 0,
+      failureKind: 'cancelled',
+    };
+    expect(() =>
+      parseContextUsage(
+        {
+          status: 'available',
+          snapshot: failed,
+          history: {
+            sessionId: 'one',
+            coverage: 'recorded',
+            totalObserved: 1,
+            samples: [{ ...failed, failureKind: 'deadline' }],
+          },
+        },
+        'one'
+      )
+    ).toThrow('Invalid context history latest sample');
+  });
+
   it('Context395 rejects malformed optional call evidence instead of quietly treating it as zero', () => {
     expect(() =>
       parseContextUsage(

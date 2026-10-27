@@ -1,0 +1,171 @@
+.library-pdf-import__header-actions,
+.library-pdf-import__entry {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+}
+.library-pdf-import__header-actions {
+  justify-content: flex-end;
+  flex-shrink: 0;
+  font-size: var(--ui-font-meta);
+}
+.library-pdf-import__file-input {
+  display: none;
+}
+.library-workbench .library-pdf-import__button {
+  min-height: var(--ui-control-md);
+  font-size: var(--ui-font-meta);
+}
+.library-pdf-import-panel {
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  max-height: min(55svh, 460px);
+  overflow: auto;
+  flex-shrink: 0;
+  padding: var(--ui-space-5) var(--ui-space-6);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-pdf-import-panel__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ui-space-4);
+}
+.library-pdf-import-panel h2 {
+  margin: 0;
+  font-size: var(--ui-font-subtitle);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-line-height-subtitle);
+}
+.library-pdf-import-panel p {
+  margin: var(--ui-space-4) 0;
+  overflow-wrap: anywhere;
+}
+.library-pdf-import-panel form {
+  display: grid;
+  gap: var(--ui-space-5);
+}
+.library-workbench .library-pdf-import-panel button {
+  min-height: var(--ui-control-md);
+  padding: var(--ui-space-2) var(--ui-space-5);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-pdf-import-panel button:hover:not(:disabled) {
+  background: var(--workspace-hover);
+}
+.library-pdf-import-panel button.library-pdf-import-panel__icon {
+  width: var(--ui-control-sm);
+  min-height: var(--ui-control-sm);
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+}
+.library-pdf-import-panel__hint {
+  color: var(--workspace-text-tertiary);
+}
+.library-pdf-import-panel__hint button {
+  margin-inline-start: var(--ui-space-4);
+}
+.library-pdf-import-panel__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--ui-space-5);
+}
+.library-pdf-import-panel label {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  font-size: var(--ui-font-meta);
+}
+.library-workbench .library-pdf-import-panel :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ui-control-md);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+.library-pdf-import-panel__file {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+}
+.library-pdf-import-panel__file span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.library-pdf-import-panel__frozen {
+  display: grid;
+  gap: var(--ui-space-4);
+  margin: 0;
+}
+.library-pdf-import-panel__frozen > div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--ui-space-4);
+}
+.library-pdf-import-panel__frozen dt {
+  color: var(--workspace-text-tertiary);
+}
+.library-pdf-import-panel__frozen dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.library-pdf-import-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+  padding-top: var(--ui-space-2);
+}
+.library-pdf-import-panel__actions button[type='submit'] {
+  color: var(--workspace-accent-contrast);
+  background: var(--workspace-accent);
+  font-weight: var(--ui-weight-medium);
+}
+.library-pdf-import-panel__progress,
+.library-pdf-import-panel__success > p:first-child {
+  display: flex;
+  gap: var(--ui-space-4);
+  align-items: center;
+}
+.library-pdf-import-panel__discard {
+  padding-top: var(--ui-space-3);
+  border-top: 1px solid var(--workspace-border);
+}
+@container library-workbench (max-width: 720px) {
+  .library-pdf-import__page-header {
+    flex-wrap: wrap;
+  }
+  .library-pdf-import__header-actions {
+    flex-shrink: 1;
+    justify-content: flex-start;
+  }
+  .library-pdf-import-panel {
+    max-height: 55svh;
+    padding: var(--ui-space-5);
+  }
+  .library-pdf-import-panel__fields {
+    grid-template-columns: 1fr;
+    gap: var(--ui-space-4);
+  }
+}

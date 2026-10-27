@@ -7,6 +7,16 @@
 import { ipcBridge } from '@/common';
 import { decodePdfReadingProjection } from '@/common/adapter/pdfReadingContext';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
+import {
+  mergeToolObservationRecords,
+  toolObservationCallKey,
+  toolObservationOwnerKey,
+  toolObservationBranch,
+  toolObservationInputsCompatible,
+  toolObservationOwnersCompatible,
+  isToolObservationTerminal,
+  isToolObservationActive,
+} from '@/common/chat/toolProgressObservation';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   AgentStreamErrorInfo,
@@ -258,27 +268,32 @@ function getMessageIndexKey(message: TMessage): string | undefined {
   return `${message.type}:${message.msg_id}`;
 }
 
-function getToolCallIdentity(message: Extract<TMessage, { type: 'tool_call' }>): string | undefined {
+function toolCallObservationScope(message: Extract<TMessage, { type: 'tool_call' }>) {
   const callId = message.content?.call_id?.trim();
-  if (!callId) return undefined;
-  const attempt = message.content.attempt;
-  return Number.isSafeInteger(attempt) && Number(attempt) >= 1
-    ? `${Number(attempt)}:${message.content.operation_id?.trim() || callId}`
-    : callId;
+  return {
+    identity: callId
+      ? toolObservationCallKey(callId, message.content.attempt, message.content.operation_id?.trim())
+      : undefined,
+    conversationId: message.conversation_id,
+    branchId: toolObservationBranch(message.content.xScience?.branchId),
+    attempt: message.content.attempt,
+    revision: message.content.revision,
+    status: message.content.status,
+    input: message.content.input ?? message.content.args,
+  };
+}
+
+function getToolCallIdentity(message: Extract<TMessage, { type: 'tool_call' }>): string | undefined {
+  const scope = toolCallObservationScope(message);
+  return scope.identity ? toolObservationOwnerKey(scope.conversationId, scope.branchId, scope.identity) : undefined;
 }
 
 function isTerminalToolCallStatus(status: string | undefined): boolean {
-  return (
-    status === 'completed' ||
-    status === 'error' ||
-    status === 'canceled' ||
-    status === 'interrupted' ||
-    status === 'unknown'
-  );
+  return isToolObservationTerminal(status);
 }
 
 function isActiveToolCallStatus(status: string | undefined): boolean {
-  return status === 'pending' || status === 'running' || status === 'waiting' || status === 'blocked';
+  return isToolObservationActive(status);
 }
 
 function compatibleToolCallInput(
@@ -287,12 +302,7 @@ function compatibleToolCallInput(
 ): boolean {
   const existingInput = existing.content.input ?? existing.content.args;
   const incomingInput = incoming.content.input ?? incoming.content.args;
-  if (existingInput === undefined || incomingInput === undefined) return true;
-  try {
-    return JSON.stringify(existingInput) === JSON.stringify(incomingInput);
-  } catch {
-    return false;
-  }
+  return toolObservationInputsCompatible(existingInput, incomingInput);
 }
 
 function findCompatibleActiveToolIndex(
@@ -308,6 +318,7 @@ function findCompatibleActiveToolIndex(
       !isActiveToolCallStatus(candidate.content.status) ||
       (candidate.content.operation_id?.trim() || candidate.content.call_id?.trim()) !== operationId ||
       candidate.content.name?.trim() !== name ||
+      !toolObservationOwnersCompatible(toolCallObservationScope(candidate), toolCallObservationScope(incoming)) ||
       !compatibleToolCallInput(candidate, incoming)
     ) {
       return [];
@@ -441,23 +452,20 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'tool_call') {
+        const merged = mergeToolObservationRecords(
+          existingMsg.content,
+          message.content,
+          toolCallObservationScope(existingMsg),
+          toolCallObservationScope(message)
+        );
+        if (merged === existingMsg.content) return list;
         const newList = list.slice();
         const existingTerminal = isTerminalToolCallStatus(existingMsg.content.status);
         const incomingTerminal = isTerminalToolCallStatus(message.content.status);
-        const merged = { ...existingMsg.content, ...message.content };
         if (exactExistingIdx === undefined) {
           merged.attempt = existingMsg.content.attempt;
           merged.call_id = existingMsg.content.call_id;
           merged.operation_id = existingMsg.content.operation_id;
-        }
-        if (existingTerminal) {
-          merged.status = existingMsg.content.status;
-          if (existingMsg.content.output !== undefined) merged.output = existingMsg.content.output;
-          if (existingMsg.content.error !== undefined) merged.error = existingMsg.content.error;
-        }
-        if (existingTerminal || incomingTerminal) {
-          delete merged.streaming;
-          delete merged.streamingRecoveryError;
         }
         newList[existingIdx] = {
           ...existingMsg,

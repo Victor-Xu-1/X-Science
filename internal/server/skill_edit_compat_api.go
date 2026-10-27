@@ -141,7 +141,8 @@ func (s *Server) handleCompatibilitySkillDuplicate(w http.ResponseWriter, r *htt
 
 func (s *Server) handleCompatibilitySkillPublish(w http.ResponseWriter, r *http.Request, name string) {
 	var input struct {
-		Overwrite bool `json:"overwrite"`
+		Overwrite             bool   `json:"overwrite"`
+		ExpectedDraftRevision string `json:"expected_draft_revision"`
 	}
 	if err := decodeAgentCompatJSON(r, &input); err != nil {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid skill publish request: "+err.Error())
@@ -149,8 +150,16 @@ func (s *Server) handleCompatibilitySkillPublish(w http.ResponseWriter, r *http.
 	}
 	s.skillMutationMu.Lock()
 	defer s.skillMutationMu.Unlock()
-	skill, err := s.publishCompatibilitySkillDraft(name, input.Overwrite)
+	skill, err := s.publishCompatibilitySkillDraft(name, input.Overwrite, input.ExpectedDraftRevision)
 	if err != nil {
+		if failure, ok := skillDraftRevisionError(err); ok {
+			status := http.StatusConflict
+			if failure.Code == "draft_revision_required" {
+				status = http.StatusPreconditionRequired
+			}
+			writeJSON(w, status, map[string]any{"code": failure.Code, "detail": failure.Message})
+			return
+		}
 		writeV11Detail(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -202,6 +211,12 @@ func (s *Server) deleteCompatibilitySkill(userID, name string, draftOnly bool) e
 }
 
 func (s *Server) deleteCompatibilitySkillWithCommit(userID, name string, draftOnly bool, commit skillDraftCommit) error {
+	catalogChanged := false
+	defer func() {
+		if catalogChanged {
+			s.notifySkillCatalogChanged("")
+		}
+	}()
 	skill, found := findCatalogSkill(s.skillCatalog, name)
 	if draftOnly {
 		var err error
@@ -247,12 +262,14 @@ func (s *Server) deleteCompatibilitySkillWithCommit(userID, name string, draftOn
 		if err := os.RemoveAll(trash); err != nil {
 			return errors.Join(err, os.Rename(trash, root))
 		}
+		// Match publication: project the completed filesystem change before an
+		// uncertain execution-transaction acknowledgement can return to the caller.
+		if published, found := findCatalogSkill(s.skillCatalog, name); found && sameCleanPath(filepath.Dir(published.Path), root) {
+			catalogChanged = s.skillCatalog.RemoveSkill(name)
+		}
 		return nil
 	}); err != nil {
 		return err
-	}
-	if published, found := findCatalogSkill(s.skillCatalog, name); found && sameCleanPath(filepath.Dir(published.Path), root) {
-		s.skillCatalog.RemoveSkill(name)
 	}
 	return nil
 }

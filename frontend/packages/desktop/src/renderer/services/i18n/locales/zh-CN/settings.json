@@ -878,6 +878,11 @@
   "speechToTextStreamingBadge": "实时",
   "speechToTextWholeBadge": "整段",
   "mcp": "MCP 集成",
+  "xScienceMcpPermissionsLoadError": "无法加载工具权限。",
+  "mcpBuiltinToolDescriptions": {
+    "pdb_search_sequence": "按蛋白质序列、序列一致性和查询覆盖度检索实验测定的 PDB 结构，返回实体、链及比对详情。",
+    "pdb_search_structure_similarity": "使用已收录的链查找三维结构相似的实验 PDB 链。"
+  },
   "mcpBuiltinDescriptions": {
     "x-science-research": "科研能力检索与调用：通过统一入口发现并执行管理员已验证的能力包，无需将每个数据源单独安装为技能。",
     "open-targets-official": "Open Targets 官方服务：查询靶点与疾病证据、成药性、安全性、遗传关联、药物机制及临床候选药物。",
@@ -895,7 +900,7 @@
     "regulation": "基因调控：ENCODE 实验、JASPAR 转录因子结合矩阵及 UniBind TFBS。",
     "protein-annotation": "蛋白质注释：InterPro/Pfam 结构域、Human Protein Atlas 与 STRING 互作网络。",
     "rna": "非编码 RNA：Rfam 家族、种子比对、协方差模型、系统树和序列区域。",
-    "structures-interactions": "结构与分子互作：PDB、AlphaFold、EMDB、Complex Portal 与 IntAct 数据资源。",
+    "structures-interactions": "结构与分子互作：PDB 结构、蛋白质序列与三维结构相似性检索，以及 AlphaFold 预测、EMDB、Complex Portal 和 IntAct 数据资源。",
     "omics-archives": "组学数据归档：ArrayExpress/BioStudies、GEO、MGnify 与 PRIDE 蛋白质组学项目。",
     "genes-ontologies": "基因与本体：MyGene、OLS4、GO、UniProt 与 Reactome 通路查询。",
     "drug-regulatory": "药品监管数据：申请、批准信息、药理分类、仿制药等效信息与 SPL 标签。",
@@ -1367,6 +1372,10 @@
   "memoryAutomaticMarker": "自动 ·",
   "memoryAuto": "自动记忆",
   "memoryAutoDescription": "任务完成后自动提炼长期有用的信息；关闭后仍可手动管理和召回已有记忆。",
+  "memoryRecoveryPolicy": "大请求恢复策略",
+  "memoryRecoveryPolicyDescription": "对未来完成的任务，当捕获的请求超过存储上限时允许紧凑提取。继续使用原模型和有界的已完成对话上下文，并记录提取模式的变更。",
+  "memoryRecoveryStrict": "必须保留完整捕获请求",
+  "memoryRecoveryCompact": "过大时使用紧凑上下文",
   "memoryLoadError": "记忆数据暂时不可用。",
   "memoryRefreshError": "更改已保存，但部分视图刷新失败。继续修改前请先重新加载。",
   "memoryMutationError": "记忆变更未能保存。",
@@ -1467,7 +1476,7 @@
   "xScienceSkillsManage": "管理技能",
   "skillsSettings": {
     "title": "技能",
-    "paginationLabel": "技能列表分页",
+    "paginationLabel": "专家卡片分页",
     "fetchFailed": "无法加载技能库。",
     "partialLoadFailed": "部分技能数据加载失败，已加载的结果仍可使用。",
     "enabledMessage": "Skill 已启用",
@@ -1503,7 +1512,6 @@
     "drafts": "草稿",
     "draftsDescription": "尚未发布的个人 Skill。",
     "noMatches": "没有匹配的 Skill",
-    "paginationLabel": "专家卡片分页",
     "noImported": "尚未导入 Skill",
     "noPersonal": "尚未创建个人 Skill",
     "viewNamed": "查看 {{name}}",
@@ -1615,6 +1623,8 @@
         "draftSaveFailed": "Skill 草稿保存失败。",
         "published": "Skill 已发布",
         "publishFailed": "Skill 发布失败。",
+        "draftReviewRequired": "请重新载入草稿并审阅当前内容后再发布。",
+        "draftChanged": "草稿在载入后已发生变化。请重新载入并审阅当前内容后再发布。",
         "draftDeleted": "Skill 草稿已删除",
         "draftDeleteFailed": "Skill 草稿删除失败。",
         "invalidCopyName": "名称需以字母或数字开头，仅可包含字母、数字、点、下划线和连字符。",
@@ -2496,5 +2506,10 @@
       "selectTargetProject": "选择导入目标项目",
       "selectProject": "选择项目"
     }
-  }
+  },
+  "memoryCategoryUncertain": "保存结果尚未确认。请重试同一次保存，或关闭后稍后继续。",
+  "memoryCategoryRetrySameSave": "重试同一次保存",
+  "memoryCategoryCloseRetained": "关闭",
+  "memoryCategoryResumeSave": "继续保存分类",
+  "memoryCategorySavedMissing": "保存已确认，但分类已不在列表中。"
 }

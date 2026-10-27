@@ -99,13 +99,24 @@ func TestMemoryExtractionV81MigrationRollsBackAndPreservesHistory(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.CurrentVersion != 81 || status.TargetVersion != 81 {
-		t.Fatalf("reopen schema current=%d target=%d want81", status.CurrentVersion, status.TargetVersion)
+	if status.CurrentVersion != workspaceSchemaVersion || status.TargetVersion != workspaceSchemaVersion {
+		t.Fatalf("reopen schema current=%d target=%d want%d", status.CurrentVersion, status.TargetVersion, workspaceSchemaVersion)
 	}
-	if !reflect.DeepEqual(current, readMigrationJournal(t, path)) {
-		t.Fatal("reopen changed existing schema journal identities")
+	reopenedJournal := readMigrationJournal(t, path)
+	if len(reopenedJournal) < len(current) || !reflect.DeepEqual(current, reopenedJournal[:len(current)]) {
+		t.Fatal("reopen changed the existing v81 schema journal prefix")
 	}
-	retained = transcriptWebMigrationRows(t, reopened.db)
+	// Reopen upgrades to the current registry. Compare the exact v81 projection;
+	// the later cadence column and initially empty collections have their own
+	// migration tests. Still reject any missing, populated or unexpected table.
+	retained = memoryExtractionRowsBeforeCadenceColumn(t, reopened.db)
+	for _, table := range []string{"literature_collections", "literature_collection_items"} {
+		rows, found := retained[table]
+		if !found || len(rows) != 0 {
+			t.Fatalf("current-schema collection table %q missing or populated on reopen: rows=%#v found=%t", table, rows, found)
+		}
+		delete(retained, table)
+	}
 	delete(retained, "memory_extraction_receipts")
 	assertMemoryExtractionMigrationRows(t, before, retained)
 	var violations int

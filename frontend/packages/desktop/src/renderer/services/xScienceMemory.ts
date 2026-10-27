@@ -2,6 +2,15 @@ export type XScienceMemoryOptions = {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;
+  timeoutMs?: number;
+  operationId?: string;
+};
+
+export type XScienceForkedViewRecovery = 'strict' | 'compact-on-oversize';
+
+export type XScienceAutomaticMemoryPreferences = {
+  enabled: boolean;
+  forkedViewRecovery: XScienceForkedViewRecovery;
 };
 
 export type XScienceMemoryRow = {
@@ -52,6 +61,7 @@ export type XScienceMemoryContext = {
   entities: XScienceMemoryEntity[];
   sessions: XScienceMemorySession[];
   categories: XScienceMemoryCategory[];
+  forkedViewRecovery?: XScienceForkedViewRecovery;
 };
 
 export type XScienceCreateMemoryInput = {
@@ -93,6 +103,7 @@ export async function loadXScienceMemoryContext(
     entities: arrayValue(payload?.entities).map(toMemoryEntity).filter(isMemoryEntity),
     sessions: arrayValue(payload?.sessions).map(toMemorySession).filter(isMemorySession),
     categories: arrayValue(payload?.categories).map(toMemoryCategory).filter(isMemoryCategory),
+    forkedViewRecovery: forkedViewRecoveryValue(payload?.forked_view_recovery),
   };
 }
 
@@ -104,7 +115,18 @@ export async function loadXScienceMemoryEnabled(options: XScienceMemoryOptions =
 
 export async function loadXScienceAutoMemoryEnabled(options: XScienceMemoryOptions = {}): Promise<boolean> {
   const payload = asRecord(await requestJson('/api/memory/auto-enabled', {}, options));
-  return payload?.enabled === true;
+  return automaticMemoryPreferencesValue(payload).enabled;
+}
+
+function forkedViewRecoveryValue(value: unknown): XScienceForkedViewRecovery {
+  if (value === undefined) return 'strict'; // Existing responses have no recorded policy.
+  if (value === 'strict' || value === 'compact-on-oversize') return value;
+  throw new Error('X-Science automatic memory recovery policy is invalid');
+}
+
+function automaticMemoryPreferencesValue(payload: RecordValue | null): XScienceAutomaticMemoryPreferences {
+  if (typeof payload?.enabled !== 'boolean') throw new Error('X-Science automatic memory response is invalid');
+  return { enabled: payload.enabled, forkedViewRecovery: forkedViewRecoveryValue(payload.forked_view_recovery) };
 }
 
 export async function loadXScienceSessionMemories(
@@ -121,9 +143,19 @@ export async function setXScienceMemoryEnabled(enabled: boolean, options: XScien
 
 export async function setXScienceAutoMemoryEnabled(
   enabled: boolean,
-  options: XScienceMemoryOptions = {}
+  options: XScienceMemoryOptions & { forkedViewRecovery?: XScienceForkedViewRecovery } = {}
 ): Promise<void> {
-  await requestJson('/api/memory/auto-enabled', jsonRequest('PUT', { enabled }), options);
+  const policy = options.forkedViewRecovery;
+  if (policy !== undefined) forkedViewRecoveryValue(policy);
+  const payload = await requestJson(
+    '/api/memory/auto-enabled',
+    jsonRequest('PUT', {
+      enabled,
+      ...(policy === undefined ? {} : { forked_view_recovery: policy }),
+    }),
+    options
+  );
+  automaticMemoryPreferencesValue(asRecord(payload));
 }
 
 export async function setXScienceProjectMemoryEnabled(
@@ -177,11 +209,15 @@ export async function createXScienceMemoryCategory(
 ): Promise<XScienceMemoryCategory> {
   const payload = await requestJson(
     '/api/memory/categories',
-    jsonRequest('POST', {
-      name: input.name,
-      guidance: input.guidance,
-      auto_recall: input.autoRecall ?? true,
-    }),
+    categoryRequest(
+      'POST',
+      {
+        name: input.name,
+        guidance: input.guidance,
+        auto_recall: input.autoRecall ?? true,
+      },
+      options
+    ),
     options
   );
   const category = toMemoryCategory(payload);
@@ -196,11 +232,15 @@ export async function updateXScienceMemoryCategory(
 ): Promise<XScienceMemoryCategory | null> {
   const payload = await requestJson(
     `/api/memory/categories/${encodeURIComponent(categoryId)}`,
-    jsonRequest('PUT', {
-      name: input.name,
-      guidance: input.guidance,
-      auto_recall: input.autoRecall,
-    }),
+    categoryRequest(
+      'PUT',
+      {
+        name: input.name,
+        guidance: input.guidance,
+        auto_recall: input.autoRecall,
+      },
+      options
+    ),
     options
   );
   return payload === undefined ? null : toMemoryCategory(payload);
@@ -218,24 +258,157 @@ export async function deleteXScienceMemoryCategory(
   );
 }
 
-async function requestJson(path: string, init: RequestInit, options: XScienceMemoryOptions): Promise<unknown> {
-  const response = await (options.fetchImpl ?? fetch)(toGatewayUrl(path, options.baseUrl), {
-    ...init,
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      ...init.headers,
-    },
-    signal: options.signal ?? init.signal,
-  });
-  if (!response.ok) {
-    const payload = asRecord(await response.json().catch((): null => null));
-    const detail = stringValue(payload?.detail) || stringValue(payload?.error);
-    throw new Error(`X-Science memory request failed: ${response.status} ${path}${detail ? ` ${detail}` : ''}`);
+export const MEMORY_METADATA_TIMEOUT_MS = 30_000;
+const MAX_TIMER_MS = 2_147_483_647;
+export type MemoryCategoryWriteOutcome = 'rejected' | 'unknown' | 'committed-missing' | 'conflict';
+type MemoryRequestStage = 'headers' | 'body' | 'decode';
+type MemoryRequestReason = 'deadline' | 'abort' | 'transport' | 'http' | 'decode';
+
+/** Transport facts only: no category fields, response body or operation key in diagnostics. */
+export class XScienceMemoryRequestError extends Error {
+  readonly reason: MemoryRequestReason;
+  readonly stage: MemoryRequestStage;
+  readonly status?: number;
+  readonly code: string;
+  readonly categoryOutcome: MemoryCategoryWriteOutcome;
+
+  constructor(input: {
+    reason: MemoryRequestReason;
+    stage: MemoryRequestStage;
+    path?: string;
+    status?: number;
+    code?: string;
+  }) {
+    const path = (input.path ?? '/api/memory').split(/[?#]/, 1)[0];
+    super(
+      `X-Science memory request ${input.reason === 'http' ? 'failed:' : input.reason + ':'} ${input.status ?? ''} ${path}`
+    );
+    this.name = 'XScienceMemoryRequestError';
+    this.reason = input.reason;
+    this.stage = input.stage;
+    this.status = input.status;
+    this.code = [
+      'MEMORY_CATEGORY_WRITE_REJECTED',
+      'MEMORY_CATEGORY_OUTCOME_UNKNOWN',
+      'MEMORY_CATEGORY_COMMITTED_RESULT_MISSING',
+      'MEMORY_CATEGORY_IDEMPOTENCY_CONFLICT',
+    ].includes(input.code ?? '')
+      ? input.code!
+      : '';
+    this.categoryOutcome =
+      input.reason === 'http' &&
+      input.status !== undefined &&
+      input.status >= 400 &&
+      input.status < 500 &&
+      this.code === 'MEMORY_CATEGORY_WRITE_REJECTED'
+        ? 'rejected'
+        : input.reason === 'http' && input.status === 410 && this.code === 'MEMORY_CATEGORY_COMMITTED_RESULT_MISSING'
+          ? 'committed-missing'
+          : input.reason === 'http' && input.status === 409 && this.code === 'MEMORY_CATEGORY_IDEMPOTENCY_CONFLICT'
+            ? 'conflict'
+            : 'unknown';
   }
-  if (response.status === 204) return undefined;
-  const text = await response.text();
-  return text ? JSON.parse(text) : undefined;
+}
+
+export function memoryCategoryWriteOutcome(error: unknown): MemoryCategoryWriteOutcome {
+  return error instanceof XScienceMemoryRequestError ? error.categoryOutcome : 'unknown';
+}
+
+function categoryRequest(method: 'POST' | 'PUT', body: unknown, options: XScienceMemoryOptions): RequestInit {
+  const init = jsonRequest(method, body);
+  if (options.operationId === undefined) return init;
+  const key = options.operationId;
+  if (typeof key !== 'string' || !/^[!#$%&'*+\-.^_`|~0-9A-Za-z]{1,256}$/.test(key)) {
+    throw new RangeError('A valid memory operation identity is required');
+  }
+  return { ...init, headers: { ...init.headers, 'Idempotency-Key': key } };
+}
+
+async function requestJson(path: string, init: RequestInit, options: XScienceMemoryOptions): Promise<unknown> {
+  const timeoutMs = options.timeoutMs ?? MEMORY_METADATA_TIMEOUT_MS;
+  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_MS) {
+    throw new RangeError('Memory request timeout must be a positive platform timer integer');
+  }
+  const controller = new AbortController();
+  const caller = options.signal ?? init.signal;
+  let stage: MemoryRequestStage = 'headers';
+  const currentStage = (): MemoryRequestStage => stage;
+  let stopped: XScienceMemoryRequestError | null = null;
+  let response: Response | undefined;
+  let rejectStop!: (error: XScienceMemoryRequestError) => void;
+  const stop = new Promise<never>((_resolve, reject) => {
+    rejectStop = reject;
+  });
+  const cancelBody = () => {
+    try {
+      void response?.body?.cancel().catch((): void => undefined);
+    } catch {
+      /* The fetch signal owns a locked reader. */
+    }
+  };
+  const stopRequest = (reason: 'deadline' | 'abort') => {
+    if (stopped) return;
+    stopped = new XScienceMemoryRequestError({ reason, stage, path });
+    controller.abort(reason === 'deadline' ? 'memory_metadata_deadline' : caller?.reason);
+    cancelBody();
+    rejectStop(stopped);
+  };
+  const fromCaller = () => stopRequest('abort');
+  const timer = setTimeout(() => stopRequest('deadline'), timeoutMs);
+  if (caller?.aborted) fromCaller();
+  else caller?.addEventListener('abort', fromCaller, { once: true });
+  const requireLive = () => {
+    if (stopped) throw stopped;
+  };
+  const work = Promise.resolve().then(async () => {
+    requireLive();
+    response = await (options.fetchImpl ?? fetch)(toGatewayUrl(path, options.baseUrl), {
+      ...init,
+      credentials: 'include',
+      headers: { Accept: 'application/json', ...init.headers },
+      signal: controller.signal,
+    });
+    if (stopped) {
+      cancelBody();
+      throw stopped;
+    }
+    stage = 'body';
+    if (response.status === 204 && response.ok) return undefined;
+    const text = await response.text();
+    requireLive();
+    stage = 'decode';
+    if (!response.ok) {
+      let payload: RecordValue | null = null;
+      try {
+        payload = asRecord(text ? JSON.parse(text) : null);
+      } catch {
+        /* Preserve the HTTP fact without unsafe body retention. */
+      }
+      throw new XScienceMemoryRequestError({
+        reason: 'http',
+        stage,
+        path,
+        status: response.status,
+        code: stringValue(payload?.code),
+      });
+    }
+    return text ? JSON.parse(text) : undefined;
+  });
+  try {
+    return await Promise.race([work, stop]);
+  } catch (error) {
+    if (stopped) throw stopped;
+    if (error instanceof XScienceMemoryRequestError) throw error;
+    const failedStage = currentStage();
+    throw new XScienceMemoryRequestError({
+      reason: failedStage === 'decode' ? 'decode' : 'transport',
+      stage: failedStage,
+      path,
+    });
+  } finally {
+    clearTimeout(timer);
+    caller?.removeEventListener('abort', fromCaller);
+  }
 }
 
 function jsonRequest(method: 'POST' | 'PUT', body: unknown): RequestInit {

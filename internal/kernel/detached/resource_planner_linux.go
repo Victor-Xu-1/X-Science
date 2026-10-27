@@ -13,6 +13,7 @@ import (
 	"time"
 
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/toolprogress"
 )
 
 type executorResourcePlanner interface {
@@ -122,7 +123,9 @@ func readExecutorMemory(location string) (total, available, reserve int64, err e
 	if total <= 0 || !hasAvailable || available < 0 || available > total {
 		return 0, 0, 0, errors.New("machine memory observation incomplete")
 	}
-	reserve = max(executorControlReserveBytes, memoryFraction(total, executorMemoryReserveFraction))
+	// Automatic headroom scales down on small hosts and is capped on large
+	// hosts. Actual usage and outstanding promises are accounted separately.
+	reserve = min(executorControlReserveBytes, memoryFraction(total, executorMemoryReserveFraction))
 	return total, available, reserve, nil
 }
 
@@ -187,7 +190,7 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 		return 0, err
 	}
 	if !admitted {
-		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration}
+		return 0, &ExecutorResourceUnavailableError{AvailableBytes: observation.AvailableBytes, ReserveBytes: observation.ReserveBytes, RequiredBytes: max(spec.ResourceMemoryBytes, capacity.MinimumBytes), BackendID: backend.BackendID, Generation: backend.BackendGeneration, Admission: toolprogress.NormalizeResourceAdmission(reservation.Admission)}
 	}
 	// Use the exact allocation returned by the serialized admission, including
 	// concurrent replays. Neither an earlier inventory nor the default floor

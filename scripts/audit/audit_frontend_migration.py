@@ -131,6 +131,8 @@ ALLOWED_ADAPTATIONS = {
 
 ALLOWED_ADDITIONS = {
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
+    "packages/desktop/src/common/adapter/literatureMetadataPatch.ts": "Strictly snapshot generic Library metadata field deltas and validate only changed receipt keys while preserving unedited canonical metadata, the existing mutation owner, and literal JSON field semantics.",
+    "packages/desktop/src/common/adapter/literatureValueIdentity.ts": "Factor the existing canonical Library request and receipt JSON equality into a dependency-free helper without changing its comparison semantics or creating another request, transport, or persistence authority.",
     "packages/desktop/src/common/adapter/specialistBinding.ts": "Define the shared closed Specialist input-reference and frozen send-authority wire contract for IPC, queues and initial-message decoding; no execution or transport owner.",
     "packages/desktop/src/renderer/pages/conversation/components/DelegatedStopActions.tsx": "New React adapter for the reference compact separate selected-branch Stop/pending/error interaction; single-child Stop, receipt inspection and retry are X-Science extensions. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx. Single-child Stop and physical receipt recovery are X-Science additions, not copied reference controls.",
     "packages/desktop/src/renderer/pages/conversation/components/useDelegatedStop.ts": "Binds existing account lifecycle, selected branch and canonical wake events to the one Stop controller.",
@@ -289,6 +291,7 @@ ALLOWED_ADDITIONS = {
     "tests/fixtures/sequence-joined-location/dispatch-comment.jbei": "Provide a small first-party synthetic JBEI fixture with a leading comment to verify locked-parser dispatch priority is preserved.",
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
+    "packages/desktop/src/common/chat/toolProgressObservation.ts": "Extract and adapt the existing migrated chatLib.ts/normalizeToolCall.ts progress model and history/live same-ID merge into one pure observation helper, retaining imported-source provenance while adding X-Science resource-admission validation and revision fencing without another cache, timer, transport, request, or lifecycle owner.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
@@ -445,6 +448,19 @@ ALLOWED_ADDITIONS = {
     "tests/web-e2e/xscienceThirdPartyLicenses.e2e.ts-snapshots/third-party-licenses-desktop-linux.png": "Reviewed desktop visual baseline for the third-party license inventory.",
     "tests/web-e2e/xscienceThirdPartyLicenses.e2e.ts-snapshots/third-party-licenses-narrow-linux.png": "Reviewed narrow visual baseline for the third-party license inventory.",
     "tests/web-e2e/xscienceTranscriptRebase.e2e.ts": "Verify canonical Transcript rebase and reload behavior without restoring a legacy message authority.",
+    "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.tsx": "Expose the native Library route in the existing sidebar while retaining navigation cleanup, keyboard semantics and account authority; no task admission or catalogue mutation owner is added.",
+    "packages/desktop/src/renderer/pages/library/LibraryItemDetails.tsx": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated.",
+    "packages/desktop/src/renderer/pages/library/LibraryPage.tsx": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created.",
+    "packages/desktop/src/renderer/pages/library/libraryWorkbench.css": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted.",
+    "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentBrowser.tsx": "Connect immutable Library versions to the existing owner-authorized content route and shared PDF core with account-scoped preview, download, cancellation and exact-version retry.",
+    "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced.",
+    "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths.",
+    'packages/desktop/src/common/adapter/literatureCollections.ts': 'Define strict command-bound ordinary Library collection, membership and receipt contracts without substituting item results or creating another mutation authority.',
+    'packages/desktop/src/renderer/services/runtime/literatureCollections.ts': 'Route ordinary Library collection reads and original operation retries through the authenticated existing HTTP bridge and renderer account scope.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionSidebar.tsx': 'Project the owned ordinary collection tree and server order into real filtering and creation controls without decorative smart or batch entries.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionEditor.tsx': 'Bind collection create, revision edits, deletion and exact uncertain-request retry to the existing account-wide mutation owner and form generation.',
+    'packages/desktop/src/renderer/pages/library/LibraryCollectionMembership.tsx': 'Read and mutate the selected owned paper memberships through the same Library slot while fencing old item and account responses.',
 }
 
 ALLOWED_ADDITION_RULES = (
@@ -681,9 +697,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "a21ae2ff5f12034fb80925891951d33c41b7b9e140a6002dbabb2b66d4ce9051"
+APPROVED_ADAPTATION_FINGERPRINT = "533e64544d649b5780e7a80212bb796a825000f5d25e7171fe98e1610e728b98"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "5154548e730d55509e8f1b7d0d8abdddc26a7a961e4f45a147cd057a7f57db82"
+APPROVED_ADDITION_FINGERPRINT = "c23de49a758c957175716eb3eca288e526b0a7e89ad40586dfad031f364d777b"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

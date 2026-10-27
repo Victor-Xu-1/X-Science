@@ -3,7 +3,6 @@ package workspace
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"io"
 	"os"
@@ -22,13 +21,19 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 	if err != nil {
 		return receipt, err
 	}
-	// Inspection facts are server-derived; request identity is the caller's
-	// immutable source tuple/metadata, so retry survives source project deletion.
-	hash, err := mutationRequestHash(input)
+	// Detach caller-owned metadata before storage work and retain valid numeric
+	// tokens in the first ACK, not only in the persisted metadata JSON.
+	frozenMetadata, err := decodeLiteratureMetadataObject(metadata)
 	if err != nil {
 		return receipt, err
 	}
-	if found, err := s.lookupMutationResult(ctx, owner, input.OperationID, "literature.import", hash, &receipt); err != nil {
+	// Inspection facts are server-derived; request identity is the caller's
+	// immutable source tuple/metadata, so retry survives source project deletion.
+	identity, err := literatureImportRequestIdentity(input, metadata)
+	if err != nil {
+		return receipt, err
+	}
+	if found, err := s.lookupLiteratureMutationResult(ctx, owner, input.OperationID, "literature.import", identity, &receipt); err != nil {
 		return receipt, err
 	} else if found {
 		return receipt, s.recoverLiteratureImportContent(ctx, owner, receipt.VersionID)
@@ -77,8 +82,6 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		return receipt, err
 	}
 	marker := blobCommitMarker{ID: uuid.NewString(), Kind: "literature-attachment-version", AggregateID: versionID, StagingPath: stageRelative, FinalPath: path, SHA256: digest, SizeBytes: size, CreatedAt: s.now().UTC()}
-	var frozenMetadata map[string]any
-	_ = json.Unmarshal([]byte(metadata), &frozenMetadata)
 	version := LiteratureVersion{ID: versionID, AttachmentID: attachmentID, VersionNumber: 1, Filename: artifact.Name, MIMEType: "application/pdf", SizeBytes: size, Checksum: digest, PageCount: input.PageCount, Available: true, StoragePath: path}
 	item := LiteratureItem{ID: itemID, Title: strings.TrimSpace(input.Title), MetadataRevision: 1, Metadata: frozenMetadata, ProjectIDs: []string{}, Attachments: []LiteratureAttachment{{ID: attachmentID, Kind: "fullText", Versions: []LiteratureVersion{version}}}}
 	if input.ProjectID != "" {
@@ -87,7 +90,7 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 	receipt = LiteratureReceipt{Schema: "x-science.literature-receipt.v1", OperationID: input.OperationID, Item: item, AttachmentID: attachmentID, VersionID: versionID}
 	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
 		var prior LiteratureReceipt
-		if found, err := lookupMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", hash, &prior); err != nil {
+		if found, err := lookupLiteratureMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", identity, &prior); err != nil {
 			return err
 		} else if found {
 			receipt = prior
@@ -126,7 +129,7 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		if err := s.insertBlobCommitMarkerTx(ctx, tx, marker); err != nil {
 			return err
 		}
-		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", hash, receipt, now)
+		return insertMutationResultTx(ctx, tx, owner, input.OperationID, "literature.import", identity.requestHash(), receipt, now)
 	})
 	if err != nil {
 		return receipt, err

@@ -51,6 +51,9 @@ func readExtractionReceiptTx(ctx context.Context, tx memoryRowQueryer, identity 
 		saved.result.CursorBefore < 0 || saved.result.CursorAfter < 0 || saved.result.DeltaCount < 0 {
 		return savedExtractionReceipt{}, false, ErrExtractionPlanConflict
 	}
+	if saved.result.ModeDecision.Validate(identity.source) != nil {
+		return savedExtractionReceipt{}, false, ErrExtractionPlanConflict
+	}
 	return saved, true, nil
 }
 

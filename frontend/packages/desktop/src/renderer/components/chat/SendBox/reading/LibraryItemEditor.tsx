@@ -11,22 +11,30 @@ export function LibraryItemEditor({
   close,
 }: {
   item: LiteratureItem;
-  projectId: string;
+  projectId?: string;
   busy: boolean;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
 }) {
   const { t } = useTranslation();
+  const initialAuthors =
+    typeof item.metadata.authors === 'string'
+      ? item.metadata.authors
+      : Array.isArray(item.metadata.authors)
+        ? item.metadata.authors.filter((author): author is string => typeof author === 'string').join('; ')
+        : '';
+  const initialYear =
+    typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : '';
   const [title, setTitle] = useState(item.title);
-  const [authors, setAuthors] = useState(typeof item.metadata.authors === 'string' ? item.metadata.authors : '');
-  const [year, setYear] = useState(
-    typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : ''
-  );
+  const [authors, setAuthors] = useState(initialAuthors);
+  const [year, setYear] = useState(initialYear);
+  const authorsChanged = authors !== initialAuthors;
+  const yearChanged = year !== initialYear;
   const [confirmRemove, setConfirmRemove] = useState(false);
   const run = (command: LiteratureCommand): void => {
     void submit(command).then(close, (): undefined => undefined);
   };
-  const included = item.project_ids.includes(projectId);
+  const included = Boolean(projectId && item.project_ids.includes(projectId));
   return (
     <section className='pdf-library-editor' aria-label={t('conversation.reading.libraryDetails')}>
       <label>
@@ -50,35 +58,52 @@ export function LibraryItemEditor({
       <div className='pdf-library-editor__buttons'>
         <button
           type='button'
-          disabled={busy || !title.trim() || Boolean(year && !/^\d{4}$/.test(year))}
+          disabled={busy || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
           onClick={() =>
-            run({
-              kind: 'edit',
-              operation_id: crypto.randomUUID(),
-              item_id: item.id,
-              expected_revision: item.metadata_revision,
-              title: title.trim(),
-              metadata: { ...item.metadata, authors: authors.trim(), year: year.trim() },
-            })
+            run(
+              authorsChanged || yearChanged
+                ? {
+                    kind: 'edit-metadata',
+                    operation_id: crypto.randomUUID(),
+                    item_id: item.id,
+                    expected_revision: item.metadata_revision,
+                    ...(title.trim() !== item.title ? { title: title.trim() } : {}),
+                    metadata_patch: {
+                      set: {
+                        ...(authorsChanged ? { authors: authors.trim() } : {}),
+                        ...(yearChanged ? { year: year.trim() } : {}),
+                      },
+                    },
+                  }
+                : {
+                    kind: 'edit',
+                    operation_id: crypto.randomUUID(),
+                    item_id: item.id,
+                    expected_revision: item.metadata_revision,
+                    title: title.trim(),
+                  }
+            )
           }
         >
           {t('common.save')}
         </button>
-        <button
-          type='button'
-          disabled={busy}
-          onClick={() =>
-            run({
-              kind: 'membership',
-              operation_id: crypto.randomUUID(),
-              item_id: item.id,
-              project_id: projectId,
-              included: !included,
-            })
-          }
-        >
-          {t(included ? 'conversation.reading.libraryUnlinkProject' : 'conversation.reading.libraryLinkProject')}
-        </button>
+        {projectId && (
+          <button
+            type='button'
+            disabled={busy}
+            onClick={() =>
+              run({
+                kind: 'membership',
+                operation_id: crypto.randomUUID(),
+                item_id: item.id,
+                project_id: projectId,
+                included: !included,
+              })
+            }
+          >
+            {t(included ? 'conversation.reading.libraryUnlinkProject' : 'conversation.reading.libraryLinkProject')}
+          </button>
+        )}
         <button type='button' disabled={busy} onClick={close}>
           {t('common.close')}
         </button>

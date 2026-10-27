@@ -76,17 +76,24 @@ func (s *Server) handleDelegatedStopSubmit(w http.ResponseWriter, r *http.Reques
 		writeDelegatedStopError(w, err)
 		return
 	}
+	admissionReplayed := receipt.Replayed
 	// Exact durable cancellation won. No whole-root, weak execution-ID or
 	// current/latest fallback is used for a missing physical registration.
 	if _, err := s.signalDelegatedStop(r.Context(), owner, &receipt); err != nil {
 		writeDelegatedStopError(w, err)
 		return
 	}
-	receipt, err = s.workspaceStore.RecordDelegatedStopObservation(r.Context(), owner, receipt)
+	var found bool
+	receipt, found, err = s.readDelegatedStopReceipt(r.Context(), owner, r.PathValue("frameId"), receipt.Request.RequestID)
+	if err == nil && !found {
+		err = workspace.ErrDelegatedStopUnavailable
+	}
 	if err != nil {
 		writeDelegatedStopError(w, err)
 		return
 	}
+	// Replay describes this POST admission; canonical readback owns the outcome.
+	receipt.Replayed = admissionReplayed
 	s.observeDelegatedStop(r.Context(), owner, &receipt)
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, receipt)
@@ -97,7 +104,7 @@ func (s *Server) handleDelegatedStopLookup(w http.ResponseWriter, r *http.Reques
 	if !ok {
 		return
 	}
-	receipt, found, err := s.workspaceStore.ReadDelegatedStop(r.Context(), owner, r.PathValue("frameId"), r.PathValue("requestId"))
+	receipt, found, err := s.readDelegatedStopReceipt(r.Context(), owner, r.PathValue("frameId"), r.PathValue("requestId"))
 	if err != nil {
 		writeDelegatedStopError(w, err)
 		return

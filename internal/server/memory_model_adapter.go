@@ -12,6 +12,7 @@ import (
 	"x-science/internal/memoryclassifier"
 	"x-science/internal/memorypolicy"
 	"x-science/internal/memorytools"
+	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
 )
 
@@ -24,6 +25,8 @@ type serverMemoryClassifierModel struct {
 type memoryRuntimeModelClient struct {
 	client agentruntime.ModelClient
 }
+
+type memoryExtractionModelContextKey struct{}
 
 func (client memoryRuntimeModelClient) Complete(ctx context.Context, request agentruntime.ModelRequest) (agentruntime.ModelResponse, error) {
 	if client.client == nil {
@@ -84,6 +87,28 @@ func (s *Server) newMemoryRuntimeModelClient(ctx context.Context, scope memoryto
 	userID := strings.TrimSpace(scope.UserID)
 	var profile providers.ModelProfile
 	var err error
+	if pinned, ok := ctx.Value(memoryExtractionModelContextKey{}).(workspace.MemoryExtractionModelIdentity); ok {
+		if pinned.Model == "" {
+			return nil, errors.New("original Memory model identity is unavailable")
+		}
+		if pinned.Selection != "" {
+			profile, err = s.resolveUserModelSelectionProfileWithContext(ctx, userID, pinned.Selection, input)
+		} else {
+			profile, err = providers.ResolveUserModelProfile(s.settingsStore, s.workspaceStore, s.secretStore, userID, pinned.Model, input)
+		}
+		if err != nil {
+			return nil, err
+		}
+		identity := strings.Join([]string{strings.TrimSpace(profile.Provider.ID), strings.TrimSpace(profile.Provider.Endpoint), strings.TrimSpace(profile.Model)}, "\x00")
+		if profile.Model != pinned.Model || pinned.ProviderID != "" && profile.Provider.ID != pinned.ProviderID || pinned.ProfileSHA256 != "" && memoryViewDigest([]byte(identity)) != pinned.ProfileSHA256 {
+			return nil, errors.New("original Memory model profile changed or is unavailable")
+		}
+		client, err := providers.NewRuntimeModelClient(profile, s.httpClient, nil)
+		if err != nil {
+			return nil, err
+		}
+		return memoryRuntimeModelClient{client: client}, nil
+	}
 	snapshot := sessionConversationModelSnapshot{}
 	if sourceFrameID := strings.TrimSpace(scope.SourceFrameID); sourceFrameID != "" {
 		snapshot, err = s.sessionConversationModelSnapshotWithContext(ctx, sourceFrameID)

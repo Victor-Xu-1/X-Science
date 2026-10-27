@@ -68,6 +68,7 @@ type sessionRunnerChatRun struct {
 	TaskIntent         string
 	TaskIntentID       string
 	TaskIntentRevision int64
+	currentControl     *sessionRunnerCurrentControl
 	// frameOwnedJob is set only by validated internal-job admission. Its
 	// dedicated frame, not a user-message task intent, bounds durable receipts.
 	frameOwnedJob                      bool

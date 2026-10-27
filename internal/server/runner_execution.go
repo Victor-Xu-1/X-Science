@@ -178,9 +178,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	options = toolAuthority.Options
 	preparationSubstage = "prepare_conversation_control"
-	options, err = s.prepareConversationSkillContinuation(ctx, options, run)
+	options, currentControl, err := s.prepareConversationSkillContinuation(ctx, options, run)
 	if err != nil {
 		return "", err
+	}
+	if run != nil {
+		run.currentControl = currentControl
 	}
 	runtimeToolUniverse := toolAuthority.Schemas
 	policyContext := toolAuthority.PolicyContext
@@ -223,6 +226,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if err != nil {
 		return "", err
 	}
+	taskLanguage := sessionRunnerResponseLanguage(promptContextFromMessages(messages))
+	messages = appendSessionRunnerCurrentControl(messages, currentControl)
 	if !hasChatRole(messages, "user") {
 		return "", errors.New("runner chat requires at least one user message")
 	}
@@ -279,7 +284,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		run.ContinuationArtifactReferences = artifactReferencesFromRunnerEntries(scientificEntries)
 	}
 	taskIntent := promptContextFromMessages(messages)
-	taskLanguage := sessionRunnerResponseLanguage(taskIntent)
 	options.sourceToolActivity = newSessionRunnerSourceToolActivity(
 		sessionRunnerGenericSourceToolAttemptCount(currentLogicalEntries),
 	)
@@ -302,6 +306,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		} else {
 			taskIntentID = fmt.Sprintf("%s:input:%d", run.Transcript.Stream.UID, run.Transcript.Claim.ClaimedInputRevision)
 			taskIntentRevision = run.Transcript.Claim.ClaimedInputRevision
+		}
+		if currentControl != nil {
+			// The current action owns this run's completion scope. Keep the
+			// persisted scientific intent and its language intact for later work.
+			taskIntent = currentControl.instruction()
+			taskIntentID, taskIntentRevision = currentControl.taskIdentity(run.Transcript.Stream.UID)
 		}
 		if err := applySessionRunnerTaskIntent(run, taskIntent, taskLanguage, taskIntentID, taskIntentRevision); err != nil {
 			return "", err
@@ -560,7 +570,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			return "", fmt.Errorf("snapshot selected skill runtime context: %w", err)
 		}
 	}
-	selectedSnapshot, recoveredSkillKeys, changedSkillRoots := selectedSnapshot.forReplay(recoveredSkillLoads, options.SelectedSkillNames)
+	selectedSnapshot, selectedSkills, recoveredSkillKeys, changedSkillRoots, err := s.prepareRuntimeSkillReplayContext(
+		ctx, selectedSnapshot, recoveredSkillLoads, options.SelectedSkillNames, run, runtimeSkillSessionID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("prepare selected skill runtime context: %w", err)
+	}
 	if context := runtimeSkillReplayContext(changedSkillRoots); context != "" {
 		messages = appendRuntimeAgentPolicyContextMessage(messages, context)
 	}
@@ -582,13 +597,6 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 	}
 	explicitScientificCapabilities = requiredScientificCapabilities(retainedExplicitClosure)
-	selectedSkills, err = selectedSnapshot.materializeForContext(ctx, s, runtimeSkillSessionID)
-	if err != nil {
-		return "", fmt.Errorf("prepare selected skill runtime context: %w", err)
-	}
-	if run != nil {
-		run.addExecutedSkillInvocationKeys(recoveredSkillKeys...)
-	}
 	if executionPriority := runtimeSkillExecutionPriorityContext(selectedSkills); executionPriority != "" {
 		messages = appendRuntimeAgentPolicyContextMessageWithSource(messages, executionPriority, agentruntime.ContextUsageSkills)
 	}
@@ -613,7 +621,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	// Keep one authoritative Skill body at system priority for every provider.
 	// The skill tool result remains a short durable receipt, while the current
-	// catalog body is materialized exactly once below. This avoids competing
+	// permitted contract is materialized exactly once above. This avoids competing
 	// copies and prevents weaker OpenAI-compatible providers from treating the
 	// scientific contract as optional low-priority tool data.
 	messages = compactProviderVisibleSkillResultBodies(messages)
@@ -622,7 +630,21 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		return "", err
 	}
 	if strings.TrimSpace(skillContext) != "" {
+		if run != nil && len(recoveredSkillKeys) > 0 {
+			valid, err := s.runtimeSkillReplayBoundaryCurrent(ctx, run)
+			if err != nil {
+				return "", err
+			}
+			if !valid {
+				return "", transcriptstore.ErrBranchStateStale
+			}
+		}
 		messages = appendRuntimeSkillContextMessage(messages, skillContext)
+		if run != nil {
+			// A history key becomes active only after the complete effective
+			// contract has passed the real context budget and been included.
+			run.addExecutedSkillInvocationKeys(recoveredSkillKeys...)
+		}
 	}
 	if err := checkpointPreparationStage("memory_context"); err != nil {
 		return "", err
@@ -693,7 +715,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			messages = appendRuntimeTerminalPolicyContextMessage(messages, recoveryContext)
 		}
 	}
-	if desiredOutputs := s.generatedPlanDesiredOutputsContext(intakeFrameID); desiredOutputs != "" {
+	if desiredOutputs := s.generatedPlanRuntimeNavigationContext(intakeFrameID, run); desiredOutputs != "" {
 		messages = attachRuntimeResearchNavigationState(messages, desiredOutputs)
 	}
 	advertisedRuntimeToolSchemas := partitionAgentRuntimeToolSchemasForModelWithSkills(runtimeToolSchemas, selectedSkills)
@@ -1189,7 +1211,7 @@ func sessionRunnerStatefulInitialToolChoice(
 		return nil
 	}
 	if gateway, gatewayOK := engine.Tools.(serverAgentRuntimeToolGateway); gatewayOK && gateway.server != nil {
-		if _, _, activePlanStep := gateway.server.generatedPlanActiveStep(gateway.sessionID); activePlanStep {
+		if _, _, activePlanStep := gateway.server.generatedPlanActiveStep(gateway.sessionID, gateway.taskRun); activePlanStep {
 			// Durable plan state survives history compaction. It is sufficient
 			// authority to constrain the first round even when no settled tool
 			// message remains in the compact provider replay.

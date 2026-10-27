@@ -86,8 +86,8 @@ func (m *serverMemoryCompactExtractor) ExtractMemories(ctx context.Context, requ
 	if err != nil {
 		return nil, err
 	}
-	if len(response.Message.ToolCalls) == 0 || response.Message.ToolCalls[0].Name != memoryextract.EmitToolName {
-		return map[string]any{}, nil
+	if len(response.Message.ToolCalls) != 1 || response.Message.ToolCalls[0].Name != memoryextract.EmitToolName {
+		return nil, fmt.Errorf("%w: expected one %s tool call", memoryextract.ErrInvalidResponse, memoryextract.EmitToolName)
 	}
 	return decodeMemoryModelJSONObject(string(response.Message.ToolCalls[0].Arguments))
 }
@@ -123,7 +123,7 @@ func (m *serverMemoryForkedExtractor) ExtractMemories(ctx context.Context, reque
 	if err != nil {
 		return nil, err
 	}
-	return memoryextract.ParseForkedResponse(response.Message.Content), nil
+	return memoryextract.ParseForkedResponse(response.Message.Content)
 }
 
 func (m *serverMemoryRepairModel) RepairMemoryText(ctx context.Context, request memoryextract.RepairRequest) (string, error) {

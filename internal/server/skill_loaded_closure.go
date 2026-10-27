@@ -21,6 +21,7 @@ type runtimeSkillContractSnapshot struct {
 	bundleKind     string
 	origin         string
 	contractSHA256 string
+	contextView    *runtimeSkillReplayContextMember
 }
 
 type runtimeSkillClosureSnapshot struct {
@@ -122,11 +123,26 @@ func (snapshot runtimeSkillClosureSnapshot) skills() []skills.Skill {
 // Context preparation derives a rendered copy from the same captured bytes.
 // Rendering never changes the contract identity or re-reads a published path.
 func (snapshot runtimeSkillClosureSnapshot) materializeForContext(ctx context.Context, s *Server, sessionID string) ([]skills.Skill, error) {
-	prepared, err := snapshot.materialize(ctx, s, sessionID)
-	if err != nil {
-		return nil, err
+	if ctx == nil {
+		ctx = context.Background()
 	}
-	for index := range prepared {
+	prepared := make([]skills.Skill, len(snapshot.contracts))
+	for index, contract := range snapshot.contracts {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if contract.contextView != nil {
+			if contract.contextView.sessionID != sessionID {
+				return nil, errors.New("replayed Skill context belongs to another session")
+			}
+			prepared[index] = contract.contextView.skill
+			continue
+		}
+		item, err := s.materializeAgentSkillRuntimeSnapshot(ctx, sessionID, contract.skill, contract.bundle, contract.hasResources)
+		if err != nil {
+			return nil, fmt.Errorf("materialize Skill runtime %q: %w", contract.skill.Name, err)
+		}
+		prepared[index] = item
 		if strings.Contains(prepared[index].Body, "${X_SCIENCE_SKILL_DIR}") {
 			prepared[index].Body = renderSkillPrompt(prepared[index], "")
 		}

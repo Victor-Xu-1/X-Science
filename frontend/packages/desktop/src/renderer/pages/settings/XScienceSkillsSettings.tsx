@@ -23,7 +23,7 @@ import {
 } from './skills/XScienceSkillLibraryModals';
 import { SkillLibraryToolbar, type SkillSourceFilter, type SkillStatusFilter } from './skills/SkillLibraryToolbar';
 import { SkillMarketModal } from './skills/SkillMarketModal';
-import { loadAvailableSkillsWithXScience } from '@/renderer/services/skills/skillsCatalog';
+import { loadAvailableSkillsWithXScience, onSkillCatalogChanged } from '@/renderer/services/skills/skillsCatalog';
 import {
   getXScienceSkillCategoryOptions,
   resolveXScienceSkillCategory,
@@ -67,6 +67,7 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listScrollRef = useRef<HTMLDivElement>(null);
   const loadGenerationRef = useRef(0);
+  const catalogReadbackRef = useRef({ activeReads: 0, dirty: false, mounted: false });
   messageRef.current = message;
   translationRef.current = t;
 
@@ -93,40 +94,70 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
     editable: boolean;
   } | null>(null);
 
-  const fetchData = useCallback(async () => {
-    const generation = ++loadGenerationRef.current;
-    setLoading(true);
-    setLoadError(false);
-    setSkillUsage(null);
-    const [skillsResult, draftsResult, sourcesResult, usageResult] = await Promise.allSettled([
-      loadAvailableSkillsWithXScience<SkillInfo>(),
-      loadXScienceSkillDrafts(),
-      loadXScienceSkillSources(),
-      loadXScienceSkillUsage(),
-    ]);
-    if (generation !== loadGenerationRef.current) return;
-
-    if (skillsResult.status === 'fulfilled') setAvailableSkills(skillsResult.value);
-    if (draftsResult.status === 'fulfilled') setDrafts(draftsResult.value);
-    if (sourcesResult.status === 'fulfilled') setSources(sourcesResult.value);
-    if (usageResult.status === 'fulfilled') setSkillUsage(usageResult.value);
-
-    const failures = [skillsResult, draftsResult, sourcesResult, usageResult].filter(
-      (result) => result.status === 'rejected'
-    );
-    if (failures.length > 0) {
-      for (const failure of failures) {
-        if (failure.status === 'rejected') console.error('Failed to fetch X-Science skill library:', failure.reason);
+  const fetchData = useCallback(async (options: { requireCurrentLibrary?: boolean } = {}): Promise<void> => {
+    const activity = catalogReadbackRef.current;
+    activity.activeReads += 1;
+    try {
+      const generation = ++loadGenerationRef.current;
+      setLoading(true);
+      setLoadError(false);
+      setSkillUsage(null);
+      const [skillsResult, draftsResult, sourcesResult, usageResult] = await Promise.allSettled([
+        loadAvailableSkillsWithXScience<SkillInfo>(),
+        loadXScienceSkillDrafts(),
+        loadXScienceSkillSources(),
+        loadXScienceSkillUsage(),
+      ]);
+      if (generation !== loadGenerationRef.current) {
+        if (options.requireCurrentLibrary) throw new Error('Skill library refresh was superseded');
+        return;
       }
-      setLoadError(true);
-      messageRef.current.error(translationRef.current('settings.skillsSettings.fetchFailed'));
+
+      if (skillsResult.status === 'fulfilled') setAvailableSkills(skillsResult.value);
+      if (draftsResult.status === 'fulfilled') setDrafts(draftsResult.value);
+      if (sourcesResult.status === 'fulfilled') setSources(sourcesResult.value);
+      if (usageResult.status === 'fulfilled') setSkillUsage(usageResult.value);
+
+      const failures = [skillsResult, draftsResult, sourcesResult, usageResult].filter(
+        (result) => result.status === 'rejected'
+      );
+      if (failures.length > 0) {
+        for (const failure of failures) {
+          if (failure.status === 'rejected') console.error('Failed to fetch X-Science skill library:', failure.reason);
+        }
+        setLoadError(true);
+        messageRef.current.error(translationRef.current('settings.skillsSettings.fetchFailed'));
+      }
+      setLoading(false);
+      // A completed detail mutation owns its original receipt until the current
+      // catalog and draft list have been read back. Optional usage/source reads
+      // keep their independent partial-error UI, but cannot require republishing.
+      if (options.requireCurrentLibrary && (skillsResult.status === 'rejected' || draftsResult.status === 'rejected')) {
+        throw new Error('Skill library readback is unavailable');
+      }
+    } finally {
+      activity.activeReads -= 1;
+      // An invalidation cannot supersede a pending required mutation readback.
+      // Its trailing read uses this same generation owner after the checks finish.
+      if (activity.mounted && activity.activeReads === 0 && activity.dirty) {
+        activity.dirty = false;
+        void fetchData();
+      }
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
+    const activity = catalogReadbackRef.current;
+    activity.mounted = true;
     void fetchData();
+    const stopCatalogChanges = onSkillCatalogChanged(() => {
+      if (activity.activeReads > 0) activity.dirty = true;
+      else void fetchData();
+    });
     return () => {
+      activity.mounted = false;
+      activity.dirty = false;
+      stopCatalogChanges();
       loadGenerationRef.current += 1;
     };
   }, [fetchData]);
@@ -517,7 +548,7 @@ const XScienceSkillsSettings: React.FC<XScienceSkillsSettingsProps> = ({
         draft={detail?.draft ?? false}
         editable={detail?.editable ?? false}
         onClose={() => setDetail(null)}
-        onChanged={fetchData}
+        onChanged={() => fetchData({ requireCurrentLibrary: true })}
       />
     </div>
   );

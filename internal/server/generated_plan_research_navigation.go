@@ -15,8 +15,16 @@ func (s *Server) generatedPlanResearchHandoffContext(
 	frameID string,
 	call agentruntime.ToolCall,
 	result any,
+	runs ...*sessionRunnerChatRun,
 ) string {
-	state := s.generatedPlanDesiredOutputsContext(frameID)
+	if len(runs) > 1 {
+		return ""
+	}
+	var run *sessionRunnerChatRun
+	if len(runs) == 1 {
+		run = runs[0]
+	}
+	state := s.generatedPlanRuntimeNavigationContext(frameID, run)
 	var navigation map[string]any
 	if state != "" && json.Unmarshal([]byte(state), &navigation) != nil {
 		navigation = nil

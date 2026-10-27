@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Run the smallest complete Go test or vet scope for an exact change.
 
-The selector uses the real Go package dependency graph. A changed package and
-every in-repository package that imports it are tested. Dependency updates
+The selector uses the real Go package dependency graph. A production change and
+every in-repository package that imports it are tested. Test-only source changes
+run their owning package without changing its importable production artifact.
+Dependency updates
 select the changed modules' real production and test consumers. Full runtime and race
 coverage remains in the full quality workflow. An all-zero push base selects
 every tracked path so a newly created integration branch fails conservatively.
@@ -105,6 +107,7 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
     all_packages = sorted(entry["ImportPath"] for entry in local)
     directories = {entry["ImportPath"]: Path(entry["Dir"]).relative_to(repo).as_posix() for entry in local}
     changed: set[str] = set()
+    test_only: set[str] = set()
     for path in paths:
         if Path(path).is_absolute() or ".." in Path(path).parts:
             raise ValueError("changed path is outside source")
@@ -118,6 +121,8 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             continue
         owners = set(runtime_owners.get(path, set()))
         owners.update(verification_owners.get(path, set()))
+        production_input = bool(owners)
+        test_source = False
         if not owners.issubset(all_packages):
             return all_packages, "Declared runtime consumer is unavailable"
         for entry in local:
@@ -126,6 +131,12 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             embeds = [item for field in ("EmbedFiles", "TestEmbedFiles", "XTestEmbedFiles")
                       for item in entry.get(field, [])]
             embedded = {(Path(directory) / item).as_posix() for item in embeds}
+            if path in {(Path(directory) / item).as_posix() for item in entry.get("EmbedFiles", [])}:
+                production_input = True
+            if path.endswith("_test.go") and Path(path).parent.as_posix() == directory:
+                test_source = True
+            elif path in embedded:
+                production_input = True
             testdata = (Path(directory) / "testdata").as_posix() + "/"
             if (path.endswith(".go") and Path(path).parent.as_posix() == directory
                     or path in embedded or path.startswith(testdata)):
@@ -136,7 +147,10 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             # Skills, Python/MCP assets, CI scripts and other package-external
             # inputs can be read at runtime. Unknown ownership broadens scope.
             return all_packages, "Package-external input requires conservative Go coverage"
-        changed.update(owners)
+        if test_source and not production_input:
+            test_only.update(owners)
+        else:
+            changed.update(owners)
     selected = set(changed)
     while True:
         previous = set(selected)
@@ -146,7 +160,9 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
                 selected.add(entry["ImportPath"])
         if selected == previous:
             break
-    return sorted(selected), "Changed packages, dependency modules and production/test import consumers"
+    # Go test files do not become part of the artifact imported by another
+    # package. Add their owners only after walking production dependency roots.
+    return sorted(selected | test_only), "Changed packages, dependency modules and production/test import consumers"
 
 
 def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], str]:

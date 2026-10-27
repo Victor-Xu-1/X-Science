@@ -61,6 +61,9 @@ func publicToolProgressPayload(update toolprogress.Update, elapsed time.Duration
 	if update.Message != "" {
 		result["message"] = strings.TrimSpace(truncateUTF8ByBytes(update.Message, 240))
 	}
+	if update.ResourceAdmission != nil {
+		result["resourceAdmission"] = update.ResourceAdmission
+	}
 	if update.PhasePercent != nil {
 		result["phasePercent"] = *update.PhasePercent
 	}

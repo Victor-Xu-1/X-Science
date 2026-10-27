@@ -51,13 +51,25 @@ func bindExtractionSource(t *testing.T, store *workspace.Store, input RunInput) 
 			FinishEventID: finish.EventID, PrefixSHA256: prefixDigest,
 		},
 	}
-	input.CommitGuard = func(ctx context.Context, commit func() error) error {
+	input.CommitGuard = func(ctx context.Context, commit func(workspace.LegacyExtractionOrderCheck) error) error {
 		return journal.WithStrictSnapshot(ctx, frame.ID, func(current []eventjournal.Entry) error {
 			digest, err := extractionFixturePrefixDigest(current, finish.EventID)
 			if err != nil || digest != prefixDigest {
 				return workspace.ErrExtractionSourceChanged
 			}
-			return commit()
+			return commit(func(candidate workspace.CompletedExtractionSource) (bool, error) {
+				prior := candidate.Legacy
+				if candidate.Schema != 1 || candidate.Transcript != nil || prior == nil ||
+					candidate.OwnerUserID != input.Scope.UserID || candidate.ProjectID != input.Scope.ProjectID || candidate.FrameID != frame.ID ||
+					prior.SessionID != frame.ID || prior.FrameIncarnationID != frame.IncarnationID || prior.FinishEventID <= finish.EventID {
+					return false, workspace.ErrExtractionPlanConflict
+				}
+				actual, err := extractionFixturePrefixDigest(current, prior.FinishEventID)
+				if err != nil {
+					return false, nil
+				}
+				return actual == prior.PrefixSHA256, nil
+			})
 		})
 	}
 	return input
@@ -109,10 +121,11 @@ func applyPreparedExtraction(t *testing.T, ctx context.Context, service *Service
 	}
 	digest := sha256.Sum256(encoded)
 	var committed workspace.ExtractionCommitResult
-	err = input.CommitGuard(ctx, func() error {
+	err = input.CommitGuard(ctx, func(check workspace.LegacyExtractionOrderCheck) error {
 		var commitErr error
 		committed, commitErr = service.store.CommitMemoryExtraction(ctx, workspace.ExtractionCommitInput{
-			Source: *input.Source, InputSHA256: hex.EncodeToString(digest[:]),
+			LegacyOrderCheck: check,
+			Source:           *input.Source, InputSHA256: hex.EncodeToString(digest[:]),
 			CursorBefore: cursor, CursorNext: cursor, DeltaCount: 1, Gate: "done", Plan: plan,
 		})
 		return commitErr

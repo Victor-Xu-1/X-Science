@@ -51,6 +51,9 @@ type Result struct {
 	ContentType       string                    `json:"contentType"`
 	Body              string                    `json:"body"`
 	RawBodyBase64     string                    `json:"rawBodyBase64,omitempty"`
+	ContentEncoding   string                    `json:"contentEncoding,omitempty"`
+	Uncompressed      bool                      `json:"uncompressed,omitempty"`
+	TextDecoding      *TextContentDecoding      `json:"textDecoding,omitempty"`
 	URL               string                    `json:"url"`
 	BytesRead         int                       `json:"bytesRead"`
 	ContentLength     int64                     `json:"contentLength,omitempty"`
@@ -131,7 +134,7 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 		result.RequestedURL = requestedURL
 		result.Redirects = append([]RedirectHop(nil), redirects...)
 		result.RetrievedAt = now().UTC().Format(time.RFC3339Nano)
-		result.Complete = complete
+		result.Complete = complete && !result.Truncated
 		if header != nil {
 			result.RetryAfterSeconds = httpreliability.RetryAfter(header.Get("Retry-After"), now()).Seconds()
 			assign := func(name, value string) string {
@@ -146,6 +149,7 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 			result.ETag = assign("etag", header.Get("ETag"))
 			result.ContentLanguage = assign("content_language", header.Get("Content-Language"))
 			result.ContentLocation = assign("content_location", header.Get("Content-Location"))
+			result.ContentEncoding = assign("content_encoding", header.Get("Content-Encoding"))
 		}
 		if len(returnedBytes) > 0 {
 			digest := sha256.Sum256(returnedBytes)
@@ -228,6 +232,7 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 			result := recoverableSourceUnavailable(current, message)
 			result.StatusCode = resp.StatusCode
 			result.ContentType = resp.Header.Get("Content-Type")
+			result.Uncompressed = resp.Uncompressed
 			result.ContentLength = resp.ContentLength
 			if result.ContentLength < 0 {
 				result.ContentLength = 0
@@ -251,7 +256,9 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 				result.Warning = "Binary or scientific-file content was not read completely by the bounded page reader. Use a dedicated governed download tool with this exact URL."
 			} else {
 				result.Warning = "The public response ended before the bounded read completed; any returned prefix is diagnostic only and must not be treated as complete source evidence."
-				assignWebResponseText(&result, body, true)
+				if err := assignWebResponseText(ctx, &result, body, true, limit); err != nil {
+					return Result{}, err
+				}
 			}
 			return finish(result, resp.Header, body, false), nil
 		}
@@ -270,6 +277,7 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 			URL:           current,
 			BytesRead:     len(body),
 			ContentLength: contentLength,
+			Uncompressed:  resp.Uncompressed,
 			Truncated:     truncated,
 			Binary:        binary,
 			Partial:       truncated || binary,
@@ -293,7 +301,9 @@ func FetchWithOptions(ctx context.Context, rawURL string, limit int64, options O
 			result.SourceUnavailable = true
 			result.Error = fmt.Sprintf("HTTP source returned %s.", resp.Status)
 		}
-		assignWebResponseText(&result, body, truncated)
+		if err := assignWebResponseText(ctx, &result, body, truncated, limit); err != nil {
+			return Result{}, err
+		}
 		return finish(result, resp.Header, body, !truncated), nil
 	}
 	return Result{}, fmt.Errorf("web redirect chain exceeds %d hops", maxRedirects)
@@ -322,9 +332,7 @@ func recoverableSourceUnavailable(rawURL, message string) Result {
 
 func webResponseIsBinary(rawURL, contentType string, body []byte, incomplete bool) bool {
 	mediaType := strings.ToLower(strings.TrimSpace(strings.SplitN(contentType, ";", 2)[0]))
-	if strings.HasPrefix(mediaType, "text/") || strings.Contains(mediaType, "json") ||
-		strings.Contains(mediaType, "xml") || strings.Contains(mediaType, "javascript") ||
-		mediaType == "application/x-www-form-urlencoded" {
+	if webResponseHasTextContract(contentType) {
 		return false
 	}
 	for _, marker := range []string{

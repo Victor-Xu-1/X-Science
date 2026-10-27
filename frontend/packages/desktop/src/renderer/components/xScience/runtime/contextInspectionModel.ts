@@ -5,12 +5,17 @@ import type {
   ContextInspectionOutcome,
 } from '@/renderer/services/runtime/contextInspection';
 
-export type ContextInspectionTurnPoint = ContextInspectionOutcome & { turnId: string; turnNumber: number };
+export type ContextInspectionTurnPoint = ContextInspectionOutcome & { turnId: string; inputRevision?: number };
+
+/** A retained chart position cannot supply a missing durable identity. */
+export function knownInspectionNumber(value: number | undefined): number | undefined {
+  return Number.isSafeInteger(value) && Number(value) > 0 ? value : undefined;
+}
 
 /** Reference visibleMessageSamples semantics, ordered by durable terminal identity rather than wall-clock guesses. */
 export function inspectionTurnPoints(inspection: ContextInspection): ContextInspectionTurnPoint[] {
   return inspection.turns
-    .flatMap((turn, turnIndex) => {
+    .flatMap((turn) => {
       const latestCompleted = turn.outcomes.reduce<ContextInspectionOutcome | undefined>(
         (latest, outcome) =>
           outcome.status === 'completed' && (!latest || latest.terminalEventId < outcome.terminalEventId)
@@ -20,7 +25,7 @@ export function inspectionTurnPoints(inspection: ContextInspection): ContextInsp
       );
       return turn.outcomes
         .filter((outcome) => outcome.status !== 'completed' || outcome.id === latestCompleted?.id)
-        .map((outcome) => ({ ...outcome, turnId: turn.id, turnNumber: turnIndex + 1 }));
+        .map((outcome) => ({ ...outcome, turnId: turn.id, inputRevision: knownInspectionNumber(turn.inputRevision) }));
     })
     .sort((left, right) => left.terminalEventId - right.terminalEventId);
 }
@@ -97,9 +102,9 @@ export function summarizeInspectionCalls(inspection: ContextInspection) {
 export function inspectionCallBands(inspection: ContextInspection) {
   const byId = new Map(inspection.calls.map((call) => [call.id, call]));
   return inspection.turns
-    .map((turn, turnIndex) => ({
+    .map((turn) => ({
       turnId: turn.id,
-      turnIndex,
+      inputRevision: knownInspectionNumber(turn.inputRevision),
       calls: turn.callIds.map((id) => byId.get(id)).filter((call) => call !== undefined),
     }))
     .filter((band) => band.calls.length > 0);

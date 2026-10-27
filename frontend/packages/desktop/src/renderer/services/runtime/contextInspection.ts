@@ -1,5 +1,12 @@
 import type { ContextCallUsage, ContextUsageSnapshot } from '../contextUsage';
 
+export type ContextCallFailureKind = 'cancelled' | 'deadline';
+
+/** Only failed requests can carry an explicitly recorded transport reason. */
+export function validContextCallFailureKind(value: unknown, state: unknown): value is ContextCallFailureKind {
+  return state === 'failed' && (value === 'cancelled' || value === 'deadline');
+}
+
 export type ContextInspectionScope = {
   conversationId: string;
   frameIncarnationId: string;
@@ -17,6 +24,7 @@ export type ContextInspectionCall = {
   runnerAttempt: number;
   model: string;
   state: 'request' | 'complete' | 'failed';
+  failureKind?: ContextCallFailureKind;
   observedAt: string;
   usedTokens: number;
   limitTokens: number;
@@ -115,6 +123,7 @@ export function parseContextInspection(
       typeof call.model !== 'string' ||
       call.model.length > 512 ||
       !['request', 'complete', 'failed'].includes(String(call.state)) ||
+      (Object.hasOwn(call, 'failureKind') && !validContextCallFailureKind(call.failureKind, call.state)) ||
       !date(call.observedAt) ||
       !['runnerAttempt', 'usedTokens', 'limitTokens', 'outputTokens'].every((key) => count(call[key])) ||
       !['configured', 'model_profile', 'unknown'].includes(String(call.limitSource)) ||

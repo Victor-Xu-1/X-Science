@@ -2,9 +2,11 @@ package server
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
+	kernelruntime "x-science/internal/kernel"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
@@ -18,8 +20,19 @@ func TestKernelSkillMutationsRejectStaleRunnerAndKernel(t *testing.T) {
 					t.Fatal(err)
 				}
 				if method == "host.skills.delete" {
-					if _, err := fixture.call("host.skills.publish", name, false); err != nil {
+					if _, err := fixture.publishReviewed(name, false); err != nil {
 						t.Fatal(err)
+					}
+				}
+				var revision string
+				if method == "host.skills.publish" {
+					reviewed, err := fixture.call("host.skills.read", name)
+					if err != nil {
+						t.Fatal(err)
+					}
+					revision = stringValue(mapValue(reviewed)["draft_revision"])
+					if !skillDraftRevisionPattern.MatchString(revision) {
+						t.Fatal("missing real reviewed revision before authority invalidation")
 					}
 				}
 				if stale == "kernel_generation" {
@@ -42,7 +55,7 @@ func TestKernelSkillMutationsRejectStaleRunnerAndKernel(t *testing.T) {
 						t.Fatalf("replacement claim=%#v err=%v", reclaimed, err)
 					}
 				}
-				args := []any{name, false}
+				args := []any{name, false, revision}
 				if method == "host.skills.edit" {
 					args = []any{name, "SKILL.md", "Unauthorized stale update.", "Original draft workflow."}
 				}
@@ -51,6 +64,11 @@ func TestKernelSkillMutationsRejectStaleRunnerAndKernel(t *testing.T) {
 				}
 				if result, err := fixture.call(method, args...); err == nil {
 					t.Fatalf("stale %s succeeded: %#v", method, result)
+				} else if method == "host.skills.publish" {
+					var failure *kernelruntime.HostCallError
+					if !errors.As(err, &failure) || failure.Code != "permission_denied" {
+						t.Fatalf("publish did not reach the stale-authority fence: %v", err)
+					}
 				}
 				read, err := fixture.call("host.skills.read", name)
 				if err != nil || !strings.Contains(stringValue(mapValue(read)["content"]), "Original draft workflow.") {

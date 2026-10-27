@@ -437,11 +437,17 @@ func (s *Server) checkpointTranscriptRunnerEventWithDestinationsAndHook(
 	resumable bool,
 	destinations []string,
 	commitHook transcriptstore.RunnerCheckpointCommitHook,
+	runs ...*sessionRunnerChatRun,
 ) (transcriptstore.Event, error) {
 	if authority == nil {
 		return transcriptstore.Event{}, nil
 	}
-	if s.generatedPlanResearchSourceCheckpoint(authority.Stream.FrameID, payload) && s.workspaceStore != nil {
+	if (len(runs) == 0 || len(runs) == 1 && runs[0] == nil) && ctx != nil {
+		if run, found := transcriptRunnerChatRunFromContext(ctx); found {
+			runs = []*sessionRunnerChatRun{run}
+		}
+	}
+	if s.generatedPlanResearchSourceCheckpoint(authority.Stream.FrameID, payload, runs...) && s.workspaceStore != nil {
 		priorHook := commitHook
 		commitHook = func(
 			ctx context.Context,
@@ -479,11 +485,11 @@ func (s *Server) checkpointTranscriptRunnerEventWithDestinationsAndHook(
 	return event, err
 }
 
-func (s *Server) generatedPlanResearchSourceCheckpoint(frameID string, payload map[string]any) bool {
+func (s *Server) generatedPlanResearchSourceCheckpoint(frameID string, payload map[string]any, runs ...*sessionRunnerChatRun) bool {
 	if s == nil {
 		return false
 	}
-	if _, _, found := s.generatedPlanActiveResearchStep(frameID); !found {
+	if _, _, found := s.generatedPlanActiveResearchStep(frameID, runs...); !found {
 		return false
 	}
 	raw, err := json.Marshal(payload)
@@ -521,31 +527,6 @@ func (s *Server) appendTranscriptRunnerEvent(
 	return event, err
 }
 
-func (s *Server) appendTranscriptAssistantEvent(
-	ctx context.Context,
-	authority *transcriptRunnerAuthority,
-	identity string,
-	payload map[string]any,
-) error {
-	if authority == nil {
-		return nil
-	}
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	input := transcriptstore.AppendEventInput{
-		Claim: authority.Claim, ClientMessageID: transcriptRunnerClientMessageID(authority.Claim, identity),
-		Type: "assistant_message", Source: transcriptstore.EventSourcePayload, PayloadJSON: raw,
-		Destinations: transcriptRunnerDestinations(authority),
-	}
-	err = s.appendTranscriptAssistantEventWithTurnArtifacts(ctx, authority, input)
-	if err == nil && len(transcriptRunnerDestinations(authority)) > 0 {
-		s.signalTranscriptWebDelivery()
-	}
-	return err
-}
-
 func (s *Server) finishTranscriptRunner(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,
@@ -559,6 +540,16 @@ func (s *Server) finishTranscriptRunnerWithReason(
 	ctx context.Context,
 	authority *transcriptRunnerAuthority,
 	status, detail, reasonCode string,
+	segmentOrdinals ...int64,
+) (transcriptstore.Event, error) {
+	return s.finishTranscriptRunnerWithMemory(ctx, authority, status, detail, reasonCode, nil, segmentOrdinals...)
+}
+
+func (s *Server) finishTranscriptRunnerWithMemory(
+	ctx context.Context,
+	authority *transcriptRunnerAuthority,
+	status, detail, reasonCode string,
+	completion *workspace.MemoryExtractionCompletion,
 	segmentOrdinals ...int64,
 ) (transcriptstore.Event, error) {
 	if authority == nil {
@@ -580,10 +571,16 @@ func (s *Server) finishTranscriptRunnerWithReason(
 	if err != nil {
 		return transcriptstore.Event{}, err
 	}
-	event, _, _, err := s.transcriptStore.FinishRunner(ctx, transcriptstore.FinishRunnerInput{
+	input := transcriptstore.FinishRunnerInput{
 		Claim: authority.Claim, ClientMessageID: transcriptRunnerClientMessageID(authority.Claim, "runner-finished"),
 		Status: status, PayloadJSON: raw, Destinations: transcriptRunnerDestinations(authority),
-	})
+	}
+	var event transcriptstore.Event
+	if completion != nil {
+		event, _, _, err = s.workspaceStore.FinishRunnerWithMemoryExtraction(ctx, input, *completion)
+	} else {
+		event, _, _, err = s.transcriptStore.FinishRunner(ctx, input)
+	}
 	if err == nil && s.workspaceStore != nil {
 		s.workspaceStore.NotifyKernelRunnerStateChanged()
 	}

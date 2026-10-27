@@ -275,6 +275,8 @@ type Server struct {
 	sessionSockets                        *sessionWebSocketHub
 	sessionRunsMu                         sync.Mutex
 	sessionRuns                           map[string]*activeSessionRun
+	delegatedStopProofsMu                 sync.Mutex
+	delegatedStopProofs                   map[delegatedStopCompletionKey]*delegatedStopPendingProof
 	activeRuntimeOperations               int
 	sessionRunsDraining                   bool
 	sessionRunsDrainEvaluating            bool
@@ -701,6 +703,7 @@ func New(options Options) *Server {
 	}
 	if options.StartBackgroundServices {
 		server.recoverManagedEnvironmentObservations()
+		server.startMemoryExtractionDelivery()
 		server.startTranscriptWebDelivery()
 		server.startDataLifecycle()
 	}

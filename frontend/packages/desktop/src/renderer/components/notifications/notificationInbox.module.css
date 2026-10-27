@@ -7,7 +7,7 @@
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
   background: transparent;
   color: var(--text-tertiary);
   cursor: pointer;
@@ -20,8 +20,8 @@
 }
 .trigger:focus-visible,
 .panel button:focus-visible {
-  outline: 2px solid rgb(var(--primary-6));
-  outline-offset: -2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: calc(-1 * var(--ui-focus-offset));
 }
 .dot {
   position: absolute;
@@ -29,7 +29,7 @@
   top: 6px;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
+  border-radius: var(--ui-radius-circle);
   background: rgb(var(--danger-6));
   box-shadow: 0 0 0 2px var(--color-bg-1);
 }
@@ -42,7 +42,7 @@
   max-width: calc(100vw - 16px);
   max-height: calc(100dvh - 16px);
   border: 1px solid var(--workspace-overlay-border, #e4e2dc);
-  border-radius: 12px;
+  border-radius: var(--ui-radius-xl);
   background: var(--workspace-overlay-surface, #fff);
   box-shadow: 0 10px 32px rgba(31, 30, 28, 0.16);
   color: var(--text-primary);
@@ -60,13 +60,13 @@
 }
 .heading {
   min-width: 0;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ui-font-subtitle);
+  font-weight: var(--ui-weight-semibold);
 }
 .meta {
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   color: var(--text-secondary);
-  font-weight: 400;
+  font-weight: var(--ui-weight-regular);
 }
 .panel button {
   font: inherit;
@@ -81,10 +81,10 @@
   flex-shrink: 0;
   min-height: 32px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
   padding: 0 8px;
   background: transparent;
-  font-size: 12px !important;
+  font-size: var(--ui-font-meta) !important;
 }
 .action:hover {
   background: var(--color-fill-2);
@@ -104,7 +104,7 @@
   margin: 0;
   padding: 6px 10px 2px;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
   color: var(--text-secondary);
 }
 .row {
@@ -112,7 +112,7 @@
   gap: 10px;
   width: 100%;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
   background: transparent;
   padding: 8px 10px;
   text-align: left;
@@ -130,7 +130,7 @@
   width: 28px;
   height: 28px;
   margin-top: 2px;
-  border-radius: 50%;
+  border-radius: var(--ui-radius-circle);
   background: var(--color-fill-2);
   color: var(--text-secondary);
 }
@@ -169,12 +169,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
   margin-top: 2px;
 }
 .unread .rowTitle {
-  font-weight: 600;
+  font-weight: var(--ui-weight-semibold);
 }
 .detail {
   display: -webkit-box;
@@ -182,7 +182,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   line-height: 16px;
   margin-top: 2px;
   color: var(--text-secondary);
@@ -191,7 +191,7 @@
   display: inline-block;
   margin-top: 4px;
   border: 1px solid var(--color-border-2);
-  border-radius: 999px;
+  border-radius: var(--ui-radius-pill);
   padding: 1px 6px;
   font-size: 10px;
 }
@@ -199,14 +199,14 @@
   flex-shrink: 0;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--ui-radius-circle);
   background: rgb(var(--danger-6));
   margin-top: 8px;
 }
 .notice {
   padding: 12px;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   color: var(--text-secondary);
 }
 .empty {
@@ -237,7 +237,7 @@
   height: min(82dvh, 760px);
   width: 100%;
   max-width: 100%;
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--ui-radius-2xl) var(--ui-radius-2xl) 0 0;
   border-bottom: 0;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: 0 -10px 32px rgba(31, 30, 28, 0.16);
@@ -257,11 +257,11 @@
 }
 .sheet .rowTitle,
 .sheet .detail {
-  font-size: 14px;
+  font-size: var(--ui-font-subtitle);
   line-height: 20px;
 }
 .sheet .context {
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
 }
 .sheet .action {
   min-height: 44px;

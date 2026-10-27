@@ -9,6 +9,7 @@ import { Trigger } from '@arco-design/web-react';
 import { BookPlus, FileText, Loader2, MoreHorizontal, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import './readingContext.css';
 
 export function ReadingContextPicker({
@@ -68,6 +69,7 @@ export function ReadingContextPicker({
     const receipt = mutation.view.receipt;
     if (!receipt) return;
     setRetry((value) => value + 1);
+    if (receipt.schema !== 'x-science.literature-receipt.v1') return;
     setEditing((previous) =>
       previous?.id === receipt.item.id ? (receipt.item.deleted ? null : receipt.item) : previous
     );
@@ -188,6 +190,7 @@ export function ReadingContextPicker({
     }
   };
   const changingLibrary = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage';
+  const pendingPdfUpload = mutation.view.pending?.kind === 'pdf-upload';
   return (
     <Trigger
       trigger='click'
@@ -240,31 +243,42 @@ export function ReadingContextPicker({
               />
             </label>
           )}
-          {mutation.view.error && (
+          {pendingPdfUpload ? (
             <div role='alert' className='pdf-reading-notice'>
-              <span>
-                {t(
-                  `conversation.reading.library${mutation.view.error === 'uncertain' ? 'Uncertain' : mutation.view.error === 'storage' ? 'Storage' : 'Rejected'}`
-                )}
-              </span>
-              <button
-                type='button'
-                disabled={mutation.view.mutating}
-                onClick={() => {
-                  if (mutation.view.pending) void mutation.controller.retry().catch((): undefined => undefined);
-                  else mutation.controller.restore();
-                  reload();
-                }}
-              >
-                {t('common.retry')}
-              </button>
+              <span>{t('conversation.reading.libraryUploadNotice')}</span>
+              <Link to='/library' onClick={() => setOpen(false)}>
+                {t('conversation.reading.libraryUploadContinue')}
+              </Link>
             </div>
+          ) : (
+            mutation.view.error && (
+              <div role='alert' className='pdf-reading-notice'>
+                <span>
+                  {t(
+                    `conversation.reading.library${mutation.view.error === 'uncertain' ? 'Uncertain' : mutation.view.error === 'storage' ? 'Storage' : 'Rejected'}`
+                  )}
+                </span>
+                <button
+                  type='button'
+                  disabled={mutation.view.mutating}
+                  onClick={() => {
+                    if (mutation.view.pending) void mutation.controller.retry().catch((): undefined => undefined);
+                    else mutation.controller.restore();
+                    reload();
+                  }}
+                >
+                  {t('common.retry')}
+                </button>
+              </div>
+            )
           )}
-          {lastAction && mutation.view.receipt?.operation_id === lastAction && (
-            <div role='status' className='pdf-reading-notice'>
-              {t('conversation.reading.libraryUpdated', { name: mutation.view.receipt.item.title })}
-            </div>
-          )}
+          {lastAction &&
+            mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' &&
+            mutation.view.receipt.operation_id === lastAction && (
+              <div role='status' className='pdf-reading-notice'>
+                {t('conversation.reading.libraryUpdated', { name: mutation.view.receipt.item.title })}
+              </div>
+            )}
           {editing && (
             <LibraryItemEditor
               key={`${editing.id}:${editing.metadata_revision}`}

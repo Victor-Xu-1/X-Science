@@ -85,6 +85,13 @@
   "researchEmpty": "No usable sources were found. Refine the query or use another public database.",
   "researchUnrecognized": "This response could not be presented as source records. Expand the returned output to inspect it; this does not mean the search found no results.",
   "toolPublicDetail": {
+    "progressAdmissionSnapshot": "Admission snapshot (not live)",
+    "progressAdmissionRequirement": "Required / unreserved at decision",
+    "progressAdmissionPromises": "Unused reserved capacity",
+    "progressAdmissionDecision": "Admission decision",
+    "progressAdmissionCapacityWait": "Waiting for unreserved capacity",
+    "progressAdmissionFairnessWait": "Behind {{count}} earlier request(s)",
+    "progressAdmissionGranted": "Capacity admitted",
     "researchUnrecognizedSummary": "Returned data needs review",
     "runtimeRepairRequired": "Runtime needs repair",
     "sourceMismatch": "Check source",

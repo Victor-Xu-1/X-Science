@@ -1,6 +1,8 @@
+import { literatureMetadataPatchMatches } from '@/common/adapter/literatureMetadataPatch';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import {
   decodeLiteratureCommand,
+  decodeLiteratureItem,
   decodeLiteraturePage,
   decodeLiteratureReceipt,
   literatureValueIdentity,
@@ -24,6 +26,7 @@ export async function loadLiteraturePage(
   options: {
     query?: string;
     projectId?: string;
+    collectionId?: string;
     cursor?: string;
     signal?: AbortSignal;
   } = {}
@@ -32,6 +35,7 @@ export async function loadLiteraturePage(
   const query = new URLSearchParams({ limit: '20' });
   if (options.query?.trim()) query.set('query', options.query.trim());
   if (options.projectId) query.set('project_id', options.projectId);
+  if (options.collectionId) query.set('collection_id', options.collectionId);
   if (options.cursor) query.set('cursor', options.cursor);
   const raw = await httpRequest<unknown>('GET', `/api/literature/items?${query}`, undefined, {
     signal: options.signal,
@@ -40,6 +44,19 @@ export async function loadLiteraturePage(
   requireAccount(account);
   return decodeLiteraturePage(raw);
 }
+/** Reads the existing owner-authorized catalogue item, independent of PDF eligibility. */
+export async function loadLiteratureItem(itemId: string, signal?: AbortSignal): Promise<LiteratureItem> {
+  const account = getRendererAccountScopeToken();
+  const raw = await httpRequest<unknown>('GET', `/api/literature/items/${encodeURIComponent(itemId)}`, undefined, {
+    signal,
+    timeoutMs: 15_000,
+  });
+  requireAccount(account);
+  const item = decodeLiteratureItem(raw);
+  if (item.id !== itemId || item.deleted) throw new Error('Literature detail identity changed');
+  return item;
+}
+
 export async function runLiteratureCommand(input: LiteratureCommand): Promise<LiteratureReceipt> {
   const account = getRendererAccountScopeToken();
   const command = decodeLiteratureCommand(input);
@@ -52,9 +69,14 @@ export async function runLiteratureCommand(input: LiteratureCommand): Promise<Li
   // Routing coordinates are not a competing payload identity.
   if ('item_id' in body) delete (body as Partial<typeof body>).item_id;
   if (kind === 'membership' && 'project_id' in body) delete (body as Partial<typeof body>).project_id;
-  const raw = await httpRequest<unknown>(kind === 'import' ? 'POST' : kind === 'edit' ? 'PATCH' : 'PUT', path, body, {
-    timeoutMs: 30_000,
-  });
+  const raw = await httpRequest<unknown>(
+    kind === 'import' ? 'POST' : kind === 'edit' || kind === 'edit-metadata' ? 'PATCH' : 'PUT',
+    path,
+    body,
+    {
+      timeoutMs: 30_000,
+    }
+  );
   requireAccount(account);
   const receipt = decodeLiteratureReceipt(raw, command.operation_id);
   if (command.kind !== 'import' && receipt.item.id !== command.item_id) throw new Error('Literature item changed');
@@ -72,6 +94,13 @@ export async function runLiteratureCommand(input: LiteratureCommand): Promise<Li
       (command.deleted !== undefined && receipt.item.deleted !== command.deleted))
   )
     throw new Error('Literature edit not acknowledged');
+  if (
+    command.kind === 'edit-metadata' &&
+    (receipt.item.metadata_revision !== command.expected_revision + 1 ||
+      (command.title !== undefined && receipt.item.title !== command.title) ||
+      !literatureMetadataPatchMatches(receipt.item.metadata, command.metadata_patch))
+  )
+    throw new Error('Literature metadata edit not acknowledged');
   return receipt;
 }
 export function literaturePdfOption(item: LiteratureItem): (PdfReadingOption & { item: LiteratureItem }) | undefined {

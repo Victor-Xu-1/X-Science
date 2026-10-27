@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
 
 func TestOptionalSceneStillRejectsCorruptBoundImageOutsideNewSelection(t *testing.T) {
@@ -26,8 +27,10 @@ func TestOptionalSceneStillRejectsCorruptBoundImageOutsideNewSelection(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeSceneTestArtifactBytes(t, f.store, "manifest", f.stream.ProjectID, "scene.json", manifest, "application/json", f.stream.SessionID)
-	advisory, err := f.server.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: f.stream.SessionID}, nil)
+	manifestVersion := writeSceneTestArtifactBytes(t, f.store, "manifest", f.stream.ProjectID, "scene.json", manifest, "application/json", f.stream.SessionID)
+	advisory, err := f.server.verifySessionRunnerVisualArtifactEvidence(sessionstore.Session{ID: f.stream.SessionID}, []transcriptstore.ArtifactReferenceInput{
+		{ArtifactID: "manifest", VersionID: manifestVersion.ID, Relation: transcriptstore.ArtifactRelationProduced},
+	})
 	var integrity *sessionRunnerVisualArtifactValidationRequired
 	if advisory != nil || !errors.As(err, &integrity) || len(integrity.Targets) != 1 ||
 		integrity.Targets[0].VersionID != image.ID || integrity.Targets[0].Failure != "invalid_image_integrity" {

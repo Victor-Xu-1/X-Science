@@ -37,8 +37,8 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	dropEmptyReviewedV81MemoryAndLiteratureFixtureTables(t, tx)
-	// Normal Open now installs78. This private historical fixture must remove
+	dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t, tx)
+	// Normal Open installs the reviewed current schema. This private historical fixture must remove
 	// only empty prospective owner evidence before reconstructing its74 shape.
 	var ownerActions, ownerInstances, ownerSpecs int
 	if err := tx.QueryRow(`SELECT (SELECT COUNT(*) FROM compute_managed_endpoint_actions),

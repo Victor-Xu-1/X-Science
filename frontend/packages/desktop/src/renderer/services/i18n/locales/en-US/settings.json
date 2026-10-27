@@ -851,6 +851,11 @@
   "speechToTextStreamingBadge": "Live",
   "speechToTextWholeBadge": "Batch",
   "mcp": "MCP Integration",
+  "xScienceMcpPermissionsLoadError": "Tool permissions could not be loaded.",
+  "mcpBuiltinToolDescriptions": {
+    "pdb_search_sequence": "Search experimental PDB structures by protein sequence, sequence identity and query coverage; return entities, chains and alignment details.",
+    "pdb_search_structure_similarity": "Find experimental PDB chains with similar 3D structures using a deposited chain."
+  },
   "mcpBuiltinDescriptions": {
     "x-science-research": "Discover and call an operator-verified research capability pack through one MCP entry, without installing each source as a separate Skill.",
     "open-targets-official": "Official Open Targets service for target and disease evidence, tractability, safety, genetics, drug mechanisms and clinical candidates.",
@@ -868,7 +873,7 @@
     "regulation": "Gene regulation — ENCODE experiments, JASPAR transcription-factor matrices, and UniBind TFBS.",
     "protein-annotation": "Protein annotation — InterPro/Pfam domains, Human Protein Atlas, and STRING interaction networks.",
     "rna": "Non-coding RNA — Rfam families, seed alignments, covariance models, trees, and sequence regions.",
-    "structures-interactions": "Structures and molecular interactions — PDB, AlphaFold, EMDB, Complex Portal, and IntAct resources.",
+    "structures-interactions": "Structures and molecular interactions — PDB structures, protein sequence and 3D structural similarity searches, AlphaFold predictions, EMDB, Complex Portal, and IntAct resources.",
     "omics-archives": "Omics data archives — ArrayExpress/BioStudies, GEO, MGnify, and PRIDE proteomics projects.",
     "genes-ontologies": "Gene identity and ontologies — MyGene, OLS4, GO, UniProt, and Reactome pathways.",
     "drug-regulatory": "FDA drug data — applications, approvals, pharmacologic classes, generics, and SPL labels.",
@@ -1367,6 +1372,10 @@
   "memoryAutomaticMarker": "auto ·",
   "memoryAuto": "Automatic memory",
   "memoryAutoDescription": "Extract lasting information when a task completes. Existing memories can still be managed and recalled when this is off.",
+  "memoryRecoveryPolicy": "Large request recovery",
+  "memoryRecoveryPolicyDescription": "For future task completions, allow compact extraction when the captured request exceeds the storage limit. It uses the same model and bounded completed-turn context, and records the mode change.",
+  "memoryRecoveryStrict": "Require full captured request",
+  "memoryRecoveryCompact": "Use compact context if too large",
   "memoryLoadError": "Memory data is temporarily unavailable.",
   "memoryRefreshError": "The change was saved, but some views could not be refreshed. Reload before making another change.",
   "memoryMutationError": "The memory change could not be saved.",
@@ -1467,7 +1476,7 @@
   "xScienceSkillsManage": "Manage skills",
   "skillsSettings": {
     "title": "Skills",
-    "paginationLabel": "Skill list pages",
+    "paginationLabel": "Expert card pages",
     "fetchFailed": "Unable to load the skill library.",
     "partialLoadFailed": "Some skill data could not be loaded. Existing results remain available.",
     "enabledMessage": "Skill enabled",
@@ -1503,7 +1512,6 @@
     "drafts": "Drafts",
     "draftsDescription": "Personal skills that have not been published.",
     "noMatches": "No matching skills",
-    "paginationLabel": "Expert card pages",
     "noImported": "No imported skills",
     "noPersonal": "No personal skills",
     "viewNamed": "View {{name}}",
@@ -1615,6 +1623,8 @@
         "draftSaveFailed": "Failed to save the skill draft.",
         "published": "Skill published",
         "publishFailed": "Failed to publish the skill.",
+        "draftReviewRequired": "Reload this draft and review its current contents before publishing.",
+        "draftChanged": "This draft changed after it was loaded. Reload and review the current contents before publishing.",
         "draftDeleted": "Skill draft deleted",
         "draftDeleteFailed": "Failed to delete the skill draft.",
         "invalidCopyName": "Start with a letter or number and use only letters, numbers, periods, underscores, and hyphens.",
@@ -2122,7 +2132,10 @@
         "label": "Package management",
         "description": "pip, conda, npm, CRAN, Bioconductor, GitHub"
       },
-      "nih": { "label": "NCBI / NIH", "description": "PubMed, Entrez, NIH" },
+      "nih": {
+        "label": "NCBI / NIH",
+        "description": "PubMed, Entrez, NIH"
+      },
       "genomics": {
         "label": "Genomics and biology",
         "description": "Ensembl, Reactome, KEGG, gnomAD, GTEx, ENCODE"
@@ -2244,39 +2257,90 @@
           "label": "Name",
           "placeholder": "Distinguish environments or accounts"
         },
-        "accessKeyId": { "label": "Access key ID" },
-        "secretAccessKey": { "label": "Secret access key" },
-        "region": { "label": "Region" },
+        "accessKeyId": {
+          "label": "Access key ID"
+        },
+        "secretAccessKey": {
+          "label": "Secret access key"
+        },
+        "region": {
+          "label": "Region"
+        },
         "s3Buckets": {
           "label": "S3 buckets",
           "helper": "Separate multiple buckets with commas."
         },
-        "s3Endpoint": { "label": "S3-compatible endpoint" },
-        "personalAccessToken": { "label": "Personal access token" },
-        "serviceAccountKey": { "label": "Service account key" },
+        "s3Endpoint": {
+          "label": "S3-compatible endpoint"
+        },
+        "personalAccessToken": {
+          "label": "Personal access token"
+        },
+        "serviceAccountKey": {
+          "label": "Service account key"
+        },
         "gcsBuckets": {
           "label": "GCS buckets",
           "helper": "Separate multiple buckets with commas."
         },
-        "elsevierApiKey": { "label": "Elsevier API key" },
-        "elsevierInstitutionToken": { "label": "Elsevier institutional token" },
-        "springerApiKey": { "label": "Springer Nature API key" },
-        "semanticScholarApiKey": { "label": "Semantic Scholar API key" },
-        "ncbiApiKey": { "label": "NCBI API key" },
-        "coreApiKey": { "label": "CORE API key" },
-        "ezproxyUrl": { "label": "EZproxy URL" },
-        "sessionCookie": { "label": "Session cookie" },
-        "tenantId": { "label": "Tenant ID" },
-        "clientId": { "label": "Client ID" },
-        "clientSecret": { "label": "Client secret" },
-        "subscriptionId": { "label": "Subscription ID" },
-        "storageAccount": { "label": "Storage account" },
-        "blobContainers": { "label": "Blob containers" },
-        "tokenId": { "label": "Token ID" },
-        "tokenSecret": { "label": "Token secret" },
-        "nvidiaApiKey": { "label": "NVIDIA API key" },
-        "value": { "label": "Value", "placeholder": "Secret value" },
-        "description": { "label": "Description" }
+        "elsevierApiKey": {
+          "label": "Elsevier API key"
+        },
+        "elsevierInstitutionToken": {
+          "label": "Elsevier institutional token"
+        },
+        "springerApiKey": {
+          "label": "Springer Nature API key"
+        },
+        "semanticScholarApiKey": {
+          "label": "Semantic Scholar API key"
+        },
+        "ncbiApiKey": {
+          "label": "NCBI API key"
+        },
+        "coreApiKey": {
+          "label": "CORE API key"
+        },
+        "ezproxyUrl": {
+          "label": "EZproxy URL"
+        },
+        "sessionCookie": {
+          "label": "Session cookie"
+        },
+        "tenantId": {
+          "label": "Tenant ID"
+        },
+        "clientId": {
+          "label": "Client ID"
+        },
+        "clientSecret": {
+          "label": "Client secret"
+        },
+        "subscriptionId": {
+          "label": "Subscription ID"
+        },
+        "storageAccount": {
+          "label": "Storage account"
+        },
+        "blobContainers": {
+          "label": "Blob containers"
+        },
+        "tokenId": {
+          "label": "Token ID"
+        },
+        "tokenSecret": {
+          "label": "Token secret"
+        },
+        "nvidiaApiKey": {
+          "label": "NVIDIA API key"
+        },
+        "value": {
+          "label": "Value",
+          "placeholder": "Secret value"
+        },
+        "description": {
+          "label": "Description"
+        }
       }
     }
   },
@@ -2442,5 +2506,10 @@
       "selectTargetProject": "Select the destination project",
       "selectProject": "Select project"
     }
-  }
+  },
+  "memoryCategoryUncertain": "The save is not confirmed. Retry the same save, or close and resume later.",
+  "memoryCategoryRetrySameSave": "Retry same save",
+  "memoryCategoryCloseRetained": "Close",
+  "memoryCategoryResumeSave": "Resume category save",
+  "memoryCategorySavedMissing": "The save was confirmed, but the category is no longer available."
 }

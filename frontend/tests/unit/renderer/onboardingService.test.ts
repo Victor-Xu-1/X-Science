@@ -718,7 +718,7 @@ describe('onboarding service', () => {
     });
     mocks.updateProject.mockRejectedValueOnce(new Error('temporary project write failure')).mockResolvedValueOnce({});
     mocks.createConversation.mockResolvedValue({ id: 'conversation-retry' });
-    const input = {
+    const input: Parameters<typeof stageOnboardingTask>[0] = {
       projectId: 'project-1',
       projectName: 'Getting started',
       assistantId: 'xscience:operon',
@@ -772,7 +772,7 @@ describe('onboarding service', () => {
         },
       ],
     ]);
-    const input = {
+    const input: Parameters<typeof stageOnboardingTask>[0] = {
       projectId: 'project-1',
       projectName: 'Getting started',
       assistantId: 'xscience:operon',
@@ -867,5 +867,480 @@ describe('onboarding service', () => {
     ).toBe('configuration');
     expect(classifyOnboardingLaunchFailure(new TypeError('offline'))).toBe('network');
     expect(classifyOnboardingLaunchFailure(new Error('opaque'))).toBe('service');
+  });
+  it('does not dispatch an already cancelled project attachment upload', async () => {
+    const controller = new AbortController();
+    controller.abort(new DOMException('Synthetic upload cancelled', 'AbortError'));
+    const file = new File(['content'], 'cancelled.txt', { type: 'text/plain' });
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ upload_id: 'upload-cancelled', chunk_size: 1024, total_chunks: 1 }))
+      .mockResolvedValueOnce(jsonResponse({ chunk_index: 0, received: true, chunks_remaining: 0 }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          artifact_id: 'artifact-cancelled',
+          version_id: 'version-cancelled',
+          filename: file.name,
+          size_bytes: file.size,
+          checksum: 'a'.repeat(64),
+        })
+      );
+    const onInitialized = vi.fn();
+    const onAbandoned = vi.fn();
+    await expect(
+      uploadXScienceProjectAttachment('project-cancel', file, {
+        fetchImpl,
+        signal: controller.signal,
+        onInitialized,
+        onAbandoned,
+      })
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(onInitialized).not.toHaveBeenCalled();
+    expect(onAbandoned).not.toHaveBeenCalled();
+  });
+  type CancellationStage = 'init' | 'status' | 'chunk' | 'finalize';
+
+  function uploadCancellationFixture(stage: CancellationStage | null = null, stalledBody = false) {
+    const controller = new AbortController();
+    const file = new File(['content'], 'cancel.txt', { type: 'text/plain' });
+    const onInitialized = vi.fn();
+    const onAbandoned = vi.fn();
+    let reached!: () => void;
+    const reachedStage = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let releaseHeaders!: (response: Response) => void;
+    const headers = new Promise<Response>((resolve) => {
+      releaseHeaders = resolve;
+    });
+    let releaseBody!: (body: string) => void;
+    const body = new Promise<string>((resolve) => {
+      releaseBody = resolve;
+    });
+    const payload = (path: string) => {
+      if (path.endsWith('/init')) return { upload_id: 'upload-cancel', chunk_size: 1024, total_chunks: 1 };
+      if (path.includes('/status/'))
+        return {
+          upload_id: 'upload-cancel',
+          filename: file.name,
+          total_size: file.size,
+          chunk_size: 1024,
+          total_chunks: 1,
+          missing_chunks: [0],
+        };
+      if (path.endsWith('/chunk')) return { chunk_index: 0, received: true, chunks_remaining: 0 };
+      if (path.includes('/finalize?'))
+        return {
+          artifact_id: 'artifact-cancel',
+          version_id: 'version-cancel',
+          filename: file.name,
+          size_bytes: file.size,
+          checksum: 'a'.repeat(64),
+        };
+      return { cancelled: true };
+    };
+    const matches = (path: string) =>
+      stage === 'status'
+        ? path.includes('/status/')
+        : stage === 'finalize'
+          ? path.includes('/finalize?')
+          : stage !== null && path.endsWith('/' + stage);
+    const fetchImpl = vi.fn<typeof fetch>(async (input, _init) => {
+      const path = String(input);
+      if (matches(path)) {
+        if (!stalledBody) {
+          reached();
+          return headers;
+        }
+        const response = jsonResponse(payload(path));
+        vi.spyOn(response, 'text').mockImplementation(() => {
+          reached();
+          return body;
+        });
+        return response;
+      }
+      return jsonResponse(payload(path));
+    });
+    const options = {
+      fetchImpl,
+      signal: controller.signal,
+      onInitialized,
+      onAbandoned,
+      ...(stage === 'status' ? { pending: { projectId: 'project-cancel', uploadId: 'upload-cancel' } } : {}),
+    };
+    const releaseLate = () => {
+      const path = stage === 'status' ? '/status/' : stage === 'finalize' ? '/finalize?' : '/' + stage;
+      releaseHeaders(jsonResponse(payload(path)));
+      releaseBody(JSON.stringify(payload(path)));
+    };
+    return { file, controller, fetchImpl, options, reachedStage, releaseLate, onInitialized, onAbandoned };
+  }
+
+  it('forwards cancellation through status init chunk and finalize requests', async () => {
+    const f = uploadCancellationFixture();
+    await expect(uploadXScienceProjectAttachment('project-cancel', f.file, f.options)).resolves.toMatchObject({
+      artifactId: 'artifact-cancel',
+    });
+    await expect(
+      uploadXScienceProjectAttachment('project-cancel', f.file, {
+        ...f.options,
+        pending: { projectId: 'project-cancel', uploadId: 'upload-cancel' },
+      })
+    ).resolves.toMatchObject({ artifactId: 'artifact-cancel' });
+    for (const [path, init] of f.fetchImpl.mock.calls) {
+      expect(init?.signal).toBe(f.controller.signal);
+      if (String(path).includes('/finalize?'))
+        expect(new Headers(init?.headers).get('Idempotency-Key')).toBe('onboarding-artifact-finalize-upload-cancel');
+    }
+    expect(f.fetchImpl.mock.calls.some(([path]) => String(path).includes('/status/'))).toBe(true);
+    expect(f.fetchImpl.mock.calls.some(([path]) => String(path).endsWith('/init'))).toBe(true);
+    expect(f.fetchImpl.mock.calls.some(([path]) => String(path).endsWith('/chunk'))).toBe(true);
+  });
+
+  it('cancels waiting upload headers and ignores their late success', async () => {
+    for (const stage of ['init', 'status', 'chunk', 'finalize'] as const) {
+      const f = uploadCancellationFixture(stage);
+      const add = vi.spyOn(f.controller.signal, 'addEventListener');
+      const remove = vi.spyOn(f.controller.signal, 'removeEventListener');
+      const result = uploadXScienceProjectAttachment('project-cancel', f.file, f.options).catch(
+        (error: unknown) => error
+      );
+      await f.reachedStage;
+      f.controller.abort(new TypeError('Synthetic caller cancellation'));
+      expect(await result).toMatchObject({ name: 'AbortError' });
+      const settledCalls = f.fetchImpl.mock.calls.length;
+      f.releaseLate();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(f.fetchImpl).toHaveBeenCalledTimes(settledCalls);
+      expect(f.onAbandoned).not.toHaveBeenCalled();
+      expect(f.onInitialized).toHaveBeenCalledTimes(stage === 'init' || stage === 'status' ? 0 : 1);
+      const cleanup = f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE');
+      // Legacy pending may already have finalized; only a fresh chunk failure can clean up.
+      expect(cleanup).toHaveLength(stage === 'chunk' ? 1 : 0);
+      if (cleanup[0]) expect(cleanup[0][1]?.signal).not.toBe(f.controller.signal);
+      expect(add.mock.calls.filter(([type]) => type === 'abort').length).toBeGreaterThan(0);
+      expect(remove.mock.calls.filter(([type]) => type === 'abort').length).toBe(
+        add.mock.calls.filter(([type]) => type === 'abort').length
+      );
+    }
+  });
+
+  it('cancels waiting upload response bodies without continuing writes', async () => {
+    for (const stage of ['init', 'status', 'chunk', 'finalize'] as const) {
+      const f = uploadCancellationFixture(stage, true);
+      const result = uploadXScienceProjectAttachment('project-cancel', f.file, f.options).catch(
+        (error: unknown) => error
+      );
+      await f.reachedStage;
+      f.controller.abort();
+      expect(await result).toMatchObject({ name: 'AbortError' });
+      const settledCalls = f.fetchImpl.mock.calls.length;
+      f.releaseLate();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(f.fetchImpl).toHaveBeenCalledTimes(settledCalls);
+      expect(f.onAbandoned).not.toHaveBeenCalled();
+      expect(f.onInitialized).toHaveBeenCalledTimes(stage === 'init' || stage === 'status' ? 0 : 1);
+      if (stage === 'finalize' || stage === 'status')
+        expect(f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(0);
+    }
+  });
+
+  it('cancels attachment chunk retry backoff without another attempt', async () => {
+    vi.useFakeTimers();
+    const f = uploadCancellationFixture();
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    f.fetchImpl.mockImplementation(async (input, init) => {
+      if (String(input).endsWith('/init'))
+        return jsonResponse({ upload_id: 'upload-cancel', chunk_size: 1024, total_chunks: 1 });
+      if (String(input).endsWith('/chunk')) throw new TypeError('Synthetic transient chunk failure');
+      if (init?.method === 'DELETE') return jsonResponse({ cancelled: true });
+      throw new Error('A cancelled retry dispatched a later write');
+    });
+    const result = uploadXScienceProjectAttachment('project-cancel', f.file, f.options).catch(
+      (error: unknown) => error
+    );
+    try {
+      await vi.advanceTimersByTimeAsync(0);
+      expect(vi.getTimerCount()).toBe(1);
+      f.controller.abort();
+      expect(await result).toMatchObject({ name: 'AbortError' });
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(f.fetchImpl.mock.calls.filter(([path]) => String(path).endsWith('/chunk'))).toHaveLength(1);
+      expect(f.fetchImpl.mock.calls.filter(([path]) => String(path).includes('/finalize?'))).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops callbacks and following writes when upload initialization cancels', async () => {
+    const f = uploadCancellationFixture();
+    const onInitialized = vi.fn(() => f.controller.abort());
+    const result = uploadXScienceProjectAttachment('project-cancel', f.file, { ...f.options, onInitialized });
+    await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+    expect(onInitialized).toHaveBeenCalledTimes(1);
+    expect(f.onAbandoned).not.toHaveBeenCalled();
+    expect(
+      f.fetchImpl.mock.calls.filter(([path]) => String(path).endsWith('/chunk') || String(path).includes('/finalize?'))
+    ).toHaveLength(0);
+    expect(f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(1);
+  });
+
+  it('retains an uncertain finalized upload on cancellation', async () => {
+    const f = uploadCancellationFixture();
+    f.fetchImpl.mockImplementation(async (input) => {
+      const path = String(input);
+      if (path.endsWith('/init'))
+        return jsonResponse({ upload_id: 'upload-cancel', chunk_size: 1024, total_chunks: 1 });
+      if (path.endsWith('/chunk')) return jsonResponse({ chunk_index: 0, received: true, chunks_remaining: 0 });
+      if (path.includes('/finalize?')) {
+        f.controller.abort(new TypeError('Synthetic cancellation after dispatch'));
+        throw new TypeError('Synthetic response lost after commit');
+      }
+      throw new Error('Cancelled finalize must not dispatch cleanup or retry');
+    });
+    await expect(uploadXScienceProjectAttachment('project-cancel', f.file, f.options)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    const finalizes = f.fetchImpl.mock.calls.filter(([path]) => String(path).includes('/finalize?'));
+    expect(finalizes).toHaveLength(1);
+    expect(new Headers(finalizes[0][1]?.headers).get('Idempotency-Key')).toBe(
+      'onboarding-artifact-finalize-upload-cancel'
+    );
+    expect(f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(0);
+    expect(f.onAbandoned).not.toHaveBeenCalled();
+  });
+
+  it('bounds pre-finalize cancellation cleanup independently', async () => {
+    vi.useFakeTimers();
+    const f = uploadCancellationFixture('chunk');
+    let cleanupReached!: () => void;
+    const started = new Promise<void>((resolve) => {
+      cleanupReached = resolve;
+    });
+    let cleanupSignal: AbortSignal | null | undefined;
+    let releaseCleanup!: (response: Response) => void;
+    const cleanup = new Promise<Response>((resolve) => {
+      releaseCleanup = resolve;
+    });
+    const normal = f.fetchImpl.getMockImplementation()!;
+    f.fetchImpl.mockImplementation((input, init) => {
+      if (init?.method === 'DELETE') {
+        cleanupSignal = init.signal;
+        cleanupReached();
+        return cleanup;
+      }
+      return normal(input, init);
+    });
+    const result = uploadXScienceProjectAttachment('project-cancel', f.file, f.options).catch(
+      (error: unknown) => error
+    );
+    try {
+      await f.reachedStage;
+      f.controller.abort();
+      await started;
+      expect(cleanupSignal).not.toBe(f.controller.signal);
+      expect(cleanupSignal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(5_001);
+      expect(cleanupSignal?.aborted).toBe(true);
+      expect(await result).toMatchObject({ name: 'AbortError' });
+      expect(vi.getTimerCount()).toBe(0);
+      expect(f.onAbandoned).not.toHaveBeenCalled();
+      expect(f.fetchImpl.mock.calls.filter(([, init]) => init?.method === 'DELETE')).toHaveLength(1);
+    } finally {
+      f.releaseLate();
+      releaseCleanup(jsonResponse({ cancelled: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops stage upload callbacks after cancellation of its original signal', async () => {
+    const f = uploadCancellationFixture('init');
+    const onArtifactUploaded = vi.fn();
+    const onUploadInitialized = vi.fn();
+    const task = stageOnboardingTask(
+      {
+        projectId: 'project-cancel',
+        projectName: 'Synthetic',
+        assistantId: 'synthetic-agent',
+        assistantName: 'Synthetic',
+        task: '',
+        profile: { summary: 'Synthetic' },
+        files: [f.file],
+        profileFile: f.file,
+        capabilities: {
+          disabledNetworkGroupIds: [],
+          connectorEnabled: {},
+          skillEnabled: {},
+          scientificRuntimeEnabled: {},
+        },
+      },
+      { fetchImpl: f.fetchImpl, signal: f.controller.signal, onArtifactUploaded, onUploadInitialized }
+    );
+    const result = task.catch((error: unknown) => error);
+    await f.reachedStage;
+    f.controller.abort();
+    expect(await result).toMatchObject({ name: 'AbortError' });
+    f.releaseLate();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onArtifactUploaded).not.toHaveBeenCalled();
+    expect(onUploadInitialized).not.toHaveBeenCalled();
+    expect(mocks.updateProject).not.toHaveBeenCalled();
+    expect(mocks.createConversation).not.toHaveBeenCalled();
+    expect(mocks.sendMessage).not.toHaveBeenCalled();
+    expect(f.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops suggestion upload callbacks after cancellation of its original signal', async () => {
+    const f = uploadCancellationFixture('init');
+    const onArtifactUploaded = vi.fn();
+    const onUploadInitialized = vi.fn();
+    const result = prepareOnboardingSuggestionArtifacts('project-cancel', [f.file], {
+      fetchImpl: f.fetchImpl,
+      signal: f.controller.signal,
+      onArtifactUploaded,
+      onUploadInitialized,
+    }).catch((error: unknown) => error);
+    await f.reachedStage;
+    f.controller.abort();
+    expect(await result).toMatchObject({ name: 'AbortError' });
+    f.releaseLate();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onArtifactUploaded).not.toHaveBeenCalled();
+    expect(onUploadInitialized).not.toHaveBeenCalled();
+    expect(f.fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  it('replays the original finalize receipt after both acknowledgements were lost and upload status is gone', async () => {
+    const file = new File(['content'], 'notes.txt', { type: 'text/plain' });
+    let pending: { projectId: string; uploadId: string } | undefined;
+    let initializations = 0;
+    let originalFinalizations = 0;
+    const finalizeKeys: string[] = [];
+    const original = {
+      artifact_id: 'artifact-original',
+      version_id: 'version-original',
+      filename: file.name,
+      size_bytes: file.size,
+      checksum: 'a'.repeat(64),
+    };
+    const json = (value: unknown, status = 200) =>
+      new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const path = String(input);
+      if (path === '/api/artifacts/upload/init') {
+        initializations += 1;
+        return json({
+          upload_id: initializations === 1 ? 'upload-original' : 'upload-replacement',
+          chunk_size: 1024,
+          total_chunks: 1,
+        });
+      }
+      if (path === '/api/artifacts/upload/chunk') return json({ received: true, chunks_remaining: 0 });
+      if (path === '/api/artifacts/upload/status/upload-original') {
+        // The canonical backend removes the transient row after committing the
+        // immutable version and its finalize ledger receipt. 404 is not a proof
+        // that finalization never committed.
+        return json({ error: 'Upload no longer pending' }, 404);
+      }
+      if (path === '/api/artifacts/upload/finalize?upload_id=upload-original') {
+        originalFinalizations += 1;
+        finalizeKeys.push(new Headers(init?.headers).get('Idempotency-Key') ?? '');
+        if (originalFinalizations <= 2) throw new TypeError('original committed acknowledgement lost');
+        return json(original);
+      }
+      if (path === '/api/artifacts/upload/finalize?upload_id=upload-replacement') {
+        return json({ ...original, artifact_id: 'artifact-replacement', version_id: 'version-replacement' });
+      }
+      throw new Error(`Unexpected synthetic upload request: ${path}`);
+    };
+    const onInitialized = (next: { projectId: string; uploadId: string }) => {
+      pending = next;
+    };
+    await expect(uploadXScienceProjectAttachment('owned-project', file, { fetchImpl, onInitialized })).rejects.toThrow(
+      'original committed acknowledgement lost'
+    );
+    expect(pending?.uploadId).toBe('upload-original');
+    expect(initializations).toBe(1);
+    const recovered = await uploadXScienceProjectAttachment('owned-project', file, {
+      fetchImpl,
+      pending,
+      onInitialized,
+    });
+    expect(recovered).toMatchObject({ artifactId: original.artifact_id, versionId: original.version_id });
+    expect(initializations).toBe(1);
+    expect(originalFinalizations).toBe(3);
+    expect(new Set(finalizeKeys)).toEqual(new Set(['onboarding-artifact-finalize-upload-original']));
+  });
+  it('preserves original upload identity for unproven resumed and finalize failures', async () => {
+    const file = new File(['content'], 'notes.txt', { type: 'text/plain' });
+    const rows = [
+      { name: 'replay404', status: 404, finalize: 404, expectedFinalizes: 1 },
+      { name: 'replay400', status: 404, finalize: 400, expectedFinalizes: 1 },
+      { name: 'replay503', status: 404, finalize: 503, expectedFinalizes: 2 },
+      { name: 'replay410', status: 404, finalize: 410, expectedFinalizes: 1 },
+      { name: 'status400', status: 400, finalize: 0, expectedFinalizes: 0 },
+      { name: 'status503', status: 503, finalize: 0, expectedFinalizes: 0 },
+      { name: 'malformedStatus', status: 200, finalize: 0, expectedFinalizes: 0 },
+      { name: 'freshFinalize400', status: 0, finalize: 400, expectedFinalizes: 1 },
+    ];
+    for (const row of rows) {
+      const original = { projectId: 'owned-project', uploadId: 'upload-original' };
+      let pending: typeof original | undefined = row.status === 0 ? undefined : original;
+      const onInitialized = vi.fn((next: typeof original) => {
+        pending = next;
+      });
+      const onAbandoned = vi.fn(() => {
+        pending = undefined;
+      });
+      let initializations = 0;
+      let finalizes = 0;
+      let cleanups = 0;
+      const keys: string[] = [];
+      const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+        const path = String(input);
+        if (path.endsWith('/init')) {
+          initializations += 1;
+          return jsonResponse({ upload_id: 'upload-original', chunk_size: 1024, total_chunks: 1 });
+        }
+        if (path.endsWith('/chunk')) return jsonResponse({ chunk_index: 0, received: true, chunks_remaining: 0 });
+        if (path.includes('/status/'))
+          return jsonResponse(row.status === 200 ? {} : { detail: 'synthetic status not confirmed' }, row.status);
+        if (path.includes('/finalize?')) {
+          finalizes += 1;
+          keys.push(new Headers(init?.headers).get('Idempotency-Key') ?? '');
+          return jsonResponse({ detail: 'synthetic finalize not confirmed' }, row.finalize);
+        }
+        if (init?.method === 'DELETE') {
+          cleanups += 1;
+          return jsonResponse({ cancelled: true });
+        }
+        throw new Error('Unexpected synthetic upload request');
+      });
+      const result = await uploadXScienceProjectAttachment('owned-project', file, {
+        fetchImpl,
+        pending,
+        onInitialized,
+        onAbandoned,
+      }).catch((error: unknown) => error);
+      expect(result, row.name).toBeInstanceOf(Error);
+      expect(pending?.uploadId, row.name).toBe('upload-original');
+      expect(initializations, row.name).toBe(row.status === 0 ? 1 : 0);
+      expect(finalizes, row.name).toBe(row.expectedFinalizes);
+      expect(cleanups, row.name).toBe(0);
+      expect(onAbandoned, row.name).not.toHaveBeenCalled();
+      expect(onInitialized, row.name).toHaveBeenCalledTimes(row.status === 0 ? 1 : 0);
+      for (const key of keys) expect(key, row.name).toBe('onboarding-artifact-finalize-upload-original');
+    }
   });
 });

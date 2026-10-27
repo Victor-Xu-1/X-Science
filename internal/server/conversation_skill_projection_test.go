@@ -148,8 +148,8 @@ func TestConversationSkillContinuationReplaySkipsTypedControlsNotLiteralRequests
 	finishSkillControlInput(t, f)
 	appendSkillControlInput(t, f, "literal-save", "Save as skill", false)
 	run := claimSkillControlInput(t, f)
-	options, err := f.server.prepareConversationSkillContinuation(context.Background(), SessionRunnerChatOptions{SystemPrompt: "ordinary"}, run)
-	if err != nil || options.SystemPrompt != "ordinary" {
-		t.Fatalf("untyped literal invoked Skill authoring: options=%#v err=%v", options, err)
+	options, control, err := f.server.prepareConversationSkillContinuation(context.Background(), SessionRunnerChatOptions{SystemPrompt: "ordinary"}, run)
+	if err != nil || control != nil || options.SystemPrompt != "ordinary" {
+		t.Fatalf("untyped literal invoked Skill authoring: options=%#v control=%#v err=%v", options, control, err)
 	}
 }

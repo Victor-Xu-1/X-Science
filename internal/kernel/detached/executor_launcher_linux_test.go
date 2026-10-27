@@ -42,9 +42,9 @@ func TestSystemdUserExecutorLauncherUsesOneIndependentService(t *testing.T) {
 		"--user\n", "--collect\n", "--service-type=exec\n",
 		"--working-directory=" + root + "\n",
 		"--unit=x-science-kernel-executor-01234567-89ab-cdef-0123-456789abcdef-g3.service\n",
-		"--property=KillMode=control-group\n", "--property=MemoryHigh=5583457485\n",
+		"--property=KillMode=control-group\n", "--property=MemoryHigh=5798205849\n",
 		"--property=Delegate=memory\n", "--property=DelegateSubgroup=control\n",
-		"--property=MemoryMax=5583457485\n", "--property=MemorySwapMax=536870912\n",
+		"--property=MemoryMax=5798205849\n", "--property=MemorySwapMax=536870912\n",
 		"--property=OOMPolicy=continue\n",
 		"--property=StandardOutput=append:" + logPath + "\n",
 		"--\n" + executable + "\nkernel-executor\n--home\n" + root + "\n",
@@ -53,7 +53,27 @@ func TestSystemdUserExecutorLauncherUsesOneIndependentService(t *testing.T) {
 			t.Fatalf("systemd launcher arguments missing %q:\n%s", required, arguments)
 		}
 	}
-	if err := launcher.Launch(ExecutorLaunchRequest{BackendID: "unsafe/unit", BackendGeneration: 1, Executable: executable, WorkingDirectory: root, LogPath: logPath}); err == nil {
+	// A positive admitted allocation is immutable, even if a new host
+	// observation is unavailable when the launch request is dispatched.
+	if err := os.Remove(meminfo); err != nil {
+		t.Fatal(err)
+	}
+	if err := launcher.Launch(ExecutorLaunchRequest{
+		BackendID: "kernel-backend-01234567-89ab-cdef-0123-456789abcdef", BackendGeneration: 3,
+		Executable: executable, WorkingDirectory: root, LogPath: logPath, MemoryMaxBytes: 1 << 30,
+	}); err != nil {
+		t.Fatalf("admitted allocation was recomputed: %v", err)
+	}
+	raw, err = os.ReadFile(argumentsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"--property=MemoryMax=1073741824\n", "--property=MemoryHigh=1073741824\n"} {
+		if !strings.Contains(string(raw), required) {
+			t.Fatalf("admitted launch allocation changed: missing %q in %s", required, raw)
+		}
+	}
+	if err := launcher.Launch(ExecutorLaunchRequest{BackendID: "unsafe/unit", BackendGeneration: 1, Executable: executable, WorkingDirectory: root, LogPath: logPath, MemoryMaxBytes: 1 << 30}); err == nil {
 		t.Fatal("unsafe transient unit identity was accepted")
 	}
 }
@@ -67,7 +87,7 @@ func TestExecutorMemoryLimitsPreserveControlPlane(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if max != 3006477108 {
+	if max != 3<<30 {
 		t.Fatalf("memory budget=%d", max)
 	}
 	if max >= 8388608*1024 {
