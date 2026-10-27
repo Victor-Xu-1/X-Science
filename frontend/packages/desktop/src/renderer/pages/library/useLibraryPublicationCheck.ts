@@ -11,7 +11,7 @@ import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutati
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { readLiteraturePublicationCheck } from '@/renderer/services/runtime/literaturePublicationCheck';
 
-type Read = { abort: AbortController; version: number };
+type Read = { abort: AbortController; version: number; receipt?: unknown };
 type Owner = {
   key: string;
   account: string;
@@ -23,6 +23,7 @@ type Owner = {
   read?: Read;
   call?: object;
   operationId?: string;
+  replayOperationId?: string;
   ignoredOperationId?: string;
   receipt?: unknown;
 };
@@ -110,17 +111,22 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
     matches(view.pending, item) && view.pending.operation_id !== owner.ignoredOperationId ? view.pending : undefined;
   const action =
     matches(view.action, item) && view.action.operation_id !== owner.ignoredOperationId ? view.action : undefined;
-  const settledAction =
+  const settledFailure =
     action &&
     view.receipt?.schema === 'x-science.literature-publication-receipt.v1' &&
     view.receipt.operation_id === action.operation_id &&
     view.receipt.result.item_id === item.id &&
-    view.receipt.result.metadata_revision === item.metadata_revision;
-  if (pending) owner.operationId = pending.operation_id;
-  else if (action && (view.mutating || settledAction)) owner.operationId = action.operation_id;
+    view.receipt.result.metadata_revision === item.metadata_revision &&
+    Boolean(view.receipt.result.issue);
+  if (pending) {
+    owner.operationId = pending.operation_id;
+    // A detail opened during an externally resumed flight has not started a
+    // fresh check itself. Its immutable receipt can still predate the GET.
+    if (!owner.call) owner.replayOperationId = pending.operation_id;
+  } else if (action && (view.mutating || settledFailure)) owner.operationId = action.operation_id;
 
   const publish = useCallback(
-    (result: LiteraturePublicationCheck, mode: 'get' | 'check') => {
+    (result: LiteraturePublicationCheck, mode: 'get' | 'check', preserveEvidence = false) => {
       if (
         result.item_id !== owner.itemId ||
         result.metadata_revision !== owner.revision ||
@@ -131,19 +137,26 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
         if (result.issue === 'doi-required')
           return { ...previous, snapshot: undefined, loaded: false, issue: result.issue, failure: null, retry: 'get' };
         const ownsIssue = mode === 'check' || previous.retry !== 'check';
+        const retry: View['retry'] = result.issue === 'response-invalid' ? 'check' : mode;
         const incoming = result.snapshot;
         const snapshot = incoming
           ? previous.snapshot && Date.parse(previous.snapshot.checked_at) > Date.parse(incoming.checked_at)
             ? previous.snapshot
             : incoming
-          : !result.issue && ownsIssue
+          : !result.issue && ownsIssue && !preserveEvidence
             ? undefined
             : previous.snapshot;
         return {
           ...previous,
           snapshot,
           loaded: previous.loaded || !result.issue,
-          ...(ownsIssue ? { issue: result.issue, failure: null, retry: result.issue ? mode : 'get' } : {}),
+          ...(ownsIssue
+            ? {
+                issue: result.issue,
+                failure: null,
+                retry: result.issue ? retry : 'get',
+              }
+            : {}),
         };
       });
     },
@@ -158,7 +171,7 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
   const read = useCallback(() => {
     if (!current() || !available) return;
     owner.read?.abort.abort();
-    const request: Read = { abort: new AbortController(), version: owner.version };
+    const request: Read = { abort: new AbortController(), version: owner.version, receipt: owner.receipt };
     owner.read = request;
     update((previous) => ({
       ...previous,
@@ -172,7 +185,7 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
         (result) => {
           if (!active()) return;
           try {
-            publish(result, 'get');
+            publish(result, 'get', request.receipt !== owner.receipt);
           } catch {
             update((previous) => ({ ...previous, issue: 'response-invalid', failure: 'read', retry: 'get' }));
           }
@@ -209,9 +222,10 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
       const original = latest.pending ?? latest.action;
       if (!matches(original, item) || original.operation_id !== operationId) return;
       const receipt = decodeLiteraturePublicationReceipt(value, operationId);
-      // A recovered provider failure may need the saved read to restore its older evidence.
-      // publish keeps that read from clearing the manual failure or its retry ownership.
-      if (!receipt.result.issue || receipt.result.issue === 'doi-required') invalidateRead();
+      // Failed or replayed operations still need the saved read to reconcile authoritative evidence.
+      // publish keeps a pre-receipt read from clearing newer evidence or a manual failure.
+      if (receipt.result.issue === 'doi-required' || (!receipt.result.issue && owner.replayOperationId !== operationId))
+        invalidateRead();
       publish(receipt.result, 'check');
       owner.receipt = value;
     },
@@ -257,8 +271,10 @@ export function useLibraryPublicationCheck(account: string, item: LiteratureItem
     }
     const token = {};
     owner.call = token;
-    invalidateRead();
     owner.operationId = operationId;
+    owner.replayOperationId = resume ? operationId : undefined;
+    if (!resume) invalidateRead();
+    else if (!owner.read) read(); // Immutable original-request receipts may predate another page's saved evidence.
     update((previous) => ({ ...previous, writing: true, issue: undefined, failure: null, retry: 'check' }));
     const fail = () => {
       if (current() && owner.call === token) update((previous) => ({ ...previous, failure: 'write', retry: 'check' }));

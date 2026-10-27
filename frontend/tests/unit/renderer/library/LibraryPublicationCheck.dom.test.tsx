@@ -383,6 +383,94 @@ describe('Library publication-check detail and original mutation owner', () => {
     expect(run).toHaveBeenCalledTimes(1);
   });
 
+  it('reconciles reopened success and original-request replay with newer saved evidence', async () => {
+    const { run, storage } = setup();
+    const older = result({ snapshot: snapshot({ notices: [] }) });
+    const newer = result({ snapshot: snapshot({ checked_at: '2026-10-27T08:09:10Z' }) });
+    run.mockImplementationOnce(async (command) => receipt(command.operation_id, older));
+    savedRead();
+    const first = await renderWithI18n(panel(), 'en-US');
+    await screen.findByText('Not checked');
+    fireEvent.click(screen.getByRole('button', { name: 'Check now' }));
+    await screen.findByText('No related notices found.');
+    const command = run.mock.calls[0][0];
+    first.unmount();
+    const saved = deferred<Response>();
+    const fetch = vi.fn<typeof globalThis.fetch>().mockReturnValue(saved.promise);
+    vi.stubGlobal('fetch', fetch);
+    const reopened = await renderWithI18n(panel(), 'en-US');
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(fetch.mock.calls[0][1]?.signal?.aborted).toBe(false);
+    await act(async () => saved.resolve(json(newer)));
+    await screen.findByText('Retraction notice');
+    expect(reopened.container.querySelector('time[datetime="2026-10-27T08:09:10Z"]')).not.toBeNull();
+    expect(screen.queryByText('No related notices found.')).not.toBeInTheDocument();
+    expect(run).toHaveBeenCalledTimes(1);
+    reopened.unmount();
+
+    storage.setItem(storageKey, encodePendingRecord('publication-owner', command));
+    const restored = setup({}, storage);
+    const replay = deferred<LiteraturePublicationReceipt>();
+    restored.run.mockReturnValueOnce(replay.promise);
+    const replaySaved = deferred<Response>();
+    const replayFetch = vi.fn<typeof globalThis.fetch>().mockReturnValue(replaySaved.promise);
+    vi.stubGlobal('fetch', replayFetch);
+    const replayView = await renderWithI18n(panel(), 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Retry original check' }));
+    await waitFor(() => expect(restored.run).toHaveBeenCalledTimes(1));
+    expect(restored.run.mock.calls[0][0]).toEqual(command);
+    await act(async () => replay.resolve(receipt(command.operation_id, older)));
+    await screen.findByText('No related notices found.');
+    expect(replayFetch).toHaveBeenCalledTimes(1);
+    expect(replayFetch.mock.calls[0][1]?.signal?.aborted).toBe(false);
+    await act(async () => replaySaved.resolve(json(newer)));
+    await screen.findByText('Retraction notice');
+    expect(replayView.container.querySelector('time[datetime="2026-10-27T08:09:10Z"]')).not.toBeNull();
+    expect(screen.queryByText('No related notices found.')).not.toBeInTheDocument();
+    replayView.unmount();
+
+    // The page-level retry may already be running when the detail is reopened.
+    storage.setItem(storageKey, encodePendingRecord('publication-owner', command));
+    const outside = setup({}, storage);
+    const outsideReply = deferred<LiteraturePublicationReceipt>();
+    outside.run.mockReturnValueOnce(outsideReply.promise);
+    const outsideRun = outside.controller.retry();
+    await waitFor(() => expect(outside.run).toHaveBeenCalledTimes(1));
+    const currentSaved = deferred<Response>();
+    const currentFetch = vi.fn<typeof globalThis.fetch>().mockReturnValue(currentSaved.promise);
+    vi.stubGlobal('fetch', currentFetch);
+    const duringRetry = await renderWithI18n(panel(), 'en-US');
+    await waitFor(() => expect(currentFetch).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      outsideReply.resolve(receipt(command.operation_id, older));
+      await outsideRun;
+    });
+    expect(currentFetch.mock.calls[0][1]?.signal?.aborted).toBe(false);
+    await act(async () => currentSaved.resolve(json(newer)));
+    await screen.findByText('Retraction notice');
+    expect(duringRetry.container.querySelector('time[datetime="2026-10-27T08:09:10Z"]')).not.toBeNull();
+  });
+
+  it('repairs server-confirmed invalid saved evidence with a new publication check', async () => {
+    const { controller, run } = setup();
+    const fetch = savedRead(result({ issue: 'response-invalid' }));
+    await renderWithI18n(panel(), 'en-US');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The publication check returned an invalid response.');
+    expect(run).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText('Retraction notice');
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(run.mock.calls[0][0]).toMatchObject({
+      kind: 'check-publication',
+      item_id: 'paper',
+      expected_metadata_revision: 1,
+    });
+    expect(run.mock.calls[0][0].operation_id).toMatch(/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(controller.getSnapshot().pending).toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('does not consume an old direct response after another page admits the next original operation', async () => {
     const { controller, run, storage } = setup();
     const late = deferred<LiteraturePublicationReceipt>();
