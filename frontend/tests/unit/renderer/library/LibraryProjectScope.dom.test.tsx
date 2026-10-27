@@ -175,7 +175,7 @@ describe('Library project scope through the existing Web query owner', () => {
       },
     });
     const rendered = await mountCollections('/library?project=alpha');
-    expect(await screen.findByRole('heading', { name: 'Could not load Library' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Could not load references' })).toBeInTheDocument();
     expect(scope()).toHaveValue('alpha');
     expect(screen.getByRole('option', { name: 'Project unavailable' })).toBeInTheDocument();
     fail = false;

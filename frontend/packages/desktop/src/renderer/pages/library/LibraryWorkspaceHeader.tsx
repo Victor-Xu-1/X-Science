@@ -23,12 +23,15 @@ export function LibraryWorkspaceHeader({
   const { t } = useTranslation();
   return (
     <header className='library-workbench__header'>
-      <div className='library-workbench__heading'>
-        <div className='library-workbench__title-row'>
-          <h1 id='library-workbench-title'>{title}</h1>
-          {collectionActions}
+      <div className='library-workbench__header-main'>
+        <div className='library-workbench__heading'>
+          <div className='library-workbench__title-row'>
+            <h1 id='library-workbench-title'>{title}</h1>
+            {collectionActions}
+          </div>
+          {description && <p>{description}</p>}
         </div>
-        {description && <p>{description}</p>}
+        <div className='library-workbench__actions'>{actions}</div>
       </div>
       <div className='library-workbench__controls'>
         <label className='library-workbench__search'>
@@ -43,7 +46,6 @@ export function LibraryWorkspaceHeader({
           />
         </label>
         {filters}
-        <div className='library-workbench__actions'>{actions}</div>
       </div>
     </header>
   );

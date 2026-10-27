@@ -1,4 +1,5 @@
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { LibraryColumnPreferences } from '@/common/adapter/libraryColumnPreferences';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type GoogleClientSetting = {
@@ -19,6 +20,7 @@ export type ClientBusinessSettingMap = {
   'xScience.session.subagentModelId': string | undefined;
   'xScience.session.effort': 'low' | 'medium' | 'high' | undefined;
   'xScience.sidebar.projectOrder': string[] | undefined;
+  'xScience.library.columnPrefs': LibraryColumnPreferences | undefined;
 };
 
 export type ClientBusinessSettingKey = keyof ClientBusinessSettingMap;

@@ -92,6 +92,7 @@ function catalogue(initial = [paper()]) {
     const method = init?.method ?? 'GET';
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined;
     calls.push({ method, url, body });
+    if (method === 'GET' && url.pathname === '/api/settings/client') return json({});
     if (method === 'GET' && url.pathname === '/api/projects')
       return json({ projects: [{ project_id: 'project', name: 'Owned project' }] });
     if (method === 'GET' && url.pathname === '/api/literature/collections')
@@ -279,13 +280,13 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('Unsaved local title');
     expect(input).toBeDisabled();
-    expect(within(detail()).getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    expect(within(detail()).getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(await screen.findByText(/This paper was updated elsewhere/)).toBeInTheDocument();
-    fireEvent.click(within(detail()).getByRole('button', { name: 'Save', exact: true }));
+    fireEvent.click(within(detail()).getByRole('button', { name: 'Save' }));
     expect(api.calls.filter((call) => call.method === 'PATCH')).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: 'Discard draft and load latest' }));
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toHaveValue('External title');
-    expect(within(detail()).getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+    expect(within(detail()).getByRole('button', { name: 'Save' })).toBeEnabled();
     expect(api.count('/api/literature/items/reading-status', 'POST')).toBe(1);
   });
 
@@ -299,7 +300,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(locationParams().get('item')).toBe('paper-a');
     expect(locationParams().get('reading_status')).toBe('unread');
     expect(within(detail()).getByRole('heading', { name: 'Synthetic paper-a' })).toBeInTheDocument();
-    const close = within(detail()).getByRole('button', { name: 'Close', exact: true });
+    const close = within(detail()).getByRole('button', { name: 'Close' });
     close.focus();
     fireEvent.click(close);
     expect(screen.queryByRole('region', { name: 'Literature details' })).toBeNull();
@@ -318,9 +319,9 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     await screen.findByText('Details could not be refreshed. Your draft is retained; retry to continue editing.');
     expect(input).toHaveValue('Unsaved local title');
     expect(input).toBeDisabled();
-    expect(within(detail()).getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    expect(within(detail()).getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(screen.getByTestId('instrumented-library-pdf')).toBeInTheDocument();
-    fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry', exact: true }));
+    fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry' }));
     await savedStatus('read');
     expect(input).toBeEnabled();
     expect(input).toHaveValue('Unsaved local title');
@@ -336,7 +337,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
       expect(screen.queryByTestId('instrumented-library-pdf')).toBeNull();
       expect(screen.queryByRole('heading', { name: 'Retractions and corrections' })).toBeNull();
       if (value === 'reading') {
-        fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry', exact: true }));
+        fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry' }));
         await ready();
         draft('Second unsaved draft');
         openPreview();
@@ -353,7 +354,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     api.nextList(json({ error: 'Unavailable' }, 503));
     changeStatus('read');
     await savedStatus('read');
-    const retry = await within(list()).findByRole('button', { name: 'Retry', exact: true });
+    const retry = await within(list()).findByRole('button', { name: 'Retry' });
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('Unsaved local title');
     expect(screen.getByTestId('instrumented-library-pdf')).toBe(preview);
@@ -407,7 +408,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     const api = catalogue();
     const rendered = await mount('/library?reading_status=unread&cursor=old-page&item=paper-a&q=kept&project=project');
     await ready();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Reading status', exact: true }), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reading status' }), {
       target: { value: 'reading' },
     });
     await waitFor(() => expect(locationParams().get('reading_status')).toBe('reading'));

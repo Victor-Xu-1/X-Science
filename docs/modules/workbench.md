@@ -796,4 +796,30 @@ the new bundle cannot retroactively coordinate an uncooperative older client.
 此机制限同源升级页面；既有旧页面需刷新，但地址、存储格式和服务端权限保持不变。
 平台语义参见 [Web Locks API](https://www.w3.org/TR/web-locks/)。
 
+## Library table layout · 文献表格布局
+
+Library projects the current server page into a compact table with a fixed title
+column and optional reading status, year, authors, DOI and attachment count. The
+Columns menu supports visibility, keyboard ordering and local drag ordering;
+changing its layout does not mutate a reference or claim to sort the whole
+catalogue. Loading, failed and empty reads remain separate, with their actions
+outside the wide table so they stay reachable beside an open detail pane.
+
+Column preferences use the authenticated, account-scoped `/api/settings/client`
+authority under `xScience.library.columnPrefs`. One view owner serializes writes
+and keeps the latest local intent while a request is active. A lost write reply
+gets one readback; an unresolved layout stays visibly unsaved until explicit
+retry. Invalid saved data is reported and can be explicitly reset. Missing
+settings use defaults without writing. Account changes fence old replies;
+focus/visibility refreshes read the shared setting. Concurrent windows retain
+the settings service's last-write-wins semantics, without compare-and-swap or
+instant cross-window notifications.
+
+文献库以紧凑表格展示服务端当前页；标题固定，可选择阅读状态、年份、作者、DOI
+和附件数量。列菜单支持隐藏、键盘排序及拖动排序，不改写文献，也不把当前页
+排列冒充全库排序。账号列偏好沿用已有认证设置接口；缺失值使用默认布局但不
+自动保存，损坏值明确报错并提供重置。保存期间保留最新操作，丢失响应后只读回
+一次，未确认时显示未保存并由用户重试。账号切换隔离迟到响应，多窗口继续遵循
+设置服务已有的最后写入生效语义，不宣称具备即时通知或并发比较交换。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

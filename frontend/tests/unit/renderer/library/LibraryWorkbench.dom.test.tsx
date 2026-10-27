@@ -48,6 +48,7 @@ async function mount(path = '/library', onNavigate?: () => void) {
 }
 const projects = () => json({ projects: [{ project_id: 'project', name: 'Research project' }] });
 const collectionReads = (url: URL) => {
+  if (url.pathname === '/api/settings/client') return json({});
   if (url.pathname === '/api/literature/collections')
     return json({ schema: 'x-science.literature-collections.v1', collections: [] });
   const membership = url.pathname.match(/^\/api\/literature\/items\/([^/]+)\/collections$/);
@@ -280,7 +281,7 @@ describe('Library workbench entry and original HTTP owners', () => {
       })
     );
     const rendered = await mount();
-    expect(await screen.findByText('Could not load Library')).toBeInTheDocument();
+    expect(await screen.findByText('Could not load references')).toBeInTheDocument();
     failing = false;
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('Your Library is empty')).toBeInTheDocument();
