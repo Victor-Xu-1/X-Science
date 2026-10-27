@@ -30,7 +30,7 @@ func TestKernelHostPNGPresentationUsesRealPillow(t *testing.T) {
 	root := repositoryRootForServerTest(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
-	command := exec.CommandContext(ctx, python, "-I", "-B", filepath.Join(root, "scripts", "quality", "test_host_bridge_image_presentation.py"), "-v")
+	command := exec.CommandContext(ctx, python, "-P", "-B", filepath.Join(root, "scripts", "quality", "test_host_bridge_image_presentation.py"), "-v")
 	temporary := t.TempDir()
 	command.Dir = temporary
 	command.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1", "TMPDIR="+temporary, "TMP="+temporary, "TEMP="+temporary)
