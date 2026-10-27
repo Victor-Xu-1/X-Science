@@ -8,8 +8,8 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// Historical76 fixtures start from an empty reviewed84 database. Remove the
-// collections84/Memory82 cadence/Memory81/Library80 objects and restore the Web definition
+// Historical76 fixtures start from an empty reviewed85 database. Remove the
+// publication85/collections84/Memory82 cadence/Memory81/Library80 objects and restore the Web definition
 // changed by79 before removing newer migration receipts; otherwise the fixture
 // falsely claims76 while retaining newer objects or the14-only CHECK.
 // This helper is test-only and never touches an installed/user database.

@@ -14,6 +14,7 @@ import type {
 import type { LibraryReadView } from './useLibraryWorkbench';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
+import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 
 export const libraryAuthors = (item: LiteratureItem): string => {
   const value = item.metadata.authors;
@@ -93,6 +94,7 @@ export function LibraryItemDetails({
           </dd>
         </div>
       </dl>
+      <LibraryPublicationCheck account={account} item={item} />
       <LibraryCollectionMembershipPicker
         item={item}
         account={account}
