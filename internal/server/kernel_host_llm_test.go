@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -20,6 +21,25 @@ import (
 	sessionstore "x-science/internal/persistence/sessions"
 	workspace "x-science/internal/persistence/workspace"
 )
+
+func TestKernelHostPNGPresentationUsesRealPillow(t *testing.T) {
+	python, err := exec.LookPath("python3")
+	if err != nil {
+		t.Fatal("PNG presentation regression requires the declared Python dependencies: ", err)
+	}
+	root := repositoryRootForServerTest(t)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, python, "-I", "-B", filepath.Join(root, "scripts", "quality", "test_host_bridge_image_presentation.py"), "-v")
+	temporary := t.TempDir()
+	command.Dir = temporary
+	command.Env = append(os.Environ(), "PYTHONDONTWRITEBYTECODE=1", "TMPDIR="+temporary, "TMP="+temporary, "TEMP="+temporary)
+	output, err := command.CombinedOutput()
+	if err != nil {
+		t.Fatalf("real Pillow PNG presentation regression: %v\n%s", err, output)
+	}
+	t.Logf("real Pillow PNG presentation regression:\n%s", output)
+}
 
 func TestNormalizeKernelHostArgumentsRecursesWithinBounds(t *testing.T) {
 	args, _, err := normalizeKernelHostArguments([]any{map[string]any{
