@@ -855,4 +855,17 @@ selection read remains visible independently of a retained historical receipt.
 只阻止后续批次，已提交的当前批次仍须取得真实回执，未知响应不能通过清槽或另造
 请求来掩盖。阅读选择器将未结束的批量操作引回文献库原控制界面，不隐式执行余批。
 
+## Library detail header · 文献详情页头
+
+The compact detail header keeps Edit and Close visible while scrolling. Editing
+reveals the existing metadata editor, focuses its first available field, and
+keeps the current draft and PDF view. Repeated Edit does not reset a draft.
+Completion returns focus only within the same account and item, and does not
+take focus from another control used while the readback was pending. Metadata
+commands, revision checks, receipts and attachment ownership remain unchanged.
+
+详情页头保持紧凑，滚动时仍可编辑或关闭。编辑沿用原元数据表单，定位到首个可用字段，
+重复点击不重置草稿或 PDF。完成后仅在同一账号与文献中按需恢复焦点，不抢占用户在
+等待读回期间转向的其他控件；命令、版本校验、回执和附件归属继续沿用原链路。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)
