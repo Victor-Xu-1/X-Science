@@ -247,7 +247,7 @@
       "class": "schema-or-contract-version",
       "owner": "controller",
       "paths": ["internal/persistence/workspace/versioned_schema.go", "docs/governance/product-identity.json"],
-      "current_disposition": "production workspace schema target is 84 with no pending schema cohort",
+      "current_disposition": "production workspace schema target is 85 with no pending schema cohort",
       "target": "advance only through reviewed migration predecessors and never infer product version",
       "release_blocking": false
     }
