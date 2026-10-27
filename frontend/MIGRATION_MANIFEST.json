@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "e0a6bce35b0f1cce324b0b2631bdd200a1941dcf9431af9865bdce19e97302db",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "072c9b9e00aa6dfd400d0f2a32705196f706af2a534d55daff74a7e3c4749d31",
+  "additionFingerprintSHA256": "b9820f8250362852998a09b9f653b628dbe6fb680204e4c5fc034cd2c8e3577c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -8159,8 +8159,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.module.css",
-      "sha256": "0ad115871d42c2d02c3c3bcaaa2450d3f4437727ce0f1027e07ee0639fedea6e",
-      "bytes": 9332,
+      "sha256": "fe928a96e6ad20ea36a5dc174d710ac59fa3e90a4a56de8f82c6d87861a19b4f",
+      "bytes": 11597,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12785,8 +12785,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextWindowInspectorStyle.test.ts",
-      "sha256": "66a2079e28d6d181fec6e2d12811015cf7a9372fd806d0d9414e580a0106b133",
-      "bytes": 1535,
+      "sha256": "4fbc68f650acd999f143b5b8a98a16e7abae3a3bb5af9f20cb618cfe4e6e90e5",
+      "bytes": 1550,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
