@@ -185,9 +185,8 @@ export default function LibraryPage() {
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
       <header className='library-workbench__header library-pdf-import__page-header'>
         <div>
-          <p className='library-workbench__eyebrow'>{t('conversation.libraryWorkbench.eyebrow')}</p>
           <h1 id='library-workbench-title'>
-            <BookOpen size={23} aria-hidden='true' />
+            <BookOpen size={20} aria-hidden='true' />
             {t('conversation.libraryWorkbench.title')}
           </h1>
           <p>{t('conversation.libraryWorkbench.description')}</p>
@@ -195,7 +194,7 @@ export default function LibraryPage() {
         <div className='library-pdf-import__header-actions'>
           <LibraryPdfImport model={pdfImport} />
           <button type='button' className='library-workbench__button' onClick={reads.refresh}>
-            <RefreshCw size={15} aria-hidden='true' />
+            <RefreshCw size={14} aria-hidden='true' />
             {t('common.refresh')}
           </button>
         </div>
@@ -304,7 +303,7 @@ export default function LibraryPage() {
           {collectionId && reads.collections.status === 'ready' && !selectedCollection && (
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>
           )}
-          <div className='library-workbench__panes'>
+          <div className='library-workbench__panes' data-detail-open={Boolean(selectedId)}>
             <section className='library-workbench__list' aria-label={t('conversation.libraryWorkbench.items')}>
               {reads.list.status === 'loading' ? (
                 <div role='status' className='library-workbench__state'>
@@ -320,7 +319,7 @@ export default function LibraryPage() {
                 </div>
               ) : items.length === 0 ? (
                 <div className='library-workbench__state'>
-                  <BookOpen size={27} aria-hidden='true' />
+                  <BookOpen size={28} aria-hidden='true' />
                   <h2>
                     {t(
                       query
@@ -355,13 +354,13 @@ export default function LibraryPage() {
                         onClick={() => selectItem(item.id)}
                       >
                         <span className='library-workbench__book'>
-                          <BookOpen size={17} aria-hidden='true' />
+                          <BookOpen size={16} aria-hidden='true' />
                         </span>
                         <span className='library-workbench__item-copy'>
                           <strong>{item.title}</strong>
                           <span>{libraryAuthors(item) || t('conversation.libraryWorkbench.noAuthors')}</span>
                         </span>
-                        <ChevronRight size={15} aria-hidden='true' />
+                        <ChevronRight size={14} aria-hidden='true' />
                       </button>
                     </li>
                   ))}
@@ -385,7 +384,7 @@ export default function LibraryPage() {
                 </button>
               </footer>
             </section>
-            {selectedId ? (
+            {selectedId && (
               <aside aria-label={t('conversation.libraryWorkbench.details')}>
                 {reads.detail.status === 'loading' ? (
                   <p role='status' className='library-workbench__state'>
@@ -417,11 +416,6 @@ export default function LibraryPage() {
                     close={closeDetails}
                   />
                 )}
-              </aside>
-            ) : (
-              <aside className='library-workbench__selection-hint'>
-                <BookOpen size={25} aria-hidden='true' />
-                <p>{t('conversation.libraryWorkbench.selectHint')}</p>
               </aside>
             )}
           </div>
