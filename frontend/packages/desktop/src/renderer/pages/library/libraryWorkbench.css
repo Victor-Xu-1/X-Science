@@ -79,7 +79,31 @@
 .library-workbench__paging button:hover:not(:disabled) {
   background: var(--color-fill-2);
 }
+.library-workbench__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.library-workbench__project-scope {
+  display: flex;
+  flex: 0 1 240px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--color-text-3);
+}
+.library-workbench__project-scope select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--color-border-2);
+  border-radius: calc(var(--ui-radius-lg) - 1px);
+  color: var(--color-text-1);
+  background: var(--color-bg-1);
+}
 .library-workbench__search {
+  flex: 1 1 250px;
   display: flex;
   align-items: center;
   gap: 9px;

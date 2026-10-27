@@ -10,6 +10,7 @@ import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutati
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { LibraryItemDetails, libraryAuthors } from './LibraryItemDetails';
 import { useLibraryWorkbench } from './useLibraryWorkbench';
+import { LibraryProjectScope } from './LibraryProjectScope';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
@@ -24,7 +25,8 @@ export default function LibraryPage() {
   const cursor = params.get('cursor') ?? '';
   const selectedId = params.get('item') ?? '';
   const collectionId = params.get('collection') ?? '';
-  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId);
+  const projectId = params.get('project') ?? '';
+  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId);
   const mutation = useLiteratureMutation();
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
@@ -33,7 +35,7 @@ export default function LibraryPage() {
   });
   const actionFailed = action.account === reads.account && action.failed;
   const lastAction = action.account === reads.account ? action.operationId : null;
-  const formScope = JSON.stringify([reads.account, collectionId, query, cursor, selectedId]);
+  const formScope = JSON.stringify([reads.account, collectionId, projectId, query, cursor, selectedId]);
   const editorBoundary = useRef({ key: formScope });
   if (editorBoundary.current.key !== formScope) editorBoundary.current = { key: formScope };
   const editorSequence = useRef(0);
@@ -64,8 +66,18 @@ export default function LibraryPage() {
   };
   const selectCollection = (id: string) => {
     const next = new URLSearchParams(params);
+    next.delete('project');
     if (id) next.set('collection', id);
     else next.delete('collection');
+    next.delete('cursor');
+    next.delete('item');
+    setParams(next);
+  };
+  const selectProject = (id: string) => {
+    const next = new URLSearchParams(params);
+    if (id) next.set('project', id);
+    else next.delete('project');
+    next.delete('collection');
     next.delete('cursor');
     next.delete('item');
     setParams(next);
@@ -83,6 +95,7 @@ export default function LibraryPage() {
     const next = new URLSearchParams(params);
     next.delete('q');
     next.delete('collection');
+    next.delete('project');
     next.delete('cursor');
     next.set('item', receipt.item.id);
     setParams(next);
@@ -105,12 +118,13 @@ export default function LibraryPage() {
     reads.refresh();
     if (
       receipt.schema === 'x-science.literature-receipt.v1' &&
-      receipt.item.deleted &&
+      (receipt.item.deleted || (projectId && !receipt.item.project_ids.includes(projectId))) &&
       receipt.item.id === selectedId
     ) {
       rowButtons.current.get(selectedId)?.focus();
       const next = new URLSearchParams(params);
       next.delete('item');
+      if (projectId) next.delete('cursor');
       setParams(next, { replace: true });
     } else if (
       receipt.schema === 'x-science.literature-collection-receipt.v1' &&
@@ -123,7 +137,7 @@ export default function LibraryPage() {
       next.delete('item');
       setParams(next, { replace: true });
     }
-  }, [mutation.view.receipt, reads.refresh, reads.account, selectedId, collectionId, params, setParams]);
+  }, [mutation.view.receipt, reads.refresh, reads.account, selectedId, collectionId, projectId, params, setParams]);
   const submit = useCallback(
     async <Command extends LiteratureCommand | LiteratureCollectionCommand>(command: Command) => {
       const account = reads.account;
@@ -160,6 +174,7 @@ export default function LibraryPage() {
   const busy = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
   const items = reads.list.value?.items ?? [];
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
+  const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
   const selectedCollection =
     reads.collections.status === 'ready'
       ? reads.collections.value?.collections.find((value) => value.id === collectionId)
@@ -187,6 +202,7 @@ export default function LibraryPage() {
       </header>
       <LibraryPdfImportPanel model={pdfImport} refreshProjects={reads.refresh} viewReference={viewImportedReference} />
       <div className='library-workbench__toolbar'>
+        <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
         <label className='library-workbench__search'>
           <Search size={16} aria-hidden='true' />
           <input
@@ -237,6 +253,7 @@ export default function LibraryPage() {
         <LibraryCollectionSidebar
           view={reads.collections}
           selectedId={collectionId}
+          allSelected={!collectionId && !projectId}
           busy={busy}
           select={selectCollection}
           create={() => openCollection({ kind: 'create' })}
@@ -250,11 +267,18 @@ export default function LibraryPage() {
             <div>
               <h2>
                 {selectedCollection?.name ??
-                  t(
-                    collectionId
-                      ? 'conversation.libraryWorkbench.collection'
-                      : 'conversation.libraryWorkbench.allReferences'
-                  )}
+                  (projectId
+                    ? (selectedProject?.name ??
+                      t(
+                        reads.projects.status === 'loading'
+                          ? 'common.loading'
+                          : 'conversation.libraryWorkbench.projectUnavailable'
+                      ))
+                    : t(
+                        collectionId
+                          ? 'conversation.libraryWorkbench.collection'
+                          : 'conversation.libraryWorkbench.allReferences'
+                      ))}
               </h2>
               {selectedCollection?.description && <p>{selectedCollection.description}</p>}
             </div>
@@ -298,10 +322,22 @@ export default function LibraryPage() {
                 <div className='library-workbench__state'>
                   <BookOpen size={27} aria-hidden='true' />
                   <h2>
-                    {t(query ? 'conversation.libraryWorkbench.noMatches' : 'conversation.libraryWorkbench.empty')}
+                    {t(
+                      query
+                        ? 'conversation.libraryWorkbench.noMatches'
+                        : projectId
+                          ? 'conversation.libraryWorkbench.projectEmpty'
+                          : 'conversation.libraryWorkbench.empty'
+                    )}
                   </h2>
                   <p>
-                    {t(query ? 'conversation.libraryWorkbench.searchHint' : 'conversation.libraryPdfImport.emptyHint')}
+                    {t(
+                      query
+                        ? 'conversation.libraryWorkbench.searchHint'
+                        : projectId
+                          ? 'conversation.libraryWorkbench.projectEmptyHint'
+                          : 'conversation.libraryPdfImport.emptyHint'
+                    )}
                   </p>
                 </div>
               ) : (

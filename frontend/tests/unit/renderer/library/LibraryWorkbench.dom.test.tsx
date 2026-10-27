@@ -302,7 +302,7 @@ describe('Library workbench entry and original HTTP owners', () => {
     fireEvent.change(membership, { target: { value: 'project' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add to project' }));
     await waitFor(() => expect(current.project_ids).toEqual(['project']));
-    await waitFor(() => expect(screen.queryByRole('combobox')).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Project membership' })).toBeNull());
     await waitFor(() =>
       expect(
         within(screen.getByRole('region', { name: 'Literature details' })).getByText('Research project')

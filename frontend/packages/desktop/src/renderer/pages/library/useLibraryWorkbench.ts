@@ -52,7 +52,13 @@ function useLibraryRead<T>(
   return view.key === key && account === getRendererAccountScopeToken() ? view : { key, status: 'loading' };
 }
 
-export function useLibraryWorkbench(query: string, cursor: string, selectedId: string, collectionId = '') {
+export function useLibraryWorkbench(
+  query: string,
+  cursor: string,
+  selectedId: string,
+  collectionId = '',
+  projectId = ''
+) {
   const [account, setAccount] = useState(getRendererAccountScopeToken);
   const [revision, setRevision] = useState(0);
   const key = useId();
@@ -62,8 +68,14 @@ export function useLibraryWorkbench(query: string, cursor: string, selectedId: s
   );
   const listRequest = useCallback(
     (signal: AbortSignal) =>
-      loadLiteraturePage({ query, cursor: cursor || undefined, collectionId: collectionId || undefined, signal }),
-    [query, cursor, collectionId]
+      loadLiteraturePage({
+        query,
+        cursor: cursor || undefined,
+        collectionId: collectionId || undefined,
+        projectId: projectId || undefined,
+        signal,
+      }),
+    [query, cursor, collectionId, projectId]
   );
   const detailRequest = useCallback(
     (signal: AbortSignal) => (selectedId ? loadLiteratureItem(selectedId, signal) : Promise.resolve(undefined)),
@@ -78,7 +90,7 @@ export function useLibraryWorkbench(query: string, cursor: string, selectedId: s
   const projectRequest = useCallback((signal: AbortSignal) => loadXScienceProjects({ signal }), []);
   const list = useLibraryRead(
     account,
-    JSON.stringify([account, 'list', query, cursor, collectionId, revision]),
+    JSON.stringify([account, 'list', query, cursor, collectionId, projectId, revision]),
     listRequest,
     query ? 200 : 0
   );
