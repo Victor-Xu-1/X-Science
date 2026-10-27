@@ -189,12 +189,41 @@
   white-space: nowrap;
 }
 .legend i,
+.callLegend i,
 .tokenRows i {
   display: inline-block;
   width: var(--ui-space-4);
   height: var(--ui-space-4);
   border-radius: calc(var(--ui-radius-xs) - 2px);
   flex-shrink: 0;
+}
+.historyHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ui-space-3) var(--ui-space-5);
+}
+.historyHeading > div {
+  flex: 1 1 24rem;
+  min-width: 0;
+}
+.callLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2) var(--ui-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--workspace-text-secondary, #77746e);
+  font-size: var(--ui-font-micro);
+  line-height: var(--ui-line-height-micro);
+}
+.callLegend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
 }
 .metrics {
   display: grid;
