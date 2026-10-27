@@ -1,11 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
+import { BookOpen, ChevronRight, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
 import { LibraryCollectionSidebar } from './LibraryCollectionSidebar';
 import { LibraryCollectionEditor, type LibraryCollectionEditorMode } from './LibraryCollectionEditor';
-import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
+import {
+  literatureItemReadingStatus,
+  type LiteratureCommand,
+  type LiteratureReceipt,
+} from '@/common/adapter/literatureLibrary';
 import {
   literatureReadingStatuses,
   type LiteratureReadingStatus,
@@ -18,8 +22,10 @@ import { LibraryDetailsPane } from './LibraryDetailsPane';
 import { useLibraryWorkbench } from './useLibraryWorkbench';
 import { LibraryProjectScope } from './LibraryProjectScope';
 import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
-import { LibraryReadingStatusFilter } from './LibraryReadingStatus';
-import { LibraryReferenceRow } from './LibraryReferenceRow';
+import { LibraryReadingStatus, LibraryReadingStatusFilter } from './LibraryReadingStatus';
+import { LibraryTable } from './LibraryTable';
+import { LibraryColumnMenu } from './LibraryColumnMenu';
+import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
 import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
@@ -47,6 +53,7 @@ export default function LibraryPage() {
     }
   }, [params, readingStatus, setParams]);
   const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus);
+  const libraryColumns = useLibraryColumnPreferences(reads.account);
   const mutation = useLiteratureMutation();
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
@@ -337,17 +344,27 @@ export default function LibraryPage() {
               )
             }
             filters={
-              <LibraryReadingStatusFilter
-                value={readingStatus}
-                onChange={(value) => {
-                  const next = new URLSearchParams(params);
-                  if (value) next.set('reading_status', value);
-                  else next.delete('reading_status');
-                  next.delete('cursor');
-                  next.delete('item');
-                  setParams(next);
-                }}
-              />
+              <>
+                <LibraryReadingStatusFilter
+                  value={readingStatus}
+                  onChange={(value) => {
+                    const next = new URLSearchParams(params);
+                    if (value) next.set('reading_status', value);
+                    else next.delete('reading_status');
+                    next.delete('cursor');
+                    next.delete('item');
+                    setParams(next);
+                  }}
+                />
+                <LibraryColumnMenu
+                  key={reads.account}
+                  preferences={libraryColumns.preferences}
+                  status={libraryColumns.status}
+                  onPreferencesChange={libraryColumns.changePreferences}
+                  onRetry={libraryColumns.retry}
+                  onReset={libraryColumns.reset}
+                />
+              </>
             }
           />
           <LibraryPdfImportPanel
@@ -365,59 +382,59 @@ export default function LibraryPage() {
               className='library-workbench__list'
               aria-label={t('conversation.libraryWorkbench.items')}
             >
-              {reads.list.status === 'loading' ? (
-                <div role='status' className='library-workbench__state'>
-                  <Loader2 className='library-workbench__spin' size={20} aria-hidden='true' />
-                  {t('common.loading')}
-                </div>
-              ) : reads.list.status === 'error' ? (
-                <div role='alert' className='library-workbench__state'>
-                  <h2>{t('conversation.libraryWorkbench.loadFailed')}</h2>
-                  <button type='button' onClick={reads.refresh}>
-                    {t('common.retry')}
-                  </button>
-                </div>
-              ) : items.length === 0 ? (
-                <div className='library-workbench__state'>
-                  <BookOpen size={28} aria-hidden='true' />
-                  <h2>
-                    {t(
-                      query || readingStatus
-                        ? 'conversation.libraryWorkbench.noMatches'
-                        : projectId
-                          ? 'conversation.libraryWorkbench.projectEmpty'
-                          : 'conversation.libraryWorkbench.empty'
-                    )}
-                  </h2>
-                  <p>
-                    {t(
-                      query || readingStatus
-                        ? 'conversation.libraryWorkbench.searchHint'
-                        : projectId
-                          ? 'conversation.libraryWorkbench.projectEmptyHint'
-                          : 'conversation.libraryPdfImport.emptyHint'
-                    )}
-                  </p>
-                </div>
-              ) : (
-                <ul aria-label={t('conversation.libraryWorkbench.items')}>
-                  {items.map((item) => (
-                    <LibraryReferenceRow
-                      key={item.id}
-                      item={item}
-                      authors={libraryAuthors(item)}
-                      selected={selectedId === item.id}
-                      busy={busy || reads.list.status !== 'ready'}
-                      register={(node) => {
-                        if (node) rowButtons.current.set(item.id, node);
-                        else rowButtons.current.delete(item.id);
+              <LibraryTable
+                rows={items}
+                readStatus={reads.list.status}
+                selectedId={selectedId}
+                preferences={libraryColumns.preferences}
+                authors={libraryAuthors}
+                statusCell={(item) => (
+                  <LibraryReadingStatus
+                    value={literatureItemReadingStatus(item)}
+                    disabled={busy || reads.list.status !== 'ready' || item.deleted}
+                    onChange={(value) => changeReadingStatus(item.id, value)}
+                    accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+                  />
+                )}
+                open={(item) => selectItem(item.id)}
+                registerTitleButton={(itemId, node) => {
+                  if (node) rowButtons.current.set(itemId, node);
+                  else rowButtons.current.delete(itemId);
+                }}
+                onRetry={reads.refresh}
+                emptyTitle={t(
+                  query || readingStatus
+                    ? 'conversation.libraryWorkbench.noMatches'
+                    : projectId
+                      ? 'conversation.libraryWorkbench.projectEmpty'
+                      : 'conversation.libraryWorkbench.empty'
+                )}
+                emptyDescription={t(
+                  query || readingStatus
+                    ? 'conversation.libraryWorkbench.searchHint'
+                    : projectId
+                      ? 'conversation.libraryWorkbench.projectEmptyHint'
+                      : 'conversation.libraryPdfImport.emptyHint'
+                )}
+                emptyAction={
+                  (query || readingStatus) && (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        // Clear explicit view filters; preserve project/collection deep links.
+                        const next = new URLSearchParams(params);
+                        next.delete('q');
+                        next.delete('reading_status');
+                        next.delete('cursor');
+                        next.delete('item');
+                        setParams(next, { replace: true });
                       }}
-                      open={() => selectItem(item.id)}
-                      changeStatus={(value) => changeReadingStatus(item.id, value)}
-                    />
-                  ))}
-                </ul>
-              )}
+                    >
+                      {t('common.clear')}
+                    </button>
+                  )
+                }
+              />
               {(cursor || reads.list.value?.next_cursor) && (
                 <footer className='library-workbench__paging'>
                   <button

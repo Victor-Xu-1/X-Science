@@ -81,6 +81,7 @@ export function installCollectionHTTP(options: ReadOptions) {
     const intercepted = await options.intercept?.(url, request);
     if (intercepted) return intercepted;
     if (method !== 'GET') throw new Error('Unexpected collection fixture mutation');
+    if (url.pathname === '/api/settings/client') return json({});
     if (url.pathname === '/api/projects') return json({ projects: [] });
     if (url.pathname === '/api/literature/collections')
       return json({ schema: 'x-science.literature-collections.v1', collections: options.collections() });

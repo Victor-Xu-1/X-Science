@@ -105,7 +105,14 @@ function setup(options: Options = {}, storage = literaturePendingStorage()) {
   return { controller, run, storage };
 }
 function savedRead(value: LiteraturePublicationCheck = result()) {
-  const fetch = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => json(value));
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
+    json(
+      new URL(String(input), 'http://localhost').pathname === '/api/settings/client' &&
+        (init?.method ?? 'GET') === 'GET'
+        ? {}
+        : value
+    )
+  );
   vi.stubGlobal('fetch', fetch);
   return fetch;
 }
@@ -563,6 +570,7 @@ describe('Library publication-check detail and original mutation owner', () => {
         value: { schema: 'x-science.literature-collection-membership.v1', item_id: reference.id, collection_ids: [] },
       },
       refresh,
+      refreshData: vi.fn(),
     } satisfies ReturnType<typeof useLibraryWorkbench>;
     savedRead(result({ snapshot: snapshot() }));
     run.mockImplementationOnce(async (command) => receipt(command.operation_id, result({ issue: 'rate-limited' })));

@@ -69,7 +69,7 @@ function Controlled({ changed = vi.fn() }: { changed?: (preferences: LibraryColu
   );
 }
 async function openColumns() {
-  const trigger = screen.getByRole('button', { name: 'Columns', exact: true });
+  const trigger = screen.getByRole('button', { name: 'Columns' });
   fireEvent.click(trigger);
   const panel = await screen.findByRole('dialog', { name: 'Customize columns' });
   return { panel, trigger };
@@ -188,7 +188,7 @@ describe('Pure Library table and controlled column settings', () => {
     rendered.rerender(<LibraryColumnMenu {...props} status='invalid' />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Saved column settings are invalid.');
     expect(screen.getByRole('checkbox', { name: 'Show Authors' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(props.onRetry).toHaveBeenCalledTimes(1);
     rendered.rerender(<LibraryColumnMenu {...props} status='read-error' />);
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load column settings.');
@@ -201,7 +201,7 @@ describe('Pure Library table and controlled column settings', () => {
     expect(props.onPreferencesChange).toHaveBeenCalledTimes(1);
     rendered.rerender(<LibraryColumnMenu {...props} status='write-error' />);
     expect(screen.getByRole('alert')).toHaveTextContent('Your layout has not been saved.');
-    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(props.onRetry).toHaveBeenCalledTimes(2);
     fireEvent.click(screen.getByRole('button', { name: 'Close column settings' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -212,11 +212,13 @@ describe('Pure Library table and controlled column settings', () => {
     const clear = vi.fn();
     const props = tableProps({ readStatus: 'loading' });
     const rendered = await renderWithI18n(<LibraryTable {...props} />, 'en-US');
-    expect(screen.getByRole('table')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('status')).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByRole('status')).toHaveTextContent('Loading references…');
     expect(screen.queryByRole('button', { name: 'Synthetic reference' })).toBeNull();
     rendered.rerender(<LibraryTable {...props} readStatus='error' />);
     expect(screen.getByRole('alert')).toHaveTextContent('Could not load references');
+    expect(screen.getByRole('alert').closest('.library-table__viewport')).toBeNull();
     expect(screen.queryByText('No references yet')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(props.onRetry).toHaveBeenCalledTimes(1);
@@ -237,6 +239,7 @@ describe('Pure Library table and controlled column settings', () => {
     expect(screen.getByRole('status')).toHaveTextContent('No matching references');
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     expect(clear).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('columnheader', { name: 'Title' })).toBeInTheDocument();
+    expect(screen.getByRole('status').closest('.library-table__viewport')).toBeNull();
+    expect(screen.queryByRole('table')).toBeNull();
   });
 });

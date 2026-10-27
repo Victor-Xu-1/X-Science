@@ -99,11 +99,8 @@
   color: var(--workspace-text-secondary);
   font-size: var(--ui-font-meta);
 }
-.library-table .library-table__state-cell {
-  height: auto;
-  padding: 0;
-}
 .library-table__state {
+  box-sizing: border-box;
   display: flex;
   min-height: 160px;
   flex-direction: column;

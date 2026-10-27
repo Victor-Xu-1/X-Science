@@ -69,63 +69,62 @@ export function LibraryTable({
   };
   return (
     <div className='library-table'>
-      <div
-        className='library-table__viewport'
-        role='region'
-        aria-label={t('conversation.libraryTable.scrollRegion')}
-        tabIndex={0}
-      >
-        <table
-          aria-label={t('conversation.libraryTable.title')}
+      {readStatus !== 'ready' || !rows.length ? (
+        <div
+          className='library-table__state'
+          role={readStatus === 'error' ? 'alert' : 'status'}
           aria-busy={readStatus === 'loading'}
-          style={{ minWidth: 280 + columns.reduce((sum, column) => sum + widths[column], 0) }}
         >
-          <colgroup>
-            <col style={{ width: 280 }} />
-            {columns.map((column) => (
-              <col key={column} style={{ width: widths[column] }} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope='col'>{t('conversation.libraryTable.titleColumn')}</th>
+          {readStatus === 'loading' ? (
+            <>
+              <LoaderCircle size={20} className='library-table__spin' aria-hidden='true' />
+              <span>{t('conversation.libraryTable.loading')}</span>
+            </>
+          ) : readStatus === 'error' ? (
+            <>
+              <h2>{t('conversation.libraryTable.loadFailed')}</h2>
+              <button type='button' onClick={onRetry}>
+                {t('common.retry')}
+              </button>
+            </>
+          ) : (
+            <>
+              <BookOpen size={28} aria-hidden='true' />
+              <h2>{emptyTitle ?? t('conversation.libraryTable.empty')}</h2>
+              <p>{emptyDescription ?? t('conversation.libraryTable.emptyHint')}</p>
+              {emptyAction}
+            </>
+          )}
+        </div>
+      ) : (
+        <div
+          className='library-table__viewport'
+          role='region'
+          aria-label={t('conversation.libraryTable.scrollRegion')}
+          tabIndex={0}
+        >
+          <table
+            aria-label={t('conversation.libraryTable.title')}
+            style={{ minWidth: 280 + columns.reduce((sum, column) => sum + widths[column], 0) }}
+          >
+            <colgroup>
+              <col style={{ width: 280 }} />
               {columns.map((column) => (
-                <th scope='col' key={column}>
-                  {t(`conversation.libraryTable.columns.${column}`)}
-                </th>
+                <col key={column} style={{ width: widths[column] }} />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {readStatus !== 'ready' || !rows.length ? (
+            </colgroup>
+            <thead>
               <tr>
-                <td colSpan={columns.length + 1} className='library-table__state-cell'>
-                  <div className='library-table__state' role={readStatus === 'error' ? 'alert' : 'status'}>
-                    {readStatus === 'loading' ? (
-                      <>
-                        <LoaderCircle size={20} className='library-table__spin' aria-hidden='true' />
-                        <span>{t('conversation.libraryTable.loading')}</span>
-                      </>
-                    ) : readStatus === 'error' ? (
-                      <>
-                        <h2>{t('conversation.libraryTable.loadFailed')}</h2>
-                        <button type='button' onClick={onRetry}>
-                          {t('common.retry')}
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <BookOpen size={28} aria-hidden='true' />
-                        <h2>{emptyTitle ?? t('conversation.libraryTable.empty')}</h2>
-                        <p>{emptyDescription ?? t('conversation.libraryTable.emptyHint')}</p>
-                        {emptyAction}
-                      </>
-                    )}
-                  </div>
-                </td>
+                <th scope='col'>{t('conversation.libraryTable.titleColumn')}</th>
+                {columns.map((column) => (
+                  <th scope='col' key={column}>
+                    {t(`conversation.libraryTable.columns.${column}`)}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              rows.map((item) => (
+            </thead>
+            <tbody>
+              {rows.map((item) => (
                 <tr key={item.id} data-selected={item.id === selectedId}>
                   <td className='library-table__title-cell'>
                     <button
@@ -148,11 +147,11 @@ export function LibraryTable({
                     </td>
                   ))}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

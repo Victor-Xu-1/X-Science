@@ -4,80 +4,9 @@
   min-height: 0;
   flex-direction: column;
 }
-.library-workbench__list > ul {
-  flex: 1;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  overflow: auto;
-  list-style: none;
-}
-.library-workbench__item {
-  box-sizing: border-box;
-  display: flex;
-  width: 100%;
-  min-height: 64px;
-  align-items: center;
-  gap: var(--ui-space-5);
-  padding: 10px var(--ui-space-5);
-  border: 0;
-  border-bottom: 1px solid var(--workspace-border);
-  color: var(--workspace-text);
-  background: transparent;
-  text-align: start;
-}
-.library-workbench__list li:last-child .library-workbench__item {
-  border-bottom: 0;
-}
-.library-workbench__item:hover {
-  background: var(--workspace-hover);
-}
-.library-workbench__item[aria-pressed='true'] {
-  background: var(--workspace-selected);
-}
-.library-workbench__item:focus-visible {
+.library-workbench__list:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: -2px;
-}
-.library-workbench__book {
-  box-sizing: border-box;
-  display: grid;
-  width: var(--ui-control-sm);
-  height: var(--ui-control-sm);
-  flex-shrink: 0;
-  place-items: center;
-  border: 1px solid var(--workspace-border);
-  border-radius: var(--ui-radius-sm);
-  color: var(--workspace-text-secondary);
-  background: var(--workspace-subtle);
-}
-.library-workbench__item-copy {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--ui-space-1);
-}
-.library-workbench__item-copy strong {
-  display: -webkit-box;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  font-size: var(--ui-font-body);
-  font-weight: var(--ui-weight-medium);
-  line-height: var(--ui-line-height-body);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.library-workbench__item-copy > span {
-  overflow: hidden;
-  color: var(--workspace-text-tertiary);
-  font-size: var(--ui-font-meta);
-  line-height: var(--ui-line-height-meta);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.library-workbench__item > svg {
-  flex-shrink: 0;
-  color: var(--workspace-text-tertiary);
 }
 .library-workbench__state {
   box-sizing: border-box;

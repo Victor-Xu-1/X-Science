@@ -240,7 +240,12 @@ describe('Library PDF import UI', () => {
     installLiteratureLocks();
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => Promise.reject(new Error('Unexpected UI fixture HTTP')))
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+        new URL(String(input), 'http://localhost').pathname === '/api/settings/client' &&
+        (init?.method ?? 'GET') === 'GET'
+          ? Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
+          : Promise.reject(new Error('Unexpected UI fixture HTTP'))
+      )
     );
   });
   afterEach(() => {
