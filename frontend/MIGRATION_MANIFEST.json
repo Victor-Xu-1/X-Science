@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "9ec0fb80eec9f0c1ee0b7ed3d7fed628d8cb7fb685d8e8e8784d95a0261e92e9",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e4a8c0a334341f90a0b9ab02c70f917dbea1e9c68566820c49c8522af82d4566",
+  "additionFingerprintSHA256": "6b04275e271065cd088b972ec7c2b5a6c092602f240593617144f9296a83fbf9",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -10859,8 +10859,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/LiteratureMutationController.ts",
-      "sha256": "cdb2e719de00846637cf8d19333b1f28003cfcdfc5fb480c2f181692b9bb9ae5",
-      "bytes": 22669,
+      "sha256": "1eeec88e2babec80ade21d26afb304b103bd47c03ce9940b63857b2b3979e576",
+      "bytes": 22690,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
