@@ -1,15 +1,9 @@
-.library-pdf-import__header-actions,
 .library-pdf-import__entry {
   display: inline-flex;
   max-width: 100%;
   align-items: center;
   flex-wrap: wrap;
   gap: var(--ui-space-4);
-}
-.library-pdf-import__header-actions {
-  justify-content: flex-end;
-  flex-shrink: 0;
-  font-size: var(--ui-font-meta);
 }
 .library-pdf-import__file-input {
   display: none;
@@ -153,13 +147,6 @@
   border-top: 1px solid var(--workspace-border);
 }
 @container library-workbench (max-width: 720px) {
-  .library-pdf-import__page-header {
-    flex-wrap: wrap;
-  }
-  .library-pdf-import__header-actions {
-    flex-shrink: 1;
-    justify-content: flex-start;
-  }
   .library-pdf-import-panel {
     max-height: 55svh;
     padding: var(--ui-space-5);

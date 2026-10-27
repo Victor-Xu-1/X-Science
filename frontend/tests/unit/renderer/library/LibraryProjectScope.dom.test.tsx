@@ -71,7 +71,7 @@ describe('Library project scope through the existing Web query owner', () => {
     expect(location().get('q')).toBe('study');
     for (const name of ['collection', 'cursor', 'item']) expect(location().get(name)).toBeNull();
     expect(sidebar().getByRole('button', { name: 'All references' })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('heading', { name: 'Alpha project', level: 2 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Alpha project', level: 1 })).toBeInTheDocument();
     const first = http.requests.find((request) => request.path.includes('project_id=alpha'));
     expect(new URL(first!.path, 'http://localhost').searchParams.get('query')).toBe('study');
     expect(new URL(first!.path, 'http://localhost').searchParams.has('cursor')).toBe(false);

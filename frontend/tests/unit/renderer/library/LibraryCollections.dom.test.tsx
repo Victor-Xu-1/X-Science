@@ -87,7 +87,7 @@ describe('Library collections through the original Web request owners', () => {
     fireEvent.change(dialog.getByRole('combobox', { name: 'Parent collection' }), { target: { value: 'methods' } });
     fireEvent.click(dialog.getByRole('button', { name: 'Create collection' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(await screen.findByRole('heading', { name: 'My collection', level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'My collection', level: 1 })).toBeInTheDocument();
     expect(sidebar().getByRole('button', { name: 'Methods / My collection' })).toHaveAttribute('aria-current', 'page');
     expect(writes[0].body).toMatchObject({
       name: 'My collection',

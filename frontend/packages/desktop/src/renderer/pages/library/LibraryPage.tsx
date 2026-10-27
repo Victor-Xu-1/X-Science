@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, Loader2, RefreshCw, Search } from 'lucide-react';
+import { BookOpen, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
@@ -11,6 +11,7 @@ import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccoun
 import { LibraryItemDetails, libraryAuthors } from './LibraryItemDetails';
 import { useLibraryWorkbench } from './useLibraryWorkbench';
 import { LibraryProjectScope } from './LibraryProjectScope';
+import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
@@ -183,44 +184,6 @@ export default function LibraryPage() {
     lastAction && mutation.view.receipt?.operation_id === lastAction ? mutation.view.receipt : undefined;
   return (
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
-      <header className='library-workbench__header library-pdf-import__page-header'>
-        <div>
-          <h1 id='library-workbench-title'>
-            <BookOpen size={20} aria-hidden='true' />
-            {t('conversation.libraryWorkbench.title')}
-          </h1>
-          <p>{t('conversation.libraryWorkbench.description')}</p>
-        </div>
-        <div className='library-pdf-import__header-actions'>
-          <LibraryPdfImport model={pdfImport} />
-          <button type='button' className='library-workbench__button' onClick={reads.refresh}>
-            <RefreshCw size={14} aria-hidden='true' />
-            {t('common.refresh')}
-          </button>
-        </div>
-      </header>
-      <LibraryPdfImportPanel model={pdfImport} refreshProjects={reads.refresh} viewReference={viewImportedReference} />
-      <div className='library-workbench__toolbar'>
-        <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
-        <label className='library-workbench__search'>
-          <Search size={16} aria-hidden='true' />
-          <input
-            type='search'
-            value={query}
-            maxLength={512}
-            onChange={(event) => {
-              const next = new URLSearchParams(params);
-              if (event.target.value) next.set('q', event.target.value);
-              else next.delete('q');
-              next.delete('cursor');
-              next.delete('item');
-              setParams(next, { replace: true });
-            }}
-            aria-label={t('conversation.libraryWorkbench.search')}
-            placeholder={t('conversation.libraryWorkbench.search')}
-          />
-        </label>
-      </div>
       {!pdfImport.noticeOwned && (mutation.view.error || actionFailed) && (
         <div role='alert' className='library-workbench__notice'>
           <span>
@@ -249,57 +212,87 @@ export default function LibraryPage() {
         </p>
       )}
       <div className='library-workbench__workspace'>
-        <LibraryCollectionSidebar
-          view={reads.collections}
-          selectedId={collectionId}
-          allSelected={!collectionId && !projectId}
-          busy={busy}
-          select={selectCollection}
-          create={() => openCollection({ kind: 'create' })}
-          retry={reads.refresh}
-        />
+        <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
+          <div className='library-workbench__navigation-heading'>
+            <BookOpen size={18} aria-hidden='true' />
+            <span>{t('conversation.libraryWorkbench.title')}</span>
+          </div>
+          <LibraryCollectionSidebar
+            view={reads.collections}
+            selectedId={collectionId}
+            allSelected={!collectionId && !projectId}
+            busy={busy}
+            select={selectCollection}
+            create={() => openCollection({ kind: 'create' })}
+            retry={reads.refresh}
+          />
+          <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
+        </aside>
         <section
           className='library-workbench__collection-content'
           aria-label={t('conversation.libraryWorkbench.collectionResults')}
         >
-          <div className='library-workbench__collection-heading'>
-            <div>
-              <h2>
-                {selectedCollection?.name ??
-                  (projectId
-                    ? (selectedProject?.name ??
-                      t(
-                        reads.projects.status === 'loading'
-                          ? 'common.loading'
-                          : 'conversation.libraryWorkbench.projectUnavailable'
-                      ))
-                    : t(
-                        collectionId
-                          ? 'conversation.libraryWorkbench.collection'
-                          : 'conversation.libraryWorkbench.allReferences'
-                      ))}
-              </h2>
-              {selectedCollection?.description && <p>{selectedCollection.description}</p>}
-            </div>
-            {selectedCollection && (
-              <div className='library-workbench__attachment-actions'>
-                <button
-                  type='button'
-                  disabled={busy}
-                  onClick={() => openCollection({ kind: 'update', collection: selectedCollection })}
-                >
-                  {t('conversation.libraryWorkbench.editCollection')}
+          <LibraryWorkspaceHeader
+            title={
+              selectedCollection?.name ??
+              (projectId
+                ? (selectedProject?.name ??
+                  t(
+                    reads.projects.status === 'loading'
+                      ? 'common.loading'
+                      : 'conversation.libraryWorkbench.projectUnavailable'
+                  ))
+                : t(
+                    collectionId
+                      ? 'conversation.libraryWorkbench.collection'
+                      : 'conversation.libraryWorkbench.allReferences'
+                  ))
+            }
+            description={selectedCollection?.description || t('conversation.libraryWorkbench.description')}
+            query={query}
+            onQueryChange={(value) => {
+              const next = new URLSearchParams(params);
+              if (value) next.set('q', value);
+              else next.delete('q');
+              next.delete('cursor');
+              next.delete('item');
+              setParams(next, { replace: true });
+            }}
+            actions={
+              <>
+                <LibraryPdfImport model={pdfImport} />
+                <button type='button' className='library-workbench__button' onClick={reads.refresh}>
+                  <RefreshCw size={14} aria-hidden='true' />
+                  {t('common.refresh')}
                 </button>
-                <button
-                  type='button'
-                  disabled={busy}
-                  onClick={() => openCollection({ kind: 'delete', collection: selectedCollection })}
-                >
-                  {t('conversation.libraryWorkbench.deleteCollection')}
-                </button>
-              </div>
-            )}
-          </div>
+              </>
+            }
+            collectionActions={
+              selectedCollection && (
+                <div className='library-workbench__attachment-actions'>
+                  <button
+                    type='button'
+                    disabled={busy}
+                    onClick={() => openCollection({ kind: 'update', collection: selectedCollection })}
+                  >
+                    {t('conversation.libraryWorkbench.editCollection')}
+                  </button>
+                  <button
+                    type='button'
+                    disabled={busy}
+                    onClick={() => openCollection({ kind: 'delete', collection: selectedCollection })}
+                  >
+                    {t('conversation.libraryWorkbench.deleteCollection')}
+                  </button>
+                </div>
+              )
+            }
+          />
+          <LibraryPdfImportPanel
+            model={pdfImport}
+            refreshProjects={reads.refresh}
+            viewReference={viewImportedReference}
+          />
           {collectionId && reads.collections.status === 'ready' && !selectedCollection && (
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>
           )}
@@ -366,23 +359,25 @@ export default function LibraryPage() {
                   ))}
                 </ul>
               )}
-              <footer className='library-workbench__paging'>
-                <button
-                  type='button'
-                  disabled={!cursor || reads.list.status === 'loading'}
-                  onClick={() => changePage()}
-                >
-                  {t('conversation.libraryWorkbench.firstPage')}
-                </button>
-                <button
-                  type='button'
-                  disabled={reads.list.status !== 'ready' || !reads.list.value?.next_cursor}
-                  onClick={() => changePage(reads.list.value?.next_cursor)}
-                >
-                  {t('conversation.libraryWorkbench.nextPage')}
-                  <ChevronRight size={14} aria-hidden='true' />
-                </button>
-              </footer>
+              {(cursor || reads.list.value?.next_cursor) && (
+                <footer className='library-workbench__paging'>
+                  <button
+                    type='button'
+                    disabled={!cursor || reads.list.status === 'loading'}
+                    onClick={() => changePage()}
+                  >
+                    {t('conversation.libraryWorkbench.firstPage')}
+                  </button>
+                  <button
+                    type='button'
+                    disabled={reads.list.status !== 'ready' || !reads.list.value?.next_cursor}
+                    onClick={() => changePage(reads.list.value?.next_cursor)}
+                  >
+                    {t('conversation.libraryWorkbench.nextPage')}
+                    <ChevronRight size={14} aria-hidden='true' />
+                  </button>
+                </footer>
+              )}
             </section>
             {selectedId && (
               <aside aria-label={t('conversation.libraryWorkbench.details')}>
