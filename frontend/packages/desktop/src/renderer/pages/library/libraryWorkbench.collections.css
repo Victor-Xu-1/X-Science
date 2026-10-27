@@ -1,8 +1,6 @@
 .library-workbench__collections {
   min-width: 0;
-  padding-inline-end: var(--ui-space-5);
   overflow-y: auto;
-  border-inline-end: 1px solid var(--workspace-border);
 }
 .library-workbench__collections ul {
   margin: 0;
@@ -61,26 +59,6 @@
   font-size: var(--ui-font-micro);
   font-weight: var(--ui-weight-regular);
   font-variant-numeric: tabular-nums;
-}
-.library-workbench__collection-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: start;
-  justify-content: space-between;
-  gap: var(--ui-space-5);
-}
-.library-workbench__collection-heading h2 {
-  margin: 0;
-  font-size: var(--ui-font-subtitle);
-  font-weight: var(--ui-weight-semibold);
-  line-height: var(--ui-line-height-subtitle);
-}
-.library-workbench__collection-heading p {
-  margin: var(--ui-space-2) 0 0;
-  overflow-wrap: anywhere;
-  color: var(--workspace-text-tertiary);
-  font-size: var(--ui-font-meta);
-  line-height: var(--ui-line-height-meta);
 }
 .library-workbench__membership {
   padding: var(--ui-space-5) 0;
@@ -222,9 +200,6 @@
 @container library-workbench (max-width: 880px) {
   .library-workbench__collections {
     max-height: 128px;
-    padding: 0 0 var(--ui-space-4);
-    border-inline-end: 0;
-    border-bottom: 1px solid var(--workspace-border);
   }
   .library-workbench__collections ul {
     display: flex;

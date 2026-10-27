@@ -5,6 +5,7 @@ import { estimateContextUsageBreakdown } from '@/renderer/services/contextUsage'
 import { InspectionCallDetails, InspectionTurnDetails } from './ContextInspectionDetails';
 import {
   CALL_COLORS,
+  CONTEXT_CALL_FIELDS,
   INSPECTION_COLORS,
   callSegments,
   inspectionCallBands,
@@ -31,6 +32,11 @@ export default function ContextInspectionHistory({
   const orderedCalls = bands.flatMap((band) => band.calls);
   const turnPoints = inspectionTurnPoints(inspection);
   const items = calls ? orderedCalls : turnPoints;
+  const legendFields = calls
+    ? CONTEXT_CALL_FIELDS.filter((field) =>
+        orderedCalls.some((call) => callSegments(call).some((segment) => segment.field === field && segment.tokens > 0))
+      )
+    : [];
   const [pinned, setPinned] = useState<string>();
   const [preview, setPreview] = useState<string>();
   const nodes = useRef(new Map<string, HTMLButtonElement>());
@@ -180,8 +186,22 @@ export default function ContextInspectionHistory({
     <section aria-label={t(PREFIX + (calls ? 'callHistory' : 'history'))}>
       {progressNotice}
       {unresolvedNotice}
-      <h3>{t(PREFIX + (calls ? 'callHistory' : 'history'))}</h3>
-      <p className={styles.muted}>{t(PREFIX + (calls ? 'callHistoryHelp' : 'historyHelp'))}</p>
+      <div className={styles.historyHeading}>
+        <div>
+          <h3>{t(PREFIX + (calls ? 'callHistory' : 'history'))}</h3>
+          <p className={styles.muted}>{t(PREFIX + (calls ? 'callHistoryHelp' : 'historyHelp'))}</p>
+        </div>
+        {legendFields.length > 0 && (
+          <ul className={styles.callLegend} data-testid='context-inspector-call-legend'>
+            {legendFields.map((field) => (
+              <li key={field}>
+                <i style={{ background: CALL_COLORS[field] }} aria-hidden='true' />
+                <span>{t('conversation.contextUsage.call_' + field)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
       <div className={styles.historyCard}>
         <div className={styles.chartArea}>
           <div className={styles.axis} aria-hidden='true'>

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "533e64544d649b5780e7a80212bb796a825000f5d25e7171fe98e1610e728b98",
+  "adaptationFingerprintSHA256": "8a2abb3d437e8997f16d5485c7684ec8c75ce8b99582c145239517d52879599d",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "c23de49a758c957175716eb3eca288e526b0a7e89ad40586dfad031f364d777b",
+  "additionFingerprintSHA256": "c77c07879d2571583a4a37b6ee0bb6aad729e3de4f6d73ea75aecce3563142cb",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1271
+    "addedFiles": 1274
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "345c79d991baa954437c4ca4f3d106b733f34824bd49ed200c0272b805d48852",
+      "targetSHA256": "1d92bea36f820b5c7b05bbcde23dc30ef60aff3e7d1a1736eda14d0ae713108e",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "a8d54043832c74a2faa6d8421330c53a4b699aad8349396dbd70d94031d466cd",
+      "targetSHA256": "43aec87f1bc3dd39df657dcb509a7570fd3e49c3f8963b80efe28c33f750ffed",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7577,7 +7577,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "0c71e12df91a74f0005e789d0c50fedd5079718d9d2e744b157cace038524e07",
+      "sha256": "3a1ab28340e38d752544b1d287afd45ceb77cb4b507e3441ac71c02636d81de1",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8002,9 +8002,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.module.css",
+      "sha256": "820af24e381e060bed7893a286dd52e68c8cf2fd41fcf0b2f9b7d2608cfe6470",
+      "bytes": 1092,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.tsx",
-      "sha256": "c015cc628a43c6310b0ee6673f0bb9b33c0cebfcc6c23e0d478ba586d5932854",
-      "bytes": 1173,
+      "sha256": "4afe277e9fb72c29084f4d58099fde21e89fcf017686a54b8b869ac0d478221e",
+      "bytes": 1085,
       "reason": "Expose the native Library route in the existing sidebar while retaining navigation cleanup, keyboard semantics and account authority; no task admission or catalogue mutation owner is added."
     },
     {
@@ -8135,8 +8141,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionHistory.tsx",
-      "sha256": "2f89d57bdd4e32f2e63bbd85440485ac5f65dc158806f1eb2874ff20370d6d7f",
-      "bytes": 9155,
+      "sha256": "df00a664bf0649fc584bdc9e6e979c482ad890706773dbcbd1efcadb895ec76c",
+      "bytes": 9910,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8159,8 +8165,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.module.css",
-      "sha256": "fe928a96e6ad20ea36a5dc174d710ac59fa3e90a4a56de8f82c6d87861a19b4f",
-      "bytes": 11597,
+      "sha256": "490badd96df836dd366b458196a21c5d60fdc5f869f79423d33cd07e07d2b7ff",
+      "bytes": 12215,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8315,8 +8321,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/XScienceSpecialistChoices.tsx",
-      "sha256": "a181ba8778d2ea8fcc813f9a089a60b332d5f2a2b0a68abb619bcf08869310c8",
-      "bytes": 5505,
+      "sha256": "ab607a5b018d716c487418dd2d150a6cc9c49af8b3be75d9262059f4bde34ec5",
+      "bytes": 5555,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9851,8 +9857,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "e406c16297d12515dfff86ce7223d3006f59d4c51fedfc25b081929b08faf175",
-      "bytes": 20019,
+      "sha256": "0704314e2089530b507b2c5db9eac4701b8d2d715353ea6650363fdd4624ad6a",
+      "bytes": 19797,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -9874,6 +9880,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryWorkspaceHeader.tsx",
+      "sha256": "2e35083d9d9acc3e73b0413c8e640c8efcb76228e3e0356c03827d5393a66b5c",
+      "bytes": 1448,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts",
       "sha256": "29406f4d6ceb314a13570f007929278d99b7dbe85bd00fab2cef586b3ff3b2da",
       "bytes": 2579,
@@ -9881,20 +9893,20 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryPdfImport.css",
-      "sha256": "17b32ae55f2271ce64dd0efb34b1257afeb6e29bdded8fa6aedbfcda2eed8c67",
-      "bytes": 4546,
+      "sha256": "7f0d9b9aba4160c3018f9dc1dcc2757392ed40150d3e32a958ef3d32e1784041",
+      "bytes": 4229,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.collections.css",
-      "sha256": "40bc324209031e25a2ed7dc56c363b194e93adc3b5190633eb8f1a75712c88cf",
-      "bytes": 6821,
+      "sha256": "31ae03aa2d6e09c4f2ff35f229a2505543036537c4555beee028d5c0895c27cf",
+      "bytes": 6038,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.css",
-      "sha256": "ce9b29493e279636dccf936221c8e7898229811f78bb6b1ebf336c9b91c9354a",
-      "bytes": 7189,
+      "sha256": "f76be93ed963c5e29ae2ef2a493af3262d1ce12301300460acf8826594e0b123",
+      "bytes": 8716,
       "reason": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted."
     },
     {
@@ -9905,8 +9917,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.list.css",
-      "sha256": "51163eeb5bd9ed238d66eb53d316a2682867bb8648f6908f4c98670cb4cdb854",
-      "bytes": 3550,
+      "sha256": "39e1ca95b07a01995c00de199bc514359368c1f49e632a4a4fa6680676257cae",
+      "bytes": 3553,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12779,8 +12791,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextWindowInspector.dom.test.tsx",
-      "sha256": "d94a33bfce20d33b2f237c0b71c2e1c6eada068b9cffd9b181d8db4ec6980df0",
-      "bytes": 28892,
+      "sha256": "1fbed18fa5bed07b485529438bb4017eae013bacb8e90ba94ee441021d9e1f28",
+      "bytes": 32073,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -12989,8 +13001,8 @@
     },
     {
       "path": "tests/unit/renderer/XScienceSpecialistControls.dom.test.tsx",
-      "sha256": "e7e2b2ba1b3a2cb1dc36ebd45e3814792516e7c8a7f8b832fca0c7b05676e8cc",
-      "bytes": 3560,
+      "sha256": "d723d7783063a89478ed37b32dbd53b70f74d87e29dbf696c2cbf3dfec0b6035",
+      "bytes": 6085,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13505,13 +13517,13 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryCollectionEditor.dom.test.tsx",
-      "sha256": "d91852de234ef9784ce80f3d2395f352481f81de05d5e3508a9e2a7400a5c83b",
+      "sha256": "ff80e74d4273c97f9de9159319bc2a23e390058831cec1c31bbd9b709104ceb2",
       "bytes": 14114,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/library/LibraryCollections.dom.test.tsx",
-      "sha256": "38bac8549cfa0e57e67c18d4b1151630371a4d6bd5f5b332c69fbf31c5d4eb1f",
+      "sha256": "5100fbc677d16080d8fc277644c8dfb046627e574a7df905979e4dd84e925af4",
       "bytes": 15596,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
@@ -13523,14 +13535,20 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryProjectScope.dom.test.tsx",
-      "sha256": "d1d276d81d3be72d648b888f69f49913420dda07c6359d6fa1b44010610c9b04",
+      "sha256": "a85dec6f082691607928aaa637574f2e907ad09cc90124ed86afb8f8e1724ab5",
       "bytes": 10372,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/library/LibraryWorkbench.dom.test.tsx",
-      "sha256": "aea09209b0d22b370e057ba2b9881638e376ff5de2a82ad927198f5a04d7ddd8",
-      "bytes": 14720,
+      "sha256": "dfe7166b5c5ec680499d949c581b68f0253f4bfb715bf03ab71bd72140ffb5e0",
+      "bytes": 14813,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryWorkspaceLayout.dom.test.tsx",
+      "sha256": "f9f92e620e8be0a488f93284a8a60a6c597df0c78f2199c569f64389782a4f99",
+      "bytes": 5431,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

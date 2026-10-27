@@ -62,7 +62,7 @@ describe('Collection editors use canonical receipts and retained original reques
     fireEvent.change(editor.getByRole('textbox', { name: 'Name' }), { target: { value: 'Merged collection' } });
     fireEvent.click(editor.getByRole('button', { name: 'Save changes' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(await screen.findByRole('heading', { name: 'Merged collection', level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Merged collection', level: 1 })).toBeInTheDocument();
     expect(writes.map((body) => body.expected_revision)).toEqual([1, 2]);
     expect(writes[0].operation_id).not.toBe(writes[1].operation_id);
   });

@@ -112,7 +112,7 @@ export default function XScienceSpecialistChoices({
           </button>
         </div>
       ) : null}
-      {!control?.catalogLoading && !control?.choices.length ? (
+      {control?.current() && !control.catalogLoading && !control.catalogError && control.choices.length === 0 ? (
         <p className='m-0 px-8px py-4px text-11px text-t-secondary'>
           {t('conversation.xscienceRuntime.sessionOptions.noExperts')}
         </p>

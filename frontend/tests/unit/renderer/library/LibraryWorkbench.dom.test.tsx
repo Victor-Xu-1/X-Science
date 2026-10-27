@@ -317,7 +317,8 @@ describe('Library workbench entry and original HTTP owners', () => {
     await act(async () => {
       await rendered.i18n.changeLanguage('zh-CN');
     });
-    expect(screen.getByRole('heading', { name: '文献库', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '全部文献', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '文献库' })).toBeInTheDocument();
     expect(screen.getByRole('searchbox', { name: '搜索文献库' })).toBeInTheDocument();
   });
 });
