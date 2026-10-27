@@ -2088,6 +2088,12 @@
   },
   "notFound": "Conversation not found or has been deleted",
   "loading": "Loading conversation",
+  "libraryReadingStatus": {
+    "label": "Reading status",
+    "unread": "Unread",
+    "reading": "Reading",
+    "read": "Read"
+  },
   "libraryWorkbench": {
     "eyebrow": "Your research references",
     "title": "Library",

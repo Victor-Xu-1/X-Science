@@ -2088,6 +2088,12 @@
   },
   "notFound": "会话不存在或已被删除",
   "loading": "正在加载对话",
+  "libraryReadingStatus": {
+    "label": "阅读状态",
+    "unread": "未读",
+    "reading": "在读",
+    "read": "已读"
+  },
   "libraryWorkbench": {
     "eyebrow": "你的研究文献",
     "title": "文献库",
