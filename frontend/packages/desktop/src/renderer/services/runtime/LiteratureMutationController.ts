@@ -450,7 +450,7 @@ export class LiteratureMutationController {
       if (intent.phase !== 'catalogue') throw new Error('Library upload phase changed');
       this.requireActive(flight);
       this.emit({ uploadState: 'catalogue' }, flight);
-      const raw = await this.dispatch(intent.command);
+      const raw = await this.dispatch(intent.command, flight.abort.signal);
       this.requireActive(flight);
       const receipt = decodeLiteratureReceipt(raw, intent.operation_id);
       if (!receipt.attachment_id || !receipt.version_id) throw new Error('Literature import not acknowledged');
