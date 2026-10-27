@@ -444,6 +444,11 @@ export default function LibraryPage() {
                 busy={busy}
                 submit={submit}
                 changeStatus={changeReadingStatus}
+                receipt={
+                  mutation.view.receipt?.schema === 'x-science.literature-receipt.v1'
+                    ? mutation.view.receipt
+                    : undefined
+                }
                 close={closeDetails}
               />
             )}

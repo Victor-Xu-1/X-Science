@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LiteratureCommand } from '@/common/adapter/literatureLibrary';
+import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import type { ReceiptFor } from '@/renderer/services/runtime/literatureUploadIntent';
@@ -13,6 +13,7 @@ export function LibraryDetailsPane({
   busy,
   submit,
   changeStatus,
+  receipt,
   close,
 }: {
   reads: ReturnType<typeof useLibraryWorkbench>;
@@ -21,6 +22,7 @@ export function LibraryDetailsPane({
     command: Command
   ) => Promise<ReceiptFor<Command>>;
   changeStatus: (itemId: string, value: LiteratureReadingStatus) => void;
+  receipt?: LiteratureReceipt;
   close: () => void;
 }) {
   const { t } = useTranslation();
@@ -76,6 +78,7 @@ export function LibraryDetailsPane({
               if (!stale) changeStatus(selected.id, value);
             }}
             submit={submit}
+            receipt={receipt}
             close={close}
           />
         </>

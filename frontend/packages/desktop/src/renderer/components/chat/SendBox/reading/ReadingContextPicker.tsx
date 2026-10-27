@@ -286,6 +286,9 @@ export function ReadingContextPicker({
               projectId={context.scope.project_id}
               busy={changingLibrary}
               submit={submitLibrary}
+              receipt={
+                mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' ? mutation.view.receipt : undefined
+              }
               close={() => setEditing(null)}
             />
           )}

@@ -1,6 +1,8 @@
-import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
-import React, { useState } from 'react';
+import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+type SubmittedEdit = { operationId: string; before: LiteratureReceipt | undefined };
 
 /** Metadata/membership editing never owns the accepted PDF or its content. */
 export function LibraryItemEditor({
@@ -8,6 +10,7 @@ export function LibraryItemEditor({
   projectId,
   busy,
   readOnly = false,
+  receipt,
   submit,
   close,
 }: {
@@ -15,6 +18,7 @@ export function LibraryItemEditor({
   projectId?: string;
   busy: boolean;
   readOnly?: boolean;
+  receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
 }) {
@@ -33,9 +37,40 @@ export function LibraryItemEditor({
   const authorsChanged = authors !== initialAuthors;
   const yearChanged = year !== initialYear;
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const submitted = useRef<SubmittedEdit | undefined>(undefined);
+  const finish = useCallback(
+    (attempt: SubmittedEdit) => {
+      if (submitted.current !== attempt) return;
+      submitted.current = undefined;
+      close();
+    },
+    [close]
+  );
+  useEffect(
+    () => () => {
+      submitted.current = undefined;
+    },
+    [item.id]
+  );
+  useEffect(() => {
+    const attempt = submitted.current;
+    if (
+      attempt &&
+      receipt &&
+      receipt !== attempt.before &&
+      receipt.operation_id === attempt.operationId &&
+      receipt.item.id === item.id
+    )
+      finish(attempt);
+  }, [receipt, item.id, finish]);
   const run = (command: LiteratureCommand): void => {
     if (busy || readOnly) return;
-    void submit(command).then(close, (): undefined => undefined);
+    const attempt = { operationId: command.operation_id, before: receipt };
+    submitted.current = attempt;
+    void submit(command).then(
+      () => finish(attempt),
+      (): undefined => undefined
+    );
   };
   const included = Boolean(projectId && item.project_ids.includes(projectId));
   return (

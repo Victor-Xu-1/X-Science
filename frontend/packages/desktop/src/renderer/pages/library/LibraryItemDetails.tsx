@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
+import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
@@ -40,6 +40,7 @@ export function LibraryItemDetails({
   busy,
   stale = false,
   changeReadingStatus,
+  receipt,
   submit,
   close,
 }: {
@@ -54,6 +55,7 @@ export function LibraryItemDetails({
   busy: boolean;
   stale?: boolean;
   changeReadingStatus: (value: LiteratureReadingStatus) => void;
+  receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
 }) {
@@ -155,6 +157,7 @@ export function LibraryItemDetails({
             projectId={projectId || undefined}
             busy={busy}
             readOnly={externallyUpdated}
+            receipt={receipt}
             submit={submit}
             close={() => setEditBase(undefined)}
           />

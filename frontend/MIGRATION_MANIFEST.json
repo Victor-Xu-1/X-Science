@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "0abb1843249d890cc36af5522443571c248c38635d80937e8078cf1046e62b24",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6c11a4b88e9a8e1b24065effab1956a5af73b68453b0264f9ca2cf36103008b6",
+  "additionFingerprintSHA256": "d6e2814906a619ed5011df4b9e25d73bb83b179a859320859de71cdf89e8ab97",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1293
+    "addedFiles": 1294
   },
   "adaptations": [
     {
@@ -7925,8 +7925,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/LibraryItemEditor.tsx",
-      "sha256": "06bc16552549d8646733607f62ff2c8fdf28b634bf2252fe275b4207833339e9",
-      "bytes": 5402,
+      "sha256": "7f9b49b0228e25cd48cdd3995f1fec22405de0406169b14079584d02f1999590",
+      "bytes": 6362,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -7949,8 +7949,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/ReadingContextPicker.tsx",
-      "sha256": "e2c44f96ad7be339e622d47d2685c89ffdf0eb867701ec3c697673170e3c8967",
-      "bytes": 15412,
+      "sha256": "ad09e0cdb7d1593933ee8f706dcaa0297ac85df882893425313521d5aaf6be50",
+      "bytes": 15572,
       "reason": "Adapt the source reading picker to authenticated Project ArtifactVersion candidates, scoped search/loading/retry/selection and the three-document limit; do not fabricate Library authority. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ReadingContextPicker.tsx."
     },
     {
@@ -9863,14 +9863,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryDetailsPane.tsx",
-      "sha256": "94af9e800cde1989326be5959bea3d938a2b161fd137d77a9de1277cc38f5657",
-      "bytes": 3227,
+      "sha256": "a35ab9c2b570cded9ac29663c66a0f59102d07735c6ac3c23313de46e52ff0f3",
+      "bytes": 3318,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryItemDetails.tsx",
-      "sha256": "cc57b208dfeea66437d0ddaef5c5f1cf703147a69a65b99c5442ff182a6637bb",
-      "bytes": 6716,
+      "sha256": "e86acf15d72c89911f40116bab241361bed45a30c76bfb62d01e609114ff2faa",
+      "bytes": 6807,
       "reason": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated."
     },
     {
@@ -9881,8 +9881,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "866da1fc040f3102ea970f3c8450ada2902a9ccb7dd6f13e8e021f38f8f206ca",
-      "bytes": 20672,
+      "sha256": "9d1991823935856b31163d33dba99b416e2953fbbc9dfb605e0f4bf855d2c94a",
+      "bytes": 20878,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -13171,6 +13171,12 @@
       "path": "tests/unit/renderer/conversation/ConversationSkillActivationDialog.dom.test.tsx",
       "sha256": "e4e57c7b72ac526a5af98c6e19f144e921c2217a9f8e8877c02eeb36f759459f",
       "bytes": 2868,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/LibraryItemEditorReceipt.dom.test.tsx",
+      "sha256": "bd5222e8b58c83fb53ea6ff17db50e77f7795b48c3ad90dcb020b92dfe6eb6fc",
+      "bytes": 6589,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
