@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"x-science/internal/memoryconfig"
 	"x-science/internal/memorypolicy"
 	workspace "x-science/internal/persistence/workspace"
 )
@@ -483,25 +484,36 @@ func (s *Server) handleMemoryAutoExtractionEnabledCompatibility(w http.ResponseW
 	}
 	switch r.Method {
 	case http.MethodGet:
-		enabled, err := s.memoryAutoExtractionEnabled(userID)
+		preference, err := s.memoryAutomaticPreferences(userID)
 		if err != nil {
 			writeMemoryCompatibilityError(w, err)
 			return
 		}
-		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"enabled": enabled})
+		writeWorkspaceJSON(w, http.StatusOK, preference)
 	case http.MethodPut:
 		var input struct {
-			Enabled *bool `json:"enabled"`
+			Enabled            *bool           `json:"enabled"`
+			ForkedViewRecovery json.RawMessage `json:"forked_view_recovery"`
 		}
 		if err := decodeWorkspaceJSON(r, &input); err != nil || input.Enabled == nil {
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"error": "body.enabled must be boolean"})
 			return
 		}
-		if err := s.setMemoryAutoExtractionEnabled(userID, *input.Enabled); err != nil {
+		var recovery *memoryconfig.ForkedViewRecovery
+		if len(input.ForkedViewRecovery) > 0 {
+			var policy memoryconfig.ForkedViewRecovery
+			if err := json.Unmarshal(input.ForkedViewRecovery, &policy); err != nil {
+				writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"error": "body.forked_view_recovery must be strict or compact-on-oversize"})
+				return
+			}
+			recovery = &policy
+		}
+		preference, err := s.updateMemoryAutomaticPreferences(userID, input.Enabled, recovery)
+		if err != nil {
 			writeMemoryCompatibilityError(w, err)
 			return
 		}
-		writeWorkspaceJSON(w, http.StatusOK, map[string]any{"enabled": *input.Enabled})
+		writeWorkspaceJSON(w, http.StatusOK, preference)
 	default:
 		writeV11Detail(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -559,6 +571,14 @@ func (s *Server) handleMemoryContextCompatibility(w http.ResponseWriter, r *http
 		payload["memory_enabled"] = nil
 	} else {
 		payload["memory_enabled"] = *projectEnabled
+	}
+	if projectID == "" {
+		preference, err := s.memoryAutomaticPreferences(userID)
+		if err != nil {
+			writeMemoryCompatibilityError(w, err)
+			return
+		}
+		payload["forked_view_recovery"] = preference.ForkedViewRecovery
 	}
 	writeWorkspaceJSON(w, http.StatusOK, payload)
 }

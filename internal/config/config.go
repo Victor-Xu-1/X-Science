@@ -214,6 +214,8 @@ func Load() (Config, error) {
 		if err != nil {
 			return Config{}, fmt.Errorf("upgrade config namespace: %w", err)
 		}
+		// An existing file without a Memory object is also a legacy opt-in boundary.
+		cfg.Memory.ForkedViewRecovery = memoryconfig.ForkedViewRecoveryStrict
 		if err := json.Unmarshal(raw, &cfg); err != nil {
 			return Config{}, fmt.Errorf("parse config %s: %w", configPath, err)
 		}

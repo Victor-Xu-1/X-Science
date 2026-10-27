@@ -91,6 +91,7 @@ func (s *Server) deliverMemoryExtraction(ctx context.Context, event workspace.Ou
 	source := memoryExtractionSource{
 		finishEventID: value.Source.Transcript.EventID, attempt: value.Source.Transcript.Attempt, proof: value.Source.Transcript,
 		captured: true, deliveryClaim: &claim, extractMode: value.Completion.Mode, model: value.Completion.Model, cadence: &value.Cadence,
+		modeDecision: value.Completion.ModeDecision.Clone(),
 	}
 	if value.Completion.Mode == "forked" {
 		source.request, err = decodeMemoryForkedRequestView(value.Completion.RequestView)
@@ -107,6 +108,9 @@ func (s *Server) deliverMemoryExtraction(ctx context.Context, event workspace.Ou
 	}
 	if result.DeliverySettled {
 		return outbox.ErrDeliverySettled
+	}
+	if errors.Is(result.ExtractorCause, workspace.ErrAgentMemoryMutationForbidden) {
+		return s.settleMemoryDelivery(ctx, event, "completed-source-or-policy-changed")
 	}
 	if result.Replayed {
 		return s.settleMemoryDelivery(ctx, event, "")

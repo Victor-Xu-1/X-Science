@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strings"
 	"unicode/utf8"
 
 	"x-science/internal/agentruntime"
@@ -52,14 +51,24 @@ type memoryForkedTool struct {
 
 type boundedMemoryViewBuffer struct{ bytes.Buffer }
 
+type memoryViewDiagnostic string
+
+const memoryViewOversize memoryViewDiagnostic = "original-request-view-oversize"
+
+// Only the bounded encoder can issue this proof. A stored diagnostic string or
+// an arbitrary MarshalJSON error must never authorize a different extraction.
+type memoryViewOversizeError struct{}
+
+func (memoryViewOversizeError) Error() string { return string(memoryViewOversize) }
+
 func (buffer *boundedMemoryViewBuffer) Write(value []byte) (int, error) {
 	if len(value) > workspace.MemoryExtractionViewMaxBytes-buffer.Len() {
-		return 0, errors.New("original-request-view-oversize")
+		return 0, memoryViewOversizeError{}
 	}
 	return buffer.Buffer.Write(value)
 }
 
-func encodeMemoryForkedRequestView(request *agentruntime.ModelRequest) (json.RawMessage, string) {
+func encodeMemoryForkedRequestView(request *agentruntime.ModelRequest) (json.RawMessage, memoryViewDiagnostic) {
 	if request == nil {
 		return nil, "original-request-view-missing"
 	}
@@ -86,8 +95,9 @@ func encodeMemoryForkedRequestView(request *agentruntime.ModelRequest) (json.Raw
 	}
 	var buffer boundedMemoryViewBuffer
 	if err := json.NewEncoder(&buffer).Encode(view); err != nil {
-		if buffer.Len() >= workspace.MemoryExtractionViewMaxBytes || strings.Contains(err.Error(), "oversize") {
-			return nil, "original-request-view-oversize"
+		var oversized memoryViewOversizeError
+		if errors.As(err, &oversized) {
+			return nil, memoryViewOversize
 		}
 		return nil, "original-request-view-unsupported-json"
 	}
@@ -104,7 +114,7 @@ func encodeMemoryForkedRequestView(request *agentruntime.ModelRequest) (json.Raw
 		return nil, "original-request-view-unsupported-json"
 	}
 	if len(raw) > workspace.MemoryExtractionViewMaxBytes {
-		return nil, "original-request-view-oversize"
+		return nil, memoryViewOversize
 	}
 	return raw, ""
 }
@@ -171,8 +181,8 @@ func (runtime *memoryExtractionRuntime) prepareCompletedMemoryExtraction(ctx con
 	if !resolved.Enabled || resolved.Scope.FrameID != resolved.Scope.SourceFrameID || !runtime.server.memoryConfig.ExtractEnabled {
 		return nil, nil
 	}
-	autoEnabled, err := runtime.server.memoryAutoExtractionEnabled(resolved.Scope.UserID)
-	if err != nil || !autoEnabled {
+	preference, err := runtime.server.memoryAutomaticPreferences(resolved.Scope.UserID)
+	if err != nil || !preference.Enabled {
 		return nil, err
 	}
 	value := &workspace.MemoryExtractionCompletion{Mode: runtime.server.memoryConfig.ExtractMode, ExtractEveryN: runtime.server.memoryConfig.ExtractEveryN}
@@ -195,11 +205,14 @@ func (runtime *memoryExtractionRuntime) prepareCompletedMemoryExtraction(ctx con
 	}
 	runtime.mu.Unlock()
 	if value.Mode == "forked" {
-		var diagnostic string
+		var diagnostic memoryViewDiagnostic
 		value.RequestView, diagnostic = encodeMemoryForkedRequestView(request)
 		if value.Diagnostic == "" {
-			value.Diagnostic = diagnostic
+			value.Diagnostic = string(diagnostic)
 		}
+		runtime.prepareMemoryModeDecision(ctx, authority, resolved.Scope, preference, request, diagnostic, value)
+	} else if value.Diagnostic == "" {
+		runtime.prepareMemoryModeDecision(ctx, authority, resolved.Scope, preference, request, "", value)
 	}
 	if len(value.RequestView) > 0 {
 		value.RequestViewSHA256 = memoryViewDigest(value.RequestView)

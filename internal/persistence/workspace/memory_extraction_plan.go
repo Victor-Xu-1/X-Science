@@ -106,7 +106,8 @@ func extractionPlanDigest(input ExtractionCommitInput) (string, error) {
 		AdvanceCursor, Overshoot bool
 		DeltaCount               int
 		Gate                     string
-	}{input.Plan, input.CursorBefore, input.CursorNext, input.AdvanceCursor, input.Overshoot, input.DeltaCount, input.Gate})
+		ModeDecision             *MemoryExtractionModeDecision `json:",omitempty"`
+	}{input.Plan, input.CursorBefore, input.CursorNext, input.AdvanceCursor, input.Overshoot, input.DeltaCount, input.Gate, input.ModeDecision})
 	if err != nil {
 		return "", err
 	}

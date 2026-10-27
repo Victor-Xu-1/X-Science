@@ -24,6 +24,7 @@ type memoryExtractionSource struct {
 	request            *agentruntime.ModelRequest
 	extractMode        string
 	model              workspace.MemoryExtractionModelIdentity
+	modeDecision       *workspace.MemoryExtractionModeDecision
 	deliveryClaim      *workspace.MemoryExtractionDeliveryClaim
 	cadence            *workspace.MemoryExtractionCadence
 	captured           bool
@@ -111,12 +112,22 @@ func (runtime *memoryExtractionRuntime) validateCompletedMemorySource(ctx contex
 // This early post-model check avoids unnecessary preparation. Commit also
 // revalidates the source after classification/repair inside its write fence.
 func (runtime *memoryExtractionRuntime) sourceBoundMemoryExtractor(source memoryExtractionSource, delegate memoryextract.Extractor) memoryextract.Extractor {
+	userID := ""
+	if source.proof != nil {
+		userID = source.proof.OwnerID
+	}
 	return memoryExtractorFunc(func(ctx context.Context, request memoryextract.ExtractRequest) (map[string]any, error) {
+		if err := runtime.server.checkMemoryRecoveryPolicy(ctx, userID, source.modeDecision); err != nil {
+			return nil, err
+		}
 		result, err := delegate.ExtractMemories(ctx, request)
 		if err != nil {
 			return nil, err
 		}
 		if err := runtime.validateCompletedMemorySource(ctx, source); err != nil {
+			return nil, err
+		}
+		if err := runtime.server.checkMemoryRecoveryPolicy(ctx, userID, source.modeDecision); err != nil {
 			return nil, err
 		}
 		return result, nil
@@ -185,7 +196,7 @@ func (runtime *memoryExtractionRuntime) extractionCommitGuard(source memoryExtra
 				return legacyGuard(ctx, commit)
 			}
 			return commit(nil)
-		})
+		}, source.modeDecision)
 	}
 }
 

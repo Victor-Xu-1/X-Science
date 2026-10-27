@@ -29,6 +29,7 @@ type MemoryExtractionModelIdentity struct {
 
 type MemoryExtractionCompletion struct {
 	Mode              string                        `json:"mode"`
+	ModeDecision      *MemoryExtractionModeDecision `json:"mode_decision,omitempty"`
 	ExtractEveryN     int                           `json:"extract_every_n"`
 	Model             MemoryExtractionModelIdentity `json:"model"`
 	RequestView       json.RawMessage               `json:"request_view,omitempty"`
@@ -133,7 +134,7 @@ func (s *Store) enqueueCompletedRunnerMemoryTx(ctx context.Context, tx *transcri
 	} else if err != nil {
 		return nil, err
 	}
-	if err := validateMemoryExtractionCompletion(completion); err != nil {
+	if err := validateMemoryExtractionCompletion(completion, source); err != nil {
 		return nil, err
 	}
 	var ordinal int64
@@ -162,9 +163,19 @@ func (s *Store) enqueueCompletedRunnerMemoryTx(ctx context.Context, tx *transcri
 	return &outbox, nil
 }
 
-func validateMemoryExtractionCompletion(value MemoryExtractionCompletion) error {
+func validateMemoryExtractionCompletion(value MemoryExtractionCompletion, sources ...CompletedExtractionSource) error {
 	if value.Mode != "forked" && value.Mode != "compact" {
 		return errors.New("invalid Memory extraction mode")
+	}
+	if value.ModeDecision != nil {
+		if len(sources) != 1 || value.ModeDecision.Validate(sources[0]) != nil ||
+			value.ModeDecision.EffectiveMode != value.Mode || value.ModeDecision.ModelProfileSHA256 != value.Model.ProfileSHA256 {
+			return errors.New("Memory mode decision does not match the captured source/model")
+		}
+		if value.ModeDecision.Recovered() && (value.Diagnostic != "" || len(value.RequestView) != 0 ||
+			value.RequestViewSHA256 != "" || value.Model.ProviderID == "" || value.Model.Model == "") {
+			return errors.New("invalid recovered Memory snapshot decision")
+		}
 	}
 	if value.ExtractEveryN < 1 {
 		return errors.New("invalid Memory extraction cadence")
@@ -218,7 +229,7 @@ func DecodeMemoryExtractionDispatch(event OutboxEvent) (MemoryExtractionDispatch
 	if value.Cadence.EveryN != value.Completion.ExtractEveryN || value.Cadence.EveryN < 1 || value.Cadence.Ordinal < 1 || value.Cadence.Eligible != (value.Cadence.Ordinal%int64(value.Cadence.EveryN) == 0) {
 		return value, errors.New("invalid durable Memory cadence decision")
 	}
-	return value, validateMemoryExtractionCompletion(value.Completion)
+	return value, validateMemoryExtractionCompletion(value.Completion, value.Source)
 }
 
 func MemoryExtractionClaim(event OutboxEvent) MemoryExtractionDeliveryClaim {

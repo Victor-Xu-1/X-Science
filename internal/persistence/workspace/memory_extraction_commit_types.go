@@ -78,6 +78,7 @@ type ExtractionCommitInput struct {
 	LegacyOrderCheck LegacyExtractionOrderCheck `json:"-"`
 	DeliveryClaim    *MemoryExtractionDeliveryClaim
 	Source           CompletedExtractionSource
+	ModeDecision     *MemoryExtractionModeDecision `json:",omitempty"`
 	InputSHA256      string
 	CursorBefore     int
 	CursorNext       int
@@ -93,6 +94,7 @@ type ExtractionCommitInput struct {
 type ExtractionCommitResult struct {
 	DeliverySettled bool `json:"-"`
 	Gate            string
+	ModeDecision    *MemoryExtractionModeDecision `json:",omitempty"`
 	InputSHA256     string
 	CursorBefore    int
 	CursorAfter     int

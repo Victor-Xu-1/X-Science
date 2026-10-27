@@ -74,6 +74,7 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 			DeliveryClaim:    input.DeliveryClaim,
 			LegacyOrderCheck: check,
 			Source:           *input.Source, InputSHA256: digest,
+			ModeDecision: input.ModeDecision.Clone(),
 			CursorBefore: result.CursorBefore, CursorNext: len(input.Messages),
 			AdvanceCursor: config.ExtractDelta, Overshoot: result.Overshoot,
 			DeltaCount: result.DeltaCount, Gate: result.Gate, Plan: plan,
@@ -111,6 +112,7 @@ func (r *Runner) commit(ctx context.Context, input RunInput, config Config, resu
 func RunResultFromCommit(saved workspace.ExtractionCommitResult) RunResult {
 	return RunResult{
 		DeliverySettled: saved.DeliverySettled,
+		ModeDecision:    saved.ModeDecision.Clone(),
 		Gate:            saved.Gate, CursorBefore: saved.CursorBefore, CursorAfter: saved.CursorAfter,
 		CursorAdvanced: saved.CursorAdvanced, Overshoot: saved.Overshoot,
 		DeltaCount: saved.DeltaCount, Applied: saved.Applied, Replayed: saved.Replayed,

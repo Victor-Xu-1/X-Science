@@ -44,9 +44,9 @@ describe('XScienceMemoryManager', () => {
   beforeEach(() => {
     setRendererAccountOwner('memory-component-fixture');
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    vi.spyOn(Message, 'success').mockReturnValue({ close: () => undefined });
-    vi.spyOn(Message, 'warning').mockReturnValue({ close: () => undefined });
-    vi.spyOn(Message, 'error').mockReturnValue({ close: () => undefined });
+    vi.spyOn(Message, 'success').mockReturnValue((): void => undefined);
+    vi.spyOn(Message, 'warning').mockReturnValue((): void => undefined);
+    vi.spyOn(Message, 'error').mockReturnValue((): void => undefined);
   });
 
   afterEach(() => {
@@ -136,6 +136,7 @@ describe('XScienceMemoryManager', () => {
         return Response.json(memoryContext);
       }
       if (url === '/api/memory/enabled' && method === 'GET') return Response.json({ enabled: false });
+      if (url === '/api/memory/auto-enabled' && method === 'GET') return Response.json({ enabled: false });
       if (url === '/api/memory/enabled' && method === 'PUT') return new Response(null, { status: 204 });
       if (url === '/api/projects/proj_a/memory/enabled' && method === 'PUT') {
         projectEnabled = (typeof init?.body === 'string' ? JSON.parse(init.body) : {}).enabled === true;
@@ -264,7 +265,7 @@ describe('XScienceMemoryManager', () => {
     const editor = document.querySelector<HTMLTextAreaElement>('textarea');
     expect(editor).not.toBeNull();
     fireEvent.change(editor!, { target: { value: '项目规则已更新，保留完整可复现实验记录' } });
-    fireEvent.click(screen.getByRole('button', { name: '保存', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^保存$/ }));
 
     await waitFor(() =>
       expect(observed).toContainEqual({
@@ -349,10 +350,12 @@ describe('XScienceMemoryManager', () => {
         row_count: 0,
       })),
     };
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       if (url === '/api/memory/context') return Response.json(fullContext);
       if (url === '/api/memory/enabled') return Response.json({ enabled: true });
+      if (url === '/api/memory/auto-enabled' && (init?.method ?? 'GET') === 'GET')
+        return Response.json({ enabled: false });
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal('fetch', fetchMock);

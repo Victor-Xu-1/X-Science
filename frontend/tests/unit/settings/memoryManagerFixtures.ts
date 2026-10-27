@@ -69,7 +69,7 @@ export const projectCatalog = {
       project_id: 'proj_a',
       name: 'CRBN 项目',
       description: 'CRBN 结构分析与设计规则',
-      context: null,
+      context: null as null,
       conversation_count: 1,
       artifact_count: 0,
       created_at: '2026-07-10T00:00:00.000Z',
@@ -95,6 +95,7 @@ export function createFetchMock(options: { failEnable?: boolean } = {}) {
       return Response.json(projectMemoryContext);
     }
     if (url === '/api/memory/enabled' && method === 'GET') return Response.json({ enabled: false });
+    if (url === '/api/memory/auto-enabled' && method === 'GET') return Response.json({ enabled: false });
     if (url === '/api/memory/enabled' && method === 'PUT' && options.failEnable) {
       return Response.json({ error: 'memory unavailable' }, { status: 503 });
     }

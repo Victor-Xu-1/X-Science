@@ -6,6 +6,13 @@ export type XScienceMemoryOptions = {
   operationId?: string;
 };
 
+export type XScienceForkedViewRecovery = 'strict' | 'compact-on-oversize';
+
+export type XScienceAutomaticMemoryPreferences = {
+  enabled: boolean;
+  forkedViewRecovery: XScienceForkedViewRecovery;
+};
+
 export type XScienceMemoryRow = {
   id: string;
   body: string;
@@ -54,6 +61,7 @@ export type XScienceMemoryContext = {
   entities: XScienceMemoryEntity[];
   sessions: XScienceMemorySession[];
   categories: XScienceMemoryCategory[];
+  forkedViewRecovery?: XScienceForkedViewRecovery;
 };
 
 export type XScienceCreateMemoryInput = {
@@ -95,6 +103,7 @@ export async function loadXScienceMemoryContext(
     entities: arrayValue(payload?.entities).map(toMemoryEntity).filter(isMemoryEntity),
     sessions: arrayValue(payload?.sessions).map(toMemorySession).filter(isMemorySession),
     categories: arrayValue(payload?.categories).map(toMemoryCategory).filter(isMemoryCategory),
+    forkedViewRecovery: forkedViewRecoveryValue(payload?.forked_view_recovery),
   };
 }
 
@@ -106,7 +115,18 @@ export async function loadXScienceMemoryEnabled(options: XScienceMemoryOptions =
 
 export async function loadXScienceAutoMemoryEnabled(options: XScienceMemoryOptions = {}): Promise<boolean> {
   const payload = asRecord(await requestJson('/api/memory/auto-enabled', {}, options));
-  return payload?.enabled === true;
+  return automaticMemoryPreferencesValue(payload).enabled;
+}
+
+function forkedViewRecoveryValue(value: unknown): XScienceForkedViewRecovery {
+  if (value === undefined) return 'strict'; // Existing responses have no recorded policy.
+  if (value === 'strict' || value === 'compact-on-oversize') return value;
+  throw new Error('X-Science automatic memory recovery policy is invalid');
+}
+
+function automaticMemoryPreferencesValue(payload: RecordValue | null): XScienceAutomaticMemoryPreferences {
+  if (typeof payload?.enabled !== 'boolean') throw new Error('X-Science automatic memory response is invalid');
+  return { enabled: payload.enabled, forkedViewRecovery: forkedViewRecoveryValue(payload.forked_view_recovery) };
 }
 
 export async function loadXScienceSessionMemories(
@@ -123,9 +143,19 @@ export async function setXScienceMemoryEnabled(enabled: boolean, options: XScien
 
 export async function setXScienceAutoMemoryEnabled(
   enabled: boolean,
-  options: XScienceMemoryOptions = {}
+  options: XScienceMemoryOptions & { forkedViewRecovery?: XScienceForkedViewRecovery } = {}
 ): Promise<void> {
-  await requestJson('/api/memory/auto-enabled', jsonRequest('PUT', { enabled }), options);
+  const policy = options.forkedViewRecovery;
+  if (policy !== undefined) forkedViewRecoveryValue(policy);
+  const payload = await requestJson(
+    '/api/memory/auto-enabled',
+    jsonRequest('PUT', {
+      enabled,
+      ...(policy === undefined ? {} : { forked_view_recovery: policy }),
+    }),
+    options
+  );
+  automaticMemoryPreferencesValue(asRecord(payload));
 }
 
 export async function setXScienceProjectMemoryEnabled(

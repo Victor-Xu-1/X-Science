@@ -23,6 +23,10 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 		return ExtractionCommitResult{}, err
 	}
 	input.Source = identity.source
+	input.ModeDecision = input.ModeDecision.Clone()
+	if err := input.ModeDecision.Validate(input.Source); err != nil {
+		return ExtractionCommitResult{}, err
+	}
 	input.InputSHA256 = normalizedExtractionDigest(input.InputSHA256)
 	if input.InputSHA256 == "" || input.CursorBefore < 0 || input.CursorNext < 0 || input.DeltaCount < 0 ||
 		input.Gate == "" || input.Gate != strings.TrimSpace(input.Gate) || len(input.Gate) > 64 ||
@@ -93,7 +97,8 @@ func (s *Store) CommitMemoryExtraction(ctx context.Context, input ExtractionComm
 			return err
 		}
 		result = ExtractionCommitResult{
-			InputSHA256: input.InputSHA256, Gate: input.Gate, CursorBefore: cursor, CursorAfter: cursor,
+			ModeDecision: input.ModeDecision.Clone(),
+			InputSHA256:  input.InputSHA256, Gate: input.Gate, CursorBefore: cursor, CursorAfter: cursor,
 			Overshoot: input.Overshoot, DeltaCount: input.DeltaCount, Applied: applied,
 		}
 		if input.AdvanceCursor && input.CursorNext != cursor {
