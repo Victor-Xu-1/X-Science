@@ -306,6 +306,7 @@ Path("PIL/__init__.py").write_text("from . import Image\n")
 Path("PIL/Image.py").write_text('''
 import base64
 class Image:
+    mode = "RGB"
     @classmethod
     def new(cls, *args, **kwargs):
         return cls()
