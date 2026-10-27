@@ -142,7 +142,7 @@ export function LibraryPublicationCheck({ account, item }: { account: string; it
         </p>
       ) : null}
       <footer className='library-publication-check__footer'>
-        <span>Crossref</span>
+        <span>{t(PREFIX + 'sources.crossref')}</span>
         {model.snapshot && (
           <time dateTime={model.snapshot.checked_at} title={model.snapshot.checked_at}>
             {t(PREFIX + 'lastChecked', {
