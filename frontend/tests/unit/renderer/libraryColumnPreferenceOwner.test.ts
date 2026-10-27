@@ -3,7 +3,7 @@ import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES as defaults,
   type LibraryColumnPreferences,
 } from '@/common/adapter/libraryColumnPreferences';
-import { LibraryColumnPreferenceOwner } from '@/renderer/services/libraryColumnPreferenceOwner';
+import { LibraryColumnPreferenceOwner } from '@/renderer/services/runtime/libraryColumnPreferenceOwner';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;

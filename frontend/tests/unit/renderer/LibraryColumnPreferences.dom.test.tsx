@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({ account: 'account:a', load: vi.fn(), save: vi.
 vi.mock('@/renderer/services/rendererAccountScope', () => ({
   getRendererAccountScopeToken: () => mocks.account,
 }));
-vi.mock('@/renderer/services/libraryColumnPreferences', () => ({
+vi.mock('@/renderer/services/runtime/libraryColumnPreferences', () => ({
   loadLibraryColumnPreferences: mocks.load,
   saveLibraryColumnPreferences: mocks.save,
 }));

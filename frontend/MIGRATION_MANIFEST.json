@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "873e67ab31abcc5110335a1516444f9cb07450017873a0f0f61714d3e2491702",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "697ccd8ce106656ff641be612712228b6c1260e857d1a42ec49ae4ff1cd93523",
+  "additionFingerprintSHA256": "0873966c171f57863087d2de26df9afddb08c1ac852345d81632875b7ca96086",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
@@ -10014,8 +10014,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryColumnPreferences.ts",
-      "sha256": "1dd6b484857f0453da13f95da9f632a203a09f90ed9d1ff5f4540e9f667123d3",
-      "bytes": 1771,
+      "sha256": "60eb6886a8ddc459f6bedec8f39088118e1b0be151cc031650844a7dab73949a",
+      "bytes": 1787,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10799,18 +10799,6 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/services/libraryColumnPreferenceOwner.ts",
-      "sha256": "1aaf953bbddbb9701d8d3eee39c87a32c093d9148e4a6cb0fa7c942b153a1194",
-      "bytes": 7397,
-      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
-    },
-    {
-      "path": "packages/desktop/src/renderer/services/libraryColumnPreferences.ts",
-      "sha256": "15f93f06bcf80fd083ed752aa028ddd19d13059af42df96f92c95199049d521a",
-      "bytes": 962,
-      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
-    },
-    {
       "path": "packages/desktop/src/renderer/services/lightweightOfficePreview.ts",
       "sha256": "24c50b775746735e157e0dc2852c57aeca1453ea7416354e92c138c70137ba9b",
       "bytes": 4996,
@@ -11090,6 +11078,18 @@
       "path": "packages/desktop/src/renderer/services/runtime/hostFiles.ts",
       "sha256": "095e00d46305e434eb176e954445e4a6f2d219f451f57a5b860f29fa280cadac",
       "bytes": 3894,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/libraryColumnPreferenceOwner.ts",
+      "sha256": "1aaf953bbddbb9701d8d3eee39c87a32c093d9148e4a6cb0fa7c942b153a1194",
+      "bytes": 7397,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/libraryColumnPreferences.ts",
+      "sha256": "62b6c4bdc3968d4ea88d620fcb55148d7e576261335e0e244556313c1f546cba",
+      "bytes": 963,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12984,8 +12984,8 @@
     },
     {
       "path": "tests/unit/renderer/LibraryColumnPreferences.dom.test.tsx",
-      "sha256": "0fa9b7bc13cad50a4a8c5b3d0bb5e8351aa38656775318cc543cfd2742eca5b4",
-      "bytes": 3061,
+      "sha256": "887070c8be3d211acbbcffc132d0194e474bc031df288e7123039847320d4580",
+      "bytes": 3069,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13158,8 +13158,8 @@
     },
     {
       "path": "tests/unit/renderer/api/libraryColumnPreferences.test.ts",
-      "sha256": "ea8f43dac6eae212593e01b8996e9d980caff3464ded385ee1a80d227bc8f8e7",
-      "bytes": 1606,
+      "sha256": "b303e15b31cd223662c4ce0ff9b7c43dba0e37290b7c538ece3ad0baf3f896e3",
+      "bytes": 1614,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13734,8 +13734,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryTableIntegration.dom.test.tsx",
-      "sha256": "7c997a97ce038ca60694848b97422e77214a2835c215b40e8e60fbd5b2e4388a",
-      "bytes": 11120,
+      "sha256": "f8c173d9ee11e42e7b3b2f471093a0a2eee4ef5bd6d16f897e784ff77ec3ee1d",
+      "bytes": 11128,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13800,8 +13800,8 @@
     },
     {
       "path": "tests/unit/renderer/libraryColumnPreferenceOwner.test.ts",
-      "sha256": "412458d21bfb685488290d96c51fb6a4f1957bcb7d89ae168f97b805fd1fcb26",
-      "bytes": 7099,
+      "sha256": "45188ae0f5b62cfbc5300f5665048b901372355e051d579da1ffa3d0e176a2ef",
+      "bytes": 7107,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

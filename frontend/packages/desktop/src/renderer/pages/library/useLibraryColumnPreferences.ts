@@ -4,11 +4,11 @@ import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccoun
 import {
   loadLibraryColumnPreferences,
   saveLibraryColumnPreferences,
-} from '@/renderer/services/libraryColumnPreferences';
+} from '@/renderer/services/runtime/libraryColumnPreferences';
 import {
   LibraryColumnPreferenceOwner,
   type LibraryColumnPreferenceView,
-} from '@/renderer/services/libraryColumnPreferenceOwner';
+} from '@/renderer/services/runtime/libraryColumnPreferenceOwner';
 
 const LOADING_VIEW: LibraryColumnPreferenceView = {
   preferences: DEFAULT_LIBRARY_COLUMN_PREFERENCES,

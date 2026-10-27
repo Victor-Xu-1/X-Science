@@ -2,7 +2,7 @@ import {
   parseLibraryColumnPreferences,
   type LibraryColumnPreferences,
 } from '@/common/adapter/libraryColumnPreferences';
-import { getClientBusinessSetting, setClientBusinessSetting } from './clientBusinessSettings';
+import { getClientBusinessSetting, setClientBusinessSetting } from '../clientBusinessSettings';
 
 export const LIBRARY_COLUMN_PREFERENCES_SETTING = 'xScience.library.columnPrefs' as const;
 

@@ -5,7 +5,7 @@ import {
   parseLibraryColumnPreferences,
   type LibraryColumnPreferences,
 } from '@/common/adapter/libraryColumnPreferences';
-import { LIBRARY_COLUMN_PREFERENCES_SETTING } from '@/renderer/services/libraryColumnPreferences';
+import { LIBRARY_COLUMN_PREFERENCES_SETTING } from '@/renderer/services/runtime/libraryColumnPreferences';
 import {
   getRendererAccountOwnerId,
   resetRendererAccountScopeForTest,

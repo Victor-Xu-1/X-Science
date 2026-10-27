@@ -7,7 +7,7 @@ vi.mock('@/common/adapter/httpBridge', () => ({ httpRequest: mocks.http }));
 import {
   loadLibraryColumnPreferences,
   saveLibraryColumnPreferences,
-} from '@/renderer/services/libraryColumnPreferences';
+} from '@/renderer/services/runtime/libraryColumnPreferences';
 
 describe('Library column preference authenticated setting transport', () => {
   beforeEach(() => vi.clearAllMocks());
