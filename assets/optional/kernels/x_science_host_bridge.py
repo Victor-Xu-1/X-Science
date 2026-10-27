@@ -1455,6 +1455,21 @@ _llm_fields = {
     "tools", "tool_choice", "temperature",
 }
 
+def _png_presentation_image(image, *, preserve_png_modes=False):
+    """Select a PNG presentation without changing the caller's source pixels.
+
+    Vision retains PNG-compatible modes, including palette/LA transparency and
+    sixteen-bit channels. view_image keeps its RGB/RGBA/L display policy.
+    Unsupported modes use an eight-bit RGB view, not a lossless scientific
+    export; the original object and source file remain unchanged.
+    """
+    modes = (
+        "1", "L", "L;1", "L;2", "L;4", "LA", "I;16", "I;16B",
+        "P", "P;1", "P;2", "P;4", "RGB", "RGBA",
+    ) if preserve_png_modes else ("RGB", "RGBA", "L")
+    return image if image.mode in modes else image.convert("RGB")
+
+
 def _llm_encode_pil(req):
     import base64 as _llm_base64
 
@@ -1491,7 +1506,7 @@ def _llm_encode_pil(req):
                         raise TypeError("image block pil must be a PIL.Image.Image")
                     buffer = io.BytesIO()
                     try:
-                        image.save(buffer, format="PNG")
+                        _png_presentation_image(image, preserve_png_modes=True).save(buffer, format="PNG")
                     except Exception as exc:
                         raise TypeError(f"failed to encode PIL image: {exc}") from exc
                     data = buffer.getvalue()
@@ -1621,6 +1636,11 @@ def _host_llm(
     request=None, system=None, model=None, max_tokens=None,
     max_concurrency=None, **options
 ):
+    """Call the model with PNG vision views, not a scientific-data export.
+
+    PNG-compatible modes retain transparency and bit depth; unsupported modes
+    become eight-bit RGB. Original pixels/files stay intact for analysis.
+    """
     if isinstance(request, (list, tuple)):
         if system is not None or model is not None or max_tokens is not None or options:
             raise TypeError(
@@ -2566,8 +2586,7 @@ def _host_view_image(source, crop=None, *, max_size=1568, out=None):
         region = (x0, y0, x1, y1)
 
     current_width, current_height = image.size
-    if image.mode not in ("RGB", "RGBA", "L"):
-        image = image.convert("RGB")
+    image = _png_presentation_image(image)
     if max_size and max(current_width, current_height) > max_size:
         scale = max_size / max(current_width, current_height)
         image = image.resize((
