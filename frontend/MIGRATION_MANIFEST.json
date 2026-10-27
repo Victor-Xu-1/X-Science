@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ee4828c882c395f2f51538bec07fcd736a545c7ac9331735d24b6d7553640cce",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1e43846e229b99606bb39db0261f7d79ff8f1c4062a6bc9f079d204a459da354",
+  "additionFingerprintSHA256": "d252977dc9ad43aa4c746353bce995dadd897cc944babc2c53189c3964b3be35",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -13505,8 +13505,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryWorkbench.dom.test.tsx",
-      "sha256": "da7e3ed3ab3ec6a7cbe43e66e7295cb1002873d9231e6b44d188e0fb5128cd56",
-      "bytes": 14688,
+      "sha256": "aea09209b0d22b370e057ba2b9881638e376ff5de2a82ad927198f5a04d7ddd8",
+      "bytes": 14720,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
