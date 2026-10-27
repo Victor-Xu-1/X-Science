@@ -116,6 +116,9 @@ export default function LibraryPage() {
     const receipt = mutation.view.receipt;
     if (!receipt || observedReceipt.current === receipt || reads.account !== getRendererAccountScopeToken()) return;
     observedReceipt.current = receipt;
+    // Evidence is independent of metadata and is consumed by the live detail.
+    // A catalogue reload would unmount it and erase a real provider failure.
+    if (receipt.schema === 'x-science.literature-publication-receipt.v1') return;
     reads.refresh();
     if (
       receipt.schema === 'x-science.literature-receipt.v1' &&
@@ -181,10 +184,20 @@ export default function LibraryPage() {
       ? reads.collections.value?.collections.find((value) => value.id === collectionId)
       : undefined;
   const acknowledged =
-    lastAction && mutation.view.receipt?.operation_id === lastAction ? mutation.view.receipt : undefined;
+    lastAction &&
+    mutation.view.receipt?.operation_id === lastAction &&
+    mutation.view.receipt.schema !== 'x-science.literature-publication-receipt.v1'
+      ? mutation.view.receipt
+      : undefined;
+  const publicationNoticeOwned = Boolean(
+    selected &&
+    mutation.view.action?.kind === 'check-publication' &&
+    mutation.view.action.item_id === selected.id &&
+    mutation.view.action.expected_metadata_revision === selected.metadata_revision
+  );
   return (
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
-      {!pdfImport.noticeOwned && (mutation.view.error || actionFailed) && (
+      {!pdfImport.noticeOwned && !publicationNoticeOwned && (mutation.view.error || actionFailed) && (
         <div role='alert' className='library-workbench__notice'>
           <span>
             {t(
@@ -433,7 +446,11 @@ export default function LibraryPage() {
           busy={busy}
           mutating={mutation.view.mutating}
           pendingOperationId={mutation.view.pending?.operation_id}
-          receipt={mutation.view.receipt}
+          receipt={
+            mutation.view.receipt?.schema === 'x-science.literature-publication-receipt.v1'
+              ? undefined
+              : mutation.view.receipt
+          }
           submit={submit}
           retry={retryMutation}
           refresh={reads.refresh}

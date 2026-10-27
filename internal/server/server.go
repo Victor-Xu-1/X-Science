@@ -24,6 +24,7 @@ import (
 	compute "x-science/internal/compute"
 	"x-science/internal/datadir"
 	kernelruntime "x-science/internal/kernel"
+	"x-science/internal/literaturediscovery"
 	"x-science/internal/mcpdirectory"
 	"x-science/internal/memoryconfig"
 	"x-science/internal/observability"
@@ -263,6 +264,7 @@ type Server struct {
 	workspaceEvents                       *workspaceEventHub
 	compatEvents                          *compatEventHub
 	httpClient                            *http.Client
+	publicationChecker                    *literaturediscovery.PublicationChecker
 	speechClientForURL                    func(context.Context, string, *http.Client) (*http.Client, error)
 	localSpeechRuntime                    *localSpeechRuntime
 	webImageClientForURL                  func(context.Context, string, *http.Client) (*http.Client, error)
@@ -679,6 +681,9 @@ func New(options Options) *Server {
 		webUI:                                 options.WebUI,
 		httpMetrics:                           observability.NewHTTPRegistry(),
 	}
+	server.publicationChecker = literaturediscovery.NewPublicationChecker(func(ctx context.Context, rawURL string) (*http.Client, error) {
+		return server.publicSourceHTTPClient(ctx, rawURL, server.httpClient)
+	}, server.workspaceStore)
 	server.speechClientForURL = server.publicSourceHTTPClient
 	server.webImageClientForURL = server.publicSourceHTTPClient
 	server.bindIMRecoveryNoticeValidator()

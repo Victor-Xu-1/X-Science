@@ -2172,6 +2172,48 @@
     "collectionUpdated": "合集已更新 · {{name}}",
     "collectionPendingNotice": "变更结果仍待确认。你可以关闭此窗口，再从文献库提示栏重试原请求。"
   },
+  "libraryPublicationCheck": {
+    "title": "撤稿与更正",
+    "doiRequired": "请补充一个有效 DOI 后核验此文献。",
+    "unavailable": "此文献已不可用。",
+    "loading": "正在读取已保存的出版核验…",
+    "checking": "正在核验 Crossref…",
+    "checkNow": "立即核验",
+    "checkAgain": "再次核验",
+    "retry": "重试",
+    "resume": "重试原核验",
+    "pending": "此核验仍待确认，重试将继续原请求。",
+    "otherPending": "请先完成现有文献库变更，再发起出版核验。",
+    "storage": "无法在本地保存待办请求，请恢复存储访问后重试。",
+    "rejected": "出版核验被拒绝，可以重新发起核验。",
+    "readFailed": "无法读取已保存的出版核验，重试只会重新读取已有结果。",
+    "writeFailed": "暂未能确认出版核验结果，可用时请重试原请求。",
+    "noNotices": "未发现相关声明。",
+    "notChecked": "尚未核验",
+    "lastChecked": "上次核验：{{time}}",
+    "disclosure": "核验仅向 Crossref 发送此 DOI。覆盖范围并不完整；未发现声明不代表文献可靠。",
+    "issues": {
+      "unavailable": "未能完成出版核验，请重试。",
+      "rate-limited": "Crossref 当前请求过多，请稍后重试。",
+      "timeout": "出版核验超时，请重试。",
+      "response-invalid": "出版核验返回了无效响应，请重试。",
+      "not-found": "Crossref 没有此 DOI 的记录。"
+    },
+    "notices": {
+      "retraction": "撤稿声明",
+      "partialRetraction": "部分撤稿声明",
+      "withdrawal": "撤回声明",
+      "correction": "更正声明",
+      "concern": "关注声明",
+      "reinstatement": "恢复声明",
+      "update": "出版更新"
+    },
+    "sources": {
+      "crossref": "Crossref",
+      "publisher": "出版方（经 Crossref）",
+      "retraction-watch": "Retraction Watch（经 Crossref）"
+    }
+  },
   "libraryPdfImport": {
     "entry": "导入 PDF",
     "resumeEntry": "继续 PDF 导入",

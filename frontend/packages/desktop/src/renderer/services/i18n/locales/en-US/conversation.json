@@ -2172,6 +2172,48 @@
     "collectionUpdated": "Collection updated · {{name}}",
     "collectionPendingNotice": "The result is still pending confirmation. You can close this window and retry the original change from the Library notice."
   },
+  "libraryPublicationCheck": {
+    "title": "Retractions and corrections",
+    "doiRequired": "Add one valid DOI to check this reference.",
+    "unavailable": "This reference is no longer available.",
+    "loading": "Loading saved publication check…",
+    "checking": "Checking Crossref…",
+    "checkNow": "Check now",
+    "checkAgain": "Check again",
+    "retry": "Retry",
+    "resume": "Retry original check",
+    "pending": "This check is awaiting confirmation. Retry continues the original request.",
+    "otherPending": "Finish the existing Library change before starting a publication check.",
+    "storage": "The pending request could not be saved locally. Restore storage access and retry.",
+    "rejected": "The publication check was rejected. You can start a new check.",
+    "readFailed": "Could not load the saved publication check. Retry reads the saved result only.",
+    "writeFailed": "The publication check could not be confirmed. Retry the original request when available.",
+    "noNotices": "No related notices found.",
+    "notChecked": "Not checked",
+    "lastChecked": "Last checked: {{time}}",
+    "disclosure": "Checking sends only this DOI to Crossref. Coverage is incomplete; no notices does not establish that a reference is reliable.",
+    "issues": {
+      "unavailable": "Could not complete the publication check. Try again.",
+      "rate-limited": "Crossref is receiving too many requests. Try again later.",
+      "timeout": "The publication check timed out. Try again.",
+      "response-invalid": "The publication check returned an invalid response. Try again.",
+      "not-found": "Crossref has no record for this DOI."
+    },
+    "notices": {
+      "retraction": "Retraction notice",
+      "partialRetraction": "Partial retraction notice",
+      "withdrawal": "Withdrawal notice",
+      "correction": "Correction notice",
+      "concern": "Expression of concern",
+      "reinstatement": "Reinstatement notice",
+      "update": "Publication update"
+    },
+    "sources": {
+      "crossref": "Crossref",
+      "publisher": "Publisher via Crossref",
+      "retraction-watch": "Retraction Watch via Crossref"
+    }
+  },
   "libraryPdfImport": {
     "entry": "Import PDF",
     "resumeEntry": "Resume PDF import",

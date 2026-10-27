@@ -16,7 +16,8 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 	if err := tx.QueryRowContext(t.Context(), `SELECT (SELECT COUNT(*) FROM project_literature)+
 		(SELECT COUNT(*) FROM literature_attachment_versions)+(SELECT COUNT(*) FROM literature_attachments)+
 		(SELECT COUNT(*) FROM literature_items)+(SELECT COUNT(*) FROM memory_extraction_receipts)+
-		(SELECT COUNT(*) FROM literature_collections)+(SELECT COUNT(*) FROM literature_collection_items)`).Scan(&facts); err != nil || facts != 0 {
+		(SELECT COUNT(*) FROM literature_collections)+(SELECT COUNT(*) FROM literature_collection_items)+
+		(SELECT COUNT(*) FROM literature_publication_checks)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical reconstruction requires empty private Memory/Library tables: facts=%d err=%v", facts, err)
 	}
 	var cadenceFacts int
@@ -32,7 +33,8 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 		// migration receipt would make the subsequent real v81 Open fail.
 		`DROP TABLE memory_extraction_receipts`,
 		// Remove reviewed v84 children before the Library parent. The emptiness
-		// check above protects every prospective row, including these two tables.
+		// check also covers v85 provider evidence, which has an item foreign key.
+		`DROP TABLE literature_publication_checks`,
 		`DROP TABLE literature_collection_items`, `DROP TABLE literature_collections`,
 		`DROP TABLE project_literature`, `DROP TABLE literature_attachment_versions`,
 		`DROP TABLE literature_attachments`, `DROP TABLE literature_items`,
@@ -45,14 +47,15 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 84
+	const reviewedTarget = 85
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
 	}
 	// Reviewed83 is a journal-only reader floor: it adds no objects to remove.
 	// Reviewed84 adds only the two empty collection tables and table-owned indexes.
-	// Both must be removed before reconstructing the earlier Library-free shape.
+	// Reviewed85 adds the empty publication evidence child of literature_items.
+	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
 	// while the callers reconstruct their real v74/v76 predecessor receipts.
@@ -61,8 +64,12 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "literature-ordinary-collections" || len(current.Checksum) != 64 {
-		t.Fatalf("historical reconstruction requires the reviewed collections identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "literature-publication-check" || len(current.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed publication-check identity: %+v", current)
+	}
+	original84 := expected.Migrations[83]
+	if original84.Version != 84 || original84.Name != "literature-ordinary-collections" || len(original84.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed collections84 identity: %+v", original84)
 	}
 	original83 := expected.Migrations[82]
 	if original83.Version != 83 || original83.Name != "literature-mutation-identity-reader-floor" ||
