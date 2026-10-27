@@ -838,6 +838,9 @@ its intended status, original child operation IDs and confirmed position. Writes
 reuse the existing reading-status API in sequential batches of at most 200 and
 64 KiB each. Each batch is atomic; the whole plan is not. Unknown replies retain
 the original request for replay, and refresh can recover the unconfirmed suffix.
+Rejection of that replay does not establish that an earlier attempt was never
+executed: the original uncertain child stays pending until its real receipt is
+confirmed. Authentication/CSRF refusals do not change it into discardable work.
 Stopping or leaving the view prevents later batches after the current admitted
 request; it does not undo a committed write. Confirmed progress comes from real
 receipts. A completed run or stop triggers one current readback while retaining

@@ -7,6 +7,7 @@ import { literatureValueIdentity } from '@/common/adapter/literatureValueIdentit
 import { OriginalPendingConflict, type LiteraturePending } from './literatureUploadIntent';
 import {
   createLiteratureReadingBulk,
+  currentLiteratureReadingBulkCommand,
   decodeLiteratureReadingBulk,
   isLiteratureReadingBulk,
   type LiteratureReadingBulkIntent,
@@ -69,7 +70,7 @@ export function createLiteratureReadingBulkOperations<Flight>(host: LiteratureRe
       error: actual ? 'uncertain' : null,
       ...(receipt ? { receipt } : {}),
     });
-  const port = (flight: Flight): Parameters<typeof runLiteratureReadingBulkFlow>[1] => ({
+  const port = (flight: Flight, uncertainOperationId?: string): Parameters<typeof runLiteratureReadingBulkFlow>[1] => ({
     checkActive: () => host.checkActive(flight),
     shouldPause: () => {
       const pending = host.pending();
@@ -138,7 +139,9 @@ export function createLiteratureReadingBulkOperations<Flight>(host: LiteratureRe
           projectCurrent(slot, actual);
           return;
         }
-        const rejected = host.rejected(error);
+        // Rejecting a replay says nothing about a previous attempt whose ACK is still unknown.
+        const rejected =
+          currentLiteratureReadingBulkCommand(expected).operation_id !== uncertainOperationId && host.rejected(error);
         const retained = decodeLiteratureReadingBulk({
           ...actual,
           phase: rejected ? 'ready' : actual.phase,
@@ -165,6 +168,13 @@ export function createLiteratureReadingBulkOperations<Flight>(host: LiteratureRe
       if (!actual.paused) slot.write(actual, decodeLiteratureReadingBulk({ ...actual, paused: true }));
       else slot.publish({ pending: actual, action: actual, error: null });
     });
+  const execute = (intent: LiteratureReadingBulkIntent, flight: Flight) => {
+    const uncertain = intent.phase === 'sending' || intent.confirmed_batches === intent.batches.length;
+    return runLiteratureReadingBulkFlow(
+      intent,
+      port(flight, uncertain ? currentLiteratureReadingBulkCommand(intent).operation_id : undefined)
+    );
+  };
 
   return {
     start(
@@ -180,7 +190,7 @@ export function createLiteratureReadingBulkOperations<Flight>(host: LiteratureRe
         intent,
         async (flight) => {
           await host.locked(flight, (slot) => slot.write(null, intent));
-          return runLiteratureReadingBulkFlow(intent, port(flight));
+          return execute(intent, flight);
         },
         canContinue
       );
@@ -214,7 +224,7 @@ export function createLiteratureReadingBulkOperations<Flight>(host: LiteratureRe
             slot.write(actual, next);
             return next;
           });
-          return runLiteratureReadingBulkFlow(intent, port(flight));
+          return execute(intent, flight);
         },
         canContinue
       );

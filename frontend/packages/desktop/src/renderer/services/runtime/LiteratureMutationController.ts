@@ -161,7 +161,9 @@ export class LiteratureMutationController {
         flight
       ),
     send: (command, flight) => this.dispatch(command, flight.abort.signal),
-    rejected: definitelyRejected,
+    // Authentication/CSRF refusal occurs before the original operation ledger can be consulted.
+    rejected: (error) =>
+      definitelyRejected(error) && isBackendHttpError(error) && error.status !== 401 && error.status !== 403,
     uuid: () => (this.options.uuid ? this.options.uuid() : crypto.randomUUID()),
   });
   startReadingStatusBulk = (
