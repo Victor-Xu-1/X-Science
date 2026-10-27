@@ -1,0 +1,35 @@
+.library-bulk-progress {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4) var(--ui-space-5);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--workspace-text-secondary);
+  background: var(--workspace-subtle);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-bulk-progress p {
+  margin: 0;
+}
+.library-bulk-progress__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+}
+.library-bulk-progress button {
+  min-height: var(--ui-control-md);
+  padding: var(--ui-space-2) var(--ui-control-padding-x);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  font: inherit;
+}
+.library-bulk-progress button:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}

@@ -822,4 +822,37 @@ instant cross-window notifications.
 一次，未确认时显示未保存并由用户重试。账号切换隔离迟到响应，多窗口继续遵循
 设置服务已有的最后写入生效语义，不宣称具备即时通知或并发比较交换。
 
+## Library selection and bulk reading · 文献选择与批量阅读状态
+
+Row selection is independent of opening a reference. The current-page checkbox
+supports mixed state; after selecting the entire page, an additional action can
+select all matching references when other pages exist. Query, project,
+collection, reading-status and page changes clear ephemeral selection. Column
+layout changes do not. Before a bulk action, the authenticated catalogue read
+with `all_item_ids=true` resolves the complete ordered ID set using the same
+filters in one read transaction. It returns IDs and a real total, without loading
+metadata or attachments and without treating a visible page as the whole result.
+
+The original account-scoped pending slot retains the complete accepted plan,
+its intended status, original child operation IDs and confirmed position. Writes
+reuse the existing reading-status API in sequential batches of at most 200 and
+64 KiB each. Each batch is atomic; the whole plan is not. Unknown replies retain
+the original request for replay, and refresh can recover the unconfirmed suffix.
+Rejection of that replay does not establish that an earlier attempt was never
+executed: the original uncertain child stays pending until its real receipt is
+confirmed. Authentication/CSRF refusals do not change it into discardable work.
+Stopping or leaving the view prevents later batches after the current admitted
+request; it does not undo a committed write. Confirmed progress comes from real
+receipts. A completed run or stop triggers one current readback while retaining
+the detail, metadata draft, PDF and publication view.
+Preparation follows the actual active request, and a new failed or empty
+selection read remains visible independently of a retained historical receipt.
+
+勾选文献与打开详情相互独立；当前页全选后，有其他分页时才出现“选择全部匹配”入口。
+操作前按相同筛选一次解析完整 ID，不把当前页当成全部文献。已接受的完整计划、
+原请求 ID 及确认位置保存在原账号待确认槽中，刷新后可接续未确认部分。每批最多
+200 条且不超过 64 KiB，逐批原子提交；整次多批操作不宣称原子性。停止或离开视图
+只阻止后续批次，已提交的当前批次仍须取得真实回执，未知响应不能通过清槽或另造
+请求来掩盖。阅读选择器将未结束的批量操作引回文献库原控制界面，不隐式执行余批。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

@@ -1,6 +1,8 @@
 /** Personal reading state; independent of PDF progress and metadata revisions. */
 export const literatureReadingStatuses = ['unread', 'reading', 'read'] as const;
 export type LiteratureReadingStatus = (typeof literatureReadingStatuses)[number];
+export const LITERATURE_READING_STATUS_BATCH_MAX = 200;
+export const LITERATURE_READING_STATUS_BODY_BYTES = 64 * 1024;
 
 export function decodeLiteratureReadingStatus(value: unknown): LiteratureReadingStatus {
   if (typeof value !== 'string' || !literatureReadingStatuses.some((status) => status === value))
@@ -28,7 +30,7 @@ const exactKeys = (value: Record<string, unknown>, names: string[]) =>
   Reflect.ownKeys(value).every((key) => typeof key === 'string' && names.includes(key));
 const uuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);
-const itemId = (value: unknown): value is string =>
+export const isLiteratureReadingStatusItemId = (value: unknown): value is string =>
   typeof value === 'string' &&
   value.length > 0 &&
   value.length <= 512 &&
@@ -47,8 +49,8 @@ export function decodeLiteratureReadingStatusCommand(value: unknown): Literature
     !uuid(value.operation_id) ||
     !Array.isArray(value.item_ids) ||
     value.item_ids.length < 1 ||
-    value.item_ids.length > 200 ||
-    !value.item_ids.every(itemId)
+    value.item_ids.length > LITERATURE_READING_STATUS_BATCH_MAX ||
+    !value.item_ids.every(isLiteratureReadingStatusItemId)
   )
     return fail();
   // Keep the original target order and repetitions for exact request identity.
