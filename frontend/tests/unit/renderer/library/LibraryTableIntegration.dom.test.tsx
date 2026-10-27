@@ -56,10 +56,11 @@ function accountSettings(initial: Array<[string, LibraryColumnPreferences]> = []
     },
   };
 }
-const tableHeaders = () =>
-  within(screen.getByRole('table', { name: 'Library papers' }))
-    .getAllByRole('columnheader')
-    .map((element) => element.textContent);
+const tableHeaders = () => {
+  const headers = within(screen.getByRole('table', { name: 'Library papers' })).getAllByRole('columnheader');
+  expect(within(headers[0]).getByRole('checkbox', { name: 'Select this page' })).toBeInTheDocument();
+  return headers.slice(1).map((element) => element.textContent);
+};
 const location = () => new URLSearchParams(screen.getByLabelText('Library location').textContent ?? '');
 const detail = () =>
   within(screen.getByRole('complementary', { name: 'Literature details' })).getAllByRole('region', {

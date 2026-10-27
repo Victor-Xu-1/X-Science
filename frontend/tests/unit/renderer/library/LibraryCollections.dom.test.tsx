@@ -244,7 +244,9 @@ describe('Library collections through the original Web request owners', () => {
     expect(
       await sidebar().findByText('Could not load collections. Your references are still available.')
     ).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).toBeNull();
+    const membership = within(screen.getByRole('region', { name: 'Collection membership' }));
+    expect(membership.getByRole('alert')).toHaveTextContent('Could not read collection membership.');
+    expect(membership.queryByRole('checkbox')).toBeNull();
     expect(sidebar().getByRole('button', { name: 'New collection' })).toBeDisabled();
     failing = false;
     fireEvent.click(sidebar().getByRole('button', { name: 'Retry' }));

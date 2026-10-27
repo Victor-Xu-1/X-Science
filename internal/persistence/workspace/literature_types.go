@@ -46,6 +46,7 @@ type LiteraturePage struct {
 	Schema     string           `json:"schema"`
 	Items      []LiteratureItem `json:"items"`
 	NextCursor string           `json:"next_cursor,omitempty"`
+	TotalCount *int64           `json:"total_count,omitempty"`
 }
 
 type LiteratureReceipt struct {

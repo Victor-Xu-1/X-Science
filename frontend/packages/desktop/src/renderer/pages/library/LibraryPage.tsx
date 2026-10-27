@@ -26,6 +26,10 @@ import { LibraryReadingStatus, LibraryReadingStatusFilter } from './LibraryReadi
 import { LibraryTable } from './LibraryTable';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
+import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
+import { LibrarySelectionToolbar } from './LibrarySelectionToolbar';
+import { LibraryBulkProgress } from './LibraryBulkProgress';
+import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureReadingBulkIntent';
 import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
@@ -87,6 +91,19 @@ export default function LibraryPage() {
     setOpen: setPdfOpen,
     blockedByEditor: Boolean(visibleEditor),
   });
+  const items = reads.list.value?.items ?? [];
+  const baseBusy =
+    mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
+  const bulk = useLibraryBulkReadingStatus({
+    account: reads.account,
+    scope: { query, collectionId, projectId, readingStatus },
+    cursor,
+    rows: items,
+    readReady: reads.list.status === 'ready',
+    blocked: baseBusy || Boolean(visibleEditor),
+    controller: mutation.controller,
+    view: mutation.view,
+  });
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
       setEditor({ owner: editorBoundary.current, id: ++editorSequence.current, mode });
@@ -145,6 +162,13 @@ export default function LibraryPage() {
   useEffect(() => {
     const receipt = mutation.view.receipt;
     if (!receipt || observedReceipt.current === receipt || reads.account !== getRendererAccountScopeToken()) return;
+    // One current readback after a bulk run/stop; individual child ACKs remain real receipts.
+    if (
+      receipt.schema === 'x-science.literature-reading-status-receipt.v1' &&
+      isLiteratureReadingBulk(mutation.view.action) &&
+      mutation.view.mutating
+    )
+      return;
     observedReceipt.current = receipt;
     // Evidence is independent of metadata and is consumed by the live detail.
     // A catalogue reload would unmount it and erase a real provider failure.
@@ -180,6 +204,8 @@ export default function LibraryPage() {
     }
   }, [
     mutation.view.receipt,
+    mutation.view.action,
+    mutation.view.mutating,
     reads.refresh,
     reads.refreshData,
     reads.account,
@@ -225,7 +251,7 @@ export default function LibraryPage() {
         setAction((value) => (value.account === account ? { ...value, failed: true } : value));
     }
   };
-  const busy = mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
+  const busy = baseBusy || bulk.resolving;
   const changeReadingStatus = (itemId: string, value: LiteratureReadingStatus) => {
     if (busy || reads.account !== getRendererAccountScopeToken()) return;
     void submit({
@@ -235,7 +261,6 @@ export default function LibraryPage() {
       reading_status: value,
     }).catch((): undefined => undefined);
   };
-  const items = reads.list.value?.items ?? [];
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
   const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
   const selectedCollection =
@@ -260,7 +285,7 @@ export default function LibraryPage() {
   return (
     <main className='library-workbench' aria-labelledby='library-workbench-title'>
       <LibraryMutationNotice
-        hidden={pdfImport.noticeOwned || publicationNoticeOwned}
+        hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
         error={mutation.view.error}
         failed={actionFailed}
         mutating={mutation.view.mutating}
@@ -372,6 +397,30 @@ export default function LibraryPage() {
             refreshProjects={reads.refresh}
             viewReference={viewImportedReference}
           />
+          {(bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
+            <LibrarySelectionToolbar
+              selection={bulk.selection}
+              totalMatching={reads.list.value?.total_count}
+              canSelectAllMatching={
+                !bulk.selection.allMatchingSelected &&
+                bulk.pageChecked &&
+                Boolean(cursor || reads.list.value?.next_cursor)
+              }
+              disabled={busy || reads.list.status !== 'ready' || Boolean(visibleEditor)}
+              resolving={bulk.resolving}
+              onSelectAllMatching={bulk.selectAllMatching}
+              onClear={bulk.clear}
+              onChangeStatus={(value) => void bulk.start(value)}
+            />
+          )}
+          <LibraryBulkProgress
+            view={mutation.view}
+            scopeKey={bulk.scopeKey}
+            message={bulk.message}
+            resume={bulk.resume}
+            pause={bulk.pause}
+            discard={bulk.discard}
+          />
           {collectionId && reads.collections.status === 'ready' && !selectedCollection && (
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>
           )}
@@ -387,6 +436,14 @@ export default function LibraryPage() {
                 readStatus={reads.list.status}
                 selectedId={selectedId}
                 preferences={libraryColumns.preferences}
+                selection={{
+                  selected: bulk.isSelected,
+                  toggle: bulk.toggle,
+                  pageChecked: bulk.pageChecked,
+                  pageMixed: bulk.pageMixed,
+                  togglePage: bulk.togglePage,
+                  disabled: busy || reads.list.status !== 'ready' || Boolean(visibleEditor),
+                }}
                 authors={libraryAuthors}
                 statusCell={(item) => (
                   <LibraryReadingStatus

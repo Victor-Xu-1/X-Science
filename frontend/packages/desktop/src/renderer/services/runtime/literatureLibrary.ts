@@ -1,6 +1,7 @@
 import { literatureMetadataPatchMatches } from '@/common/adapter/literatureMetadataPatch';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
+import { appendLiteratureScopeQuery } from '@/common/adapter/literatureSelection';
 import {
   decodeLiteratureCommand,
   decodeLiteratureItem,
@@ -36,11 +37,8 @@ export async function loadLiteraturePage(
 ) {
   const account = getRendererAccountScopeToken();
   const query = new URLSearchParams({ limit: '20' });
-  if (options.query?.trim()) query.set('query', options.query.trim());
-  if (options.projectId) query.set('project_id', options.projectId);
-  if (options.collectionId) query.set('collection_id', options.collectionId);
-  if (options.readingStatus !== undefined)
-    query.set('reading_status', decodeLiteratureReadingStatus(options.readingStatus));
+  if (options.readingStatus !== undefined) decodeLiteratureReadingStatus(options.readingStatus);
+  appendLiteratureScopeQuery(query, options);
   if (options.cursor) query.set('cursor', options.cursor);
   const raw = await httpRequest<unknown>('GET', `/api/literature/items?${query}`, undefined, {
     signal: options.signal,

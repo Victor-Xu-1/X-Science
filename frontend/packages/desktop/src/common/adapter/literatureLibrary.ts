@@ -37,6 +37,8 @@ export type LiteraturePage = {
   schema: 'x-science.literature-page.v1';
   items: LiteratureItem[];
   next_cursor?: string;
+  /** Missing on legacy replies; never interpreted as a zero-match count. */
+  total_count?: number;
 };
 export type LiteratureReceipt = {
   schema: 'x-science.literature-receipt.v1';
@@ -172,6 +174,7 @@ export function decodeLiteraturePage(value: unknown): LiteraturePage {
     value.schema !== 'x-science.literature-page.v1' ||
     !Array.isArray(value.items) ||
     value.items.length > 100 ||
+    (value.total_count !== undefined && (!count(value.total_count) || value.total_count < value.items.length)) ||
     (value.next_cursor !== undefined &&
       (typeof value.next_cursor !== 'string' ||
         !value.next_cursor ||
@@ -185,6 +188,7 @@ export function decodeLiteraturePage(value: unknown): LiteraturePage {
     schema: value.schema,
     items,
     ...(typeof value.next_cursor === 'string' ? { next_cursor: value.next_cursor } : {}),
+    ...(value.total_count !== undefined ? { total_count: value.total_count as number } : {}),
   };
 }
 export function decodeLiteratureReceipt(value: unknown, operationId: string): LiteratureReceipt {
