@@ -24,10 +24,23 @@ func (s *Store) migrateWithExecutor(ctx context.Context, executor schemaMigratio
 }
 
 func (s *Store) prepareLegacyWorkspaceSchema(ctx context.Context, executor schemaMigrationExecutor) error {
+	if err := configureWorkspaceSchemaConnection(ctx, executor); err != nil {
+		return err
+	}
+	return s.prepareLegacyWorkspaceSchemaBody(ctx, executor)
+}
+
+func configureWorkspaceSchemaConnection(ctx context.Context, executor schemaMigrationQueryExecutor) error {
+	for _, statement := range []string{`PRAGMA busy_timeout = 5000`, `PRAGMA foreign_keys = ON`, `PRAGMA journal_mode = WAL`} {
+		if _, err := executor.ExecContext(ctx, statement); err != nil {
+			return fmt.Errorf("configure workspace schema connection: %w", err)
+		}
+	}
+	return nil
+}
+
+func (s *Store) prepareLegacyWorkspaceSchemaBody(ctx context.Context, executor schemaMigrationQueryExecutor) error {
 	statements := []string{
-		`PRAGMA foreign_keys = ON`,
-		`PRAGMA journal_mode = WAL`,
-		`PRAGMA busy_timeout = 5000`,
 		`CREATE TABLE IF NOT EXISTS projects (
 			id TEXT PRIMARY KEY,
 			user_id TEXT NOT NULL DEFAULT 'local',

@@ -205,7 +205,12 @@ func Open(path string) (*Store, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, errors.New("workspace database path is required")
 	}
+	requestedPath := path
 	path, existed, err := prepareWorkspaceDatabasePath(path)
+	if err != nil {
+		return nil, err
+	}
+	ownedFreshFile, existed, err := reserveFreshWorkspaceFile(requestedPath, path, existed)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +219,10 @@ func Open(path string) (*Store, error) {
 		return nil, fmt.Errorf("open workspace database: %w", err)
 	}
 	db.SetMaxOpenConns(1)
+	if _, err := db.ExecContext(context.Background(), `PRAGMA busy_timeout=5000`); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("configure workspace busy timeout: %w", err)
+	}
 	backupPath, err := backupWorkspaceBeforeSchemaUpgrade(context.Background(), db, path, existed)
 	if err != nil {
 		_ = db.Close()
@@ -228,7 +237,28 @@ func Open(path string) (*Store, error) {
 		db: db, now: time.Now, blobRoot: blobRoot, schemaBackupPath: backupPath,
 		outboxWake: make(chan struct{}), kernelRetentionWake: make(chan struct{}),
 	}
-	if err := store.migrate(context.Background()); err != nil {
+	bootstrapped := false
+	if ownedFreshFile != nil {
+		var writer *sql.Conn
+		writer, err = db.Conn(context.Background())
+		if err == nil {
+			bootstrapped, err = store.bootstrapFreshWorkspace(context.Background(), path, ownedFreshFile, writer)
+			if err == nil && bootstrapped {
+				err = configureWorkspaceSchemaConnection(context.Background(), writer)
+			}
+			err = errors.Join(err, writer.Close())
+		}
+	}
+	if err == nil && !bootstrapped && ownedFreshFile != nil {
+		// Another opener may have initialized the exclusively created file
+		// before our IMMEDIATE lock. Reuse the original upgrade backup owner.
+		backupPath, err = backupWorkspaceBeforeSchemaUpgrade(context.Background(), db, path, true)
+		store.schemaBackupPath = backupPath
+	}
+	if err == nil && !bootstrapped {
+		err = store.migrate(context.Background())
+	}
+	if err != nil {
 		_ = db.Close()
 		return nil, err
 	}
