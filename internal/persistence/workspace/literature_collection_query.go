@@ -11,22 +11,27 @@ import (
 // is a position in a live collection, not a membership snapshot revision.
 type literatureCursor struct {
 	After, Query, Project, Owner string
-	Collection                   string `json:",omitempty"`
-	Order                        *int64 `json:",omitempty"`
+	Collection                   string                  `json:",omitempty"`
+	Order                        *int64                  `json:",omitempty"`
+	ReadingStatus                LiteratureReadingStatus `json:",omitempty"`
 }
 
 func (s *Store) ListLiteratureItemsInCollection(ctx context.Context, owner, query, project, collectionID, cursor string, limit int) (LiteraturePage, error) {
+	return s.ListLiteratureItemsWithReadingStatus(ctx, owner, query, project, collectionID, "", cursor, limit)
+}
+
+func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner, query, project, collectionID string, readingStatus LiteratureReadingStatus, cursor string, limit int) (LiteraturePage, error) {
 	page := LiteraturePage{Schema: "x-science.literature-page.v1", Items: []LiteratureItem{}}
 	if !validLiteratureID(owner) || len(query) > 512 || limit < 1 || limit > 100 || len(cursor) > 4096 ||
-		collectionID != "" && !validLiteratureID(collectionID) {
+		collectionID != "" && !validLiteratureID(collectionID) || readingStatus != "" && !validLiteratureReadingStatus(readingStatus) {
 		return page, ErrLiteratureInvalid
 	}
-	bound := literatureCursor{Query: query, Project: project, Owner: owner, Collection: collectionID}
+	bound := literatureCursor{Query: query, Project: project, Owner: owner, Collection: collectionID, ReadingStatus: readingStatus}
 	if cursor != "" {
 		raw, err := base64.RawURLEncoding.DecodeString(cursor)
 		var decoded literatureCursor
 		if err != nil || json.Unmarshal(raw, &decoded) != nil || decoded.Query != query || decoded.Project != project ||
-			decoded.Owner != owner || decoded.Collection != collectionID ||
+			decoded.Owner != owner || decoded.Collection != collectionID || decoded.ReadingStatus != readingStatus ||
 			collectionID == "" && decoded.Order != nil || collectionID != "" && (decoded.Order == nil || *decoded.Order < 0) {
 			return page, ErrLiteratureInvalid
 		}
@@ -44,10 +49,11 @@ func (s *Store) ListLiteratureItemsInCollection(ctx context.Context, owner, quer
 	}
 	const filter = ` AND (?='' OR instr(lower(i.title),lower(?))>0)
  AND (?='' OR EXISTS(SELECT 1 FROM project_literature p JOIN projects project ON project.id=p.project_id
- WHERE p.item_id=i.id AND p.project_id=? AND project.user_id=?))`
+ WHERE p.item_id=i.id AND p.project_id=? AND project.user_id=?))
+ AND (?='' OR i.reading_status=?)`
 	statement := `SELECT i.id,0 FROM literature_items i WHERE i.owner_user_id=? AND i.deleted_at IS NULL AND i.id>?` +
 		filter + ` ORDER BY i.id LIMIT ?`
-	args := []any{owner, bound.After, query, query, project, project, owner, limit + 1}
+	args := []any{owner, bound.After, query, query, project, project, owner, readingStatus, readingStatus, limit + 1}
 	if collectionID != "" {
 		order := int64(-1)
 		if bound.Order != nil {
@@ -56,7 +62,7 @@ func (s *Store) ListLiteratureItemsInCollection(ctx context.Context, owner, quer
 		statement = `SELECT i.id,m.sort_order FROM literature_items i JOIN literature_collection_items m
  ON m.item_id=i.id AND m.collection_id=? WHERE i.owner_user_id=? AND i.deleted_at IS NULL
  AND (m.sort_order>? OR (m.sort_order=? AND i.id>?))` + filter + ` ORDER BY m.sort_order,i.id LIMIT ?`
-		args = []any{collectionID, owner, order, order, bound.After, query, query, project, project, owner, limit + 1}
+		args = []any{collectionID, owner, order, order, bound.After, query, query, project, project, owner, readingStatus, readingStatus, limit + 1}
 	}
 	rows, err := tx.QueryContext(ctx, statement, args...)
 	if err != nil {

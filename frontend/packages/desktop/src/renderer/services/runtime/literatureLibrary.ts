@@ -1,11 +1,13 @@
 import { literatureMetadataPatchMatches } from '@/common/adapter/literatureMetadataPatch';
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import {
   decodeLiteratureCommand,
   decodeLiteratureItem,
   decodeLiteraturePage,
   decodeLiteratureReceipt,
   literatureValueIdentity,
+  LiteratureDetailUnavailableError,
   type LiteratureCommand,
   type LiteratureItem,
   type LiteratureReceipt,
@@ -27,6 +29,7 @@ export async function loadLiteraturePage(
     query?: string;
     projectId?: string;
     collectionId?: string;
+    readingStatus?: LiteratureReadingStatus;
     cursor?: string;
     signal?: AbortSignal;
   } = {}
@@ -36,6 +39,8 @@ export async function loadLiteraturePage(
   if (options.query?.trim()) query.set('query', options.query.trim());
   if (options.projectId) query.set('project_id', options.projectId);
   if (options.collectionId) query.set('collection_id', options.collectionId);
+  if (options.readingStatus !== undefined)
+    query.set('reading_status', decodeLiteratureReadingStatus(options.readingStatus));
   if (options.cursor) query.set('cursor', options.cursor);
   const raw = await httpRequest<unknown>('GET', `/api/literature/items?${query}`, undefined, {
     signal: options.signal,
@@ -52,9 +57,13 @@ export async function loadLiteratureItem(itemId: string, signal?: AbortSignal): 
     timeoutMs: 15_000,
   });
   requireAccount(account);
-  const item = decodeLiteratureItem(raw);
-  if (item.id !== itemId || item.deleted) throw new Error('Literature detail identity changed');
-  return item;
+  try {
+    const item = decodeLiteratureItem(raw);
+    if (item.id !== itemId || item.deleted) throw new LiteratureDetailUnavailableError();
+    return item;
+  } catch {
+    throw new LiteratureDetailUnavailableError();
+  }
 }
 
 export async function runLiteratureCommand(input: LiteratureCommand): Promise<LiteratureReceipt> {

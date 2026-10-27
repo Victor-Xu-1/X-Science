@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
+import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
@@ -15,6 +15,9 @@ import type { LibraryReadView } from './useLibraryWorkbench';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
+import { LibraryReadingStatus } from './LibraryReadingStatus';
+import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
+import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 
 export const libraryAuthors = (item: LiteratureItem): string => {
   const value = item.metadata.authors;
@@ -35,6 +38,9 @@ export function LibraryItemDetails({
   projects,
   projectStatus,
   busy,
+  stale = false,
+  changeReadingStatus,
+  receipt,
   submit,
   close,
 }: {
@@ -47,11 +53,14 @@ export function LibraryItemDetails({
   projects: XScienceProject[];
   projectStatus: 'loading' | 'ready' | 'error';
   busy: boolean;
+  stale?: boolean;
+  changeReadingStatus: (value: LiteratureReadingStatus) => void;
+  receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
 }) {
   const { t } = useTranslation();
-  const [editing, setEditing] = useState(false);
+  const [editBase, setEditBase] = useState<LiteratureItem>();
   const [projectId, setProjectId] = useState('');
   const authors = libraryAuthors(item);
   const year =
@@ -59,6 +68,7 @@ export function LibraryItemDetails({
       ? String(item.metadata.year)
       : '';
   const members = projects.filter((project) => item.project_ids.includes(project.projectId));
+  const externallyUpdated = editBase !== undefined && editBase.metadata_revision !== item.metadata_revision;
   return (
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
       <div className='library-workbench__detail-heading'>
@@ -68,6 +78,12 @@ export function LibraryItemDetails({
         </button>
       </div>
       <h2>{item.title}</h2>
+      <LibraryReadingStatus
+        value={literatureItemReadingStatus(item)}
+        disabled={busy || item.deleted}
+        onChange={changeReadingStatus}
+        accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+      />
       <dl className='library-workbench__facts'>
         <div>
           <dt>{t('conversation.reading.libraryAuthors')}</dt>
@@ -94,7 +110,7 @@ export function LibraryItemDetails({
           </dd>
         </div>
       </dl>
-      <LibraryPublicationCheck account={account} item={item} />
+      <LibraryPublicationCheck account={account} item={item} disabled={stale} />
       <LibraryCollectionMembershipPicker
         item={item}
         account={account}
@@ -105,8 +121,16 @@ export function LibraryItemDetails({
         retry={refreshCollections}
       />
       <LibraryAttachmentBrowser account={account} item={item} />
-      {editing ? (
+      {editBase ? (
         <div className='library-workbench__editor'>
+          {externallyUpdated && (
+            <div role='alert' className='library-workbench__notice'>
+              <span>{t('conversation.libraryReadingStatus.externalUpdate')}</span>
+              <button type='button' disabled={busy} onClick={() => setEditBase(item)}>
+                {t('conversation.libraryReadingStatus.loadLatest')}
+              </button>
+            </div>
+          )}
           <label>
             {t('conversation.libraryWorkbench.projectAction')}
             <select
@@ -123,16 +147,23 @@ export function LibraryItemDetails({
             </select>
           </label>
           <LibraryItemEditor
-            key={`${item.id}:${item.metadata_revision}`}
-            item={item}
+            key={`${editBase.id}:${editBase.metadata_revision}`}
+            item={{
+              ...item,
+              title: editBase.title,
+              metadata: editBase.metadata,
+              metadata_revision: editBase.metadata_revision,
+            }}
             projectId={projectId || undefined}
             busy={busy}
+            readOnly={externallyUpdated}
+            receipt={receipt}
             submit={submit}
-            close={() => setEditing(false)}
+            close={() => setEditBase(undefined)}
           />
         </div>
       ) : (
-        <button type='button' className='library-workbench__button' disabled={busy} onClick={() => setEditing(true)}>
+        <button type='button' className='library-workbench__button' disabled={busy} onClick={() => setEditBase(item)}>
           <Pencil size={14} aria-hidden='true' />
           {t('conversation.libraryWorkbench.edit')}
         </button>
