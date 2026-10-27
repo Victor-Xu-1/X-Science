@@ -2208,6 +2208,37 @@
       "retraction-watch": "Retraction Watch via Crossref"
     }
   },
+  "libraryTable": {
+    "title": "Library papers",
+    "scrollRegion": "Reference table",
+    "titleColumn": "Title",
+    "columns": {
+      "readingStatus": "Status",
+      "year": "Year",
+      "authors": "Authors",
+      "doi": "DOI",
+      "attachments": "Files"
+    },
+    "loading": "Loading references…",
+    "loadFailed": "Could not load references",
+    "empty": "No references yet",
+    "emptyHint": "Saved references will appear here.",
+    "files_one": "{{count}} file",
+    "files_other": "{{count}} files",
+    "noFiles": "No files",
+    "columnsButton": "Columns",
+    "customize": "Customize columns",
+    "columnHelp": "Drag columns or use the up and down arrow keys to reorder. Title is always visible.",
+    "moveColumn": "Move {{column}}",
+    "showColumn": "Show {{column}}",
+    "reset": "Restore default columns",
+    "close": "Close column settings",
+    "preferenceLoading": "Loading column preferences…",
+    "preferenceSaving": "Saving column layout…",
+    "preferenceInvalid": "Saved column settings are invalid. Restore defaults to replace them.",
+    "preferenceReadError": "Could not load column settings. Retry before changing the layout.",
+    "preferenceWriteError": "Your layout has not been saved. Retry to check and finish the original save."
+  },
   "libraryPdfImport": {
     "entry": "Import PDF",
     "resumeEntry": "Resume PDF import",

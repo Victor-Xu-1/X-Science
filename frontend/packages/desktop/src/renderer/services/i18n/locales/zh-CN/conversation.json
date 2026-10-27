@@ -2208,6 +2208,37 @@
       "retraction-watch": "Retraction Watch（经 Crossref）"
     }
   },
+  "libraryTable": {
+    "title": "文献列表",
+    "scrollRegion": "文献表格",
+    "titleColumn": "标题",
+    "columns": {
+      "readingStatus": "阅读状态",
+      "year": "年份",
+      "authors": "作者",
+      "doi": "DOI",
+      "attachments": "文件"
+    },
+    "loading": "正在加载文献…",
+    "loadFailed": "无法加载文献",
+    "empty": "暂无文献",
+    "emptyHint": "保存的文献会显示在这里。",
+    "files_one": "{{count}} 个文件",
+    "files_other": "{{count}} 个文件",
+    "noFiles": "没有文件",
+    "columnsButton": "列设置",
+    "customize": "自定义列",
+    "columnHelp": "拖动或使用上下方向键调整顺序。标题始终显示。",
+    "moveColumn": "移动{{column}}列",
+    "showColumn": "显示{{column}}列",
+    "reset": "恢复默认列",
+    "close": "关闭列设置",
+    "preferenceLoading": "正在加载列设置…",
+    "preferenceSaving": "正在保存表格布局…",
+    "preferenceInvalid": "已保存的列设置无效。恢复默认列后可替换这些设置。",
+    "preferenceReadError": "无法加载列设置。请重试后再修改布局。",
+    "preferenceWriteError": "布局尚未保存。请重试以核对并完成原保存操作。"
+  },
   "libraryPdfImport": {
     "entry": "导入 PDF",
     "resumeEntry": "继续 PDF 导入",
