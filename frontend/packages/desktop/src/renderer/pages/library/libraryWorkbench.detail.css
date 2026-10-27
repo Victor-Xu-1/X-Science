@@ -211,7 +211,8 @@
   font-size: var(--ui-font-meta);
   line-height: var(--ui-line-height-meta);
 }
-.library-workbench__editor {
+.library-workbench__editor,
+.library-workbench__editor input {
   scroll-margin-block: calc(var(--ui-control-md) * 2 + var(--ui-space-6));
 }
 .library-workbench__editor:focus-visible {

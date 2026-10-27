@@ -168,7 +168,8 @@ describe('Library primary detail header through the real Page consumers', () => 
     const data = headerHTTP();
     await mountCollections('/library?item=a');
     await screen.findByRole('heading', { name: name('a') });
-    await screen.findByRole('group', { name: 'Literature details' });
+    const primary = await screen.findByRole('group', { name: 'Literature details' });
+    const measureHeader = vi.spyOn(primary, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 56));
     fireEvent.click(screen.getByRole('button', { name: /Preview PDF/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Advance header fixture PDF' }));
     const pdf = screen.getByTestId('header-pdf');
@@ -177,6 +178,8 @@ describe('Library primary detail header through the real Page consumers', () => 
     const panel = editor();
     const title = within(panel).getByRole('textbox', { name: 'Title' });
     await waitFor(() => expect(title).toHaveFocus());
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
+    expect(title.style.scrollMarginBlockStart).toBe('calc(56px + var(--ui-space-6))');
     fireEvent.change(title, { target: { value: 'Keep this exact draft' } });
     const refresh = screen.getByRole('button', { name: 'Refresh' });
     const detailReads = () =>
@@ -188,10 +191,16 @@ describe('Library primary detail header through the real Page consumers', () => 
     await waitFor(() => expect(detailReads()).toBe(beforeRefresh + 1));
     await waitFor(() => expect(title).toBeEnabled());
     expect(refresh).toHaveFocus();
+    measureHeader.mockReturnValue(new DOMRect(0, 0, 320, 80));
     fireEvent.click(trigger);
     expect(editor()).toBe(panel);
     expect(title).toHaveFocus();
-    expect(scrollIntoView.mock.contexts.at(-1)).toBe(panel);
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
+    expect(title.style.scrollMarginBlockStart).toBe('calc(80px + var(--ui-space-6))');
+    measureHeader.mockReturnValue(new DOMRect(0, 0, 320, 0));
+    fireEvent.click(trigger);
+    expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
+    expect(title.style.scrollMarginBlockStart).toBe('');
     expect(within(panel).getByRole('textbox', { name: 'Title' })).toBe(title);
     expect(title).toHaveValue('Keep this exact draft');
     expect(screen.getByTestId('header-pdf')).toBe(pdf);

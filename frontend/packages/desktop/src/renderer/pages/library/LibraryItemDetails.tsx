@@ -64,6 +64,7 @@ export function LibraryItemDetails({
   const [editBase, setEditBase] = useState<LiteratureItem>();
   const [projectId, setProjectId] = useState('');
   const editorId = useId();
+  const primaryHeader = useRef<HTMLDivElement>(null);
   const editTrigger = useRef<HTMLButtonElement>(null);
   const editorPanel = useRef<HTMLDivElement>(null);
   const scope = JSON.stringify([account, item.id]);
@@ -80,8 +81,13 @@ export function LibraryItemDetails({
     const panel = editorPanel.current;
     if (!current() || !panel?.isConnected) return;
     const input = panel.querySelector<HTMLInputElement>('input:not(:disabled):not([readonly]):not([type="hidden"])');
-    (input ?? panel).focus({ preventScroll: true });
-    panel.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    const target = input ?? panel;
+    const headerHeight = primaryHeader.current?.getBoundingClientRect().height ?? 0;
+    if (Number.isFinite(headerHeight) && headerHeight > 0)
+      target.style.scrollMarginBlockStart = `calc(${headerHeight}px + var(--ui-space-6))`;
+    else target.style.removeProperty('scroll-margin-block-start');
+    target.focus({ preventScroll: true });
+    target.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [current]);
   useEffect(() => {
     const request = focusRequest.current;
@@ -134,6 +140,7 @@ export function LibraryItemDetails({
   return (
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
       <div
+        ref={primaryHeader}
         className='library-workbench__detail-main-header'
         role='group'
         aria-label={t('conversation.libraryWorkbench.details')}
