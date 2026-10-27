@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "9bbee3ae4815d3bf7c5df59fb1389b36e4174f364f6b89e195fc30a89559bd46",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e25552cf479002728a34cc23df2dccdbe649549701fa20cc14aefd15dd84164b",
+  "additionFingerprintSHA256": "ce787967a4489cc1c41d854dafb1eef87c0108697b0fee63b2a0ecb719ba6d20",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
     "adaptedSourceFiles": 791,
     "removedSourceFiles": 295,
-    "addedFiles": 1267
+    "addedFiles": 1271
   },
   "adaptations": [
     {
@@ -9809,9 +9809,15 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryAttachmentBrowser.tsx",
-      "sha256": "c7e09ca59ec5a465845ae454084a6ff1228e6653944aa31d369d2645f4028858",
-      "bytes": 12699,
+      "sha256": "6a4501ff2a13e749eaa5204aa77f9519bc6d3d7e5b1d7a7d8ae053631ce8cf21",
+      "bytes": 11482,
       "reason": "Connect immutable Library versions to the existing owner-authorized content route and shared PDF core with account-scoped preview, download, cancellation and exact-version retry."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryAttachmentPane.tsx",
+      "sha256": "c9036fb2f0821ecc0fa0afb2fd99db76eed5b989d24dab9a768cfe9b058ec6a4",
+      "bytes": 2050,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx",
@@ -9845,8 +9851,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "315d3ba969d58b27b0e88bbf902c229c27bddc8ea28204cb25d4037ab26f5a19",
-      "bytes": 20318,
+      "sha256": "e406c16297d12515dfff86ce7223d3006f59d4c51fedfc25b081929b08faf175",
+      "bytes": 20019,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -9875,15 +9881,33 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryPdfImport.css",
-      "sha256": "940d3c9374e373ed5b6ab65053970a0591328a1b6b55d6c6bab5e06d48d3fc79",
-      "bytes": 3840,
+      "sha256": "17b32ae55f2271ce64dd0efb34b1257afeb6e29bdded8fa6aedbfcda2eed8c67",
+      "bytes": 4546,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.collections.css",
+      "sha256": "40bc324209031e25a2ed7dc56c363b194e93adc3b5190633eb8f1a75712c88cf",
+      "bytes": 6821,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.css",
-      "sha256": "5d6feb8f12325beca133bcedaf12915dc15d83d7bdc4df3d22250f8b6a227f3d",
-      "bytes": 17078,
+      "sha256": "ce9b29493e279636dccf936221c8e7898229811f78bb6b1ebf336c9b91c9354a",
+      "bytes": 7189,
       "reason": "Style the native Library workbench with existing theme variables, compact split panes, responsive layout and reduced-motion support; no third-party asset or desktop implementation is transplanted."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.detail.css",
+      "sha256": "e266117316a55c4fddc1ad03fa88f6dc877a29cc9b3a4705ef5a35e0a106f6fc",
+      "bytes": 6022,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.list.css",
+      "sha256": "51163eeb5bd9ed238d66eb53d316a2682867bb8648f6908f4c98670cb4cdb854",
+      "bytes": 3550,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryPdfImport.ts",
@@ -13469,8 +13493,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryAttachmentOpen.dom.test.tsx",
-      "sha256": "f39fbfb8138432ead689686da4a835781cb2f882d0b16e7d0b972288fc055127",
-      "bytes": 7743,
+      "sha256": "6485e6bb0cadf2b2acd0c59f4d3bae98a9860b8cd3679f630a92ec3063d2cebd",
+      "bytes": 8279,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
