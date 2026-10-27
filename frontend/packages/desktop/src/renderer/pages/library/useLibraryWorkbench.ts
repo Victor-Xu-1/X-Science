@@ -139,7 +139,7 @@ export function useLibraryWorkbench(
     JSON.stringify([account, 'item', selectedId, revision, dataRevision]),
     detailRequest,
     0,
-    JSON.stringify([account, 'item', selectedId, revision])
+    JSON.stringify([account, 'item', selectedId])
   );
   const projects = useLibraryRead(account, JSON.stringify([account, 'projects', revision]), projectRequest);
   const collections = useLibraryRead(account, JSON.stringify([account, 'collections', revision]), collectionRequest);

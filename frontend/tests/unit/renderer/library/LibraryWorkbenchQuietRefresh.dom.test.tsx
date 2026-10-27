@@ -188,4 +188,22 @@ describe('Library public hook quiet data refresh', () => {
     expect(result.current.detail.value).toBeUndefined();
     expect(result.current.detail.refreshError).not.toBe(true);
   });
+
+  it('refreshes supporting reads while retaining the same ready detail and its consumer identity', async () => {
+    const { result } = renderHook(() => useLibraryWorkbench('', '', 'paper-a'));
+    await startReads();
+    const original = result.current.detail.value;
+    const pending = deferred<LiteratureItem>();
+    mocks.item.mockReturnValueOnce(pending.promise);
+    act(() => result.current.refresh());
+    expect(result.current.detail).toMatchObject({ status: 'ready', refreshing: true });
+    expect(result.current.detail.value).toBe(original);
+    await startReads();
+    for (const read of [mocks.page, mocks.projects, mocks.collections, mocks.memberships])
+      expect(read).toHaveBeenCalledTimes(2);
+    const updated = { ...item('paper-a', 'read'), metadata_revision: 2, title: 'Current external title' };
+    await deliver(pending, updated);
+    expect(result.current.detail).toMatchObject({ status: 'ready', value: updated });
+    expect(result.current.detail.refreshing).not.toBe(true);
+  });
 });

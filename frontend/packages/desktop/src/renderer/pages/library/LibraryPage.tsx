@@ -373,7 +373,7 @@ export default function LibraryPage() {
               ) : reads.list.status === 'error' ? (
                 <div role='alert' className='library-workbench__state'>
                   <h2>{t('conversation.libraryWorkbench.loadFailed')}</h2>
-                  <button type='button' onClick={reads.refreshData}>
+                  <button type='button' onClick={reads.refresh}>
                     {t('common.retry')}
                   </button>
                 </div>
