@@ -845,6 +845,8 @@ Stopping or leaving the view prevents later batches after the current admitted
 request; it does not undo a committed write. Confirmed progress comes from real
 receipts. A completed run or stop triggers one current readback while retaining
 the detail, metadata draft, PDF and publication view.
+Preparation follows the actual active request, and a new failed or empty
+selection read remains visible independently of a retained historical receipt.
 
 勾选文献与打开详情相互独立；当前页全选后，有其他分页时才出现“选择全部匹配”入口。
 操作前按相同筛选一次解析完整 ID，不把当前页当成全部文献。已接受的完整计划、

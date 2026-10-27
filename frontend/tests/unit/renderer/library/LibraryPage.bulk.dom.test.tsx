@@ -374,4 +374,48 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect([...http.items.values()].filter((item) => item.reading_status === 'read')).toHaveLength(401);
     expect([...http.items.values()].every((item) => item.metadata_revision === 7)).toBe(true);
   });
+
+  it('shows a new complete-selection failure instead of the previous completed batch and keeps selection retryable', async () => {
+    const http = catalogue(21);
+    await mount();
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select this page' }));
+    start();
+    await screen.findByText('20 references saved.');
+    const controller = getLiteratureMutationController(owner);
+    await waitFor(() => expect(controller.getSnapshot().mutating).toBe(false));
+    const completed = controller.getSnapshot().action;
+    expect(completed).toBeDefined();
+    expect(controller.getSnapshot().pending).toBeNull();
+    expect(http.writes).toHaveLength(1);
+    expect(http.ledger.size).toBe(1);
+
+    const originalFetch = globalThis.fetch;
+    const resolvingRequests: URL[] = [];
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), 'http://localhost');
+      if (
+        (init?.method ?? 'GET') === 'GET' &&
+        url.pathname === '/api/literature/items' &&
+        url.searchParams.get('all_item_ids') === 'true'
+      ) {
+        resolvingRequests.push(url);
+        return json({ code: 'UNAVAILABLE' }, 503);
+      }
+      return originalFetch(input, init);
+    });
+    await selectAll();
+    start();
+    await waitFor(() => expect(resolvingRequests).toHaveLength(1));
+    await waitFor(() =>
+      expect(within(toolbar()).getByRole('combobox', { name: 'Reading status for selection' })).toBeEnabled()
+    );
+    expect(http.writes).toHaveLength(1);
+    expect(http.ledger.size).toBe(1);
+    expect(controller.getSnapshot().action).toBe(completed);
+    expect(controller.getSnapshot().pending).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Select this page' })).toBeChecked();
+    expect(within(toolbar()).getByText('All matching references selected')).toBeInTheDocument();
+    expect(await screen.findByText('The complete selection could not be loaded. No batch was started.')).toBeVisible();
+    expect(screen.queryByText('20 references saved.')).toBeNull();
+  });
 });

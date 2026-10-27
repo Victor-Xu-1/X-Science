@@ -18,7 +18,7 @@ export function LibraryBulkProgress({
 }: {
   view: LiteratureMutationView;
   scopeKey: string;
-  message?: 'resolveFailed' | 'emptyResolved' | 'startFailed';
+  message?: 'resolveFailed' | 'emptyResolved' | 'operationFailed';
   resume: (stopAfterCurrent?: boolean) => Promise<void>;
   pause: () => Promise<void>;
   discard: () => Promise<void>;
@@ -26,17 +26,20 @@ export function LibraryBulkProgress({
   const { t } = useTranslation();
   const pending = isLiteratureReadingBulk(view.pending) ? view.pending : undefined;
   const intent = pending ?? (isLiteratureReadingBulk(view.action) ? view.action : undefined);
-  if (!intent)
-    return message ? (
-      <p role='status' className='library-bulk-progress'>
-        {t(`conversation.librarySelection.${message}`)}
-      </p>
-    ) : null;
+  const attemptMessage = message ? (
+    <p role={message === 'emptyResolved' ? 'status' : 'alert'}>{t(`conversation.librarySelection.${message}`)}</p>
+  ) : null;
+  // A retained historical action must not hide the outcome of this view's newer attempt.
+  if (!intent || (!pending && attemptMessage && view.error !== 'storage'))
+    return attemptMessage ? <div className='library-bulk-progress'>{attemptMessage}</div> : null;
   const progress = literatureReadingBulkProgress(intent);
-  const active = Boolean(pending && view.mutating);
+  const active =
+    view.mutating && isLiteratureReadingBulk(view.action) && view.action.operation_id === intent.operation_id;
   const unknown = pending?.phase === 'sending' && !active;
   const key = active
-    ? 'activeProgress'
+    ? pending
+      ? 'activeProgress'
+      : 'preparingProgress'
     : unknown
       ? 'uncertainProgress'
       : !pending
@@ -52,6 +55,7 @@ export function LibraryBulkProgress({
       aria-busy={active}
       className='library-bulk-progress'
     >
+      {attemptMessage}
       <p role={view.error ? 'alert' : 'status'}>
         {view.error === 'storage'
           ? t('conversation.reading.libraryStorage')
@@ -67,15 +71,15 @@ export function LibraryBulkProgress({
             </button>
           ) : (
             <>
-              <button type='button' onClick={() => void resume()}>
+              <button type='button' disabled={view.mutating} onClick={() => void resume()}>
                 {t('conversation.librarySelection.resume')}
               </button>
               {pending.phase === 'ready' ? (
-                <button type='button' onClick={() => void discard()}>
+                <button type='button' disabled={view.mutating} onClick={() => void discard()}>
                   {t('conversation.librarySelection.discardRemainder')}
                 </button>
               ) : (
-                <button type='button' onClick={() => void resume(true)}>
+                <button type='button' disabled={view.mutating} onClick={() => void resume(true)}>
                   {t('conversation.librarySelection.stopAfterBatch')}
                 </button>
               )}

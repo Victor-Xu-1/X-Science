@@ -60,7 +60,7 @@ export function useLibraryBulkReadingStatus({
   const [activity, setActivity] = useState<{
     visit: Visit;
     resolving: boolean;
-    message?: 'resolveFailed' | 'emptyResolved' | 'startFailed';
+    message?: 'resolveFailed' | 'emptyResolved' | 'operationFailed';
   }>({ visit, resolving: false });
   const work = useRef<Work | undefined>(undefined);
   const anchor = useRef<{ visit: Visit; item: string } | undefined>(undefined);
@@ -151,7 +151,7 @@ export function useLibraryBulkReadingStatus({
         !(error instanceof OriginalPendingConflict) &&
         !(error instanceof DOMException && error.name === 'AbortError')
       )
-        setActivity({ visit: active.visit, resolving: false, message: 'startFailed' });
+        setActivity({ visit: active.visit, resolving: false, message: 'operationFailed' });
     } finally {
       settleSelection(active);
       if (work.current === active) work.current = undefined;
@@ -220,7 +220,7 @@ export function useLibraryBulkReadingStatus({
       await controller.pauseReadingStatusBulk(pending.operation_id);
     } catch (error) {
       if (current() && !(error instanceof OriginalPendingConflict))
-        setActivity({ visit, resolving: false, message: 'startFailed' });
+        setActivity({ visit, resolving: false, message: 'operationFailed' });
     }
   };
   const discard = async () => {
@@ -232,7 +232,7 @@ export function useLibraryBulkReadingStatus({
     } catch (error) {
       if (current()) {
         if (error instanceof OriginalPendingConflict) setSelected({ visit, value: EMPTY_LIBRARY_SELECTION });
-        else setActivity({ visit, resolving: false, message: 'startFailed' });
+        else setActivity({ visit, resolving: false, message: 'operationFailed' });
       }
     }
   };
