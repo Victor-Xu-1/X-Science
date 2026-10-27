@@ -84,7 +84,8 @@ func newNativeNodeEgressFixture(t *testing.T, denied bool, handler http.HandlerF
 	if err != nil {
 		t.Skip("native Node executable is unavailable")
 	}
-	versionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	// Allow cold Node startup the same finite budget as the TLS request, bounded by test cancellation.
+	versionContext, cancel := context.WithTimeout(t.Context(), 8*time.Second)
 	defer cancel()
 	version, err := exec.CommandContext(versionContext, node, "--version").Output()
 	if err != nil {
