@@ -4,12 +4,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
 import ContextWindowInspector from '@/renderer/components/xScience/runtime/ContextWindowInspector';
 import {
+  CALL_COLORS,
   callSegments,
   reportedCallToken,
   summarizeInspectionCalls,
   inspectionTurnPoints,
 } from '@/renderer/components/xScience/runtime/contextInspectionModel';
-import { fetchContextUsage, parseContextUsage, type ContextUsageSnapshot } from '@/renderer/services/contextUsage';
+import {
+  fetchContextUsage,
+  parseContextUsage,
+  type ContextCallUsage,
+  type ContextUsageSnapshot,
+} from '@/renderer/services/contextUsage';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { renderWithI18n } from '../i18nTestUtils';
 
@@ -279,6 +285,85 @@ describe('Transcript-bound context inspector', () => {
       'historical model-call count is unknown'
     );
     expect(screen.getByLabelText('Call summary')).toHaveTextContent('2 of 2 calls reported a valid total');
+  });
+
+  it.each(['en-US', 'zh-CN'] as const)('shows only drawn call-segment legends in %s', async (locale) => {
+    const normalized = parseContextUsage(
+      { status: 'unavailable', inspection: inspection() },
+      conversationId
+    ).inspection!;
+    const call = normalized.calls[0];
+    const renderCurrent = (callUsage: ContextCallUsage | undefined) => (
+      <ContextWindowInspector
+        open
+        ownerScope='legend-fixture'
+        state={{
+          conversationId,
+          status: 'unavailable',
+          inspection: { ...normalized, calls: [{ ...call, callUsage }] },
+        }}
+        returnFocus={null}
+        retry={() => undefined}
+        onClose={() => undefined}
+      />
+    );
+    const view = await renderWithI18n(renderCurrent(call.callUsage), locale);
+    const expectFields = (fields: Array<keyof typeof CALL_COLORS>) => {
+      const items = within(screen.getByTestId('context-inspector-call-legend')).getAllByRole('listitem');
+      expect(items.map((item) => item.textContent)).toEqual(
+        fields.map((field) => view.i18n.t('conversation.contextUsage.call_' + field))
+      );
+      items.forEach((item, index) =>
+        expect(item.querySelector('i')).toHaveStyle({ background: CALL_COLORS[fields[index]] })
+      );
+    };
+    expect(screen.queryByTestId('context-inspector-call-legend')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: view.i18n.t('conversation.contextInspector.calls') }));
+    expectFields(['input', 'output']);
+
+    view.rerender(
+      renderCurrent({
+        input_tokens: 11,
+        output_tokens: 4,
+        total_tokens: 15,
+        cache_read_tokens: 3,
+        cache_write_tokens: 2,
+        reported: { input: true, output: true, total: true, cache_read: true, cache_write: true },
+      })
+    );
+    expectFields(['input', 'cache_read', 'cache_write', 'output']);
+
+    view.rerender(
+      renderCurrent({
+        input_tokens: 11,
+        output_tokens: 4,
+        total_tokens: 15,
+        cache_read_tokens: 3,
+        cache_write_tokens: 0,
+        reported: { input: true, output: true, total: true, cache_read: true, cache_write: true },
+        invalid_fields: { input: false, output: false, total: false, cache_read: true, cache_write: false },
+      })
+    );
+    expectFields(['input', 'output']);
+    expect(screen.getByTestId('context-inspector-token-cache_read')).toHaveTextContent(
+      view.i18n.t('conversation.contextUsage.callInvalid')
+    );
+    expect(screen.getByTestId('context-inspector-token-cache_write')).toHaveTextContent(/^0$/);
+
+    view.rerender(
+      renderCurrent({
+        input_tokens: 0,
+        output_tokens: 0,
+        total_tokens: 9,
+        reported: { input: false, output: false, total: true, cache_read: false, cache_write: false },
+      })
+    );
+    expectFields(['total']);
+
+    view.rerender(renderCurrent(undefined));
+    expect(screen.queryByTestId('context-inspector-call-legend')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: view.i18n.t('conversation.contextInspector.turns') }));
+    expect(screen.queryByTestId('context-inspector-call-legend')).toBeNull();
   });
 
   it('keeps an explicit turn pin across appended records and resets it on a true branch incarnation change', async () => {
