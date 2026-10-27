@@ -458,6 +458,7 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/renderer/pages/library/libraryAttachmentTarget.ts": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths.",
     'packages/desktop/src/common/adapter/literatureCollections.ts': 'Define strict command-bound ordinary Library collection, membership and receipt contracts without substituting item results or creating another mutation authority.',
     'packages/desktop/src/common/adapter/literaturePublicationCheck.ts': 'Define the closed first-party publication evidence and original-operation receipt contract for the existing authenticated Library mutation owner; no provider endpoint or alternate persistence authority is accepted from the browser.',
+    'packages/desktop/src/common/adapter/literatureReadingStatus.ts': 'Define personal reading-state values and closed original-operation batch acknowledgements for the existing authenticated Library mutation owner, independent of bibliographic revisions or PDF progress.',
     'packages/desktop/src/renderer/services/runtime/literatureCollections.ts': 'Route ordinary Library collection reads and original operation retries through the authenticated existing HTTP bridge and renderer account scope.',
     'packages/desktop/src/renderer/pages/library/LibraryCollectionSidebar.tsx': 'Project the owned ordinary collection tree and server order into real filtering and creation controls without decorative smart or batch entries.',
     'packages/desktop/src/renderer/pages/library/LibraryCollectionEditor.tsx': 'Bind collection create, revision edits, deletion and exact uncertain-request retry to the existing account-wide mutation owner and form generation.',
@@ -698,9 +699,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "9ec0fb80eec9f0c1ee0b7ed3d7fed628d8cb7fb685d8e8e8784d95a0261e92e9"
+APPROVED_ADAPTATION_FINGERPRINT = "0abb1843249d890cc36af5522443571c248c38635d80937e8078cf1046e62b24"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "34bf14cf6abff0388796fdfa3fa81d053c0a7c4f92dbd7501521ada8a16cc03f"
+APPROVED_ADDITION_FINGERPRINT = "d6e2814906a619ed5011df4b9e25d73bb83b179a859320859de71cdf89e8ab97"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

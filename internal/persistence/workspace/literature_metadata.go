@@ -23,6 +23,24 @@ func decodeLiteratureMetadataObject(raw string) (map[string]any, error) {
 func (item *LiteratureItem) UnmarshalJSON(raw []byte) error {
 	type wireItem LiteratureItem
 	var decoded wireItem
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	if fields == nil {
+		return ErrLiteratureInvalid
+	}
+	for name, status := range fields {
+		if !strings.EqualFold(name, "reading_status") {
+			continue
+		}
+		var value LiteratureReadingStatus
+		if bytes.Equal(bytes.TrimSpace(status), []byte("null")) || json.Unmarshal(status, &value) != nil || !validLiteratureReadingStatus(value) {
+			return ErrLiteratureInvalid
+		}
+	}
+	// Preserve an omitted field on immutable legacy acknowledgements. Current
+	// catalogue reads carry the stored enum; clients project old omissions only.
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
 	if err := decoder.Decode(&decoded); err != nil {

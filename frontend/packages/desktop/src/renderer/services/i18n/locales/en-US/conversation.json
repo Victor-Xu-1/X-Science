@@ -2088,6 +2088,19 @@
   },
   "notFound": "Conversation not found or has been deleted",
   "loading": "Loading conversation",
+  "libraryReadingStatus": {
+    "label": "Reading status",
+    "all": "All statuses",
+    "forPaper": "Reading status for {{title}}",
+    "updated": "Reading status saved.",
+    "refreshing": "Updating details… Your draft is retained.",
+    "readFailed": "Details could not be refreshed. Your draft is retained; retry to continue editing.",
+    "externalUpdate": "This paper was updated elsewhere. Your draft is retained; load the latest details before saving.",
+    "loadLatest": "Discard draft and load latest",
+    "unread": "Unread",
+    "reading": "Reading",
+    "read": "Read"
+  },
   "libraryWorkbench": {
     "eyebrow": "Your research references",
     "title": "Library",

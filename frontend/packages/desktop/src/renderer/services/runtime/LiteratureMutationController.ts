@@ -10,6 +10,7 @@ import { digestLibraryFile } from './libraryFileDigest';
 import { runLiteratureCommand } from './literatureLibrary';
 import { runLiteratureCollectionCommand } from './literatureCollections';
 import { runLiteraturePublicationCommand } from './literaturePublicationCheck';
+import { runLiteratureReadingStatusCommand } from './literatureReadingStatus';
 import { withLiteratureMutationLock } from './literatureMutationLock';
 import {
   catalogueUploadFailureCertainty,
@@ -69,6 +70,7 @@ type Options = {
   run?: typeof runLiteratureCommand;
   runCollection?: typeof runLiteratureCollectionCommand;
   runPublication?: typeof runLiteraturePublicationCommand;
+  runReadingStatus?: typeof runLiteratureReadingStatusCommand;
   initialize?: typeof initializeXScienceProjectAttachment;
   upload?: typeof uploadXScienceProjectAttachment;
   digest?: typeof digestLibraryFile;
@@ -264,6 +266,8 @@ export class LiteratureMutationController {
   private dispatch(command: LiteratureMutationCommand, signal: AbortSignal) {
     if (command.kind === 'check-publication')
       return (this.options.runPublication ?? runLiteraturePublicationCommand)(command, signal);
+    if (command.kind === 'set-reading-status')
+      return (this.options.runReadingStatus ?? runLiteratureReadingStatusCommand)(command, signal);
     return isCollectionCommand(command)
       ? (this.options.runCollection ?? runLiteratureCollectionCommand)(command)
       : (this.options.run ?? runLiteratureCommand)(command);

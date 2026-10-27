@@ -45,6 +45,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 	if s.handleLiteratureCollectionRoute(w, r, owner, parts) {
 		return
 	}
+	if len(parts) == 2 && parts[0] == "items" && parts[1] == "reading-status" {
+		s.handleLiteratureReadingStatus(w, r, owner)
+		return
+	}
 	if len(parts) == 3 && parts[0] == "items" && parts[2] == "publication-check" {
 		s.handleLiteraturePublication(w, r, owner, parts[1])
 		return
@@ -56,7 +60,8 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 			limit, err = strconv.Atoi(raw)
 		}
 		for key, values := range r.URL.Query() {
-			if len(values) != 1 || (key != "query" && key != "project_id" && key != "collection_id" && key != "cursor" && key != "limit") {
+			if len(values) != 1 || (key != "query" && key != "project_id" && key != "collection_id" && key != "cursor" && key != "limit" && key != "reading_status") ||
+				(key == "reading_status" && values[0] == "") {
 				err = workspace.ErrLiteratureInvalid
 			}
 		}
@@ -64,7 +69,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
 		}
-		page, err := s.workspaceStore.ListLiteratureItemsInCollection(r.Context(), owner, r.URL.Query().Get("query"), r.URL.Query().Get("project_id"), r.URL.Query().Get("collection_id"), r.URL.Query().Get("cursor"), limit)
+		page, err := s.workspaceStore.ListLiteratureItemsWithReadingStatus(r.Context(), owner, r.URL.Query().Get("query"), r.URL.Query().Get("project_id"), r.URL.Query().Get("collection_id"), workspace.LiteratureReadingStatus(r.URL.Query().Get("reading_status")), r.URL.Query().Get("cursor"), limit)
 		if err != nil {
 			writeLiteratureError(w, err)
 			return
