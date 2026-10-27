@@ -32,6 +32,7 @@ export function libraryCollectionRows(collections: LiteratureCollection[]) {
 export function LibraryCollectionSidebar({
   view,
   selectedId,
+  allSelected = !selectedId,
   busy,
   select,
   create,
@@ -39,6 +40,7 @@ export function LibraryCollectionSidebar({
 }: {
   view: LibraryReadView<LiteratureCollectionPage>;
   selectedId: string;
+  allSelected?: boolean;
   busy: boolean;
   select: (id: string) => void;
   create: () => void;
@@ -50,7 +52,7 @@ export function LibraryCollectionSidebar({
       <button
         type='button'
         className='library-workbench__collection-row'
-        aria-current={!selectedId ? 'page' : undefined}
+        aria-current={allSelected ? 'page' : undefined}
         onClick={() => select('')}
       >
         <FolderOpen size={15} aria-hidden='true' />
