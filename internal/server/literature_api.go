@@ -3,7 +3,6 @@ package server
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -54,27 +53,7 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
-		limit := 20
-		var err error
-		if raw := r.URL.Query().Get("limit"); raw != "" {
-			limit, err = strconv.Atoi(raw)
-		}
-		for key, values := range r.URL.Query() {
-			if len(values) != 1 || (key != "query" && key != "project_id" && key != "collection_id" && key != "cursor" && key != "limit" && key != "reading_status") ||
-				(key == "reading_status" && values[0] == "") {
-				err = workspace.ErrLiteratureInvalid
-			}
-		}
-		if err != nil {
-			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
-			return
-		}
-		page, err := s.workspaceStore.ListLiteratureItemsWithReadingStatus(r.Context(), owner, r.URL.Query().Get("query"), r.URL.Query().Get("project_id"), r.URL.Query().Get("collection_id"), workspace.LiteratureReadingStatus(r.URL.Query().Get("reading_status")), r.URL.Query().Get("cursor"), limit)
-		if err != nil {
-			writeLiteratureError(w, err)
-			return
-		}
-		writeWorkspaceJSON(w, 200, page)
+		s.handleLiteratureItemsRead(w, r, owner)
 		return
 	}
 	if len(parts) == 1 && parts[0] == "import-artifact-version" && r.Method == http.MethodPost {

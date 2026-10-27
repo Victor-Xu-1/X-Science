@@ -22,8 +22,8 @@ func (s *Store) ListLiteratureItemsInCollection(ctx context.Context, owner, quer
 
 func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner, query, project, collectionID string, readingStatus LiteratureReadingStatus, cursor string, limit int) (LiteraturePage, error) {
 	page := LiteraturePage{Schema: "x-science.literature-page.v1", Items: []LiteratureItem{}}
-	if !validLiteratureID(owner) || len(query) > 512 || limit < 1 || limit > 100 || len(cursor) > 4096 ||
-		collectionID != "" && !validLiteratureID(collectionID) || readingStatus != "" && !validLiteratureReadingStatus(readingStatus) {
+	scope := literatureQueryScope{owner, query, project, collectionID, readingStatus}
+	if scope.validate() != nil || limit < 1 || limit > 100 || len(cursor) > 4096 {
 		return page, ErrLiteratureInvalid
 	}
 	bound := literatureCursor{Query: query, Project: project, Owner: owner, Collection: collectionID, ReadingStatus: readingStatus}
@@ -42,28 +42,28 @@ func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner,
 		return page, err
 	}
 	defer tx.Rollback()
-	if collectionID != "" {
-		if _, err := readLiteratureCollection(ctx, tx, owner, collectionID); err != nil {
-			return page, err
-		}
+	if err := scope.authorize(ctx, tx); err != nil {
+		return page, err
 	}
-	const filter = ` AND (?='' OR instr(lower(i.title),lower(?))>0)
- AND (?='' OR EXISTS(SELECT 1 FROM project_literature p JOIN projects project ON project.id=p.project_id
- WHERE p.item_id=i.id AND p.project_id=? AND project.user_id=?))
- AND (?='' OR i.reading_status=?)`
-	statement := `SELECT i.id,0 FROM literature_items i WHERE i.owner_user_id=? AND i.deleted_at IS NULL AND i.id>?` +
-		filter + ` ORDER BY i.id LIMIT ?`
-	args := []any{owner, bound.After, query, query, project, project, owner, readingStatus, readingStatus, limit + 1}
+	total, err := scope.count(ctx, tx)
+	if err != nil {
+		return page, err
+	}
+	from, args := scope.sql()
+	statement := `SELECT i.id,0` + from
 	if collectionID != "" {
 		order := int64(-1)
 		if bound.Order != nil {
 			order = *bound.Order
 		}
-		statement = `SELECT i.id,m.sort_order FROM literature_items i JOIN literature_collection_items m
- ON m.item_id=i.id AND m.collection_id=? WHERE i.owner_user_id=? AND i.deleted_at IS NULL
- AND (m.sort_order>? OR (m.sort_order=? AND i.id>?))` + filter + ` ORDER BY m.sort_order,i.id LIMIT ?`
-		args = []any{collectionID, owner, order, order, bound.After, query, query, project, project, owner, readingStatus, readingStatus, limit + 1}
+		statement = `SELECT i.id,m.sort_order` + from + ` AND (m.sort_order>? OR (m.sort_order=? AND i.id>?))`
+		args = append(args, order, order, bound.After)
+	} else {
+		statement += ` AND i.id>?`
+		args = append(args, bound.After)
 	}
+	statement += ` ORDER BY ` + scope.orderBy() + ` LIMIT ?`
+	args = append(args, limit+1)
 	rows, err := tx.QueryContext(ctx, statement, args...)
 	if err != nil {
 		return page, err
@@ -107,5 +107,9 @@ func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner,
 		}
 		page.Items = append(page.Items, item)
 	}
-	return page, tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return page, err
+	}
+	page.TotalCount = &total
+	return page, nil
 }
