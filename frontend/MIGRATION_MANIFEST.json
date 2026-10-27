@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "b16a2e5778369ffd86a01243a766eff65d8fa7b29484415dd66ed2d21b570505",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "33acd6c2a1d7afa77f1122f0d622d868eb73da935064022e922db5dc1601d8f6",
+  "additionFingerprintSHA256": "af9ad1b5b3e81a29444c88fc4f376d79e3d3ea97c54d532d25e59d032aff6980",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -8135,8 +8135,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextInspectionHistory.tsx",
-      "sha256": "2f89d57bdd4e32f2e63bbd85440485ac5f65dc158806f1eb2874ff20370d6d7f",
-      "bytes": 9155,
+      "sha256": "df00a664bf0649fc584bdc9e6e979c482ad890706773dbcbd1efcadb895ec76c",
+      "bytes": 9910,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8159,8 +8159,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/xScience/runtime/ContextWindowInspector.module.css",
-      "sha256": "fe928a96e6ad20ea36a5dc174d710ac59fa3e90a4a56de8f82c6d87861a19b4f",
-      "bytes": 11597,
+      "sha256": "490badd96df836dd366b458196a21c5d60fdc5f869f79423d33cd07e07d2b7ff",
+      "bytes": 12215,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12779,8 +12779,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextWindowInspector.dom.test.tsx",
-      "sha256": "d94a33bfce20d33b2f237c0b71c2e1c6eada068b9cffd9b181d8db4ec6980df0",
-      "bytes": 28892,
+      "sha256": "1fbed18fa5bed07b485529438bb4017eae013bacb8e90ba94ee441021d9e1f28",
+      "bytes": 32073,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
