@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "9ec0fb80eec9f0c1ee0b7ed3d7fed628d8cb7fb685d8e8e8784d95a0261e92e9",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6b04275e271065cd088b972ec7c2b5a6c092602f240593617144f9296a83fbf9",
+  "additionFingerprintSHA256": "34bf14cf6abff0388796fdfa3fa81d053c0a7c4f92dbd7501521ada8a16cc03f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 268,
@@ -9887,8 +9887,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPublicationCheck.tsx",
-      "sha256": "b6e990a49b8a73b2856abea591f9c7a070c42e2a2fb44977b766f0edc2a8580e",
-      "bytes": 5994,
+      "sha256": "4d4021a20cf5545b60b22c77f09436de6360c10b80ddc32680f6239b9ef16982",
+      "bytes": 6018,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
