@@ -20,6 +20,7 @@ import type { LibraryReadView } from './useLibraryWorkbench';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryAbstract } from './LibraryAbstract';
+import { LibraryBibliographicDetails } from './LibraryBibliographicDetails';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
@@ -234,6 +235,7 @@ export function LibraryItemDetails({
         </div>
       </dl>
       <LibraryAbstract value={item.metadata.abstract} />
+      <LibraryBibliographicDetails metadata={item.metadata} />
       {!relatedDirection && (
         <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
           {(['references', 'citations'] as const).map((direction) => (
