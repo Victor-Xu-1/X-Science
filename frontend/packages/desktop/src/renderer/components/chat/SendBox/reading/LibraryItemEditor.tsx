@@ -10,7 +10,12 @@ import {
   type LibraryScalarKey,
 } from './libraryBibliographicDraft';
 
-type SubmittedEdit = { operationId: string; before: LiteratureReceipt | undefined; draftKey?: string };
+type SubmittedEdit = {
+  operationId: string;
+  before: LiteratureReceipt | undefined;
+  draftKey?: string;
+  removesItem: boolean;
+};
 
 export type LibraryEditorDraftState = {
   dirty: boolean;
@@ -86,13 +91,13 @@ export function LibraryItemEditor({
   }, [publish, registerDraft]);
   useLayoutEffect(publish, [draftKey, publish]);
   const finish = useCallback(
-    (attempt: SubmittedEdit) => {
-      if (submitted.current !== attempt) return;
+    (attempt: SubmittedEdit, removalConfirmed = false) => {
+      if (submitted.current !== attempt || (attempt.removesItem && !removalConfirmed)) return;
       submitted.current = undefined;
       publish();
-      // Membership/removal acknowledgement is not a metadata-save receipt.
-      // A newer draft also survives acknowledgement of an older save.
-      if (currentDraft.current.dirty && attempt.draftKey !== currentDraft.current.key) return;
+      // Confirmed removal ends editing without claiming to save its draft.
+      // Membership and older Save acknowledgements retain newer metadata.
+      if (!removalConfirmed && currentDraft.current.dirty && attempt.draftKey !== currentDraft.current.key) return;
       close();
     },
     [close, publish]
@@ -112,15 +117,21 @@ export function LibraryItemEditor({
       receipt.operation_id === attempt.operationId &&
       receipt.item.id === item.id
     )
-      finish(attempt);
+      finish(attempt, attempt.removesItem && receipt.item.deleted);
   }, [receipt, item.id, finish]);
   const run = (command: LiteratureCommand, savesDraft = false): void => {
     if (busy || readOnly) return;
-    const attempt = { operationId: command.operation_id, before: receipt, ...(savesDraft ? { draftKey } : {}) };
+    const attempt = {
+      operationId: command.operation_id,
+      before: receipt,
+      ...(savesDraft ? { draftKey } : {}),
+      removesItem: command.kind === 'edit' && command.deleted === true,
+    };
     submitted.current = attempt;
     publish();
     void submit(command).then(
-      () => finish(attempt),
+      // The original command owner resolves only after validating its receipt.
+      () => finish(attempt, attempt.removesItem),
       (): undefined => undefined
     );
   };

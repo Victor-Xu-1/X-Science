@@ -1,8 +1,11 @@
 import React from 'react';
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { LiteratureCommand, LiteratureItem } from '@/common/adapter/literatureLibrary';
-import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
+import {
+  LibraryItemEditor,
+  type LibraryEditorDraftState,
+} from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
 import { renderWithI18n } from '../../i18nTestUtils';
 
 const item: LiteratureItem = {
@@ -63,6 +66,13 @@ describe('Library field metadata editor controls', () => {
     const linked = await mount();
     fireEvent.change(screen.getByRole('textbox', { name: 'Authors' }), { target: { value: 'Unsent edit' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add to project' }));
+    await waitFor(() => expect(linked.submit).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(linked.close).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', { name: 'Authors' })).toHaveValue('Unsent edit');
+    fireEvent.click(screen.getByRole('button', { name: /^Close$/ }));
     await waitFor(() => expect(linked.close).toHaveBeenCalledTimes(1));
     expect(linked.submit).toHaveBeenCalledExactlyOnceWith({
       kind: 'membership',
@@ -88,5 +98,62 @@ describe('Library field metadata editor controls', () => {
       expected_revision: 7,
       deleted: true,
     });
+  });
+
+  it('settles confirmed removal only after success without claiming pending removal saved its dirty draft', async () => {
+    let resolve!: (value: unknown) => void;
+    const pending = new Promise<unknown>((done) => {
+      resolve = done;
+    });
+    const submit = vi.fn<(command: LiteratureCommand) => Promise<unknown>>(() => pending);
+    const close = vi.fn();
+    const reports: LibraryEditorDraftState[] = [];
+    const registerDraft = () => (state: LibraryEditorDraftState | null) => {
+      if (state) reports.push(state);
+    };
+    const editor = (receipt?: LiteratureReceipt) => (
+      <LibraryItemEditor
+        item={item}
+        projectId='project'
+        busy={false}
+        submit={submit}
+        close={close}
+        receipt={receipt}
+        registerDraft={registerDraft}
+      />
+    );
+    const rendered = await renderWithI18n(editor(), 'en-US');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Year' }), { target: { value: '2025' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from Library' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm removal' }));
+    expect(submit).toHaveBeenCalledTimes(1);
+    const command = submit.mock.calls[0][0];
+    expect(command).toEqual({
+      kind: 'edit',
+      operation_id: expect.any(String),
+      item_id: 'paper',
+      expected_revision: 7,
+      deleted: true,
+    });
+    expect(close).not.toHaveBeenCalled();
+    expect(reports.at(-1)?.dirty).toBe(true);
+    expect(reports.at(-1)?.submittedOperationId).toBeUndefined();
+    expect(screen.getByRole('textbox', { name: 'Year' })).toHaveValue('2025');
+    const receipt: LiteratureReceipt = {
+      schema: 'x-science.literature-receipt.v1',
+      operation_id: command.operation_id,
+      item: { ...item, deleted: false },
+    };
+    rendered.rerender(editor(receipt));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(close).not.toHaveBeenCalled();
+    const removed = { ...receipt, item: { ...item, deleted: true } };
+    rendered.rerender(editor(removed));
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    await act(async () => resolve(removed));
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(submit).toHaveBeenCalledTimes(1);
   });
 });
