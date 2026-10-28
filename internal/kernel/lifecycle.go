@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"x-science/internal/executionprep"
+	"x-science/internal/kernelcontract/bashsource"
 	"x-science/internal/networkpolicy"
 	"x-science/internal/networktls"
 )
@@ -39,20 +40,22 @@ type SessionSpec struct {
 	AgentName              string
 	// Host-only definition identity. Durable detached specs keep their closed
 	// V1 shape: the derived KernelID already carries this discriminator.
-	AgentDefinitionID    string
-	DelegateName         string
-	KernelKind           string
-	Language             string
-	Environment          string
-	RuntimeGeneration    string
-	WorkspaceDir         string
-	Mounts               []WorkerMount
-	ProtectedPaths       []string
-	EgressAllowedDomains []string
-	EgressDeniedDomains  []string
-	CABundle             string
-	UpstreamProxy        string
-	Fresh                bool
+	AgentDefinitionID           string
+	DelegateName                string
+	KernelKind                  string
+	Language                    string
+	Environment                 string
+	RuntimeGeneration           string
+	WorkerStartupPolicy         bashsource.WorkerStartupPolicy
+	SupervisorRuntimeGeneration string
+	WorkspaceDir                string
+	Mounts                      []WorkerMount
+	ProtectedPaths              []string
+	EgressAllowedDomains        []string
+	EgressDeniedDomains         []string
+	CABundle                    string
+	UpstreamProxy               string
+	Fresh                       bool
 }
 
 type WorkerMount struct {
@@ -430,10 +433,14 @@ func (m *Manager) startSessionLocked(spec SessionSpec) (*Worker, error) {
 }
 
 func sessionRestartKey(spec SessionSpec) string {
-	return strings.Join([]string{
+	identity := []string{
 		spec.KernelID, spec.OwnerID, spec.ProjectID, spec.FrameID, spec.FrameIncarnationID,
 		spec.RootFrameID, spec.RootFrameIncarnationID, spec.Language, spec.Environment, spec.RuntimeGeneration,
-	}, "\x00")
+	}
+	if spec.WorkerStartupPolicy != "" {
+		identity = append(identity, "worker-startup", string(spec.WorkerStartupPolicy), spec.SupervisorRuntimeGeneration)
+	}
+	return strings.Join(identity, "\x00")
 }
 
 func releaseLifecycleWorker(worker *Worker, done <-chan struct{}) {
@@ -523,6 +530,9 @@ func normalizeSessionDomains(values []string) []string {
 }
 
 func validateSessionSpec(spec SessionSpec) error {
+	if err := bashsource.ValidateWorkerStartup(spec.WorkerStartupPolicy, spec.SupervisorRuntimeGeneration, spec.KernelKind, spec.Language); err != nil {
+		return err
+	}
 	for label, value := range map[string]string{
 		"kernel id": spec.KernelID, "frame id": spec.FrameID, "root frame id": spec.RootFrameID,
 	} {
@@ -619,6 +629,7 @@ func sameSessionSpec(left, right SessionSpec) bool {
 		left.RootFrameID == right.RootFrameID && left.RootFrameIncarnationID == right.RootFrameIncarnationID &&
 		left.Language == right.Language &&
 		left.Environment == right.Environment && left.RuntimeGeneration == right.RuntimeGeneration &&
+		left.WorkerStartupPolicy == right.WorkerStartupPolicy && left.SupervisorRuntimeGeneration == right.SupervisorRuntimeGeneration &&
 		left.WorkspaceDir == right.WorkspaceDir &&
 		left.KernelKind == right.KernelKind && left.AgentName == right.AgentName && left.AgentDefinitionID == right.AgentDefinitionID && left.DelegateName == right.DelegateName &&
 		left.Fresh == right.Fresh && sameWorkerMounts(left.Mounts, right.Mounts) &&
@@ -867,6 +878,9 @@ func (m *Manager) Submit(input SubmitRequest) (*ExecutionHandle, error) {
 	worker, state := m.findSessionWorker(input)
 	if worker == nil || state == nil {
 		return nil, fmt.Errorf("no running %s kernel for environment %q on frame %s", input.Language, input.Environment, input.FrameID)
+	}
+	if err := bashsource.ValidateWorkerExecution(worker.startupPolicy, input.Code, input.HostCalls != nil); err != nil {
+		return nil, err
 	}
 	state.mu.Lock()
 	if state.closing {

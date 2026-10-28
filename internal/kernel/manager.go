@@ -21,6 +21,7 @@ import (
 
 	"x-science/internal/assets"
 	"x-science/internal/executionprep"
+	"x-science/internal/kernelcontract/bashsource"
 	"x-science/internal/processsupervisor"
 )
 
@@ -32,6 +33,8 @@ const (
 )
 
 type Config struct {
+	// Set only by operator discovery, never a caller-provided runtime capability.
+	defaultPythonDiscovery bool
 	// UpstreamProxy is the resolved operator network route. Installers must
 	// not re-read mutable process proxy variables after manager construction.
 	UpstreamProxy            string
@@ -197,6 +200,7 @@ type Worker struct {
 	// Protected by executeMu, outside the mutable interpreter. Once arbitrary
 	// source has been dispatched, later diagnostics cannot prove its bindings.
 	observationTainted bool
+	startupPolicy      bashsource.WorkerStartupPolicy
 
 	executeMu       sync.Mutex
 	writeMu         sync.Mutex
@@ -727,6 +731,9 @@ func (w *Worker) Execute(ctx context.Context, code, origin string) (Response, er
 	}
 	w.executeMu.Lock()
 	defer w.executeMu.Unlock()
+	if err := bashsource.ValidateWorkerExecution(w.startupPolicy, code, false); err != nil {
+		return Response{}, err
+	}
 	if origin != "user" {
 		origin = "agent"
 	}
@@ -923,6 +930,9 @@ func (w *Worker) routeStdoutChunk(chunk string) {
 func (w *Worker) writeProtocol(payload []byte) error {
 	if len(payload) == 0 || len(payload) > maxProtocolLineBytes {
 		return errors.New("kernel protocol payload is empty or too large")
+	}
+	if err := bashsource.ValidateWorkerFrame(w.startupPolicy, payload); err != nil {
+		return err
 	}
 	if w.hasExited() {
 		return w.stoppedError()

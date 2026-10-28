@@ -83,8 +83,8 @@
     },
     {
       "path": "kernels/kernel_worker.py",
-      "sha256": "1705a7e09f74e33ce143b507f36caedb267d788f6a47382859896cf6c232c47b",
-      "bytes": 305
+      "sha256": "9870cc56375c47068793bb9717e13bcb5393d7df64d466580b55dc920b0bef8a",
+      "bytes": 393
     },
     {
       "path": "kernels/sdf_artifact_validator.py",
@@ -138,8 +138,8 @@
     },
     {
       "path": "kernels/x_science_runtime/worker_execution.py",
-      "sha256": "da56899b74204a05f0903e7005220b6e21d5433a10d77f6ecc79ce164cdb427f",
-      "bytes": 4936
+      "sha256": "51095cd0cfc7c8c70df7a5c809379f1098f0f383c3462cc368a4a94b24a0efab",
+      "bytes": 5160
     },
     {
       "path": "kernels/x_science_runtime/worker_process_outcomes.py",
@@ -155,6 +155,11 @@
       "path": "kernels/x_science_runtime/worker_safety.py",
       "sha256": "2de6660b116d5d4c9286a63420daf532101ce0329528252eb68557cb32f15910",
       "bytes": 783
+    },
+    {
+      "path": "kernels/x_science_runtime/worker_startup.py",
+      "sha256": "814f7b641fcd23fe5d48f622d61a26a722e64f1a5f2c64a6ade60c1db053ec9d",
+      "bytes": 1168
     },
     {
       "path": "kernels/x_science_runtime/worker_streams.py",

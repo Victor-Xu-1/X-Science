@@ -363,6 +363,13 @@ func TestRecoveredKernelSessionSpecPreservesConfinementAndNetworkPolicy(t *testi
 		spec.CABundle != input.CABundle || spec.UpstreamProxy != input.UpstreamProxy || !spec.Fresh {
 		t.Fatalf("recovered network policy = %#v", spec)
 	}
+	input.KernelKind = "bash"
+	input.WorkerStartupPolicy = "canonical-bash-stdlib-v1"
+	input.SupervisorRuntimeGeneration = strings.Repeat("a", 64)
+	spec = recoveredKernelSessionSpec(input)
+	if spec.WorkerStartupPolicy != input.WorkerStartupPolicy || spec.SupervisorRuntimeGeneration != input.SupervisorRuntimeGeneration {
+		t.Fatal("recovered session dropped supervisor startup authority")
+	}
 }
 
 func TestDetachedKernelObserversStopAndRejectNewReservations(t *testing.T) {

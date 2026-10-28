@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"x-science/internal/kernelcontract/bashsource"
 )
 
 var (
@@ -83,7 +85,7 @@ func (m *Manager) startSessionWorker(spec SessionSpec) (*Worker, error) {
 			mounts = append(mounts, WorkerMount{Path: spec.CABundle, regular: true, trusted: true})
 		}
 		executable, arguments, environment, err = m.wrapKernelEgressRuntime(
-			executable, arguments, environment, proxy.port, spec.CABundle,
+			executable, arguments, environment, proxy.port, spec.CABundle, spec.WorkerStartupPolicy,
 		)
 		if err != nil {
 			proxy.Close()
@@ -93,6 +95,7 @@ func (m *Manager) startSessionWorker(spec SessionSpec) (*Worker, error) {
 	worker, err := m.startWorkerWithRuntime(
 		spec.KernelID, spec.WorkspaceDir, executable, arguments, environment,
 		mounts, spec.ProtectedPaths, sessionRestartKey(spec), spec.Language, nil, proxy,
+		func(worker *Worker) { worker.startupPolicy = spec.WorkerStartupPolicy },
 	)
 	if err != nil {
 		if proxy != nil {
@@ -122,25 +125,42 @@ func (m *Manager) wrapKernelEgressRuntime(
 	arguments, environment []string,
 	port int,
 	caBundle string,
+	policies ...bashsource.WorkerStartupPolicy,
 ) (string, []string, []string, error) {
 	forwarder := filepath.Join(m.config.AssetRoot, "kernels", "kernel_egress_forwarder.py")
 	if info, err := os.Stat(forwarder); err != nil || !info.Mode().IsRegular() {
 		return "", nil, nil, errors.New("kernel egress forwarder is unavailable")
 	}
-	const script = `
+	pythonCommand, iterations, pauseCommand := "/usr/bin/python3", "$(seq 1 100)", "sleep"
+	shell := "/bin/sh"
+	shellArguments := []string{"-c"}
+	restricted := len(policies) == 1 && policies[0] != ""
+	if len(policies) > 1 || (restricted && policies[0] != bashsource.CanonicalBashStdlibV1) {
+		return "", nil, nil, errors.New("unknown egress supervisor startup policy")
+	}
+	if restricted {
+		// Closed policy selection, not caller-authored command interpolation. The
+		// same verified interpreter owns forwarder and readiness startup.
+		pythonCommand = `"$X_SCIENCE_KERNEL_EGRESS_SUPERVISOR" -I -S`
+		iterations = "{1..100}"
+		pauseCommand = "/bin/sleep"
+		shell = "/bin/bash"
+		shellArguments = []string{"--noprofile", "--norc", "-p", "-c"}
+	}
+	script := fmt.Sprintf(`
 set -eu
-/usr/bin/python3 "$X_SCIENCE_KERNEL_EGRESS_FORWARDER" </dev/null >/dev/null 2>&1 &
+%s "$X_SCIENCE_KERNEL_EGRESS_FORWARDER" </dev/null >/dev/null 2>&1 &
 proxy_pid=$!
-for attempt in $(seq 1 100); do
-  if /usr/bin/python3 -c 'import os,socket; s=socket.create_connection(("127.0.0.1",int(os.environ["X_SCIENCE_KERNEL_EGRESS_PORT"])),0.1); s.close()' 2>/dev/null; then
+for attempt in %s; do
+  if %s -c 'import os,socket; s=socket.create_connection(("127.0.0.1",int(os.environ["X_SCIENCE_KERNEL_EGRESS_PORT"])),0.1); s.close()' 2>/dev/null; then
     exec "$@"
   fi
-  sleep 0.01
+  %s 0.01
 done
 kill "$proxy_pid" 2>/dev/null || true
 exit 70
-`
-	wrapperArguments := []string{"-c", script, "x-science-kernel-egress", executable}
+`, pythonCommand, iterations, pythonCommand, pauseCommand)
+	wrapperArguments := append(shellArguments, script, "x-science-kernel-egress", executable)
 	wrapperArguments = append(wrapperArguments, arguments...)
 	if port < 1024 || port > 65535 {
 		return "", nil, nil, errors.New("kernel egress loopback port is invalid")
@@ -157,6 +177,9 @@ exit 70
 		"NODE_USE_ENV_PROXY": "1",
 		"GIT_SSH_COMMAND":    "/bin/false",
 	}
+	if restricted {
+		overrides["X_SCIENCE_KERNEL_EGRESS_SUPERVISOR"] = executable
+	}
 	if caBundle != "" {
 		overrides["SSL_CERT_FILE"] = caBundle
 		overrides["REQUESTS_CA_BUNDLE"] = caBundle
@@ -165,7 +188,7 @@ exit 70
 		// Reuse the same verified, read-only mounted bundle without disabling TLS.
 		overrides["NODE_EXTRA_CA_CERTS"] = caBundle
 	}
-	return "/bin/sh", wrapperArguments, mergeKernelEnvironment(environment, overrides), nil
+	return shell, wrapperArguments, mergeKernelEnvironment(environment, overrides), nil
 }
 
 func mergeKernelEnvironment(environment []string, overrides map[string]string) []string {
@@ -199,7 +222,10 @@ func (m *Manager) sessionRuntime(spec SessionSpec) (string, []string, []string, 
 func (m *Manager) sessionRuntimeWithMounts(spec SessionSpec) (string, []string, []string, []WorkerMount, error) {
 	switch spec.Language {
 	case "python":
-		python := m.config.Python
+		python, err := m.sessionSupervisor(spec)
+		if err != nil {
+			return "", nil, nil, nil, err
+		}
 		prefix := ""
 		if !isSystemPythonEnvironment(spec.Environment) {
 			var err error
@@ -233,7 +259,7 @@ func (m *Manager) sessionRuntimeWithMounts(spec SessionSpec) (string, []string, 
 		if err != nil {
 			return "", nil, nil, nil, err
 		}
-		return python, pythonWorkerArguments(m.config.WorkerPath), m.runtimeEnvironmentAtPrefix(spec.Environment, "python", spec.WorkspaceDir, spec.KernelID, "", "", "", prefix), mounts, nil
+		return python, startupWorkerArguments(m.config.WorkerPath, spec.WorkerStartupPolicy), m.runtimeEnvironmentAtPrefix(spec.Environment, "python", spec.WorkspaceDir, spec.KernelID, "", "", "", prefix), mounts, nil
 	case "r":
 		worker := strings.TrimSpace(m.config.RWorkerPath)
 		if worker == "" {

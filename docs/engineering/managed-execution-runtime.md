@@ -850,3 +850,53 @@ Docker adoption binds those original facts into a new approval and requires
 current physical evidence. Unprovable native daemons remain visibly unknown.
 The CLI worker opens only the server descriptor's existing compatible workspace:
 it does not migrate a database, start a Web server or create another scheduler.
+
+### Trusted Bash supervisor startup and workspace reader compatibility
+
+The bundled Linux Bash route can use `canonical-bash-stdlib-v1`. The service
+derives this mode from default operator discovery, verified product assets and
+the actual installed bundled Python activation generation. A tool input or
+environment variable cannot grant it. Explicit operator interpreters and
+unverified or custom startup configurations retain their original legacy mode.
+
+The selected scientific environment and protocol supervisor remain distinct.
+The verified supervisor starts with isolated/no-site Python arguments and no
+scientific initialization. Scientific child interpreters retain ordinary site
+and package loading. The same interpreter and startup isolation cover the
+existing egress forwarder/readiness helpers. Restricted workers accept only the
+canonical Bash envelope; arbitrary Python, host-enabled execution and raw host
+RPC frames are rejected by the existing execution/protocol writer.
+
+Closed durable V1 metadata stores `worker_startup_policy` and
+`supervisor_runtime_generation`. Both empty fields preserve historical bytes
+and legacy stable identities. Nonempty identities require the exact known
+policy, Bash/Python kind and language, and the original installed generation.
+Every detached and service recovery conversion preserves those fields; a
+reconstructed Manager re-verifies the installed generation and fails rather
+than silently starting a legacy supervisor on mismatch.
+
+Workspace migration88 is the journal-only minimum-reader boundary for these
+nonempty fields. Normal primary Open commits it before returning a usable
+Store; secondary attachment validates the same compiled contract. It rewrites
+no task/session/execution or legacy receipt. Binaries supporting at most87
+refuse the upgraded workspace before returning a usable Store. The migration
+journal remains the only compatibility authority; no settings flag or parallel
+feature journal enables startup.
+
+The first activation that commits88 has a forward-only recovery window. The
+existing recoverable activation owner may restore the previous configuration
+only while the schema remains unchanged and work is known idle. After88 is
+committed it must retain recovery evidence and use a reviewed compatible
+forward-recovery build; it must not restart a87 binary, remove the marker or
+restore a pre-upgrade database over accepted work. Prepare and verify that
+compatible recovery artifact before activation. Once this complete foundation
+is formally healthy, it becomes the executable same-schema recovery baseline
+for subsequent upgrades. A codec-only reader or an arbitrary historical binary
+is not such a baseline. Already-running older executors retain only their
+original legacy authority; the journal is not a process-revocation mechanism.
+
+This mode does not authorize pressure retirement. Stateful analysis and legacy
+workers remain protected, and a canonical Bash command can leave an independently
+owned background child. Future pressure selection must prove quiescence and
+ownership before stopping; positive physical exit must precede reservation
+release. Trusted startup alone does not close the idle-pressure repair.

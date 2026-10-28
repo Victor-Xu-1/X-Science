@@ -102,6 +102,7 @@ func DiscoverManagerWithPathsAndProxy(condaHome, condaEnvsPath, installerProxy s
 		return nil, discoveryFailure(DiscoveryStageAssetRoot, err)
 	}
 	python := strings.TrimSpace(os.Getenv("X_SCIENCE_KERNEL_PYTHON"))
+	defaultPythonDiscovery := python == ""
 	if python != "" {
 		python, err = absoluteExecutable(python)
 		if err != nil {
@@ -154,7 +155,8 @@ func DiscoverManagerWithPathsAndProxy(condaHome, condaEnvsPath, installerProxy s
 		sharedRPackages = []string{"tidyverse", "jsonlite", "ggplot2"}
 	}
 	manager := NewManager(Config{
-		Python: python, Micromamba: micromamba, CondaHome: condaHome, CondaEnvsPath: condaEnvsPath,
+		defaultPythonDiscovery: defaultPythonDiscovery,
+		Python:                 python, Micromamba: micromamba, CondaHome: condaHome, CondaEnvsPath: condaEnvsPath,
 		UpstreamProxy: installerProxy,
 		AssetRoot:     assetRoot, ManifestPath: filepath.Join(assetRoot, "kernel-compute.manifest.json"),
 		WorkerPath:               filepath.Join(assetRoot, "kernels", "kernel_worker.py"),

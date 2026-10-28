@@ -15,6 +15,7 @@ from .worker_transport import Transport
 from .worker_safety import harden_process
 from .worker_reads import ExecutionReadWitness
 from .worker_effects import ObservationGuard, declined
+from .worker_startup import CANONICAL_BASH_STDLIB_V1, prepare_scientific_child_imports
 
 
 class Worker:
@@ -92,12 +93,15 @@ class Worker:
         self.transport.send(result)
 
 
-def run():
+def run(startup_policy=""):
     harden_process()
     transport = Transport()
     worker = Worker(transport)
     try:
-        configure_matplotlib_runtime()
+        if startup_policy == CANONICAL_BASH_STDLIB_V1:
+            prepare_scientific_child_imports()
+        else:
+            configure_matplotlib_runtime()
         while True:
             request = transport.receive()
             if request is None:
