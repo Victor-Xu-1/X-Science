@@ -38,6 +38,10 @@
   border-right: 1px solid var(--border-base);
 }
 
+.layout-sider.layout-sider--mobile {
+  transition: transform 200ms ease-out;
+}
+
 /* Claude-inspired conversation sidebar: quiet neutral surfaces, compact
    hierarchy, and one consistent row rhythm without changing any behavior. */
 .x-science-sidebar-shell {
@@ -497,6 +501,7 @@ html body .sider-account-menu-icon-slot > .i-icon svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .layout-sider.layout-sider--mobile,
   .x-science-sidebar-section-toggle .i-icon,
   .chat-history,
   .chat-history__item,

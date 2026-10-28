@@ -77,6 +77,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   useEffect(() => cancelPointerPrefetch, [cancelPointerPrefetch]);
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  const mobileDrawerClosed = isMobile && layout?.siderCollapsed === true;
   const { t } = useTranslation();
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
@@ -109,8 +110,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   );
 
   useEffect(() => {
-    if (menuVisible) focusFirstMenuItem();
-  }, [focusFirstMenuItem, menuVisible]);
+    if (mobileDrawerClosed && menuVisible) handleMenuVisibleChange(false);
+  }, [handleMenuVisibleChange, menuVisible, mobileDrawerClosed]);
+
+  useEffect(() => {
+    if (menuVisible && !mobileDrawerClosed) focusFirstMenuItem();
+  }, [focusFirstMenuItem, menuVisible, mobileDrawerClosed]);
 
   const handleMenuKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -287,7 +292,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           </button>
 
           {renderCompletionUnreadDot()}
-          {!batchMode && (
+          {!batchMode && !mobileDrawerClosed && (
             <div
               className={classNames(
                 'absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end !collapsed-hidden',

@@ -880,4 +880,15 @@ task creation, translations and the X-Science brand keep their existing owners.
 选中态，键盘焦点沿用主题焦点环。项目区域保持原展开与菜单行为，并采用协调的
 尺寸和状态样式；导航、新建任务、翻译及 X-Science 品牌继续沿用原链路。
 
+## Mobile sidebar · 移动端侧栏
+
+On narrow screens the sidebar slides at its existing calculated width while
+retaining its full contents. Closing it immediately hides those contents from
+keyboard and pointer interaction and removes the backdrop. The system's reduced
+motion preference disables the transition; desktop resizing and the existing
+sidebar state continue to use their normal controls.
+
+窄屏侧栏以现有计算宽度完整滑入和滑出；关闭时立即禁止隐藏内容的键盘和指针
+交互并移除遮罩。系统开启减少动画时不播放过渡；桌面宽度与侧栏状态沿用原控制。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

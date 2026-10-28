@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e44eedcbd3b9f7bc726e8385d901ad6374bd8da8a9d043553e778a1f6f9f1189",
+  "adaptationFingerprintSHA256": "553ddf8325cea2bf54d2c25ee3438352808c7e79c98d41a46b1591f57b4e26f4",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "beaf5c67475620cdfc0cc65720839374b58e16a17977deeace613251de18714a",
+  "additionFingerprintSHA256": "06cf37be1c1da267e0c949e78757adf9c372f2b67bd3546fe6726bf052e5e3e8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
     "adaptedSourceFiles": 792,
     "removedSourceFiles": 295,
-    "addedFiles": 1330
+    "addedFiles": 1332
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "4775962748bc94037965789a828bb85cbff0b085a2bdbf1704394975c60ad099",
+      "targetSHA256": "345fb71ed31ca48f91691c0f0f2cb5f2b94d0ba0d9415a69209239e6760ac5bc",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "ea15691ffe75188efa4b76eafae81228104da7b79e7edd04dab98da6b54530c2",
+      "targetSHA256": "36a0f04dd13dc47abd7efd9a8fbfbae53e1c5c16316226d6f1845e86ad4b1b25",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -505,8 +505,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
-      "targetSHA256": "549317837c5332aa5e70ae67f74e6d7c3866e55e3b2fbc4a216f0276ddf9a7f4",
-      "bytes": 21371,
+      "targetSHA256": "ac23c91b35c44401684ef9162bd1a867452c8ad0ab5d97064e9ac9b9d430a9ec",
+      "bytes": 21573,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -1242,8 +1242,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx",
       "sourceSHA256": "2acf7cd13e664fca0fd642fe0d213d9a7fd1475aee6cc63d5d87487a29b304fd",
-      "targetSHA256": "f6b7fae2e304457cfb938c84e743b659ea3854add148c0eddd0f189aaedec050",
-      "bytes": 21510,
+      "targetSHA256": "c48d88046d0efad143d736a94237702c07292c715eaddf03e830d8d8720e9a80",
+      "bytes": 21812,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1277,8 +1277,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx",
       "sourceSHA256": "38148c87bf163839e82f1af9cc699b25abc3a4a2b2f1bb2c84e4b62d2e10c9fe",
-      "targetSHA256": "813a7c6a76b54a95e4d813f0ada648d06380a0bab7bc512da5383064d2d62bf3",
-      "bytes": 38412,
+      "targetSHA256": "93c0c41203d497d4483872d0156c251fbbbfd001b7772d6651f8cdfa3ea09fd1",
+      "bytes": 38738,
       "reason": "Synchronize the committed project list before visible reorder handles can receive input."
     },
     {
@@ -3340,8 +3340,8 @@
     {
       "path": "packages/desktop/src/renderer/styles/layout.css",
       "sourceSHA256": "7c770e55d7927b0c7c3dddd607cd783fa6b2007eb3828267fe95e04bd19f8f7b",
-      "targetSHA256": "5fb74b6db4b9677cb91e2be78e05b4f61d735c0efcd631a9e25b714ecab27540",
-      "bytes": 17109,
+      "targetSHA256": "4419ffb0b34a1b3c1ae683488fa69e5328d3451cc0d880467a9bc1656bfa2288",
+      "bytes": 17227,
       "reason": "Converge global styles, builtin theme declarations, PWA assets, service-worker behavior, and renderer type declarations on the focused Web product."
     },
     {
@@ -7584,7 +7584,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "9c22e0d3bca723d56d6394e3f57290a68b10862af3abf5f5123d9a371d8e59d2",
+      "sha256": "8a8fc680ae35b09abf49b1e5b173e5e937e450cbf8c402f12687fd5b927f67c9",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -13043,6 +13043,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/LayoutMobileSiderMotion.dom.test.tsx",
+      "sha256": "83a7dd0fa81f4048091c0c014252452c816c53c2a525a96b587c919c3ad4579a",
+      "bytes": 8550,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/LazySyntaxHighlighter.dom.test.tsx",
       "sha256": "bd94e8dce570c076569e54db82bd4646e0f4c7ebed1bf2deaed2244604ba21ef",
       "bytes": 1783,
@@ -13094,6 +13100,12 @@
       "path": "tests/unit/renderer/MobileActionSheetPane.dom.test.tsx",
       "sha256": "354f507a2680eaed417033593a3d6dca81b5c208008d61d2537dab448a07c3e2",
       "bytes": 8894,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/MobileSiderMenuLifetime.dom.test.tsx",
+      "sha256": "0a0e2b202f7c83c45ba9b7423318303836ee3f46ec8c6ea8022a870557b3b275",
+      "bytes": 9071,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
