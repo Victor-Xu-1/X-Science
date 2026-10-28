@@ -115,7 +115,8 @@ describe('Library table through the real Page and account setting transport', ()
       visible: ['year', 'readingStatus', 'attachments'],
     });
     expect(settings.writes.every((write) => write.owner === ownerA)).toBe(true);
-    expect(screen.getByRole('heading', { name: 'Paper A' })).toBe(heading);
+    expect(screen.getByRole('heading', { name: 'Edit details' })).toBe(heading);
+    expect(within(detail()).getByText('Paper A', { selector: '.library-workbench__detail-subtitle' })).toBeVisible();
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(title);
     expect(title).toHaveValue('Draft survives column edits');
     expect(location().get('item')).toBe('a');

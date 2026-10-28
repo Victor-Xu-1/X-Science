@@ -243,13 +243,15 @@ export function LibraryItemDetails({
             ))}
           </div>
         )}
-        {relatedDirection && !stale && (
-          <LibraryRelatedLookup
-            key={JSON.stringify([account, item.id, item.metadata_revision, relatedDirection])}
-            item={item}
-            initialDirection={relatedDirection}
-            close={() => setRelatedDirection(null)}
-          />
+        {relatedDirection && (
+          <div hidden={stale} inert={stale || undefined}>
+            <LibraryRelatedLookup
+              key={JSON.stringify([account, item.id, item.metadata_revision, relatedDirection])}
+              item={item}
+              initialDirection={relatedDirection}
+              close={() => setRelatedDirection(null)}
+            />
+          </div>
         )}
         <LibraryPublicationCheck account={account} item={item} disabled={stale} />
         <LibraryCollectionMembershipPicker

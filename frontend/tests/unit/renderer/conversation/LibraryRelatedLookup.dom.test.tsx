@@ -85,7 +85,7 @@ afterEach(() => {
 });
 
 it.each(['en-US', 'zh-CN'] as const)(
-  'opens query from Library details and keeps a live editor draft in %s',
+  'keeps the query mounted but inert during editing and restores view controls in %s',
   async (locale) => {
     const submit = vi.fn(),
       close = vi.fn();
@@ -115,17 +115,25 @@ it.each(['en-US', 'zh-CN'] as const)(
       direction: 'references',
       offset: 0,
     });
+    const related = screen.getByRole('region', { name: text('related.title') });
     fireEvent.click(screen.getByRole('button', { name: view.i18n.t('conversation.libraryWorkbench.edit') }));
     fireEvent.change(screen.getByRole('textbox', { name: text('libraryTitle') }), {
       target: { value: 'Unsaved title' },
     });
-    const related = screen.getByRole('region', { name: text('related.title') });
+    expect(screen.getByRole('textbox', { name: text('libraryTitle') })).toHaveValue('Unsaved title');
+    expect(related).toBeInTheDocument();
+    expect(related).not.toBeVisible();
+    expect(related.closest('.library-workbench__overview')).toHaveAttribute('inert');
+    // This bare Details fixture has no Page dirty-exit guard. Back ends this
+    // editor; only the now-visible query is interactive again.
+    fireEvent.click(screen.getByRole('button', { name: view.i18n.t('conversation.libraryWorkbench.back') }));
+    expect(related).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: text('libraryTitle') })).toBeNull();
     fireEvent.click(within(related).getByRole('tab', { name: text('related.citations') }));
     await screen.findByText('Related paper');
     expect(captured(1).direction).toBe('citations');
     expect(screen.queryByRole('button', { name: text('related.references') })).toBeNull();
     fireEvent.click(within(related).getByRole('button', { name: view.i18n.t('common.close') }));
-    expect(screen.getByRole('textbox', { name: text('libraryTitle') })).toHaveValue('Unsaved title');
     fireEvent.click(screen.getByRole('button', { name: text('related.references') }));
     await waitFor(() => expect(captured(2)).toMatchObject({ direction: 'references' }));
     expect(submit).not.toHaveBeenCalled();
@@ -352,7 +360,7 @@ it('does not commit an already-resolved response queued in the same batch as an 
   expect(screen.queryByText(item.title)).toBeNull();
 });
 
-it('closing a query aborts the request without modifying the metadata draft', async () => {
+it('closing a view-mode query aborts the request and protects the later editor draft', async () => {
   const pending = deferredPdf<RelatedResult>(),
     submit = vi.fn();
   mocks.http.mockReturnValueOnce(pending.promise);
@@ -373,12 +381,12 @@ it('closing a query aborts the request without modifying the metadata draft', as
     />,
     'en-US'
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
-  fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Retained edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'References' }));
   const related = await screen.findByRole('region', { name: 'Related literature' });
   fireEvent.click(within(related).getByRole('button', { name: 'Close' }));
   expect(signal().aborted).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
+  fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Retained edit' } });
   await act(async () => pending.resolve(result(captured())));
   expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Retained edit');
   expect(screen.queryByText('Related paper')).toBeNull();
