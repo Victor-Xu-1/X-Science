@@ -891,4 +891,14 @@ sidebar state continue to use their normal controls.
 窄屏侧栏以现有计算宽度完整滑入和滑出；关闭时立即禁止隐藏内容的键盘和指针
 交互并移除遮罩。系统开启减少动画时不播放过渡；桌面宽度与侧栏状态沿用原控制。
 
+## Library abstract · 文献摘要
+
+When a saved reference contains a non-empty text abstract, its details show the
+original text. Longer content initially occupies up to eight lines and exposes
+an accessible Show more/Show less control only when it overflows. The existing
+reference reader owns the data; editing and PDF state are unaffected.
+
+文献已有非空文本摘要时，详情显示原文；超出八行时提供展开和收起控件。摘要沿用
+已有文献信息读取链路，不改变元数据编辑或 PDF 状态。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)
