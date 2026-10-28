@@ -108,13 +108,38 @@ func (s *Store) BuildCompatibilitySessionExport(
 	} else {
 		exportedAt = exportedAt.UTC()
 	}
-	resolvedRootID, found, err := s.resolveCompatibilitySessionRoot(ctx, ownerUserID, rootFrameID)
+	// All components, including authorization and artifact versions, must come
+	// from one SQLite snapshot. Use the read pool so a long export does not
+	// occupy the single writer connection or block an active task.
+	tx, err := s.readDatabase().BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return CompatibilitySessionExport{}, false, fmt.Errorf("begin compatibility session snapshot: %w", err)
+	}
+	defer tx.Rollback()
+	exported, found, err := s.buildCompatibilitySessionExport(ctx, tx, ownerUserID, rootFrameID, exportedAt)
+	if err != nil || !found {
+		return exported, found, err
+	}
+	if err := tx.Commit(); err != nil {
+		return CompatibilitySessionExport{}, false, fmt.Errorf("finish compatibility session snapshot: %w", err)
+	}
+	return exported, true, nil
+}
+
+// compatibilitySessionQuery is shared by the export reader and a SQL transaction.
+type compatibilitySessionQuery interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func (s *Store) buildCompatibilitySessionExport(ctx context.Context, query compatibilitySessionQuery, ownerUserID, rootFrameID string, exportedAt time.Time) (CompatibilitySessionExport, bool, error) {
+	resolvedRootID, found, err := resolveCompatibilitySessionRoot(ctx, query, ownerUserID, rootFrameID)
 	if err != nil || !found {
 		return CompatibilitySessionExport{}, found, err
 	}
 	rootFrameID = resolvedRootID
 
-	rows, err := s.db.QueryContext(ctx, `
+	rows, err := query.QueryContext(ctx, `
 		SELECT f.id, f.project_id, f.parent_frame_id, f.root_frame_id,
 			f.agent_name, f.status, f.name, f.created_at,
 			m.delegate_name, m.task_summary, COALESCE(m.is_hidden, 0), m.model, m.effort,
@@ -180,11 +205,11 @@ func (s *Store) BuildCompatibilitySessionExport(
 		return CompatibilitySessionExport{}, false, nil
 	}
 	for index := range frames {
-		frames[index].Messages, err = s.listCompatibilitySessionMessages(ctx, frames[index].ID)
+		frames[index].Messages, err = listCompatibilitySessionMessages(ctx, query, frames[index].ID)
 		if err != nil {
 			return CompatibilitySessionExport{}, false, err
 		}
-		frames[index].CompactionArchives, err = s.listCompatibilityCompactionArchives(frames[index].ID)
+		frames[index].CompactionArchives, err = listCompatibilityCompactionArchives(ctx, query, frames[index].ID)
 		if err != nil {
 			return CompatibilitySessionExport{}, false, err
 		}
@@ -212,7 +237,7 @@ func (s *Store) BuildCompatibilitySessionExport(
 		}
 	}
 
-	artifacts, err := s.compatibilitySessionArtifacts(ctx, ownerUserID, frames[rootIndex].projectID, rootFrameID)
+	artifacts, err := s.compatibilitySessionArtifacts(ctx, query, ownerUserID, frames[rootIndex].projectID, rootFrameID)
 	if err != nil {
 		return CompatibilitySessionExport{}, false, err
 	}
@@ -251,11 +276,11 @@ func (s *Store) BuildCompatibilitySessionExport(
 	return exported, true, nil
 }
 
-func (s *Store) resolveCompatibilitySessionRoot(
-	ctx context.Context, ownerUserID, rootFramePrefix string,
+func resolveCompatibilitySessionRoot(
+	ctx context.Context, query compatibilitySessionQuery, ownerUserID, rootFramePrefix string,
 ) (string, bool, error) {
 	var rootFrameID string
-	err := s.db.QueryRowContext(ctx, `
+	err := query.QueryRowContext(ctx, `
 		SELECT frame.id
 		FROM frames frame
 		JOIN projects project ON project.id = frame.project_id
@@ -279,31 +304,31 @@ func escapeCompatibilityLike(value string) string {
 	return strings.ReplaceAll(value, `_`, `\_`)
 }
 
-func (s *Store) listCompatibilityCompactionArchives(frameID string) ([]CompatibilityCompactionArchive, error) {
-	metadata, err := s.ListCompactionArchives(frameID)
+func listCompatibilityCompactionArchives(ctx context.Context, query compatibilitySessionQuery, frameID string) ([]CompatibilityCompactionArchive, error) {
+	rows, err := query.QueryContext(ctx, `
+		SELECT id, frame_id, compaction_index, message_count, token_count,
+		       summary, messages, source_event_id, created_at
+		FROM compaction_archives WHERE frame_id = ? ORDER BY compaction_index`, frameID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query compatibility compaction archives: %w", err)
 	}
-	archives := make([]CompatibilityCompactionArchive, 0, len(metadata))
-	for _, item := range metadata {
-		full, found, err := s.GetCompactionArchive(frameID, item.CompactionIndex)
+	defer rows.Close()
+	archives := make([]CompatibilityCompactionArchive, 0)
+	for rows.Next() {
+		full, found, err := scanCompactionArchive(rows)
 		if err != nil {
 			return nil, err
 		}
 		if !found {
-			return nil, fmt.Errorf("compaction archive %s/%d disappeared during export", frameID, item.CompactionIndex)
-		}
-		messages := full.Messages
-		if messages == nil {
-			messages = []map[string]any{}
+			return nil, errors.New("compaction archive disappeared during export")
 		}
 		archives = append(archives, CompatibilityCompactionArchive{
-			CompactionIndex: full.CompactionIndex,
-			MessageCount:    full.MessageCount,
-			TokenCount:      full.TokenCount,
-			Summary:         full.Summary,
-			Messages:        messages,
+			CompactionIndex: full.CompactionIndex, MessageCount: full.MessageCount,
+			TokenCount: full.TokenCount, Summary: full.Summary, Messages: full.Messages,
 		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate compatibility compaction archives: %w", err)
 	}
 	return archives, nil
 }
@@ -329,8 +354,8 @@ func compatibilitySessionContextMetadata(contextData map[string]any) map[string]
 	return result
 }
 
-func (s *Store) listCompatibilitySessionMessages(ctx context.Context, frameID string) ([]map[string]any, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT payload FROM frame_events WHERE frame_id = ? AND `+compatibilityMessagePredicate+` ORDER BY sequence`, frameID)
+func listCompatibilitySessionMessages(ctx context.Context, query compatibilitySessionQuery, frameID string) ([]map[string]any, error) {
+	rows, err := query.QueryContext(ctx, `SELECT payload FROM frame_events WHERE frame_id = ? AND `+compatibilityMessagePredicate+` ORDER BY sequence`, frameID)
 	if err != nil {
 		return nil, fmt.Errorf("query compatibility session messages: %w", err)
 	}
@@ -354,9 +379,9 @@ func (s *Store) listCompatibilitySessionMessages(ctx context.Context, frameID st
 }
 
 func (s *Store) compatibilitySessionArtifacts(
-	ctx context.Context, ownerUserID, projectID, rootFrameID string,
+	ctx context.Context, query compatibilitySessionQuery, ownerUserID, projectID, rootFrameID string,
 ) ([]CompatibilitySessionArtifact, error) {
-	listed, err := s.ListCompatibilityConversationArtifacts(ctx, ownerUserID, projectID, rootFrameID, false)
+	listed, err := s.listCompatibilityConversationArtifactsWithQuery(ctx, query, ownerUserID, projectID, rootFrameID, false, true)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +398,7 @@ func (s *Store) compatibilitySessionArtifacts(
 	}
 	// Older Go data may predate artifact_runtime_metadata. Provenance is still
 	// authoritative enough to include the current version in a session export.
-	rows, err := s.db.QueryContext(ctx, `
+	rows, err := query.QueryContext(ctx, `
 		SELECT artifact.id, version.id, artifact.name,
 			COALESCE(NULLIF(provenance.content_type, ''), artifact.kind),
 			CASE WHEN COALESCE(version.storage_path, '') = '' THEN length(version.content) ELSE version.size_bytes END,

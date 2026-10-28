@@ -387,6 +387,12 @@ func (s *Store) listCompatibilityConversationArtifacts(
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	return s.listCompatibilityConversationArtifactsWithQuery(ctx, s.db, ownerUserID, projectID, rootFrameID, excludeIntermediate, currentOnly)
+}
+
+func (s *Store) listCompatibilityConversationArtifactsWithQuery(
+	ctx context.Context, queryer compatibilitySessionQuery, ownerUserID, projectID, rootFrameID string, excludeIntermediate, currentOnly bool,
+) ([]CompatibilityConversationArtifact, error) {
 	ownerUserID, projectID = strings.TrimSpace(ownerUserID), strings.TrimSpace(projectID)
 	rootFrameID = strings.TrimSpace(rootFrameID)
 	owned := `m.root_frame_id = scope.frame_id`
@@ -407,7 +413,7 @@ func (s *Store) listCompatibilityConversationArtifacts(
 	if !currentOnly {
 		query += `, v.version_number ASC, v.id ASC`
 	}
-	rows, err := s.db.QueryContext(ctx, query, ownerUserID, projectID, rootFrameID)
+	rows, err := queryer.QueryContext(ctx, query, ownerUserID, projectID, rootFrameID)
 	if err != nil {
 		return nil, fmt.Errorf("list compatibility conversation artifacts: %w", err)
 	}
