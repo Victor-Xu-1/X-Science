@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "a0c03d005fb9f131a6b3ef3299669941e83f4107032521f9facaf720640fcfe8",
+  "adaptationFingerprintSHA256": "e44eedcbd3b9f7bc726e8385d901ad6374bd8da8a9d043553e778a1f6f9f1189",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1f3c106192f8f8850697946842167813729c5f33b8a3b6f85acb510a3c3e57fd",
+  "additionFingerprintSHA256": "beaf5c67475620cdfc0cc65720839374b58e16a17977deeace613251de18714a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
@@ -3340,8 +3340,8 @@
     {
       "path": "packages/desktop/src/renderer/styles/layout.css",
       "sourceSHA256": "7c770e55d7927b0c7c3dddd607cd783fa6b2007eb3828267fe95e04bd19f8f7b",
-      "targetSHA256": "300ff5da678625580fdea851c06b4aab3be3e28b20cf60c0543d60dc7212c946",
-      "bytes": 17019,
+      "targetSHA256": "5fb74b6db4b9677cb91e2be78e05b4f61d735c0efcd631a9e25b714ecab27540",
+      "bytes": 17109,
       "reason": "Converge global styles, builtin theme declarations, PWA assets, service-worker behavior, and renderer type declarations on the focused Web product."
     },
     {
@@ -11394,8 +11394,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "4e993a7b6b619a2e59fd156264eadd12362c0ad83fea619718bea15505f01f18",
-      "bytes": 68188,
+      "sha256": "f521803274d77be0cb174dfcdaa703611d08bbed30bca4bf74c1e903b43038d7",
+      "bytes": 68336,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {
