@@ -262,35 +262,62 @@ export default function LibraryPage() {
       command: Command
     ) => {
       const account = reads.account;
-      setAction({ account, failed: false, operationId: command.operation_id });
+      const attempt = { account, failed: false, operationId: command.operation_id };
+      setAction(attempt);
       try {
         return await mutation.controller.submit(command);
       } catch (error) {
         if (account === getRendererAccountScopeToken())
-          setAction((value) => (value.account === account ? { ...value, failed: true } : value));
+          setAction((value) =>
+            value === attempt && value.account === account && value.operationId === command.operation_id
+              ? { ...value, failed: true }
+              : value
+          );
         throw error;
       }
     },
     [mutation.controller, reads.account]
   );
+  const retryPendingMutation = useCallback(async () => {
+    const account = reads.account;
+    const operationId = mutation.controller.getSnapshot().pending?.operation_id ?? null;
+    const attempt = { account, failed: false, operationId };
+    setAction(attempt);
+    try {
+      return await mutation.controller.retry();
+    } catch (error) {
+      if (account === getRendererAccountScopeToken())
+        setAction((value) =>
+          value === attempt && value.account === account && value.operationId === operationId
+            ? { ...value, failed: true }
+            : value
+        );
+      throw error;
+    }
+  }, [mutation.controller, reads.account]);
   const retryMutation = async () => {
     if (mutation.view.pending?.kind === 'pdf-upload') {
       pdfImport.retry();
       return;
     }
+    if (mutation.view.pending) {
+      await retryPendingMutation().catch((): undefined => undefined);
+      return;
+    }
     const account = reads.account;
-    setAction({ account, failed: false, operationId: mutation.view.pending?.operation_id ?? null });
+    const attempt: typeof action = { account, failed: false, operationId: null };
+    setAction(attempt);
     try {
-      if (mutation.view.pending) {
-        await mutation.controller.retry();
-      } else {
-        mutation.controller.restore();
-        if (mutation.view.action?.kind === 'set-reading-status') reads.refreshData();
-        else reads.refresh();
-      }
+      mutation.controller.restore();
+      if (mutation.view.action?.kind === 'set-reading-status') reads.refreshData();
+      else reads.refresh();
     } catch {
       if (account === getRendererAccountScopeToken())
-        setAction((value) => (value.account === account ? { ...value, failed: true } : value));
+        setAction((value) =>
+          value === attempt && value.account === account && value.operationId === null
+            ? { ...value, failed: true }
+            : value
+        );
     }
   };
   const busy = baseBusy || bulk.resolving;
@@ -312,7 +339,7 @@ export default function LibraryPage() {
       if (owner.pending) {
         if (literatureValueIdentity(owner.pending) !== literatureValueIdentity(command))
           throw new Error('Another Library operation is pending');
-        const receipt = await mutation.controller.retry();
+        const receipt = await retryPendingMutation();
         if (receipt.schema !== 'x-science.literature-receipt.v1') throw new Error('Library note receipt changed');
         return receipt;
       }
@@ -327,7 +354,7 @@ export default function LibraryPage() {
         throw new Error('Library note base is no longer current');
       return submit(command);
     },
-    [mutation.controller, submit]
+    [mutation.controller, retryPendingMutation, submit]
   );
   const reloadNote = useCallback(
     (scope: string) => {
