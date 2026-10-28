@@ -48,7 +48,6 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/common/chat/slash/availability.ts": "Rename current first-party transport documentation to the current product display without changing command eligibility or protocol identifiers.",
     "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx": "Synchronize committed project handles and refresh canonical project totals after durable artifact events using account-fenced owned reads.",
     "tests/unit/renderer/ProjectHistorySection.dom.test.tsx": "Exercise immediate keyboard input on committed project handles before passive effects flush.",
-    "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup.",
     'packages/desktop/src/renderer/main.tsx': 'Remove the global runtime monkey-patch import so React, ResizeObserver, requestAnimationFrame, warnings, and errors retain their native observable behavior.',
     "packages/desktop/src/common/chat/chatLib.ts": "Carry validated canonical Transcript message coordinates and cancelled tool-call status through the migrated message model.",
     "packages/desktop/src/common/chat/normalizeToolCall.ts": "Normalize the canonical cancelled tool-call status without guessing terminal state.",
@@ -131,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup.",
     "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner.",
     "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations.",
     "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance.",
