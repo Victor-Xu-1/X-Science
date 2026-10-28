@@ -93,6 +93,7 @@ function catalogue(count = 402) {
   const calls: Call[] = [];
   const writes: StatusWrite[] = [];
   const ledger = new Map<string, { body: string; receipt: object }>();
+  let nextList: Promise<void> | undefined;
   let respond: (write: StatusWrite, index: number, receipt: object) => Response | Promise<Response> = (
     _write,
     _index,
@@ -143,6 +144,9 @@ function catalogue(count = 402) {
           total_count: matches.length,
         });
       }
+      const readback = nextList;
+      nextList = undefined;
+      if (readback) await readback;
       const offset = Number((url.searchParams.get('cursor') ?? 'offset:0').split(':')[1]);
       const limit = Number(url.searchParams.get('limit') ?? '20');
       return json({
@@ -188,6 +192,9 @@ function catalogue(count = 402) {
     reply: (fn: typeof respond) => {
       respond = fn;
     },
+    delayNextListUntil: (readback: Promise<void>) => {
+      nextList = readback;
+    },
     normalReads: () =>
       calls.filter(
         (c) =>
@@ -222,9 +229,13 @@ function mount(path = '/library') {
 }
 const toolbar = () => screen.getByRole('toolbar', { name: 'Reference selection' });
 async function selectAll() {
-  await screen.findByRole('checkbox', { name: 'Select this page' });
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Select this page' }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Select all matching references' }));
+  // Same-scope refresh retains these controls; presence alone is not readiness.
+  const page = await screen.findByRole('checkbox', { name: 'Select this page' });
+  await waitFor(() => expect(page).toBeEnabled());
+  fireEvent.click(page);
+  const matching = await screen.findByRole('button', { name: 'Select all matching references' });
+  await waitFor(() => expect(matching).toBeEnabled());
+  fireEvent.click(matching);
 }
 const start = () =>
   fireEvent.change(within(toolbar()).getByRole('combobox', { name: 'Reading status for selection' }), {
@@ -379,8 +390,12 @@ describe('Library Page bulk status through the real mutation owner', () => {
 
   it('shows a new complete-selection failure instead of the previous completed batch and keeps selection retryable', async () => {
     const http = catalogue(21);
+    const readback = deferred();
+    release.push(readback.resolve);
     await mount();
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select this page' }));
+    const pageSelection = await screen.findByRole('checkbox', { name: 'Select this page' });
+    fireEvent.click(pageSelection);
+    http.delayNextListUntil(readback.promise);
     start();
     await screen.findByText('20 references saved.');
     const controller = getLiteratureMutationController(owner);
@@ -390,6 +405,10 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(controller.getSnapshot().pending).toBeNull();
     expect(http.writes).toHaveLength(1);
     expect(http.ledger.size).toBe(1);
+    await waitFor(() => expect(http.normalReads()).toBe(2));
+    expect(screen.getByRole('checkbox', { name: 'Select this page' })).toBe(pageSelection);
+    expect(pageSelection).toBeVisible();
+    expect(pageSelection).toBeDisabled();
 
     const originalFetch = globalThis.fetch;
     const resolvingRequests: URL[] = [];
@@ -405,7 +424,18 @@ describe('Library Page bulk status through the real mutation owner', () => {
       }
       return originalFetch(input, init);
     });
-    await selectAll();
+    const selecting = selectAll();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(pageSelection).toBeDisabled();
+    expect(pageSelection).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Select all matching references' })).toBeNull();
+    await act(async () => {
+      readback.resolve();
+      await readback.promise;
+    });
+    await selecting;
     start();
     await waitFor(() => expect(resolvingRequests).toHaveLength(1));
     await waitFor(() =>
