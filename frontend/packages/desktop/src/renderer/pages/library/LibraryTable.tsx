@@ -2,7 +2,10 @@ import React from 'react';
 import { BookOpen, LoaderCircle, Paperclip } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
-import type { LibraryColumnId, LibraryColumnPreferences } from '@/common/adapter/libraryColumnPreferences';
+import type {
+  LibraryColumnWireId as LibraryColumnId,
+  LibraryColumnPreferencesWire as LibraryColumnPreferences,
+} from '@/common/adapter/libraryColumnPreferences';
 import './libraryTable.css';
 import './librarySelection.css';
 import { libraryMetadataText } from './libraryBibliographicText';
@@ -25,6 +28,7 @@ export type LibraryTableProps = {
   preferences: LibraryColumnPreferences;
   authors: (item: LiteratureItem) => string;
   statusCell: (item: LiteratureItem) => React.ReactNode;
+  noteCell?: (item: LiteratureItem) => React.ReactNode;
   open: (item: LiteratureItem) => void;
   registerTitleButton: (itemId: string, element: HTMLButtonElement | null) => void;
   onRetry: () => void;
@@ -39,6 +43,7 @@ const widths: Record<LibraryColumnId, number> = {
   authors: 200,
   doi: 220,
   attachments: 88,
+  notes: 280,
 };
 
 /** Pure catalogue projection. The caller retains every read, selection and mutation owner. */
@@ -51,6 +56,7 @@ export function LibraryTable({
   preferences,
   authors,
   statusCell,
+  noteCell,
   open,
   registerTitleButton,
   onRetry,
@@ -60,10 +66,11 @@ export function LibraryTable({
   selection,
 }: LibraryTableProps) {
   const { t } = useTranslation();
-  const visible = new Set(preferences.visible);
+  const visible = new Set<LibraryColumnId>(preferences.visible);
   const columns = preferences.order.filter((column) => visible.has(column));
   const cell = (column: LibraryColumnId, item: LiteratureItem): React.ReactNode => {
     if (column === 'readingStatus') return statusCell(item);
+    if (column === 'notes') return noteCell?.(item);
     if (column === 'attachments') {
       const count = item.attachments.length;
       return count ? (

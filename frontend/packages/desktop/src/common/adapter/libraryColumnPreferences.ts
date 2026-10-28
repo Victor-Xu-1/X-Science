@@ -6,14 +6,14 @@ export type LibraryColumnPreferences = Readonly<{
   order: readonly LibraryColumnId[];
   visible: readonly LibraryColumnId[];
 }>;
-type LibraryColumnWireId = LibraryColumnId | 'notes';
+export type LibraryColumnWireId = LibraryColumnId | 'notes';
 export type LibraryColumnPreferencesV2 = Readonly<{
   version: 2;
   order: readonly LibraryColumnWireId[];
   visible: readonly LibraryColumnWireId[];
 }>;
 export type LibraryColumnPreferencesWire = LibraryColumnPreferences | LibraryColumnPreferencesV2;
-const LIBRARY_COLUMN_V2_IDS = [...LIBRARY_COLUMN_IDS, 'notes'] as const;
+export const LIBRARY_COLUMN_V2_IDS = [...LIBRARY_COLUMN_IDS, 'notes'] as const;
 
 export const DEFAULT_LIBRARY_COLUMN_PREFERENCES: LibraryColumnPreferences = Object.freeze({
   version: 1,
@@ -85,6 +85,16 @@ export function projectLibraryColumnPreferences(value: LibraryColumnPreferencesW
     version: 1,
     order: Object.freeze(value.order.filter(supported)),
     visible: Object.freeze(value.visible.filter(supported)),
+  });
+}
+
+/** Notes-capable presentation only; a legacy layout is never written merely by reading it. */
+export function projectLibraryNotesColumns(value: LibraryColumnPreferencesWire): LibraryColumnPreferencesV2 {
+  if (value.version === 2) return value;
+  return Object.freeze({
+    version: 2,
+    order: Object.freeze([...value.order, 'notes'] as LibraryColumnWireId[]),
+    visible: Object.freeze([...value.visible]),
   });
 }
 

@@ -2325,7 +2325,8 @@
       "year": "Year",
       "authors": "Authors",
       "doi": "DOI",
-      "attachments": "Files"
+      "attachments": "Files",
+      "notes": "Notes"
     },
     "loading": "Loading references…",
     "loadFailed": "Could not load references",
@@ -2426,5 +2427,12 @@
     "currentBatchPending": "Confirm the current batch before changing the remaining work.",
     "previousScope": "This batch belongs to a previous Library view.",
     "scopeChanged": "The Library view changed. Unsent work is kept for the original scope."
+  },
+  "libraryNotes": {
+    "forPaper": "Note for {{title}}",
+    "placeholder": "Add a note…",
+    "tooLong": "The note exceeds 10,000 UTF-16 units. The draft is preserved.",
+    "savedReloadFailed": "Saved, but could not be reloaded. Retry only reloads.",
+    "draftPreserved": "Draft preserved. Escape to discard."
   }
 }

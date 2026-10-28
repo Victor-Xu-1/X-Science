@@ -2,8 +2,9 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
-  parseLibraryColumnPreferences,
+  parseLibraryColumnPreferencesWire,
   type LibraryColumnPreferences,
+  type LibraryColumnPreferencesWire,
 } from '@/common/adapter/libraryColumnPreferences';
 import { LIBRARY_COLUMN_PREFERENCES_SETTING } from '@/renderer/services/runtime/libraryColumnPreferences';
 import {
@@ -24,11 +25,11 @@ import {
 const ownerA = 'table-integration-account-a';
 const ownerB = 'table-integration-account-b';
 const settingKey = LIBRARY_COLUMN_PREFERENCES_SETTING;
-function accountSettings(initial: Array<[string, LibraryColumnPreferences]> = []) {
+function accountSettings(initial: Array<[string, LibraryColumnPreferencesWire]> = []) {
   const saved = new Map(initial);
   const heldReads = new Map<string, Promise<Response>>();
   const reads: string[] = [];
-  const writes: Array<{ owner: string; value: LibraryColumnPreferences }> = [];
+  const writes: Array<{ owner: string; value: LibraryColumnPreferencesWire }> = [];
   return {
     saved,
     heldReads,
@@ -46,7 +47,7 @@ function accountSettings(initial: Array<[string, LibraryColumnPreferences]> = []
       if (request.method === 'PUT') {
         const body = JSON.parse(String(request.body)) as Record<string, unknown>;
         expect(Object.keys(body)).toEqual([settingKey]);
-        const value = parseLibraryColumnPreferences(body[settingKey]);
+        const value = parseLibraryColumnPreferencesWire(body[settingKey]);
         if (!value) throw new Error('Unexpected invalid column-setting request');
         saved.set(owner, value);
         writes.push({ owner, value });
@@ -110,8 +111,8 @@ describe('Library table through the real Page and account setting transport', ()
     });
     expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files']);
     expect(settings.saved.get(ownerA)).toEqual({
-      version: 1,
-      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments'],
+      version: 2,
+      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes'],
       visible: ['year', 'readingStatus', 'attachments'],
     });
     expect(settings.writes.every((write) => write.owner === ownerA)).toBe(true);
