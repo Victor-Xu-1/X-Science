@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
-  type LibraryColumnPreferences,
+  type LibraryColumnPreferencesWire,
 } from '@/common/adapter/libraryColumnPreferences';
 import { LibraryTable, type LibraryTableProps } from '@/renderer/pages/library/LibraryTable';
 import { LibraryColumnMenu, type LibraryColumnMenuProps } from '@/renderer/pages/library/LibraryColumnMenu';
@@ -50,8 +50,8 @@ const tableProps = (extra: Partial<LibraryTableProps> = {}): LibraryTableProps =
   ...extra,
 });
 const headings = () => screen.getAllByRole('columnheader').map((element) => element.textContent);
-function Controlled({ changed = vi.fn() }: { changed?: (preferences: LibraryColumnPreferences) => void }) {
-  const [preferences, setPreferences] = useState(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
+function Controlled({ changed = vi.fn() }: { changed?: (preferences: LibraryColumnPreferencesWire) => void }) {
+  const [preferences, setPreferences] = useState<LibraryColumnPreferencesWire>(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
   return (
     <>
       <LibraryColumnMenu

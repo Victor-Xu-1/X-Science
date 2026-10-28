@@ -1,18 +1,22 @@
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
   LIBRARY_COLUMN_IDS,
+  LIBRARY_COLUMN_V2_IDS,
   liftLibraryColumnPreferences,
   parseLibraryColumnPreferences,
   parseLibraryColumnPreferencesWire,
   projectLibraryColumnPreferences,
-  type LibraryColumnId,
+  projectLibraryNotesColumns,
+  type LibraryColumnWireId,
   type LibraryColumnPreferences,
   type LibraryColumnPreferencesWire,
+  type LibraryColumnPreferencesV2,
 } from '@/common/adapter/libraryColumnPreferences';
 
 export type LibraryColumnPreferenceStatus = 'loading' | 'ready' | 'saving' | 'invalid' | 'read-error' | 'write-error';
 export type LibraryColumnPreferenceView = Readonly<{
   preferences: LibraryColumnPreferences;
+  notesPreferences?: LibraryColumnPreferencesV2;
   status: LibraryColumnPreferenceStatus;
 }>;
 export type LibraryColumnPreferenceTransport = {
@@ -20,7 +24,7 @@ export type LibraryColumnPreferenceTransport = {
   save(value: LibraryColumnPreferencesWire, signal: AbortSignal): Promise<void>;
 };
 
-const sameOrder = (left: readonly LibraryColumnId[], right: readonly LibraryColumnId[]) =>
+const sameOrder = (left: readonly LibraryColumnWireId[], right: readonly LibraryColumnWireId[]) =>
   left.length === right.length && left.every((id, index) => id === right[index]);
 
 /** One mounted view owns its requests; the server setting remains last-write-wins, not CAS. */
@@ -33,13 +37,14 @@ export class LibraryColumnPreferenceOwner {
   private loaded = false;
   private blocked = false;
   private revision = 0;
-  private order?: { value: readonly LibraryColumnId[]; revision: number };
-  private visibility = new Map<LibraryColumnId, { value: boolean; revision: number }>();
+  private order?: { value: readonly LibraryColumnWireId[]; revision: number };
+  private visibility = new Map<LibraryColumnWireId, { value: boolean; revision: number }>();
   private confirmed: LibraryColumnPreferencesWire = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
 
   constructor(
     private readonly transport: LibraryColumnPreferenceTransport,
-    private readonly isCurrent: () => boolean
+    private readonly isCurrent: () => boolean,
+    private readonly notesEnabled = false
   ) {}
 
   getSnapshot = (): LibraryColumnPreferenceView => this.view;
@@ -57,16 +62,29 @@ export class LibraryColumnPreferenceOwner {
   }
   private publish(status = this.settledStatus()) {
     if (!this.current()) return;
-    this.view = { preferences: projectLibraryColumnPreferences(this.merge(this.confirmed)), status };
+    const merged = this.merge(this.confirmed);
+    this.view = {
+      preferences: projectLibraryColumnPreferences(merged),
+      ...(this.notesEnabled ? { notesPreferences: projectLibraryNotesColumns(merged) } : {}),
+      status,
+    };
     this.listeners.forEach((listener) => listener());
   }
   private merge(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
-    const supported = projectLibraryColumnPreferences(base);
+    const supported = this.notesEnabled ? projectLibraryNotesColumns(base) : projectLibraryColumnPreferences(base);
     const order = this.order?.value ?? supported.order;
+    const visible = supported.visible as readonly LibraryColumnWireId[];
+    if (this.notesEnabled)
+      return {
+        version: 2,
+        order,
+        visible: order.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
+      };
+    const legacyOrder = order.filter((id) => id !== 'notes');
     return liftLibraryColumnPreferences(base, {
       version: 1,
-      order,
-      visible: order.filter((id) => this.visibility.get(id)?.value ?? supported.visible.includes(id)),
+      order: legacyOrder,
+      visible: legacyOrder.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
     });
   }
   private dirty() {
@@ -78,10 +96,10 @@ export class LibraryColumnPreferenceOwner {
     this.confirmed = remote;
     this.loaded = true;
     // A read can confirm a lost PUT response, or an equal change from another view.
-    const supported = projectLibraryColumnPreferences(remote);
+    const supported = this.notesEnabled ? projectLibraryNotesColumns(remote) : projectLibraryColumnPreferences(remote);
+    const visible = supported.visible as readonly LibraryColumnWireId[];
     if (this.order && sameOrder(this.order.value, supported.order)) this.order = undefined;
-    for (const [id, intent] of this.visibility)
-      if (intent.value === supported.visible.includes(id)) this.visibility.delete(id);
+    for (const [id, intent] of this.visibility) if (intent.value === visible.includes(id)) this.visibility.delete(id);
     return true;
   }
   private finish(request: AbortController) {
@@ -130,25 +148,34 @@ export class LibraryColumnPreferenceOwner {
     }
   }
 
-  change = (value: LibraryColumnPreferences): void => {
+  change = (value: LibraryColumnPreferencesWire): void => {
     if (!this.current() || this.view.status === 'invalid' || this.view.status === 'read-error') return;
-    const next = parseLibraryColumnPreferences(value);
+    const next = this.notesEnabled ? parseLibraryColumnPreferencesWire(value) : parseLibraryColumnPreferences(value);
     if (!next) return;
-    const previous = this.view.preferences;
+    if (this.notesEnabled && next.version !== 2) return;
+    const previous = this.notesEnabled
+      ? (this.view.notesPreferences ?? projectLibraryNotesColumns(this.view.preferences))
+      : this.view.preferences;
+    const nextVisible = next.visible as readonly LibraryColumnWireId[];
+    const previousVisible = previous.visible as readonly LibraryColumnWireId[];
     const revision = ++this.revision;
     if (!sameOrder(previous.order, next.order)) this.order = { value: next.order, revision };
-    for (const id of LIBRARY_COLUMN_IDS)
-      if (previous.visible.includes(id) !== next.visible.includes(id))
-        this.visibility.set(id, { value: next.visible.includes(id), revision });
+    for (const id of this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS)
+      if (previousVisible.includes(id) !== nextVisible.includes(id))
+        this.visibility.set(id, { value: nextVisible.includes(id), revision });
     this.publish();
     if (!this.request && this.loaded && !this.blocked && this.dirty()) void this.flush();
   };
   reset = (): void => {
     if (!this.current() || this.request) return;
     const revision = ++this.revision;
-    this.order = { value: DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, revision };
-    for (const id of LIBRARY_COLUMN_IDS)
-      this.visibility.set(id, { value: DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible.includes(id), revision });
+    const defaults = this.notesEnabled
+      ? projectLibraryNotesColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES)
+      : DEFAULT_LIBRARY_COLUMN_PREFERENCES;
+    const visible = defaults.visible as readonly LibraryColumnWireId[];
+    this.order = { value: defaults.order, revision };
+    for (const id of this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS)
+      this.visibility.set(id, { value: visible.includes(id), revision });
     this.loaded = true;
     this.blocked = false;
     void this.flush();

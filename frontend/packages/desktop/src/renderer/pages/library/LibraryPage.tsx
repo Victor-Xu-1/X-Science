@@ -13,6 +13,7 @@ import { LibraryCollectionSidebar } from './LibraryCollectionSidebar';
 import { LibraryCollectionEditor, type LibraryCollectionEditorMode } from './LibraryCollectionEditor';
 import {
   literatureItemReadingStatus,
+  literatureValueIdentity,
   type LiteratureCommand,
   type LiteratureReceipt,
 } from '@/common/adapter/literatureLibrary';
@@ -30,6 +31,8 @@ import { LibraryProjectScope } from './LibraryProjectScope';
 import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
 import { LibraryReadingStatus, LibraryReadingStatusFilter } from './LibraryReadingStatus';
 import { LibraryTable } from './LibraryTable';
+import { LibraryNoteControl } from './LibraryNoteControl';
+import type { LibraryNoteCommand } from './libraryPersonalNote';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
 import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
@@ -69,7 +72,7 @@ export default function LibraryPage() {
   const rail = layout?.libraryRail;
   const railOwner = useMemo(() => ({}), [reads.account]);
   useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
-  const libraryColumns = useLibraryColumnPreferences(reads.account);
+  const libraryColumns = useLibraryColumnPreferences(reads.account, true);
   const mutation = useLiteratureMutation();
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
@@ -291,6 +294,50 @@ export default function LibraryPage() {
     }
   };
   const busy = baseBusy || bulk.resolving;
+  const noteScope = JSON.stringify([reads.account, query, cursor, collectionId, projectId, readingStatus]);
+  const noteState = useRef({ scope: noteScope, account: reads.account, ready: listReady, blocked: busy, items });
+  noteState.current = {
+    scope: noteScope,
+    account: reads.account,
+    ready: listReady,
+    blocked: busy || Boolean(visibleEditor),
+    items,
+  };
+  const commitNote = useCallback(
+    async (command: LibraryNoteCommand, scope: string): Promise<LiteratureReceipt> => {
+      const current = noteState.current;
+      if (scope !== current.scope || current.account !== getRendererAccountScopeToken())
+        throw new Error('Library note scope changed');
+      const owner = mutation.controller.getSnapshot();
+      if (owner.pending) {
+        if (literatureValueIdentity(owner.pending) !== literatureValueIdentity(command))
+          throw new Error('Another Library operation is pending');
+        const receipt = await mutation.controller.retry();
+        if (receipt.schema !== 'x-science.literature-receipt.v1') throw new Error('Library note receipt changed');
+        return receipt;
+      }
+      const item = current.items.find((row) => row.id === command.item_id);
+      if (
+        !current.ready ||
+        current.blocked ||
+        !item ||
+        item.deleted ||
+        item.metadata_revision !== command.expected_revision
+      )
+        throw new Error('Library note base is no longer current');
+      return submit(command);
+    },
+    [mutation.controller, submit]
+  );
+  const reloadNote = useCallback(
+    (scope: string) => {
+      if (scope !== noteState.current.scope || noteState.current.account !== getRendererAccountScopeToken())
+        return false;
+      reads.refreshData();
+      return true;
+    },
+    [reads.refreshData]
+  );
   const changeReadingStatus = (itemId: string, value: LiteratureReadingStatus) => {
     if (busy || reads.account !== getRendererAccountScopeToken()) return;
     void submit({
@@ -564,6 +611,33 @@ export default function LibraryPage() {
                   disabled: busy || !listReady || Boolean(visibleEditor),
                 }}
                 authors={libraryAuthors}
+                noteCell={(item) => (
+                  <LibraryNoteControl
+                    key={JSON.stringify([noteScope, item.id])}
+                    item={item}
+                    scope={noteScope}
+                    readKey={reads.list.key}
+                    readStatus={reads.list.status}
+                    refreshing={reads.list.refreshing}
+                    refreshError={reads.list.refreshError}
+                    disabled={busy || !listReady || Boolean(visibleEditor) || item.deleted}
+                    retryDisabled={
+                      mutation.view.mutating ||
+                      mutation.view.error === 'storage' ||
+                      pdfOpen ||
+                      Boolean(visibleEditor) ||
+                      item.deleted
+                    }
+                    pendingId={mutation.view.pending?.operation_id}
+                    receipt={
+                      mutation.view.receipt?.schema === 'x-science.literature-receipt.v1'
+                        ? mutation.view.receipt
+                        : undefined
+                    }
+                    commit={commitNote}
+                    reload={reloadNote}
+                  />
+                )}
                 statusCell={(item) => (
                   <LibraryReadingStatus
                     value={literatureItemReadingStatus(item)}

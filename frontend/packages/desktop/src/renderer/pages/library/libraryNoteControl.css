@@ -1,0 +1,50 @@
+.library-note {
+  min-width: 0;
+  width: 100%;
+  font-size: var(--ui-font-meta);
+}
+.library-note input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+  outline: none;
+  color: var(--workspace-text);
+  background: transparent;
+  font: inherit;
+}
+.library-note input::placeholder {
+  color: var(--workspace-text-tertiary, var(--workspace-text-secondary));
+}
+.library-note input:hover {
+  border-color: var(--workspace-border);
+  background: var(--workspace-hover);
+}
+.library-note input:focus-visible {
+  border-color: var(--workspace-focus-ring);
+  background: var(--workspace-canvas);
+}
+.library-note__failure {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 8px;
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-note__failure > span {
+  overflow-wrap: anywhere;
+}
+.library-note__failure > button {
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

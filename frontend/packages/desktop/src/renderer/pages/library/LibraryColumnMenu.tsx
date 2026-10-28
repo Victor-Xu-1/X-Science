@@ -2,7 +2,10 @@ import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'reac
 import { Trigger } from '@arco-design/web-react';
 import { Columns3, GripVertical, LoaderCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { LibraryColumnId, LibraryColumnPreferences } from '@/common/adapter/libraryColumnPreferences';
+import type {
+  LibraryColumnWireId as LibraryColumnId,
+  LibraryColumnPreferencesWire as LibraryColumnPreferences,
+} from '@/common/adapter/libraryColumnPreferences';
 import './libraryColumnMenu.css';
 
 export type LibraryColumnMenuProps = {
@@ -28,6 +31,7 @@ function ColumnPanel({
   const focusAfterMove = useRef<LibraryColumnId | undefined>(undefined);
   const dragged = useRef<LibraryColumnId | undefined>(undefined);
   const [drop, setDrop] = useState<{ column: LibraryColumnId; before: boolean }>();
+  const visibleColumns = preferences.visible as readonly LibraryColumnId[];
   const editable = status === 'ready' || status === 'saving' || status === 'write-error';
   const busy = status === 'loading' || status === 'saving';
   const errorKey =
@@ -57,7 +61,7 @@ function ColumnPanel({
     order.splice(targetIndex + (before ? 0 : 1), 0, source);
     if (order.every((column, index) => column === preferences.order[index])) return;
     focusAfterMove.current = source;
-    onPreferencesChange({ ...preferences, order });
+    onPreferencesChange({ ...preferences, order } as LibraryColumnPreferences);
   };
   const stopDrag = () => {
     dragged.current = undefined;
@@ -169,15 +173,15 @@ function ColumnPanel({
               <span>{label(column)}</span>
               <input
                 type='checkbox'
-                checked={preferences.visible.includes(column)}
+                checked={visibleColumns.includes(column)}
                 disabled={!editable}
                 aria-label={t('conversation.libraryTable.showColumn', { column: label(column) })}
                 onChange={(event) => {
                   if (!editable) return;
                   const visible = event.currentTarget.checked
-                    ? [...preferences.visible, column]
-                    : preferences.visible.filter((value) => value !== column);
-                  onPreferencesChange({ ...preferences, visible });
+                    ? [...visibleColumns, column]
+                    : visibleColumns.filter((value) => value !== column);
+                  onPreferencesChange({ ...preferences, visible } as LibraryColumnPreferences);
                 }}
               />
             </label>
