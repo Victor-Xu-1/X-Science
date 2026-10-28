@@ -2088,6 +2088,11 @@
   },
   "notFound": "Conversation not found or has been deleted",
   "loading": "Loading conversation",
+  "libraryAbstract": {
+    "title": "Abstract",
+    "showMore": "Show more",
+    "showLess": "Show less"
+  },
   "libraryReadingStatus": {
     "label": "Reading status",
     "all": "All statuses",
