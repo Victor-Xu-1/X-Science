@@ -37,7 +37,7 @@ func (s *Server) handleLiteratureCandidates(w http.ResponseWriter, r *http.Reque
 		writeWorkspaceJSON(w, http.StatusOK, receipt)
 		return true
 	}
-	if len(parts) == 3 && r.Method == http.MethodPost && (parts[2] == "accept" || parts[2] == "dismiss") && strings.TrimSpace(parts[1]) == parts[1] {
+	if len(parts) == 3 && r.Method == http.MethodPost && (parts[2] == "accept" || parts[2] == "dismiss" || parts[2] == "restore") && strings.TrimSpace(parts[1]) == parts[1] {
 		var input workspace.LiteratureCandidateAction
 		if decodePDFReadingBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)

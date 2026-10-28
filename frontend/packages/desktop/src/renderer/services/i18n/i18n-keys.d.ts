@@ -1040,6 +1040,7 @@ export type I18nKey =
   | 'conversation.libraryInbox.more'
   | 'conversation.libraryInbox.openAccepted'
   | 'conversation.libraryInbox.pending'
+  | 'conversation.libraryInbox.restore'
   | 'conversation.libraryInbox.title'
   | 'conversation.libraryInbox.updated'
   | 'conversation.libraryPdfImport.cancelBeforeClose'

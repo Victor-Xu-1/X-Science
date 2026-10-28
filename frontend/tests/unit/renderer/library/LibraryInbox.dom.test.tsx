@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useSyncExternalStore } from 'react';
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { LibraryInbox } from '@/renderer/pages/library/LibraryInbox';
@@ -98,6 +98,96 @@ it('sends one strict candidate action to its authenticated endpoint', async () =
     expect.objectContaining({ timeoutMs: 30000 })
   );
 });
+it('routes restore explicitly and requires a matching pending acknowledgement', async () => {
+  const restore: LiteratureCandidateCommand = { ...command, kind: 'candidate-restore' };
+  const restored: LiteratureCandidateReceipt = {
+    schema: accepted.schema,
+    operation_id: operation,
+    action: 'restore',
+    candidate,
+  };
+  mocks.http.mockResolvedValueOnce(restored);
+  await expect(runLiteratureCandidateCommand(restore)).resolves.toEqual(restored);
+  expect(mocks.http).toHaveBeenCalledWith(
+    'POST',
+    '/api/literature/candidates/one/restore',
+    { operation_id: operation },
+    expect.objectContaining({ timeoutMs: 30000 })
+  );
+  for (const invalidCandidate of [{ ...candidate, state: 'dismissed' }, accepted.candidate]) {
+    mocks.http.mockResolvedValueOnce({ ...restored, candidate: invalidCandidate });
+    await expect(runLiteratureCandidateCommand(restore)).rejects.toThrow('Invalid Literature candidate contract');
+  }
+  expect(() => decodeLiteratureCandidateCommand({ ...restore, unexpected: true })).toThrow();
+});
+
+it('restores a dismissed row through the original owner after a lost acknowledgement and refresh', async () => {
+  let state: 'pending' | 'dismissed' = 'dismissed';
+  let loseFirstAcknowledgement = true;
+  const writes: Array<{ path: string; operation_id: string }> = [];
+  mocks.http.mockImplementation(async (method: string, path: string, body?: { operation_id: string }) => {
+    if (method === 'GET')
+      return {
+        schema: 'x-science.literature-candidates.v1',
+        candidates: path.includes(`state=${state}`) ? [{ ...candidate, state }] : [],
+      };
+    if (method !== 'POST' || path !== '/api/literature/candidates/one/restore' || !body)
+      throw new Error('Unexpected synthetic candidate request');
+    writes.push({ path, operation_id: body.operation_id });
+    state = 'pending';
+    if (loseFirstAcknowledgement) {
+      loseFirstAcknowledgement = false;
+      throw new TypeError('Lost restore acknowledgement');
+    }
+    return { schema: accepted.schema, operation_id: body.operation_id, action: 'restore', candidate };
+  });
+  const storage = literaturePendingStorage();
+  function OwnerView({ controller }: { controller: LiteratureMutationController }) {
+    const view = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
+    return (
+      <>
+        <LibraryInbox
+          account={getRendererAccountScopeToken()}
+          busy={view.mutating || Boolean(view.pending)}
+          receipt={view.receipt?.schema === accepted.schema ? view.receipt : undefined}
+          pendingOperationId={view.pending?.operation_id}
+          submit={(input) => controller.submit(input)}
+          close={vi.fn()}
+          openItem={vi.fn()}
+        />
+        <output aria-label='Original operation status'>{view.error ?? 'ready'}</output>
+        <button
+          disabled={view.mutating || !view.pending}
+          onClick={() => void controller.retry().catch((): undefined => undefined)}
+        >
+          Retry original operation
+        </button>
+      </>
+    );
+  }
+  const original = new LiteratureMutationController('owner', { storage });
+  const view = await renderWithI18n(<OwnerView controller={original} />, 'en-US');
+  fireEvent.click(screen.getByRole('button', { name: 'Dismissed' }));
+  fireEvent.click(await screen.findByRole('button', { name: /^Restore$/ }));
+  await waitFor(() => expect(screen.getByLabelText('Original operation status')).toHaveTextContent('uncertain'));
+  expect(original.getSnapshot().pending).toMatchObject({ kind: 'candidate-restore', candidate_id: 'one' });
+  const operationId = writes[0].operation_id;
+  view.unmount();
+  const resumed = new LiteratureMutationController('owner', { storage });
+  await renderWithI18n(<OwnerView controller={resumed} />, 'en-US');
+  await screen.findByRole('heading', { name: candidate.title });
+  fireEvent.click(screen.getByRole('button', { name: 'Retry original operation' }));
+  await waitFor(() => expect(resumed.getSnapshot().pending).toBeNull());
+  expect(writes).toEqual([
+    { path: '/api/literature/candidates/one/restore', operation_id: operationId },
+    { path: '/api/literature/candidates/one/restore', operation_id: operationId },
+  ]);
+  expect(storage.values.size).toBe(0);
+  expect(screen.getByRole('button', { name: 'Add to Library' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Dismiss' })).toBeEnabled();
+  expect(screen.queryByRole('button', { name: /^Restore$/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Open in Library' })).toBeNull();
+});
 it('accepts a legitimate stage dedupe receipt from another source', async () => {
   const stage: LiteratureCandidateCommand = {
     kind: 'candidate-stage',
@@ -150,8 +240,8 @@ it('Inbox reads pending/dismissed, settles through the supplied owner and discar
   fireEvent.click(screen.getByRole('button', { name: 'Dismissed' }));
   await screen.findByText('Synthetic paper');
   expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Add to Library' }));
-  expect(submit).toHaveBeenCalledWith(expect.objectContaining({ kind: 'candidate-accept', candidate_id: 'one' }));
+  fireEvent.click(screen.getByRole('button', { name: /^Restore$/ }));
+  expect(submit).toHaveBeenCalledWith(expect.objectContaining({ kind: 'candidate-restore', candidate_id: 'one' }));
   pending.resolve({ schema: 'x-science.literature-candidates.v1', candidates: [candidate] });
   await pending.promise;
   expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull();
@@ -274,7 +364,12 @@ it('uses the server UTF-8 and escaped JSON byte limits for candidate admission',
 });
 
 it('renders the Inbox and actions in Chinese', async () => {
-  mocks.http.mockResolvedValueOnce({ schema: 'x-science.literature-candidates.v1', candidates: [candidate] });
+  mocks.http
+    .mockResolvedValueOnce({ schema: 'x-science.literature-candidates.v1', candidates: [candidate] })
+    .mockResolvedValueOnce({
+      schema: 'x-science.literature-candidates.v1',
+      candidates: [{ ...candidate, state: 'dismissed' }],
+    });
   await renderWithI18n(
     <LibraryInbox
       account={getRendererAccountScopeToken()}
@@ -289,6 +384,9 @@ it('renders the Inbox and actions in Chinese', async () => {
   expect(screen.getByRole('button', { name: '加入文献库' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '忽略' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: '返回文献库' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: '已忽略' }));
+  expect(await screen.findByRole('button', { name: /^恢复$/ })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: '加入文献库' })).toBeNull();
 });
 
 it('does not show a prior accepted receipt on opening but shows the current action', async () => {

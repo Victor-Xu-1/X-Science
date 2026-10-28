@@ -11,6 +11,7 @@
     "empty": "No candidates in this view.",
     "accept": "Add to Library",
     "dismiss": "Dismiss",
+    "restore": "Restore",
     "openAccepted": "Open in Library",
     "updated": "Inbox updated."
   },

@@ -377,7 +377,7 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 	})
 }
 func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action string, input LiteratureCandidateAction) (LiteratureCandidateReceipt, error) {
-	if !validLiteratureID(id) || (action != "accept" && action != "dismiss") {
+	if !validLiteratureID(id) || (action != "accept" && action != "dismiss" && action != "restore") {
 		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
 	}
 	request := struct {
@@ -390,10 +390,27 @@ func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action
 			return c, e
 		}
 		if c.State == "accepted" {
-			if action == "dismiss" {
+			if action != "accept" {
 				return c, ErrLiteratureConflict
 			}
 			return c, requireCandidateAcceptedItem(ctx, tx, owner, c)
+		}
+		if action == "restore" {
+			if c.State != "dismissed" {
+				return c, ErrLiteratureConflict
+			}
+			result, err := tx.ExecContext(ctx, `UPDATE literature_candidates SET state='pending',updated_at=? WHERE id=? AND owner_user_id=? AND state='dismissed'`, s.now().UTC(), id, owner)
+			if err != nil {
+				return c, err
+			}
+			changed, err := result.RowsAffected()
+			if err != nil {
+				return c, err
+			}
+			if changed != 1 {
+				return c, ErrLiteratureConflict
+			}
+			return readLiteratureCandidate(ctx, tx, owner, id)
 		}
 		if action == "dismiss" {
 			_, e = tx.ExecContext(ctx, `UPDATE literature_candidates SET state='dismissed',updated_at=? WHERE id=? AND owner_user_id=?`, s.now().UTC(), id, owner)

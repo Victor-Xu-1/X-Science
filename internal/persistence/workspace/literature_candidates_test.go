@@ -23,6 +23,74 @@ func candidateTestStore(t *testing.T) *Store {
 func candidateInput() LiteratureCandidateStage {
 	return LiteratureCandidateStage{OperationID: uuid.NewString(), Provider: "semantic-scholar", ExternalID: "paper-a", Title: "Synthetic A", Metadata: map[string]any{"doi": "https://doi.org/10.1234/EXAMPLE", "pmid": "12345"}}
 }
+
+func TestLiteratureCandidateRestorePreservesDurableOriginalReceipts(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "workspace.sqlite")
+	s, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	ctx := context.Background()
+	in := candidateInput()
+	in.Metadata["precise"] = json.Number("9007199254740993")
+	staged, err := s.StageLiteratureCandidate(ctx, "owner", in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := staged.Candidate.ID
+	dismissal := LiteratureCandidateAction{OperationID: uuid.NewString()}
+	dismissed, err := s.DecideLiteratureCandidate(ctx, "owner", id, "dismiss", dismissal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restore := LiteratureCandidateAction{OperationID: uuid.NewString()}
+	restored, err := s.DecideLiteratureCandidate(ctx, "owner", id, "restore", restore)
+	if err != nil || restored.Action != "restore" || restored.Candidate.State != "pending" || restored.Candidate.ItemID != "" || !reflect.DeepEqual(restored.Candidate.Metadata, dismissed.Candidate.Metadata) {
+		t.Fatalf("restore to pending without changing metadata: %#v %v", restored, err)
+	}
+	if _, err = s.DecideLiteratureCandidate(ctx, "owner", id, "restore", LiteratureCandidateAction{OperationID: uuid.NewString()}); !errors.Is(err, ErrLiteratureConflict) {
+		t.Fatalf("new restore must require dismissed state: %v", err)
+	}
+	if _, err = s.DecideLiteratureCandidate(ctx, "other-owner", id, "restore", restore); !errors.Is(err, ErrLiteratureUnavailable) {
+		t.Fatalf("foreign restore must not expose owner receipt: %v", err)
+	}
+	if _, err = s.DecideLiteratureCandidate(ctx, "owner", "another-candidate", "restore", restore); !errors.Is(err, ErrMutationIdempotencyConflict) {
+		t.Fatalf("restore operation cannot change candidate identity: %v", err)
+	}
+	items, err := s.ListLiteratureItems(ctx, "owner", "", "", "", 20)
+	if err != nil || len(items.Items) != 0 {
+		t.Fatalf("restore must not accept or create a Library item: %#v %v", items, err)
+	}
+	accept := LiteratureCandidateAction{OperationID: uuid.NewString()}
+	accepted, err := s.DecideLiteratureCandidate(ctx, "owner", id, "accept", accept)
+	if err != nil || accepted.Candidate.State != "accepted" {
+		t.Fatalf("accept restored candidate: %#v %v", accepted, err)
+	}
+	if err = s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := s.DecideLiteratureCandidate(ctx, "owner", id, "restore", restore)
+	if err != nil || !reflect.DeepEqual(replay, restored) {
+		t.Fatalf("reopened original restore must replay before current accepted-state check: %#v %v", replay, err)
+	}
+	replay, err = s.DecideLiteratureCandidate(ctx, "owner", id, "dismiss", dismissal)
+	if err != nil || !reflect.DeepEqual(replay, dismissed) {
+		t.Fatalf("restore must not rewrite the older dismissal receipt: %#v %v", replay, err)
+	}
+	if _, err = s.DecideLiteratureCandidate(ctx, "owner", id, "restore", LiteratureCandidateAction{OperationID: uuid.NewString()}); !errors.Is(err, ErrLiteratureConflict) {
+		t.Fatalf("accepted candidate cannot be restored: %v", err)
+	}
+	page, err := s.ListLiteratureCandidates(ctx, "owner", "dismissed", "")
+	if err != nil || len(page.Candidates) != 0 {
+		t.Fatalf("settled candidate must not remain in dismissed readback: %#v %v", page, err)
+	}
+}
+
 func TestLiteratureCandidateDurableLifecycleAndLedger(t *testing.T) {
 	s := candidateTestStore(t)
 	ctx := context.Background()
