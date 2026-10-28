@@ -184,6 +184,10 @@
   height: 14px;
 }
 
+.x-science-sidebar-shell .x-science-sidebar-section-toggle .i-icon {
+  color: inherit;
+}
+
 .x-science-sidebar-shell .x-science-sidebar-section-title-button {
   height: var(--ui-control-sm);
   padding-inline: var(--ui-space-2);

@@ -1818,7 +1818,13 @@ html body .arco-table-container {
 /* Uno's legacy text-t-tertiary utility points at --bg-6, which is also used
  * as a hover fill. Override the text utility itself so dark-mode captions
  * remain readable without turning hover surfaces into bright blocks. */
-html body .text-t-tertiary:not(.x-science-sidebar-section-title-button .sider-section-title),
+html
+  body
+  .text-t-tertiary:not(
+    .x-science-sidebar-section-title-button .sider-section-title,
+    .x-science-sidebar-shell .x-science-sidebar-section-toggle,
+    .x-science-sidebar-shell .x-science-sidebar-section-toggle .i-icon
+  ),
 html body .placeholder\:text-t-tertiary::placeholder {
   color: var(--workspace-text-tertiary) !important;
 }
