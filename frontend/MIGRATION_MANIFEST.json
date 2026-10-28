@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6c244eba9062a5f216cd2394df883fb72c398eed28bb6b50243ba3fbbe523738",
+  "adaptationFingerprintSHA256": "5bdfd42814383cea250eebba4ebc63b88e39f19f66c4579f5a1107b2fec7a6be",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "07d74e633c507be94a85e1fa785733c82f2a0353a4237facf808d67776212da0",
+  "additionFingerprintSHA256": "9b2f8987f8ad811aaa5a6367d26812f96dfc221f1200bf6555972db9e2e5d563",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
     "adaptedSourceFiles": 792,
     "removedSourceFiles": 295,
-    "addedFiles": 1335
+    "addedFiles": 1336
   },
   "adaptations": [
     {
@@ -1139,8 +1139,8 @@
     {
       "path": "packages/desktop/src/renderer/main.tsx",
       "sourceSHA256": "b4064172c09f1ffd9cc0d1a38b8cd038e9c2232a6e64566265107b1976289224",
-      "targetSHA256": "62b96a18c915c08cba9312ca0afc2f8a57fa4e0d065e33c5c7fb5df95fa5f0c8",
-      "bytes": 4788,
+      "targetSHA256": "d8a9c86f5f245ceb9b81716ee02a0c13161c4e3cd4f771670bfd14ad76917f39",
+      "bytes": 4258,
       "reason": "Remove the global runtime monkey-patch import so React, ResizeObserver, requestAnimationFrame, warnings, and errors retain their native observable behavior."
     },
     {
@@ -7728,8 +7728,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/realtimeClient.ts",
-      "sha256": "feae8adbe554be0c4bf9a334680f7981e3aee42a0e72fb505c9d9f7f918a332b",
-      "bytes": 27398,
+      "sha256": "c4f59351c5e38d3bd463490408f5ba90f658549281c3852f9c56132b82e6da4c",
+      "bytes": 28334,
       "reason": "Own one identity-bound authenticated realtime connection with fenced socket, listener, cursor, and timer resources."
     },
     {
@@ -11442,8 +11442,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/utils/ui/reactRootLifecycle.ts",
-      "sha256": "513616a1c574889fb15185ed9222eaec4cb3ae30d63f1dddaf2be6edcd0dd0e4",
-      "bytes": 417,
+      "sha256": "4001ad446a7fe12bcccc6480cb69f336ed1edfde3ce7cd90803077e48fe199fd",
+      "bytes": 1648,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12444,8 +12444,8 @@
     },
     {
       "path": "tests/unit/common-adapter/realtimeClient.test.ts",
-      "sha256": "12d8edb0edc5be513ca3842862a33be8bbe800746b62ea3987319a1cdf242a24",
-      "bytes": 49603,
+      "sha256": "0f9eba6d4014b5d5bc1198d35668256eca77558df7b2ffe4d74d9af10f5698ea",
+      "bytes": 52512,
       "reason": "Verify identity, socket, timer, cursor, reconnect, cleanup, and durable delivery authority under reentry."
     },
     {
@@ -13143,6 +13143,12 @@
       "sha256": "d0b6fed95037446b1b9343ae5c7bcc12b9dacaee88c0ea58ee27adfac91e06f7",
       "bytes": 1163,
       "reason": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations."
+    },
+    {
+      "path": "tests/unit/renderer/ReactRootPageLifecycle.dom.test.tsx",
+      "sha256": "f967debf95ee47cd4628506ad3c49bbd1e4cdf8b72a9dff460e7b2df2e248808",
+      "bytes": 5928,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/RemoteToolDetailTree.dom.test.tsx",
@@ -14088,8 +14094,8 @@
     },
     {
       "path": "tests/unit/renderer/reactRootLifecycle.test.ts",
-      "sha256": "9c309e4c0ae8122d59244b4f9078afc28e6090687074e15ff3323047de5d8ed0",
-      "bytes": 546,
+      "sha256": "09fb8884fcf800571220ab90cc4ad65035eab33e014de4edffff76f627673edb",
+      "bytes": 2104,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
