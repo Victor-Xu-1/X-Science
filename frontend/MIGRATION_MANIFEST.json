@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8956a304fde984cbaf9ffefbd789b82301fe92392bee39bbd45c25660cef9dee",
+  "adaptationFingerprintSHA256": "319ca3e32ebccbd28c8f15f2d5363a7896ebdcddbf4c0b3befa1d09ff27489c8",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "153b21ce99744b886540b9bbf14879a25c34c21d137266b8e700068e7ceeaa05",
+  "additionFingerprintSHA256": "f347c280449198eea0672c598891625cbb0fb9cf511d5fba32800b177dd65cca",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1356
+    "addedFiles": 1357
   },
   "adaptations": [
     {
@@ -1284,9 +1284,9 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx",
       "sourceSHA256": "38148c87bf163839e82f1af9cc699b25abc3a4a2b2f1bb2c84e4b62d2e10c9fe",
-      "targetSHA256": "93c0c41203d497d4483872d0156c251fbbbfd001b7772d6651f8cdfa3ea09fd1",
-      "bytes": 38738,
-      "reason": "Synchronize the committed project list before visible reorder handles can receive input."
+      "targetSHA256": "68451591fee5cc378d34c45ff58acb5625eceb86c1efaaf5958bff7f9fd96449",
+      "bytes": 39639,
+      "reason": "Synchronize committed project handles and refresh canonical project totals after durable artifact events using account-fenced owned reads."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/SessionEditorModal.tsx",
@@ -13252,6 +13252,12 @@
       "sha256": "d0b6fed95037446b1b9343ae5c7bcc12b9dacaee88c0ea58ee27adfac91e06f7",
       "bytes": 1163,
       "reason": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations."
+    },
+    {
+      "path": "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx",
+      "sha256": "b03d606f00cc40612fcb760c179a1b397ba5dfc516c16bd87e4a41f7876aca41",
+      "bytes": 4978,
+      "reason": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup."
     },
     {
       "path": "tests/unit/renderer/ReactRootPageLifecycle.dom.test.tsx",
