@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef } from 'react';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
 import type { LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { LibraryPdfImportModel } from './useLibraryPdfImport';
 
@@ -160,11 +161,17 @@ export function LibraryPdfImportPanel({
                   {t('conversation.libraryPdfImport.project')}
                   <select
                     value={model.draft.projectId}
-                    disabled={model.busy || model.projects.status !== 'ready' || model.otherPending}
+                    disabled={model.busy || !isLibraryReadFresh(model.projects) || model.otherPending}
                     onChange={(event) => model.setProject(event.target.value)}
                     required
                   >
                     <option value=''>{t('conversation.libraryPdfImport.projectPlaceholder')}</option>
+                    {model.draft.projectId &&
+                      !model.projects.value?.some((project) => project.projectId === model.draft.projectId) && (
+                        <option value={model.draft.projectId} disabled>
+                          {t('conversation.libraryWorkbench.projectUnavailable')}
+                        </option>
+                      )}
                     {model.projects.value?.map((project) => (
                       <option key={project.projectId} value={project.projectId}>
                         {project.name}
@@ -184,14 +191,14 @@ export function LibraryPdfImportPanel({
                   />
                 </label>
               </div>
-              {model.projects.status !== 'ready' ? (
+              {!isLibraryReadFresh(model.projects) ? (
                 <div
-                  role={model.projects.status === 'error' ? 'alert' : 'status'}
+                  role={model.projects.status === 'error' || model.projects.refreshError ? 'alert' : 'status'}
                   className='library-pdf-import-panel__hint'
                 >
                   <span>
                     {t(
-                      model.projects.status === 'error'
+                      model.projects.status === 'error' || model.projects.refreshError
                         ? 'conversation.libraryPdfImport.projectError'
                         : 'conversation.libraryPdfImport.projectLoading'
                     )}

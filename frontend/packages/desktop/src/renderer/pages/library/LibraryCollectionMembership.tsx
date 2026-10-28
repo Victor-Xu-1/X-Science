@@ -9,6 +9,8 @@ import type {
 } from '@/common/adapter/literatureCollections';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { LibraryReadView } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 import { libraryCollectionRows } from './LibraryCollectionSidebar';
 
 export function LibraryCollectionMembershipPicker({
@@ -52,7 +54,7 @@ export function LibraryCollectionMembershipPicker({
     memberships.status === 'error' ||
     (memberships.status === 'ready' && memberships.value?.item_id !== item.id);
   const change = async (collectionId: string, included: boolean) => {
-    if (!ready || busy || owner.current.pending) return;
+    if (!ready || !isLibraryReadFresh(collections) || busy || owner.current.pending) return;
     const token = owner.current;
     const request = {};
     token.pending = request;
@@ -79,6 +81,13 @@ export function LibraryCollectionMembershipPicker({
       aria-label={t('conversation.libraryWorkbench.collectionMembership')}
     >
       <h3>{t('conversation.libraryWorkbench.collections')}</h3>
+      {collections.status === 'ready' && (
+        <LibraryDirectoryState
+          view={collections}
+          errorText={t('conversation.libraryWorkbench.collectionsFailed')}
+          retry={retry}
+        />
+      )}
       {failed ? (
         <div role='alert'>
           <p>{t('conversation.libraryWorkbench.membershipsFailed')}</p>
@@ -91,7 +100,10 @@ export function LibraryCollectionMembershipPicker({
       ) : !collections.value?.collections.length ? (
         <p className='library-workbench__muted'>{t('conversation.libraryWorkbench.noCollections')}</p>
       ) : (
-        <fieldset disabled={busy || currentStatus?.pending} aria-busy={Boolean(currentStatus?.pending)}>
+        <fieldset
+          disabled={busy || !isLibraryReadFresh(collections) || currentStatus?.pending}
+          aria-busy={Boolean(currentStatus?.pending || collections.refreshing)}
+        >
           <legend className='sr-only'>{t('conversation.libraryWorkbench.collectionMembership')}</legend>
           {libraryCollectionRows(collections.value.collections).map(({ collection, path }) => (
             <label key={collection.id}>

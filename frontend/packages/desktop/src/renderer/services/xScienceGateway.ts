@@ -338,7 +338,7 @@ async function getJson<T>(path: string, options: XScienceGatewayOptions): Promis
   });
 
   if (!response.ok) {
-    throw new Error(`X-Science gateway request failed: ${response.status} ${path}`);
+    throw new XScienceHttpError({ method: 'GET', path, status: response.status, body: undefined });
   }
 
   return (await response.json()) as T;

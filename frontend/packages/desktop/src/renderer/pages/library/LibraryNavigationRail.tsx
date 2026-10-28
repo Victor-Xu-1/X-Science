@@ -3,6 +3,8 @@ import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, FolderOpen, Inbox, Pane
 import { useTranslation } from 'react-i18next';
 import { libraryCollectionRows } from './LibraryCollectionSidebar';
 import type { useLibraryWorkbench } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 import './libraryNavigationRail.css';
 
 type Entry = { id: string; name: string; count?: number };
@@ -13,6 +15,8 @@ function RailGroup({
   collapsed,
   action,
   choose,
+  known,
+  state,
 }: {
   label: string;
   entries: Entry[];
@@ -20,6 +24,8 @@ function RailGroup({
   collapsed: boolean;
   action?: React.ReactNode;
   choose: (id: string) => void;
+  known: boolean;
+  state: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(true),
@@ -40,11 +46,12 @@ function RailGroup({
         >
           {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           <span>{label}</span>
-          <small>{entries.length}</small>
+          {known && <small>{entries.length}</small>}
         </button>
         {action}
       </div>
       <div id={id} hidden={!collapsed && !open}>
+        {state}
         {visible.map((entry) => (
           <button
             type='button'
@@ -116,16 +123,6 @@ export function LibraryNavigationRail({
     reads.projects.status === 'ready'
       ? (reads.projects.value ?? []).map((project) => ({ id: project.projectId, name: project.name }))
       : [];
-  const state = (status: string, retry: () => void) =>
-    status === 'loading' ? (
-      <p className='library-rail__hint' role='status'>
-        {t('common.loading')}
-      </p>
-    ) : status === 'error' ? (
-      <button type='button' className='library-rail__entry' onClick={retry}>
-        {t('common.retry')}
-      </button>
-    ) : null;
   return (
     <section className='library-rail' data-collapsed={collapsed} aria-label={t('conversation.libraryWorkbench.title')}>
       <header className='library-rail__heading'>
@@ -189,19 +186,36 @@ export function LibraryNavigationRail({
             selected={inbox ? '' : projectId}
             collapsed={collapsed}
             choose={selectProject}
+            known={reads.projects.status === 'ready'}
+            state={
+              <LibraryDirectoryState
+                view={reads.projects}
+                errorText={t('conversation.libraryWorkbench.projectsFailed')}
+                retry={reads.refresh}
+                className='library-rail__hint'
+              />
+            }
           />
-          {state(reads.projects.status, reads.refresh)}
           <RailGroup
             label={t('conversation.libraryWorkbench.collections')}
             entries={collections}
             selected={inbox ? '' : collectionId}
             collapsed={collapsed}
             choose={selectCollection}
+            known={reads.collections.status === 'ready'}
+            state={
+              <LibraryDirectoryState
+                view={reads.collections}
+                errorText={t('conversation.libraryWorkbench.collectionsFailed')}
+                retry={reads.refresh}
+                className='library-rail__hint'
+              />
+            }
             action={
               <button
                 type='button'
                 className='library-rail__add'
-                disabled={busy || reads.collections.status !== 'ready'}
+                disabled={busy || !isLibraryReadFresh(reads.collections)}
                 aria-label={t('conversation.libraryWorkbench.newCollection')}
                 onClick={create}
               >
@@ -209,7 +223,6 @@ export function LibraryNavigationRail({
               </button>
             }
           />
-          {state(reads.collections.status, reads.refresh)}
         </div>
       </nav>
     </section>

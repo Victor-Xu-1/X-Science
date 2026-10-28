@@ -16,6 +16,8 @@ import type {
   LiteratureCollectionMembership,
 } from '@/common/adapter/literatureCollections';
 import type { LibraryReadView } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryAbstract } from './LibraryAbstract';
@@ -39,6 +41,9 @@ export function LibraryItemDetails({
   refreshCollections,
   projects,
   projectStatus,
+  projectRefreshing,
+  projectRefreshError,
+  retryProjects,
   busy,
   stale = false,
   changeReadingStatus,
@@ -57,6 +62,9 @@ export function LibraryItemDetails({
   refreshCollections: () => void;
   projects: XScienceProject[];
   projectStatus: 'loading' | 'ready' | 'error';
+  projectRefreshing?: boolean;
+  projectRefreshError?: boolean;
+  retryProjects?: () => void;
   busy: boolean;
   stale?: boolean;
   changeReadingStatus: (value: LiteratureReadingStatus) => void;
@@ -174,6 +182,8 @@ export function LibraryItemDetails({
       ? String(item.metadata.year)
       : '';
   const members = projects.filter((project) => item.project_ids.includes(project.projectId));
+  const projectRead = { status: projectStatus, refreshing: projectRefreshing, refreshError: projectRefreshError };
+  const projectFresh = isLibraryReadFresh(projectRead);
   const externallyUpdated = editBase !== undefined && editBase.metadata_revision !== item.metadata_revision;
   const requestBack = () => {
     const leave = () => closeEditor(true);
@@ -218,11 +228,13 @@ export function LibraryItemDetails({
           <div>
             <dt>{t('conversation.libraryWorkbench.projects')}</dt>
             <dd>
-              {projectStatus === 'loading'
-                ? t('common.loading')
-                : projectStatus === 'error'
-                  ? t('conversation.libraryWorkbench.projectsFailed')
-                  : members.map((project) => project.name).join(', ') || '—'}
+              {members.length
+                ? members.map((project) => project.name).join(', ')
+                : projectStatus === 'loading'
+                  ? t('common.loading')
+                  : projectStatus === 'error'
+                    ? t('conversation.libraryWorkbench.projectsFailed')
+                    : '—'}
             </dd>
           </div>
         </dl>
@@ -286,10 +298,17 @@ export function LibraryItemDetails({
             {t('conversation.libraryWorkbench.projectAction')}
             <select
               value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-              disabled={busy || projectStatus !== 'ready'}
+              onChange={(event) => {
+                if (projectFresh) setProjectId(event.target.value);
+              }}
+              disabled={busy || !projectFresh}
             >
               <option value=''>{t('conversation.libraryWorkbench.chooseProject')}</option>
+              {projectId && !projects.some((project) => project.projectId === projectId) && (
+                <option value={projectId} disabled>
+                  {t('conversation.libraryWorkbench.projectUnavailable')}
+                </option>
+              )}
               {projects.map((project) => (
                 <option key={project.projectId} value={project.projectId}>
                   {project.name}
@@ -297,6 +316,11 @@ export function LibraryItemDetails({
               ))}
             </select>
           </label>
+          <LibraryDirectoryState
+            view={projectRead}
+            errorText={t('conversation.libraryWorkbench.projectsFailed')}
+            retry={retryProjects}
+          />
           <LibraryItemEditor
             key={`${editBase.id}:${editBase.metadata_revision}`}
             item={{
@@ -306,6 +330,7 @@ export function LibraryItemDetails({
               metadata_revision: editBase.metadata_revision,
             }}
             projectId={projectId || undefined}
+            membershipDisabled={!projectFresh}
             busy={busy}
             readOnly={externallyUpdated}
             receipt={receipt}

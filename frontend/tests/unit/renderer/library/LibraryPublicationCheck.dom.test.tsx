@@ -34,7 +34,8 @@ vi.mock('@/renderer/hooks/chat/useLiteratureMutation', () => ({
     };
   },
 }));
-vi.mock('@/renderer/pages/library/useLibraryWorkbench', () => ({
+vi.mock('@/renderer/pages/library/useLibraryWorkbench', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/pages/library/useLibraryWorkbench')>()),
   useLibraryWorkbench: () => {
     const [refreshing, setRefreshing] = useState(false);
     const reads = owner.reads as ReturnType<typeof useLibraryWorkbench>;

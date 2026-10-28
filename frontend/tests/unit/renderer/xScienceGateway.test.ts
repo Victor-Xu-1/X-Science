@@ -15,6 +15,7 @@ import {
   updateXScienceProject,
 } from '@/renderer/services/xScienceGateway';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { isXScienceHttpError, XScienceHttpError } from '@/renderer/services/xScienceHttp';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -29,6 +30,21 @@ describe('X-Science project gateway request authority', () => {
     clearSharedGatewayReads();
     resetRendererAccountScopeForTest();
     vi.unstubAllGlobals();
+  });
+
+  it('rail retention: preserves typed GET status without changing request transport or exposing an error body', async () => {
+    for (const status of [401, 403, 503]) {
+      const controller = new AbortController();
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response('ignored response detail', { status }));
+      const error = await loadXScienceProjects({ fetchImpl: fetchMock, signal: controller.signal }).catch(
+        (failure: unknown) => failure
+      );
+      expect(isXScienceHttpError(error)).toBe(true);
+      expect(error).toBeInstanceOf(XScienceHttpError);
+      expect(error).toMatchObject({ status, body: undefined });
+      expect((error as Error).message).toContain(`GET /api/projects failed (${status})`);
+      expect(fetchMock).toHaveBeenCalledWith('/api/projects', expect.objectContaining({ signal: controller.signal }));
+    }
   });
 
   it('reads one exact task record without capped collections or message history', async () => {
@@ -296,7 +312,11 @@ describe('X-Science project gateway request authority', () => {
       vi.stubGlobal('fetch', fetchMock);
 
       const beforeMutation = loadXScienceProjects();
-      const input = { name: newProject.name, description: null, context: null };
+      const input: Parameters<typeof createXScienceProject>[0] = {
+        name: newProject.name,
+        description: null,
+        context: null,
+      };
       if (operation === 'create') await createXScienceProject(input);
       if (operation === 'update') await updateXScienceProject('p', input);
       if (deleting) await deleteXScienceProject('p');

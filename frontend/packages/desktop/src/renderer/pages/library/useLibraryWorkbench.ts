@@ -9,6 +9,7 @@ import { loadXScienceProjects } from '@/renderer/services/xScienceGateway';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
 
 export type LibraryReadView<T> = {
   key: string;
@@ -17,6 +18,12 @@ export type LibraryReadView<T> = {
   refreshing?: boolean;
   refreshError?: boolean;
 };
+export type LibraryReadPhase = Pick<LibraryReadView<unknown>, 'status' | 'refreshing' | 'refreshError'>;
+
+/** Retained data is usable for display, but a dependent new write needs a fresh read. */
+export function isLibraryReadFresh(view: LibraryReadPhase): boolean {
+  return view.status === 'ready' && !view.refreshing && !view.refreshError;
+}
 type ReadState<T> = LibraryReadView<T> & { retainKey?: string };
 
 /** A view-owned read; the catalogue and mutation ledger remain the existing authorities. */
@@ -43,7 +50,7 @@ function useLibraryRead<T>(
       if (owner.current !== token || account !== getRendererAccountScopeToken()) return;
       const unavailable =
         error instanceof LiteratureDetailUnavailableError ||
-        (isBackendHttpError(error) && [400, 401, 403, 404].includes(error.status));
+        ((isBackendHttpError(error) || isXScienceHttpError(error)) && [400, 401, 403, 404].includes(error.status));
       setView((previous) =>
         !unavailable && retained(previous)
           ? { ...previous, key, refreshing: false, refreshError: true }
@@ -142,8 +149,20 @@ export function useLibraryWorkbench(
     0,
     JSON.stringify([account, 'item', selectedId])
   );
-  const projects = useLibraryRead(account, JSON.stringify([account, 'projects', revision]), projectRequest);
-  const collections = useLibraryRead(account, JSON.stringify([account, 'collections', revision]), collectionRequest);
+  const projects = useLibraryRead(
+    account,
+    JSON.stringify([account, 'projects', revision]),
+    projectRequest,
+    0,
+    JSON.stringify([account, 'projects'])
+  );
+  const collections = useLibraryRead(
+    account,
+    JSON.stringify([account, 'collections', revision]),
+    collectionRequest,
+    0,
+    JSON.stringify([account, 'collections'])
+  );
   const memberships = useLibraryRead(
     account,
     JSON.stringify([account, 'memberships', selectedId, revision]),
