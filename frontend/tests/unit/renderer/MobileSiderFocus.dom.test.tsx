@@ -110,6 +110,7 @@ const MenuSider = ({ collapsed = false }: { collapsed?: boolean }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const [draft, setDraft] = useState('保留 draft');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
   return (
     <>
       <ProjectHistorySection collapsed={collapsed} activeProjectId='project-example' />
@@ -149,6 +150,25 @@ const MenuSider = ({ collapsed = false }: { collapsed?: boolean }) => {
         getPopupContainer={() => document.body}
       >
         <input aria-label='Dialog field' />
+        <button
+          type='button'
+          onClick={() => {
+            setDialogOpen(false);
+            setFollowUpOpen(true);
+          }}
+        >
+          Open follow-up dialog
+        </button>
+      </WorkbenchModal>
+      <WorkbenchModal
+        visible={followUpOpen}
+        title='Follow-up dialog'
+        footer={null}
+        onCancel={() => setFollowUpOpen(false)}
+        unmountOnExit
+        getPopupContainer={() => document.body}
+      >
+        <input aria-label='Follow-up field' autoFocus />
       </WorkbenchModal>
     </>
   );
@@ -370,6 +390,52 @@ describe('mobile sidebar focus boundary', () => {
     expect(main).not.toHaveAttribute('inert');
     expect(main).toHaveAttribute('aria-hidden', 'false');
     expect(container.querySelector('.workbench-modal-backdrop')).toBeNull();
+  });
+
+  it('restores drawer focus after the real project editor cancels with its menu opener removed', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    await user.click(toggle);
+    const drawer = screen.getByRole('dialog', { name: 'common.workspaceNavigation' });
+    await user.click(await screen.findByRole('button', { name: 'Project actions: Example project' }));
+    const edit = await screen.findByRole('menuitem', { name: 'conversation.history.projectMenu.edit' });
+    await user.click(edit);
+    const modal = await screen.findByRole('dialog', { name: 'conversation.history.projectEditor.editTitle' });
+    const field = within(modal).getByRole('textbox', { name: 'conversation.history.projectEditor.nameLabel' });
+    await waitFor(() => expect(field).toHaveFocus());
+    expect(edit).not.toBeInTheDocument();
+    await user.tab();
+    expect(modal.contains(document.activeElement)).toBe(true);
+    await user.click(within(modal).getByRole('button', { name: 'common.cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'conversation.history.projectEditor.editTitle' })).toBeNull()
+    );
+    await waitFor(() =>
+      expect(drawer.contains(document.activeElement) || document.activeElement === toggle).toBe(true)
+    );
+    expect(document.activeElement).not.toBe(document.body);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('does not reclaim focus while a replacement WorkbenchModal owns the next interaction', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await user.click(screen.getByRole('button', { name: 'Open navigation' }));
+    const drawer = screen.getByRole('dialog', { name: 'common.workspaceNavigation' });
+    await user.click(screen.getByRole('button', { name: 'Open extra dialog' }));
+    const first = screen.getByRole('dialog', { name: 'Extra dialog' });
+    within(first).getByRole('textbox', { name: 'Dialog field' }).focus();
+    await user.click(within(first).getByRole('button', { name: 'Open follow-up dialog' }));
+    const next = await screen.findByRole('dialog', { name: 'Follow-up dialog' });
+    const field = within(next).getByRole('textbox', { name: 'Follow-up field' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Extra dialog' })).toBeNull());
+    await waitFor(() => expect(field).toHaveFocus());
+    await user.tab();
+    expect(next.contains(document.activeElement)).toBe(true);
+    await user.click(within(next).getByRole('button', { name: 'common.close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Follow-up dialog' })).toBeNull());
+    await waitFor(() => expect(drawer.contains(document.activeElement)).toBe(true));
   });
 
   it('yields to the real WorkbenchModal owner and releases the boundary on unmount', async () => {

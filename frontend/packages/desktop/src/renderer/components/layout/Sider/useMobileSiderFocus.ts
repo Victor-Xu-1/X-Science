@@ -56,8 +56,9 @@ function isolateBackground(
   shell: HTMLElement,
   backdrop: HTMLElement | null,
   foreground: HTMLElement[],
-  syncOwnership: () => void
-): () => void {
+  syncOwnership: () => void,
+  afterMutation: () => void
+): { restore: () => void; observeModal: (modal: HTMLElement) => void } {
   const saved = new Map<HTMLElement, { inert: string | null; hidden: string | null }>();
   const changed = new Map<HTMLElement, Set<string>>();
   const branches = new Set<HTMLElement>();
@@ -108,6 +109,7 @@ function isolateBackground(
       }
     }
     if (relationshipsChanged) syncOwnership();
+    if (records.length) afterMutation();
   };
   // Observe only after our writes. A later writer, even one setting the same
   // value, takes ownership; never roll its state back to our entry snapshot.
@@ -120,10 +122,10 @@ function isolateBackground(
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['aria-controls', 'aria-expanded', 'aria-owns'],
+    attributeFilter: ['aria-controls', 'aria-expanded', 'aria-owns', 'style', 'hidden', 'inert', 'aria-hidden'],
   });
   const activeObserver = observer;
-  return () => {
+  const restore = () => {
     trackChanges(activeObserver.takeRecords());
     activeObserver.disconnect();
     for (const [element, prior] of saved) {
@@ -137,6 +139,25 @@ function isolateBackground(
         else element.setAttribute(name, value);
       }
     }
+  };
+  return {
+    restore,
+    observeModal: (modal) => {
+      // The focused modal is an independent owner. Observe its actual portal
+      // branch so disposal/visibility changes are seen even without focusin.
+      for (
+        let node: HTMLElement | null = modal;
+        node && node !== document.body && !shell.contains(node);
+        node = node.parentElement
+      ) {
+        activeObserver.observe(node, {
+          childList: true,
+          attributes: true,
+          attributeFilter: ['style', 'hidden', 'inert', 'aria-hidden'],
+        });
+      }
+      activeObserver.observe(document.body, { childList: true });
+    },
   };
 }
 
@@ -189,11 +210,37 @@ export function useMobileSiderFocus({
       writtenOwns = value;
     };
     syncOwnership();
-    const restoreBackground = isolateBackground(scope, app, backdrop.current, roots(), syncOwnership);
+    let suspendedModal: HTMLElement | null = null;
+    const resumeAfterModal = () => {
+      if (!suspendedModal || available(suspendedModal)) return;
+      if (epoch.current !== revision || !latest.current.mobile || !latest.current.open || !available(scope)) return;
+      // A replacement/nested modal may already own the next interaction. Never
+      // pull focus from it or another connected, visible control.
+      if (
+        [...document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"], [role="alertdialog"]')].some(
+          (node) => node !== scope && available(node)
+        )
+      )
+        return;
+      suspendedModal = null;
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        active !== document.body &&
+        active !== document.documentElement &&
+        available(active)
+      )
+        return;
+      focusInside();
+    };
+    const isolation = isolateBackground(scope, app, backdrop.current, roots(), syncOwnership, resumeAfterModal);
     const includes = (element: Node | null) => roots().some((node) => node.contains(element));
     const otherModal = (target: HTMLElement | null) => {
       const dialog = target?.closest('[role="dialog"][aria-modal="true"], [role="alertdialog"]');
-      return dialog instanceof HTMLElement && dialog !== scope && available(dialog);
+      if (!(dialog instanceof HTMLElement) || dialog === scope || !available(dialog)) return false;
+      suspendedModal = dialog;
+      isolation.observeModal(dialog);
+      return true;
     };
     const yields = (target: HTMLElement | null) =>
       epoch.current !== revision || !available(scope) || otherModal(target);
@@ -255,7 +302,7 @@ export function useMobileSiderFocus({
       const cleanupRevision = ++epoch.current;
       document.removeEventListener('focusin', focusIn);
       document.removeEventListener('keydown', keyboard);
-      restoreBackground();
+      isolation.restore();
       if (scope.getAttribute('aria-owns') === writtenOwns) {
         if (previousOwns === null) scope.removeAttribute('aria-owns');
         else scope.setAttribute('aria-owns', previousOwns);
