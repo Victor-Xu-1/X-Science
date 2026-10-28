@@ -135,6 +135,10 @@ describe('Library inline Notes through the existing Page owners', () => {
     expect(JSON.parse(patches[0]).metadata_patch).toEqual({ set: { personal_note: 'Changed note' } });
     fireEvent.click(control.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(control.getByRole('alert')).toHaveTextContent('Saved, but could not be reloaded'));
+    expect(
+      screen.queryByText(first.i18n.t('conversation.reading.libraryRejected')),
+      'an acknowledged row retry must clear its old global failure feedback'
+    ).toBeNull();
     expect(patches).toHaveLength(2);
     expect(patches[1]).toBe(patches[0]);
     expect(screen.getByRole('textbox', { name: 'Note for Paper A' })).toBe(input);
@@ -144,6 +148,8 @@ describe('Library inline Notes through the existing Page owners', () => {
     fireEvent.click(control.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(input).toHaveValue('Changed note'));
     await waitFor(() => expect(input).not.toHaveAttribute('readonly'));
+    expect(control.queryByRole('alert')).toBeNull();
+    expect(screen.queryByText(first.i18n.t('conversation.reading.libraryRejected'))).toBeNull();
     expect(patches).toHaveLength(2);
     expect(
       http.requests.filter((request) => request.method === 'GET' && request.path.startsWith('/api/literature/items?'))
