@@ -3,9 +3,14 @@ package workspace
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"modernc.org/sqlite"
 )
 
 func TestBuildCompatibilitySessionExportProjectsDurableV11Schema(t *testing.T) {
@@ -101,3 +106,117 @@ func TestBuildCompatibilitySessionExportProjectsDurableV11Schema(t *testing.T) {
 }
 
 func intPointer(value int) *int { return &value }
+
+// exportInterceptDriver wraps real SQLite connections so the public export
+// can be interrupted between its frame and message queries without test hooks
+// in production. The concurrent writer uses a separate SQLite connection.
+type exportInterceptDriver struct{ beforeMessages func() error }
+type exportInterceptConn struct {
+	driver.Conn
+	owner *exportInterceptDriver
+}
+
+func (d *exportInterceptDriver) Open(name string) (driver.Conn, error) {
+	connection, err := (&sqlite.Driver{}).Open(name)
+	if err != nil {
+		return nil, err
+	}
+	return &exportInterceptConn{Conn: connection, owner: d}, nil
+}
+func (c *exportInterceptConn) BeginTx(ctx context.Context, options driver.TxOptions) (driver.Tx, error) {
+	return c.Conn.(driver.ConnBeginTx).BeginTx(ctx, options)
+}
+func (c *exportInterceptConn) QueryContext(ctx context.Context, query string, args []driver.NamedValue) (driver.Rows, error) {
+	if strings.Contains(query, "SELECT payload FROM frame_events") && c.owner.beforeMessages != nil {
+		fn := c.owner.beforeMessages
+		c.owner.beforeMessages = nil
+		if err := fn(); err != nil {
+			return nil, err
+		}
+	}
+	return c.Conn.(driver.QueryerContext).QueryContext(ctx, query, args)
+}
+func (c *exportInterceptConn) CheckNamedValue(value *driver.NamedValue) error {
+	if checker, ok := c.Conn.(driver.NamedValueChecker); ok {
+		return checker.CheckNamedValue(value)
+	}
+	return driver.ErrSkip
+}
+
+func TestBuildCompatibilitySessionExportConsistentDuringConcurrentWrite(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "snapshot.db")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = store.Close() })
+	if _, err := store.CreateProject(CreateProjectInput{ID: "p", UserID: "u", Name: "Project"}); err != nil {
+		t.Fatal(err)
+	}
+	root, err := store.CreateFrame(CreateFrameInput{ID: "root", ProjectID: "p", AgentName: "agent", Status: "completed", ConversationType: "task", Name: "Session"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.SetFrameRuntimeMetadata(root.ID, FrameRuntimeMetadata{}); err != nil {
+		t.Fatal(err)
+	}
+	var journal string
+	if err := store.db.QueryRow(`PRAGMA journal_mode`).Scan(&journal); err != nil || !strings.EqualFold(journal, "wal") {
+		t.Fatalf("WAL required, got %q: %v", journal, err)
+	}
+	writer, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = writer.Close() })
+	interceptor := &exportInterceptDriver{beforeMessages: func() error {
+		tx, err := writer.BeginTx(context.Background(), nil)
+		if err != nil {
+			return err
+		}
+		defer tx.Rollback()
+		if _, err = tx.Exec(`UPDATE frame_runtime_metadata SET input_tokens=99 WHERE frame_id=?`, root.ID); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(`INSERT INTO frame_events(id,frame_id,sequence,event_type,payload,created_at) VALUES(?,?,?,?,?,?)`, "new-event", root.ID, 1, "user_message", `{"text":"new"}`, time.Now().UTC()); err != nil {
+			return err
+		}
+		return tx.Commit()
+	}}
+	driverName := "export-snapshot-test:" + path
+	sql.Register(driverName, interceptor)
+	wrapped, err := sql.Open(driverName, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrapped.SetMaxOpenConns(1)
+	originalWrite, originalRead := store.db, store.readDB
+	store.db, store.readDB = wrapped, wrapped
+	t.Cleanup(func() { store.db, store.readDB = originalWrite, originalRead; _ = wrapped.Close() })
+
+	exported, found, err := store.BuildCompatibilitySessionExport(context.Background(), "u", root.ID, time.Now().UTC())
+	if err != nil || !found {
+		t.Fatalf("export found=%v err=%v", found, err)
+	}
+	if exported.Summary.TotalTokens.Input != 0 || len(exported.Frames[0].Messages) != 0 {
+		t.Fatalf("mixed snapshots: tokens=%d messages=%v", exported.Summary.TotalTokens.Input, exported.Frames[0].Messages)
+	}
+	if interceptor.beforeMessages != nil {
+		t.Fatal("concurrent writer was not exercised")
+	}
+	// A later public export sees the complete newly committed state.
+	after, found, err := store.BuildCompatibilitySessionExport(context.Background(), "u", root.ID, time.Now().UTC())
+	if err != nil || !found || after.Summary.TotalTokens.Input != 99 || len(after.Frames[0].Messages) != 1 {
+		t.Fatalf("new snapshot found=%v err=%v value=%#v", found, err, after)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, _, err := store.BuildCompatibilitySessionExport(ctx, "u", root.ID, time.Now().UTC()); !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled export = %v", err)
+	}
+	deadline, release := context.WithTimeout(context.Background(), time.Second)
+	defer release()
+	if _, found, err := store.BuildCompatibilitySessionExport(deadline, "u", root.ID, time.Now().UTC()); err != nil || !found {
+		t.Fatalf("connection after cancellation found=%v err=%v", found, err)
+	}
+}
