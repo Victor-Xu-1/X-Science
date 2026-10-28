@@ -6,6 +6,7 @@ import './libraryNoteControl.css';
 
 type Attempt = {
   command: LibraryNoteCommand;
+  scope: string;
   readKey: string;
   acknowledged?: LiteratureReceipt;
 };
@@ -47,20 +48,40 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
   const base = dirty ? edit.base : item;
   const draft = dirty ? edit.draft : libraryPersonalNote(item);
   const samePending = Boolean(attempt && props.pendingId === attempt.command.operation_id);
-  const readOnly = props.disabled || saving || samePending;
+  const foreignPending = Boolean(props.pendingId && !samePending);
+  const currentRecovery = Boolean(
+    attempt?.acknowledged && attempt.scope === scope && attempt.command.item_id === item.id
+  );
+  const recoveryTyping =
+    currentRecovery &&
+    failure === 'readback' &&
+    readStatus === 'ready' &&
+    !refreshing &&
+    !props.retryDisabled &&
+    !foreignPending;
+  const readOnly =
+    props.retryDisabled || saving || samePending || foreignPending || (props.disabled && !recoveryTyping);
 
   // A retry from the existing global notice may acknowledge this same original operation.
   useEffect(() => {
-    if (!attempt || attempt.acknowledged || props.receipt?.operation_id !== attempt.command.operation_id) return;
+    if (
+      !attempt ||
+      attempt.scope !== scope ||
+      attempt.command.item_id !== item.id ||
+      attempt.acknowledged ||
+      props.receipt?.operation_id !== attempt.command.operation_id ||
+      props.receipt.item.id !== item.id
+    )
+      return;
     setAttempt({ ...attempt, acknowledged: props.receipt });
     setFailure(undefined);
     savingRef.current = true;
     setSaving(true);
-  }, [attempt, props.receipt]);
+  }, [attempt, props.receipt, scope, item.id]);
 
   // An ACK is historical: finish only after the existing read owner observes a new outcome.
   useEffect(() => {
-    if (!attempt?.acknowledged || readKey === attempt.readKey || refreshing) return;
+    if (!currentRecovery || !attempt?.acknowledged || readKey === attempt.readKey || refreshing) return;
     if (refreshError || readStatus === 'error') {
       setFailure('readback');
       savingRef.current = false;
@@ -74,20 +95,29 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
       setSaving(false);
       return;
     }
-    setEdit(undefined);
+    const acknowledgedNote = libraryPersonalNote(attempt.acknowledged.item);
+    setEdit(
+      edit && edit.draft.trim() !== acknowledgedNote
+        ? {
+            base: libraryPersonalNote(item) === acknowledgedNote ? item : edit.base,
+            draft: edit.draft,
+          }
+        : undefined
+    );
     setAttempt(undefined);
     setFailure(undefined);
     savingRef.current = false;
     setSaving(false);
-  }, [attempt, readKey, readStatus, refreshing, refreshError, item.metadata_revision]);
+  }, [attempt, currentRecovery, readKey, readStatus, refreshing, refreshError, item, edit]);
 
   const commit = async () => {
     if (cancelBlur.current) {
       cancelBlur.current = false;
       return;
     }
-    if (savingRef.current || props.retryDisabled) return;
+    if (savingRef.current || props.retryDisabled || foreignPending) return;
     if (attempt?.acknowledged) {
+      if (!currentRecovery) return;
       setAttempt({ ...attempt, readKey });
       setFailure(undefined);
       savingRef.current = true;
@@ -109,7 +139,7 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
           setFailure(undefined);
           return;
         }
-        next = { command, readKey };
+        next = { command, scope, readKey };
       } catch {
         setFailure('length');
         return;
@@ -131,7 +161,7 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
       setFailure('write');
     }
   };
-  const retryBlocked = props.retryDisabled || Boolean(props.pendingId && !samePending);
+  const retryBlocked = props.retryDisabled || foreignPending;
   return (
     <div className='library-note'>
       <input
@@ -149,7 +179,7 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
           if (readOnly) return;
           setEdit({ base, draft: event.currentTarget.value });
           if (!attempt?.acknowledged && !samePending) setAttempt(undefined);
-          setFailure(undefined);
+          if (!attempt?.acknowledged) setFailure(undefined);
         }}
         onKeyDown={(event) => {
           if (saving || event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -166,7 +196,7 @@ export function LibraryNoteControl(props: LibraryNoteControlProps) {
           }
         }}
         onBlur={() => {
-          if (!props.disabled) void commit();
+          if (!props.disabled || recoveryTyping) void commit();
         }}
       />
       {failure && (

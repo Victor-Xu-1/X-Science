@@ -116,6 +116,84 @@ describe('Library Note input follows the reference interaction and existing read
     expect(props.commit).not.toHaveBeenCalled();
   });
 
+  it('preserves new typing after an acknowledged reload failure and rebases only matching saved notes', async () => {
+    const props = options();
+    let latest = source;
+    const writes: Parameters<LibraryNoteControlProps['commit']>[0][] = [];
+    const receipts: LiteratureReceipt[] = [];
+    vi.mocked(props.commit).mockImplementation(async (command) => {
+      if (command.expected_revision !== latest.metadata_revision) throw new Error('Current caller rejects stale base');
+      writes.push(command);
+      const receipt: LiteratureReceipt = {
+        schema: 'x-science.literature-receipt.v1',
+        operation_id: command.operation_id,
+        item: {
+          ...latest,
+          metadata_revision: latest.metadata_revision + 1,
+          metadata: { personal_note: command.metadata_patch.set?.personal_note },
+        },
+      };
+      receipts.push(receipt);
+      return receipt;
+    });
+    const mounted = await renderWithI18n(<LibraryNoteControl {...props} />, 'en-US');
+    const input = noteInput();
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Changed' } });
+    fireEvent.blur(input);
+    await waitFor(() => expect(receipts).toHaveLength(1));
+    await act(async () => {});
+    mounted.rerender(<LibraryNoteControl {...props} disabled readKey='read-2' refreshError />);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Saved, but could not be reloaded'));
+    expect(input, 'acknowledged recovery must retain editable new draft').not.toHaveAttribute('readonly');
+    mounted.rerender(
+      <LibraryNoteControl {...props} disabled readKey='read-2' refreshError pendingId='foreign-operation' />
+    );
+    expect(input).toHaveAttribute('readonly');
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeDisabled();
+    mounted.rerender(<LibraryNoteControl {...props} disabled retryDisabled readKey='read-2' refreshError />);
+    expect(input).toHaveAttribute('readonly');
+    mounted.rerender(<LibraryNoteControl {...props} disabled readKey='read-2' refreshError />);
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Changed again' } });
+    fireEvent.blur(input);
+    expect(props.reload).toHaveBeenCalledExactlyOnceWith('scope-a');
+    expect(writes).toHaveLength(1);
+    mounted.rerender(<LibraryNoteControl {...props} disabled readKey='read-3' refreshing />);
+    expect(input).toHaveAttribute('readonly');
+    expect(input).toHaveValue('Changed again');
+    latest = receipts[0].item;
+    mounted.rerender(<LibraryNoteControl {...props} item={latest} readKey='read-3' />);
+    await waitFor(() => expect(input).not.toHaveAttribute('readonly'));
+    expect(input).toHaveValue('Changed again');
+    expect(screen.queryByRole('alert')).toBeNull();
+    act(() => input.focus());
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(writes).toHaveLength(2));
+    expect(writes[1].expected_revision).toBe(2);
+    expect(writes[1].operation_id).not.toBe(writes[0].operation_id);
+    expect(writes[1].metadata_patch).toEqual({ set: { personal_note: 'Changed again' } });
+    await act(async () => {});
+    mounted.rerender(<LibraryNoteControl {...props} item={latest} disabled readKey='read-4' refreshError />);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Saved, but could not be reloaded'));
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: 'Keep conflict-protected draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(props.reload).toHaveBeenCalledTimes(2);
+    expect(writes).toHaveLength(2);
+    latest = { ...source, metadata_revision: 4, metadata: { personal_note: 'Another current saved note' } };
+    mounted.rerender(<LibraryNoteControl {...props} item={latest} readKey='read-5' />);
+    await waitFor(() => expect(input).not.toHaveAttribute('readonly'));
+    expect(input).toHaveValue('Keep conflict-protected draft');
+    act(() => input.focus());
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(props.commit).toHaveBeenCalledTimes(3));
+    expect(vi.mocked(props.commit).mock.calls[2][0].expected_revision).toBe(2);
+    expect(writes).toHaveLength(2);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Draft preserved');
+    expect(input).toHaveValue('Keep conflict-protected draft');
+  });
+
   it('ignores a retired row completion after unmounting into another scope', async () => {
     const pending = deferred<LiteratureReceipt>();
     const props = options();
