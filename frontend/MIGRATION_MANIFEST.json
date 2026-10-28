@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8956a304fde984cbaf9ffefbd789b82301fe92392bee39bbd45c25660cef9dee",
+  "adaptationFingerprintSHA256": "1163e8d589f33004ed6d9762da6a0c9decd8ecb0f11d5fc835b635a50e7981f4",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "153b21ce99744b886540b9bbf14879a25c34c21d137266b8e700068e7ceeaa05",
+  "additionFingerprintSHA256": "ece1f45a088a220e120f9d9c9bb9cb01256b43a4baa9ee75e327a293b4323870",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1356
+    "addedFiles": 1357
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "7c65cfcb1d0ef81c0098e524c306ae23c1536138a49c49458354aad9d8bf2c0a",
+      "targetSHA256": "3b1695e8b07b7d7f6bed4419e8dcfb4ccf66afd38e64078770d0056898befd00",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "6b92dc38df3ff146d897e34ed8aac6c34343a1556d446d6c195a403131f680a7",
+      "targetSHA256": "131c2fe7ee00ec53b0645aadc23a9f4d5fede43f0a14b676f608552f361d25cd",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1284,9 +1284,9 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx",
       "sourceSHA256": "38148c87bf163839e82f1af9cc699b25abc3a4a2b2f1bb2c84e4b62d2e10c9fe",
-      "targetSHA256": "93c0c41203d497d4483872d0156c251fbbbfd001b7772d6651f8cdfa3ea09fd1",
-      "bytes": 38738,
-      "reason": "Synchronize the committed project list before visible reorder handles can receive input."
+      "targetSHA256": "68451591fee5cc378d34c45ff58acb5625eceb86c1efaaf5958bff7f9fd96449",
+      "bytes": 39639,
+      "reason": "Synchronize committed project handles and refresh canonical project totals after durable artifact events using account-fenced owned reads."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/SessionEditorModal.tsx",
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "0b15db45e44f528bc356dbc6b037a2432425d42241027c4c2f7d01ca14c06a00",
+      "sha256": "d59d729ed1b589b622d86151f84f2ceeec8ab166bb2eac0294d31a58f21d7df4",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -13252,6 +13252,12 @@
       "sha256": "d0b6fed95037446b1b9343ae5c7bcc12b9dacaee88c0ea58ee27adfac91e06f7",
       "bytes": 1163,
       "reason": "Verify one readable current name, an unchanged decorative mark and coordinated compact/prominent presentations."
+    },
+    {
+      "path": "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx",
+      "sha256": "b03d606f00cc40612fcb760c179a1b397ba5dfc516c16bd87e4a41f7876aca41",
+      "bytes": 4978,
+      "reason": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup."
     },
     {
       "path": "tests/unit/renderer/ReactRootPageLifecycle.dom.test.tsx",

@@ -46,7 +46,7 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/common/platform/index.ts": "Use the canonical environment and development application names, preserving multi-instance behavior.",
     "packages/desktop/src/common/platform/NodePlatformServices.ts": "Derive only the package-name fallback from the current root product slug, retaining configured package names and existing data/log paths.",
     "packages/desktop/src/common/chat/slash/availability.ts": "Rename current first-party transport documentation to the current product display without changing command eligibility or protocol identifiers.",
-    "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx": "Synchronize the committed project list before visible reorder handles can receive input.",
+    "packages/desktop/src/renderer/pages/conversation/GroupedHistory/ProjectHistorySection.tsx": "Synchronize committed project handles and refresh canonical project totals after durable artifact events using account-fenced owned reads.",
     "tests/unit/renderer/ProjectHistorySection.dom.test.tsx": "Exercise immediate keyboard input on committed project handles before passive effects flush.",
     'packages/desktop/src/renderer/main.tsx': 'Remove the global runtime monkey-patch import so React, ResizeObserver, requestAnimationFrame, warnings, and errors retain their native observable behavior.',
     "packages/desktop/src/common/chat/chatLib.ts": "Carry validated canonical Transcript message coordinates and cancelled tool-call status through the migrated message model.",
@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup.",
     "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner.",
     "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations.",
     "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance.",
@@ -709,9 +710,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "8956a304fde984cbaf9ffefbd789b82301fe92392bee39bbd45c25660cef9dee"
+APPROVED_ADAPTATION_FINGERPRINT = "1163e8d589f33004ed6d9762da6a0c9decd8ecb0f11d5fc835b635a50e7981f4"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "153b21ce99744b886540b9bbf14879a25c34c21d137266b8e700068e7ceeaa05"
+APPROVED_ADDITION_FINGERPRINT = "ece1f45a088a220e120f9d9c9bb9cb01256b43a4baa9ee75e327a293b4323870"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

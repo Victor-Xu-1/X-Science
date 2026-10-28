@@ -7,6 +7,8 @@ import {
   type XScienceProject,
   type XScienceProjectInput,
 } from '@/renderer/services/xScienceGateway';
+import { wsEmitter } from '@/common/adapter/httpBridge';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { loadProjectSidebarOrder, saveProjectSidebarOrder } from '@/renderer/services/projectSidebarOrder';
@@ -86,6 +88,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const projectsRequestVersionRef = useRef(0);
+  const projectsRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (mobileDrawerClosed) setMenuProjectId(null);
@@ -217,26 +220,44 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
 
   const refreshProjects = useCallback((showLoading = false) => {
     const requestVersion = ++projectsRequestVersionRef.current;
+    projectsRequestRef.current?.abort();
+    const request = new AbortController();
+    projectsRequestRef.current = request;
+    const owner = getRendererAccountScopeToken();
+    const isCurrent = () =>
+      !request.signal.aborted &&
+      requestVersion === projectsRequestVersionRef.current &&
+      owner === getRendererAccountScopeToken();
     if (showLoading) setLoading(true);
 
-    void loadXScienceProjects()
+    // An event invalidates even an in-flight read. This owned signal bypasses
+    // shared-read coalescing without cancelling another consumer's request.
+    void loadXScienceProjects({ signal: request.signal })
       .then((items) => {
-        if (requestVersion !== projectsRequestVersionRef.current) return;
+        if (!isCurrent()) return;
         setProjects(items);
         setFailed(false);
       })
       .catch((error: unknown) => {
+        if (!isCurrent()) return;
         console.warn('[ProjectHistorySection] Failed to load projects:', diagnostic(error));
-        if (requestVersion !== projectsRequestVersionRef.current) return;
         setProjects([]);
         setFailed(true);
       })
       .finally(() => {
-        if (requestVersion === projectsRequestVersionRef.current) setLoading(false);
+        if (isCurrent()) setLoading(false);
       });
   }, []);
 
-  useEffect(() => refreshProjects(true), [refreshProjects]);
+  useEffect(() => {
+    refreshProjects(true);
+    return () => {
+      projectsRequestVersionRef.current += 1;
+      projectsRequestRef.current?.abort();
+      projectsRequestRef.current = null;
+    };
+  }, [refreshProjects]);
+  useEffect(() => wsEmitter('durable', 'artifact_created').on(() => refreshProjects(false)), [refreshProjects]);
   useAddEventListener('xscience.projects.refresh', () => void refreshProjects(false), [refreshProjects]);
   useAddEventListener(
     'xscience.projects.create',
