@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureRelated.ts": "Define the closed owner/item/revision-scoped related-literature query and result contract while retaining the existing HTTP and Library authorities; adapted with reference to Open Science 40707aa4ae9b.",
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
     "packages/desktop/src/common/adapter/literatureMetadataPatch.ts": "Strictly snapshot generic Library metadata field deltas and validate only changed receipt keys while preserving unedited canonical metadata, the existing mutation owner, and literal JSON field semantics.",
     "packages/desktop/src/common/adapter/literatureValueIdentity.ts": "Factor the existing canonical Library request and receipt JSON equality into a dependency-free helper without changing its comparison semantics or creating another request, transport, or persistence authority.",
