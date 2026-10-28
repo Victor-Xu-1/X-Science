@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "fa7a02912677a9b084b175e1d591232013fed2c7ed557b7d0af61150e8457734",
+  "adaptationFingerprintSHA256": "5b673e30496e7d87a23537a5cbcef8285dfa1f138b41c179a5245a357656e9f3",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "efc386421ec43183f6d652dd4f309eedf23c2f494a7bb7dce1fa3748be895194",
+  "additionFingerprintSHA256": "bd02ec11ef5cd3b89f3c095e80184a10507762fc7646c50093bc408b05c2c4f7",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1376
+    "addedFiles": 1377
   },
   "adaptations": [
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "7ccf44d8d597f70ea2506dbf08ea2b3b56505e7b7750310acff7072ab8f6998d",
-      "bytes": 299699,
+      "targetSHA256": "d39f23adb2f887812d10b0eff4b870981321afb24a2c2d698fbebab53ee44054",
+      "bytes": 299811,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "e2ab944791a8ead09724568e79a07f2341110322265a020e9319184473c47dd5",
-      "bytes": 132331,
+      "targetSHA256": "1e5ba85e0738fe8c95f0cfe96e4a6d03f8b7f80ba647b423fbc8f0ac003c7686",
+      "bytes": 132434,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "c1f92e72305a09b7b7f6b1712c1325b9654f3df8e486eeaf68eb6e34fe8dda65",
-      "bytes": 124991,
+      "targetSHA256": "04e6a78b30e2d2eb1ed4df872efb4bcb82c11895e1e615e96b5a4f8273693a70",
+      "bytes": 125086,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -9955,8 +9955,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryCollectionMembership.tsx",
-      "sha256": "fc7436faffebb86841d917c71ae2ffe8008ea61fc3648e49a85d1da9f26d2a2e",
-      "bytes": 4912,
+      "sha256": "d801bc8ab9fceedf80db7dd1a9e71e6003f3f10df65673892d56022e578ec357",
+      "bytes": 6412,
       "reason": "Read and mutate the selected owned paper memberships through the same Library slot while fencing old item and account responses."
     },
     {
@@ -10177,8 +10177,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.collections.css",
-      "sha256": "31ae03aa2d6e09c4f2ff35f229a2505543036537c4555beee028d5c0895c27cf",
-      "bytes": 6038,
+      "sha256": "c0c442a715520379f62b3736ec50a8e34e49c4c292e41ae87f27cd0066d2feb5",
+      "bytes": 6221,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14043,6 +14043,12 @@
       "path": "tests/unit/renderer/library/LibraryCollectionEditor.dom.test.tsx",
       "sha256": "ff80e74d4273c97f9de9159319bc2a23e390058831cec1c31bbd9b709104ceb2",
       "bytes": 14114,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryCollectionMembershipSearch.dom.test.tsx",
+      "sha256": "a4a2c4bb3978a5f12d045011ad2936169d1d9a1bd8ee6629ecd0eb25084d6f8f",
+      "bytes": 10378,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
