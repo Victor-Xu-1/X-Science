@@ -109,12 +109,19 @@ describe('Overview project membership through the existing Web owner', () => {
     let included = false;
     const writes: { path: string; body: Record<string, unknown> }[] = [];
     const detail = () => ({ ...paper(), project_ids: included ? ['beta'] : [] });
+    const readbackStarted = deferred<void>();
+    const readback = deferred<Response>();
+    releaseHeldStages.push(() => readback.resolve(json(detail())));
     installCollectionHTTP({
       collections: () => [],
       items: () => [detail()],
       detail,
       intercept: (url, init) => {
         if (url.pathname === '/api/projects') return json({ projects });
+        if ((init.method ?? 'GET') === 'GET' && url.pathname === '/api/literature/items/a' && writes.length === 2) {
+          readbackStarted.resolve();
+          return readback.promise;
+        }
         if (init.method !== 'PUT') return undefined;
         const body = JSON.parse(String(init.body));
         writes.push({ path: url.pathname, body });
@@ -126,14 +133,29 @@ describe('Overview project membership through the existing Web owner', () => {
     await mountCollections('/library?item=a');
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     fireEvent.click(links().getByRole('checkbox', { name: 'Beta project' }));
-    const retry = await screen.findByRole('button', { name: 'Retry' });
+    const dialog = within(screen.getByRole('dialog', { name: 'Paper A' }));
+    const retry = await dialog.findByRole('button', { name: 'Retry' });
     await settlementStarted.promise;
     expect(retry).toBeDisabled();
     expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked();
     expect(links().getByRole('checkbox', { name: 'Alpha project' })).toBeDisabled();
     fireEvent.click(links().getByRole('checkbox', { name: 'Alpha project' }));
     expect(writes).toHaveLength(1);
+    await act(async () => {
+      releaseSettlement.resolve();
+      await releaseSettlement.promise;
+    });
+    await waitFor(() => expect(retry).toBeEnabled());
     fireEvent.click(retry);
+    await readbackStarted.promise;
+    expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked();
+    expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeDisabled();
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toEqual(writes[0]);
+    await act(async () => {
+      readback.resolve(json(detail()));
+      await readback.promise;
+    });
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeChecked());
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     expect(writes).toHaveLength(2);
