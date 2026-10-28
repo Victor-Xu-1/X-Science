@@ -182,6 +182,16 @@ describe('Library detail through its real Page/read/mutation/modal owners', () =
     handled.preventDefault();
     fireEvent(dialog, handled);
     expect(dialog).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const referenceType = within(dialog).getByRole('combobox', { name: 'Reference type' });
+    fireEvent.pointerDown(referenceType);
+    fireEvent.keyDown(referenceType, { key: 'Escape' });
+    expect(dialog).toBeInTheDocument();
+    expect(referenceType).toBeInTheDocument();
+    fireEvent.click(
+      within(within(dialog).getByRole('region', { name: 'Edit details' })).getByRole('button', { name: /^Close$/ })
+    );
+    await waitFor(() => expect(within(dialog).queryByRole('combobox', { name: 'Reference type' })).toBeNull());
     const select = within(dialog).getByRole('combobox', { name: /Reading status/ });
     fireEvent.pointerDown(select);
     fireEvent.keyDown(select, { key: 'Escape' });
