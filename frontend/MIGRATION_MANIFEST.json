@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "40f33d000e8e00ca30ded0254d3686be4f03adf149d3637063e3a85982970eb7",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6e4dd69b8a396840efb5ce540131627ff5c6227315304f30caee871a570f27d1",
+  "additionFingerprintSHA256": "5c3e5b935d675d626357d559acfd37cef233e78404f2aa5a9f93a82b1f1836d2",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -8053,8 +8053,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/useMobileSiderFocus.ts",
-      "sha256": "50ba0aceaa8bf17176461c0dcd82e7e961fd1143007fc28b35210c0f26abc183",
-      "bytes": 11086,
+      "sha256": "7970def642a9e816707a6a8a03e75330e087dd8d5ef34f26c23e5acb11e4dd7d",
+      "bytes": 12940,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13129,8 +13129,8 @@
     },
     {
       "path": "tests/unit/renderer/MobileSiderFocus.dom.test.tsx",
-      "sha256": "a65a1c67861cd2f2ca9ca20d5ef206a6bbe9ac60abf1e0d1e087b390fb253725",
-      "bytes": 18266,
+      "sha256": "60904603b179dfb0efbb74e1b60d3dc8115ec36bf0d32e1538339aaa43819997",
+      "bytes": 21664,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
