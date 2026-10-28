@@ -245,11 +245,8 @@ def affected_test_plan(repo: Path, inventory: dict[str, list[str]], index: int, 
 
 def execute_affected(repo: Path, base: str, head: str, paths: list[str], inventory: dict,
                      test_plan: dict, log_dir: Path, index: int, count: int,
-                     phases: RuntimePhaseEvidence, github_token: str | None = None) -> int:
-    """Reuse an authenticated PR execution or run the original complete plan."""
-    if pr_go_reuse.try_reuse(repo, base, head, paths, inventory, log_dir, github_token):
-        return 0
-    initial_inputs = pr_go_reuse.prepare_pr_inputs(repo)
+                     phases: RuntimePhaseEvidence, initial_inputs: dict | None = None) -> int:
+    """Run the original complete fallback; any reuse attempt already finished."""
     result = execute(repo, test_plan, log_dir, phases=phases)
     if result == 0:
         pr_go_reuse.write_pr_provenance(repo, base, head, log_dir, index, count, initial_inputs)
@@ -359,6 +356,14 @@ def main() -> int:
             raise ValueError("Go execution requires an external --log-dir")
         with phases.measure("planning_inputs"):
             binding, profile = planning_inputs(repo, args.base, args.head)
+        if selected and args.log_dir is not None and pr_go_reuse.try_reuse(
+                repo, args.base, args.head, paths, None, args.log_dir, github_token,
+                expected_packages=selected, planning_binding=binding,
+                profile=profile, shard_count=args.shard_count):
+            return 0
+        # The same producer input seal now spans discovery as well as execution.
+        # Its source hashes make older post-discovery producers ineligible.
+        initial_inputs = pr_go_reuse.prepare_pr_inputs(repo)
         with phases.measure("discovery", package_count=len(selected)):
             inventory = discover(repo, selected, race=False) if selected else {}
         with phases.measure("plan"):
@@ -366,7 +371,7 @@ def main() -> int:
         print(json.dumps({"partition": test_plan["partition"]}, ensure_ascii=False))
         if args.log_dir is not None:
             return execute_affected(repo, args.base, args.head, paths, inventory, test_plan,
-                                    log_dir, args.shard_index, args.shard_count, phases, github_token)
+                                    log_dir, args.shard_index, args.shard_count, phases, initial_inputs)
         print("No Go package is affected by this change; frontend and policy gates remain active.")
         return 0
     except (OSError, RuntimeError, ValueError) as error:
