@@ -49,13 +49,17 @@ it('returns from Library filters to the exact retained workspace route and refre
   await waitFor(() => expect(screen.getByLabelText('location')).toHaveTextContent(original));
 });
 
-it('isolates refresh return targets by account and rejects an external or stale owner path', async () => {
+it.each([
+  ['external', 'https://example.invalid/escape'],
+  ['backslash', '/conversation/retained\\branch'],
+  ['control', '/conversation/retained' + String.fromCharCode(0x0a)],
+])('rejects a %s refresh target and a stale account return', async (_kind, savedPath) => {
   const first = mount('/conversation/alice');
   fireEvent.click(screen.getByText('Library'));
   const oldAccountReturn = returnForTest;
   first.unmount();
   act(() => setRendererAccountOwner('bob'));
-  sessionStorage.setItem('x-science:library-return:bob', 'https://example.invalid/escape');
+  sessionStorage.setItem('x-science:library-return:bob', savedPath);
   mount('/library');
   act(() => oldAccountReturn?.());
   expect(screen.getByLabelText('location')).toHaveTextContent('/library');

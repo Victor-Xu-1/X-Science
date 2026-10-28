@@ -48,7 +48,14 @@ const buildPath = (location: { pathname: string; search: string; hash: string })
 // Only existing workspace routes can be restored. Never admit an external URL,
 // a settings/library loop, or an old account's transient navigation closure.
 function workspaceReturnPath(value: string | null): string | undefined {
-  if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\u0000-\u001f]/.test(value)) return;
+  if (
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('\\') ||
+    Array.from(value).some((character) => character.charCodeAt(0) < 0x20)
+  )
+    return;
   try {
     const parsed = new URL(value, 'http://workspace.local');
     if (
