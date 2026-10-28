@@ -89,6 +89,110 @@ describe('Library item editor metadata wire preservation', () => {
     vi.unstubAllGlobals();
   });
 
+  it('edits bibliographic scalars through one revision-bound patch without serializing opaque metadata', async () => {
+    const fixture = await renderEditor(
+      opaqueMetadata.replace(
+        '"year":2024',
+        '"year":2024,"item_type":"review","container_title":"Old journal","url":"https://example.org/old","abstract":"Old abstract","volume":"1","issue":"2","pages":"3-4","publisher":"Old publisher","publisher_place":"Old place","edition":"First"'
+      )
+    );
+    const values = {
+      container_title: 'New journal',
+      url: 'https://example.org/new',
+      abstract: 'New abstract',
+      volume: '10',
+      issue: '5',
+      pages: '20-29',
+      publisher: 'New publisher',
+      publisher_place: 'New place',
+      edition: 'Second',
+    };
+    const labels = {
+      container_title: 'Publication',
+      url: 'URL',
+      abstract: 'Abstract',
+      volume: 'Volume',
+      issue: 'Issue',
+      pages: 'Pages',
+      publisher: 'Publisher',
+      publisher_place: 'Place',
+      edition: 'Edition',
+    };
+    fireEvent.change(screen.getByRole('combobox', { name: 'Reference type' }), { target: { value: 'book' } });
+    for (const [key, label] of Object.entries(labels))
+      fireEvent.change(screen.getByRole('textbox', { name: label }), {
+        target: { value: values[key as keyof typeof values] },
+      });
+    const write = await saveEditor(fixture, 'edit-metadata');
+    expect(write.body.metadata_patch).toEqual({ set: { item_type: 'book', ...values } });
+    expect(Object.hasOwn(write.body, 'metadata')).toBe(false);
+    expect(Object.hasOwn(write.body, 'title')).toBe(false);
+    expect(write.raw).not.toContain('opaque');
+    expect(fixture.item.metadata.container_title).toBe('Old journal');
+  });
+
+  it('clears bibliographic scalars with explicit removes while preserving other saved values', async () => {
+    const fixture = await renderEditor(
+      opaqueMetadata.replace(
+        '"year":2024',
+        '"year":2024,"container_title":"Saved journal","url":"https://example.org/paper","abstract":"Saved abstract","publisher":{"unrecognized":9007199254740993}'
+      )
+    );
+    for (const label of ['Authors', 'Year', 'Publication', 'URL', 'Abstract'])
+      fireEvent.change(screen.getByRole('textbox', { name: label }), { target: { value: '' } });
+    expect(screen.getByRole('textbox', { name: 'Publisher' })).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Publisher' }));
+    const write = await saveEditor(fixture, 'edit-metadata');
+    expect(write.body.metadata_patch).toEqual({
+      remove: ['authors', 'year', 'container_title', 'url', 'abstract', 'publisher'],
+    });
+    expect(Object.hasOwn(write.body, 'metadata')).toBe(false);
+    expect(write.raw).not.toContain('unrecognized');
+    expect(fixture.item.metadata.publisher).toEqual({ unrecognized: 9007199254740992 });
+  });
+
+  it('retains unknown bibliographic values and reverted fields without adding default keys', async () => {
+    const fixture = await renderEditor(
+      opaqueMetadata.replace(
+        '"year":2024',
+        '"year":2024,"item_type":"legacy-record","container_title":"Saved journal","publisher":{"preserved":true},"volume":9007199254740993'
+      )
+    );
+    const type = screen.getByRole('combobox', { name: 'Reference type' });
+    expect(type).toHaveValue('legacy-record');
+    expect([...(type as HTMLSelectElement).options].map((option) => option.value)).toEqual([
+      '',
+      'legacy-record',
+      'journalArticle',
+      'review',
+      'preprint',
+      'conferencePaper',
+      'book',
+      'bookSection',
+      'thesis',
+      'report',
+      'dataset',
+      'standard',
+      'patent',
+      'webpage',
+      'document',
+    ]);
+    fireEvent.change(type, { target: { value: 'document' } });
+    fireEvent.change(type, { target: { value: 'legacy-record' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Publication' }), { target: { value: 'Temporary journal' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Publication' }), { target: { value: 'Saved journal' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), {
+      target: { value: 'Title after reverted fields' },
+    });
+    const write = await saveEditor(fixture);
+    expect(write.body).toEqual({
+      operation_id: expect.stringMatching(uuid),
+      expected_revision: 7,
+      title: 'Title after reverted fields',
+    });
+    expect(write.raw).not.toMatch(/metadata|legacy-record|preserved|volume/);
+  });
+
   it.each([
     { next: ' 10.5555/updated ', patch: { set: { doi: '10.5555/updated' } } },
     { next: '', patch: { remove: ['doi'] } },
@@ -107,6 +211,11 @@ describe('Library item editor metadata wire preservation', () => {
 
   it('omits untouched opaque metadata from a title-only PATCH after native JSON parsing', async () => {
     const fixture = await renderEditor(opaqueMetadata);
+    const advanced = screen.getByRole('button', { name: 'Advanced settings' });
+    expect(advanced).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(advanced);
+    expect(advanced).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('textbox', { name: 'Volume' })).toHaveValue('');
     expect(fixture.item.metadata.authors).toEqual(['Ada', 'Grace']);
     expect(fixture.item.metadata.year).toBe(2024);
     const opaque = fixture.item.metadata.opaque as Record<string, unknown>;

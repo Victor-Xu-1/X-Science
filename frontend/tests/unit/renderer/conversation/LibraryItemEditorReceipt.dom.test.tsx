@@ -52,12 +52,20 @@ describe('Library editor durable receipt lifecycle', () => {
     const props: EditorProps = { item, busy: false, submit, close };
     const rendered = await renderWithI18n(editor(props), 'en-US');
     fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Changed paper' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Publication' }), {
+      target: { value: 'Changed publication' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /^Save$/ }));
     expect(submit).toHaveBeenCalledTimes(1);
+    expect(submit.mock.calls[0][0]).toMatchObject({
+      kind: 'edit-metadata',
+      metadata_patch: { set: { container_title: 'Changed publication' } },
+    });
     const operation = submit.mock.calls[0][0].operation_id;
     await act(async () => pending.reject(new Error('ACK response was lost')));
     expect(close).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox', { name: 'Title' })).toHaveValue('Changed paper');
+    expect(screen.getByRole('textbox', { name: 'Publication' })).toHaveValue('Changed publication');
 
     rendered.rerender(editor({ ...props, receipt: receipt(otherOperation) }));
     expect(close).not.toHaveBeenCalled();
