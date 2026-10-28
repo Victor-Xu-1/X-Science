@@ -2267,7 +2267,11 @@
     "membershipUpdated": "Collection membership updated.",
     "collectionDeleted": "Collection deleted. References and attachments were kept.",
     "collectionUpdated": "Collection updated · {{name}}",
-    "collectionPendingNotice": "The result is still pending confirmation. You can close this window and retry the original change from the Library notice."
+    "collectionPendingNotice": "The result is still pending confirmation. You can close this window and retry the original change from the Library notice.",
+    "discardTitle": "Discard unsaved changes?",
+    "discardDescription": "Your reference edits have not been saved.",
+    "keepEditing": "Keep editing",
+    "discardChanges": "Discard changes"
   },
   "libraryPublicationCheck": {
     "title": "Retractions and corrections",

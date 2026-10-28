@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next';
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
-import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import {
+  LibraryItemEditor,
+  type RegisterLibraryEditorDraft,
+} from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
 import { LibraryRelatedLookup } from '@/renderer/components/chat/SendBox/reading/LibraryRelatedLookup';
 import type { LiteratureDirection } from '@/common/adapter/literatureRelated';
 import type {
@@ -40,6 +43,8 @@ export function LibraryItemDetails({
   receipt,
   submit,
   close,
+  requestEditorClose,
+  registerDraft,
 }: {
   item: LiteratureItem;
   account: string;
@@ -55,6 +60,8 @@ export function LibraryItemDetails({
   receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
+  requestEditorClose?: (action: () => void) => void;
+  registerDraft?: RegisterLibraryEditorDraft;
 }) {
   const { t } = useTranslation();
   const [editBase, setEditBase] = useState<LiteratureItem>();
@@ -303,6 +310,8 @@ export function LibraryItemDetails({
             receipt={receipt}
             submit={submit}
             close={closeEditor}
+            requestClose={requestEditorClose}
+            registerDraft={registerDraft}
           />
         </div>
       )}

@@ -20,7 +20,9 @@ export function useLibraryDetailDialog(account: string, phase: string, onClose: 
     // Arco's default wrapper focus also depends on escToExit. This caller owns
     // only initial focus and a disappeared loading control; Arco keeps the trap.
     if (!initialized.current || active === document.body || !active?.isConnected) {
-      (focusableElements(root)[0] ?? root).focus({ preventScroll: true });
+      (focusableElements(root).find((element) => !element.hasAttribute('data-focus-guard')) ?? root).focus({
+        preventScroll: true,
+      });
       initialized.current = root.contains(document.activeElement);
     }
   }, [account]);

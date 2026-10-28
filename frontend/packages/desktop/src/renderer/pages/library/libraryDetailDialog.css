@@ -36,3 +36,14 @@
   outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: var(--ui-focus-offset);
 }
+.library-workbench__discard-dialog .arco-modal-content {
+  padding: var(--ui-space-6);
+}
+.library-workbench__discard-dialog h2 {
+  margin: 0 0 var(--ui-space-3);
+  font-size: var(--ui-font-subtitle);
+}
+.library-workbench__discard-dialog p {
+  margin: 0 0 var(--ui-space-5);
+  color: var(--workspace-text-secondary);
+}

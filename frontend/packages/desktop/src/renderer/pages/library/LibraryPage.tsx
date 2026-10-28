@@ -300,6 +300,7 @@ export default function LibraryPage() {
     }).catch((): undefined => undefined);
   };
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
+  const detailOpen = !inbox && Boolean(selectedId);
   const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
   const selectedCollection =
     reads.collections.status === 'ready'
@@ -315,10 +316,21 @@ export default function LibraryPage() {
       ? mutation.view.receipt
       : undefined;
   const publicationNoticeOwned = Boolean(
+    detailOpen &&
     selected &&
     mutation.view.action?.kind === 'check-publication' &&
     mutation.view.action.item_id === selected.id &&
     mutation.view.action.expected_metadata_revision === selected.metadata_revision
+  );
+  const mutationNotice = (
+    <LibraryMutationNotice
+      hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
+      error={mutation.view.error}
+      failed={actionFailed}
+      mutating={mutation.view.mutating}
+      acknowledged={acknowledged}
+      retry={() => void retryMutation()}
+    />
   );
   return (
     <main
@@ -348,14 +360,7 @@ export default function LibraryPage() {
           />,
           rail.host
         )}
-      <LibraryMutationNotice
-        hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
-        error={mutation.view.error}
-        failed={actionFailed}
-        mutating={mutation.view.mutating}
-        acknowledged={acknowledged}
-        retry={() => void retryMutation()}
-      />
+      {!detailOpen && mutationNotice}
       <div className='library-workbench__workspace'>
         {!rail && (
           <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
@@ -624,7 +629,7 @@ export default function LibraryPage() {
               )}
             </section>
           </div>
-          {selectedId && (
+          {detailOpen && (
             <LibraryDetailsPane
               key={JSON.stringify([reads.account, selectedId])}
               reads={reads}
@@ -635,6 +640,8 @@ export default function LibraryPage() {
                 mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' ? mutation.view.receipt : undefined
               }
               close={closeDetails}
+              pendingOperationId={mutation.view.pending?.operation_id}
+              notice={mutationNotice}
             />
           )}
           {reads.projects.status === 'error' && (

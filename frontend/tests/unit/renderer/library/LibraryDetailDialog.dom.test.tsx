@@ -106,12 +106,284 @@ describe('Library detail through its real Page/read/mutation/modal owners', () =
     expect(getComputedStyle(mask).backgroundColor).toBe('rgba(0, 0, 0, 0)');
     expect(document.querySelector('.library-workbench__panes > aside')).toBeNull();
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Edit details' })).toHaveFocus());
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(row).toHaveFocus());
     expect(screen.getByLabelText('Detail fixture location')).not.toHaveTextContent('item=');
     expect(data.requests.every((request) => request.method === 'GET')).toBe(true);
   });
+
+  it('dirty exit: keeps unsaved metadata and returns focus when editing resumes', async () => {
+    http();
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Unsaved title' } });
+    act(() => title.focus());
+    fireEvent.keyDown(title, { key: 'Escape' });
+    expect(dialog).toBeInTheDocument();
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(title).toHaveValue('Unsaved title');
+    await waitFor(() => expect(title).toHaveFocus());
+  });
+
+  it('dirty exit: keeps the original failed save retry reachable inside its dialog', async () => {
+    const attempts: string[] = [];
+    let saved: typeof withPdf | undefined;
+    http((url, init) => {
+      if (url.pathname !== '/api/literature/items/a') return undefined;
+      if (init.method !== 'PATCH') return saved ? json(saved) : undefined;
+      attempts.push(String(init.body));
+      if (attempts.length === 1) return json({ code: 'LITERATURE_INTERNAL' }, 503);
+      const body = JSON.parse(String(init.body)) as { operation_id: string; title: string };
+      saved = { ...withPdf, title: body.title, metadata_revision: 2 };
+      return json({ schema: 'x-science.literature-receipt.v1', operation_id: body.operation_id, item: saved });
+    });
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Saved by original retry' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    const retry = await within(dialog).findByRole('button', { name: 'Retry' });
+    expect(title).toHaveValue('Saved by original retry');
+    expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
+    const controller = getLiteratureMutationController(getRendererAccountOwnerId());
+    expect(controller.getSnapshot().pending?.operation_id).toBe(JSON.parse(attempts[0]).operation_id);
+    fireEvent.click(retry);
+    await waitFor(() => expect(controller.getSnapshot().pending).toBeNull());
+    expect(attempts).toHaveLength(2);
+    expect(attempts[1]).toBe(attempts[0]);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it('dirty exit: preserves a newer focus destination while the confirmation finishes closing', async () => {
+    http();
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Draft stays here' } });
+    act(() => title.focus());
+    fireEvent.keyDown(title, { key: 'Escape' });
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Keep editing' }));
+    const destination = within(dialog)
+      .getByRole('group', { name: 'Literature details' })
+      .querySelector<HTMLButtonElement>('button[aria-label="Close"]')!;
+    act(() => destination.focus());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(destination).toHaveFocus();
+    expect(title).toHaveValue('Draft stays here');
+  });
+
+  it('dirty exit: keeps mixed Inbox item links inside Inbox without mounting a detail portal', async () => {
+    http((url) =>
+      url.pathname === '/api/literature/candidates'
+        ? json({ schema: 'x-science.literature-candidates.v1', candidates: [] })
+        : undefined
+    );
+    await mount('/library?inbox=1&item=a');
+    const inbox = await screen.findByRole('region', { name: 'Inbox' });
+    const refresh = within(inbox).getByRole('button', { name: 'Refresh' });
+    act(() => refresh.focus());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(refresh).toHaveFocus();
+    expect(screen.getByLabelText('Detail fixture location')).toHaveTextContent('inbox=1');
+    expect(screen.getByLabelText('Detail fixture location')).toHaveTextContent('item=a');
+  });
+
+  it('dirty exit: retries a failed reading status inside the dialog without saving its metadata draft', async () => {
+    const attempts: string[] = [];
+    let saved = false;
+    http((url, init) => {
+      if (url.pathname === '/api/literature/items/a' && saved) return json({ ...withPdf, reading_status: 'read' });
+      if (url.pathname !== '/api/literature/items/reading-status' || init.method !== 'POST') return undefined;
+      attempts.push(String(init.body));
+      if (attempts.length === 1) return json({ code: 'LITERATURE_INTERNAL' }, 503);
+      saved = true;
+      return json({ schema: 'x-science.literature-reading-status-receipt.v1', ...JSON.parse(String(init.body)) });
+    });
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Reading is not metadata' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: /Reading status/ }), { target: { value: 'read' } });
+    const retry = await within(dialog).findByRole('button', { name: 'Retry' });
+    expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
+    fireEvent.click(retry);
+    await waitFor(() => expect(title).not.toBeDisabled());
+    expect(attempts).toHaveLength(2);
+    expect(attempts[1]).toBe(attempts[0]);
+    expect(title).toHaveValue('Reading is not metadata');
+    fireEvent.click(
+      within(dialog).getByRole('group', { name: 'Literature details' }).querySelector('button[aria-label="Close"]')!
+    );
+    await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+  });
+
+  it.each(['mask', 'header', 'editor'] as const)(
+    'dirty exit: requires explicit discard for the %s close',
+    async (source) => {
+      const data = http();
+      await mount();
+      const { dialog } = await openA();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+      const title = within(dialog).getByRole('textbox', { name: 'Title' });
+      fireEvent.change(title, { target: { value: 'Discard only with intent' } });
+      act(() => title.focus());
+      if (source === 'mask') {
+        const target = dialog.closest('.arco-modal-wrapper')!;
+        fireEvent.mouseDown(target);
+        fireEvent.click(target);
+      } else if (source === 'header') {
+        fireEvent.click(
+          within(dialog).getByRole('group', { name: 'Literature details' }).querySelector('button[aria-label="Close"]')!
+        );
+      } else {
+        fireEvent.click(
+          within(within(dialog).getByRole('region', { name: 'Edit details' })).getByRole('button', { name: /^Close$/ })
+        );
+      }
+      const confirmation = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+      expect(title).toHaveValue('Discard only with intent');
+      const mask = confirmation.closest('.arco-modal-wrapper')?.previousElementSibling as HTMLElement;
+      expect(mask.style.backgroundColor).toBe('transparent');
+      fireEvent.click(within(confirmation).getByRole('button', { name: 'Discard changes' }));
+      if (source === 'editor') {
+        await waitFor(() => expect(within(dialog).queryByRole('textbox', { name: 'Title' })).toBeNull());
+        expect(dialog).toBeInTheDocument();
+      } else await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(data.requests.every((request) => request.method === 'GET')).toBe(true);
+    }
+  );
+
+  it('dirty exit: treats reverted values as clean and nontext explicit clear as dirty', async () => {
+    const original = { ...withPdf, metadata: { ...withPdf.metadata, abstract: { source: 'provider' } } };
+    const data = http((url, init) =>
+      init.method !== 'PATCH' && url.pathname === '/api/literature/items/a' ? json(original) : undefined
+    );
+    await mount();
+    let { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Temporary' } });
+    fireEvent.change(title, { target: { value: 'Paper A' } });
+    fireEvent.keyDown(title, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    ({ dialog } = await openA());
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Clear Abstract' }));
+    fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Abstract' }), { key: 'Escape' });
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    fireEvent.keyDown(confirmation, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(dialog).toBeInTheDocument();
+    expect(data.requests.every((request) => request.method === 'GET')).toBe(true);
+  });
+
+  it('dirty exit: preserves unsubmitted metadata through a pending and acknowledged membership action', async () => {
+    const held = deferred<Response>();
+    let acknowledge: (() => void) | undefined;
+    const data = http((url, init) => {
+      if (url.pathname === '/api/projects') return json({ projects: [{ project_id: 'project-p', name: 'Project P' }] });
+      if (url.pathname !== '/api/literature/items/a/projects/project-p' || init.method !== 'PUT') return undefined;
+      const body = JSON.parse(String(init.body)) as { operation_id: string };
+      acknowledge = () =>
+        held.resolve(
+          json({
+            schema: 'x-science.literature-receipt.v1',
+            operation_id: body.operation_id,
+            item: { ...withPdf, project_ids: ['project-p'] },
+          })
+        );
+      release.push(acknowledge);
+      return held.promise;
+    });
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Metadata is not membership' } });
+    const project = within(dialog).getByRole('combobox', { name: 'Project membership' });
+    await waitFor(() => expect(project).not.toBeDisabled());
+    fireEvent.change(project, { target: { value: 'project-p' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Add to project' }));
+    await waitFor(() => expect(acknowledge).toBeTypeOf('function'));
+    fireEvent.click(
+      within(dialog).getByRole('group', { name: 'Literature details' }).querySelector('button[aria-label="Close"]')!
+    );
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    fireEvent.click(within(confirmation).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    await act(async () => acknowledge!());
+    await waitFor(() => expect(title).not.toBeDisabled());
+    expect(title).toHaveValue('Metadata is not membership');
+    expect(data.requests.filter((request) => request.method === 'PUT')).toHaveLength(1);
+    expect(data.requests.filter((request) => request.method === 'PATCH')).toHaveLength(0);
+  });
+
+  it('dirty exit: retains a rejected save as unsaved instead of claiming durable coverage', async () => {
+    http((url, init) =>
+      url.pathname === '/api/literature/items/a' && init.method === 'PATCH'
+        ? json({ code: 'LITERATURE_VALIDATION' }, 400)
+        : undefined
+    );
+    await mount();
+    const { dialog } = await openA();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+    const title = within(dialog).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Rejected draft stays' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await within(dialog).findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(title).not.toBeDisabled());
+    fireEvent.click(
+      within(dialog).getByRole('group', { name: 'Literature details' }).querySelector('button[aria-label="Close"]')!
+    );
+    await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    expect(title).toHaveValue('Rejected draft stays');
+  });
+
+  it.each(['item', 'account'] as const)(
+    'dirty exit: ignores an old confirmation callback after the %s changes',
+    async (scope) => {
+      http();
+      await mount();
+      const { dialog } = await openA();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
+      fireEvent.change(within(dialog).getByRole('textbox', { name: 'Title' }), { target: { value: 'Old draft' } });
+      fireEvent.keyDown(dialog, { key: 'Escape' });
+      const old = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+      const timers = vi.spyOn(globalThis, 'setTimeout');
+      const target = old.closest('.arco-modal-wrapper')!;
+      fireEvent.mouseDown(target);
+      fireEvent.click(target);
+      const delayed = [...timers.mock.calls].reverse().find((call) => call[1] === 100)?.[0];
+      expect(delayed).toBeTypeOf('function');
+      await act(async () => {
+        if (scope === 'item') await navigate('/library?item=b');
+        else setRendererAccountOwner('new-dirty-owner');
+      });
+      const replacement = await screen.findByRole('dialog', { name: scope === 'item' ? 'Paper B' : 'Paper A' });
+      fireEvent.click(within(replacement).getByRole('button', { name: 'Edit details' }));
+      const title = within(replacement).getByRole('textbox', { name: 'Title' });
+      fireEvent.change(title, { target: { value: 'New draft' } });
+      fireEvent.keyDown(title, { key: 'Escape' });
+      const current = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+      act(() => (delayed as () => void)());
+      expect(current).toBeInTheDocument();
+      fireEvent.click(within(current).getByRole('button', { name: 'Keep editing' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(title).toHaveValue('New draft');
+    }
+  );
 
   it('closes a loading opening without allowing its late result to reopen or replace the next detail', async () => {
     const held = deferred<Response>();

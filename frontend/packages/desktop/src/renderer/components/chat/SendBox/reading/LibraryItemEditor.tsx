@@ -1,15 +1,24 @@
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LibraryBibliographicFields, LibraryReferenceTypeField } from './LibraryBibliographicFields';
 import {
   buildLibraryBibliographicEdit,
+  libraryBibliographicChanges,
   projectLibraryBasic,
   projectLibraryScalars,
   type LibraryScalarKey,
 } from './libraryBibliographicDraft';
 
-type SubmittedEdit = { operationId: string; before: LiteratureReceipt | undefined };
+type SubmittedEdit = { operationId: string; before: LiteratureReceipt | undefined; draftKey?: string };
+
+export type LibraryEditorDraftState = {
+  dirty: boolean;
+  submittedOperationId?: string;
+  root: HTMLElement | null;
+  focus: HTMLElement | null;
+};
+export type RegisterLibraryEditorDraft = (owner: object) => (state: LibraryEditorDraftState | null) => void;
 
 /** Metadata/membership editing never owns the accepted PDF or its content. */
 export function LibraryItemEditor({
@@ -20,6 +29,8 @@ export function LibraryItemEditor({
   receipt,
   submit,
   close,
+  requestClose,
+  registerDraft,
 }: {
   item: LiteratureItem;
   projectId?: string;
@@ -28,6 +39,8 @@ export function LibraryItemEditor({
   receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
+  requestClose?: (action: () => void) => void;
+  registerDraft?: RegisterLibraryEditorDraft;
 }) {
   const { t } = useTranslation();
   const { authors: initialAuthors, year: initialYear, doi: initialDoi } = projectLibraryBasic(item);
@@ -45,13 +58,44 @@ export function LibraryItemEditor({
   const scalarProps = { metadata: item.metadata, draft: scalars, disabled: busy || readOnly, change: changeScalar };
   const [confirmRemove, setConfirmRemove] = useState(false);
   const submitted = useRef<SubmittedEdit | undefined>(undefined);
+  const root = useRef<HTMLElement>(null);
+  const lastInput = useRef<HTMLElement | null>(null);
+  const owner = useRef({});
+  const observer = useRef<ReturnType<RegisterLibraryEditorDraft> | undefined>(undefined);
+  const changes = libraryBibliographicChanges(item, { title, authors, year, doi }, scalars, touched);
+  const draftKey = JSON.stringify(changes);
+  const currentDraft = useRef({ dirty: false, key: '' });
+  currentDraft.current = { dirty: Object.keys(changes).length > 0, key: draftKey };
+  const publish = useCallback(() => {
+    const attempt = submitted.current;
+    observer.current?.({
+      dirty: currentDraft.current.dirty,
+      ...(attempt?.draftKey === currentDraft.current.key ? { submittedOperationId: attempt.operationId } : {}),
+      root: root.current,
+      focus: lastInput.current,
+    });
+  }, []);
+  useLayoutEffect(() => {
+    const report = registerDraft?.(owner.current);
+    observer.current = report;
+    publish();
+    return () => {
+      report?.(null);
+      if (observer.current === report) observer.current = undefined;
+    };
+  }, [publish, registerDraft]);
+  useLayoutEffect(publish, [draftKey, publish]);
   const finish = useCallback(
     (attempt: SubmittedEdit) => {
       if (submitted.current !== attempt) return;
       submitted.current = undefined;
+      publish();
+      // Membership/removal acknowledgement is not a metadata-save receipt.
+      // A newer draft also survives acknowledgement of an older save.
+      if (currentDraft.current.dirty && attempt.draftKey !== currentDraft.current.key) return;
       close();
     },
-    [close]
+    [close, publish]
   );
   useEffect(
     () => () => {
@@ -70,10 +114,11 @@ export function LibraryItemEditor({
     )
       finish(attempt);
   }, [receipt, item.id, finish]);
-  const run = (command: LiteratureCommand): void => {
+  const run = (command: LiteratureCommand, savesDraft = false): void => {
     if (busy || readOnly) return;
-    const attempt = { operationId: command.operation_id, before: receipt };
+    const attempt = { operationId: command.operation_id, before: receipt, ...(savesDraft ? { draftKey } : {}) };
     submitted.current = attempt;
+    publish();
     void submit(command).then(
       () => finish(attempt),
       (): undefined => undefined
@@ -81,7 +126,18 @@ export function LibraryItemEditor({
   };
   const included = Boolean(projectId && item.project_ids.includes(projectId));
   return (
-    <section className='pdf-library-editor' aria-label={t('conversation.reading.libraryDetails')}>
+    <section
+      ref={root}
+      tabIndex={-1}
+      className='pdf-library-editor'
+      aria-label={t('conversation.reading.libraryDetails')}
+      onFocusCapture={(event) => {
+        if (event.target instanceof HTMLElement && event.target.matches('input, textarea, select')) {
+          lastInput.current = event.target;
+          publish();
+        }
+      }}
+    >
       <LibraryReferenceTypeField {...scalarProps} />
       <label>
         {t('conversation.reading.libraryTitle')}
@@ -127,7 +183,9 @@ export function LibraryItemEditor({
         <button
           type='button'
           disabled={busy || readOnly || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
-          onClick={() => run(buildLibraryBibliographicEdit(item, { title, authors, year, doi }, scalars, touched))}
+          onClick={() =>
+            run(buildLibraryBibliographicEdit(item, { title, authors, year, doi }, scalars, touched), true)
+          }
         >
           {t('common.save')}
         </button>
@@ -148,7 +206,7 @@ export function LibraryItemEditor({
             {t(included ? 'conversation.reading.libraryUnlinkProject' : 'conversation.reading.libraryLinkProject')}
           </button>
         )}
-        <button type='button' disabled={busy} onClick={close}>
+        <button type='button' disabled={busy} onClick={() => (requestClose ? requestClose(close) : close())}>
           {t('common.close')}
         </button>
       </div>
