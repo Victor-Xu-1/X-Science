@@ -221,3 +221,7 @@
     animation: none;
   }
 }
+
+.library-workbench__collection-content[hidden] {
+  display: none;
+}

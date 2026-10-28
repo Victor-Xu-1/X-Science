@@ -3,6 +3,8 @@ import { BookOpen, ChevronRight, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
+import type { LiteratureCandidateCommand } from '@/common/adapter/literatureCandidates';
+import { LibraryInbox } from './LibraryInbox';
 import { LibraryCollectionSidebar } from './LibraryCollectionSidebar';
 import { LibraryCollectionEditor, type LibraryCollectionEditorMode } from './LibraryCollectionEditor';
 import {
@@ -45,6 +47,7 @@ export default function LibraryPage() {
   const cursor = params.get('cursor') ?? '';
   const selectedId = params.get('item') ?? '';
   const collectionId = params.get('collection') ?? '';
+  const inbox = params.get('inbox') === '1';
   const projectId = params.get('project') ?? '';
   const readingStatus = literatureReadingStatuses.find((value) => value === params.get('reading_status')) ?? '';
   useEffect(() => {
@@ -111,6 +114,7 @@ export default function LibraryPage() {
   const selectCollection = (id: string) => {
     const next = new URLSearchParams(params);
     next.delete('project');
+    next.delete('inbox');
     if (id) next.set('collection', id);
     else next.delete('collection');
     next.delete('cursor');
@@ -119,6 +123,7 @@ export default function LibraryPage() {
   };
   const selectProject = (id: string) => {
     const next = new URLSearchParams(params);
+    next.delete('inbox');
     if (id) next.set('project', id);
     else next.delete('project');
     next.delete('collection');
@@ -173,6 +178,13 @@ export default function LibraryPage() {
     // Evidence is independent of metadata and is consumed by the live detail.
     // A catalogue reload would unmount it and erase a real provider failure.
     if (receipt.schema === 'x-science.literature-publication-receipt.v1') return;
+    if (receipt.schema === 'x-science.literature-candidate-receipt.v1') {
+      // Staging and dismissal only change Inbox. Reloading the source detail
+      // would mark it stale and unmount its live related-query/batch owner.
+      // Acceptance can add an item, so read back the actual catalogue data.
+      if (receipt.action === 'accept') reads.refreshData();
+      return;
+    }
     if (receipt.schema === 'x-science.literature-reading-status-receipt.v1') {
       // Keep the same detail/editor/preview mounted. A receipt is historical
       // acknowledgement; only these current reads project the stored state.
@@ -216,7 +228,13 @@ export default function LibraryPage() {
     setParams,
   ]);
   const submit = useCallback(
-    async <Command extends LiteratureCommand | LiteratureCollectionCommand | LiteratureReadingStatusCommand>(
+    async <
+      Command extends
+        | LiteratureCommand
+        | LiteratureCollectionCommand
+        | LiteratureReadingStatusCommand
+        | LiteratureCandidateCommand,
+    >(
       command: Command
     ) => {
       const account = reads.account;
@@ -298,10 +316,22 @@ export default function LibraryPage() {
             <BookOpen size={18} aria-hidden='true' />
             <span>{t('conversation.libraryWorkbench.title')}</span>
           </div>
+          <button
+            type='button'
+            className='library-workbench__button'
+            aria-current={inbox ? 'page' : undefined}
+            onClick={() => {
+              const next = new URLSearchParams(params);
+              next.set('inbox', '1');
+              setParams(next);
+            }}
+          >
+            {t('conversation.libraryInbox.title')}
+          </button>
           <LibraryCollectionSidebar
             view={reads.collections}
             selectedId={collectionId}
-            allSelected={!collectionId && !projectId}
+            allSelected={!inbox && !collectionId && !projectId}
             busy={busy}
             select={selectCollection}
             create={() => openCollection({ kind: 'create' })}
@@ -309,7 +339,40 @@ export default function LibraryPage() {
           />
           <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
         </aside>
+        {inbox && (
+          <LibraryInbox
+            key={reads.account}
+            account={reads.account}
+            busy={busy}
+            receipt={
+              mutation.view.receipt?.schema === 'x-science.literature-candidate-receipt.v1'
+                ? mutation.view.receipt
+                : undefined
+            }
+            pendingOperationId={
+              mutation.view.pending?.kind.startsWith('candidate-') ? mutation.view.pending.operation_id : undefined
+            }
+            submit={submit}
+            close={() => {
+              const next = new URLSearchParams(params);
+              next.delete('inbox');
+              setParams(next);
+            }}
+            openItem={(id) => {
+              const next = new URLSearchParams(params);
+              next.delete('inbox');
+              next.delete('collection');
+              next.delete('project');
+              next.delete('q');
+              next.delete('cursor');
+              next.delete('reading_status');
+              next.set('item', id);
+              setParams(next);
+            }}
+          />
+        )}
         <section
+          hidden={inbox}
           className='library-workbench__collection-content'
           aria-label={t('conversation.libraryWorkbench.collectionResults')}
         >

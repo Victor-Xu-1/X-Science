@@ -45,6 +45,9 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		s.handleLiteratureRelated(w, r, owner)
 		return
 	}
+	if s.handleLiteratureCandidates(w, r, owner, parts) {
+		return
+	}
 	if s.handleLiteratureCollectionRoute(w, r, owner, parts) {
 		return
 	}

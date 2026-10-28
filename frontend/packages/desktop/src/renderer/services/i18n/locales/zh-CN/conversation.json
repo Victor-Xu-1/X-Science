@@ -1,6 +1,31 @@
 {
+  "libraryInbox": {
+    "back": "返回文献库",
+    "more": "加载更多",
+    "title": "收件箱",
+    "pending": "待处理",
+    "dismissed": "已忽略",
+    "failed": "无法加载收件箱。",
+    "empty": "此视图中没有候选文献。",
+    "accept": "加入文献库",
+    "dismiss": "忽略",
+    "openAccepted": "在文献库中打开",
+    "updated": "收件箱已更新。"
+  },
   "reading": {
     "related": {
+      "stageSelect": "选择 {{title}}",
+      "stageAdd": "添加所选文献到收件箱（{{count}}）",
+      "stageRunning": "正在添加所选文献…",
+      "stagePending": "之前的文献库操作需要恢复，重试将发送原始请求。",
+      "stageBlocked": "另一项文献库操作正在进行或需要处理。",
+      "stageStates": {
+        "pending": "已加入收件箱。",
+        "accepted": "已在文献库中。",
+        "dismissed": "之前已忽略，可在收件箱中查看。",
+        "failed": "未能添加此文献，请先处理待恢复操作或重试。",
+        "invalid": "文献信息无效或超出大小限制，无法添加。"
+      },
       "title": "相关文献",
       "direction": "文献引用关系",
       "references": "参考文献",
@@ -17,7 +42,7 @@
       "more": "加载更多相关文献",
       "omitted": "部分引用关系缺少可识别的文献信息，已省略。",
       "retryTime": "服务商建议重试时间：{{time}}",
-      "readOnlyHint": "仅查询文献信息，不会将论文或 PDF 加入文献库。",
+      "readOnlyHint": "所选文献将进入收件箱供审核，不会下载 PDF。",
       "issues": {
         "no-match": "无法识别此文献，请检查标题或标识符。",
         "reference-changed": "此文献已发生变化，请关闭并重新打开详情后再查询。",

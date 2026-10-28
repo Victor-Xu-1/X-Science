@@ -125,6 +125,16 @@ describe('L382 independent Library service and mutation owner', () => {
     });
     expect(result.options[0].source).not.toHaveProperty('artifact_id');
   });
+  it('does not offer a metadata-only Library item as a PDF reading source', async () => {
+    mocks.http.mockResolvedValueOnce({
+      schema: 'x-science.literature-page.v1',
+      items: [{ ...item(), id: 'metadata-only', attachments: [], project_ids: [] }],
+    });
+    const result = await loadLibraryReadingOptions(pdfContext(), { signal: new AbortController().signal });
+    expect(result.options).toEqual([]);
+    expect(result.unavailable).toBe(0);
+    expect(mocks.http).toHaveBeenCalledTimes(1);
+  });
   it('does not accept cross-account responses or silently substitute a conflicting version relation', async () => {
     const pending = deferredPdf<unknown>();
     mocks.http.mockReturnValue(pending.promise);

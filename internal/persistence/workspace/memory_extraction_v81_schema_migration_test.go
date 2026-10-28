@@ -107,10 +107,11 @@ func TestMemoryExtractionV81MigrationRollsBackAndPreservesHistory(t *testing.T) 
 		t.Fatal("reopen changed the existing v81 schema journal prefix")
 	}
 	// Reopen upgrades to the current registry. Compare the exact v81 projection;
-	// the later cadence column, collections and publication evidence have their own
-	// migration tests. Still reject any missing, populated or unexpected table.
+	// the later cadence column, collections, publication evidence and candidate
+	// Inbox have their own migration tests. Still reject any missing, populated
+	// or unexpected table.
 	retained = memoryExtractionRowsBeforeCadenceColumn(t, reopened.db)
-	for _, table := range []string{"literature_collections", "literature_collection_items", "literature_publication_checks"} {
+	for _, table := range []string{"literature_collections", "literature_collection_items", "literature_publication_checks", "literature_candidates", "literature_candidate_sources"} {
 		rows, found := retained[table]
 		if !found || len(rows) != 0 {
 			t.Fatalf("current-schema additive table %q missing or populated on reopen: rows=%#v found=%t", table, rows, found)

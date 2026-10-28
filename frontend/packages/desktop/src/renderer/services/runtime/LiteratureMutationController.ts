@@ -1,3 +1,4 @@
+import { runLiteratureCandidateCommand } from './literatureCandidates';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { decodeLiteratureReceipt, type LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '../rendererAccountScope';
@@ -22,6 +23,7 @@ import {
   decodeMutationCommand,
   decodePendingRecord,
   encodePendingRecord,
+  isCandidateCommand,
   isCollectionCommand,
   isUploadIntent,
   matchingSettlement,
@@ -76,6 +78,7 @@ type Options = {
   runCollection?: typeof runLiteratureCollectionCommand;
   runPublication?: typeof runLiteraturePublicationCommand;
   runReadingStatus?: typeof runLiteratureReadingStatusCommand;
+  runCandidate?: typeof runLiteratureCandidateCommand;
   initialize?: typeof initializeXScienceProjectAttachment;
   upload?: typeof uploadXScienceProjectAttachment;
   digest?: typeof digestLibraryFile;
@@ -314,6 +317,8 @@ export class LiteratureMutationController {
     );
   }
   private dispatch(command: LiteratureMutationCommand, signal: AbortSignal) {
+    if (isCandidateCommand(command))
+      return (this.options.runCandidate ?? runLiteratureCandidateCommand)(command, signal);
     if (command.kind === 'check-publication')
       return (this.options.runPublication ?? runLiteraturePublicationCommand)(command, signal);
     if (command.kind === 'set-reading-status')

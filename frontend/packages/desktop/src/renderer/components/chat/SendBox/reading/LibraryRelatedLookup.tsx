@@ -3,6 +3,7 @@ import type { LiteratureDirection, RelatedRecord } from '@/common/adapter/litera
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLibraryRelatedLookup } from './useLibraryRelatedLookup';
+import { useRelatedInboxStage } from './useRelatedInboxStage';
 
 function RelatedPaper({ record }: { record: RelatedRecord }) {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ function RelatedPaper({ record }: { record: RelatedRecord }) {
   );
 }
 
-/** A read-only detail mode, not a PDF acquisition or Inbox mutation surface. */
+/** Discovery and Inbox staging do not download or attach full-text PDFs. */
 export function LibraryRelatedLookup({
   item,
   initialDirection,
@@ -49,6 +50,7 @@ export function LibraryRelatedLookup({
   const panelId = useId();
   const query = useLibraryRelatedLookup(item.id, item.metadata_revision, initialDirection);
   const records = query.result?.records ?? [];
+  const stage = useRelatedInboxStage(item, query.direction, records);
   const retryDate = query.retryAt === undefined ? undefined : new Date(query.retryAt);
   const retryTime =
     retryDate && Number.isFinite(retryDate.getTime()) ? retryDate.toLocaleTimeString(i18n.resolvedLanguage) : undefined;
@@ -149,7 +151,21 @@ export function LibraryRelatedLookup({
               <ul aria-label={t('conversation.reading.related.results')}>
                 {records.map((record) => (
                   <li key={record.paper_id}>
+                    <label>
+                      <input
+                        type='checkbox'
+                        checked={stage.selected.includes(record.paper_id)}
+                        disabled={stage.blocked || query.loading || Boolean(query.issue)}
+                        onChange={() => stage.toggle(record.paper_id)}
+                      />
+                      {t('conversation.reading.related.stageSelect', { title: record.title })}
+                    </label>
                     <RelatedPaper record={record} />
+                    {stage.results[record.paper_id] && (
+                      <p role={['failed', 'invalid'].includes(stage.results[record.paper_id]) ? 'alert' : 'status'}>
+                        {t('conversation.reading.related.stageStates.' + stage.results[record.paper_id])}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -160,6 +176,27 @@ export function LibraryRelatedLookup({
                 )}
               </p>
             ) : null}
+            {records.length > 0 && (
+              <button
+                type='button'
+                disabled={stage.blocked || query.loading || Boolean(query.issue) || stage.selected.length === 0}
+                onClick={() => void stage.submitSelected()}
+              >
+                {t('conversation.reading.related.stageAdd', { count: stage.selected.length })}
+              </button>
+            )}
+            {stage.running && <p role='status'>{t('conversation.reading.related.stageRunning')}</p>}
+            {stage.pending && !stage.running && (
+              <div role='alert' className='pdf-library-related__notice'>
+                <span>{t('conversation.reading.related.stagePending')}</span>
+                <button type='button' disabled={!stage.canRetryPending} onClick={() => void stage.retryPending()}>
+                  {t('common.retry')}
+                </button>
+              </div>
+            )}
+            {!stage.pending && stage.blocked && !stage.running && (
+              <p role='status'>{t('conversation.reading.related.stageBlocked')}</p>
+            )}
             {query.result?.omitted ? (
               <p className='pdf-library-related__hint'>{t('conversation.reading.related.omitted')}</p>
             ) : null}
