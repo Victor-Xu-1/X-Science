@@ -147,11 +147,13 @@ function Harness({
   account = getRendererAccountScopeToken(),
   projectView = projects(),
   refresh = () => undefined,
+  observe,
 }: {
   controller: LiteratureMutationController;
   account?: string;
   projectView?: LibraryImportProjects;
   refresh?: () => void;
+  observe?: (model: ReturnType<typeof useLibraryPdfImport>) => void;
 }) {
   const [panel, setPanel] = useState({ account, open: false });
   const setOpen = useCallback(
@@ -168,10 +170,11 @@ function Harness({
     open: panel.account === account && panel.open,
     setOpen,
   });
+  observe?.(model);
   return (
     <main className='library-workbench'>
       <LibraryPdfImport model={model} />
-      <LibraryPdfImportPanel model={model} refreshProjects={refresh} viewReference={() => undefined} />
+      <LibraryPdfImportPanel model={model} refreshProjects={refresh} viewReference={model.completeSuccess} />
     </main>
   );
 }
@@ -503,6 +506,52 @@ describe('Library PDF import UI', () => {
     expect(screen.getByLabelText('Library location')).toHaveTextContent('?item=saved-reference');
     expect(screen.getByRole('heading', { name: 'reference' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Preview PDF/ })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Import a PDF' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Edit details' })).toBeEnabled();
+    expect(screen.getByRole('combobox', { name: 'Reading status for reference' })).toBeEnabled();
+  });
+
+  it('hands off only its current completed receipt and retains a newly pending upload', async () => {
+    const x = setup();
+    const discard = vi.spyOn(x.controller, 'discardRejectedPdfImport');
+    let latest!: ReturnType<typeof useLibraryPdfImport>;
+    const user = userEvent.setup();
+    await renderWithI18n(
+      <Harness
+        controller={x.controller}
+        observe={(value) => {
+          latest = value;
+        }}
+      />,
+      'en-US'
+    );
+    const dialog = await choose(user);
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Project' }), { target: { value: 'project' } });
+    fireEvent.submit(dialog.querySelector('form')!);
+    await screen.findByRole('button', { name: 'View reference' });
+    const completed = latest.success!;
+    const handoff = latest.completeSuccess;
+    expect(handoff({ ...completed, item: { ...completed.item, id: 'unrelated' } })).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'View reference' }));
+    expect(screen.queryByRole('dialog', { name: 'Import a PDF' })).toBeNull();
+    expect(x.controller.getSnapshot().receipt).toEqual(completed);
+    act(() => latest.openPanel());
+    const held = deferred<typeof artifact>();
+    x.upload.mockImplementationOnce(() => held.promise);
+    let flight!: Promise<import('@/renderer/services/runtime/LiteratureMutationController').LiteratureMutationReceipt>;
+    act(() => {
+      flight = x.controller.importPdf({ projectId: 'project', title: 'Next reference', file: pdf() });
+      expect(handoff(completed)).toBe(false);
+    });
+    const rejected = expect(flight).rejects.toMatchObject({ name: 'AbortError' });
+    await waitFor(() => expect(x.upload).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('dialog', { name: 'Import a PDF' })).toBeInTheDocument();
+    expect(x.controller.getSnapshot().pending).toBeDefined();
+    expect(discard).not.toHaveBeenCalled();
+    act(() => x.controller.cancelPdfImport(flight));
+    await rejected;
+    expect(x.storage.getItem(key)).not.toBeNull();
+    held.resolve(artifact);
   });
 
   it('coordinates the inline form with collection editing and provides the same Chinese controls', async () => {
