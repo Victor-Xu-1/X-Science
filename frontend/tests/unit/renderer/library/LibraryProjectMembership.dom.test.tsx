@@ -137,7 +137,7 @@ describe('Overview project membership through the existing Web owner', () => {
       submit,
       retry,
       view: { status: 'ready' },
-      projects: projects.map((project) => ({
+      projects: projects.map((project): Props['projects'][number] => ({
         projectId: project.project_id,
         name: project.name,
         latestConversationId: null,
@@ -201,7 +201,7 @@ describe('Overview project membership through the existing Web owner', () => {
       ...value,
       account: getRendererAccountScopeToken(),
       view: { status: 'ready' },
-      projects: projects.map((project, index) => ({
+      projects: projects.map((project, index): Props['projects'][number] => ({
         ...projects[index],
         projectId: project.project_id,
         name: project.name,

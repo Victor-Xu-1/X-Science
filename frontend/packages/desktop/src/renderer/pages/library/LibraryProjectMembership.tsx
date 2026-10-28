@@ -65,7 +65,7 @@ export function LibraryProjectMembership({
       item_id: item.id,
       project_id: projectId,
       included,
-    }).catch(() => undefined);
+    }).catch((): undefined => undefined);
   };
   return (
     <section className='library-workbench__membership' aria-label={t('conversation.libraryWorkbench.projects')}>
