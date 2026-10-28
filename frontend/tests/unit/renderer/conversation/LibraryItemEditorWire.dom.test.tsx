@@ -32,11 +32,13 @@ async function renderEditor(metadataJSON: string) {
     const body = JSON.parse(init.body) as Record<string, unknown>;
     writes.push({ path: url.pathname, raw: init.body, body });
     // Controlled replacement/retention response only; this is not a fake Store precision proof.
-    const patch = body.metadata_patch as { set: Record<string, unknown> } | undefined;
+    const patch = body.metadata_patch as { set?: Record<string, unknown>; remove?: string[] } | undefined;
+    const patchedMetadata = patch ? { ...JSON.parse(metadataJSON), ...patch.set } : undefined;
+    for (const key of patch?.remove ?? []) delete patchedMetadata[key];
     const metadata = Object.hasOwn(body, 'metadata')
       ? JSON.stringify(body.metadata)
       : patch
-        ? JSON.stringify({ ...JSON.parse(metadataJSON), ...patch.set })
+        ? JSON.stringify(patchedMetadata)
         : metadataJSON;
     if (typeof metadata !== 'string') throw new Error('Fixture metadata must remain JSON');
     const title = typeof body.title === 'string' ? body.title : originalTitle;
@@ -85,6 +87,22 @@ describe('Library item editor metadata wire preservation', () => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it.each([
+    { next: ' 10.5555/updated ', patch: { set: { doi: '10.5555/updated' } } },
+    { next: '', patch: { remove: ['doi'] } },
+  ])('edits the DOI through a field patch without replacing untouched metadata: $next', async ({ next, patch }) => {
+    const fixture = await renderEditor(opaqueMetadata.replace('"year":2024', '"year":2024,"doi":"10.5555/original"'));
+    fireEvent.change(screen.getByRole('textbox', { name: /^DOI$/ }), { target: { value: next } });
+    const write = await saveEditor(fixture, 'edit-metadata');
+    expect(write.body.metadata_patch).toEqual(patch);
+    expect(Object.hasOwn(write.body, 'metadata')).toBe(false);
+    expect(Object.hasOwn(write.body, 'title')).toBe(false);
+    expect(write.raw).not.toContain('9007199254740993');
+    expect(fixture.item.metadata.authors).toEqual(['Ada', 'Grace']);
+    expect(fixture.item.metadata.year).toBe(2024);
+    expect(fixture.item.metadata.doi).toBe('10.5555/original');
   });
 
   it('omits untouched opaque metadata from a title-only PATCH after native JSON parsing', async () => {

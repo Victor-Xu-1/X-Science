@@ -31,11 +31,14 @@ export function LibraryItemEditor({
         : '';
   const initialYear =
     typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : '';
+  const initialDoi = typeof item.metadata.doi === 'string' ? item.metadata.doi : '';
   const [title, setTitle] = useState(item.title);
   const [authors, setAuthors] = useState(initialAuthors);
   const [year, setYear] = useState(initialYear);
+  const [doi, setDoi] = useState(initialDoi);
   const authorsChanged = authors !== initialAuthors;
   const yearChanged = year !== initialYear;
+  const doiChanged = doi !== initialDoi;
   const [confirmRemove, setConfirmRemove] = useState(false);
   const submitted = useRef<SubmittedEdit | undefined>(undefined);
   const finish = useCallback(
@@ -103,13 +106,24 @@ export function LibraryItemEditor({
           onChange={(event) => setYear(event.target.value)}
         />
       </label>
+      <label>
+        {t('conversation.libraryTable.columns.doi')}
+        <input
+          value={doi}
+          maxLength={2048}
+          autoCapitalize='none'
+          spellCheck={false}
+          disabled={busy || readOnly}
+          onChange={(event) => setDoi(event.target.value)}
+        />
+      </label>
       <div className='pdf-library-editor__buttons'>
         <button
           type='button'
           disabled={busy || readOnly || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
           onClick={() =>
             run(
-              authorsChanged || yearChanged
+              authorsChanged || yearChanged || doiChanged
                 ? {
                     kind: 'edit-metadata',
                     operation_id: crypto.randomUUID(),
@@ -117,10 +131,16 @@ export function LibraryItemEditor({
                     expected_revision: item.metadata_revision,
                     ...(title.trim() !== item.title ? { title: title.trim() } : {}),
                     metadata_patch: {
-                      set: {
-                        ...(authorsChanged ? { authors: authors.trim() } : {}),
-                        ...(yearChanged ? { year: year.trim() } : {}),
-                      },
+                      ...(authorsChanged || yearChanged || (doiChanged && doi.trim())
+                        ? {
+                            set: {
+                              ...(authorsChanged ? { authors: authors.trim() } : {}),
+                              ...(yearChanged ? { year: year.trim() } : {}),
+                              ...(doiChanged && doi.trim() ? { doi: doi.trim() } : {}),
+                            },
+                          }
+                        : {}),
+                      ...(doiChanged && !doi.trim() ? { remove: ['doi'] } : {}),
                     },
                   }
                 : {
