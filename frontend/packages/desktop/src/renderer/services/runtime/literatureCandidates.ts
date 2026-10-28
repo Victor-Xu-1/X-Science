@@ -42,6 +42,7 @@ export async function runLiteratureCandidateCommand(input: LiteratureCandidateCo
           external_id: command.external_id,
           title: command.title,
           metadata: command.metadata,
+          ...(command.source ? { source: command.source } : {}),
         }
       : { operation_id: command.operation_id };
   const raw = await httpRequest<unknown>('POST', path, body, { signal, timeoutMs: 30000 });

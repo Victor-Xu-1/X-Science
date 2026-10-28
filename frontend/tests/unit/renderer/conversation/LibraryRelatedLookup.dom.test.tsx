@@ -12,6 +12,7 @@ import {
 } from '@/renderer/services/rendererAccountScope';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { deferredPdf } from './pdfReadingFixtures';
+import { installLiteratureLocks } from './literatureMutationLockFixtures';
 
 vi.mock('@/renderer/pages/library/LibraryPublicationCheck', () => ({ LibraryPublicationCheck: (): null => null }));
 vi.mock('@/renderer/pages/library/LibraryCollectionMembership', () => ({
@@ -73,11 +74,15 @@ function signal(index = 0): AbortSignal {
 beforeEach(() => {
   resetRendererAccountScopeForTest();
   setRendererAccountOwner('owner');
+  localStorage.clear();
   mocks.http
     .mockReset()
     .mockImplementation(async (_method: string, _path: string, request: RelatedRequest) => result(request));
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 it.each(['en-US', 'zh-CN'] as const)(
   'opens query from Library details and keeps a live editor draft in %s',
@@ -402,4 +407,164 @@ it('uses the strict response decoder on retry and renders full returned text onl
   const link = screen.getByRole('link', { name: 'View on Semantic Scholar' });
   expect(link).toHaveAttribute('href', `https://www.semanticscholar.org/paper/${'b'.repeat(40)}`);
   expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+});
+
+function stageReceipt(body: Record<string, unknown>, state: 'pending' | 'accepted' | 'dismissed' = 'pending') {
+  return {
+    schema: 'x-science.literature-candidate-receipt.v1',
+    operation_id: body.operation_id,
+    action: 'stage',
+    candidate: {
+      id: 'candidate-one',
+      title: body.title,
+      provider: 'semantic-scholar',
+      external_id: body.external_id,
+      state,
+      metadata: body.metadata,
+      ...(state === 'accepted' ? { item_id: 'existing-item' } : {}),
+    },
+  };
+}
+it('stages selected references serially with source and complete identifiers', async () => {
+  installLiteratureLocks();
+  const first = deferredPdf<unknown>();
+  mocks.http.mockImplementation(async (_method: string, path: string, body: Record<string, unknown>) => {
+    if (path.endsWith('/related'))
+      return result(body as unknown as RelatedRequest, {
+        records: [paper('b', 'First paper'), paper('c', 'Second paper')],
+      });
+    if (path.endsWith('/candidates'))
+      return body.external_id === 'b'.repeat(40) ? first.promise : stageReceipt(body, 'accepted');
+    throw new Error('unexpected path');
+  });
+  await renderWithI18n(<LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />, 'en-US');
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select First paper' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Second paper' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected to Inbox (2)' }));
+  await waitFor(() =>
+    expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(1)
+  );
+  const firstBody = mocks.http.mock.calls.find((call) => String(call[1]).endsWith('/candidates'))![2] as Record<
+    string,
+    unknown
+  >;
+  expect(firstBody).toMatchObject({
+    provider: 'semantic-scholar',
+    external_id: 'b'.repeat(40),
+    source: { item_id: item.id, metadata_revision: 3, direction: 'references' },
+    metadata: {
+      doi: '10.1000/example',
+      identifiers: [{ scheme: 'doi', value: '10.1000/example' }],
+      authors: ['Family, Given', 'Second Author'],
+      abstract: 'The complete returned abstract.',
+    },
+  });
+  await act(async () => first.resolve(stageReceipt(firstBody)));
+  await screen.findByText('Already in Library.');
+  expect(screen.getByText('Added to Inbox.')).toBeInTheDocument();
+  expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(2);
+});
+it('reopens an uncertain stage and retries the identical durable operation', async () => {
+  installLiteratureLocks();
+  let attempt = 0;
+  mocks.http.mockImplementation(async (_method: string, path: string, body: Record<string, unknown>) => {
+    if (path.endsWith('/related')) return result(body as unknown as RelatedRequest);
+    if (path.endsWith('/candidates')) {
+      if (++attempt === 1) throw new TypeError('lost receipt');
+      return stageReceipt(body, 'dismissed');
+    }
+    throw new Error('unexpected path');
+  });
+  const render = await renderWithI18n(
+    <LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />,
+    'en-US'
+  );
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Related paper' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected to Inbox (1)' }));
+  await screen.findByText(/previous Library action needs recovery/);
+  render.unmount();
+  await renderWithI18n(<LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />, 'en-US');
+  await screen.findByRole('checkbox', { name: 'Select Related paper' });
+  fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+  await screen.findByText('Previously dismissed; review it in Inbox.');
+  const calls = mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'));
+  expect(calls).toHaveLength(2);
+  expect(calls[1][2]).toEqual(calls[0][2]);
+});
+it('reports oversized bibliographic metadata without making a staging request', async () => {
+  installLiteratureLocks();
+  mocks.http.mockImplementation(async (_method: string, path: string, request: RelatedRequest) => {
+    if (path.endsWith('/related')) return result(request, { records: [{ ...paper(), abstract: 'X'.repeat(17000) }] });
+    throw new Error('should not stage oversized metadata');
+  });
+  await renderWithI18n(<LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />, 'en-US');
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select Related paper' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected to Inbox (1)' }));
+  await screen.findByText('This paper has invalid or oversized metadata and cannot be added.');
+  expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(0);
+});
+
+it('stops a multi-selection batch when its view closes', async () => {
+  installLiteratureLocks();
+  const first = deferredPdf<unknown>();
+  mocks.http.mockImplementation(async (_method: string, path: string, body: Record<string, unknown>) => {
+    if (path.endsWith('/related'))
+      return result(body as unknown as RelatedRequest, {
+        records: [paper('b', 'First paper'), paper('c', 'Second paper')],
+      });
+    if (path.endsWith('/candidates')) return first.promise;
+    throw new Error('unexpected path');
+  });
+  const rendered = await renderWithI18n(
+    <LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />,
+    'en-US'
+  );
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select First paper' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Second paper' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected to Inbox (2)' }));
+  await waitFor(() =>
+    expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(1)
+  );
+  const body = mocks.http.mock.calls.find((call) => String(call[1]).endsWith('/candidates'))![2] as Record<
+    string,
+    unknown
+  >;
+  rendered.unmount();
+  await act(async () => {
+    first.resolve(stageReceipt(body));
+    await first.promise;
+    await Promise.resolve();
+  });
+  expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(1);
+});
+it('stops a multi-selection batch when the account changes', async () => {
+  installLiteratureLocks();
+  const first = deferredPdf<unknown>();
+  mocks.http.mockImplementation(async (_method: string, path: string, body: Record<string, unknown>) => {
+    if (path.endsWith('/related'))
+      return result(body as unknown as RelatedRequest, {
+        records: [paper('b', 'First paper'), paper('c', 'Second paper')],
+      });
+    if (path.endsWith('/candidates')) return first.promise;
+    throw new Error('unexpected path');
+  });
+  await renderWithI18n(<LibraryRelatedLookup item={item} initialDirection='references' close={vi.fn()} />, 'en-US');
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select First paper' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select Second paper' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add selected to Inbox (2)' }));
+  await waitFor(() =>
+    expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(1)
+  );
+  const body = mocks.http.mock.calls.find((call) => String(call[1]).endsWith('/candidates'))![2] as Record<
+    string,
+    unknown
+  >;
+  act(() => setRendererAccountOwner('other-owner'));
+  await act(async () => {
+    first.resolve(stageReceipt(body));
+    await first.promise;
+    await Promise.resolve();
+  });
+  expect(mocks.http.mock.calls.filter((call) => String(call[1]).endsWith('/candidates'))).toHaveLength(1);
+  expect(screen.queryByText('Added to Inbox.')).toBeNull();
 });

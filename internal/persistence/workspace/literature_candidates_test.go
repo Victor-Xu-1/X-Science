@@ -400,3 +400,35 @@ func TestLiteratureCandidateRestageReconcilesNewLibraryItemButKeepsDismissal(t *
 		t.Fatalf("dismissal lost: %#v %v", kept, err)
 	}
 }
+
+func TestLiteratureCandidateDiscoverySourceOwnerRevisionAndReplay(t *testing.T) {
+	s := candidateTestStore(t)
+	ctx := context.Background()
+	now := s.now().UTC()
+	_, err := s.db.Exec("INSERT INTO literature_items(id,owner_user_id,title,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?)", "seed", "owner", "Seed", "{}", now, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := candidateInput()
+	in.Source = &LiteratureCandidateDiscoverySource{ItemID: "seed", MetadataRevision: 1, Direction: "references"}
+	first, err := s.StageLiteratureCandidate(ctx, "owner", in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.db.Exec("UPDATE literature_items SET metadata_revision=2 WHERE id=?", "seed"); err != nil {
+		t.Fatal(err)
+	}
+	replay, err := s.StageLiteratureCandidate(ctx, "owner", in)
+	if err != nil || !reflect.DeepEqual(first, replay) {
+		t.Fatalf("original receipt: %#v %v", replay, err)
+	}
+	later := in
+	later.OperationID = uuid.NewString()
+	if _, err = s.StageLiteratureCandidate(ctx, "owner", later); !errors.Is(err, ErrLiteratureConflict) {
+		t.Fatalf("stale seed accepted: %v", err)
+	}
+	later.OperationID = uuid.NewString()
+	if _, err = s.StageLiteratureCandidate(ctx, "other", later); !errors.Is(err, ErrLiteratureUnavailable) {
+		t.Fatalf("foreign seed accepted: %v", err)
+	}
+}

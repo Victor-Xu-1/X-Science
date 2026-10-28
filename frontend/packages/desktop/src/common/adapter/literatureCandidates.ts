@@ -17,6 +17,7 @@ export type LiteratureCandidateCommand =
       external_id: string;
       title: string;
       metadata: Record<string, unknown>;
+      source?: { item_id: string; metadata_revision: number; direction: 'references' | 'citations' };
     }
   | { kind: 'candidate-accept' | 'candidate-dismiss'; operation_id: string; candidate_id: string };
 export type LiteratureCandidateReceipt = {
@@ -71,7 +72,17 @@ export function decodeLiteratureCandidateCommand(value: unknown): LiteratureCand
   if (!record(value) || !uuid(value.operation_id)) return invalid();
   if (value.kind === 'candidate-stage') {
     if (
-      Object.keys(value).sort().join(',') !== 'external_id,kind,metadata,operation_id,provider,title' ||
+      ![
+        'external_id,kind,metadata,operation_id,provider,title',
+        'external_id,kind,metadata,operation_id,provider,source,title',
+      ].includes(Object.keys(value).sort().join(',')) ||
+      (value.source !== undefined &&
+        (!record(value.source) ||
+          Object.keys(value.source).sort().join(',') !== 'direction,item_id,metadata_revision' ||
+          !text(value.source.item_id, 512) ||
+          !Number.isSafeInteger(value.source.metadata_revision) ||
+          Number(value.source.metadata_revision) < 1 ||
+          !['references', 'citations'].includes(String(value.source.direction)))) ||
       !text(value.provider, 64) ||
       !text(value.external_id, 512) ||
       !text(value.title)
@@ -84,6 +95,15 @@ export function decodeLiteratureCandidateCommand(value: unknown): LiteratureCand
       external_id: value.external_id,
       title: value.title,
       metadata: metadata(value.metadata),
+      ...(value.source
+        ? {
+            source: {
+              item_id: (value.source as Record<string, unknown>).item_id as string,
+              metadata_revision: (value.source as Record<string, unknown>).metadata_revision as number,
+              direction: (value.source as Record<string, unknown>).direction as 'references' | 'citations',
+            },
+          }
+        : {}),
     };
   }
   if (

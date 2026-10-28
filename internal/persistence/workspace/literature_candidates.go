@@ -41,12 +41,19 @@ func (candidate *LiteratureCandidate) UnmarshalJSON(raw []byte) error {
 	return nil
 }
 
+type LiteratureCandidateDiscoverySource struct {
+	ItemID           string `json:"item_id"`
+	MetadataRevision int64  `json:"metadata_revision"`
+	Direction        string `json:"direction"`
+}
+
 type LiteratureCandidateStage struct {
-	OperationID string         `json:"operation_id"`
-	Provider    string         `json:"provider"`
-	ExternalID  string         `json:"external_id"`
-	Title       string         `json:"title"`
-	Metadata    map[string]any `json:"metadata"`
+	OperationID string                              `json:"operation_id"`
+	Provider    string                              `json:"provider"`
+	ExternalID  string                              `json:"external_id"`
+	Title       string                              `json:"title"`
+	Metadata    map[string]any                      `json:"metadata"`
+	Source      *LiteratureCandidateDiscoverySource `json:"source,omitempty"`
 }
 type LiteratureCandidateAction struct {
 	OperationID string `json:"operation_id"`
@@ -183,6 +190,9 @@ func recordCandidateSource(ctx context.Context, tx *sql.Tx, owner, provider, ext
 }
 
 func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, input LiteratureCandidateStage) (LiteratureCandidateReceipt, error) {
+	if input.Source != nil && (!validLiteratureID(input.Source.ItemID) || input.Source.MetadataRevision < 1 || (input.Source.Direction != "references" && input.Source.Direction != "citations")) {
+		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
+	}
 	if !candidateString(input.Provider, 64) || !candidateString(input.ExternalID, 512) || strings.TrimSpace(input.Title) == "" || len(input.Title) > 4096 {
 		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
 	}
@@ -200,6 +210,20 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 	}
 	input.Metadata = meta
 	return s.candidateMutation(ctx, owner, input.OperationID, "stage", input, func(tx *sql.Tx) (LiteratureCandidate, error) {
+		if input.Source != nil {
+			var revision int64
+			var deleted sql.NullString
+			err := tx.QueryRowContext(ctx, "SELECT metadata_revision,deleted_at FROM literature_items WHERE id=? AND owner_user_id=?", input.Source.ItemID, owner).Scan(&revision, &deleted)
+			if errors.Is(err, sql.ErrNoRows) || err == nil && deleted.Valid {
+				return LiteratureCandidate{}, ErrLiteratureUnavailable
+			}
+			if err != nil {
+				return LiteratureCandidate{}, err
+			}
+			if revision != input.Source.MetadataRevision {
+				return LiteratureCandidate{}, ErrLiteratureConflict
+			}
+		}
 		var alias sql.NullString
 		if err := tx.QueryRowContext(ctx, "SELECT candidate_id FROM literature_candidate_sources WHERE owner_user_id=? AND provider=? AND external_id=?", owner, input.Provider, candidateSourceKey(input.Provider, input.ExternalID)).Scan(&alias); err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return LiteratureCandidate{}, err

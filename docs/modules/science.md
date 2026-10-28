@@ -5,7 +5,7 @@
 
 ## Library candidate inbox · 文献候选收件箱
 
-The owner-scoped Inbox retains staged bibliographic metadata until the user accepts or dismisses it. Acceptance creates or links an existing Library item in the same transaction as the candidate decision and its replayable operation receipt; it does not create a PDF attachment. Dismissed entries remain reviewable and may later be accepted. DOI and other supported identifiers are normalized through the discovery identity authority; ambiguous or conflicting matches are rejected rather than merged.
+References and Cited by results can be selected and staged through the existing Library mutation owner. The source item and metadata revision are checked in the same transaction; retries preserve the original operation. The owner-scoped Inbox retains staged bibliographic metadata until the user accepts or dismisses it. Acceptance creates or links an existing Library item in the same transaction as the candidate decision and its replayable operation receipt; it does not create a PDF attachment. Dismissed entries remain reviewable and may later be accepted. DOI and other supported identifiers are normalized through the discovery identity authority; ambiguous or conflicting matches are rejected rather than merged.
 
 The v87 migration creates empty candidate storage without modifying existing Library items or attachments. This matching checks Library state at staging and acceptance; it does not impose a global uniqueness rule on later PDF imports or metadata edits.
 
