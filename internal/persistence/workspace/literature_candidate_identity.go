@@ -148,7 +148,7 @@ func legacyCandidateIdentityMatch(ids map[string]string, sets map[string]map[str
 
 // find matching stored items without trusting a single identifier when other
 // shared identifiers conflict; ambiguous existing matches never auto-merge.
-func findMatchingLibraryItem(ctx context.Context, tx *sql.Tx, owner string, ids map[string]string, provider, external string) (string, error) {
+func findMatchingLibraryItem(ctx context.Context, tx *sql.Tx, owner string, ids map[string]string, sources ...literatureCandidateSource) (string, error) {
 	rows, err := tx.QueryContext(ctx, `SELECT id,metadata_json FROM literature_items WHERE owner_user_id=? AND deleted_at IS NULL`, owner)
 	if err != nil {
 		return "", err
@@ -165,9 +165,10 @@ func findMatchingLibraryItem(ctx context.Context, tx *sql.Tx, owner string, ids 
 			return "", e
 		}
 		sourceMatch := false
-		if provider == "semantic-scholar" {
-			if value, _ := meta["semantic_scholar_id"].(string); value != "" && strings.EqualFold(value, external) {
+		for _, source := range sources {
+			if value, _ := meta["semantic_scholar_id"].(string); source.Provider == "semantic-scholar" && value != "" && strings.EqualFold(value, source.ExternalID) {
 				sourceMatch = true
+				break
 			}
 		}
 		same, e := legacyCandidateIdentityMatch(ids, legacyCandidateIdentitySets(meta), sourceMatch)

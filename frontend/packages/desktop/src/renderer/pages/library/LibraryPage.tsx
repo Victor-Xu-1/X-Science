@@ -178,6 +178,13 @@ export default function LibraryPage() {
     // Evidence is independent of metadata and is consumed by the live detail.
     // A catalogue reload would unmount it and erase a real provider failure.
     if (receipt.schema === 'x-science.literature-publication-receipt.v1') return;
+    if (receipt.schema === 'x-science.literature-candidate-receipt.v1') {
+      // Staging and dismissal only change Inbox. Reloading the source detail
+      // would mark it stale and unmount its live related-query/batch owner.
+      // Acceptance can add an item, so read back the actual catalogue data.
+      if (receipt.action === 'accept') reads.refreshData();
+      return;
+    }
     if (receipt.schema === 'x-science.literature-reading-status-receipt.v1') {
       // Keep the same detail/editor/preview mounted. A receipt is historical
       // acknowledgement; only these current reads project the stored state.

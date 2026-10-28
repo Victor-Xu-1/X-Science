@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
+import type { RelatedRecord, RelatedRequest } from '@/common/adapter/literatureRelated';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import {
@@ -82,11 +83,27 @@ function deferred<T>() {
   return { promise, resolve };
 }
 type Call = { method: string; url: URL; body?: Record<string, unknown> };
+const relatedPaper = (letter: string, title: string): RelatedRecord => ({
+  paper_id: letter.repeat(40),
+  title,
+  abstract: '',
+  authors: [],
+  year: 2024,
+  issued_text: '',
+  container_title: '',
+  item_type: 'journalArticle',
+  url: `https://www.semanticscholar.org/paper/${letter.repeat(40)}`,
+  identifiers: [{ scheme: 'doi', value: `10.1234/related-${letter}` }],
+  volume: '',
+  pages: '',
+});
 function catalogue(initial = [paper()]) {
   const items = new Map(initial.map((item) => [item.id, item]));
   const calls: Call[] = [];
   const replies = new Map<string, Array<Response | Promise<Response>>>();
   const listReplies: Array<Response | Promise<Response>> = [];
+  const stageReplies: Array<(receipt: Record<string, unknown>) => Response | Promise<Response>> = [];
+  const stageReceipts = new Map<string, Record<string, unknown>>();
   let inboxPending = true;
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost');
@@ -98,6 +115,37 @@ function catalogue(initial = [paper()]) {
       return json({ projects: [{ project_id: 'project', name: 'Owned project' }] });
     if (method === 'GET' && url.pathname === '/api/literature/collections')
       return json({ schema: 'x-science.literature-collections.v1', collections: [] });
+    if (method === 'POST' && url.pathname === '/api/literature/related') {
+      const request = body as unknown as RelatedRequest;
+      return json({
+        schema: 'x-science.literature-related.v1',
+        item_id: request.item_id,
+        metadata_revision: request.expected_metadata_revision,
+        direction: request.direction,
+        state: 'ready',
+        resolution_token: id(51),
+        seed: relatedPaper('a', 'Identified source'),
+        records: [relatedPaper('b', 'Related one'), relatedPaper('c', 'Related two')],
+      });
+    }
+    if (method === 'POST' && url.pathname === '/api/literature/candidates') {
+      const operation = String(body!.operation_id);
+      const receipt = stageReceipts.get(operation) ?? {
+        schema: 'x-science.literature-candidate-receipt.v1',
+        operation_id: operation,
+        action: 'stage',
+        candidate: {
+          id: `candidate-${String(body!.external_id)}`,
+          title: body!.title,
+          metadata: body!.metadata,
+          provider: body!.provider,
+          external_id: body!.external_id,
+          state: 'pending',
+        },
+      };
+      stageReceipts.set(operation, receipt);
+      return stageReplies.shift()?.(receipt) ?? json(receipt);
+    }
     const membership = url.pathname.match(/^\/api\/literature\/items\/([^/]+)\/collections$/);
     if (method === 'GET' && membership)
       return json({
@@ -204,6 +252,7 @@ function catalogue(initial = [paper()]) {
     nextDetail: (itemId: string, reply: Response | Promise<Response>) =>
       replies.set(itemId, [...(replies.get(itemId) ?? []), reply]),
     nextList: (reply: Response | Promise<Response>) => listReplies.push(reply),
+    nextStage: (reply: (receipt: Record<string, unknown>) => Response | Promise<Response>) => stageReplies.push(reply),
   };
 }
 function RouteControls() {
@@ -266,6 +315,89 @@ describe('Reading status through the actual Library Page and mutation owner', ()
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps the live related query and both stage ACKs through the actual page receipt consumer', async () => {
+    const api = catalogue();
+    await mount();
+    await ready();
+    const input = draft('Draft while staging');
+    fireEvent.click(within(detail()).getByRole('button', { name: 'References' }));
+    await screen.findByText('Related two');
+    const query = screen.getByRole('region', { name: 'Related literature' });
+    fireEvent.click(within(query).getByRole('checkbox', { name: 'Select Related one' }));
+    fireEvent.click(within(query).getByRole('checkbox', { name: 'Select Related two' }));
+    const before = [api.count('/api/literature/items/paper-a'), api.count('/api/literature/related', 'POST')];
+    fireEvent.click(within(query).getByRole('button', { name: 'Add selected to Inbox (2)' }));
+    await waitFor(() => expect(api.count('/api/literature/candidates', 'POST')).toBe(2));
+    await waitFor(() => expect(within(query).getAllByText('Added to Inbox.')).toHaveLength(2));
+    expect(screen.getByRole('region', { name: 'Related literature' })).toBe(query);
+    expect(input).toBe(within(detail()).getByRole('textbox', { name: 'Title' }));
+    expect(input).toHaveValue('Draft while staging');
+    expect([api.count('/api/literature/items/paper-a'), api.count('/api/literature/related', 'POST')]).toEqual(before);
+  });
+
+  it('retains the related query ACK and remaining selection after original uncertain stage recovery', async () => {
+    const api = catalogue();
+    api.nextStage(() => Promise.reject(new TypeError('Lost committed stage acknowledgement')));
+    await mount();
+    await ready();
+    const input = draft('Draft during stage recovery');
+    fireEvent.click(within(detail()).getByRole('button', { name: 'References' }));
+    await screen.findByText('Related two');
+    const query = screen.getByRole('region', { name: 'Related literature' });
+    fireEvent.click(within(query).getByRole('checkbox', { name: 'Select Related one' }));
+    fireEvent.click(within(query).getByRole('checkbox', { name: 'Select Related two' }));
+    fireEvent.click(within(query).getByRole('button', { name: 'Add selected to Inbox (2)' }));
+    const retry = await within(query).findByRole('button', { name: 'Retry' });
+    await waitFor(() => expect(retry).toBeEnabled());
+    fireEvent.click(retry);
+    await within(query).findByText('Added to Inbox.');
+    expect(screen.getByRole('region', { name: 'Related literature' })).toBe(query);
+    const writes = api.calls.filter(
+      (call) => call.method === 'POST' && call.url.pathname === '/api/literature/candidates'
+    );
+    expect(writes).toHaveLength(2);
+    expect(writes[1].body).toEqual(writes[0].body);
+    expect(within(query).getByRole('checkbox', { name: 'Select Related one' })).not.toBeChecked();
+    expect(within(query).getByRole('checkbox', { name: 'Select Related two' })).toBeChecked();
+    fireEvent.click(within(query).getByRole('button', { name: 'Add selected to Inbox (1)' }));
+    await waitFor(() => expect(within(query).getAllByText('Added to Inbox.')).toHaveLength(2));
+    expect(api.count('/api/literature/candidates', 'POST')).toBe(3);
+    expect(api.count('/api/literature/related', 'POST')).toBe(1);
+    expect(api.count('/api/literature/items/paper-a')).toBe(1);
+    expect(input).toBe(within(detail()).getByRole('textbox', { name: 'Title' }));
+    expect(input).toHaveValue('Draft during stage recovery');
+  });
+
+  it('retires the old related batch when an actual source revision readback changes', async () => {
+    const api = catalogue();
+    const response = deferred<void>();
+    api.nextStage((receipt) => response.promise.then(() => json(receipt)));
+    await mount();
+    await ready();
+    fireEvent.click(within(detail()).getByRole('button', { name: 'References' }));
+    await screen.findByText('Related two');
+    const previous = screen.getByRole('region', { name: 'Related literature' });
+    fireEvent.click(within(previous).getByRole('checkbox', { name: 'Select Related one' }));
+    fireEvent.click(within(previous).getByRole('checkbox', { name: 'Select Related two' }));
+    fireEvent.click(within(previous).getByRole('button', { name: 'Add selected to Inbox (2)' }));
+    await waitFor(() => expect(api.count('/api/literature/candidates', 'POST')).toBe(1));
+    api.items.set('paper-a', paper('paper-a', { metadata_revision: 2, title: 'Changed source' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await screen.findByRole('heading', { name: 'Changed source' });
+    await screen.findByText('Related two');
+    const current = screen.getByRole('region', { name: 'Related literature' });
+    expect(current).not.toBe(previous);
+    await act(async () => {
+      response.resolve();
+      await response.promise;
+    });
+    await waitFor(() =>
+      expect(within(current).getByRole('button', { name: 'Add selected to Inbox (0)' })).toBeDisabled()
+    );
+    expect(api.count('/api/literature/candidates', 'POST')).toBe(1);
+    expect(within(current).queryByText('Added to Inbox.')).toBeNull();
   });
 
   it('opens Inbox through the actual page, accepts and opens the persisted Library item', async () => {

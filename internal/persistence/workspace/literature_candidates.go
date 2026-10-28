@@ -290,6 +290,11 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 			if candidateIdentityConflict(ids, known) {
 				return existing, ErrLiteratureConflict
 			}
+			sources, err := readCandidateSources(ctx, tx, owner, existing)
+			if err != nil {
+				return existing, err
+			}
+			sources = append(sources, literatureCandidateSource{input.Provider, input.ExternalID})
 			changed := false
 			for scheme, value := range ids {
 				if known[scheme] != "" {
@@ -306,7 +311,7 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 				if err != nil {
 					return existing, err
 				}
-				item, err := findMatchingLibraryItem(ctx, tx, owner, merged, input.Provider, input.ExternalID)
+				item, err := findMatchingLibraryItem(ctx, tx, owner, merged, sources...)
 				if err != nil {
 					return existing, err
 				}
@@ -320,11 +325,12 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 					existing.State, existing.ItemID = "accepted", item
 				}
 			}
-			if changed {
-				metadata, err := literatureMetadata(existing.Metadata)
+			if changed || existing.State != "accepted" {
+				metadataMap, metadata, err := candidateLibraryMetadata(existing.Metadata, existing.Provider, existing.ExternalID)
 				if err != nil {
 					return existing, err
 				}
+				existing.Metadata = metadataMap
 				var doi any
 				if value, ok := existing.Metadata["doi"].(string); ok && value != "" {
 					doi, _ = literaturediscovery.NormalizeDOI(value)
@@ -341,7 +347,11 @@ func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, inpu
 			}
 			return existing, nil
 		}
-		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, input.Provider, input.ExternalID)
+		_, raw, e := candidateLibraryMetadata(meta, input.Provider, input.ExternalID)
+		if e != nil {
+			return LiteratureCandidate{}, e
+		}
+		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, literatureCandidateSource{input.Provider, input.ExternalID})
 		if e != nil {
 			return LiteratureCandidate{}, e
 		}
@@ -396,20 +406,17 @@ func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action
 		if e != nil {
 			return c, e
 		}
-		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, c.Provider, c.ExternalID)
+		sources, e := readCandidateSources(ctx, tx, owner, c)
+		if e != nil {
+			return c, e
+		}
+		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, sources...)
 		if e != nil {
 			return c, e
 		}
 		if item == "" {
 			item = uuid.NewString()
-			meta := c.Metadata
-			if c.Provider == "semantic-scholar" {
-				if v, _ := meta["semantic_scholar_id"].(string); v != "" && !strings.EqualFold(v, c.ExternalID) {
-					return c, ErrLiteratureConflict
-				}
-				meta["semantic_scholar_id"] = c.ExternalID
-			}
-			raw, e := literatureMetadata(meta)
+			_, raw, e := candidateLibraryMetadata(c.Metadata, c.Provider, c.ExternalID)
 			if e != nil {
 				return c, e
 			}
