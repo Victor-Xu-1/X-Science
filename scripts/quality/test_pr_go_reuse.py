@@ -47,7 +47,164 @@ def fixture():
     return receipts, inventory, inputs
 
 
+def certified_fixture(repo):
+    receipts, inventory, inputs = fixture()
+    inventory["example/empty"] = []
+    environment = {"go_version": "go1.26.0", "goos": "linux", "goarch": "amd64", "race": False, "batch_size": 64}
+    path = repo / partition.PROFILE_PATH
+    path.parent.mkdir(parents=True)
+    path.write_bytes(encoded({"schema": partition.PROFILE_SCHEMA, "environment": environment,
+                             "observed_at_epoch": 10, "valid_until_epoch": 1000,
+                             "default_test_ms": 1000, "default_batch_ms": 2200, "costs": {}}))
+    profile = partition.load_profile(path, environment, 100)
+    original = partition.load_profile(path, environment, 90)
+    expected = partition.assignment(inventory, 2, original)
+    inputs["source_sha256"] = {name: reuse.digest(name.encode()) for name in reuse.pr_reuse_inputs.SOURCE_INPUTS}
+    inputs["source_sha256"][partition.PROFILE_PATH] = profile.sha256
+    for index, artifact in enumerate(receipts["artifacts"]):
+        files = artifact["files"]
+        selected = expected["shards"][index]
+        plan = runtime_test_inventory.execution_plan("pr", index, False, inventory, selected, batch_size=64)
+        plan["inventory_sha256"] = partition.digest(inventory)
+        plan["partition"] = {**expected["metadata"], "base": "base", "head": "synthetic",
+                             "checkout_head": "synthetic", "source_state": "clean", "shard_index": index,
+                             "anchor_epoch": 90, "environment": environment}
+        files["plan.json"] = encoded(plan)
+        scope = json.loads(files["scope.json"])
+        scope["packages"] = sorted(inventory)
+        files["scope.json"] = encoded(scope)
+        files["summary.json"] = encoded({"exit_code": 0, "unstarted_process_batches": 0,
+            "executed_top_level": sum(map(len, selected.values())), "missing_tests": [], "unexpected_tests": [],
+            "missing_packages": [], "duplicate_tests": [], "batch_exit_codes": [0] * len(plan["commands"])})
+        files["events.jsonl"] = b"".join(encoded({"Package": package, "Test": name, "Action": "pass"}) + b"\n"
+                                             for package, names in selected.items() for name in names)
+        provenance = json.loads(files["provenance.json"])
+        provenance["inputs"] = inputs
+        provenance["files"] = {name: reuse.digest(files[name]) for name in reuse.RECEIPT_FILES}
+        files["provenance.json"] = encoded(provenance)
+    receipts["run"]["execution_tree"] = "tree"
+    binding = {"base": "base", "head": "main", "checkout_head": "main", "anchor_epoch": 100,
+               "source_state": "clean", "environment": environment}
+    return receipts, inventory, inputs, binding, profile
+
+
 class GoReuseTest(unittest.TestCase):
+    def attempt_certified(self, path, receipts, inventory, inputs, binding, profile):
+        env = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REF": "refs/heads/main",
+               "GITHUB_SHA": "main", "GITHUB_REPOSITORY": "owner/repo"}
+        with mock.patch.dict("os.environ", env, clear=True), \
+             mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main", "repository": {"id": 17}}), \
+             mock.patch.object(reuse, "git", side_effect=["main", "base", "", "tree", ""]), \
+             mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value=inputs), \
+             mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", return_value=receipts) as fetch:
+            accepted = reuse.try_reuse(path, "base", "main", ["internal/example.go"], path,
+                expected_packages=sorted(inventory), planning_binding=binding, profile=profile, shard_count=2)
+            fetch.assert_called_once()
+            return accepted
+
+    def test_certified_full_inventory_keeps_empty_packages_and_original_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)
+            receipts, inventory, inputs, binding, profile = certified_fixture(path)
+            self.assertEqual(reuse.certified_inventory(path, receipts, sorted(inventory), binding, profile, 2), inventory)
+            self.assertTrue(self.attempt_certified(path, receipts, inventory, inputs, binding, profile))
+            result = json.loads((path / "verified-reuse.json").read_bytes())
+            self.assertEqual(result["execution_sha"], "synthetic")
+            self.assertEqual(result["main_sha"], "main")
+            self.assertFalse((path / "events.jsonl").exists())
+
+    def test_certified_partial_conflicting_or_legacy_evidence_falls_back(self):
+        for failure in ("missing_test", "overlap", "empty_package", "legacy_source", "profile", "expired", "digest", "count"):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory)
+                receipts, inventory, inputs, binding, profile = certified_fixture(path)
+                if failure == "legacy_source":
+                    for artifact in receipts["artifacts"]:
+                        prov = json.loads(artifact["files"]["provenance.json"])
+                        prov["inputs"]["source_sha256"]["scripts/quality/pr_fast_scope.py"] = "old-producer"
+                        artifact["files"]["provenance.json"] = encoded(prov)
+                elif failure == "expired":
+                    profile = partition.load_profile(path / partition.PROFILE_PATH, profile.environment, 1000)
+                    binding["anchor_epoch"] = 1000
+                elif failure == "count":
+                    receipts["artifacts"].pop()
+                else:
+                    files = receipts["artifacts"][0]["files"]
+                    plan = json.loads(files["plan.json"])
+                    if failure == "missing_test":
+                        plan["selected"]["example/pkg"] = []
+                    elif failure == "overlap":
+                        other = json.loads(receipts["artifacts"][1]["files"]["plan.json"])
+                        plan["selected"]["example/pkg"].extend(other["selected"]["example/pkg"])
+                    elif failure == "empty_package":
+                        for artifact in receipts["artifacts"]:
+                            candidate = json.loads(artifact["files"]["plan.json"])
+                            candidate["selected"].pop("example/empty", None)
+                            artifact["files"]["plan.json"] = encoded(candidate)
+                        plan["selected"].pop("example/empty", None)
+                    elif failure == "profile":
+                        plan["partition"]["profile"]["sha256"] = "other"
+                    elif failure == "digest":
+                        files["events.jsonl"] += b"changed\n"
+                    files["plan.json"] = encoded(plan)
+                if failure not in ("digest", "legacy_source"):
+                    for artifact in receipts["artifacts"]:
+                        files = artifact["files"]
+                        prov = json.loads(files["provenance.json"])
+                        prov["files"] = {name: reuse.digest(files[name]) for name in reuse.RECEIPT_FILES}
+                        files["provenance.json"] = encoded(prov)
+                self.assertFalse(self.attempt_certified(path, receipts, inventory, inputs, binding, profile))
+                self.assertFalse((path / "verified-reuse.json").exists())
+
+    def test_pr_input_capture_precedes_discovery_and_main_fallback_only_fetches_once(self):
+        import os
+        import sys
+        from scripts.quality import pr_fast_scope
+        steps, initial = [], {"fixture": "same"}
+        def capture(*args):
+            steps.append("capture")
+            return initial
+        def discovery(*args, **kwargs):
+            steps.append("discovery")
+            return {"example/pkg": ["TestOne"]}
+        with tempfile.TemporaryDirectory() as directory:
+            args = ["pr_fast_scope.py", "--base", "base", "--head", "main", "--log-dir", directory]
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", args), \
+                 mock.patch.object(pr_fast_scope, "changed_paths", return_value=[]), \
+                 mock.patch.object(pr_fast_scope, "behavior_scope", return_value=([], [], [])), \
+                 mock.patch.object(pr_fast_scope.verification_scope, "matched", return_value=[]), \
+                 mock.patch.object(pr_fast_scope, "resolve_packages", return_value=(["example/pkg"], "fixture")), \
+                 mock.patch.object(pr_fast_scope, "planning_inputs", return_value=({}, partition.CostProfile())), \
+                 mock.patch.object(pr_fast_scope, "discover", side_effect=discovery) as discover, \
+                 mock.patch.object(pr_fast_scope.pr_go_reuse, "try_reuse", return_value=False) as attempt, \
+                 mock.patch.object(pr_fast_scope.pr_go_reuse, "prepare_pr_inputs", side_effect=capture), \
+                 mock.patch.object(pr_fast_scope, "execute", return_value=0) as execute, \
+                 mock.patch.object(pr_fast_scope.pr_go_reuse, "write_pr_provenance") as producer:
+                self.assertEqual(pr_fast_scope.main(), 0)
+                self.assertEqual(steps, ["capture", "discovery"])
+                attempt.assert_called_once()
+                discover.assert_called_once()
+                execute.assert_called_once()
+                self.assertIs(producer.call_args.args[-1], initial)
+    def test_main_certified_reuse_precedes_discovery(self):
+        import os
+        import sys
+        from scripts.quality import pr_fast_scope
+        with tempfile.TemporaryDirectory() as directory:
+            args = ["pr_fast_scope.py", "--base", "base", "--head", "main", "--log-dir", directory]
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", args), \
+                 mock.patch.object(pr_fast_scope, "changed_paths", return_value=[]), \
+                 mock.patch.object(pr_fast_scope, "behavior_scope", return_value=([], [], [])), \
+                 mock.patch.object(pr_fast_scope.verification_scope, "matched", return_value=[]), \
+                 mock.patch.object(pr_fast_scope, "resolve_packages", return_value=(["example/pkg"], "fixture")), \
+                 mock.patch.object(pr_fast_scope, "planning_inputs", return_value=({}, partition.CostProfile())), \
+                 mock.patch.object(pr_fast_scope, "discover", return_value={"example/pkg": ["TestOne"]}) as discover, \
+                 mock.patch.object(pr_fast_scope.pr_go_reuse, "try_reuse", return_value=True), \
+                 mock.patch.object(pr_fast_scope, "execute") as execute:
+                self.assertEqual(pr_fast_scope.main(), 0)
+                discover.assert_not_called()
+                execute.assert_not_called()
+
     def validate(self, receipts, inventory, inputs):
         return reuse.validate_receipts(receipts, base="base", main="main", tree="tree", inventory=inventory,
                                        inputs=inputs, paths=["internal/example.go"])
@@ -130,31 +287,12 @@ class GoReuseTest(unittest.TestCase):
             env = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REF": "refs/heads/main",
                    "GITHUB_SHA": "main", "GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "unused"}
             with mock.patch.dict("os.environ", env, clear=True):
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["scripts/quality/pr_fast_scope.py"], {}, output))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["scripts/quality/pr_fast_scope.py"], output))
                 with mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main", "repository": {"id": 17}}), \
                      mock.patch.object(reuse, "git", side_effect=["main", "base", ""]), \
                      mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", side_effect=RuntimeError("unavailable")):
-                    self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output))
+                    self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output))
                 self.assertFalse((output / "verified-reuse.json").exists())
-
-    def test_push_reuses_verified_receipts_and_records_original_execution(self):
-        receipts, inventory, inputs = fixture()
-        receipts["run"]["execution_tree"] = "tree"
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory)
-            env = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REF": "refs/heads/main",
-                   "GITHUB_SHA": "main", "GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "unused"}
-            with mock.patch.dict("os.environ", env, clear=True), \
-                 mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main", "repository": {"id": 17}}), \
-                 mock.patch.object(reuse, "git", side_effect=["main", "base", "", "tree", ""]), \
-                 mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value=inputs), \
-                 mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", return_value=receipts):
-                self.assertTrue(reuse.try_reuse(output, "base", "main", ["internal/example.go"], inventory, output))
-            record = json.loads((output / "verified-reuse.json").read_text(encoding="utf-8"))
-            self.assertEqual(record["status"], "verified-reuse")
-            self.assertEqual(record["execution_sha"], "synthetic")
-            self.assertEqual(record["main_sha"], "main")
-            self.assertFalse((output / "events.jsonl").exists())
 
     def test_producer_binds_exact_pr_execution_and_file_digests(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -208,12 +346,6 @@ class GoReuseTest(unittest.TestCase):
                 self.assertEqual(pr_fast_scope.execute_affected(path, "base", "main", [], {}, {}, path, 0, 1, None), 0)
                 execute.assert_called_once()
                 producer.assert_called_once()
-            with mock.patch.object(pr_fast_scope.pr_go_reuse, "try_reuse", return_value=True), \
-                 mock.patch.object(pr_fast_scope, "execute") as execute, \
-                 mock.patch.object(pr_fast_scope.pr_go_reuse, "write_pr_provenance") as producer:
-                self.assertEqual(pr_fast_scope.execute_affected(path, "base", "main", [], {}, {}, path, 0, 1, None), 0)
-                execute.assert_not_called()
-                producer.assert_not_called()
 
     def test_token_is_removed_before_discovery_and_fallback_execution(self):
         import os
@@ -268,11 +400,16 @@ class GoReuseTest(unittest.TestCase):
                  mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main"}), \
                  mock.patch.object(reuse, "git", side_effect=["main", "base", " M changed.go"]), \
                  mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts") as fetch:
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output))
                 fetch.assert_not_called()
             with mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request"}, clear=True), \
                  mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value={"node": "v24"}):
                 reuse.write_pr_provenance(output, "base", "head", output, 0, 1, {"node": "v22"})
+                self.assertFalse((output / "provenance.json").exists())
+            with mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request"}, clear=True), \
+                 mock.patch.object(reuse.pr_reuse_inputs, "capture") as capture:
+                reuse.write_pr_provenance(output, "base", "head", output, 0, 1, None)
+                capture.assert_not_called()
                 self.assertFalse((output / "provenance.json").exists())
 
     def test_cgo_capture_uses_actual_compiler_and_hashes_flags(self):
@@ -304,7 +441,7 @@ class GoReuseTest(unittest.TestCase):
                    "GITHUB_SHA": "main"}
             with mock.patch.dict("os.environ", env, clear=True), mock.patch.object(reuse, "_evaluate", side_effect=delayed), \
                  mock.patch.object(reuse, "REUSE_BUDGET_SECONDS", 0.02):
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output, "token"))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output, "token"))
                 self.assertTrue(started.is_set())
                 self.assertFalse((output / "verified-reuse.json").exists())
                 decision = json.loads((output / "reuse-decision.json").read_text())
