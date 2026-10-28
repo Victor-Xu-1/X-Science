@@ -11,6 +11,7 @@
     "empty": "此视图中没有候选文献。",
     "accept": "加入文献库",
     "dismiss": "忽略",
+    "restore": "恢复",
     "openAccepted": "在文献库中打开",
     "updated": "收件箱已更新。"
   },

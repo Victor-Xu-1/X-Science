@@ -19,11 +19,15 @@ export type LiteratureCandidateCommand =
       metadata: Record<string, unknown>;
       source?: { item_id: string; metadata_revision: number; direction: 'references' | 'citations' };
     }
-  | { kind: 'candidate-accept' | 'candidate-dismiss'; operation_id: string; candidate_id: string };
+  | {
+      kind: 'candidate-accept' | 'candidate-dismiss' | 'candidate-restore';
+      operation_id: string;
+      candidate_id: string;
+    };
 export type LiteratureCandidateReceipt = {
   schema: 'x-science.literature-candidate-receipt.v1';
   operation_id: string;
-  action: 'stage' | 'accept' | 'dismiss';
+  action: 'stage' | 'accept' | 'dismiss' | 'restore';
   candidate: LiteratureCandidate;
 };
 const record = (v: unknown): v is Record<string, unknown> => Boolean(v && typeof v === 'object' && !Array.isArray(v));
@@ -107,7 +111,7 @@ export function decodeLiteratureCandidateCommand(value: unknown): LiteratureCand
     };
   }
   if (
-    (value.kind !== 'candidate-accept' && value.kind !== 'candidate-dismiss') ||
+    (value.kind !== 'candidate-accept' && value.kind !== 'candidate-dismiss' && value.kind !== 'candidate-restore') ||
     Object.keys(value).sort().join(',') !== 'candidate_id,kind,operation_id' ||
     !text(value.candidate_id, 512)
   )
@@ -150,7 +154,8 @@ export function decodeLiteratureCandidateReceipt(
   if (command.kind !== 'candidate-stage' && candidate.id !== command.candidate_id) return invalid();
   if (
     (action === 'accept' && candidate.state !== 'accepted') ||
-    (action === 'dismiss' && candidate.state !== 'dismissed')
+    (action === 'dismiss' && candidate.state !== 'dismissed') ||
+    (action === 'restore' && candidate.state !== 'pending')
   )
     return invalid();
   return {

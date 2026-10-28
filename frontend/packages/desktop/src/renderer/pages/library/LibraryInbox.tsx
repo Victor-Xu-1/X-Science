@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Inbox, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Check, Inbox, RefreshCw, RotateCcw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type {
   LiteratureCandidate,
@@ -122,7 +122,7 @@ export function LibraryInbox({
       }
     }
   };
-  const change = (kind: 'candidate-accept' | 'candidate-dismiss', candidateId: string) => {
+  const change = (kind: 'candidate-accept' | 'candidate-dismiss' | 'candidate-restore', candidateId: string) => {
     if (busy || submitting.current || account !== getRendererAccountScopeToken()) return;
     submitting.current = true;
     const operation = crypto.randomUUID();
@@ -226,10 +226,14 @@ export function LibraryInbox({
                   type='button'
                   className='library-workbench__button library-inbox__accept'
                   disabled={busy}
-                  onClick={() => change('candidate-accept', candidate.id)}
+                  onClick={() => change(state === 'dismissed' ? 'candidate-restore' : 'candidate-accept', candidate.id)}
                 >
-                  <Check size={14} aria-hidden='true' />
-                  {t('conversation.libraryInbox.accept')}
+                  {state === 'dismissed' ? (
+                    <RotateCcw size={14} aria-hidden='true' />
+                  ) : (
+                    <Check size={14} aria-hidden='true' />
+                  )}
+                  {t(state === 'dismissed' ? 'conversation.libraryInbox.restore' : 'conversation.libraryInbox.accept')}
                 </button>
               </div>
             </li>
