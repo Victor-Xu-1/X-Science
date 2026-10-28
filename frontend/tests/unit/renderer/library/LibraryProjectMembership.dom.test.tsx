@@ -20,6 +20,7 @@ const projects = [
   { project_id: 'zeta', name: 'Zeta project' },
 ];
 const links = () => within(screen.getByRole('region', { name: 'Projects' }));
+const releaseHeldStages: (() => void)[] = [];
 
 describe('Overview project membership through the existing Web owner', () => {
   beforeEach(() => {
@@ -29,6 +30,7 @@ describe('Overview project membership through the existing Web owner', () => {
     installLiteratureLocks();
   });
   afterEach(() => {
+    for (const release of releaseHeldStages.splice(0)) release();
     cleanup();
     vi.unstubAllGlobals();
   });
@@ -93,6 +95,17 @@ describe('Overview project membership through the existing Web owner', () => {
   });
 
   it('retains an uncertain membership and retries the same operation through the existing Page controller', async () => {
+    const settlementStarted = deferred<void>();
+    const releaseSettlement = deferred<void>();
+    releaseHeldStages.push(() => releaseSettlement.resolve());
+    const lock = installLiteratureLocks();
+    const originalLock = lock.getMockImplementation()!;
+    lock.mockImplementationOnce(originalLock).mockImplementationOnce(async (name, options, callback) => {
+      const result = await originalLock(name, options, callback);
+      settlementStarted.resolve();
+      await releaseSettlement.promise;
+      return result;
+    });
     let included = false;
     const writes: { path: string; body: Record<string, unknown> }[] = [];
     const detail = () => ({ ...paper(), project_ids: included ? ['beta'] : [] });
@@ -114,6 +127,8 @@ describe('Overview project membership through the existing Web owner', () => {
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     fireEvent.click(links().getByRole('checkbox', { name: 'Beta project' }));
     const retry = await screen.findByRole('button', { name: 'Retry' });
+    await settlementStarted.promise;
+    expect(retry).toBeDisabled();
     expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked();
     expect(links().getByRole('checkbox', { name: 'Alpha project' })).toBeDisabled();
     fireEvent.click(links().getByRole('checkbox', { name: 'Alpha project' }));
