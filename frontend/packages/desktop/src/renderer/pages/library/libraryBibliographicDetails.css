@@ -1,0 +1,41 @@
+.library-bibliographic-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-4) var(--ui-space-6);
+  margin: 0 0 var(--ui-space-6);
+  padding: 0;
+}
+.library-bibliographic-details > div {
+  min-width: 0;
+}
+.library-bibliographic-details dt {
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-bibliographic-details dd {
+  min-width: 0;
+  margin: var(--ui-space-1) 0 0;
+  overflow: hidden;
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-bibliographic-details a {
+  color: var(--workspace-accent);
+  text-underline-offset: var(--ui-space-1);
+}
+.library-bibliographic-details a:hover {
+  text-decoration: underline;
+}
+.library-bibliographic-details a:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}
+@media (min-width: 640px) {
+  .library-bibliographic-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
