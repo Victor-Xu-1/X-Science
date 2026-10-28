@@ -357,7 +357,7 @@ def main() -> int:
         with phases.measure("planning_inputs"):
             binding, profile = planning_inputs(repo, args.base, args.head)
         if selected and args.log_dir is not None and pr_go_reuse.try_reuse(
-                repo, args.base, args.head, paths, None, args.log_dir, github_token,
+                repo, args.base, args.head, paths, args.log_dir, github_token,
                 expected_packages=selected, planning_binding=binding,
                 profile=profile, shard_count=args.shard_count):
             return 0

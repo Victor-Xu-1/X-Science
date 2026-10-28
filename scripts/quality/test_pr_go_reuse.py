@@ -97,7 +97,7 @@ class GoReuseTest(unittest.TestCase):
              mock.patch.object(reuse, "git", side_effect=["main", "base", "", "tree", ""]), \
              mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value=inputs), \
              mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", return_value=receipts) as fetch:
-            accepted = reuse.try_reuse(path, "base", "main", ["internal/example.go"], None, path,
+            accepted = reuse.try_reuse(path, "base", "main", ["internal/example.go"], path,
                 expected_packages=sorted(inventory), planning_binding=binding, profile=profile, shard_count=2)
             fetch.assert_called_once()
             return accepted
@@ -287,31 +287,12 @@ class GoReuseTest(unittest.TestCase):
             env = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REF": "refs/heads/main",
                    "GITHUB_SHA": "main", "GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "unused"}
             with mock.patch.dict("os.environ", env, clear=True):
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["scripts/quality/pr_fast_scope.py"], {}, output))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["scripts/quality/pr_fast_scope.py"], output))
                 with mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main", "repository": {"id": 17}}), \
                      mock.patch.object(reuse, "git", side_effect=["main", "base", ""]), \
                      mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", side_effect=RuntimeError("unavailable")):
-                    self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output))
+                    self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output))
                 self.assertFalse((output / "verified-reuse.json").exists())
-
-    def test_push_reuses_verified_receipts_and_records_original_execution(self):
-        receipts, inventory, inputs = fixture()
-        receipts["run"]["execution_tree"] = "tree"
-        with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory)
-            env = {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "push", "GITHUB_REF": "refs/heads/main",
-                   "GITHUB_SHA": "main", "GITHUB_REPOSITORY": "owner/repo", "GITHUB_TOKEN": "unused"}
-            with mock.patch.dict("os.environ", env, clear=True), \
-                 mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main", "repository": {"id": 17}}), \
-                 mock.patch.object(reuse, "git", side_effect=["main", "base", "", "tree", ""]), \
-                 mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value=inputs), \
-                 mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts", return_value=receipts):
-                self.assertTrue(reuse.try_reuse(output, "base", "main", ["internal/example.go"], inventory, output))
-            record = json.loads((output / "verified-reuse.json").read_text(encoding="utf-8"))
-            self.assertEqual(record["status"], "verified-reuse")
-            self.assertEqual(record["execution_sha"], "synthetic")
-            self.assertEqual(record["main_sha"], "main")
-            self.assertFalse((output / "events.jsonl").exists())
 
     def test_producer_binds_exact_pr_execution_and_file_digests(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -419,11 +400,16 @@ class GoReuseTest(unittest.TestCase):
                  mock.patch.object(reuse, "event", return_value={"before": "base", "after": "main"}), \
                  mock.patch.object(reuse, "git", side_effect=["main", "base", " M changed.go"]), \
                  mock.patch("scripts.quality.pr_reuse_github.fetch_merged_pr_receipts") as fetch:
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output))
                 fetch.assert_not_called()
             with mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request"}, clear=True), \
                  mock.patch.object(reuse.pr_reuse_inputs, "capture", return_value={"node": "v24"}):
                 reuse.write_pr_provenance(output, "base", "head", output, 0, 1, {"node": "v22"})
+                self.assertFalse((output / "provenance.json").exists())
+            with mock.patch.dict("os.environ", {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request"}, clear=True), \
+                 mock.patch.object(reuse.pr_reuse_inputs, "capture") as capture:
+                reuse.write_pr_provenance(output, "base", "head", output, 0, 1, None)
+                capture.assert_not_called()
                 self.assertFalse((output / "provenance.json").exists())
 
     def test_cgo_capture_uses_actual_compiler_and_hashes_flags(self):
@@ -455,7 +441,7 @@ class GoReuseTest(unittest.TestCase):
                    "GITHUB_SHA": "main"}
             with mock.patch.dict("os.environ", env, clear=True), mock.patch.object(reuse, "_evaluate", side_effect=delayed), \
                  mock.patch.object(reuse, "REUSE_BUDGET_SECONDS", 0.02):
-                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], {}, output, "token"))
+                self.assertFalse(reuse.try_reuse(output, "base", "main", ["internal/example.go"], output, "token"))
                 self.assertTrue(started.is_set())
                 self.assertFalse((output / "verified-reuse.json").exists())
                 decision = json.loads((output / "reuse-decision.json").read_text())

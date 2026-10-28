@@ -94,19 +94,9 @@ def _json(files: dict, name: str) -> dict:
     return value
 
 
-def certified_inventory(repo: Path, receipts: dict, packages: list[str], binding: dict,
-                        profile: pr_test_partition.CostProfile, count: int) -> dict:
-    """Reconstruct only a complete producer-sealed, same-profile inventory.
-
-    This candidate is not accepted here: the original receipt validator still
-    authenticates every input/file, complete summary and actual test event.
-    Current tooling hashes exclude producers that captured after discovery.
-    """
+def _sealed_inventory(artifacts: list, packages: list[str], count: int):
+    """Pure complete-union reconstruction, including compile-only packages."""
     pr_test_partition.validate_partition(0, count)
-    if (profile.status != "active" or profile.anchor_epoch != binding.get("anchor_epoch")
-            or profile.environment != binding.get("environment") or binding.get("source_state") != "clean"):
-        raise ValueError("current planning profile is not eligible")
-    artifacts = receipts["artifacts"]
     by_index = {item["index"]: item for item in artifacts}
     if len(artifacts) != count or len(by_index) != count or set(by_index) != set(range(count)):
         raise ValueError("PR partition count differs from current planning")
@@ -120,6 +110,21 @@ def certified_inventory(repo: Path, receipts: dict, packages: list[str], binding
     if sorted(inventory) != sorted(packages) or len(set(packages)) != len(packages):
         raise ValueError("sealed inventory does not cover current packages")
     pr_test_partition.validate_assignment(inventory, selected, count)
+    return by_index, selected, inventory
+
+
+def certified_inventory(repo: Path, receipts: dict, packages: list[str], binding: dict,
+                        profile: pr_test_partition.CostProfile, count: int) -> dict:
+    """Reconstruct only a complete producer-sealed, same-profile inventory.
+
+    This candidate is not accepted here: the original receipt validator still
+    authenticates every input/file, complete summary and actual test event.
+    Current tooling hashes exclude producers that captured after discovery.
+    """
+    if (profile.status != "active" or profile.anchor_epoch != binding.get("anchor_epoch")
+            or profile.environment != binding.get("environment") or binding.get("source_state") != "clean"):
+        raise ValueError("current planning profile is not eligible")
+    by_index, selected, inventory = _sealed_inventory(receipts["artifacts"], packages, count)
     first = _json(by_index[0]["files"], "plan.json")["partition"]
     anchor = first.get("anchor_epoch")
     if type(anchor) is not int or anchor < 0 or first.get("environment") != binding.get("environment"):
@@ -253,8 +258,8 @@ def _bounded(operation, timeout: float):
     return value
 
 
-def _evaluate(repo: Path, base: str, head: str, paths: list[str], inventory: dict | None,
-              github_token: str | None, deadline: float, certification=None) -> dict:
+def _evaluate(repo: Path, base: str, head: str, paths: list[str],
+              github_token: str | None, deadline: float, certification) -> dict:
     payload = event()
     if (payload.get("before") != base or payload.get("after") != head
             or git(repo, "rev-parse", "HEAD") != head or git(repo, "rev-parse", "HEAD^") != base
@@ -275,12 +280,11 @@ def _evaluate(repo: Path, base: str, head: str, paths: list[str], inventory: dic
     inputs = pr_reuse_inputs.capture(repo)
     if time.monotonic() >= deadline:
         raise RuntimeError("PR evidence unavailable: total evidence deadline elapsed")
-    if inventory is None:
-        packages, binding, profile, count = certification
-        if (binding.get("base") != base or binding.get("head") != head
-                or binding.get("checkout_head") != head):
-            raise ValueError("current planning identity differs")
-        inventory = certified_inventory(repo, receipts, packages, binding, profile, count)
+    packages, binding, profile, count = certification
+    if (binding.get("base") != base or binding.get("head") != head
+            or binding.get("checkout_head") != head):
+        raise ValueError("current planning identity differs")
+    inventory = certified_inventory(repo, receipts, packages, binding, profile, count)
     result = validate_receipts(receipts, base=base, main=head, tree=tree, inventory=inventory,
                                inputs=inputs, paths=paths)
     if git(repo, "status", "--porcelain", "--untracked-files=normal"):
@@ -288,7 +292,7 @@ def _evaluate(repo: Path, base: str, head: str, paths: list[str], inventory: dic
     return result
 
 
-def try_reuse(repo: Path, base: str, head: str, paths: list[str], inventory: dict | None, log_dir: Path,
+def try_reuse(repo: Path, base: str, head: str, paths: list[str], log_dir: Path,
               github_token: str | None = None, *, expected_packages=None, planning_binding=None,
               profile=None, shard_count=None) -> bool:
     if os.getenv("GITHUB_ACTIONS") != "true" or os.getenv("GITHUB_EVENT_NAME") != "push":
@@ -302,8 +306,8 @@ def try_reuse(repo: Path, base: str, head: str, paths: list[str], inventory: dic
             raise ValueError("CI authority changed")
         reason = "evidence_or_inputs"
         deadline = time.monotonic() + REUSE_BUDGET_SECONDS
-        certification = (expected_packages, planning_binding, profile, shard_count) if inventory is None else None
-        result = _bounded(lambda: _evaluate(repo, base, head, paths, inventory, github_token, deadline, certification),
+        certification = (expected_packages, planning_binding, profile, shard_count)
+        result = _bounded(lambda: _evaluate(repo, base, head, paths, github_token, deadline, certification),
                           REUSE_BUDGET_SECONDS)
         reason = "record_write"
         temporary = log_dir / "verified-reuse.json.tmp"
