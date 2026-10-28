@@ -19,6 +19,7 @@ import type { LibraryReadView } from './useLibraryWorkbench';
 import { isLibraryReadFresh } from './useLibraryWorkbench';
 import { LibraryDirectoryState } from './LibraryDirectoryState';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
+import { LibraryProjectMembership } from './LibraryProjectMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryAbstract } from './LibraryAbstract';
 import { LibraryBibliographicDetails } from './LibraryBibliographicDetails';
@@ -181,7 +182,6 @@ export function LibraryItemDetails({
     typeof item.metadata.year === 'string' || Number.isSafeInteger(item.metadata.year)
       ? String(item.metadata.year)
       : '';
-  const members = projects.filter((project) => item.project_ids.includes(project.projectId));
   const projectRead = { status: projectStatus, refreshing: projectRefreshing, refreshError: projectRefreshError };
   const projectFresh = isLibraryReadFresh(projectRead);
   const externallyUpdated = editBase !== undefined && editBase.metadata_revision !== item.metadata_revision;
@@ -225,21 +225,18 @@ export function LibraryItemDetails({
               <dd>{item.metadata.doi}</dd>
             </div>
           )}
-          <div>
-            <dt>{t('conversation.libraryWorkbench.projects')}</dt>
-            <dd>
-              {members.length
-                ? members.map((project) => project.name).join(', ')
-                : projectStatus === 'loading'
-                  ? t('common.loading')
-                  : projectStatus === 'error'
-                    ? t('conversation.libraryWorkbench.projectsFailed')
-                    : '—'}
-            </dd>
-          </div>
         </dl>
         <LibraryAbstract value={item.metadata.abstract} />
         <LibraryBibliographicDetails metadata={item.metadata} />
+        <LibraryProjectMembership
+          item={item}
+          account={account}
+          projects={projects}
+          view={projectRead}
+          disabled={busy || !visible || Boolean(editBase)}
+          submit={submit}
+          retry={retryProjects}
+        />
         {!relatedDirection && (
           <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
             {(['references', 'citations'] as const).map((direction) => (
