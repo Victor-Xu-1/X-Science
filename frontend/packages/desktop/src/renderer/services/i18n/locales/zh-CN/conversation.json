@@ -2088,6 +2088,11 @@
   },
   "notFound": "会话不存在或已被删除",
   "loading": "正在加载对话",
+  "libraryAbstract": {
+    "title": "摘要",
+    "showMore": "展开更多",
+    "showLess": "收起"
+  },
   "libraryReadingStatus": {
     "label": "阅读状态",
     "all": "全部状态",

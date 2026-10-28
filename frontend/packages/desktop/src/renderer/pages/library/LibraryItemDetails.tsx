@@ -14,6 +14,7 @@ import type {
 import type { LibraryReadView } from './useLibraryWorkbench';
 import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
+import { LibraryAbstract } from './LibraryAbstract';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
@@ -199,6 +200,7 @@ export function LibraryItemDetails({
           </dd>
         </div>
       </dl>
+      <LibraryAbstract value={item.metadata.abstract} />
       <LibraryPublicationCheck account={account} item={item} disabled={stale} />
       <LibraryCollectionMembershipPicker
         item={item}
