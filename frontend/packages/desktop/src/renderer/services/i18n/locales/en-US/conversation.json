@@ -2212,6 +2212,7 @@
     "available": "Available",
     "unavailable": "Unavailable",
     "edit": "Edit details",
+    "back": "Back",
     "projects": "Projects",
     "projectsFailed": "Project names are unavailable. Metadata can still be viewed.",
     "projectAction": "Project membership",

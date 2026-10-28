@@ -11,6 +11,18 @@ import { installLiteratureLocks } from '../conversation/literatureMutationLockFi
 import { deferred, installCollectionHTTP, json, mountCollections, paper } from './libraryCollectionsFixtures';
 
 const preview = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
+const transfer = vi.hoisted(() => ({
+  signal: undefined as AbortSignal | undefined,
+  complete: undefined as (() => void) | undefined,
+}));
+// Keep the original Browser's request and cancellation owners, replacing only the byte transfer.
+vi.mock('@/renderer/utils/file/download', () => ({
+  downloadFileFromUrl: (_url: string, _name: string, options: { signal: AbortSignal }) =>
+    new Promise<void>((resolve) => {
+      transfer.signal = options.signal;
+      transfer.complete = resolve;
+    }),
+}));
 // Instrument only shared preview lifetime/page state; this does not render or validate a PDF.
 vi.mock('@/renderer/pages/library/LibraryAttachmentPreview', () => ({
   LibraryAttachmentPreview: () => {
@@ -150,12 +162,15 @@ describe('Library primary detail header through the real Page consumers', () => 
     installLiteratureLocks();
     preview.mounts = 0;
     preview.unmounts = 0;
+    transfer.signal = undefined;
+    transfer.complete = undefined;
     scrollIntoView.mockClear();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
   });
   afterEach(async () => {
     cleanup();
     await act(async () => {
+      transfer.complete?.();
       for (const done of release.splice(0)) done();
       setRendererAccountOwner(null);
     });
@@ -164,7 +179,7 @@ describe('Library primary detail header through the real Page consumers', () => 
     else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   });
 
-  it('keeps the same draft and PDF while explicitly revealing the header editor and cancelling', async () => {
+  it('edit mode: replaces the overview, confirms Back and retains the same PDF through discard and Save', async () => {
     const data = headerHTTP();
     await mountCollections('/library?item=a');
     await screen.findByRole('heading', { name: name('a') });
@@ -172,12 +187,20 @@ describe('Library primary detail header through the real Page consumers', () => 
     const measureHeader = vi.spyOn(primary, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 56));
     fireEvent.click(screen.getByRole('button', { name: /Preview PDF/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Advance header fixture PDF' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Download · reference.pdf' }));
+    expect(transfer.signal?.aborted).toBe(false);
     const pdf = screen.getByTestId('header-pdf');
     const trigger = edit();
     fireEvent.click(trigger);
     const panel = editor();
     const title = within(panel).getByRole('textbox', { name: 'Title' });
     await waitFor(() => expect(title).toHaveFocus());
+    expect(within(header()).getByRole('heading', { name: 'Edit details' })).toBeVisible();
+    expect(within(header()).queryByRole('button', { name: 'Edit details' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Preview PDF/ })).toBeNull();
+    expect(pdf).not.toBeVisible();
+    expect(pdf.closest('[hidden][inert]')).not.toBeNull();
+    expect(transfer.signal?.aborted).toBe(false);
     expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
     expect(title.style.scrollMarginBlockStart).toBe('calc(56px + var(--ui-space-6))');
     fireEvent.change(title, { target: { value: 'Keep this exact draft' } });
@@ -193,30 +216,52 @@ describe('Library primary detail header through the real Page consumers', () => 
     await waitFor(() => expect(detailReads()).toBe(beforeRefresh + 1));
     await waitFor(() => expect(title).toBeEnabled());
     expect(title).toHaveFocus();
-    measureHeader.mockReturnValue(new DOMRect(0, 0, 320, 80));
-    fireEvent.click(trigger);
+    const back = within(header()).getByRole('button', { name: 'Back' });
+    act(() => back.focus());
+    fireEvent.click(back);
+    const keep = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    fireEvent.click(within(keep).getByRole('button', { name: 'Keep editing' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(editor()).toBe(panel);
-    expect(title).toHaveFocus();
-    expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
-    expect(title.style.scrollMarginBlockStart).toBe('calc(80px + var(--ui-space-6))');
-    measureHeader.mockReturnValue(new DOMRect(0, 0, 320, 0));
-    fireEvent.click(trigger);
-    expect(scrollIntoView.mock.contexts.at(-1)).toBe(title);
-    expect(title.style.scrollMarginBlockStart).toBe('');
+    await waitFor(() => expect(title).toHaveFocus());
     expect(within(panel).getByRole('textbox', { name: 'Title' })).toBe(title);
     expect(title).toHaveValue('Keep this exact draft');
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(screen.getByLabelText('Header fixture PDF page')).toHaveTextContent('2');
     expect(preview).toEqual({ mounts: 1, unmounts: 0 });
-    fireEvent.click(within(panel).getByRole('button', { name: 'Close' }));
+    act(() => back.focus());
+    fireEvent.click(back);
     const discard = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
     expect(title).toHaveValue('Keep this exact draft');
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(data.writes).toEqual([]);
     fireEvent.click(within(discard).getByRole('button', { name: 'Discard changes' }));
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
+    expect(within(header()).getByRole('heading', { name: name('a') })).toBeVisible();
+    expect(within(header()).queryByRole('button', { name: 'Back' })).toBeNull();
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
+    expect(pdf).toBeVisible();
+    expect(transfer.signal?.aborted).toBe(false);
+    await act(async () => transfer.complete!());
+    await screen.findByText('Download started · reference.pdf');
+    expect(data.writes).toEqual([]);
+
+    fireEvent.click(trigger);
+    const cleanPanel = editor();
+    const cancel = within(cleanPanel).getByRole('button', { name: 'Close' });
+    act(() => cancel.focus());
+    fireEvent.click(cancel);
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    fireEvent.click(trigger);
+    const cleanBack = within(header()).getByRole('button', { name: 'Back' });
+    act(() => cleanBack.focus());
+    fireEvent.click(cleanBack);
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(trigger).toHaveFocus());
     expect(data.writes).toEqual([]);
 
     const readback = data.holdReadback('a');
@@ -271,10 +316,12 @@ describe('Library primary detail header through the real Page consumers', () => 
       fireEvent.click(within(oldPanel).getByRole('button', { name: 'Save' }));
       await waitFor(() => expect(data.writes).toHaveLength(1));
       let nextTitle: HTMLElement | undefined;
+      let currentTrigger: HTMLButtonElement;
       if (change === 'account') {
         act(() => setRendererAccountOwner(ownerB));
         await screen.findByRole('heading', { name: name('a', ownerB) });
-        fireEvent.click(edit());
+        currentTrigger = edit() as HTMLButtonElement;
+        fireEvent.click(currentTrigger);
         nextTitle = within(editor()).getByRole('textbox', { name: 'Title' });
         fireEvent.change(nextTitle, { target: { value: 'Current draft' } });
         nextTitle.focus();
@@ -284,8 +331,8 @@ describe('Library primary detail header through the real Page consumers', () => 
         const close = within(header()).getByRole('button', { name: 'Close' });
         close.focus();
         expect(edit()).toBeDisabled();
+        currentTrigger = edit() as HTMLButtonElement;
       }
-      const currentTrigger = edit();
       await act(async () => data.releaseFirst());
       expect(oldTrigger.isConnected).toBe(false);
       if (change === 'account') {

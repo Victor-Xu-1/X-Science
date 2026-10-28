@@ -1225,6 +1225,7 @@ export type I18nKey =
   | 'conversation.libraryWorkbench.attachmentVersion'
   | 'conversation.libraryWorkbench.attachments'
   | 'conversation.libraryWorkbench.available'
+  | 'conversation.libraryWorkbench.back'
   | 'conversation.libraryWorkbench.chooseAttachmentVersion'
   | 'conversation.libraryWorkbench.chooseProject'
   | 'conversation.libraryWorkbench.collection'
