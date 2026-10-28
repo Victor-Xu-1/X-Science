@@ -9,6 +9,8 @@ export interface LayoutContextValue {
   isMobile: boolean;
   siderCollapsed: boolean;
   setSiderCollapsed: (value: boolean) => void;
+  siderId?: string;
+  siderToggleId?: string;
 }
 
 export const LayoutContext = React.createContext<LayoutContextValue | null>(null);
