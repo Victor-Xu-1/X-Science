@@ -3,6 +3,14 @@
 本层把“需要什么科学软件和输入”转为受控的执行环境、进程和输出记录。
 它不把模型描述当作计算结果，也不保证目录中列出的每个可选引擎在当前机器上可用。
 
+## Library candidate inbox · 文献候选收件箱
+
+The owner-scoped Inbox retains staged bibliographic metadata until the user accepts or dismisses it. Acceptance creates or links an existing Library item in the same transaction as the candidate decision and its replayable operation receipt; it does not create a PDF attachment. Dismissed entries remain reviewable and may later be accepted. DOI and other supported identifiers are normalized through the discovery identity authority; ambiguous or conflicting matches are rejected rather than merged.
+
+The v87 migration creates empty candidate storage without modifying existing Library items or attachments. This matching checks Library state at staging and acceptance; it does not impose a global uniqueness rule on later PDF imports or metadata edits.
+
+文献候选与处理决定按账号持久保存，接受或忽略使用现有操作回执与原请求重试机制；候选不代表已取得全文。
+
 ## Find the implementation · 实现入口
 
 | 责任 | 源码入口 |

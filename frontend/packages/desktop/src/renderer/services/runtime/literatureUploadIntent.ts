@@ -1,4 +1,9 @@
 import {
+  decodeLiteratureCandidateCommand,
+  type LiteratureCandidateCommand,
+  type LiteratureCandidateReceipt,
+} from '@/common/adapter/literatureCandidates';
+import {
   decodeLiteratureCommand,
   literatureValueIdentity,
   type LiteratureCommand,
@@ -35,19 +40,23 @@ export type LiteratureMutationCommand =
   | LiteratureCommand
   | LiteratureCollectionCommand
   | LiteraturePublicationCommand
-  | LiteratureReadingStatusCommand;
+  | LiteratureReadingStatusCommand
+  | LiteratureCandidateCommand;
 export type LiteratureMutationReceipt =
   | LiteratureReceipt
   | LiteratureCollectionReceipt
   | LiteraturePublicationReceipt
-  | LiteratureReadingStatusReceipt;
-export type ReceiptFor<Command extends LiteratureMutationCommand> = Command extends LiteratureCollectionCommand
-  ? LiteratureCollectionReceipt
-  : Command extends LiteraturePublicationCommand
-    ? LiteraturePublicationReceipt
-    : Command extends LiteratureReadingStatusCommand
-      ? LiteratureReadingStatusReceipt
-      : LiteratureReceipt;
+  | LiteratureReadingStatusReceipt
+  | LiteratureCandidateReceipt;
+export type ReceiptFor<Command extends LiteratureMutationCommand> = Command extends LiteratureCandidateCommand
+  ? LiteratureCandidateReceipt
+  : Command extends LiteratureCollectionCommand
+    ? LiteratureCollectionReceipt
+    : Command extends LiteraturePublicationCommand
+      ? LiteraturePublicationReceipt
+      : Command extends LiteratureReadingStatusCommand
+        ? LiteratureReadingStatusReceipt
+        : LiteratureReceipt;
 export type LibraryPdfRawInit = Readonly<
   Required<
     Pick<
@@ -101,9 +110,13 @@ const exactKeys = (value: Record<string, unknown>, keys: string[]) =>
 
 export const isUploadIntent = (pending: LiteraturePending): pending is LiteratureUploadIntent =>
   pending.kind === 'pdf-upload';
+export const isCandidateCommand = (command: LiteratureMutationCommand): command is LiteratureCandidateCommand =>
+  command.kind.startsWith('candidate-');
 export const isCollectionCommand = (command: LiteratureMutationCommand): command is LiteratureCollectionCommand =>
   command.kind.startsWith('collection-');
 export function decodeMutationCommand(value: unknown): LiteratureMutationCommand {
+  if (record(value) && typeof value.kind === 'string' && value.kind.startsWith('candidate-'))
+    return decodeLiteratureCandidateCommand(value);
   if (record(value) && value.kind === 'check-publication') return decodeLiteraturePublicationCommand(value);
   if (record(value) && value.kind === 'set-reading-status') return decodeLiteratureReadingStatusCommand(value);
   return record(value) && typeof value.kind === 'string' && value.kind.startsWith('collection-')

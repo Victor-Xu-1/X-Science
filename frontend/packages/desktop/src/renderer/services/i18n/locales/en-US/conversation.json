@@ -1,4 +1,17 @@
 {
+  "libraryInbox": {
+    "back": "Back to Library",
+    "more": "Load more",
+    "title": "Inbox",
+    "pending": "Pending",
+    "dismissed": "Dismissed",
+    "failed": "Could not load the Inbox.",
+    "empty": "No candidates in this view.",
+    "accept": "Add to Library",
+    "dismiss": "Dismiss",
+    "openAccepted": "Open in Library",
+    "updated": "Inbox updated."
+  },
   "reading": {
     "label": "Reading",
     "choose": "Choose PDFs for Reading",

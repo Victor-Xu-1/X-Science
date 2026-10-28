@@ -87,6 +87,7 @@ function catalogue(initial = [paper()]) {
   const calls: Call[] = [];
   const replies = new Map<string, Array<Response | Promise<Response>>>();
   const listReplies: Array<Response | Promise<Response>> = [];
+  let inboxPending = true;
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost');
     const method = init?.method ?? 'GET';
@@ -113,6 +114,41 @@ function catalogue(initial = [paper()]) {
         metadata_revision: Number(url.searchParams.get('expected_metadata_revision')),
         doi: item.metadata.doi,
         snapshot: { doi: item.metadata.doi, checked_at: checkedAt, notices: [] },
+      });
+    }
+    if (method === 'GET' && url.pathname === '/api/literature/candidates')
+      return json({
+        schema: 'x-science.literature-candidates.v1',
+        candidates:
+          inboxPending && url.searchParams.get('state') === 'pending'
+            ? [
+                {
+                  id: 'candidate-one',
+                  title: 'Inbox paper',
+                  provider: 'synthetic',
+                  external_id: 'external-one',
+                  state: 'pending',
+                  metadata: {},
+                },
+              ]
+            : [],
+      });
+    if (method === 'POST' && url.pathname === '/api/literature/candidates/candidate-one/accept') {
+      inboxPending = false;
+      items.set('paper-inbox', paper('paper-inbox', { metadata: {}, attachments: [], project_ids: [] }));
+      return json({
+        schema: 'x-science.literature-candidate-receipt.v1',
+        operation_id: body!.operation_id,
+        action: 'accept',
+        candidate: {
+          id: 'candidate-one',
+          title: 'Inbox paper',
+          provider: 'synthetic',
+          external_id: 'external-one',
+          state: 'accepted',
+          item_id: 'paper-inbox',
+          metadata: {},
+        },
       });
     }
     if (method === 'POST' && url.pathname === '/api/literature/items/reading-status') {
@@ -230,6 +266,45 @@ describe('Reading status through the actual Library Page and mutation owner', ()
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it('opens Inbox through the actual page, accepts and opens the persisted Library item', async () => {
+    const api = catalogue();
+    await mount();
+    await ready();
+    const input = draft();
+    fireEvent.click(await screen.findByRole('button', { name: 'Inbox' }));
+    await screen.findByText('Inbox paper');
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
+    expect(input).toHaveValue('Unsaved local title');
+    expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
+    fireEvent.click(screen.getByRole('button', { name: 'Inbox' }));
+    await screen.findByText('Inbox paper');
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Library' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Open in Library' }));
+    await screen.findByRole('heading', { name: 'Synthetic paper-inbox' });
+    expect(
+      api.calls.some(
+        (call) => call.method === 'POST' && call.url.pathname === '/api/literature/candidates/candidate-one/accept'
+      )
+    ).toBe(true);
+  });
+
+  it('retains the active detail draft when an Inbox candidate is accepted', async () => {
+    catalogue();
+    await mount();
+    await ready();
+    const input = draft('Draft after candidate acceptance');
+    fireEvent.click(screen.getByRole('button', { name: 'Inbox' }));
+    await screen.findByText('Inbox paper');
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Library' }));
+    await screen.findByRole('button', { name: 'Open in Library' });
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
+    expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
+    expect(input).toHaveValue('Draft after candidate acceptance');
+    fireEvent.click(screen.getByRole('button', { name: 'Inbox' }));
+    await screen.findByText('No candidates in this view.');
+    expect(screen.queryByRole('button', { name: 'Open in Library' })).toBeNull();
   });
 
   it('preserves the same-revision draft, PDF child and publication evidence after the real status ACK and readback', async () => {

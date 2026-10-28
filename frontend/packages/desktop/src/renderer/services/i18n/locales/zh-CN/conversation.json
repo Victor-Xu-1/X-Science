@@ -1,4 +1,17 @@
 {
+  "libraryInbox": {
+    "back": "返回文献库",
+    "more": "加载更多",
+    "title": "收件箱",
+    "pending": "待处理",
+    "dismissed": "已忽略",
+    "failed": "无法加载收件箱。",
+    "empty": "此视图中没有候选文献。",
+    "accept": "加入文献库",
+    "dismiss": "忽略",
+    "openAccepted": "在文献库中打开",
+    "updated": "收件箱已更新。"
+  },
   "reading": {
     "label": "阅读",
     "choose": "选择用于阅读的 PDF",

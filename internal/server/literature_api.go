@@ -41,6 +41,9 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/literature"), "/"), "/")
+	if s.handleLiteratureCandidates(w, r, owner, parts) {
+		return
+	}
 	if s.handleLiteratureCollectionRoute(w, r, owner, parts) {
 		return
 	}

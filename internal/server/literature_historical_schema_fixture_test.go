@@ -17,7 +17,8 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 		(SELECT COUNT(*) FROM literature_attachment_versions)+(SELECT COUNT(*) FROM literature_attachments)+
 		(SELECT COUNT(*) FROM literature_items)+(SELECT COUNT(*) FROM memory_extraction_receipts)+
 		(SELECT COUNT(*) FROM literature_collections)+(SELECT COUNT(*) FROM literature_collection_items)+
-		(SELECT COUNT(*) FROM literature_publication_checks)`).Scan(&facts); err != nil || facts != 0 {
+		(SELECT COUNT(*) FROM literature_publication_checks)+(SELECT COUNT(*) FROM literature_candidates)+
+		(SELECT COUNT(*) FROM literature_candidate_sources)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical reconstruction requires empty private Memory/Library tables: facts=%d err=%v", facts, err)
 	}
 	var cadenceFacts int
@@ -34,7 +35,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 		`DROP TABLE memory_extraction_receipts`,
 		// Remove reviewed v84 children before the Library parent. The emptiness
 		// check also covers v85 provider evidence, which has an item foreign key.
-		`DROP TABLE literature_publication_checks`,
+		`DROP TABLE literature_candidate_sources`, `DROP TABLE literature_candidates`, `DROP TABLE literature_publication_checks`,
 		`DROP TABLE literature_collection_items`, `DROP TABLE literature_collections`,
 		`DROP TABLE project_literature`, `DROP TABLE literature_attachment_versions`,
 		// Reviewed86's reading_status column belongs to this empty parent and
@@ -49,7 +50,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 86
+	const reviewedTarget = 87
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -58,6 +59,7 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// Reviewed84 adds only the two empty collection tables and table-owned indexes.
 	// Reviewed85 adds the empty publication evidence child of literature_items.
 	// Reviewed86 adds the status column on the same empty Library parent.
+	// Reviewed87 adds empty candidates and sources; the source child is removed first.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -67,8 +69,12 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "literature-reading-status" || len(current.Checksum) != 64 {
-		t.Fatalf("historical reconstruction requires the reviewed reading-status identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "literature-candidates" || len(current.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed candidate identity: %+v", current)
+	}
+	original86 := expected.Migrations[85]
+	if original86.Version != 86 || original86.Name != "literature-reading-status" || len(original86.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed reading-status identity: %+v", original86)
 	}
 	var statusColumn int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM pragma_table_info('literature_items')

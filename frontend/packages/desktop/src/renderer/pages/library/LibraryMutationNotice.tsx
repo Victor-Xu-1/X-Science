@@ -20,17 +20,19 @@ export function LibraryMutationNotice({
 }) {
   const { t } = useTranslation();
   const message =
-    acknowledged?.schema === 'x-science.literature-receipt.v1'
-      ? t('conversation.reading.libraryUpdated', { name: acknowledged.item.title })
-      : acknowledged?.schema === 'x-science.literature-reading-status-receipt.v1'
-        ? t('conversation.libraryReadingStatus.updated')
-        : acknowledged?.schema === 'x-science.literature-collection-receipt.v1'
-          ? acknowledged.action === 'membership'
-            ? t('conversation.libraryWorkbench.membershipUpdated')
-            : acknowledged.action === 'delete'
-              ? t('conversation.libraryWorkbench.collectionDeleted')
-              : t('conversation.libraryWorkbench.collectionUpdated', { name: acknowledged.collection.name })
-          : undefined;
+    acknowledged?.schema === 'x-science.literature-candidate-receipt.v1'
+      ? t('conversation.libraryInbox.updated')
+      : acknowledged?.schema === 'x-science.literature-receipt.v1'
+        ? t('conversation.reading.libraryUpdated', { name: acknowledged.item.title })
+        : acknowledged?.schema === 'x-science.literature-reading-status-receipt.v1'
+          ? t('conversation.libraryReadingStatus.updated')
+          : acknowledged?.schema === 'x-science.literature-collection-receipt.v1'
+            ? acknowledged.action === 'membership'
+              ? t('conversation.libraryWorkbench.membershipUpdated')
+              : acknowledged.action === 'delete'
+                ? t('conversation.libraryWorkbench.collectionDeleted')
+                : t('conversation.libraryWorkbench.collectionUpdated', { name: acknowledged.collection.name })
+            : undefined;
   return (
     <>
       {!hidden && (error || failed) && (
