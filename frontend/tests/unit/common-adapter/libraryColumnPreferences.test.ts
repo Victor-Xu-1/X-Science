@@ -4,9 +4,47 @@ import {
   LIBRARY_COLUMN_IDS,
   normalizeLibraryColumnPreferences,
   parseLibraryColumnPreferences,
+  parseLibraryColumnPreferencesWire,
+  projectLibraryColumnPreferences,
 } from '@/common/adapter/libraryColumnPreferences';
 
 describe('Library column preference wire', () => {
+  it('reads a strict six-ID V2 while keeping the V1 parser and five-column presentation closed', () => {
+    const stored = {
+      version: 2,
+      order: ['readingStatus', 'notes', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['notes', 'readingStatus', 'year'],
+    };
+    const decoded = parseLibraryColumnPreferencesWire(stored);
+    expect(decoded).toEqual({ ...stored, visible: ['readingStatus', 'notes', 'year'] });
+    expect(parseLibraryColumnPreferences(stored)).toBeNull();
+    expect(parseLibraryColumnPreferencesWire(defaults)).toEqual(defaults);
+    expect(projectLibraryColumnPreferences(decoded!)).toEqual({
+      version: 1,
+      order: ['readingStatus', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['readingStatus', 'year'],
+    });
+    expect(stored.visible).toEqual(['notes', 'readingStatus', 'year']);
+    expect(Object.isFrozen(decoded)).toBe(true);
+    expect(Object.isFrozen(decoded?.order)).toBe(true);
+    for (const malformed of [
+      { ...stored, version: 1 },
+      { ...stored, version: 3 },
+      { ...stored, version: '2' },
+      { ...stored, order: [...LIBRARY_COLUMN_IDS] },
+      { ...stored, order: ['notes', 'notes', 'doi', 'year', 'authors', 'attachments'] },
+      { ...stored, order: [...stored.order, 'notes'] },
+      { ...stored, order: ['title', ...stored.order.slice(1)] },
+      { ...stored, visible: ['notes', 'notes'] },
+      { ...stored, visible: ['title'] },
+      { ...stored, visible: Array(1) },
+      { ...stored, visible: null },
+      { ...stored, extra: true },
+      { version: 2, order: stored.order },
+    ])
+      expect(parseLibraryColumnPreferencesWire(malformed)).toBeNull();
+  });
+
   it('keeps title outside a closed bounded v1 wire and rejects corrupt configurations', () => {
     expect(parseLibraryColumnPreferences(defaults)).toEqual(defaults);
     expect(

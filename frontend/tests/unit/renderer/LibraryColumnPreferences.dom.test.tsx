@@ -1,7 +1,10 @@
-import { StrictMode } from 'react';
-import { act, renderHook, waitFor } from '@testing-library/react';
+import React, { StrictMode } from 'react';
+import { act, fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LIBRARY_COLUMN_PREFERENCES as defaults } from '@/common/adapter/libraryColumnPreferences';
+import { LibraryColumnMenu } from '@/renderer/pages/library/LibraryColumnMenu';
+import { renderWithI18n } from '../i18nTestUtils';
+import '@arco-design/web-react/lib/_util/react-19-adapter';
 
 const mocks = vi.hoisted(() => ({ account: 'account:a', load: vi.fn(), save: vi.fn() }));
 vi.mock('@/renderer/services/rendererAccountScope', () => ({
@@ -26,6 +29,40 @@ describe('Library column preference mounted view', () => {
     mocks.account = 'account:a';
     mocks.load.mockReset();
     mocks.save.mockReset();
+  });
+  it('projects an existing V2 into the original five-column menu without an empty Notes control or write', async () => {
+    mocks.load.mockResolvedValue({
+      version: 2,
+      order: ['readingStatus', 'notes', 'year', 'authors', 'doi', 'attachments'],
+      visible: ['notes', 'year'],
+    });
+    function ExistingMenu() {
+      const view = useLibraryColumnPreferences(mocks.account);
+      return (
+        <LibraryColumnMenu
+          preferences={view.preferences}
+          status={view.status}
+          onPreferencesChange={view.changePreferences}
+          onRetry={view.retry}
+          onReset={view.reset}
+        />
+      );
+    }
+    const mounted = await renderWithI18n(<ExistingMenu />, 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    const menu = await screen.findByRole('dialog');
+    await waitFor(() =>
+      expect(
+        within(menu)
+          .getAllByRole('checkbox')
+          .every((element) => !(element as HTMLInputElement).disabled)
+      ).toBe(true)
+    );
+    expect(within(menu).getAllByRole('checkbox')).toHaveLength(5);
+    expect(within(menu).queryByText(/notes/i)).toBeNull();
+    expect(menu.querySelector('[data-column="notes"]')).toBeNull();
+    expect(mocks.save).not.toHaveBeenCalled();
+    mounted.unmount();
   });
   it('survives StrictMode cleanup and isolates account changes, activation reads and unmount cancellation', async () => {
     const requests: { signal: AbortSignal; pending: ReturnType<typeof deferred<unknown>> }[] = [];

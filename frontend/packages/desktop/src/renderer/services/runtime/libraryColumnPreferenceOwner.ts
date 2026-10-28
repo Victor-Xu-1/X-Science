@@ -1,9 +1,13 @@
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
   LIBRARY_COLUMN_IDS,
+  liftLibraryColumnPreferences,
   parseLibraryColumnPreferences,
+  parseLibraryColumnPreferencesWire,
+  projectLibraryColumnPreferences,
   type LibraryColumnId,
   type LibraryColumnPreferences,
+  type LibraryColumnPreferencesWire,
 } from '@/common/adapter/libraryColumnPreferences';
 
 export type LibraryColumnPreferenceStatus = 'loading' | 'ready' | 'saving' | 'invalid' | 'read-error' | 'write-error';
@@ -13,7 +17,7 @@ export type LibraryColumnPreferenceView = Readonly<{
 }>;
 export type LibraryColumnPreferenceTransport = {
   load(signal: AbortSignal): Promise<unknown>;
-  save(value: LibraryColumnPreferences, signal: AbortSignal): Promise<void>;
+  save(value: LibraryColumnPreferencesWire, signal: AbortSignal): Promise<void>;
 };
 
 const sameOrder = (left: readonly LibraryColumnId[], right: readonly LibraryColumnId[]) =>
@@ -31,7 +35,7 @@ export class LibraryColumnPreferenceOwner {
   private revision = 0;
   private order?: { value: readonly LibraryColumnId[]; revision: number };
   private visibility = new Map<LibraryColumnId, { value: boolean; revision: number }>();
-  private confirmed = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
+  private confirmed: LibraryColumnPreferencesWire = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
 
   constructor(
     private readonly transport: LibraryColumnPreferenceTransport,
@@ -53,29 +57,31 @@ export class LibraryColumnPreferenceOwner {
   }
   private publish(status = this.settledStatus()) {
     if (!this.current()) return;
-    this.view = { preferences: this.merge(this.confirmed), status };
+    this.view = { preferences: projectLibraryColumnPreferences(this.merge(this.confirmed)), status };
     this.listeners.forEach((listener) => listener());
   }
-  private merge(base: LibraryColumnPreferences): LibraryColumnPreferences {
-    const order = this.order?.value ?? base.order;
-    return {
+  private merge(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
+    const supported = projectLibraryColumnPreferences(base);
+    const order = this.order?.value ?? supported.order;
+    return liftLibraryColumnPreferences(base, {
       version: 1,
       order,
-      visible: order.filter((id) => this.visibility.get(id)?.value ?? base.visible.includes(id)),
-    };
+      visible: order.filter((id) => this.visibility.get(id)?.value ?? supported.visible.includes(id)),
+    });
   }
   private dirty() {
     return this.order !== undefined || this.visibility.size > 0;
   }
   private receive(value: unknown): boolean {
-    const remote = value === undefined ? DEFAULT_LIBRARY_COLUMN_PREFERENCES : parseLibraryColumnPreferences(value);
+    const remote = value === undefined ? DEFAULT_LIBRARY_COLUMN_PREFERENCES : parseLibraryColumnPreferencesWire(value);
     if (!remote) return false;
     this.confirmed = remote;
     this.loaded = true;
     // A read can confirm a lost PUT response, or an equal change from another view.
-    if (this.order && sameOrder(this.order.value, remote.order)) this.order = undefined;
+    const supported = projectLibraryColumnPreferences(remote);
+    if (this.order && sameOrder(this.order.value, supported.order)) this.order = undefined;
     for (const [id, intent] of this.visibility)
-      if (intent.value === remote.visible.includes(id)) this.visibility.delete(id);
+      if (intent.value === supported.visible.includes(id)) this.visibility.delete(id);
     return true;
   }
   private finish(request: AbortController) {
