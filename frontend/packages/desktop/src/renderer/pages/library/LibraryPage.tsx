@@ -141,7 +141,7 @@ export default function LibraryPage() {
     setParams(next);
   };
   const viewImportedReference = (receipt: LiteratureReceipt) => {
-    if (reads.account !== getRendererAccountScopeToken()) return;
+    if (reads.account !== getRendererAccountScopeToken() || !pdfImport.completeSuccess(receipt)) return;
     const next = new URLSearchParams(params);
     next.delete('q');
     next.delete('collection');

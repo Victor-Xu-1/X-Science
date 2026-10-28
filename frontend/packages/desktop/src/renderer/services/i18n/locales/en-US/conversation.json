@@ -1,5 +1,7 @@
 {
   "libraryInbox": {
+    "description": "Review discovered references before they enter your library.",
+    "foundVia": "Found via {{provider}}",
     "back": "Back to Library",
     "more": "Load more",
     "title": "Inbox",

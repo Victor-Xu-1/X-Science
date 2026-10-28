@@ -202,6 +202,26 @@ export function useLibraryPdfImport({
     setOpen(false);
     entryRef.current?.focus();
   };
+  const completeSuccess = (receipt: LiteratureReceipt) => {
+    if (!current() || !open || scope.call || busy || pending || otherPending || success !== receipt) return false;
+    const latest = controller.getSnapshot();
+    const committed = receiptFrom(latest.receipt);
+    if (
+      latest.pending ||
+      latest.mutating ||
+      latest.error === 'storage' ||
+      scope.displayedOperationId !== receipt.operation_id ||
+      committed?.operation_id !== receipt.operation_id ||
+      committed.item.id !== receipt.item.id ||
+      committed.attachment_id !== receipt.attachment_id ||
+      committed.version_id !== receipt.version_id
+    )
+      return false;
+    // End only this completed UI interaction. Keep the owner's committed receipt
+    // and every pending/recovery record intact; navigation is the Page's action.
+    close();
+    return true;
+  };
   const discard = () => {
     if (!current() || scope.call || busy || !pending || !view.canDiscardRejectedUpload) return;
     const call: UiCall = { kind: 'discard' };
@@ -246,6 +266,7 @@ export function useLibraryPdfImport({
     openPanel,
     chooseFile,
     close,
+    completeSuccess,
     discard,
     noticeOwned: Boolean(pending || (open && (local.writing || local.failure || success))),
     setTitle: (title: string) => {

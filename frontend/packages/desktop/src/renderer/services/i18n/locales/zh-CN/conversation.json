@@ -1,5 +1,7 @@
 {
   "libraryInbox": {
+    "description": "审阅发现的文献，再将其加入文献库。",
+    "foundVia": "来源：{{provider}}",
     "back": "返回文献库",
     "more": "加载更多",
     "title": "收件箱",

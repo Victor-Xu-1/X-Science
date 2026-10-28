@@ -22,15 +22,8 @@ import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-
-export const libraryAuthors = (item: LiteratureItem): string => {
-  const value = item.metadata.authors;
-  return typeof value === 'string'
-    ? value
-    : Array.isArray(value)
-      ? value.filter((author): author is string => typeof author === 'string').join('; ')
-      : '';
-};
+import { libraryAuthors } from './libraryBibliographicText';
+export { libraryAuthors } from './libraryBibliographicText';
 
 export function LibraryItemDetails({
   item,

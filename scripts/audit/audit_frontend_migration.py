@@ -130,6 +130,9 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path.",
+    "packages/desktop/src/renderer/pages/library/libraryInbox.css": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance.",
+    "packages/desktop/src/renderer/pages/library/libraryBibliographicText.ts": "Share the existing stored bibliographic text projection between Library details, table and Inbox cards without duplicating metadata parsers or inventing missing source values.",
     "packages/desktop/src/common/adapter/literatureCandidates.ts": "Define typed persistent Library Inbox staging, decisions and frozen receipts through the existing authenticated Library mutation owner; adapted with reference to Open Science 40707aa4ae9b without a competing persistence path.",
     "packages/desktop/src/common/adapter/literatureRelated.ts": "Define the closed owner/item/revision-scoped related-literature query and result contract while retaining the existing HTTP and Library authorities; adapted with reference to Open Science 40707aa4ae9b.",
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
@@ -703,9 +706,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "d4abfffdd26413c64e1d3677d931026552fd823ec4a42ff6c647b535f9890603"
+APPROVED_ADAPTATION_FINGERPRINT = "99570aa1041f112f57c792c22bf8c367af98faf01a259bcce0ed4dc129d84789"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "1b8e22b005046d5867abc72513f3b853568690b238e8b637e308dc7d77d9565c"
+APPROVED_ADDITION_FINGERPRINT = "0e0112d88496d597b4a41c7a1dcb6dc4f35a2aa22eabb1e456bd52bb073133c0"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
