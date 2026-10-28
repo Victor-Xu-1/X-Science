@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ecab7ba900313b31ccaf2a755570fa9f8a571e66153ff7098bb60a2d99b745eb",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "0fb288a27a6ace62c3dc53c2189820cb6f9ee0750795e935e53cdd1a4f412e5b",
+  "additionFingerprintSHA256": "f62b3210e9fe5a59a49c8c83d6f76b0a132ba060dc811c4e6600d75315f92113",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -10021,8 +10021,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "537531849bb11c468999156dba433bc4e5e46b65789065d0d670e010ae46aec1",
-      "bytes": 32087,
+      "sha256": "656f70d66435ae7200e4e143d8d2985fc941aa664fea1126d0f7243db257272c",
+      "bytes": 33028,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -14083,8 +14083,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryNotesInline.dom.test.tsx",
-      "sha256": "761d3a2ce0ecba917be4875d285b9f515e33077d92fa77481710234653812169",
-      "bytes": 8947,
+      "sha256": "9186a2a33990a797bb4e962f3f77d4b8b8417c64b143fe0bd51c1ae2059141c1",
+      "bytes": 9284,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
