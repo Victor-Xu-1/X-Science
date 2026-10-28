@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "69f3afc19dbc3aea45a545d84b3ce98686c90f1a8e92f79fb87d77e02d1ba38f",
+  "adaptationFingerprintSHA256": "eff1c623d0615df18d7925aa275fee257755bbbed91f41b6649d5cba65447e33",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "99c94081ff229154a173fdf1c42aa644b157d6bcb3e1a089a489996bc198a910",
+  "additionFingerprintSHA256": "82b64f34e2f1fb8d6874803ee5fdd9792bda2bd50798fe05a8e2ff9355fdc5af",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "16cc7873062d097461fe3809c0e03651f6430da2a23eef3ccef115ddd95da89c",
+      "targetSHA256": "3eee2e667a8b47676064611a3b41639db8a93a9871f01d9f2e80c0397fed286d",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "3933ad2722aa907d69f072765f4883c4414e5713e55570d51f894892d9b1c91c",
+      "targetSHA256": "55c4afdb3f113c0c72674de7723f9ad5f658e8c2855fc29579c707c123867653",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -101,8 +101,8 @@
     {
       "path": "packages/desktop/src/common/config/clientSettings.ts",
       "sourceSHA256": "fd2a6859d3fe7268eaa41efe86ed024c22c2f8835b479fccd7bbff7a452302a9",
-      "targetSHA256": "a6a75b735ee95ce29b2425bbc2f5a982401ccb80dd4e3343ee4f13d076b7bf96",
-      "bytes": 1074,
+      "targetSHA256": "c5fd1c86a339a7ba621b16f28a40e03f7ab518660cbf4e99c08e07b89790a6ae",
+      "bytes": 1082,
       "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "676d5825ac9976c8788ca61bf7b0e549ec4ce6ab83baa9dc95fe81401b2394fa",
+      "sha256": "837e9a4a5bfec8c2e26021f21071b481b1579cb64003dc17069be581c5f76456",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7675,8 +7675,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/libraryColumnPreferences.ts",
-      "sha256": "423b1ea138065bddd941c14dcce6c2af498c575e52bbe0b316b714053ffcbd23",
-      "bytes": 2074,
+      "sha256": "2775c47d06101c6952bd56dd9ccace891f35d65f07290f16d1276b0b8a3d5c34",
+      "bytes": 4696,
       "reason": "Validate the bounded account-scoped Library column visibility and order setting through the existing authenticated client settings authority; no second persistence or catalogue mutation path."
     },
     {
@@ -11269,14 +11269,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/libraryColumnPreferenceOwner.ts",
-      "sha256": "1aaf953bbddbb9701d8d3eee39c87a32c093d9148e4a6cb0fa7c942b153a1194",
-      "bytes": 7397,
+      "sha256": "fe52ced4e96b364d5d71840afd23bf1b4c01fa89f6748f7d3874918d97fb03ba",
+      "bytes": 7793,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/libraryColumnPreferences.ts",
-      "sha256": "62b6c4bdc3968d4ea88d620fcb55148d7e576261335e0e244556313c1f546cba",
-      "bytes": 963,
+      "sha256": "afd6d9904a2d52ba452fa61888793e75230e9ec82da00473cf03cc16d5f3ae32",
+      "bytes": 979,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -12571,8 +12571,8 @@
     },
     {
       "path": "tests/unit/common-adapter/libraryColumnPreferences.test.ts",
-      "sha256": "6478d401866a8ba1b5d4def245900abc61553a73aac588f29072f2e423a47c6c",
-      "bytes": 1660,
+      "sha256": "0bcf5cd5b8c54b8d676df2dd209d94daaf1f6851021e27239ecdbd86e284deab",
+      "bytes": 3410,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13219,8 +13219,8 @@
     },
     {
       "path": "tests/unit/renderer/LibraryColumnPreferences.dom.test.tsx",
-      "sha256": "887070c8be3d211acbbcffc132d0194e474bc031df288e7123039847320d4580",
-      "bytes": 3069,
+      "sha256": "628c2964390a0537ca5aa6e1570a6d2f6a0296ee34ddb2ef214318ef8823bb9a",
+      "bytes": 4595,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13429,8 +13429,8 @@
     },
     {
       "path": "tests/unit/renderer/api/libraryColumnPreferences.test.ts",
-      "sha256": "b303e15b31cd223662c4ce0ff9b7c43dba0e37290b7c538ece3ad0baf3f896e3",
-      "bytes": 1614,
+      "sha256": "7d8870e247c0ce21bd6f7aa60cd567a9b934ade690180453b9744d1fbd2a00cf",
+      "bytes": 2725,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14173,8 +14173,8 @@
     },
     {
       "path": "tests/unit/renderer/libraryColumnPreferenceOwner.test.ts",
-      "sha256": "45188ae0f5b62cfbc5300f5665048b901372355e051d579da1ffa3d0e176a2ef",
-      "bytes": 7107,
+      "sha256": "d4118f2ab36c63a4f0a5c98252a3cabf8034dbe985b995707a9ce03fc7706a77",
+      "bytes": 12567,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -1,6 +1,6 @@
 import {
-  parseLibraryColumnPreferences,
-  type LibraryColumnPreferences,
+  parseLibraryColumnPreferencesWire,
+  type LibraryColumnPreferencesWire,
 } from '@/common/adapter/libraryColumnPreferences';
 import { getClientBusinessSetting, setClientBusinessSetting } from '../clientBusinessSettings';
 
@@ -12,10 +12,10 @@ export function loadLibraryColumnPreferences(signal: AbortSignal): Promise<unkno
 }
 
 export async function saveLibraryColumnPreferences(
-  preferences: LibraryColumnPreferences,
+  preferences: LibraryColumnPreferencesWire,
   signal: AbortSignal
 ): Promise<void> {
-  const value = parseLibraryColumnPreferences(preferences);
+  const value = parseLibraryColumnPreferencesWire(preferences);
   if (!value) throw new Error('Invalid Library column preferences');
   await setClientBusinessSetting(LIBRARY_COLUMN_PREFERENCES_SETTING, value, { signal, timeoutMs: 15_000 });
 }
