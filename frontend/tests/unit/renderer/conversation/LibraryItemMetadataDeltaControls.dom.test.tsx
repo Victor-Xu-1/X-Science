@@ -27,7 +27,7 @@ describe('Library field metadata editor controls', () => {
     cleanup();
     vi.restoreAllMocks();
   });
-  it('sets cleared authors and year to empty strings with the optional changed title', async () => {
+  it('removes cleared authors and year with the optional changed title', async () => {
     const fixture = await mount();
     fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: '  Updated title  ' } });
     fireEvent.change(screen.getByRole('textbox', { name: 'Authors' }), { target: { value: '' } });
@@ -40,7 +40,7 @@ describe('Library field metadata editor controls', () => {
       item_id: 'paper',
       expected_revision: 7,
       title: 'Updated title',
-      metadata_patch: { set: { authors: '', year: '' } },
+      metadata_patch: { remove: ['authors', 'year'] },
     });
     expect(item.metadata).toEqual({ authors: 'Original author', year: 2024, opaque: Infinity });
   });
