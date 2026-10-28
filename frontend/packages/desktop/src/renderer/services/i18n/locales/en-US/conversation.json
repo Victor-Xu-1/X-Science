@@ -13,6 +13,35 @@
     "updated": "Inbox updated."
   },
   "reading": {
+    "related": {
+      "title": "Related literature",
+      "direction": "Citation relationships",
+      "references": "References",
+      "citations": "Cited by",
+      "loading": "Looking up related papers…",
+      "cancelled": "Lookup cancelled. No Library items were changed.",
+      "ownerChanged": "The account changed. Close and reopen the literature details.",
+      "confirmHint": "A possible title match was found. Confirm this paper before loading its relationships.",
+      "confirm": "Use this paper",
+      "openSource": "View on Semantic Scholar",
+      "results": "Related papers",
+      "emptyReferences": "No references found.",
+      "emptyCitations": "No citing papers found.",
+      "more": "Load more related papers",
+      "omitted": "Some relationships have no identifiable paper and were omitted.",
+      "retryTime": "Provider retry time: {{time}}",
+      "readOnlyHint": "Discovery only. No papers or PDFs are added to Library.",
+      "issues": {
+        "no-match": "Could not identify this paper. Check its title or identifiers.",
+        "reference-changed": "This paper changed. Close and reopen its details before retrying.",
+        "expired": "Lookup expired. Retry to refresh the paper match.",
+        "rate-limited": "Semantic Scholar is limiting requests. Try again later.",
+        "authentication": "Semantic Scholar authentication failed. Check the provider configuration.",
+        "timeout": "Lookup timed out. Try again.",
+        "unavailable": "Related papers could not be loaded. Try again.",
+        "response-invalid": "Semantic Scholar returned an invalid response. Try again."
+      }
+    },
     "label": "Reading",
     "choose": "Choose PDFs for Reading",
     "project": "Project",

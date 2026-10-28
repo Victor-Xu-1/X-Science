@@ -5,6 +5,8 @@ import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/com
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import { LibraryRelatedLookup } from '@/renderer/components/chat/SendBox/reading/LibraryRelatedLookup';
+import type { LiteratureDirection } from '@/common/adapter/literatureRelated';
 import type {
   LiteratureCollectionCommand,
   LiteratureCollectionReceipt,
@@ -63,6 +65,7 @@ export function LibraryItemDetails({
 }) {
   const { t } = useTranslation();
   const [editBase, setEditBase] = useState<LiteratureItem>();
+  const [relatedDirection, setRelatedDirection] = useState<LiteratureDirection | null>(null);
   const [projectId, setProjectId] = useState('');
   const editorId = useId();
   const primaryHeader = useRef<HTMLDivElement>(null);
@@ -201,6 +204,29 @@ export function LibraryItemDetails({
         </div>
       </dl>
       <LibraryAbstract value={item.metadata.abstract} />
+      {!relatedDirection && (
+        <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
+          {(['references', 'citations'] as const).map((direction) => (
+            <button
+              key={direction}
+              type='button'
+              className='library-workbench__button'
+              disabled={stale}
+              onClick={() => setRelatedDirection(direction)}
+            >
+              {t('conversation.reading.related.' + direction)}
+            </button>
+          ))}
+        </div>
+      )}
+      {relatedDirection && !stale && (
+        <LibraryRelatedLookup
+          key={JSON.stringify([account, item.id, item.metadata_revision, relatedDirection])}
+          item={item}
+          initialDirection={relatedDirection}
+          close={() => setRelatedDirection(null)}
+        />
+      )}
       <LibraryPublicationCheck account={account} item={item} disabled={stale} />
       <LibraryCollectionMembershipPicker
         item={item}

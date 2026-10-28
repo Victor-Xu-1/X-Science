@@ -13,6 +13,35 @@
     "updated": "收件箱已更新。"
   },
   "reading": {
+    "related": {
+      "title": "相关文献",
+      "direction": "文献引用关系",
+      "references": "参考文献",
+      "citations": "被引文献",
+      "loading": "正在查询相关文献…",
+      "cancelled": "查询已取消，文献库内容未被更改。",
+      "ownerChanged": "账号已切换，请关闭并重新打开文献信息。",
+      "confirmHint": "找到一篇可能匹配标题的文献。请确认后再查询其引用关系。",
+      "confirm": "使用此文献",
+      "openSource": "在 Semantic Scholar 查看",
+      "results": "相关文献结果",
+      "emptyReferences": "未找到参考文献。",
+      "emptyCitations": "未找到引用此文献的论文。",
+      "more": "加载更多相关文献",
+      "omitted": "部分引用关系缺少可识别的文献信息，已省略。",
+      "retryTime": "服务商建议重试时间：{{time}}",
+      "readOnlyHint": "仅查询文献信息，不会将论文或 PDF 加入文献库。",
+      "issues": {
+        "no-match": "无法识别此文献，请检查标题或标识符。",
+        "reference-changed": "此文献已发生变化，请关闭并重新打开详情后再查询。",
+        "expired": "查询已过期，请重试以重新确认文献。",
+        "rate-limited": "Semantic Scholar 正在限制请求，请稍后重试。",
+        "authentication": "Semantic Scholar 身份验证失败，请检查服务商配置。",
+        "timeout": "查询超时，请重试。",
+        "unavailable": "无法加载相关文献，请重试。",
+        "response-invalid": "Semantic Scholar 返回了无效响应，请重试。"
+      }
+    },
     "label": "阅读",
     "choose": "选择用于阅读的 PDF",
     "project": "项目",

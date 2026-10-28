@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureRelated.ts": "Define the closed owner/item/revision-scoped related-literature query and result contract while retaining the existing HTTP and Library authorities; adapted with reference to Open Science 40707aa4ae9b.",
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
     "packages/desktop/src/common/adapter/literatureMetadataPatch.ts": "Strictly snapshot generic Library metadata field deltas and validate only changed receipt keys while preserving unedited canonical metadata, the existing mutation owner, and literal JSON field semantics.",
     "packages/desktop/src/common/adapter/literatureValueIdentity.ts": "Factor the existing canonical Library request and receipt JSON equality into a dependency-free helper without changing its comparison semantics or creating another request, transport, or persistence authority.",
@@ -701,9 +702,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "730d94748a6b84b338c94f1f6d9528f5658ba5643c560d0705e99650339b1ea0"
+APPROVED_ADAPTATION_FINGERPRINT = "098dcad8b0005c39a61a30695e948b78c265d54158d5ec8b9dd727daa2f26961"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "55bd471ff534757251f08e5280e59fd767fb16173d136475493751f258950ac5"
+APPROVED_ADDITION_FINGERPRINT = "12c3b288aa2b230920c9398d8242875b289666b52789e3f217d9f4d207decf65"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

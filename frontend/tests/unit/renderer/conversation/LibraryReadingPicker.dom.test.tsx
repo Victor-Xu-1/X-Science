@@ -11,7 +11,14 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import { installLiteratureLocks } from './literatureMutationLockFixtures';
 import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 
-const mocks = vi.hoisted(() => ({ project: vi.fn(), library: vi.fn(), run: vi.fn(), runCollection: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  project: vi.fn(),
+  library: vi.fn(),
+  run: vi.fn(),
+  runCollection: vi.fn(),
+  related: vi.fn(),
+}));
+vi.mock('@/renderer/services/runtime/literatureRelated', () => ({ loadRelatedLiterature: mocks.related }));
 vi.mock('@/renderer/services/runtime/pdfReadingContext', async (original) => ({
   ...(await original<typeof import('@/renderer/services/runtime/pdfReadingContext')>()),
   loadProjectReadingOptions: mocks.project,
@@ -178,6 +185,51 @@ describe('L382 Library reading picker', () => {
     });
     expect(await screen.findByRole('option', { name: 'Independent paper' })).not.toBeDisabled();
     expect(screen.getByRole('button', { name: /^Project$/ })).not.toBeDisabled();
+  });
+  it('opens related literature directly from the picker without discarding an editor draft', async () => {
+    const editable: typeof option & { item: LiteratureItem } = {
+      ...option,
+      item: {
+        id: 'item',
+        title: option.name,
+        metadata_revision: 1,
+        metadata: {},
+        deleted: false,
+        project_ids: [],
+        attachments: [],
+      },
+    };
+    mocks.library.mockImplementation(async (_context, request) => ({
+      options: request.projectId ? [] : [editable],
+      unavailable: 0,
+    }));
+    mocks.related.mockReset().mockImplementation(async (request) => ({
+      schema: 'x-science.literature-related.v1',
+      item_id: request.item_id,
+      metadata_revision: request.expected_metadata_revision,
+      direction: request.direction,
+      state: 'ready',
+      records: [],
+    }));
+    await renderWithI18n(
+      <ReadingContextPicker context={pdfContext([], 0)} pending={false} onSelect={vi.fn()}>
+        <button>choose source</button>
+      </ReadingContextPicker>,
+      'en-US'
+    );
+    fireEvent.click(screen.getByText('choose source'));
+    fireEvent.click(await screen.findByRole('button', { name: /^Library$/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit literature Independent paper' }));
+    const title = screen.getByRole('textbox', { name: 'Title' });
+    fireEvent.change(title, { target: { value: 'Unsaved title' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Related literature: Independent paper' }));
+    await screen.findByText('No references found.');
+    expect(mocks.related).toHaveBeenCalledWith(
+      expect.objectContaining({ item_id: 'item', expected_metadata_revision: 1, direction: 'references' }),
+      expect.any(AbortSignal)
+    );
+    expect(title).toHaveValue('Unsaved title');
+    expect(mocks.run).not.toHaveBeenCalled();
   });
   it('rejects an old continuation page when a Library receipt refreshes the list', async () => {
     const page = deferredPdf<{ options: (typeof option)[]; unavailable: number; nextCursor?: string }>();
