@@ -209,8 +209,13 @@ describe('Library primary detail header through the real Page consumers', () => 
     expect(screen.getByLabelText('Header fixture PDF page')).toHaveTextContent('2');
     expect(preview).toEqual({ mounts: 1, unmounts: 0 });
     fireEvent.click(within(panel).getByRole('button', { name: 'Close' }));
+    const discard = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    expect(title).toHaveValue('Keep this exact draft');
+    expect(screen.getByTestId('header-pdf')).toBe(pdf);
+    expect(data.writes).toEqual([]);
+    fireEvent.click(within(discard).getByRole('button', { name: 'Discard changes' }));
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(data.writes).toEqual([]);
 
