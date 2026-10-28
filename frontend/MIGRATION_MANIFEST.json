@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "f1432c14f98b6897e9130991d3e5aad85f61d931df44efb85e7113e387d3e556",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "dc6af9c499346c02e2c42224b31308732d4ab7a9426fad56099f017cdf0993c5",
+  "additionFingerprintSHA256": "83fbdbbebfd485c7d9a148129a43b0d8b15edd6e779f3b3f574bdaefffaed9b3",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -13501,8 +13501,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/LibraryItemMetadataDeltaControls.dom.test.tsx",
-      "sha256": "4c16a190bedb8f91b42e14fe66472dc9f285b8ccbdeedce5d8a0fb4e0b01cd18",
-      "bytes": 4280,
+      "sha256": "9521a6377f0989b391c80cacce662381b70bb4c210bc347edb7faebbdcb6bd54",
+      "bytes": 4263,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
