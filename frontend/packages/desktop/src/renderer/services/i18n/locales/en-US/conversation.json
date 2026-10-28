@@ -14,18 +14,18 @@
   },
   "reading": {
     "related": {
-        "stageSelect": "Select {{title}}",
-        "stageAdd": "Add selected to Inbox ({{count}})",
-        "stageRunning": "Adding selected papers…",
-        "stagePending": "A previous Library action needs recovery. Retry sends the original request.",
-        "stageBlocked": "Another Library operation is in progress or needs attention.",
-        "stageStates": {
-          "pending": "Added to Inbox.",
-          "accepted": "Already in Library.",
-          "dismissed": "Previously dismissed; review it in Inbox.",
-          "failed": "Could not add this paper. Resolve the pending action or try again.",
-          "invalid": "This paper has invalid or oversized metadata and cannot be added."
-        },
+      "stageSelect": "Select {{title}}",
+      "stageAdd": "Add selected to Inbox ({{count}})",
+      "stageRunning": "Adding selected papers…",
+      "stagePending": "A previous Library action needs recovery. Retry sends the original request.",
+      "stageBlocked": "Another Library operation is in progress or needs attention.",
+      "stageStates": {
+        "pending": "Added to Inbox.",
+        "accepted": "Already in Library.",
+        "dismissed": "Previously dismissed; review it in Inbox.",
+        "failed": "Could not add this paper. Resolve the pending action or try again.",
+        "invalid": "This paper has invalid or oversized metadata and cannot be added."
+      },
       "title": "Related literature",
       "direction": "Citation relationships",
       "references": "References",

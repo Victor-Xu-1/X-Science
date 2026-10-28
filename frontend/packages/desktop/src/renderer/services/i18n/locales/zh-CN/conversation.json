@@ -14,18 +14,18 @@
   },
   "reading": {
     "related": {
-        "stageSelect": "选择 {{title}}",
-        "stageAdd": "添加所选文献到收件箱（{{count}}）",
-        "stageRunning": "正在添加所选文献…",
-        "stagePending": "之前的文献库操作需要恢复，重试将发送原始请求。",
-        "stageBlocked": "另一项文献库操作正在进行或需要处理。",
-        "stageStates": {
-          "pending": "已加入收件箱。",
-          "accepted": "已在文献库中。",
-          "dismissed": "之前已忽略，可在收件箱中查看。",
-          "failed": "未能添加此文献，请先处理待恢复操作或重试。",
-          "invalid": "文献信息无效或超出大小限制，无法添加。"
-        },
+      "stageSelect": "选择 {{title}}",
+      "stageAdd": "添加所选文献到收件箱（{{count}}）",
+      "stageRunning": "正在添加所选文献…",
+      "stagePending": "之前的文献库操作需要恢复，重试将发送原始请求。",
+      "stageBlocked": "另一项文献库操作正在进行或需要处理。",
+      "stageStates": {
+        "pending": "已加入收件箱。",
+        "accepted": "已在文献库中。",
+        "dismissed": "之前已忽略，可在收件箱中查看。",
+        "failed": "未能添加此文献，请先处理待恢复操作或重试。",
+        "invalid": "文献信息无效或超出大小限制，无法添加。"
+      },
       "title": "相关文献",
       "direction": "文献引用关系",
       "references": "参考文献",
