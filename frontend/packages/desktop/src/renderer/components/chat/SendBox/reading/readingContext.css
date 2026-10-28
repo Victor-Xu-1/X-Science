@@ -2,7 +2,8 @@
  * Scoped tokens preserve the application's other themes and file surfaces. */
 .pdf-reading-composer,
 .pdf-reading-picker,
-.pdf-reading-preview-action {
+.pdf-reading-preview-action,
+.library-workbench__detail .pdf-library-related {
   --reading-bg: hsl(60 14% 99%);
   --reading-surface: hsl(0 0% 100%);
   --reading-chip: hsl(60 11% 95%);
@@ -20,7 +21,9 @@
 [data-theme='dark'] .pdf-reading-preview-action,
 body[arco-theme='dark'] .pdf-reading-composer,
 body[arco-theme='dark'] .pdf-reading-picker,
-body[arco-theme='dark'] .pdf-reading-preview-action {
+body[arco-theme='dark'] .pdf-reading-preview-action,
+[data-theme='dark'] .library-workbench__detail,
+body[arco-theme='dark'] .library-workbench__detail .pdf-library-related {
   --reading-bg: hsl(60 3% 10%);
   --reading-surface: hsl(48 4% 15%);
   --reading-chip: hsl(50 3% 18%);
@@ -319,4 +322,120 @@ body[arco-theme='dark'] .pdf-reading-preview-action {
   .pdf-reading-spin {
     animation: none;
   }
+}
+
+.pdf-library-related {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 6px;
+  padding: 8px;
+  border: 1px solid var(--reading-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--reading-bg);
+  font-size: 12px;
+  line-height: 18px;
+}
+.pdf-library-related__header,
+.pdf-library-related__notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pdf-library-related h3,
+.pdf-library-related h4 {
+  min-width: 0;
+  margin: 0;
+  color: var(--reading-text);
+  font: inherit;
+  font-weight: var(--ui-weight-medium);
+}
+.pdf-library-related h4,
+.pdf-library-related__source,
+.pdf-library-related__authors,
+.pdf-library-related__abstract,
+.pdf-library-related__identifiers {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.pdf-library-related__abstract {
+  -webkit-line-clamp: 3;
+}
+.pdf-library-related__source,
+.pdf-library-related__authors,
+.pdf-library-related__publication,
+.pdf-library-related__abstract,
+.pdf-library-related__identifiers,
+.pdf-library-related__hint {
+  color: var(--reading-secondary);
+}
+.pdf-library-related__hint,
+.pdf-library-related__identifiers {
+  font-size: 11px;
+  line-height: 16px;
+}
+.pdf-library-related__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--ui-radius-md);
+  background: var(--reading-chip);
+}
+.pdf-library-related button {
+  padding: 4px 8px;
+  border-radius: var(--ui-radius-sm);
+}
+.pdf-library-related__header button,
+.pdf-library-related__notice button {
+  flex-shrink: 0;
+}
+.pdf-library-related__tabs button[aria-selected='true'] {
+  color: var(--reading-text);
+  background: var(--reading-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+}
+.pdf-library-related__results {
+  min-width: 0;
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+}
+.pdf-reading-picker .pdf-library-related p {
+  display: block;
+  margin: 0;
+  padding: 0;
+  color: var(--reading-secondary);
+}
+.pdf-reading-picker .pdf-library-related ul {
+  max-height: none;
+  overflow: visible;
+}
+.pdf-library-related__paper {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--reading-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--reading-surface);
+}
+.pdf-library-related__paper a {
+  width: fit-content;
+  max-width: 100%;
+  color: var(--reading-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.pdf-library-related__paper a:focus-visible {
+  outline: 2px solid var(--reading-ring);
+  outline-offset: 2px;
+}
+.pdf-library-related__match > button {
+  margin-top: 6px;
+  color: var(--reading-primary);
 }

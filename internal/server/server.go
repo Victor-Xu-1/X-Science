@@ -264,6 +264,8 @@ type Server struct {
 	workspaceEvents                       *workspaceEventHub
 	compatEvents                          *compatEventHub
 	httpClient                            *http.Client
+	literatureRelatedOnce                 sync.Once
+	literatureRelated                     *literaturediscovery.Finder
 	publicationChecker                    *literaturediscovery.PublicationChecker
 	speechClientForURL                    func(context.Context, string, *http.Client) (*http.Client, error)
 	localSpeechRuntime                    *localSpeechRuntime

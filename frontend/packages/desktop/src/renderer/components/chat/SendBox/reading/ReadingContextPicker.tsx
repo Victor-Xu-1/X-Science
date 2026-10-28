@@ -9,8 +9,9 @@ import {
 } from '@/renderer/services/runtime/literatureReadingBulkIntent';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { LibraryItemEditor } from './LibraryItemEditor';
+import { LibraryRelatedLookup } from './LibraryRelatedLookup';
 import { Trigger } from '@arco-design/web-react';
-import { BookPlus, FileText, Loader2, MoreHorizontal, Search } from 'lucide-react';
+import { BookOpen, BookPlus, FileText, Loader2, MoreHorizontal, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -32,6 +33,7 @@ export function ReadingContextPicker({
   const [query, setQuery] = useState('');
   const [source, setSource] = useState<'project' | 'library'>('project');
   const [editing, setEditing] = useState<LiteratureItem | null>(null);
+  const [related, setRelated] = useState<LiteratureItem | null>(null);
   const mutation = useLiteratureMutation();
   const [lastAction, setLastAction] = useState<string | null>(null);
   const submitLibrary = (command: LiteratureCommand) => {
@@ -61,12 +63,17 @@ export function ReadingContextPicker({
   if (authority.current.key !== loadKey) authority.current = { key: loadKey };
   const atLimit = context.bindings.length >= 3;
   useEffect(() => {
+    if (!open) setRelated(null);
+  }, [open]);
+  useEffect(() => setRelated(null), [source]);
+  useEffect(() => {
     selectionOwner.current = null;
     setOpen(false);
     setQuery('');
     setSelected(null);
     setSelectError(false);
     setEditing(null);
+    setRelated(null);
     setLastAction(null);
   }, [scope, account]);
   useEffect(() => {
@@ -75,6 +82,9 @@ export function ReadingContextPicker({
     setRetry((value) => value + 1);
     if (receipt.schema !== 'x-science.literature-receipt.v1') return;
     setEditing((previous) =>
+      previous?.id === receipt.item.id ? (receipt.item.deleted ? null : receipt.item) : previous
+    );
+    setRelated((previous) =>
       previous?.id === receipt.item.id ? (receipt.item.deleted ? null : receipt.item) : previous
     );
   }, [mutation.view.receipt]);
@@ -201,7 +211,10 @@ export function ReadingContextPicker({
       trigger='click'
       position='tl'
       popupVisible={open}
-      onVisibleChange={setOpen}
+      onVisibleChange={(visible) => {
+        setOpen(visible);
+        if (!visible) setRelated(null);
+      }}
       popupAlign={{ bottom: 8 }}
       unmountOnExit
       popup={() => (
@@ -304,6 +317,14 @@ export function ReadingContextPicker({
                 {t('conversation.reading.libraryUpdated', { name: mutation.view.receipt.item.title })}
               </div>
             )}
+          {related && (
+            <LibraryRelatedLookup
+              key={JSON.stringify([account, related.id, related.metadata_revision])}
+              item={related}
+              initialDirection='references'
+              close={() => setRelated(null)}
+            />
+          )}
           {editing && (
             <LibraryItemEditor
               key={`${editing.id}:${editing.metadata_revision}`}
@@ -361,6 +382,17 @@ export function ReadingContextPicker({
                     )}
                     <span title={item.name}>{item.name}</span>
                   </button>
+                  {item.item && (
+                    <button
+                      type='button'
+                      className='pdf-library-option__action'
+                      disabled={changingLibrary}
+                      aria-label={t('conversation.reading.related.title') + ': ' + item.name}
+                      onClick={() => setRelated(item.item!)}
+                    >
+                      <BookOpen size={15} />
+                    </button>
+                  )}
                   {item.item ? (
                     <button
                       type='button'
