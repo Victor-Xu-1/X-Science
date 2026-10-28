@@ -192,17 +192,29 @@ describe('Library workbench entry and original HTTP owners', () => {
   it('bounds a stalled project read and retries without blocking the persisted literature detail', async () => {
     vi.useFakeTimers();
     let stalled = true;
+    let projectReads = 0;
+    let projectAborts = 0;
+    const requestMethods: string[] = [];
     const linked = { ...item(), project_ids: ['project'] };
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
+        requestMethods.push(init?.method ?? 'GET');
         const collections = collectionReads(url);
         if (collections) return collections;
         if (url.pathname === '/api/projects') {
+          projectReads += 1;
           if (!stalled) return projects();
           return new Promise<Response>((_resolve, reject) => {
-            init?.signal?.addEventListener('abort', () => reject(init?.signal?.reason), { once: true });
+            init?.signal?.addEventListener(
+              'abort',
+              () => {
+                projectAborts += 1;
+                reject(init?.signal?.reason);
+              },
+              { once: true }
+            );
           });
         }
         if (url.pathname === '/api/literature/items') return json(page([linked]));
@@ -215,19 +227,35 @@ describe('Library workbench entry and original HTTP owners', () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(screen.getByRole('heading', { name: 'Paper A' })).toBeInTheDocument();
+    expect(projectReads).toBe(1);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(15_000);
     });
-    expect(screen.getAllByText('Project names are unavailable. Metadata can still be viewed.')).toHaveLength(2);
+    const unavailable = 'Project names are unavailable. Metadata can still be viewed.';
+    const navigation = screen.getByRole('complementary', { name: 'Library' });
+    const details = screen.getByRole('region', { name: 'Literature details' });
+    const results = screen.getByRole('region', { name: 'Collection references' });
+    expect(within(navigation).getByRole('alert')).toHaveTextContent(unavailable);
+    expect(within(details).getByText(unavailable)).toBeVisible();
+    const retryNotice = within(results).getByRole('alert');
+    expect(retryNotice).toHaveTextContent(unavailable);
+    expect(projectAborts).toBe(1);
+    expect(projectReads).toBe(1);
     expect(screen.getByRole('heading', { name: 'Paper A' })).toBeInTheDocument();
     stalled = false;
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(within(retryNotice).getByRole('button', { name: 'Retry' }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(
       within(screen.getByRole('region', { name: 'Literature details' })).getByText('Research project')
     ).toBeInTheDocument();
+    expect(projectReads).toBe(2);
+    expect(projectAborts).toBe(1);
+    expect(within(navigation).queryByRole('alert')).toBeNull();
+    expect(within(results).queryByRole('alert')).toBeNull();
+    expect(within(details).queryByText(unavailable)).toBeNull();
+    expect(requestMethods.every((method) => method === 'GET')).toBe(true);
   });
 
   it('retries the original metadata request, then reads back membership and deletion through the shared owner', async () => {
