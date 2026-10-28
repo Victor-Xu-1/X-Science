@@ -130,6 +130,9 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner.",
+    "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations.",
+    "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance.",
     "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path.",
     "packages/desktop/src/renderer/pages/library/libraryInbox.css": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance.",
     "packages/desktop/src/renderer/pages/library/libraryBibliographicText.ts": "Share the existing stored bibliographic text projection between Library details, table and Inbox cards without duplicating metadata parsers or inventing missing source values.",
@@ -706,9 +709,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "99570aa1041f112f57c792c22bf8c367af98faf01a259bcce0ed4dc129d84789"
+APPROVED_ADAPTATION_FINGERPRINT = "4f0d7e528a7c7b35323ef1f00a80be816855f65f4e8b7bbe404725acbd3fcbe7"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "0e0112d88496d597b4a41c7a1dcb6dc4f35a2aa22eabb1e456bd52bb073133c0"
+APPROVED_ADDITION_FINGERPRINT = "cdc0a791605d213dd1e27e132a1ded82d608075a941cfecad91d0afb65dff0b9"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

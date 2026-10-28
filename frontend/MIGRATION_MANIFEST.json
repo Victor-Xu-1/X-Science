@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "99570aa1041f112f57c792c22bf8c367af98faf01a259bcce0ed4dc129d84789",
+  "adaptationFingerprintSHA256": "4f0d7e528a7c7b35323ef1f00a80be816855f65f4e8b7bbe404725acbd3fcbe7",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "0e0112d88496d597b4a41c7a1dcb6dc4f35a2aa22eabb1e456bd52bb073133c0",
+  "additionFingerprintSHA256": "cdc0a791605d213dd1e27e132a1ded82d608075a941cfecad91d0afb65dff0b9",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1351
+    "addedFiles": 1356
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "f7807e1ba8a03e00b7b2d67bd77e9d52b7dd472aa99a96ab4e7b3a09d8259206",
+      "targetSHA256": "f09be7259f6fff5480f02431e83d615bf495b7066b3e9d56b2da96f2178616bd",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "1c87b204d17b5e76d9ad7bb1992e3a2046efbeb86046b6fe0ae3c6a92ab49aad",
+      "targetSHA256": "21c9a99ffdd60b9ed313c504822c91514ecd9311928cc54f200e5122de6de7cc",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -505,8 +505,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
-      "targetSHA256": "5075af9a3b5102ec32e900064c8b3f31c33cd7a28a07e0f02717303a529110f6",
-      "bytes": 22705,
+      "targetSHA256": "c506dcbc99e253c20f6d48d307c09437ca55015e4f85391c402742bd3166b009",
+      "bytes": 24313,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -533,8 +533,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/index.tsx",
       "sourceSHA256": "c4547120c7bd207073f1f7991073e1e60ee281ba74c9053544b2b372666e8f46",
-      "targetSHA256": "be52e27149a9e95971ca71e18b204fa215d86f7c322b4199ee8453a4de123eaa",
-      "bytes": 8508,
+      "targetSHA256": "c3c051a6965f12518e832551c29f1121bd94fa774d1068bc15f177f2e7f4984c",
+      "bytes": 8642,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -967,15 +967,15 @@
     {
       "path": "packages/desktop/src/renderer/hooks/context/LayoutContext.tsx",
       "sourceSHA256": "ebf30f1b66a3dd934ad5fda72748194fbddc4ecb2841a12b5c7b791bb6489d08",
-      "targetSHA256": "f1e87202a8c363c08e54a063b44f552f592eca2f320de878e9c2820f9ff33832",
-      "bytes": 488,
+      "targetSHA256": "3e1a12528caab7e691f755235d4f20b51f55890cc80fba2ebff5922f44a06d92",
+      "bytes": 663,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
       "path": "packages/desktop/src/renderer/hooks/context/NavigationHistoryContext.tsx",
       "sourceSHA256": "8eda0c1e63e14b12d48d8192d900f62fc3d595437a9a3c015d8566825cf02a70",
-      "targetSHA256": "d8eb21b3665c4e18ea0880ba507dc52b8a912e67732745969fcdfc0b9b8be265",
-      "bytes": 5176,
+      "targetSHA256": "1e52e3583f38c619f84138c59ecc98832854916e2750fefaf29e25434a6906fc",
+      "bytes": 7921,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "0c823adda228f3188d63424a299eb190e3649da314993141987bc845fc59989f",
+      "sha256": "b28c42bbdfe3e7a54acaf91569bdd49a34a755312522c50e535970b71caa24cc",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8104,6 +8104,12 @@
       "sha256": "bf4150e4ff7a3efaeddbfb859a16499794418c1427aa911a78bdf74c08c0fb51",
       "bytes": 3072,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts",
+      "sha256": "ec3f28d0597246f14c31ecc6fd914001ab52672a7980829ff760d98f17a021e8",
+      "bytes": 3432,
+      "reason": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner."
     },
     {
       "path": "packages/desktop/src/renderer/components/media/ComposerCapabilityPicker.tsx",
@@ -9966,9 +9972,15 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx",
+      "sha256": "48d34c7c77a0994e6cc711c85b525e8f751f88e678776369a2054616e2435d28",
+      "bytes": 7420,
+      "reason": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "b7cba1935e07299ba3b0325b069cae6895d57827ba3b58e9c2fb9f21f8ea182b",
-      "bytes": 26206,
+      "sha256": "fbeac437510f92665f2e763169579de53eb540754e08c377c2e4b9a46b6b121c",
+      "bytes": 27761,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10054,6 +10066,12 @@
       "sha256": "659d367a474bee3d26142b64cba5edd7882074529cdb2283e11c3998021f3a2e",
       "bytes": 3549,
       "reason": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css",
+      "sha256": "5c0aac4ea1b46d3189b1d472fbd6fb581b43dcd1b7cc5eb5bacee1f5a86f2807",
+      "bytes": 3907,
+      "reason": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryPdfImport.css",
@@ -13129,8 +13147,8 @@
     },
     {
       "path": "tests/unit/renderer/LayoutMobileSiderMotion.dom.test.tsx",
-      "sha256": "83a7dd0fa81f4048091c0c014252452c816c53c2a525a96b587c919c3ad4579a",
-      "bytes": 8550,
+      "sha256": "fd85889e2cf824f056cb24d307b1316e1a6580ba5efb027534d60d202b6f5ba5",
+      "bytes": 10157,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13149,6 +13167,18 @@
       "path": "tests/unit/renderer/LibraryColumnPreferences.dom.test.tsx",
       "sha256": "887070c8be3d211acbbcffc132d0194e474bc031df288e7123039847320d4580",
       "bytes": 3069,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/LibraryNavigationHistory.dom.test.tsx",
+      "sha256": "9cbbfea25547e4f8884e87b24cb66c6c677da30481871bb91a4f6005dbfdec14",
+      "bytes": 2846,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/LibrarySingleRail.dom.test.tsx",
+      "sha256": "83a9614541c6cbc6e3db411bb52ad2a5c00506d9bfea8126ebd43a010eb36841",
+      "bytes": 9789,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -18,8 +18,13 @@
  * message do not change the pathname and are correctly ignored.
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, NavigationType } from 'react-router';
+import {
+  getRendererAccountOwnerId,
+  getRendererAccountScopeToken,
+  registerRendererAccountReset,
+} from '@/renderer/services/rendererAccountScope';
 
 const MAX_HISTORY = 50;
 
@@ -32,6 +37,7 @@ type NavigationHistoryContextValue = {
   canForward: boolean;
   back: () => void;
   forward: () => void;
+  returnFromLibrary: () => void;
 };
 
 const NavigationHistoryContext = createContext<NavigationHistoryContextValue | null>(null);
@@ -39,10 +45,75 @@ const NavigationHistoryContext = createContext<NavigationHistoryContextValue | n
 const buildPath = (location: { pathname: string; search: string; hash: string }) =>
   `${location.pathname}${location.search}${location.hash}`;
 
+// Only existing workspace routes can be restored. Never admit an external URL,
+// a settings/library loop, or an old account's transient navigation closure.
+function workspaceReturnPath(value: string | null): string | undefined {
+  if (
+    !value ||
+    !value.startsWith('/') ||
+    value.startsWith('//') ||
+    value.includes('\\') ||
+    Array.from(value).some((character) => character.charCodeAt(0) < 0x20)
+  )
+    return;
+  try {
+    const parsed = new URL(value, 'http://workspace.local');
+    if (
+      parsed.origin !== 'http://workspace.local' ||
+      !/^\/(?:guid|conversation\/[^/]+|projects\/[^/]+(?:\/workbench)?)$/.test(parsed.pathname)
+    )
+      return;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return;
+  }
+}
+const returnKey = () => `x-science:library-return:${encodeURIComponent(getRendererAccountOwnerId())}`;
+function storedWorkspaceReturn(): string | undefined {
+  try {
+    return getRendererAccountOwnerId() ? workspaceReturnPath(sessionStorage.getItem(returnKey())) : undefined;
+  } catch {
+    return;
+  }
+}
+
 export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
+  const [account, setAccount] = useState(getRendererAccountScopeToken);
+  const ownerKey = useId();
+  const retainedWorkspace = useRef({ account, path: storedWorkspaceReturn() });
+  if (retainedWorkspace.current.account !== account)
+    retainedWorkspace.current = { account, path: storedWorkspaceReturn() };
+  useEffect(
+    () =>
+      registerRendererAccountReset(`library-return:${ownerKey}`, () => {
+        const next = getRendererAccountScopeToken();
+        retainedWorkspace.current = { account: next, path: storedWorkspaceReturn() };
+        setAccount(next);
+      }),
+    [ownerKey]
+  );
+  useEffect(() => {
+    if (account !== getRendererAccountScopeToken()) return;
+    const path = workspaceReturnPath(buildPath(location));
+    if (!path) return;
+    retainedWorkspace.current = { account, path };
+    try {
+      if (getRendererAccountOwnerId()) sessionStorage.setItem(returnKey(), path);
+    } catch {
+      /* In-memory return remains available. */
+    }
+  }, [account, location.pathname, location.search, location.hash]);
+  const returnFromLibrary = useCallback(() => {
+    if (location.pathname !== '/library' || account !== getRendererAccountScopeToken()) return;
+    const target =
+      retainedWorkspace.current.account === account
+        ? workspaceReturnPath(retainedWorkspace.current.path ?? null)
+        : undefined;
+    void navigate(target ?? '/guid');
+  }, [account, location.pathname, navigate]);
 
   const [stack, setStack] = useState<HistoryEntry[]>(() => [{ path: buildPath(location) }]);
   const [cursor, setCursor] = useState(0);
@@ -124,8 +195,9 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
       canForward: cursor < stack.length - 1,
       back,
       forward,
+      returnFromLibrary,
     }),
-    [cursor, stack.length, back, forward]
+    [cursor, stack.length, back, forward, returnFromLibrary]
   );
 
   return <NavigationHistoryContext.Provider value={value}>{children}</NavigationHistoryContext.Provider>;

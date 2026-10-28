@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
@@ -49,19 +50,59 @@ vi.mock('@/renderer/components/layout/Titlebar', async () => {
 
 import Layout from '@renderer/components/layout/Layout';
 import { SiderLibraryEntry } from '@renderer/components/layout/Sider/SiderNav/SiderLibraryEntry';
+import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useNavigationHistory } from '@renderer/hooks/context/NavigationHistoryContext';
+import { getRendererAccountScopeToken } from '@renderer/services/rendererAccountScope';
 
-const DraftSider = ({ collapsed, onSessionClick }: { collapsed?: boolean; onSessionClick?: () => void }) => {
+const DraftSider = ({
+  collapsed,
+  onSessionClick,
+  libraryNavigation,
+}: {
+  collapsed?: boolean;
+  onSessionClick?: () => void;
+  libraryNavigation?: React.ReactNode;
+}) => {
   const [draft, setDraft] = useState('Original draft');
   return (
     <>
-      <SiderLibraryEntry collapsed={collapsed} onNavigate={onSessionClick} />
-      <span className='collapsed-hidden'>Retained conversation title</span>
-      <input aria-label='Retained navigation draft' value={draft} onChange={(event) => setDraft(event.target.value)} />
+      <div hidden={libraryNavigation !== undefined}>
+        <SiderLibraryEntry collapsed={collapsed} onNavigate={onSessionClick} />
+        <span className='collapsed-hidden'>Retained conversation title</span>
+        <input
+          aria-label='Retained navigation draft'
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+      </div>
+      {libraryNavigation}
     </>
   );
 };
 
-const MainContent = () => <output data-testid='main-route'>{useLocation().pathname}</output>;
+const MainContent = () => {
+  const location = useLocation();
+  const rail = useLayoutContext()?.libraryRail;
+  const history = useNavigationHistory();
+  const owner = useMemo(() => ({}), []);
+  const account = getRendererAccountScopeToken();
+  // Model the real Page's rail registration instead of testing an unowned
+  // /library route. Layout and NavigationHistory remain their actual owners.
+  useLayoutEffect(() => rail?.register(owner, account), [rail?.register, owner, account]);
+  return (
+    <>
+      <output data-testid='main-route'>{location.pathname}</output>
+      {rail?.host &&
+        rail.owner === owner &&
+        createPortal(
+          <button type='button' onClick={() => history?.returnFromLibrary()}>
+            Return to workspace
+          </button>,
+          rail.host
+        )}
+    </>
+  );
+};
 
 const renderLayout = () =>
   render(
@@ -173,6 +214,11 @@ describe('mobile sidebar presentation lifecycle', () => {
 
     resizeViewport(1440);
     expect(sider).not.toHaveClass('layout-sider--mobile');
+    expect(sider).toHaveStyle({ width: '56px' });
+    expect(screen.queryByTestId('sider-resize-handle')).toBeNull();
+    expect(localStorage.getItem('x-science:desktop-sider-width')).toBe('340');
+    await user.click(screen.getByRole('button', { name: 'Return to workspace' }));
+    expect(screen.getByTestId('main-route')).toHaveTextContent('/guid');
     expect(sider).toHaveStyle({ width: '0px' });
     expect(screen.queryByText('conversation.libraryWorkbench.title')).toBeNull();
     expect(screen.getByTestId('sider-resize-handle')).toBeInTheDocument();
@@ -180,6 +226,6 @@ describe('mobile sidebar presentation lifecycle', () => {
     expect(sider).toHaveStyle({ width: '340px' });
     expect(screen.getByLabelText('Retained navigation draft')).toBe(draft);
     expect(screen.getByText('conversation.libraryWorkbench.title')).toBeInTheDocument();
-    expect(screen.getByTestId('main-route')).toHaveTextContent('/library');
+    expect(screen.getByTestId('main-route')).toHaveTextContent('/guid');
   });
 });

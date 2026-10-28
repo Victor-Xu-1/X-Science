@@ -25,6 +25,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { useMobileSiderFocus } from './Sider/useMobileSiderFocus';
+import { useLibraryRailPresentation } from './useLibraryRailPresentation';
 import '@renderer/styles/layout.css';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
@@ -143,6 +144,9 @@ const Layout: React.FC<{
     return () => setGlobalNavigate(null);
   }, [navigate]);
   const location = useLocation();
+  const isLibraryRoute = location.pathname === '/library';
+  const libraryRail = useLibraryRailPresentation(isLibraryRoute, isMobile);
+  const activeCollapsed = isLibraryRoute ? libraryRail.collapsed : collapsed;
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -204,16 +208,17 @@ const Layout: React.FC<{
 
   // 进入移动端后立即折叠 / Collapse immediately when switching to mobile
   useEffect(() => {
-    if (!isMobile || collapsedRef.current) {
+    if (!isMobile || (isLibraryRoute ? libraryRail.collapsed : collapsedRef.current)) {
       return;
     }
-    setCollapsed(true);
-  }, [isMobile]);
+    if (isLibraryRoute) libraryRail.setCollapsed(true);
+    else setCollapsed(true);
+  }, [isMobile, isLibraryRoute, libraryRail.setCollapsed]);
 
   // 清理侧栏 Tooltip 残留节点，避免移动端路由切换后浮层卡在左上角
   useEffect(() => {
     cleanupSiderTooltips();
-  }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
+  }, [isMobile, activeCollapsed, location.pathname, location.search, location.hash]);
 
   // Bridge Main Process logs to F12 Console
   useEffect(() => {
@@ -279,7 +284,9 @@ const Layout: React.FC<{
         MOBILE_SIDER_MIN_WIDTH,
         Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
       )
-    : desktopSiderWidth;
+    : isLibraryRoute
+      ? 240
+      : desktopSiderWidth;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
@@ -303,15 +310,16 @@ const Layout: React.FC<{
     collapsedRef.current = nextCollapsed;
     setCollapsed(nextCollapsed);
   }, []);
+  const setActiveCollapsed = isLibraryRoute ? libraryRail.setCollapsed : updateSiderCollapsed;
   const shellRef = useRef<HTMLDivElement>(null);
   const mobileSiderRef = useRef<HTMLDivElement>(null);
   const mobileBackdropRef = useRef<HTMLDivElement>(null);
   const siderId = useId();
   const siderToggleId = `${siderId}-toggle`;
-  const closeMobileSider = useCallback(() => updateSiderCollapsed(true), [updateSiderCollapsed]);
+  const closeMobileSider = useCallback(() => setActiveCollapsed(true), [setActiveCollapsed]);
   useMobileSiderFocus({
     mobile: isMobile,
-    open: !collapsed,
+    open: !activeCollapsed,
     routeKey: `${location.key}:${location.pathname}:${location.search}:${location.hash}`,
     root: mobileSiderRef,
     shell: shellRef,
@@ -322,7 +330,7 @@ const Layout: React.FC<{
 
   const beginSiderResizeDrag = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (isMobile) return;
+      if (isMobile || isLibraryRoute) return;
       event.preventDefault();
       dragStateRef.current = {
         active: true,
@@ -333,7 +341,7 @@ const Layout: React.FC<{
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
     },
-    [isMobile]
+    [isMobile, isLibraryRoute]
   );
 
   useEffect(() => {
@@ -372,7 +380,7 @@ const Layout: React.FC<{
       window.removeEventListener('blur', handleBlur);
       endDrag();
     };
-  }, [updateDesktopSiderWidth, updateSiderCollapsed]);
+  }, [updateDesktopSiderWidth, updateSiderCollapsed, isLibraryRoute]);
 
   const handleSiderResizeKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -407,8 +415,8 @@ const Layout: React.FC<{
         left: 0,
         zIndex: 100,
         width: siderWidth,
-        transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-        pointerEvents: collapsed ? ('none' as const) : ('auto' as const),
+        transform: activeCollapsed ? 'translateX(-100%)' : 'translateX(0)',
+        pointerEvents: activeCollapsed ? ('none' as const) : ('auto' as const),
       }
     : {
         position: 'relative' as const,
@@ -417,7 +425,16 @@ const Layout: React.FC<{
 
   return (
     <LayoutContext.Provider
-      value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: updateSiderCollapsed, siderId, siderToggleId }}
+      value={{
+        isMobile,
+        siderCollapsed: activeCollapsed,
+        setSiderCollapsed: setActiveCollapsed,
+        siderId,
+        siderToggleId,
+        libraryRail: isLibraryRoute
+          ? { host: libraryRail.host, owner: libraryRail.owner, register: libraryRail.register }
+          : undefined,
+      }}
     >
       <NavigationHistoryProvider>
         <div ref={shellRef} className='app-shell flex flex-col size-full min-h-0'>
@@ -430,22 +447,23 @@ const Layout: React.FC<{
           </button>
           <Titlebar workspaceAvailable={workspaceAvailable} />
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-          {isMobile && !collapsed && (
+          {isMobile && !activeCollapsed && (
             <div
               ref={mobileBackdropRef}
               className='workbench-modal-backdrop fixed inset-0 z-90'
-              onClick={() => setCollapsed(true)}
+              onClick={() => setActiveCollapsed(true)}
               aria-hidden='true'
             />
           )}
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
             <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 0}
-              collapsed={collapsed}
+              collapsedWidth={!isMobile && isLibraryRoute ? 56 : 0}
+              collapsed={activeCollapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider x-science-sidebar-shell', {
-                collapsed: !isMobile && collapsed,
+                collapsed: !isMobile && activeCollapsed,
+                'layout-sider--library': isLibraryRoute,
                 'layout-sider--mobile': isMobile,
                 'layout-sider--dragging': isSiderDragging,
                 'settings-layout-sider': isSettingsRoute,
@@ -455,24 +473,24 @@ const Layout: React.FC<{
               <div
                 ref={mobileSiderRef}
                 id={siderId}
-                role={isMobile && !collapsed ? 'dialog' : undefined}
-                aria-modal={isMobile && !collapsed ? true : undefined}
-                aria-label={isMobile && !collapsed ? t('common.workspaceNavigation') : undefined}
+                role={isMobile && !activeCollapsed ? 'dialog' : undefined}
+                aria-modal={isMobile && !activeCollapsed ? true : undefined}
+                aria-label={isMobile && !activeCollapsed ? t('common.workspaceNavigation') : undefined}
                 tabIndex={-1}
                 className='flex h-full min-h-0 flex-col'
-                inert={isMobile && collapsed}
-                aria-hidden={isMobile && collapsed ? true : undefined}
+                inert={isMobile && activeCollapsed}
+                aria-hidden={isMobile && activeCollapsed ? true : undefined}
               >
                 <ArcoLayout.Header
                   className={classNames(
                     'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header x-science-sidebar-header',
                     isMobile && 'layout-sider-header--mobile',
                     {
-                      'cursor-pointer group ': collapsed,
+                      'cursor-pointer group ': activeCollapsed,
                     }
                   )}
                 >
-                  {isSettingsRoute ? (
+                  {isLibraryRoute ? null : isSettingsRoute ? (
                     <Tooltip content={t('common.back')} position='bottom'>
                       <button
                         type='button'
@@ -488,12 +506,12 @@ const Layout: React.FC<{
                       <XScienceBrand />
                     </div>
                   )}
-                  {isMobile && !collapsed && (
+                  {isMobile && !activeCollapsed && (
                     <button
                       type='button'
                       data-testid='mobile-sider-close'
                       className='app-titlebar__button app-titlebar__button--mobile'
-                      onClick={() => setCollapsed(true)}
+                      onClick={() => setActiveCollapsed(true)}
                       title={t('common.collapseSidebar')}
                       aria-label={t('common.collapseSidebar')}
                     >
@@ -511,19 +529,23 @@ const Layout: React.FC<{
                         sider as React.ReactElement<{
                           onSessionClick?: () => void;
                           collapsed?: boolean;
+                          libraryNavigation?: React.ReactNode;
                         }>,
                         {
                           onSessionClick: () => {
                             cleanupSiderTooltips();
-                            if (isMobile) setCollapsed(true);
+                            if (isMobile) setActiveCollapsed(true);
                           },
                           // A mobile drawer slides its full contents; only desktop uses compact labels.
-                          collapsed: !isMobile && collapsed,
+                          collapsed: !isMobile && activeCollapsed,
+                          libraryNavigation: isLibraryRoute ? (
+                            <div ref={libraryRail.setHost} className='library-rail-slot' />
+                          ) : undefined,
                         }
                       )
                     : sider}
                 </nav>
-                {!isMobile && (
+                {!isMobile && !isLibraryRoute && (
                   <div
                     role='separator'
                     aria-label={t('common.resizeSidebar')}
@@ -549,8 +571,11 @@ const Layout: React.FC<{
               id='workspace-main'
               tabIndex={-1}
               className={'bg-1 layout-content flex flex-col min-h-0'}
-              onClick={() => {
-                if (isMobile && !collapsed) setCollapsed(true);
+              onClick={(event) => {
+                // Portal navigation belongs to the Page's React tree, but its
+                // physical DOM remains inside the current drawer focus scope.
+                const fromSider = event.target instanceof Node && mobileSiderRef.current?.contains(event.target);
+                if (isMobile && !activeCollapsed && !fromSider) setActiveCollapsed(true);
               }}
               style={
                 isMobile

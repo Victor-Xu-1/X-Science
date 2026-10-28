@@ -1,4 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
+import { LibraryNavigationRail } from './LibraryNavigationRail';
 import { BookOpen, ChevronRight, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +64,11 @@ export default function LibraryPage() {
     }
   }, [params, readingStatus, setParams]);
   const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus);
+  const layout = useLayoutContext();
+  const history = useNavigationHistory();
+  const rail = layout?.libraryRail;
+  const railOwner = useMemo(() => ({}), [reads.account]);
+  useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
   const libraryColumns = useLibraryColumnPreferences(reads.account);
   const mutation = useLiteratureMutation();
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
@@ -301,7 +310,33 @@ export default function LibraryPage() {
     mutation.view.action.expected_metadata_revision === selected.metadata_revision
   );
   return (
-    <main className='library-workbench' aria-labelledby='library-workbench-title'>
+    <main
+      className={`library-workbench${rail ? ' library-workbench--rail-hosted' : ''}`}
+      aria-labelledby='library-workbench-title'
+    >
+      {rail?.host &&
+        rail.owner === railOwner &&
+        createPortal(
+          <LibraryNavigationRail
+            reads={reads}
+            collapsed={Boolean(layout?.siderCollapsed)}
+            toggle={() => layout?.setSiderCollapsed(!layout.siderCollapsed)}
+            back={() => history?.returnFromLibrary()}
+            inbox={inbox}
+            collectionId={collectionId}
+            projectId={projectId}
+            busy={busy}
+            selectInbox={() => {
+              const next = new URLSearchParams(params);
+              next.set('inbox', '1');
+              setParams(next);
+            }}
+            selectCollection={selectCollection}
+            selectProject={selectProject}
+            create={() => openCollection({ kind: 'create' })}
+          />,
+          rail.host
+        )}
       <LibraryMutationNotice
         hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
         error={mutation.view.error}
@@ -311,34 +346,36 @@ export default function LibraryPage() {
         retry={() => void retryMutation()}
       />
       <div className='library-workbench__workspace'>
-        <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
-          <div className='library-workbench__navigation-heading'>
-            <BookOpen size={18} aria-hidden='true' />
-            <span>{t('conversation.libraryWorkbench.title')}</span>
-          </div>
-          <button
-            type='button'
-            className='library-workbench__button'
-            aria-current={inbox ? 'page' : undefined}
-            onClick={() => {
-              const next = new URLSearchParams(params);
-              next.set('inbox', '1');
-              setParams(next);
-            }}
-          >
-            {t('conversation.libraryInbox.title')}
-          </button>
-          <LibraryCollectionSidebar
-            view={reads.collections}
-            selectedId={collectionId}
-            allSelected={!inbox && !collectionId && !projectId}
-            busy={busy}
-            select={selectCollection}
-            create={() => openCollection({ kind: 'create' })}
-            retry={reads.refresh}
-          />
-          <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
-        </aside>
+        {!rail && (
+          <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
+            <div className='library-workbench__navigation-heading'>
+              <BookOpen size={18} aria-hidden='true' />
+              <span>{t('conversation.libraryWorkbench.title')}</span>
+            </div>
+            <button
+              type='button'
+              className='library-workbench__button'
+              aria-current={inbox ? 'page' : undefined}
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.set('inbox', '1');
+                setParams(next);
+              }}
+            >
+              {t('conversation.libraryInbox.title')}
+            </button>
+            <LibraryCollectionSidebar
+              view={reads.collections}
+              selectedId={collectionId}
+              allSelected={!inbox && !collectionId && !projectId}
+              busy={busy}
+              select={selectCollection}
+              create={() => openCollection({ kind: 'create' })}
+              retry={reads.refresh}
+            />
+            <LibraryProjectScope projectId={projectId} projects={reads.projects} select={selectProject} />
+          </aside>
+        )}
         {inbox && (
           <LibraryInbox
             key={reads.account}
