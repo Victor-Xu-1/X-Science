@@ -14,13 +14,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 
 if __package__:
-    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, runtime_input_scope, verification_scope
+    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, pr_go_reuse, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
     from .runtime_phase_evidence import RuntimePhaseEvidence
@@ -31,6 +32,7 @@ else:
     import pr_metadata_scope
     import pr_namespace_scope
     import pr_test_partition
+    import pr_go_reuse
     import runtime_input_scope
     import verification_scope
     from runtime_test_inventory import discover, execution_plan
@@ -241,7 +243,23 @@ def affected_test_plan(repo: Path, inventory: dict[str, list[str]], index: int, 
     return test_plan
 
 
+def execute_affected(repo: Path, base: str, head: str, paths: list[str], inventory: dict,
+                     test_plan: dict, log_dir: Path, index: int, count: int,
+                     phases: RuntimePhaseEvidence, github_token: str | None = None) -> int:
+    """Reuse an authenticated PR execution or run the original complete plan."""
+    if pr_go_reuse.try_reuse(repo, base, head, paths, inventory, log_dir, github_token):
+        return 0
+    initial_inputs = pr_go_reuse.prepare_pr_inputs(repo)
+    result = execute(repo, test_plan, log_dir, phases=phases)
+    if result == 0:
+        pr_go_reuse.write_pr_provenance(repo, base, head, log_dir, index, count, initial_inputs)
+    return result
+
+
 def main() -> int:
+    # The token is only for the read-only receipt API. Never let discovery,
+    # Go tests, verification checkers, or fallback subprocesses inherit it.
+    github_token = os.environ.pop("GITHUB_TOKEN", None)
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--base", required=True)
@@ -347,7 +365,8 @@ def main() -> int:
             test_plan = affected_test_plan(repo, inventory, args.shard_index, args.shard_count, binding, profile)
         print(json.dumps({"partition": test_plan["partition"]}, ensure_ascii=False))
         if args.log_dir is not None:
-            return execute(repo, test_plan, args.log_dir, phases=phases)
+            return execute_affected(repo, args.base, args.head, paths, inventory, test_plan,
+                                    log_dir, args.shard_index, args.shard_count, phases, github_token)
         print("No Go package is affected by this change; frontend and policy gates remain active.")
         return 0
     except (OSError, RuntimeError, ValueError) as error:

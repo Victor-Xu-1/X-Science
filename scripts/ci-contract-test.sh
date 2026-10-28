@@ -88,7 +88,7 @@ if grep -Eq '^  schedule[[:space:]]*:' "$WORKFLOW"; then
 fi
 
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_runtime_test_shards
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope scripts.quality.test_pr_go_reuse scripts.quality.test_pr_reuse_github
 
 PR_WORKFLOW="$ROOT_DIR/.github/workflows/quality-pr.yml"
 for fragment in \
