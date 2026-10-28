@@ -205,6 +205,9 @@ func Open(path string) (*Store, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, errors.New("workspace database path is required")
 	}
+	if err := registerLiteratureSearchText(); err != nil {
+		return nil, fmt.Errorf("register workspace literature search: %w", err)
+	}
 	requestedPath := path
 	path, existed, err := prepareWorkspaceDatabasePath(path)
 	if err != nil {
@@ -300,6 +303,9 @@ func OpenExisting(path string) (*Store, error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
 		return nil, errors.New("existing workspace database path is required")
+	}
+	if err := registerLiteratureSearchText(); err != nil {
+		return nil, fmt.Errorf("register workspace literature search: %w", err)
 	}
 	info, err := os.Lstat(path)
 	if err != nil {
