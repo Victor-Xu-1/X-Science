@@ -11,6 +11,7 @@ import { downloadFileFromUrl } from '@/renderer/utils/file/download';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { loadProjectSidebarOrder, saveProjectSidebarOrder } from '@/renderer/services/projectSidebarOrder';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Button, Checkbox, Empty, Message, Spin, Tooltip } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import { Copy, DeleteOne, Download, Drag, EditOne, MoreOne, Plus } from '@icon-park/react';
@@ -57,6 +58,8 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const layout = useLayoutContext();
+  const mobileDrawerClosed = layout?.isMobile === true && layout.siderCollapsed === true;
   const sectionRef = useRef<HTMLElement | null>(null);
   const navigationIntentRef = useRef(0);
   const [projects, setProjects] = useState<XScienceProject[]>([]);
@@ -83,6 +86,10 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const saveVersionRef = useRef(0);
   const projectsRequestVersionRef = useRef(0);
+
+  useEffect(() => {
+    if (mobileDrawerClosed) setMenuProjectId(null);
+  }, [mobileDrawerClosed]);
 
   // Visible reorder handles must read the committed list before input can arrive.
   useLayoutEffect(() => {
@@ -527,7 +534,7 @@ const ProjectHistorySection: React.FC<ProjectHistorySectionProps> = ({
             project={project}
             collapsed={collapsed}
             selected={activeProjectId === project.projectId}
-            menuOpen={menuProjectId === project.projectId}
+            menuOpen={!mobileDrawerClosed && menuProjectId === project.projectId}
             downloading={downloadProjectId === project.projectId}
             batchMode={batchMode}
             checked={selectedProjectIds.has(project.projectId)}

@@ -389,8 +389,8 @@ const Layout: React.FC<{
         position: 'fixed' as const,
         left: 0,
         zIndex: 100,
+        width: siderWidth,
         transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-        transition: 'none',
         pointerEvents: collapsed ? ('none' as const) : ('auto' as const),
       }
     : {
@@ -425,7 +425,8 @@ const Layout: React.FC<{
               collapsed={collapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider x-science-sidebar-shell', {
-                collapsed,
+                collapsed: !isMobile && collapsed,
+                'layout-sider--mobile': isMobile,
                 'layout-sider--dragging': isSiderDragging,
                 'settings-layout-sider': isSettingsRoute,
               })}
@@ -490,7 +491,8 @@ const Layout: React.FC<{
                             cleanupSiderTooltips();
                             if (isMobile) setCollapsed(true);
                           },
-                          collapsed,
+                          // A mobile drawer slides its full contents; only desktop uses compact labels.
+                          collapsed: !isMobile && collapsed,
                         }
                       )
                     : sider}
