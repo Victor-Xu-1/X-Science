@@ -31,22 +31,22 @@ export function LibraryWorkspaceHeader({
           </div>
           {description && <p>{description}</p>}
         </div>
-        <div className='library-workbench__actions'>{actions}</div>
+        <div className='library-workbench__actions'>
+          {actions}
+          <label className='library-workbench__search'>
+            <Search size={15} aria-hidden='true' />
+            <input
+              type='search'
+              value={query}
+              maxLength={512}
+              onChange={(event) => onQueryChange(event.target.value)}
+              aria-label={t('conversation.libraryWorkbench.search')}
+              placeholder={t('conversation.libraryWorkbench.search')}
+            />
+          </label>
+        </div>
       </div>
-      <div className='library-workbench__controls'>
-        <label className='library-workbench__search'>
-          <Search size={15} aria-hidden='true' />
-          <input
-            type='search'
-            value={query}
-            maxLength={512}
-            onChange={(event) => onQueryChange(event.target.value)}
-            aria-label={t('conversation.libraryWorkbench.search')}
-            placeholder={t('conversation.libraryWorkbench.search')}
-          />
-        </label>
-        {filters}
-      </div>
+      {filters && <div className='library-workbench__controls'>{filters}</div>}
     </header>
   );
 }
