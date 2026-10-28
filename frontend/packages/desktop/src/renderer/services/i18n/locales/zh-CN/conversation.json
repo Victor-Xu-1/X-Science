@@ -2328,6 +2328,8 @@
     },
     "loading": "正在加载文献…",
     "loadFailed": "无法加载文献",
+    "refreshing": "正在刷新文献…",
+    "refreshFailed": "刷新失败，正在显示上次加载的文献。",
     "empty": "暂无文献",
     "emptyHint": "保存的文献会显示在这里。",
     "files_one": "{{count}} 个文件",

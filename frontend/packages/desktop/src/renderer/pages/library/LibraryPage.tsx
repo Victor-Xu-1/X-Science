@@ -104,6 +104,7 @@ export default function LibraryPage() {
     blockedByEditor: Boolean(visibleEditor),
   });
   const items = reads.list.value?.items ?? [];
+  const listReady = reads.list.status === 'ready' && !reads.list.refreshing && !reads.list.refreshError;
   const baseBusy =
     mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
   const bulk = useLibraryBulkReadingStatus({
@@ -111,7 +112,7 @@ export default function LibraryPage() {
     scope: { query, collectionId, projectId, readingStatus },
     cursor,
     rows: items,
-    readReady: reads.list.status === 'ready',
+    readReady: listReady,
     blocked: baseBusy || Boolean(visibleEditor),
     controller: mutation.controller,
     view: mutation.view,
@@ -522,7 +523,7 @@ export default function LibraryPage() {
                 bulk.pageChecked &&
                 Boolean(cursor || reads.list.value?.next_cursor)
               }
-              disabled={busy || reads.list.status !== 'ready' || Boolean(visibleEditor)}
+              disabled={busy || !listReady || Boolean(visibleEditor)}
               resolving={bulk.resolving}
               onSelectAllMatching={bulk.selectAllMatching}
               onClear={bulk.clear}
@@ -550,6 +551,8 @@ export default function LibraryPage() {
               <LibraryTable
                 rows={items}
                 readStatus={reads.list.status}
+                refreshing={reads.list.refreshing}
+                refreshError={reads.list.refreshError}
                 selectedId={selectedId}
                 preferences={libraryColumns.preferences}
                 selection={{
@@ -558,14 +561,16 @@ export default function LibraryPage() {
                   pageChecked: bulk.pageChecked,
                   pageMixed: bulk.pageMixed,
                   togglePage: bulk.togglePage,
-                  disabled: busy || reads.list.status !== 'ready' || Boolean(visibleEditor),
+                  disabled: busy || !listReady || Boolean(visibleEditor),
                 }}
                 authors={libraryAuthors}
                 statusCell={(item) => (
                   <LibraryReadingStatus
                     value={literatureItemReadingStatus(item)}
-                    disabled={busy || reads.list.status !== 'ready' || item.deleted}
-                    onChange={(value) => changeReadingStatus(item.id, value)}
+                    disabled={busy || !listReady || item.deleted}
+                    onChange={(value) => {
+                      if (listReady) changeReadingStatus(item.id, value);
+                    }}
                     accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
                   />
                 )}
@@ -619,7 +624,7 @@ export default function LibraryPage() {
                   </button>
                   <button
                     type='button'
-                    disabled={reads.list.status !== 'ready' || !reads.list.value?.next_cursor}
+                    disabled={!listReady || !reads.list.value?.next_cursor}
                     onClick={() => changePage(reads.list.value?.next_cursor)}
                   >
                     {t('conversation.libraryWorkbench.nextPage')}

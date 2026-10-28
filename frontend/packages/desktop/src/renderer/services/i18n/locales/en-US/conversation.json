@@ -2328,6 +2328,8 @@
     },
     "loading": "Loading references…",
     "loadFailed": "Could not load references",
+    "refreshing": "Refreshing references…",
+    "refreshFailed": "Refresh failed. Showing the last loaded references.",
     "empty": "No references yet",
     "emptyHint": "Saved references will appear here.",
     "files_one": "{{count}} file",

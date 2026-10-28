@@ -19,6 +19,8 @@ export type LibraryTableSelection = {
 export type LibraryTableProps = {
   rows: readonly LiteratureItem[];
   readStatus: 'loading' | 'ready' | 'error';
+  refreshing?: boolean;
+  refreshError?: boolean;
   selectedId: string;
   preferences: LibraryColumnPreferences;
   authors: (item: LiteratureItem) => string;
@@ -43,6 +45,8 @@ const widths: Record<LibraryColumnId, number> = {
 export function LibraryTable({
   rows,
   readStatus,
+  refreshing = false,
+  refreshError = false,
   selectedId,
   preferences,
   authors,
@@ -80,6 +84,17 @@ export function LibraryTable({
   };
   return (
     <div className='library-table'>
+      {readStatus === 'ready' && (refreshing || refreshError) && (
+        <div className='library-table__refresh' role={refreshError ? 'alert' : 'status'}>
+          {refreshing && <LoaderCircle size={14} className='library-table__spin' aria-hidden='true' />}
+          <span>{t(`conversation.libraryTable.${refreshError ? 'refreshFailed' : 'refreshing'}`)}</span>
+          {refreshError && (
+            <button type='button' onClick={onRetry}>
+              {t('common.retry')}
+            </button>
+          )}
+        </div>
+      )}
       {readStatus !== 'ready' || !rows.length ? (
         <div
           className='library-table__state'
@@ -112,6 +127,7 @@ export function LibraryTable({
           className='library-table__viewport'
           role='region'
           aria-label={t('conversation.libraryTable.scrollRegion')}
+          aria-busy={refreshing}
           tabIndex={0}
         >
           <table
