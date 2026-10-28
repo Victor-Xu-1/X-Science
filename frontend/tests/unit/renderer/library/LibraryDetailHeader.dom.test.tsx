@@ -186,11 +186,13 @@ describe('Library primary detail header through the real Page consumers', () => 
       data.http.requests.filter((request) => request.method === 'GET' && request.path === '/api/literature/items/a')
         .length;
     const beforeRefresh = detailReads();
-    refresh.focus();
+    // Exercise the existing refresh owner while the modal correctly keeps focus
+    // inside the current draft; the covered background toolbar is not a focus destination.
+    title.focus();
     fireEvent.click(refresh);
     await waitFor(() => expect(detailReads()).toBe(beforeRefresh + 1));
     await waitFor(() => expect(title).toBeEnabled());
-    expect(refresh).toHaveFocus();
+    expect(title).toHaveFocus();
     measureHeader.mockReturnValue(new DOMRect(0, 0, 320, 80));
     fireEvent.click(trigger);
     expect(editor()).toBe(panel);
@@ -229,6 +231,24 @@ describe('Library primary detail header through the real Page consumers', () => 
     expect(pdfAction).toHaveFocus();
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(screen.getByLabelText('Header fixture PDF page')).toHaveTextContent('2');
+  });
+
+  it('does not reclaim focus when the user chooses the header Close control before a saved ACK', async () => {
+    const data = headerHTTP(true);
+    await mountCollections('/library?item=a');
+    await screen.findByRole('heading', { name: name('a') });
+    fireEvent.click(edit());
+    fireEvent.change(within(editor()).getByRole('textbox', { name: 'Title' }), {
+      target: { value: 'Saved without claiming focus' },
+    });
+    fireEvent.click(within(editor()).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(data.writes).toHaveLength(1));
+    const destination = within(header()).getByRole('button', { name: 'Close' });
+    act(() => destination.focus());
+    await act(async () => data.releaseFirst());
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(edit()).toBeEnabled());
+    expect(destination).toHaveFocus();
   });
 
   it.each(['item', 'account'] as const)(

@@ -67,9 +67,10 @@ export function LibraryItemDetails({
   const scope = JSON.stringify([account, item.id]);
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
-  const focusRequest = useRef<{ scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement } | undefined>(
-    undefined
-  );
+  const focusRequest = useRef<
+    | { scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement; eligible?: boolean; parked?: HTMLElement }
+    | undefined
+  >(undefined);
   const current = useCallback(
     () => scopeRef.current === scope && account === getRendererAccountScopeToken(),
     [account, scope]
@@ -98,7 +99,13 @@ export function LibraryItemDetails({
       revealEditor();
     } else if (request.target === 'trigger' && !editBase && !busy) {
       const focused = document.activeElement;
-      if (focused?.isConnected && focused !== document.body && !request.origin?.contains(focused)) {
+      if (
+        !request.eligible ||
+        (focused?.isConnected &&
+          focused !== document.body &&
+          !request.origin?.contains(focused) &&
+          focused !== request.parked)
+      ) {
         focusRequest.current = undefined;
         return;
       }
@@ -124,7 +131,25 @@ export function LibraryItemDetails({
   };
   const closeEditor = useCallback(() => {
     if (!current()) return;
-    focusRequest.current = { scope, target: 'trigger', origin: editorPanel.current ?? undefined };
+    const origin = editorPanel.current ?? undefined;
+    const eligible = Boolean(origin?.contains(document.activeElement));
+    const request = {
+      scope,
+      target: 'trigger' as const,
+      origin,
+      eligible,
+      parked: undefined as HTMLElement | undefined,
+    };
+    // Preserve the qualified return while the disabled trigger awaits readback.
+    // A stable in-dialog anchor prevents the focus lock choosing an unrelated control.
+    if (eligible) {
+      const anchor = editTrigger.current?.disabled ? primaryHeader.current : editTrigger.current;
+      if (anchor) {
+        request.parked = anchor;
+        anchor.focus({ preventScroll: true });
+      }
+    }
+    focusRequest.current = request;
     setEditBase(undefined);
   }, [current, scope]);
   const authors = libraryAuthors(item);
@@ -138,6 +163,7 @@ export function LibraryItemDetails({
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
       <div
         ref={primaryHeader}
+        tabIndex={-1}
         className='library-workbench__detail-main-header'
         role='group'
         aria-label={t('conversation.libraryWorkbench.details')}

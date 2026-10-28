@@ -1,0 +1,38 @@
+.library-workbench__detail-dialog {
+  --reading-bg: var(--workspace-canvas);
+  --reading-surface: var(--workspace-canvas);
+  --reading-border: var(--workspace-border);
+  --reading-text: var(--workspace-text);
+  --reading-secondary: var(--workspace-text-secondary);
+  --reading-muted: var(--workspace-text-tertiary);
+  box-sizing: border-box;
+  max-height: min(840px, calc(100dvh - 32px));
+  padding: 0;
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-lg);
+  color: var(--workspace-text);
+  background: var(--workspace-canvas);
+  box-shadow: var(--workspace-dialog-shadow);
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+}
+.library-workbench__detail-dialog .arco-modal-content {
+  min-width: 0;
+  max-height: min(840px, calc(100dvh - 32px));
+  padding: 0;
+  overflow: auto;
+}
+.library-workbench__detail-dialog .library-workbench__state {
+  padding: var(--ui-space-8) var(--ui-space-7);
+}
+.library-workbench__detail-dialog button {
+  cursor: pointer;
+}
+.library-workbench__detail-dialog button:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
+.library-workbench__detail-dialog :is(button, input, select, textarea):focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}
