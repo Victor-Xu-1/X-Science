@@ -130,6 +130,9 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner.",
+    "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations.",
+    "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance.",
     "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path.",
     "packages/desktop/src/renderer/pages/library/libraryInbox.css": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance.",
     "packages/desktop/src/renderer/pages/library/libraryBibliographicText.ts": "Share the existing stored bibliographic text projection between Library details, table and Inbox cards without duplicating metadata parsers or inventing missing source values.",
