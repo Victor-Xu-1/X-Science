@@ -354,7 +354,7 @@ func validateWorkflow(relative string, root *yaml.Node, state *workflowState) er
 	if mappingValue(root, "env") != nil {
 		return errors.New("actions_environment_override_forbidden")
 	}
-	if !exactRootPermissions(root) {
+	if !exactRootPermissions(root, relative) {
 		return errors.New("actions_root_permissions_invalid")
 	}
 	if _, publishing := state.policy.PackagePublishing[relative]; publishing {
@@ -504,7 +504,7 @@ func validateStep(step *yaml.Node, state *workflowState, bootstrapJob, requireCh
 		(!state.policy.Requirements.UnconditionalTestEvidenceAllowed || requireCheckout || requireGate || !unconditionalTestEvidenceStep(step)) {
 		return errors.New("actions_conditional_forbidden")
 	}
-	if mappingValue(step, "env") != nil && !packageTokenStep(step, state) {
+	if mappingValue(step, "env") != nil && !packageTokenStep(step, state) && !mainReuseTokenStep(step, state) {
 		return errors.New("actions_environment_override_forbidden")
 	}
 	if err := validateContinueOnError(step); err != nil {
@@ -574,14 +574,47 @@ func jobNeeds(job *yaml.Node, required string) bool {
 	return false
 }
 
-func exactRootPermissions(root *yaml.Node) bool {
+func exactRootPermissions(root *yaml.Node, workflow string) bool {
 	permissions := mappingValue(root, "permissions")
-	if permissions == nil || permissions.Kind != yaml.MappingNode || len(permissions.Content) != 2 {
+	if permissions == nil || permissions.Kind != yaml.MappingNode {
 		return false
 	}
-	key, value := permissions.Content[0], permissions.Content[1]
-	return key.Kind == yaml.ScalarNode && key.Tag == "!!str" && key.Value == "contents" &&
-		value.Kind == yaml.ScalarNode && value.Tag == "!!str" && value.Value == "read"
+	allowed := map[string]bool{"contents": true}
+	if workflow == ".github/workflows/quality-main.yml" {
+		allowed["actions"], allowed["checks"], allowed["pull-requests"] = true, true, true
+	}
+	if len(permissions.Content) != len(allowed)*2 {
+		return false
+	}
+	for index := 0; index < len(permissions.Content); index += 2 {
+		key, value := permissions.Content[index], permissions.Content[index+1]
+		if key.Kind != yaml.ScalarNode || key.Tag != "!!str" || !allowed[key.Value] ||
+			value.Kind != yaml.ScalarNode || value.Tag != "!!str" || value.Value != "read" {
+			return false
+		}
+		delete(allowed, key.Value)
+	}
+	return len(allowed) == 0
+}
+
+// Only the existing main Go executor can receive a read-only Actions token.
+// Its exact command prevents passing that token to an unrelated step.
+func mainReuseTokenStep(step *yaml.Node, state *workflowState) bool {
+	if state.currentWorkflow != ".github/workflows/quality-main.yml" || state.currentJob != "main-go-shards" {
+		return false
+	}
+	env, run, name := mappingValue(step, "env"), mappingValue(step, "run"), mappingValue(step, "name")
+	if env == nil || env.Kind != yaml.MappingNode || len(env.Content) != 2 || run == nil || name == nil {
+		return false
+	}
+	token := mappingValue(env, "GITHUB_TOKEN")
+	const command = `PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py \
+  --base '${{ github.event.before }}' --head '${{ github.sha }}' \
+  --shard-index '${{ matrix.index }}' --shard-count '${{ matrix.count }}' \
+  --log-dir "$RUNNER_TEMP/runtime-test-evidence"`
+	return name.Kind == yaml.ScalarNode && name.Tag == "!!str" && name.Value == "Test integrated Go dependency closure" &&
+		run.Kind == yaml.ScalarNode && run.Tag == "!!str" && token != nil && token.Kind == yaml.ScalarNode &&
+		token.Tag == "!!str" && token.Value == "$"+"{{ github.token }}" && strings.TrimSpace(run.Value) == command
 }
 
 func validateContinueOnError(mapping *yaml.Node) error {

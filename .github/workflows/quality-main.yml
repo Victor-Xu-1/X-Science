@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: read
+  pull-requests: read
 
 concurrency:
   group: product-quality-main-${{ github.sha }}
@@ -48,7 +51,7 @@ jobs:
         run: |
           go mod verify
           go mod tidy -diff
-          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_portable_paths scripts.quality.test_module_topology_gate scripts.quality.test_product_identity_gate scripts.quality.test_release_candidate_manifest scripts.quality.test_release_receipt_gate scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_portable_paths scripts.quality.test_module_topology_gate scripts.quality.test_product_identity_gate scripts.quality.test_release_candidate_manifest scripts.quality.test_release_receipt_gate scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope scripts.quality.test_pr_go_reuse scripts.quality.test_pr_reuse_github
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/portable_paths.py --repo .
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/module_topology_gate.py --repo .
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/product_identity_gate.py --repo . --mode candidate
@@ -107,6 +110,8 @@ jobs:
           "$runtime_python" -c 'import anyio, httpx, jsonschema, lxml, mcp, pandas, requests, urllib3; from PIL import Image'
 
       - name: Test integrated Go dependency closure
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py \
             --base '${{ github.event.before }}' --head '${{ github.sha }}' \

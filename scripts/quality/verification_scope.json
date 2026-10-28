@@ -832,6 +832,11 @@
         "scripts/quality/test_verification_scope.py",
         "scripts/quality/pr_fast_scope.py",
         "scripts/quality/test_pr_fast_scope.py",
+        "scripts/quality/pr_go_reuse.py",
+        "scripts/quality/pr_reuse_github.py",
+        "scripts/quality/pr_reuse_inputs.py",
+        "scripts/quality/test_pr_go_reuse.py",
+        "scripts/quality/test_pr_reuse_github.py",
         "scripts/quality/pr_metadata_scope.py",
         "scripts/quality/test_pr_metadata_scope.py",
         "scripts/quality/pr_build_scope.py",
@@ -850,7 +855,7 @@
       ],
       "frontend": false,
       "checks": [
-        ["python3", "-B", "-m", "unittest", "scripts.quality.test_pr_fast_scope", "scripts.quality.test_pr_metadata_scope", "scripts.quality.test_pr_build_scope", "scripts.quality.test_pr_dependency_scope", "scripts.quality.test_pr_namespace_scope", "scripts.quality.test_pr_test_partition", "scripts.quality.test_verification_scope", "scripts.quality.test_runtime_input_scope"]
+        ["python3", "-B", "-m", "unittest", "scripts.quality.test_pr_fast_scope", "scripts.quality.test_pr_metadata_scope", "scripts.quality.test_pr_build_scope", "scripts.quality.test_pr_dependency_scope", "scripts.quality.test_pr_namespace_scope", "scripts.quality.test_pr_test_partition", "scripts.quality.test_verification_scope", "scripts.quality.test_runtime_input_scope", "scripts.quality.test_pr_go_reuse", "scripts.quality.test_pr_reuse_github"]
       ]
     },
     {
