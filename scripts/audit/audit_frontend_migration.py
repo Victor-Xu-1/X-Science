@@ -130,6 +130,9 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path.",
+    "packages/desktop/src/renderer/pages/library/libraryInbox.css": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance.",
+    "packages/desktop/src/renderer/pages/library/libraryBibliographicText.ts": "Share the existing stored bibliographic text projection between Library details, table and Inbox cards without duplicating metadata parsers or inventing missing source values.",
     "packages/desktop/src/common/adapter/literatureCandidates.ts": "Define typed persistent Library Inbox staging, decisions and frozen receipts through the existing authenticated Library mutation owner; adapted with reference to Open Science 40707aa4ae9b without a competing persistence path.",
     "packages/desktop/src/common/adapter/literatureRelated.ts": "Define the closed owner/item/revision-scoped related-literature query and result contract while retaining the existing HTTP and Library authorities; adapted with reference to Open Science 40707aa4ae9b.",
     "packages/desktop/src/common/adapter/literatureLibrary.ts": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner.",
