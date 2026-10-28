@@ -1,6 +1,13 @@
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { LibraryBibliographicFields, LibraryReferenceTypeField } from './LibraryBibliographicFields';
+import {
+  buildLibraryBibliographicEdit,
+  projectLibraryBasic,
+  projectLibraryScalars,
+  type LibraryScalarKey,
+} from './libraryBibliographicDraft';
 
 type SubmittedEdit = { operationId: string; before: LiteratureReceipt | undefined };
 
@@ -23,22 +30,19 @@ export function LibraryItemEditor({
   close: () => void;
 }) {
   const { t } = useTranslation();
-  const initialAuthors =
-    typeof item.metadata.authors === 'string'
-      ? item.metadata.authors
-      : Array.isArray(item.metadata.authors)
-        ? item.metadata.authors.filter((author): author is string => typeof author === 'string').join('; ')
-        : '';
-  const initialYear =
-    typeof item.metadata.year === 'string' || typeof item.metadata.year === 'number' ? String(item.metadata.year) : '';
-  const initialDoi = typeof item.metadata.doi === 'string' ? item.metadata.doi : '';
+  const { authors: initialAuthors, year: initialYear, doi: initialDoi } = projectLibraryBasic(item);
   const [title, setTitle] = useState(item.title);
   const [authors, setAuthors] = useState(initialAuthors);
   const [year, setYear] = useState(initialYear);
   const [doi, setDoi] = useState(initialDoi);
-  const authorsChanged = authors !== initialAuthors;
   const yearChanged = year !== initialYear;
-  const doiChanged = doi !== initialDoi;
+  const [scalars, setScalars] = useState(() => projectLibraryScalars(item.metadata));
+  const [touched, setTouched] = useState<ReadonlySet<LibraryScalarKey>>(() => new Set());
+  const changeScalar = (key: LibraryScalarKey, value: string) => {
+    setScalars((previous) => ({ ...previous, [key]: value }));
+    setTouched((previous) => new Set(previous).add(key));
+  };
+  const scalarProps = { metadata: item.metadata, draft: scalars, disabled: busy || readOnly, change: changeScalar };
   const [confirmRemove, setConfirmRemove] = useState(false);
   const submitted = useRef<SubmittedEdit | undefined>(undefined);
   const finish = useCallback(
@@ -78,6 +82,7 @@ export function LibraryItemEditor({
   const included = Boolean(projectId && item.project_ids.includes(projectId));
   return (
     <section className='pdf-library-editor' aria-label={t('conversation.reading.libraryDetails')}>
+      <LibraryReferenceTypeField {...scalarProps} />
       <label>
         {t('conversation.reading.libraryTitle')}
         <input
@@ -117,41 +122,12 @@ export function LibraryItemEditor({
           onChange={(event) => setDoi(event.target.value)}
         />
       </label>
+      <LibraryBibliographicFields {...scalarProps} />
       <div className='pdf-library-editor__buttons'>
         <button
           type='button'
           disabled={busy || readOnly || !title.trim() || Boolean(yearChanged && year && !/^\d{4}$/.test(year))}
-          onClick={() =>
-            run(
-              authorsChanged || yearChanged || doiChanged
-                ? {
-                    kind: 'edit-metadata',
-                    operation_id: crypto.randomUUID(),
-                    item_id: item.id,
-                    expected_revision: item.metadata_revision,
-                    ...(title.trim() !== item.title ? { title: title.trim() } : {}),
-                    metadata_patch: {
-                      ...(authorsChanged || yearChanged || (doiChanged && doi.trim())
-                        ? {
-                            set: {
-                              ...(authorsChanged ? { authors: authors.trim() } : {}),
-                              ...(yearChanged ? { year: year.trim() } : {}),
-                              ...(doiChanged && doi.trim() ? { doi: doi.trim() } : {}),
-                            },
-                          }
-                        : {}),
-                      ...(doiChanged && !doi.trim() ? { remove: ['doi'] } : {}),
-                    },
-                  }
-                : {
-                    kind: 'edit',
-                    operation_id: crypto.randomUUID(),
-                    item_id: item.id,
-                    expected_revision: item.metadata_revision,
-                    title: title.trim(),
-                  }
-            )
-          }
+          onClick={() => run(buildLibraryBibliographicEdit(item, { title, authors, year, doi }, scalars, touched))}
         >
           {t('common.save')}
         </button>
