@@ -1,9 +1,38 @@
 package workspace
 
 import (
+	"context"
 	"database/sql"
+	"os"
+	"os/exec"
 	"testing"
+	"time"
 )
+
+func TestLiteratureSearchTextRegisteredBeforeFirstConnection(t *testing.T) {
+	const childKey = "X_SCIENCE_LITERATURE_FIRST_CONNECTION_TEST"
+	if os.Getenv(childKey) == "child" {
+		// A fresh test process opens the original driver directly. No Store.Open
+		// or preceding test can initialize its registration as a side effect.
+		database, err := sql.Open(sqliteDriver, ":memory:")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer database.Close()
+		var got string
+		if err := database.QueryRowContext(t.Context(), `SELECT xscience_literature_search_text_v1(?)`, "ΟΣ").Scan(&got); err != nil || got != "ος" {
+			t.Fatalf("first default-driver connection before Store.Open lacks the UDF: %q %v", got, err)
+		}
+		return
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestLiteratureSearchTextRegisteredBeforeFirstConnection$", "-test.count=1")
+	command.Env = append(os.Environ(), childKey+"=child")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("independent first connection: %v\n%s", err, output)
+	}
+}
 
 // Frozen boundary outputs from the reference NFKC/ECMAScript-whitespace/default
 // lowercase expression executed in JavaScript. Finite vectors do not assert

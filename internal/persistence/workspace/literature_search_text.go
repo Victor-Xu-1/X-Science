@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"strings"
-	"sync"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -12,22 +11,25 @@ import (
 	"modernc.org/sqlite"
 )
 
-// Register on the original driver before either Store entry point opens a
-// connection. Its read pool and fresh-schema connections then inherit the same
-// deterministic function. No normalized text or SQL function is stored in DB.
-var registerLiteratureSearchText = sync.OnceValue(func() error {
-	return sqlite.RegisterDeterministicScalarFunction("xscience_literature_search_text_v1", 1,
-		func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
-			if args[0] == nil {
-				return "", nil
-			}
-			value, ok := args[0].(string)
-			if !ok {
-				return nil, errors.New("literature search text must be a string")
-			}
-			return normalizeLiteratureSearchText(value), nil
-		})
-})
+// The original driver's registration must precede its first Open, including
+// other runtime packages' connections before Store.Open. Package initialization
+// performs this once; both Store entry points still return a saved error instead
+// of panicking. No normalized text or SQL function is stored in DB.
+var literatureSearchTextRegistrationError = sqlite.RegisterDeterministicScalarFunction("xscience_literature_search_text_v1", 1,
+	func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
+		if args[0] == nil {
+			return "", nil
+		}
+		value, ok := args[0].(string)
+		if !ok {
+			return nil, errors.New("literature search text must be a string")
+		}
+		return normalizeLiteratureSearchText(value), nil
+	})
+
+func registerLiteratureSearchText() error {
+	return literatureSearchTextRegistrationError
+}
 
 // Match the reference's NFKC, ECMAScript whitespace collapse and default Unicode
 // lowercase semantics. This is transient query text, never a metadata rewrite.
