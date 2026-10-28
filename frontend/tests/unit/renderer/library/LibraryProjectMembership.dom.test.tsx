@@ -52,6 +52,8 @@ describe('Overview project membership through the existing Web owner', () => {
     });
     let rendered = await mountCollections('/library?item=a');
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
+    expect(screen.getAllByRole('heading', { name: 'Projects' })).toHaveLength(1);
+    expect(screen.queryByText('Projects', { selector: 'dt' })).toBeNull();
     expect(screen.queryByRole('region', { name: 'Edit reference' })).toBeNull();
     const search = links().getByRole('searchbox', { name: 'Search projects' });
     const beforeTyping = http.requests.length;
