@@ -64,13 +64,13 @@ export function projectLibraryBasic(item: LiteratureItem): LibraryBasicDraft {
   };
 }
 
-/** Build only intentional field actions; unedited objects/numeric lexemes never enter the payload. */
-export function buildLibraryBibliographicEdit(
+/** Shared semantic delta for saving and dirty-exit protection; no operation is allocated here. */
+export function libraryBibliographicChanges(
   item: LiteratureItem,
   basic: LibraryBasicDraft,
   scalars: LibraryScalarDraft,
   touched: ReadonlySet<LibraryScalarKey>
-): LiteratureCommand {
+): { title?: string; metadata_patch?: LiteratureMetadataPatch } {
   const originalBasic = projectLibraryBasic(item);
   const set: Record<string, string> = {};
   const remove: string[] = [];
@@ -91,13 +91,27 @@ export function buildLibraryBibliographicEdit(
     ...(Object.keys(set).length ? { set } : {}),
     ...(remove.length ? { remove } : {}),
   };
+  return {
+    ...(basic.title.trim() !== item.title ? { title: basic.title.trim() } : {}),
+    ...(Object.keys(patch).length ? { metadata_patch: patch } : {}),
+  };
+}
+
+/** Build only intentional field actions; unedited objects/numeric lexemes never enter the payload. */
+export function buildLibraryBibliographicEdit(
+  item: LiteratureItem,
+  basic: LibraryBasicDraft,
+  scalars: LibraryScalarDraft,
+  touched: ReadonlySet<LibraryScalarKey>
+): LiteratureCommand {
+  const changes = libraryBibliographicChanges(item, basic, scalars, touched);
   const identity = { operation_id: crypto.randomUUID(), item_id: item.id, expected_revision: item.metadata_revision };
-  return Object.keys(patch).length
+  return changes.metadata_patch
     ? {
         kind: 'edit-metadata',
         ...identity,
-        ...(basic.title.trim() !== item.title ? { title: basic.title.trim() } : {}),
-        metadata_patch: patch,
+        ...changes,
+        metadata_patch: changes.metadata_patch,
       }
     : { kind: 'edit', ...identity, title: basic.title.trim() };
 }

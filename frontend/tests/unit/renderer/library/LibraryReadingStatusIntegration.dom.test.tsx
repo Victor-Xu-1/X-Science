@@ -255,9 +255,11 @@ function catalogue(initial = [paper()]) {
     nextStage: (reply: (receipt: Record<string, unknown>) => Response | Promise<Response>) => stageReplies.push(reply),
   };
 }
+let navigateRoute: ReturnType<typeof useNavigate>;
 function RouteControls() {
   const location = useLocation();
   const navigate = useNavigate();
+  navigateRoute = navigate;
   return (
     <>
       <output aria-label='Library location'>{location.search}</output>
@@ -275,8 +277,8 @@ const mount = (initial = '/library?item=paper-a') =>
     </MemoryRouter>,
     'en-US'
   );
-const detail = () => within(detailsAside()).getAllByRole('region', { name: 'Literature details' })[0];
-const detailsAside = () => screen.getByRole('complementary', { name: 'Literature details' });
+const detail = () => within(detailsDialog()).getAllByRole('region', { name: 'Literature details' })[0];
+const detailsDialog = () => screen.getByRole('dialog');
 const list = () => screen.getByRole('region', { name: 'Library papers' });
 const locationParams = () => new URLSearchParams(screen.getByLabelText('Library location').textContent ?? '');
 const statusControl = () => within(detail()).getByRole('combobox', { name: /^Reading status for / });
@@ -439,6 +441,54 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(screen.queryByRole('button', { name: 'Open in Library' })).toBeNull();
   });
 
+  it('parks an opened detail inertly in Inbox without stale dismissal or focus and resumes its original draft and PDF', async () => {
+    const api = catalogue();
+    await mount('/library?inbox=1&item=paper-a');
+    await screen.findByRole('region', { name: 'Inbox' });
+    expect(document.querySelector('.library-workbench__detail-dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
+    await ready();
+    const input = draft('The same parked draft');
+    const pdf = openPreview();
+    const dialog = detailsDialog();
+    act(() => input.focus());
+    const timers = vi.spyOn(globalThis, 'setTimeout');
+    const wrapper = dialog.closest('.arco-modal-wrapper')!;
+    fireEvent.mouseDown(wrapper);
+    fireEvent.click(wrapper);
+    const delayedCancel = [...timers.mock.calls].reverse().find((call) => call[1] === 100)?.[0];
+    expect(delayedCancel).toBeTypeOf('function');
+    fireEvent.keyDown(input, { key: 'Escape' });
+    await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
+    // Simulate an external route transition; never click through the modal overlay.
+    await act(async () => {
+      await navigateRoute('/library?inbox=1&item=paper-a');
+    });
+    const inbox = await screen.findByRole('region', { name: 'Inbox' });
+    const destination = within(inbox).getByRole('button', { name: 'Refresh' });
+    act(() => destination.focus());
+    expect(dialog).toHaveAttribute('aria-hidden', 'true');
+    expect(dialog).toHaveAttribute('inert');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    act(() => (delayedCancel as () => void)());
+    await waitFor(() => expect(wrapper).toHaveStyle({ display: 'none' }));
+    expect(destination).toHaveFocus();
+    expect(locationParams().get('item')).toBe('paper-a');
+    expect(previewLifecycle).toEqual({ mounts: 1, unmounts: 0 });
+    fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
+    await ready();
+    expect(detailsDialog()).toBe(dialog);
+    expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
+    expect(input).toHaveValue('The same parked draft');
+    expect(screen.getByTestId('instrumented-library-pdf')).toBe(pdf);
+    expect(screen.getByLabelText('Instrumented PDF page')).toHaveTextContent('2');
+    act(() => (delayedCancel as () => void)());
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(detailsDialog()).toBe(dialog);
+    expect(api.calls.every((call) => call.method === 'GET')).toBe(true);
+  });
+
   it('preserves the same-revision draft, PDF child and publication evidence after the real status ACK and readback', async () => {
     const api = catalogue();
     const rendered = await mount();
@@ -528,7 +578,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(input).toBeDisabled();
     expect(within(detail()).getByRole('button', { name: 'Save' })).toBeDisabled();
     expect(screen.getByTestId('instrumented-library-pdf')).toBeInTheDocument();
-    fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry' }));
+    fireEvent.click(within(detailsDialog()).getByRole('button', { name: 'Retry' }));
     await savedStatus('read');
     expect(input).toBeEnabled();
     expect(input).toHaveValue('Unsaved local title');
@@ -544,7 +594,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
       expect(screen.queryByTestId('instrumented-library-pdf')).toBeNull();
       expect(screen.queryByRole('heading', { name: 'Retractions and corrections' })).toBeNull();
       if (value === 'reading') {
-        fireEvent.click(within(detailsAside()).getByRole('button', { name: 'Retry' }));
+        fireEvent.click(within(detailsDialog()).getByRole('button', { name: 'Retry' }));
         await ready();
         draft('Second unsaved draft');
         openPreview();

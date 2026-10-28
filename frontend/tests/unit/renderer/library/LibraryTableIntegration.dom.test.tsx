@@ -63,7 +63,7 @@ const tableHeaders = () => {
 };
 const location = () => new URLSearchParams(screen.getByLabelText('Library location').textContent ?? '');
 const detail = () =>
-  within(screen.getByRole('complementary', { name: 'Literature details' })).getAllByRole('region', {
+  within(screen.getByRole('dialog', { name: 'Paper A' })).getAllByRole('region', {
     name: 'Literature details',
   })[0];
 async function openColumns() {
@@ -206,7 +206,7 @@ describe('Library table through the real Page and account setting transport', ()
     fireEvent.click(within(list).getByRole('button', { name: rendered.i18n.t('common.clear') }));
     await within(list).findByRole('button', { name: 'Paper A' });
     expect(Object.fromEntries(location())).toEqual({ project: 'alpha', collection: 'methods' });
-    expect(screen.queryByRole('complementary', { name: 'Literature details' })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'Paper A' })).toBeNull();
     const latest = http.requests
       .filter((request) => new URL(request.path, 'http://localhost').pathname === '/api/literature/items')
       .at(-1)!;

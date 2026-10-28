@@ -2267,7 +2267,11 @@
     "membershipUpdated": "合集成员关系已更新。",
     "collectionDeleted": "合集已删除，文献及附件均已保留。",
     "collectionUpdated": "合集已更新 · {{name}}",
-    "collectionPendingNotice": "变更结果仍待确认。你可以关闭此窗口，再从文献库提示栏重试原请求。"
+    "collectionPendingNotice": "变更结果仍待确认。你可以关闭此窗口，再从文献库提示栏重试原请求。",
+    "discardTitle": "要放弃未保存的更改吗？",
+    "discardDescription": "您对文献的修改尚未保存。",
+    "keepEditing": "继续编辑",
+    "discardChanges": "放弃更改"
   },
   "libraryPublicationCheck": {
     "title": "撤稿与更正",

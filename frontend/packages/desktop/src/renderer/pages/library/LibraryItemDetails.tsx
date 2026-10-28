@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next';
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
-import { LibraryItemEditor } from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
+import {
+  LibraryItemEditor,
+  type RegisterLibraryEditorDraft,
+} from '@/renderer/components/chat/SendBox/reading/LibraryItemEditor';
 import { LibraryRelatedLookup } from '@/renderer/components/chat/SendBox/reading/LibraryRelatedLookup';
 import type { LiteratureDirection } from '@/common/adapter/literatureRelated';
 import type {
@@ -27,6 +30,7 @@ export { libraryAuthors } from './libraryBibliographicText';
 
 export function LibraryItemDetails({
   item,
+  visible = true,
   account,
   collections,
   memberships,
@@ -40,8 +44,11 @@ export function LibraryItemDetails({
   receipt,
   submit,
   close,
+  requestEditorClose,
+  registerDraft,
 }: {
   item: LiteratureItem;
+  visible?: boolean;
   account: string;
   collections: LibraryReadView<LiteratureCollectionPage>;
   memberships: LibraryReadView<LiteratureCollectionMembership | undefined>;
@@ -55,6 +62,8 @@ export function LibraryItemDetails({
   receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   close: () => void;
+  requestEditorClose?: (action: () => void) => void;
+  registerDraft?: RegisterLibraryEditorDraft;
 }) {
   const { t } = useTranslation();
   const [editBase, setEditBase] = useState<LiteratureItem>();
@@ -67,16 +76,19 @@ export function LibraryItemDetails({
   const scope = JSON.stringify([account, item.id]);
   const scopeRef = useRef(scope);
   scopeRef.current = scope;
-  const focusRequest = useRef<{ scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement } | undefined>(
-    undefined
-  );
+  const focusRequest = useRef<
+    | { scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement; eligible?: boolean; parked?: HTMLElement }
+    | undefined
+  >(undefined);
+  const visibility = useRef(visible);
+  visibility.current = visible;
   const current = useCallback(
     () => scopeRef.current === scope && account === getRendererAccountScopeToken(),
     [account, scope]
   );
   const revealEditor = useCallback(() => {
     const panel = editorPanel.current;
-    if (!current() || !panel?.isConnected) return;
+    if (!visibility.current || !current() || !panel?.isConnected) return;
     const input = panel.querySelector<HTMLInputElement>('input:not(:disabled):not([readonly]):not([type="hidden"])');
     const target = input ?? panel;
     const headerHeight = primaryHeader.current?.getBoundingClientRect().height ?? 0;
@@ -89,7 +101,7 @@ export function LibraryItemDetails({
   useEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
-    if (request.scope !== scope || !current()) {
+    if (!visible || request.scope !== scope || !current()) {
       focusRequest.current = undefined;
       return;
     }
@@ -98,7 +110,13 @@ export function LibraryItemDetails({
       revealEditor();
     } else if (request.target === 'trigger' && !editBase && !busy) {
       const focused = document.activeElement;
-      if (focused?.isConnected && focused !== document.body && !request.origin?.contains(focused)) {
+      if (
+        !request.eligible ||
+        (focused?.isConnected &&
+          focused !== document.body &&
+          !request.origin?.contains(focused) &&
+          focused !== request.parked)
+      ) {
         focusRequest.current = undefined;
         return;
       }
@@ -107,7 +125,7 @@ export function LibraryItemDetails({
       focusRequest.current = undefined;
       trigger.focus({ preventScroll: true });
     }
-  }, [busy, current, editBase, revealEditor, scope]);
+  }, [busy, current, editBase, revealEditor, scope, visible]);
   useEffect(
     () => () => {
       focusRequest.current = undefined;
@@ -115,7 +133,7 @@ export function LibraryItemDetails({
     []
   );
   const openEditor = () => {
-    if (busy || !current()) return;
+    if (!visibility.current || busy || !current()) return;
     if (editBase) revealEditor();
     else {
       focusRequest.current = { scope, target: 'editor' };
@@ -124,7 +142,25 @@ export function LibraryItemDetails({
   };
   const closeEditor = useCallback(() => {
     if (!current()) return;
-    focusRequest.current = { scope, target: 'trigger', origin: editorPanel.current ?? undefined };
+    const origin = editorPanel.current ?? undefined;
+    const eligible = Boolean(visibility.current && origin?.contains(document.activeElement));
+    const request = {
+      scope,
+      target: 'trigger' as const,
+      origin,
+      eligible,
+      parked: undefined as HTMLElement | undefined,
+    };
+    // Preserve the qualified return while the disabled trigger awaits readback.
+    // A stable in-dialog anchor prevents the focus lock choosing an unrelated control.
+    if (eligible) {
+      const anchor = editTrigger.current?.disabled ? primaryHeader.current : editTrigger.current;
+      if (anchor) {
+        request.parked = anchor;
+        anchor.focus({ preventScroll: true });
+      }
+    }
+    focusRequest.current = request;
     setEditBase(undefined);
   }, [current, scope]);
   const authors = libraryAuthors(item);
@@ -138,6 +174,7 @@ export function LibraryItemDetails({
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
       <div
         ref={primaryHeader}
+        tabIndex={-1}
         className='library-workbench__detail-main-header'
         role='group'
         aria-label={t('conversation.libraryWorkbench.details')}
@@ -277,6 +314,8 @@ export function LibraryItemDetails({
             receipt={receipt}
             submit={submit}
             close={closeEditor}
+            requestClose={requestEditorClose}
+            registerDraft={registerDraft}
           />
         </div>
       )}

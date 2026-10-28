@@ -231,7 +231,7 @@ const start = () =>
     target: { value: 'read' },
   });
 const detail = () =>
-  within(screen.getByRole('complementary', { name: 'Literature details' })).getAllByRole('region', {
+  within(screen.getByRole('dialog', { name: title(1) })).getAllByRole('region', {
     name: 'Literature details',
   })[0];
 

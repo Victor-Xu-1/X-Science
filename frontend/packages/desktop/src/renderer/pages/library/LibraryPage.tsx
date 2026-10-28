@@ -143,6 +143,7 @@ export default function LibraryPage() {
   const observedReceipt = useRef(mutation.view.receipt);
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
   const listElement = useRef<HTMLElement>(null);
+  const detailFocusReturn = useRef<{ account: string; itemId: string } | undefined>(undefined);
   const selectItem = (id: string) => {
     const next = new URLSearchParams(params);
     if (id) next.set('item', id);
@@ -161,11 +162,21 @@ export default function LibraryPage() {
     setParams(next);
   };
   const closeDetails = () => {
-    const trigger = rowButtons.current.get(selectedId);
-    if (trigger?.isConnected && !trigger.disabled) trigger.focus();
-    else listElement.current?.focus();
+    if (reads.account !== getRendererAccountScopeToken()) return;
+    detailFocusReturn.current = { account: reads.account, itemId: selectedId };
     selectItem('');
   };
+  useLayoutEffect(() => {
+    const request = detailFocusReturn.current;
+    if (!request || selectedId) return;
+    detailFocusReturn.current = undefined;
+    if (request.account !== reads.account || reads.account !== getRendererAccountScopeToken()) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && !active.closest('.library-workbench__detail-dialog')) return;
+    const trigger = rowButtons.current.get(request.itemId);
+    if (trigger?.isConnected && !trigger.disabled) trigger.focus({ preventScroll: true });
+    else listElement.current?.focus({ preventScroll: true });
+  }, [reads.account, selectedId]);
   const changePage = (nextCursor?: string) => {
     const next = new URLSearchParams(params);
     if (nextCursor) next.set('cursor', nextCursor);
@@ -289,6 +300,7 @@ export default function LibraryPage() {
     }).catch((): undefined => undefined);
   };
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
+  const detailOpen = !inbox && Boolean(selectedId);
   const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
   const selectedCollection =
     reads.collections.status === 'ready'
@@ -304,10 +316,21 @@ export default function LibraryPage() {
       ? mutation.view.receipt
       : undefined;
   const publicationNoticeOwned = Boolean(
+    detailOpen &&
     selected &&
     mutation.view.action?.kind === 'check-publication' &&
     mutation.view.action.item_id === selected.id &&
     mutation.view.action.expected_metadata_revision === selected.metadata_revision
+  );
+  const mutationNotice = (
+    <LibraryMutationNotice
+      hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
+      error={mutation.view.error}
+      failed={actionFailed}
+      mutating={mutation.view.mutating}
+      acknowledged={acknowledged}
+      retry={() => void retryMutation()}
+    />
   );
   return (
     <main
@@ -337,14 +360,7 @@ export default function LibraryPage() {
           />,
           rail.host
         )}
-      <LibraryMutationNotice
-        hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
-        error={mutation.view.error}
-        failed={actionFailed}
-        mutating={mutation.view.mutating}
-        acknowledged={acknowledged}
-        retry={() => void retryMutation()}
-      />
+      {!detailOpen && mutationNotice}
       <div className='library-workbench__workspace'>
         {!rail && (
           <aside className='library-workbench__navigation' aria-label={t('conversation.libraryWorkbench.title')}>
@@ -524,7 +540,7 @@ export default function LibraryPage() {
           {collectionId && reads.collections.status === 'ready' && !selectedCollection && (
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>
           )}
-          <div className='library-workbench__panes' data-detail-open={Boolean(selectedId)}>
+          <div className='library-workbench__panes'>
             <section
               ref={listElement}
               tabIndex={-1}
@@ -612,21 +628,23 @@ export default function LibraryPage() {
                 </footer>
               )}
             </section>
-            {selectedId && (
-              <LibraryDetailsPane
-                reads={reads}
-                busy={busy}
-                submit={submit}
-                changeStatus={changeReadingStatus}
-                receipt={
-                  mutation.view.receipt?.schema === 'x-science.literature-receipt.v1'
-                    ? mutation.view.receipt
-                    : undefined
-                }
-                close={closeDetails}
-              />
-            )}
           </div>
+          {selectedId && (
+            <LibraryDetailsPane
+              key={JSON.stringify([reads.account, selectedId])}
+              visible={detailOpen}
+              reads={reads}
+              busy={busy}
+              submit={submit}
+              changeStatus={changeReadingStatus}
+              receipt={
+                mutation.view.receipt?.schema === 'x-science.literature-receipt.v1' ? mutation.view.receipt : undefined
+              }
+              close={closeDetails}
+              pendingOperationId={mutation.view.pending?.operation_id}
+              notice={detailOpen ? mutationNotice : undefined}
+            />
+          )}
           {reads.projects.status === 'error' && (
             <div role='alert' className='library-workbench__notice'>
               <span>{t('conversation.libraryWorkbench.projectsFailed')}</span>
