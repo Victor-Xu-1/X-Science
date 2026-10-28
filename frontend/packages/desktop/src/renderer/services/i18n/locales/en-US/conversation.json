@@ -2239,6 +2239,8 @@
     "newCollection": "New collection",
     "collectionsFailed": "Could not load collections. Your references are still available.",
     "noCollections": "Create a collection to organize your references.",
+    "searchCollections": "Search collections",
+    "noMatchingCollections": "No matching collections",
     "collectionMembership": "Collection membership",
     "membershipsFailed": "Could not read collection membership.",
     "membershipFailed": "Collection membership could not be updated. Resolve any pending Library change before trying again.",
