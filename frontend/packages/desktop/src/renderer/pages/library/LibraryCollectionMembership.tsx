@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type {
@@ -32,6 +33,9 @@ export function LibraryCollectionMembershipPicker({
 }) {
   const { t } = useTranslation();
   const key = JSON.stringify([account, item.id, item.metadata_revision]);
+  const searchScope = JSON.stringify([account, item.id]);
+  const [search, setSearch] = useState({ scope: searchScope, value: '' });
+  if (search.scope !== searchScope) setSearch({ scope: searchScope, value: '' });
   const owner = useRef<{ key: string; active: boolean; pending: object | null }>({ key, active: true, pending: null });
   if (owner.current.key !== key) {
     owner.current.active = false;
@@ -53,6 +57,12 @@ export function LibraryCollectionMembershipPicker({
     collections.status === 'error' ||
     memberships.status === 'error' ||
     (memberships.status === 'ready' && memberships.value?.item_id !== item.id);
+  const entries = collections.value?.collections ?? [];
+  const searchable = entries.length > 5;
+  const normalizedQuery = searchable && search.scope === searchScope ? search.value.trim().toLocaleLowerCase() : '';
+  const visibleRows = libraryCollectionRows(entries).filter(({ collection }) =>
+    collection.name.toLocaleLowerCase().includes(normalizedQuery)
+  );
   const change = async (collectionId: string, included: boolean) => {
     if (!ready || !isLibraryReadFresh(collections) || busy || owner.current.pending) return;
     const token = owner.current;
@@ -100,22 +110,41 @@ export function LibraryCollectionMembershipPicker({
       ) : !collections.value?.collections.length ? (
         <p className='library-workbench__muted'>{t('conversation.libraryWorkbench.noCollections')}</p>
       ) : (
-        <fieldset
-          disabled={busy || !isLibraryReadFresh(collections) || currentStatus?.pending}
-          aria-busy={Boolean(currentStatus?.pending || collections.refreshing)}
-        >
-          <legend className='sr-only'>{t('conversation.libraryWorkbench.collectionMembership')}</legend>
-          {libraryCollectionRows(collections.value.collections).map(({ collection, path }) => (
-            <label key={collection.id}>
+        <>
+          {searchable && (
+            <label className='library-workbench__search library-workbench__membership-search'>
+              <Search size={16} aria-hidden='true' />
               <input
-                type='checkbox'
-                checked={memberships.value!.collection_ids.includes(collection.id)}
-                onChange={(event) => void change(collection.id, event.target.checked)}
+                type='search'
+                aria-label={t('conversation.libraryWorkbench.searchCollections')}
+                placeholder={t('conversation.libraryWorkbench.searchCollections')}
+                autoComplete='off'
+                value={search.scope === searchScope ? search.value : ''}
+                onChange={(event) => setSearch({ scope: searchScope, value: event.currentTarget.value })}
               />
-              <span>{path}</span>
             </label>
-          ))}
-        </fieldset>
+          )}
+          {visibleRows.length ? (
+            <fieldset
+              disabled={busy || !isLibraryReadFresh(collections) || currentStatus?.pending}
+              aria-busy={Boolean(currentStatus?.pending || collections.refreshing)}
+            >
+              <legend className='sr-only'>{t('conversation.libraryWorkbench.collectionMembership')}</legend>
+              {visibleRows.map(({ collection, path }) => (
+                <label key={collection.id}>
+                  <input
+                    type='checkbox'
+                    checked={memberships.value!.collection_ids.includes(collection.id)}
+                    onChange={(event) => void change(collection.id, event.target.checked)}
+                  />
+                  <span>{path}</span>
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <p className='library-workbench__muted'>{t('conversation.libraryWorkbench.noMatchingCollections')}</p>
+          )}
+        </>
       )}
       {currentStatus?.failed && <p role='alert'>{t('conversation.libraryWorkbench.membershipFailed')}</p>}
     </section>

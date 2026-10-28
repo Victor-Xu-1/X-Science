@@ -70,6 +70,12 @@
   font-size: var(--ui-font-meta);
   font-weight: var(--ui-weight-medium);
 }
+.library-workbench__membership .library-workbench__membership-search {
+  min-height: var(--ui-control-md);
+  width: 100%;
+  align-items: center;
+  margin-bottom: var(--ui-space-4);
+}
 .library-workbench__membership fieldset {
   display: grid;
   max-height: 160px;

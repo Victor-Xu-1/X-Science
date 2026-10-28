@@ -2239,6 +2239,8 @@
     "newCollection": "新建合集",
     "collectionsFailed": "无法加载合集，仍可查看已有文献。",
     "noCollections": "创建合集以整理文献。",
+    "searchCollections": "搜索合集",
+    "noMatchingCollections": "没有匹配的合集",
     "collectionMembership": "合集成员关系",
     "membershipsFailed": "无法读取合集成员关系。",
     "membershipFailed": "无法更新合集成员关系，请先处理待确认的文献库变更后再重试。",
