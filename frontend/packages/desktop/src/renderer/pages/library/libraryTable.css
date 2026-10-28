@@ -19,6 +19,30 @@
   border-radius: var(--ui-radius-md);
   background: var(--workspace-canvas);
 }
+.library-table__refresh {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+}
+.library-table__refresh > span {
+  min-width: 0;
+  flex: 1;
+}
+.library-table__refresh > button {
+  min-height: var(--ui-control-md);
+  flex-shrink: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text);
+  background: var(--workspace-subtle);
+  font: inherit;
+  cursor: pointer;
+}
 .library-table table {
   width: 100%;
   border-spacing: 0;

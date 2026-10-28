@@ -132,7 +132,8 @@ export function useLibraryWorkbench(
     account,
     JSON.stringify([account, 'list', query, cursor, collectionId, projectId, readingStatus, revision, dataRevision]),
     listRequest,
-    query ? 200 : 0
+    query ? 200 : 0,
+    JSON.stringify([account, 'list', query, cursor, collectionId, projectId, readingStatus])
   );
   const detail = useLibraryRead(
     account,

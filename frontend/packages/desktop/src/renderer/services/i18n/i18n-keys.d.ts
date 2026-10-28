@@ -1208,6 +1208,8 @@ export type I18nKey =
   | 'conversation.libraryTable.preferenceReadError'
   | 'conversation.libraryTable.preferenceSaving'
   | 'conversation.libraryTable.preferenceWriteError'
+  | 'conversation.libraryTable.refreshFailed'
+  | 'conversation.libraryTable.refreshing'
   | 'conversation.libraryTable.reset'
   | 'conversation.libraryTable.scrollRegion'
   | 'conversation.libraryTable.showColumn'
