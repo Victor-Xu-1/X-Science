@@ -1,0 +1,154 @@
+/* Open Science b6646353 LiteratureInboxList geometry; X-Science theme authority. */
+.library-inbox__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.library-inbox__header h2 {
+  margin: 0;
+  font-size: var(--ui-font-hero);
+  font-weight: var(--ui-weight-semibold);
+  line-height: var(--ui-line-height-hero);
+  letter-spacing: -0.025em;
+}
+.library-inbox__header p {
+  margin: 4px 0 0;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-subtitle);
+  line-height: 20px;
+}
+.library-inbox__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.library-inbox__filter {
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--workspace-text-tertiary);
+  background: transparent;
+  font: inherit;
+}
+.library-inbox__filter:hover,
+.library-inbox__filter[aria-pressed='true'] {
+  color: var(--workspace-text);
+  background: var(--workspace-selected);
+}
+.library-inbox__refresh {
+  margin-inline-start: auto;
+}
+.library-inbox__list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 8px 12px;
+  list-style: none;
+}
+.library-inbox__card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 12px;
+  background: var(--workspace-canvas);
+  transition: box-shadow 150ms ease-out;
+}
+.library-inbox__card:hover {
+  box-shadow: var(--ui-shadow-popover);
+}
+.library-inbox__bibliography {
+  min-width: 0;
+}
+.library-inbox__bibliography h3 {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: var(--ui-font-section);
+  font-weight: var(--ui-weight-semibold);
+  line-height: 24px;
+}
+.library-inbox__authors {
+  margin: 4px 0 0;
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-subtitle);
+  line-height: 20px;
+}
+.library-inbox__source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 2px 0 0;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  line-height: 20px;
+}
+.library-inbox__abstract {
+  display: -webkit-box;
+  margin: 12px 0 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-body);
+  line-height: 20px;
+}
+.library-inbox__decisions {
+  display: grid;
+  gap: 8px;
+}
+.library-inbox__accept {
+  color: var(--workspace-canvas);
+  background: var(--workspace-text);
+  border-color: var(--workspace-text);
+}
+.library-inbox__accept:hover:not(:disabled) {
+  color: var(--workspace-canvas);
+  background: var(--workspace-text-secondary);
+}
+.library-inbox__state {
+  display: flex;
+  min-height: 240px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--workspace-text-tertiary);
+  text-align: center;
+}
+.library-inbox__state p {
+  margin: 0;
+}
+.library-inbox__more,
+.library-inbox__open {
+  align-self: center;
+}
+@container library-content (max-width: 560px) {
+  .library-inbox__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .library-inbox__card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .library-inbox__decisions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-inbox__card {
+    transition: none;
+  }
+}

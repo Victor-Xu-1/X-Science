@@ -49,6 +49,45 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+it('shows candidate bibliography and abstract without exposing a raw provider record as the summary', async () => {
+  mocks.http.mockResolvedValue({
+    schema: 'x-science.literature-candidates.v1',
+    candidates: [
+      {
+        ...candidate,
+        metadata: {
+          authors: ['Ada Example', 'Bo Example'],
+          year: 2024,
+          container_title: 'Synthetic Journal',
+          abstract: '<script>untrusted()</script> A bibliographic fixture.',
+        },
+      },
+    ],
+  });
+  const submit = vi.fn().mockResolvedValue(accepted);
+  await renderWithI18n(
+    <LibraryInbox
+      account={getRendererAccountScopeToken()}
+      busy={false}
+      submit={submit}
+      close={vi.fn()}
+      openItem={vi.fn()}
+    />,
+    'en-US'
+  );
+  expect(await screen.findByRole('heading', { name: candidate.title })).toBeInTheDocument();
+  expect(screen.getByText('Ada Example; Bo Example')).toBeInTheDocument();
+  expect(screen.getByText('2024 · Synthetic Journal')).toBeInTheDocument();
+  expect(screen.getByText('Found via Semantic Scholar')).toBeInTheDocument();
+  expect(screen.getByText('<script>untrusted()</script> A bibliographic fixture.')).toBeInTheDocument();
+  expect(document.querySelector('script')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Add to Library' }));
+  await waitFor(() =>
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'candidate-accept', candidate_id: candidate.id })
+    )
+  );
+});
 it('sends one strict candidate action to its authenticated endpoint', async () => {
   mocks.http.mockResolvedValueOnce(accepted);
   await expect(runLiteratureCandidateCommand(command)).resolves.toEqual(accepted);

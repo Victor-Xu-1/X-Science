@@ -5,6 +5,7 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LibraryColumnId, LibraryColumnPreferences } from '@/common/adapter/libraryColumnPreferences';
 import './libraryTable.css';
 import './librarySelection.css';
+import { libraryMetadataText } from './libraryBibliographicText';
 
 export type LibraryTableSelection = {
   selected: (id: string) => boolean;
@@ -37,8 +38,6 @@ const widths: Record<LibraryColumnId, number> = {
   doi: 220,
   attachments: 88,
 };
-const metadataText = (value: unknown) =>
-  typeof value === 'string' ? value : typeof value === 'number' && Number.isSafeInteger(value) ? String(value) : '';
 
 /** Pure catalogue projection. The caller retains every read, selection and mutation owner. */
 export function LibraryTable({
@@ -72,7 +71,7 @@ export function LibraryTable({
         <span aria-label={t('conversation.libraryTable.noFiles')}>—</span>
       );
     }
-    const value = column === 'authors' ? authors(item) : metadataText(item.metadata[column]);
+    const value = column === 'authors' ? authors(item) : libraryMetadataText(item.metadata[column]);
     return (
       <span className='library-table__text' title={value || undefined}>
         {value || '—'}
