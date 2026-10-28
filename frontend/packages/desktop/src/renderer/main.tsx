@@ -42,7 +42,7 @@ import { installWebChunkRecovery } from '@renderer/services/webChunkRecovery';
 import Router from './components/layout/Router';
 import StorageNamespaceUpgradeNotice from './components/layout/StorageNamespaceUpgradeNotice';
 import HOC from './utils/ui/HOC';
-import { scheduleReactRootCleanup } from './utils/ui/reactRootLifecycle';
+import { installReactRootLifecycle } from './utils/ui/reactRootLifecycle';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/webRuntime';
 
 // Configuration is a stale-while-revalidate input to the renderer, not a boot
@@ -51,7 +51,6 @@ import type { BackendStartupFailureInfo } from '@/common/types/platform/webRunti
 // here preserves the early fetch without hiding the login or application shell
 // behind a network request.
 const disposeWebChunkRecovery = installWebChunkRecovery();
-window.addEventListener('pagehide', disposeWebChunkRecovery, { once: true });
 void bootstrapRendererConfig();
 
 const arcoLocales: Record<string, typeof enUS> = {
@@ -115,22 +114,11 @@ if (backendStartupFailure?.reason === 'x_science_backend_unavailable') {
       <App />
     </AppProviders>
   );
-
-  let cleanedUp = false;
-  const cleanup = () => {
-    if (cleanedUp) return;
-    cleanedUp = true;
-    root.unmount();
-  };
-  window.addEventListener('pagehide', cleanup, { once: true });
-  const hot = (import.meta as ImportMeta & { hot?: { dispose: (callback: () => void) => void } }).hot;
-  hot?.dispose(() => {
-    window.removeEventListener('pagehide', cleanup);
-    window.removeEventListener('pagehide', disposeWebChunkRecovery);
-    disposeWebChunkRecovery();
-    // Vite may dispose this entry while React is in the middle of a commit.
-    // Unmounting synchronously races that commit and can surface a transient
-    // removeChild error overlay during route changes/HMR.
-    scheduleReactRootCleanup(cleanup);
-  });
 }
+
+const lifecycle = installReactRootLifecycle({
+  unmount: () => root.unmount(),
+  disposeResources: disposeWebChunkRecovery,
+});
+const hot = (import.meta as ImportMeta & { hot?: { dispose: (callback: () => void) => void } }).hot;
+hot?.dispose(lifecycle.disposeForHotReload);
