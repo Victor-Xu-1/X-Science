@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1163e8d589f33004ed6d9762da6a0c9decd8ecb0f11d5fc835b635a50e7981f4",
+  "adaptationFingerprintSHA256": "b727b6aed6b0e9b92151d6c533f3b0d452c79033579c77061fa0db5d19031b65",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ece1f45a088a220e120f9d9c9bb9cb01256b43a4baa9ee75e327a293b4323870",
+  "additionFingerprintSHA256": "48b8a8ffe29f71d1fd85b16cf63447c754900b4829b24b63215657f66ed47a45",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "5502e3bf1888b9158aca35ddca920e0e9e6f9d6a85c61dbdf3d7a5c45f36224e",
-      "bytes": 297815,
+      "targetSHA256": "51dd03f757a63e21054cb6000d351c42ac9c3e08233d17a6961916c9de5448cd",
+      "bytes": 297855,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "6eca5e84db6454d8894869c4d93b3de2b726140601d063a055b02dcfe3020647",
-      "bytes": 130827,
+      "targetSHA256": "378a6fa17e760e3ba9e6ee800ffb94739620a4eefe4445f942166a9f7c529664",
+      "bytes": 130853,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "3a5a6d688fb77412acce4ba260de5b14a7c096fb3e2a017030040e0faeddea52",
-      "bytes": 123483,
+      "targetSHA256": "929cc57cdf34125d80126efc7782c54e5b4232b02914b441524184b332112cee",
+      "bytes": 123508,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7681,8 +7681,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureCandidates.ts",
-      "sha256": "d0b478b4dd3fb697403405fd55400c83919a1f440630439d77df566c7163d2cd",
-      "bytes": 6347,
+      "sha256": "17592ab191e9f8a9b6eaeec657d9d141692bd0352ee190152ce274cc7b1ca1b3",
+      "bytes": 6505,
       "reason": "Define typed persistent Library Inbox staging, decisions and frozen receipts through the existing authenticated Library mutation owner; adapted with reference to Open Science 40707aa4ae9b without a competing persistence path."
     },
     {
@@ -9955,8 +9955,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx",
-      "sha256": "bf956be6c0a5f4ec6e2a92b541742345386476ee334f1835711c763b1e5a60bf",
-      "bytes": 10576,
+      "sha256": "e6decc092c67eb319cefa9886ea2a638b149cc38ee1e4bd30ed6129ebf12afbb",
+      "bytes": 10872,
       "reason": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path."
     },
     {
@@ -13975,8 +13975,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryInbox.dom.test.tsx",
-      "sha256": "200ef4971137420058e4ad9d1149295b391131cab02dc13c808dcb1fbfdfb3d8",
-      "bytes": 13420,
+      "sha256": "ce414d1f93fb63658fd22d1c88b7cd054e4050ebe05f70a5a095aa045c240364",
+      "bytes": 18422,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
