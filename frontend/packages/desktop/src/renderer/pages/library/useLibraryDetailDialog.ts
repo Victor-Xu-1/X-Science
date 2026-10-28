@@ -4,14 +4,24 @@ import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccoun
 import { focusableElements } from '@/renderer/utils/focusScope';
 
 /** Local dismissal state only; URL, reads, pending writes and Arco focus lock retain their owners. */
-export function useLibraryDetailDialog(account: string, phase: string, onClose: () => void) {
+export function useLibraryDetailDialog(account: string, phase: string, onClose: () => void, visible = true) {
   const mounted = useRef(true);
+  const visibility = useRef({ visible });
+  if (visibility.current.visible !== visible) visibility.current = { visible };
+  const exposure = visibility.current;
   const nativeSelect = useRef<HTMLSelectElement | null>(null);
   const content = useRef<HTMLDivElement | null>(null);
   const initialized = useRef(false);
   const focus = useCallback(() => {
     const root = content.current?.closest<HTMLElement>('[role="dialog"]');
-    if (!mounted.current || account !== getRendererAccountScopeToken() || !root?.isConnected) return;
+    if (
+      !mounted.current ||
+      !exposure.visible ||
+      visibility.current !== exposure ||
+      account !== getRendererAccountScopeToken() ||
+      !root?.isConnected
+    )
+      return;
     const active = document.activeElement;
     if (root.contains(active)) {
       initialized.current = true;
@@ -25,7 +35,7 @@ export function useLibraryDetailDialog(account: string, phase: string, onClose: 
       });
       initialized.current = root.contains(document.activeElement);
     }
-  }, [account]);
+  }, [account, exposure]);
   useLayoutEffect(focus, [focus, phase]);
   const contentRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -42,8 +52,14 @@ export function useLibraryDetailDialog(account: string, phase: string, onClose: 
     };
   }, []);
   const close = useCallback(() => {
-    if (mounted.current && account === getRendererAccountScopeToken()) onClose();
-  }, [account, onClose]);
+    if (
+      mounted.current &&
+      exposure.visible &&
+      visibility.current === exposure &&
+      account === getRendererAccountScopeToken()
+    )
+      onClose();
+  }, [account, exposure, onClose]);
   const keyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.defaultPrevented || event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
     const target = event.target instanceof Element ? event.target : undefined;

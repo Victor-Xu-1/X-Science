@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import WorkbenchModal from '@/renderer/components/base/WorkbenchModal';
 import type {
@@ -19,7 +19,12 @@ type Exit = {
 };
 
 /** Presentation-only exit intent. Draft and durable mutation ownership remain upstream. */
-export function useLibraryDetailExit(account: string, pendingOperationId: string | undefined, close: () => void) {
+export function useLibraryDetailExit(
+  account: string,
+  pendingOperationId: string | undefined,
+  close: () => void,
+  visible = true
+) {
   const { t } = useTranslation();
   const disposed = useRef(false);
   const draft = useRef<Draft | undefined>(undefined);
@@ -27,11 +32,22 @@ export function useLibraryDetailExit(account: string, pendingOperationId: string
   const returnFocus = useRef<Exit | undefined>(undefined);
   const closeCurrent = useRef(close);
   const pending = useRef(pendingOperationId);
+  const visibility = useRef(visible);
   closeCurrent.current = close;
   pending.current = pendingOperationId;
+  visibility.current = visible;
   const [confirmation, setConfirmation] = useState<{ request: Exit; open: boolean }>();
   const cancelButton = useRef<HTMLButtonElement>(null);
-  const current = useCallback(() => !disposed.current && account === getRendererAccountScopeToken(), [account]);
+  const current = useCallback(
+    () => !disposed.current && visibility.current && account === getRendererAccountScopeToken(),
+    [account]
+  );
+  useLayoutEffect(() => {
+    if (visible) return;
+    activeExit.current = undefined;
+    returnFocus.current = undefined;
+    setConfirmation(undefined);
+  }, [visible]);
   useEffect(() => {
     disposed.current = false;
     return () => {
@@ -118,7 +134,7 @@ export function useLibraryDetailExit(account: string, pendingOperationId: string
     [current]
   );
   const request = confirmation?.request;
-  const dialog = request && (
+  const dialog = visible && request && (
     <WorkbenchModal
       visible={Boolean(confirmation?.open)}
       footer={null}

@@ -30,6 +30,7 @@ export { libraryAuthors } from './libraryBibliographicText';
 
 export function LibraryItemDetails({
   item,
+  visible = true,
   account,
   collections,
   memberships,
@@ -47,6 +48,7 @@ export function LibraryItemDetails({
   registerDraft,
 }: {
   item: LiteratureItem;
+  visible?: boolean;
   account: string;
   collections: LibraryReadView<LiteratureCollectionPage>;
   memberships: LibraryReadView<LiteratureCollectionMembership | undefined>;
@@ -78,13 +80,15 @@ export function LibraryItemDetails({
     | { scope: string; target: 'editor' | 'trigger'; origin?: HTMLElement; eligible?: boolean; parked?: HTMLElement }
     | undefined
   >(undefined);
+  const visibility = useRef(visible);
+  visibility.current = visible;
   const current = useCallback(
     () => scopeRef.current === scope && account === getRendererAccountScopeToken(),
     [account, scope]
   );
   const revealEditor = useCallback(() => {
     const panel = editorPanel.current;
-    if (!current() || !panel?.isConnected) return;
+    if (!visibility.current || !current() || !panel?.isConnected) return;
     const input = panel.querySelector<HTMLInputElement>('input:not(:disabled):not([readonly]):not([type="hidden"])');
     const target = input ?? panel;
     const headerHeight = primaryHeader.current?.getBoundingClientRect().height ?? 0;
@@ -97,7 +101,7 @@ export function LibraryItemDetails({
   useEffect(() => {
     const request = focusRequest.current;
     if (!request) return;
-    if (request.scope !== scope || !current()) {
+    if (!visible || request.scope !== scope || !current()) {
       focusRequest.current = undefined;
       return;
     }
@@ -121,7 +125,7 @@ export function LibraryItemDetails({
       focusRequest.current = undefined;
       trigger.focus({ preventScroll: true });
     }
-  }, [busy, current, editBase, revealEditor, scope]);
+  }, [busy, current, editBase, revealEditor, scope, visible]);
   useEffect(
     () => () => {
       focusRequest.current = undefined;
@@ -129,7 +133,7 @@ export function LibraryItemDetails({
     []
   );
   const openEditor = () => {
-    if (busy || !current()) return;
+    if (!visibility.current || busy || !current()) return;
     if (editBase) revealEditor();
     else {
       focusRequest.current = { scope, target: 'editor' };
@@ -139,7 +143,7 @@ export function LibraryItemDetails({
   const closeEditor = useCallback(() => {
     if (!current()) return;
     const origin = editorPanel.current ?? undefined;
-    const eligible = Boolean(origin?.contains(document.activeElement));
+    const eligible = Boolean(visibility.current && origin?.contains(document.activeElement));
     const request = {
       scope,
       target: 'trigger' as const,

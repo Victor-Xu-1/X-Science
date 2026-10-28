@@ -629,9 +629,10 @@ export default function LibraryPage() {
               )}
             </section>
           </div>
-          {detailOpen && (
+          {selectedId && (
             <LibraryDetailsPane
               key={JSON.stringify([reads.account, selectedId])}
+              visible={detailOpen}
               reads={reads}
               busy={busy}
               submit={submit}
@@ -641,7 +642,7 @@ export default function LibraryPage() {
               }
               close={closeDetails}
               pendingOperationId={mutation.view.pending?.operation_id}
-              notice={mutationNotice}
+              notice={detailOpen ? mutationNotice : undefined}
             />
           )}
           {reads.projects.status === 'error' && (

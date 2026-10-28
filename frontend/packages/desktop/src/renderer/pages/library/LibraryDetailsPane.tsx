@@ -13,6 +13,7 @@ import './libraryDetailDialog.css';
 
 /** Render the existing read owner's states without owning requests or mutations. */
 export function LibraryDetailsPane({
+  visible,
   reads,
   busy,
   submit,
@@ -22,6 +23,7 @@ export function LibraryDetailsPane({
   pendingOperationId,
   notice,
 }: {
+  visible: boolean;
   reads: ReturnType<typeof useLibraryWorkbench>;
   busy: boolean;
   submit: <Command extends LiteratureCommand | LiteratureCollectionCommand>(
@@ -36,21 +38,24 @@ export function LibraryDetailsPane({
   const { t } = useTranslation();
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
   const stale = Boolean(reads.detail.refreshing || reads.detail.refreshError);
-  const exit = useLibraryDetailExit(reads.account, pendingOperationId, close);
-  const dialog = useLibraryDetailDialog(reads.account, reads.detail.status, exit.close);
+  const exit = useLibraryDetailExit(reads.account, pendingOperationId, close, visible);
+  const dialog = useLibraryDetailDialog(reads.account, reads.detail.status, exit.close, visible);
   return (
     <>
       <WorkbenchModal
-        visible
+        visible={visible}
         footer={null}
         closable={!selected}
         focusLock
         autoFocus
         escToExit={false}
-        unmountOnExit
+        // Arco disables this same focus lock while invisible; retaining it keeps the editor subtree intact.
+        unmountOnExit={false}
         onCancel={dialog.close}
         afterOpen={dialog.focus}
         maskStyle={{ backgroundColor: 'transparent' }}
+        mask={visible}
+        wrapStyle={visible ? undefined : { visibility: 'hidden', pointerEvents: 'none' }}
         className='library-workbench__detail-dialog'
         wrapClassName='library-workbench__detail-layer'
         style={{ width: 760, maxWidth: 'calc(100vw - 32px)' }}
@@ -58,6 +63,8 @@ export function LibraryDetailsPane({
           React.isValidElement<React.HTMLAttributes<HTMLDivElement>>(node)
             ? React.cloneElement(node, {
                 'aria-label': selected?.title || t('conversation.libraryWorkbench.details'),
+                'aria-hidden': !visible || undefined,
+                inert: !visible || undefined,
                 ...dialog.events,
               })
             : node
@@ -97,6 +104,7 @@ export function LibraryDetailsPane({
               <LibraryItemDetails
                 key={`${reads.account}:${selected.id}`}
                 item={selected}
+                visible={visible}
                 account={reads.account}
                 collections={reads.collections}
                 memberships={reads.memberships}
