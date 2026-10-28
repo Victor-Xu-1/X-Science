@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "71ccb436815d80d47d720a039fcb2443cb5b246276bef441ec20c2bfa3f05f75",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "7c35769658fbad4285f3aa5db2d70f75459c5db4e5378a19599ac274b01fddc7",
+  "additionFingerprintSHA256": "e4404a72b17f19cb40dc9890837dd197dcb56c0a22c19e5449daafe4b65cb6fb",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1364
+    "addedFiles": 1367
   },
   "adaptations": [
     {
@@ -9936,6 +9936,12 @@
       "reason": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryBibliographicDetails.tsx",
+      "sha256": "b6af2853b3e9e7a8be948966803f537d630429fde14ad5a781bf8aaf4231fda5",
+      "bytes": 2661,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryBulkProgress.tsx",
       "sha256": "198b1d81a9bd3ff5b3ec52069a9db4c786bbd5b030b03c96c264f690f9d6529f",
       "bytes": 3842,
@@ -9979,8 +9985,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryItemDetails.tsx",
-      "sha256": "7c838a5df9af3e597d7611aa93742f8870d34c95f9fd64025f167bf10b02bba3",
-      "bytes": 12607,
+      "sha256": "6eb2347f7e2134ad203b8b48820e7acd28441f4dfaeabc5ec5eccd27297f0349",
+      "bytes": 12747,
       "reason": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated."
     },
     {
@@ -10060,6 +10066,12 @@
       "sha256": "29406f4d6ceb314a13570f007929278d99b7dbe85bd00fab2cef586b3ff3b2da",
       "bytes": 2579,
       "reason": "Derive immutable Library attachment-version targets from typed catalogue metadata without guessing Artifact identities, substituting another version or exposing filesystem paths."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/libraryBibliographicDetails.css",
+      "sha256": "eae569c9ba15354ef131a28a603e3e4149b173b78d39e29ef68e50f561e953b7",
+      "bytes": 1156,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryBibliographicText.ts",
@@ -13983,6 +13995,12 @@
       "path": "tests/unit/renderer/library/LibraryAttachmentPreview.dom.test.tsx",
       "sha256": "3521afbde1aa08b1ae242c6f43fa36c2bf8e89d09d81a2de54e9b2282072affb",
       "bytes": 3706,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryBibliographicDetails.dom.test.tsx",
+      "sha256": "44769d50fb027ce56eeb2b9548674f17390ccaf89670e0196e4c6967917e231c",
+      "bytes": 4807,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
