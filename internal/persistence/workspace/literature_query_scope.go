@@ -31,11 +31,15 @@ func (scope literatureQueryScope) sql() (string, []any) {
 		statement += ` JOIN literature_collection_items m ON m.item_id=i.id`
 	}
 	statement += ` WHERE i.owner_user_id=? AND i.deleted_at IS NULL
- AND (?='' OR instr(lower(i.title),lower(?))>0)
+ AND (?='' OR instr(xscience_literature_search_text_v1(i.title),?)>0
+ OR instr(xscience_literature_search_text_v1(CASE
+ WHEN json_type(i.metadata_json,'$.personal_note')='text'
+ THEN json_extract(i.metadata_json,'$.personal_note') ELSE '' END),?)>0)
  AND (?='' OR EXISTS(SELECT 1 FROM project_literature p JOIN projects project ON project.id=p.project_id
  WHERE p.item_id=i.id AND p.project_id=? AND project.user_id=?))
  AND (?='' OR i.reading_status=?)`
-	args := []any{scope.owner, scope.query, scope.query, scope.project, scope.project, scope.owner, scope.readingStatus, scope.readingStatus}
+	query := normalizeLiteratureSearchText(scope.query)
+	args := []any{scope.owner, query, query, query, scope.project, scope.project, scope.owner, scope.readingStatus, scope.readingStatus}
 	if scope.collection != "" {
 		statement += ` AND m.collection_id=?`
 		args = append(args, scope.collection)
