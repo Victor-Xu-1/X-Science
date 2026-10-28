@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "2f6db8adcdd9a232d1b5aa910763a9438137f63aa5e13382462d60afc682c593",
+  "adaptationFingerprintSHA256": "e44eedcbd3b9f7bc726e8385d901ad6374bd8da8a9d043553e778a1f6f9f1189",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "3c88cf20cfbfb102327e72f98e5c925a6ce7bfb035345bdc7f424bd842ba1727",
+  "additionFingerprintSHA256": "beaf5c67475620cdfc0cc65720839374b58e16a17977deeace613251de18714a",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 267,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "e0a9af8df620dc26043327395fa046d71cb54eb86f246507bd00e228b2887eb2",
+      "targetSHA256": "4775962748bc94037965789a828bb85cbff0b085a2bdbf1704394975c60ad099",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "9aa87abb4dacc7f7ae1cc3656370a7c79e0ae72d9179a1f66788983dfbc442fe",
+      "targetSHA256": "ea15691ffe75188efa4b76eafae81228104da7b79e7edd04dab98da6b54530c2",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1347,8 +1347,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx",
       "sourceSHA256": "3ea1400c80e1d877f49270803b1aa590aa6c248205b365792947cc912f3a55fa",
-      "targetSHA256": "17f22418755c2a0e32657de5b48b3684b70b3e5dff54fa7e611438c103e94182",
-      "bytes": 23009,
+      "targetSHA256": "1cff35f6f4c0b79d41044abfe1a320a9da623cfb8f78f0f017ffb5a8a506e534",
+      "bytes": 22802,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -3340,8 +3340,8 @@
     {
       "path": "packages/desktop/src/renderer/styles/layout.css",
       "sourceSHA256": "7c770e55d7927b0c7c3dddd607cd783fa6b2007eb3828267fe95e04bd19f8f7b",
-      "targetSHA256": "79f9d4327bcd5fe34af3764bffe3bd2e105fb7b9210bbaf3281f38ceec534255",
-      "bytes": 16145,
+      "targetSHA256": "5fb74b6db4b9677cb91e2be78e05b4f61d735c0efcd631a9e25b714ecab27540",
+      "bytes": 17109,
       "reason": "Converge global styles, builtin theme declarations, PWA assets, service-worker behavior, and renderer type declarations on the focused Web product."
     },
     {
@@ -7584,7 +7584,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "f68d0606e582b9d38277d83323287475ae6810e61c2baac330f177bc48d9909e",
+      "sha256": "9c22e0d3bca723d56d6394e3f57290a68b10862af3abf5f5123d9a371d8e59d2",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8034,8 +8034,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/Sider/SiderNav/SiderLibraryEntry.module.css",
-      "sha256": "820af24e381e060bed7893a286dd52e68c8cf2fd41fcf0b2f9b7d2608cfe6470",
-      "bytes": 1092,
+      "sha256": "b8e8f6a7ca7980c0304beb243a4dfccaa0caed53898081c67090df9baed51a97",
+      "bytes": 1236,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11394,8 +11394,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/styles/workspace-theme.css",
-      "sha256": "acfbbff0957e9e0c8a2122f27700cd0585a80a47a6f0150c07fef5054b553fb2",
-      "bytes": 68327,
+      "sha256": "f521803274d77be0cb174dfcdaa703611d08bbed30bca4bf74c1e903b43038d7",
+      "bytes": 68336,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
     },
     {

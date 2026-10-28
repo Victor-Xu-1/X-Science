@@ -1,18 +1,18 @@
 .entry {
   box-sizing: border-box;
   display: flex;
-  min-height: 34px;
+  min-height: var(--ui-control-md);
   align-items: center;
-  gap: 8px;
-  margin: 0 8px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  gap: var(--ui-space-3);
+  margin: var(--ui-space-1) var(--ui-space-3);
+  padding: var(--ui-space-3) 10px;
+  border-radius: var(--ui-radius-sm);
   color: var(--workspace-text);
   font-size: var(--ui-font-subtitle);
-  font-weight: var(--ui-weight-medium);
-  line-height: var(--ui-line-height-subtitle);
+  font-weight: var(--ui-weight-regular);
+  line-height: var(--ui-line-height-body);
   text-decoration: none;
-  transition: background-color 120ms ease;
+  transition: none;
 }
 .entry:hover,
 .entry:active,
@@ -20,7 +20,8 @@
   color: var(--workspace-text);
   text-decoration: none;
 }
-.entry:hover {
+.entry:hover,
+.entry:active {
   background: var(--workspace-hover);
 }
 .entry[aria-current='page'] {
@@ -32,10 +33,15 @@
 }
 .icon {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   place-items: center;
+}
+.icon > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .label {
   overflow: hidden;
