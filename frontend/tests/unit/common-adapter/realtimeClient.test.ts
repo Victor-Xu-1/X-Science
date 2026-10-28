@@ -22,10 +22,10 @@ class FakeTarget {
     this.listeners.get(type)?.delete(listener);
   }
 
-  dispatch(type: string) {
+  dispatch(type: string, event: Event = new Event(type)) {
     for (const listener of this.listeners.get(type) ?? []) {
-      if (typeof listener === 'function') listener(new Event(type));
-      else listener.handleEvent(new Event(type));
+      if (typeof listener === 'function') listener(event);
+      else listener.handleEvent(event);
     }
   }
 
@@ -196,11 +196,83 @@ const assertObserverFailure = (): never => {
   throw new Error('observer failed');
 };
 
+const restoredPage = (persisted = true): Event => {
+  const event = new Event('pageshow');
+  Object.defineProperty(event, 'persisted', { value: persisted });
+  return event;
+};
+
 describe('RealtimeClient', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it.each([
+    ['connected', 2],
+    ['connected', 3],
+    ['handshaking', 2],
+    ['handshaking', 3],
+  ] as const)('recovers a cached %s socket in readyState %i without a close event', async (phase, state) => {
+    const bound = setup();
+    await bound.client.setIdentity('owner-a');
+    const first = bound.sockets[0].socket;
+    connect(first, 5);
+    first.message(durable(6));
+    let stale = first;
+    if (phase === 'handshaking') {
+      first.close();
+      vi.advanceTimersByTime(1_000);
+      stale = bound.sockets[1].socket;
+      stale.open();
+    }
+    const socketCount = bound.sockets.length;
+    stale.readyState = state; // The cached page did not receive a close event.
+    bound.windowTarget.dispatch('pageshow', restoredPage());
+    expect(bound.sockets).toHaveLength(socketCount + 1);
+    expect(stale.listenerCount()).toBe(0);
+    expect(bound.sockets.at(-1)?.url).toContain('after_sequence=6');
+    bound.windowTarget.dispatch('pageshow', restoredPage());
+    expect(bound.sockets).toHaveLength(socketCount + 1);
+    connect(bound.sockets.at(-1)!.socket, 6);
+    bound.sockets.at(-1)!.socket.message(durable(7));
+    expect(bound.messages.filter((message) => message.kind === 'durable')).toHaveLength(2);
+    bound.client.dispose();
+    expect(bound.windowTarget.count()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('probes the same open socket only for persisted pageshow and keeps one heartbeat deadline', async () => {
+    const bound = setup();
+    await bound.client.setIdentity('owner-a');
+    const socket = bound.sockets[0].socket;
+    connect(socket, 5);
+    bound.windowTarget.dispatch('pageshow', restoredPage(false));
+    expect(socket.sent).toEqual([]);
+    bound.windowTarget.dispatch('pageshow', restoredPage());
+    bound.windowTarget.dispatch('pageshow', restoredPage());
+    expect(socket.sent).toEqual(['{"type":"ping"}']);
+    expect(bound.sockets).toHaveLength(1);
+    socket.message({ type: 'pong' });
+    vi.advanceTimersByTime(25_000);
+    expect(socket.sent).toEqual(['{"type":"ping"}', '{"type":"ping"}']);
+    bound.client.dispose();
+    expect(bound.windowTarget.count()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('does not revive an old owner when cached socket retirement reenters disposal', async () => {
+    const bound = setup();
+    await bound.client.setIdentity('owner-a');
+    const socket = bound.sockets[0].socket;
+    connect(socket, 5);
+    socket.readyState = 3;
+    socket.onRemove = () => bound.client.dispose();
+    bound.windowTarget.dispatch('pageshow', restoredPage());
+    expect(bound.sockets).toHaveLength(1);
+    expect(bound.windowTarget.count()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('builds only same-origin WebUI or loopback Electron event endpoints', () => {

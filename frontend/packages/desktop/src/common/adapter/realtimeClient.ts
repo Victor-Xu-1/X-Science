@@ -63,6 +63,8 @@ export type RealtimeClientOptions = {
 };
 const CURSOR_NAMESPACE = 'x-science.realtime.cursor.v1';
 const OPEN = 1;
+const CLOSING = 2;
+const CLOSED = 3;
 const HANDSHAKE_DEADLINE_MS = 15_000;
 const HEARTBEAT_MS = 25_000;
 const PONG_DEADLINE_MS = 10_000;
@@ -162,6 +164,7 @@ export class RealtimeClient {
     };
     options.windowTarget?.addEventListener('online', this.handleWake);
     options.windowTarget?.addEventListener('offline', this.handleOffline);
+    options.windowTarget?.addEventListener('pageshow', this.handlePageShow);
     options.documentTarget?.addEventListener('visibilitychange', this.handleVisibility);
   }
 
@@ -240,6 +243,7 @@ export class RealtimeClient {
     this.stopConnection();
     this.options.windowTarget?.removeEventListener('online', this.handleWake);
     this.options.windowTarget?.removeEventListener('offline', this.handleOffline);
+    this.options.windowTarget?.removeEventListener('pageshow', this.handlePageShow);
     this.options.documentTarget?.removeEventListener('visibilitychange', this.handleVisibility);
     this.setStatus('idle');
   }
@@ -754,6 +758,17 @@ export class RealtimeClient {
       return;
     }
     if (!this.isAttemptCurrent(attempt)) return;
+    const socket = attempt.socket;
+    const readyState = socket?.readyState;
+    if (!this.isAttemptCurrent(attempt)) return;
+    // A cached document may resume before the old socket's close notification.
+    // Retire both connected and handshaking attempts through the same owner;
+    // closing an already-closed socket cannot be relied on to emit another event.
+    if (readyState === CLOSING || readyState === CLOSED) {
+      const retired = this.retireAttempt(attempt);
+      if (retired && this.isBindingCurrent(binding) && !this.attempt) this.connect(binding);
+      return;
+    }
     if (attempt.phase === 'reconnect-wait') {
       const retired = this.retireAttempt(attempt);
       if (retired && this.isBindingCurrent(binding) && !this.attempt) this.connect(binding);
@@ -776,5 +791,9 @@ export class RealtimeClient {
 
   private readonly handleVisibility = (): void => {
     if (this.options.documentTarget?.visibilityState === 'visible') this.handleWake();
+  };
+
+  private readonly handlePageShow = (event: Event): void => {
+    if ((event as PageTransitionEvent).persisted === true) this.handleWake();
   };
 }
