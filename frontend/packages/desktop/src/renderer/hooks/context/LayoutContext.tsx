@@ -5,12 +5,19 @@
  */
 import React from 'react';
 
+export type LibraryRailSlot = {
+  host: HTMLElement | null;
+  owner?: object;
+  register: (owner: object, account: string) => () => void;
+};
+
 export interface LayoutContextValue {
   isMobile: boolean;
   siderCollapsed: boolean;
   setSiderCollapsed: (value: boolean) => void;
   siderId?: string;
   siderToggleId?: string;
+  libraryRail?: LibraryRailSlot;
 }
 
 export const LayoutContext = React.createContext<LayoutContextValue | null>(null);

@@ -39,9 +39,10 @@ export const SiderHistoryLoading: React.FC = () => {
 interface SiderProps {
   onSessionClick?: () => void;
   collapsed?: boolean;
+  libraryNavigation?: React.ReactNode;
 }
 
-const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
+const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false, libraryNavigation }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const location = useLocation();
@@ -181,7 +182,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     <div className='size-full flex flex-col'>
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
-        {isSettings ? (
+        {libraryNavigation !== undefined ? (
+          libraryNavigation
+        ) : isSettings ? (
           <Suspense fallback={<div className='size-full' />}>
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
