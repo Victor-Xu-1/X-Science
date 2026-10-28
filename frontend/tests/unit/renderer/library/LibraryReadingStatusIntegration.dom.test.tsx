@@ -6,7 +6,12 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import type { RelatedRecord, RelatedRequest } from '@/common/adapter/literatureRelated';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
-import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import {
+  getRendererAccountOwnerId,
+  resetRendererAccountScopeForTest,
+  setRendererAccountOwner,
+} from '@/renderer/services/rendererAccountScope';
+import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 import {
   createUploadIntent,
   encodePendingRecord,
@@ -295,8 +300,26 @@ function draft(value = 'Unsaved local title') {
 const changeStatus = (value: LiteratureReadingStatus) => fireEvent.change(statusControl(), { target: { value } });
 async function savedStatus(value: LiteratureReadingStatus) {
   await waitFor(() => {
-    expect(statusControl()).toBeEnabled();
-    expect(statusControl()).toHaveValue(value);
+    // Read the original retained node's state; never act on the hidden overview.
+    const retained = within(detailsDialog()).getByLabelText(/^Reading status for /, { selector: 'select' });
+    expect(retained).toBeEnabled();
+    expect(retained).toHaveValue(value);
+  });
+}
+async function notifyStatus(value: LiteratureReadingStatus) {
+  const itemId = locationParams().get('item');
+  if (!itemId) throw new Error('The fixture must have a current original item');
+  // Controlled other-source input through the exported original owner. Its
+  // real receipt subscription drives Page readback while edit mode is active.
+  await act(async () => {
+    await getLiteratureMutationController(getRendererAccountOwnerId())
+      .submit({
+        kind: 'set-reading-status',
+        operation_id: crypto.randomUUID(),
+        item_ids: [itemId],
+        reading_status: value,
+      })
+      .catch((): undefined => undefined);
   });
 }
 function openPreview() {
@@ -319,11 +342,12 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     vi.unstubAllGlobals();
   });
 
-  it('keeps the live related query and both stage ACKs through the actual page receipt consumer', async () => {
+  it('keeps related stage ACKs in view and retains its query while metadata editing', async () => {
     const api = catalogue();
+    const firstStage = deferred<void>();
+    api.nextStage((receipt) => firstStage.promise.then(() => json(receipt)));
     await mount();
     await ready();
-    const input = draft('Draft while staging');
     fireEvent.click(within(detail()).getByRole('button', { name: 'References' }));
     await screen.findByText('Related two');
     const query = screen.getByRole('region', { name: 'Related literature' });
@@ -331,20 +355,35 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     fireEvent.click(within(query).getByRole('checkbox', { name: 'Select Related two' }));
     const before = [api.count('/api/literature/items/paper-a'), api.count('/api/literature/related', 'POST')];
     fireEvent.click(within(query).getByRole('button', { name: 'Add selected to Inbox (2)' }));
+    await waitFor(() => expect(api.count('/api/literature/candidates', 'POST')).toBe(1));
+    expect(within(detail()).getByRole('button', { name: 'Edit details' })).toBeDisabled();
+    await act(async () => firstStage.resolve());
     await waitFor(() => expect(api.count('/api/literature/candidates', 'POST')).toBe(2));
     await waitFor(() => expect(within(query).getAllByText('Added to Inbox.')).toHaveLength(2));
     expect(screen.getByRole('region', { name: 'Related literature' })).toBe(query);
-    expect(input).toBe(within(detail()).getByRole('textbox', { name: 'Title' }));
-    expect(input).toHaveValue('Draft while staging');
     expect([api.count('/api/literature/items/paper-a'), api.count('/api/literature/related', 'POST')]).toEqual(before);
+    await waitFor(() => expect(within(detail()).getByRole('button', { name: 'Edit details' })).toBeEnabled());
+    const input = draft('Draft after staged ACKs');
+    expect(query).toBeInTheDocument();
+    expect(query).not.toBeVisible();
+    expect(query.closest('.library-workbench__overview')).toHaveAttribute('inert');
+    await notifyStatus('read');
+    await savedStatus('read');
+    expect(input).toBe(within(detail()).getByRole('textbox', { name: 'Title' }));
+    expect(input).toHaveValue('Draft after staged ACKs');
+    expect(query).toBeInTheDocument();
+    expect(within(query).getAllByText('Added to Inbox.')).toHaveLength(2);
+    expect(api.count('/api/literature/items/paper-a')).toBe(before[0] + 1);
+    expect(api.count('/api/literature/related', 'POST')).toBe(before[1]);
+    expect(api.count('/api/literature/candidates', 'POST')).toBe(2);
+    expect(api.count('/api/literature/items/reading-status', 'POST')).toBe(1);
   });
 
-  it('retains the related query ACK and remaining selection after original uncertain stage recovery', async () => {
+  it('retains original uncertain stage recovery in view and isolates a later metadata draft', async () => {
     const api = catalogue();
     api.nextStage(() => Promise.reject(new TypeError('Lost committed stage acknowledgement')));
     await mount();
     await ready();
-    const input = draft('Draft during stage recovery');
     fireEvent.click(within(detail()).getByRole('button', { name: 'References' }));
     await screen.findByText('Related two');
     const query = screen.getByRole('region', { name: 'Related literature' });
@@ -353,6 +392,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     fireEvent.click(within(query).getByRole('button', { name: 'Add selected to Inbox (2)' }));
     const retry = await within(query).findByRole('button', { name: 'Retry' });
     await waitFor(() => expect(retry).toBeEnabled());
+    expect(within(detail()).getByRole('button', { name: 'Edit details' })).toBeDisabled();
     fireEvent.click(retry);
     await within(query).findByText('Added to Inbox.');
     expect(screen.getByRole('region', { name: 'Related literature' })).toBe(query);
@@ -368,8 +408,21 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(api.count('/api/literature/candidates', 'POST')).toBe(3);
     expect(api.count('/api/literature/related', 'POST')).toBe(1);
     expect(api.count('/api/literature/items/paper-a')).toBe(1);
+    await waitFor(() => expect(within(detail()).getByRole('button', { name: 'Edit details' })).toBeEnabled());
+    const input = draft('Draft after stage recovery');
+    expect(query).toBeInTheDocument();
+    expect(query).not.toBeVisible();
+    expect(query.closest('.library-workbench__overview')).toHaveAttribute('hidden');
+    await notifyStatus('reading');
+    await savedStatus('reading');
     expect(input).toBe(within(detail()).getByRole('textbox', { name: 'Title' }));
-    expect(input).toHaveValue('Draft during stage recovery');
+    expect(input).toHaveValue('Draft after stage recovery');
+    expect(query).toBeInTheDocument();
+    expect(within(query).getAllByText('Added to Inbox.')).toHaveLength(2);
+    expect(api.count('/api/literature/candidates', 'POST')).toBe(3);
+    expect(api.count('/api/literature/related', 'POST')).toBe(1);
+    expect(api.count('/api/literature/items/paper-a')).toBe(2);
+    expect(api.count('/api/literature/items/reading-status', 'POST')).toBe(1);
   });
 
   it('retires the old related batch when an actual source revision readback changes', async () => {
@@ -448,8 +501,8 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(document.querySelector('.library-workbench__detail-dialog')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
     await ready();
-    const input = draft('The same parked draft');
     const pdf = openPreview();
+    const input = draft('The same parked draft');
     const dialog = detailsDialog();
     act(() => input.focus());
     const timers = vi.spyOn(globalThis, 'setTimeout');
@@ -477,7 +530,11 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(locationParams().get('item')).toBe('paper-a');
     expect(previewLifecycle).toEqual({ mounts: 1, unmounts: 0 });
     fireEvent.click(screen.getByRole('button', { name: 'Back to Library' }));
-    await ready();
+    await screen.findByRole('region', { name: 'Edit details' });
+    expect(within(detail()).getByRole('heading', { name: 'Edit details' })).toBeVisible();
+    expect(
+      within(detail()).getByText('Synthetic paper-a', { selector: '.library-workbench__detail-subtitle' })
+    ).toBeVisible();
     expect(detailsDialog()).toBe(dialog);
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('The same parked draft');
@@ -503,7 +560,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
       '/api/literature/items/paper-a/collections',
       '/api/literature/items/paper-a/publication-check',
     ].map((path) => api.count(path));
-    changeStatus('read');
+    await notifyStatus('read');
     await savedStatus('read');
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('Unsaved local title');
@@ -532,7 +589,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     await ready();
     const input = draft();
     api.items.set('paper-a', paper('paper-a', { metadata_revision: 2, title: 'External title' }));
-    changeStatus('reading');
+    await notifyStatus('reading');
     await savedStatus('reading');
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('Unsaved local title');
@@ -569,10 +626,10 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     const api = catalogue();
     await mount();
     await ready();
-    const input = draft();
     openPreview();
+    const input = draft();
     api.nextDetail('paper-a', json({ error: 'Unavailable' }, 503));
-    changeStatus('read');
+    await notifyStatus('read');
     await screen.findByText('Details could not be refreshed. Your draft is retained; retry to continue editing.');
     expect(input).toHaveValue('Unsaved local title');
     expect(input).toBeDisabled();
@@ -588,7 +645,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
       ['unread', json(paper('wrong-item'))],
     ] as const) {
       api.nextDetail('paper-a', reply);
-      changeStatus(value);
+      await notifyStatus(value);
       await waitFor(() => expect(screen.queryByRole('region', { name: 'Literature details' })).toBeNull());
       expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
       expect(screen.queryByTestId('instrumented-library-pdf')).toBeNull();
@@ -596,8 +653,8 @@ describe('Reading status through the actual Library Page and mutation owner', ()
       if (value === 'reading') {
         fireEvent.click(within(detailsDialog()).getByRole('button', { name: 'Retry' }));
         await ready();
-        draft('Second unsaved draft');
         openPreview();
+        draft('Second unsaved draft');
       }
     }
   });
@@ -606,10 +663,10 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     const api = catalogue();
     await mount();
     await ready();
-    const input = draft();
     const preview = openPreview();
+    const input = draft();
     api.nextList(json({ error: 'Unavailable' }, 503));
-    changeStatus('read');
+    await notifyStatus('read');
     await savedStatus('read');
     const retry = await within(list()).findByRole('button', { name: 'Retry' });
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
@@ -635,7 +692,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     draft('Account A draft');
     const oldA = deferred<Response>();
     api.nextDetail('paper-a', oldA.promise);
-    changeStatus('read');
+    await notifyStatus('read');
     await waitFor(() => expect(api.count('/api/literature/items/paper-a')).toBe(2));
     fireEvent.click(screen.getByRole('button', { name: 'Go to route B' }));
     await ready('Synthetic paper-b');

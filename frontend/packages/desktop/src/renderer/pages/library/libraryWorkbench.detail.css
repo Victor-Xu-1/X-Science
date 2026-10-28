@@ -29,17 +29,31 @@
 }
 .library-workbench__detail-main-title {
   min-width: 0;
+  flex: 1;
 }
 .library-workbench__detail-main-title h2 {
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  margin: var(--ui-space-2) 0 0;
+  margin: 0;
   overflow-wrap: anywhere;
-  font-size: var(--ui-font-subtitle);
+  font-size: var(--ui-font-lead);
   font-weight: var(--ui-weight-semibold);
-  line-height: var(--ui-line-height-subtitle);
+  line-height: var(--ui-line-height-lead);
+}
+.library-workbench__detail-subtitle {
+  overflow: hidden;
+  margin: var(--ui-space-2) 0 0;
+  color: var(--workspace-text-tertiary);
+  font-size: var(--ui-font-meta);
+  line-height: var(--ui-line-height-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-workbench__overview[hidden],
+.library-workbench__detail-main-actions > button[hidden] {
+  display: none;
 }
 .library-workbench__detail-main-actions {
   display: flex;

@@ -214,7 +214,18 @@ describe('Library detail through its real Page/read/mutation/modal owners', () =
     fireEvent.click(within(dialog).getByRole('button', { name: 'Edit details' }));
     const title = within(dialog).getByRole('textbox', { name: 'Title' });
     fireEvent.change(title, { target: { value: 'Reading is not metadata' } });
-    fireEvent.change(within(dialog).getByRole('combobox', { name: /Reading status/ }), { target: { value: 'read' } });
+    // A current-client/other-source status notification uses the original
+    // account owner; edit mode does not expose the overview's status control.
+    await act(async () => {
+      await getLiteratureMutationController(getRendererAccountOwnerId())
+        .submit({
+          kind: 'set-reading-status',
+          operation_id: crypto.randomUUID(),
+          item_ids: ['a'],
+          reading_status: 'read',
+        })
+        .catch((): undefined => undefined);
+    });
     const retry = await within(dialog).findByRole('button', { name: 'Retry' });
     expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(1);
     fireEvent.click(retry);

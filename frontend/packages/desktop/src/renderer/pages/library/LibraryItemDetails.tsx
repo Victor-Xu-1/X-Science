@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
 import type { XScienceProject } from '@/renderer/services/xScienceGateway';
@@ -21,6 +20,7 @@ import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryAbstract } from './LibraryAbstract';
 import { LibraryBibliographicDetails } from './LibraryBibliographicDetails';
+import { LibraryDetailHeader } from './LibraryDetailHeader';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
@@ -141,29 +141,33 @@ export function LibraryItemDetails({
       setEditBase(item);
     }
   };
-  const closeEditor = useCallback(() => {
-    if (!current()) return;
-    const origin = editorPanel.current ?? undefined;
-    const eligible = Boolean(visibility.current && origin?.contains(document.activeElement));
-    const request = {
-      scope,
-      target: 'trigger' as const,
-      origin,
-      eligible,
-      parked: undefined as HTMLElement | undefined,
-    };
-    // Preserve the qualified return while the disabled trigger awaits readback.
-    // A stable in-dialog anchor prevents the focus lock choosing an unrelated control.
-    if (eligible) {
-      const anchor = editTrigger.current?.disabled ? primaryHeader.current : editTrigger.current;
-      if (anchor) {
-        request.parked = anchor;
-        anchor.focus({ preventScroll: true });
+  const closeEditor = useCallback(
+    (returnToTrigger = false) => {
+      if (!current()) return;
+      const origin = editorPanel.current ?? undefined;
+      const eligible = Boolean(visibility.current && (returnToTrigger || origin?.contains(document.activeElement)));
+      const request = {
+        scope,
+        target: 'trigger' as const,
+        origin,
+        eligible,
+        parked: undefined as HTMLElement | undefined,
+      };
+      // Preserve the qualified return while the disabled trigger awaits readback.
+      // A stable in-dialog anchor prevents the focus lock choosing an unrelated control.
+      if (eligible) {
+        const trigger = editTrigger.current;
+        const anchor = trigger && !trigger.disabled && !trigger.hidden ? trigger : primaryHeader.current;
+        if (anchor) {
+          request.parked = anchor;
+          anchor.focus({ preventScroll: true });
+        }
       }
-    }
-    focusRequest.current = request;
-    setEditBase(undefined);
-  }, [current, scope]);
+      focusRequest.current = request;
+      setEditBase(undefined);
+    },
+    [current, scope]
+  );
   const authors = libraryAuthors(item);
   const year =
     typeof item.metadata.year === 'string' || Number.isSafeInteger(item.metadata.year)
@@ -171,105 +175,96 @@ export function LibraryItemDetails({
       : '';
   const members = projects.filter((project) => item.project_ids.includes(project.projectId));
   const externallyUpdated = editBase !== undefined && editBase.metadata_revision !== item.metadata_revision;
+  const requestBack = () => {
+    const leave = () => closeEditor(true);
+    if (requestEditorClose) requestEditorClose(leave);
+    else leave();
+  };
   return (
     <section className='library-workbench__detail' aria-label={t('conversation.libraryWorkbench.details')}>
-      <div
-        ref={primaryHeader}
-        tabIndex={-1}
-        className='library-workbench__detail-main-header'
-        role='group'
-        aria-label={t('conversation.libraryWorkbench.details')}
-      >
-        <div className='library-workbench__detail-main-title'>
-          <span className='library-workbench__eyebrow'>{t('conversation.libraryWorkbench.details')}</span>
-          <h2 title={item.title}>{item.title}</h2>
-        </div>
-        <div className='library-workbench__detail-main-actions'>
-          <button
-            ref={editTrigger}
-            type='button'
-            className='library-workbench__button'
-            disabled={busy}
-            aria-expanded={Boolean(editBase)}
-            aria-controls={editBase ? editorId : undefined}
-            onClick={openEditor}
-          >
-            <Pencil size={14} aria-hidden='true' />
-            {t('conversation.libraryWorkbench.edit')}
-          </button>
-          <button type='button' className='library-workbench__icon' onClick={close} aria-label={t('common.close')}>
-            <X size={16} aria-hidden='true' />
-          </button>
-        </div>
-      </div>
-      <LibraryReadingStatus
-        value={literatureItemReadingStatus(item)}
-        disabled={busy || item.deleted}
-        onChange={changeReadingStatus}
-        accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+      <LibraryDetailHeader
+        title={item.title}
+        editing={Boolean(editBase)}
+        busy={busy}
+        editorId={editorId}
+        headerRef={primaryHeader}
+        editRef={editTrigger}
+        edit={openEditor}
+        back={requestBack}
+        close={close}
       />
-      <dl className='library-workbench__facts'>
-        <div>
-          <dt>{t('conversation.reading.libraryAuthors')}</dt>
-          <dd>{authors || '—'}</dd>
-        </div>
-        <div>
-          <dt>{t('conversation.reading.libraryYear')}</dt>
-          <dd>{year || '—'}</dd>
-        </div>
-        {typeof item.metadata.doi === 'string' && item.metadata.doi && (
+      <div className='library-workbench__overview' hidden={Boolean(editBase)} inert={Boolean(editBase) || undefined}>
+        <LibraryReadingStatus
+          value={literatureItemReadingStatus(item)}
+          disabled={busy || item.deleted}
+          onChange={changeReadingStatus}
+          accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+        />
+        <dl className='library-workbench__facts'>
           <div>
-            <dt>DOI</dt>
-            <dd>{item.metadata.doi}</dd>
+            <dt>{t('conversation.reading.libraryAuthors')}</dt>
+            <dd>{authors || '—'}</dd>
+          </div>
+          <div>
+            <dt>{t('conversation.reading.libraryYear')}</dt>
+            <dd>{year || '—'}</dd>
+          </div>
+          {typeof item.metadata.doi === 'string' && item.metadata.doi && (
+            <div>
+              <dt>DOI</dt>
+              <dd>{item.metadata.doi}</dd>
+            </div>
+          )}
+          <div>
+            <dt>{t('conversation.libraryWorkbench.projects')}</dt>
+            <dd>
+              {projectStatus === 'loading'
+                ? t('common.loading')
+                : projectStatus === 'error'
+                  ? t('conversation.libraryWorkbench.projectsFailed')
+                  : members.map((project) => project.name).join(', ') || '—'}
+            </dd>
+          </div>
+        </dl>
+        <LibraryAbstract value={item.metadata.abstract} />
+        <LibraryBibliographicDetails metadata={item.metadata} />
+        {!relatedDirection && (
+          <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
+            {(['references', 'citations'] as const).map((direction) => (
+              <button
+                key={direction}
+                type='button'
+                className='library-workbench__button'
+                disabled={stale}
+                onClick={() => setRelatedDirection(direction)}
+              >
+                {t('conversation.reading.related.' + direction)}
+              </button>
+            ))}
           </div>
         )}
-        <div>
-          <dt>{t('conversation.libraryWorkbench.projects')}</dt>
-          <dd>
-            {projectStatus === 'loading'
-              ? t('common.loading')
-              : projectStatus === 'error'
-                ? t('conversation.libraryWorkbench.projectsFailed')
-                : members.map((project) => project.name).join(', ') || '—'}
-          </dd>
-        </div>
-      </dl>
-      <LibraryAbstract value={item.metadata.abstract} />
-      <LibraryBibliographicDetails metadata={item.metadata} />
-      {!relatedDirection && (
-        <div className='pdf-library-editor__buttons' aria-label={t('conversation.reading.related.direction')}>
-          {(['references', 'citations'] as const).map((direction) => (
-            <button
-              key={direction}
-              type='button'
-              className='library-workbench__button'
-              disabled={stale}
-              onClick={() => setRelatedDirection(direction)}
-            >
-              {t('conversation.reading.related.' + direction)}
-            </button>
-          ))}
-        </div>
-      )}
-      {relatedDirection && !stale && (
-        <LibraryRelatedLookup
-          key={JSON.stringify([account, item.id, item.metadata_revision, relatedDirection])}
+        {relatedDirection && (
+          <div hidden={stale} inert={stale || undefined}>
+            <LibraryRelatedLookup
+              key={JSON.stringify([account, item.id, item.metadata_revision, relatedDirection])}
+              item={item}
+              initialDirection={relatedDirection}
+              close={() => setRelatedDirection(null)}
+            />
+          </div>
+        )}
+        <LibraryPublicationCheck account={account} item={item} disabled={stale} />
+        <LibraryCollectionMembershipPicker
           item={item}
-          initialDirection={relatedDirection}
-          close={() => setRelatedDirection(null)}
+          account={account}
+          collections={collections}
+          memberships={memberships}
+          busy={busy}
+          submit={submitCollection}
+          retry={refreshCollections}
         />
-      )}
-      <LibraryPublicationCheck account={account} item={item} disabled={stale} />
-      <LibraryCollectionMembershipPicker
-        item={item}
-        account={account}
-        collections={collections}
-        memberships={memberships}
-        busy={busy}
-        submit={submitCollection}
-        retry={refreshCollections}
-      />
-      <LibraryAttachmentBrowser account={account} item={item} />
+        <LibraryAttachmentBrowser account={account} item={item} />
+      </div>
       {editBase && (
         <div
           ref={editorPanel}

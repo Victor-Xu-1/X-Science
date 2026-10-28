@@ -266,12 +266,14 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await screen.findByRole('checkbox', { name: `Select ${title(1)}` });
     fireEvent.click(screen.getByRole('checkbox', { name: `Select ${title(1)}` }));
     expect(screen.queryByRole('button', { name: 'Select all matching references' })).toBeNull();
-    fireEvent.click(within(detail()).getByRole('button', { name: 'Edit details' }));
-    const draft = within(detail()).getByRole('textbox', { name: 'Title' });
-    fireEvent.change(draft, { target: { value: 'Keep this unsaved title' } });
     fireEvent.click(within(detail()).getByRole('button', { name: /Preview PDF/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Advance bulk fixture PDF' }));
     const pdf = screen.getByTestId('bulk-pdf');
+    fireEvent.click(within(detail()).getByRole('button', { name: 'Edit details' }));
+    const draft = within(detail()).getByRole('textbox', { name: 'Title' });
+    fireEvent.change(draft, { target: { value: 'Keep this unsaved title' } });
+    expect(pdf).not.toBeVisible();
+    expect(pdf.closest('.library-workbench__overview')).toHaveAttribute('inert');
     await selectAll();
     fireEvent.click(screen.getByRole('checkbox', { name: `Select ${title(2)}` }));
     const reads = http.normalReads();

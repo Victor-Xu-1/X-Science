@@ -230,19 +230,25 @@ describe('Saved Library abstracts through the existing Page reader', () => {
     await screen.findByRole('region', { name: 'Abstract' });
     const oldObserver = textObserver(longText);
     metrics(oldObserver);
-    fireEvent.click(within(summary()).getByRole('button', { name: 'Show more' }));
+    const savedSummary = summary();
+    const summaryToggle = within(savedSummary).getByRole('button', { name: 'Show more' });
+    fireEvent.click(summaryToggle);
     fireEvent.click(screen.getByRole('button', { name: /Preview PDF/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Advance abstract fixture PDF' }));
     const pdf = screen.getByTestId('abstract-pdf');
     fireEvent.click(screen.getByRole('button', { name: 'Edit details' }));
     const draft = titleInput();
     fireEvent.change(draft, { target: { value: 'Unsaved title remains' } });
+    expect(savedSummary).not.toBeVisible();
+    expect(savedSummary.closest('.library-workbench__overview')).toHaveAttribute('hidden');
+    expect(savedSummary.closest('.library-workbench__overview')).toHaveAttribute('inert');
     data.fail(true);
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     const error = await screen.findByText(
       'Details could not be refreshed. Your draft is retained; retry to continue editing.'
     );
-    expect(within(summary()).getByRole('button', { name: 'Show less' })).toHaveAttribute('aria-expanded', 'true');
+    expect(summaryToggle).toHaveTextContent('Show less');
+    expect(summaryToggle).toHaveAttribute('aria-expanded', 'true');
     expect(titleInput()).toBe(draft);
     expect(draft).toHaveValue('Unsaved title remains');
     expect(screen.getByTestId('abstract-pdf')).toBe(pdf);
@@ -250,11 +256,12 @@ describe('Saved Library abstracts through the existing Page reader', () => {
     const updated = longText + '\nA newly saved abstract version.';
     data.set(updated);
     fireEvent.click(within(error.closest('[role="alert"]') as HTMLElement).getByRole('button', { name: 'Retry' }));
-    await waitFor(() => expect(summary().querySelector('p')?.textContent).toBe(updated));
+    await waitFor(() => expect(savedSummary.querySelector('p')?.textContent).toBe(updated));
     const nextObserver = textObserver(updated);
     metrics(nextObserver);
     expect(oldObserver.disconnect).toHaveBeenCalledOnce();
-    expect(within(summary()).getByRole('button', { name: 'Show more' })).toHaveAttribute('aria-expanded', 'false');
+    expect(summaryToggle).toHaveTextContent('Show more');
+    expect(summaryToggle).toHaveAttribute('aria-expanded', 'false');
     expect(titleInput()).toBe(draft);
     expect(draft).toHaveValue('Unsaved title remains');
     expect(draft).toBeDisabled();
