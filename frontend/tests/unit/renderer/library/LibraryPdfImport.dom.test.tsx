@@ -36,7 +36,8 @@ vi.mock('@/renderer/hooks/chat/useLiteratureMutation', () => ({
     };
   },
 }));
-vi.mock('@/renderer/pages/library/useLibraryWorkbench', () => ({
+vi.mock('@/renderer/pages/library/useLibraryWorkbench', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/renderer/pages/library/useLibraryWorkbench')>()),
   useLibraryWorkbench: (_query: string, _cursor: string, selectedId: string) => {
     const reads = pageState.reads as ReturnType<typeof useLibraryWorkbench>;
     return {
@@ -320,6 +321,60 @@ describe('Library PDF import UI', () => {
       expect(start).not.toHaveBeenCalled();
       rendered.unmount();
     }
+  });
+
+  it('rail retention: blocks a stale directory for new admission without resetting its draft or frozen upload', async () => {
+    const x = setup(),
+      user = userEvent.setup(),
+      selected = pdf(),
+      held = deferred<LiteratureReceipt>();
+    x.run.mockImplementationOnce(() => held.promise);
+    const start = vi.spyOn(x.controller, 'importPdf'),
+      cancel = vi.spyOn(x.controller, 'cancelPdfImport');
+    const refresh = vi.fn();
+    let model: ReturnType<typeof useLibraryPdfImport> | undefined;
+    const props = {
+      controller: x.controller,
+      refresh,
+      observe: (next: ReturnType<typeof useLibraryPdfImport>) => {
+        model = next;
+      },
+    };
+    const rendered = await renderWithI18n(<Harness {...props} />, 'en-US');
+    const dialog = await choose(user, selected);
+    const target = within(dialog).getByRole('combobox', { name: 'Project' });
+    fireEvent.change(target, { target: { value: 'project' } });
+    for (const projectView of [
+      { ...projects(), refreshing: true },
+      { ...projects(), refreshError: true },
+      projects('error', []),
+    ]) {
+      rendered.rerender(<Harness {...props} projectView={projectView} />);
+      expect(target).toHaveValue('project');
+      expect(target).toBeDisabled();
+      expect(within(dialog).getByRole('button', { name: 'Import' })).toBeDisabled();
+      expect(within(dialog).getByRole('textbox', { name: 'Title' })).toBeEnabled();
+      fireEvent.change(target, { target: { value: '' } });
+      fireEvent.submit(dialog.querySelector('form')!);
+      expect(start).not.toHaveBeenCalled();
+      expect(model!.draft.file).toBe(selected);
+      expect(model!.draft.projectId).toBe('project');
+    }
+    await user.click(within(dialog).getByRole('button', { name: 'Retry projects' }));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    rendered.rerender(<Harness {...props} projectView={projects()} />);
+    fireEvent.submit(dialog.querySelector('form')!);
+    await waitFor(() => expect(x.run).toHaveBeenCalledTimes(1));
+    const pending = x.controller.getSnapshot().pending!;
+    rendered.rerender(<Harness {...props} projectView={{ ...projects(), refreshing: true }} />);
+    rendered.rerender(<Harness {...props} projectView={{ ...projects(), refreshError: true }} />);
+    expect(x.controller.getSnapshot().pending).toBe(pending);
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(x.initialize).toHaveBeenCalledTimes(1);
+    expect(x.upload).toHaveBeenCalledTimes(1);
+    expect(x.run).toHaveBeenCalledTimes(1);
+    expect(cancel).not.toHaveBeenCalled();
+    await act(async () => held.resolve(receipt()));
   });
 
   it('restores frozen pending phases and retries without depending on the current project directory', async () => {

@@ -112,6 +112,9 @@ export function LibraryDetailsPane({
                 refreshCollections={reads.refresh}
                 projects={reads.projects.value ?? []}
                 projectStatus={reads.projects.status}
+                projectRefreshing={reads.projects.refreshing}
+                projectRefreshError={reads.projects.refreshError}
+                retryProjects={reads.refresh}
                 busy={busy || stale}
                 stale={stale}
                 changeReadingStatus={(value) => {

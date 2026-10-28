@@ -38,6 +38,81 @@ describe('Library collections through the original Web request owners', () => {
     vi.unstubAllGlobals();
   });
 
+  it('rail retention: gates dependent directory writes while keeping metadata and close usable', async () => {
+    const folders = [collection('methods', 'Methods')];
+    const projects = [{ project_id: 'alpha', name: 'Alpha project' }];
+    let held = false,
+      collectionRead = deferred<Response>(),
+      projectRead = deferred<Response>();
+    let entry = { ...paper(), project_ids: ['alpha'] };
+    const http = installCollectionHTTP({
+      collections: () => folders,
+      detail: () => entry,
+      intercept: (url, init) => {
+        if (url.pathname === '/api/projects') return held ? projectRead.promise : json({ projects });
+        if (url.pathname === '/api/literature/collections' && held) return collectionRead.promise;
+        if (url.pathname === '/api/literature/items/a' && init.method === 'PATCH') {
+          const command = JSON.parse(String(init.body));
+          entry = { ...entry, title: command.title, metadata_revision: entry.metadata_revision + 1 };
+          return json({ schema: 'x-science.literature-receipt.v1', operation_id: command.operation_id, item: entry });
+        }
+        return undefined;
+      },
+    });
+    await mountCollections();
+    await screen.findByRole('option', { name: 'Alpha project' });
+    await screen.findByRole('button', { name: 'Methods' });
+    fireEvent.click(sidebar().getByRole('button', { name: 'New collection' }));
+    const collectionDialog = screen.getByRole('dialog', { name: 'New collection' });
+    const name = within(collectionDialog).getByRole('textbox', { name: 'Name' });
+    fireEvent.change(name, { target: { value: 'Kept draft' } });
+    held = true;
+    // Exercise the existing read owner's refresh while its modal subscriber stays mounted.
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(within(collectionDialog).getByRole('button', { name: 'Create collection' })).toBeDisabled();
+    expect(within(collectionDialog).getByRole('combobox', { name: 'Parent collection' })).toBeDisabled();
+    expect(name).toBeEnabled();
+    expect(name).toHaveValue('Kept draft');
+    fireEvent.submit(collectionDialog.querySelector('form')!);
+    expect(http.requests.filter((request) => request.method !== 'GET')).toHaveLength(0);
+    fireEvent.click(within(collectionDialog).getByRole('button', { name: 'Cancel' }));
+    held = false;
+    await act(async () => {
+      collectionRead.resolve(json({ schema: 'x-science.literature-collections.v1', collections: folders }));
+      projectRead.resolve(json({ projects }));
+    });
+    await waitFor(() => expect(sidebar().getByRole('button', { name: 'New collection' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Paper A' }));
+    const detail = await screen.findByRole('dialog', { name: 'Paper A' });
+    fireEvent.click(within(detail).getByRole('button', { name: 'Edit details' }));
+    let editor = within(detail).getByRole('region', { name: 'Edit details' });
+    fireEvent.change(within(editor).getByRole('combobox', { name: 'Project membership' }), {
+      target: { value: 'alpha' },
+    });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(within(detail).queryByRole('region', { name: 'Edit details' })).toBeNull());
+    held = true;
+    collectionRead = deferred<Response>();
+    projectRead = deferred<Response>();
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(within(detail).getByRole('checkbox', { name: 'Methods' })).toBeDisabled());
+    fireEvent.click(within(detail).getByRole('checkbox', { name: 'Methods' }));
+    await waitFor(() => expect(within(detail).getByRole('button', { name: 'Edit details' })).toBeEnabled());
+    fireEvent.click(within(detail).getByRole('button', { name: 'Edit details' }));
+    editor = within(detail).getByRole('region', { name: 'Edit details' });
+    expect(within(editor).getByRole('combobox', { name: 'Project membership' })).toHaveValue('alpha');
+    expect(within(editor).getByRole('combobox', { name: 'Project membership' })).toBeDisabled();
+    expect(within(editor).getByRole('button', { name: 'Remove from project' })).toBeDisabled();
+    const title = within(editor).getByRole('textbox', { name: 'Title' });
+    expect(title).toBeEnabled();
+    fireEvent.change(title, { target: { value: 'Metadata remains writable' } });
+    fireEvent.click(within(editor).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(entry.title).toBe('Metadata remains writable'));
+    expect(http.requests.filter((request) => request.method !== 'GET').map((request) => request.method)).toEqual([
+      'PATCH',
+    ]);
+  });
+
   it('creates a child, selects its real filter, and reads membership changes back into the tree and detail', async () => {
     let collections = [collection('methods', 'Methods')];
     let included = false;

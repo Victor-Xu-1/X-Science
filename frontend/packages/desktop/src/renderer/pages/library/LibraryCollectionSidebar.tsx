@@ -3,6 +3,8 @@ import { FolderOpen, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCollection, LiteratureCollectionPage } from '@/common/adapter/literatureCollections';
 import type { LibraryReadView } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 
 /** Display paths follow the decoded owner tree; relation/order authority stays on the server. */
 export function libraryCollectionRows(collections: LiteratureCollection[]) {
@@ -64,22 +66,18 @@ export function LibraryCollectionSidebar({
           type='button'
           className='library-workbench__icon'
           aria-label={t('conversation.libraryWorkbench.newCollection')}
-          disabled={busy || view.status !== 'ready'}
+          disabled={busy || !isLibraryReadFresh(view)}
           onClick={create}
         >
           <Plus size={16} aria-hidden='true' />
         </button>
       </div>
-      {view.status === 'loading' ? (
-        <p role='status'>{t('common.loading')}</p>
-      ) : view.status === 'error' ? (
-        <div role='alert'>
-          <p>{t('conversation.libraryWorkbench.collectionsFailed')}</p>
-          <button type='button' onClick={retry}>
-            {t('common.retry')}
-          </button>
-        </div>
-      ) : view.value?.collections.length ? (
+      <LibraryDirectoryState
+        view={view}
+        errorText={t('conversation.libraryWorkbench.collectionsFailed')}
+        retry={retry}
+      />
+      {view.status !== 'ready' ? null : view.value?.collections.length ? (
         <ul>
           {libraryCollectionRows(view.value.collections).map(({ collection, path }) => (
             <li key={collection.id}>

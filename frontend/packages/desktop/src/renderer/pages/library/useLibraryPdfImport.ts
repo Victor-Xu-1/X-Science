@@ -10,6 +10,7 @@ import type {
 } from '@/renderer/services/runtime/LiteratureMutationController';
 import { isUploadIntent } from '@/renderer/services/runtime/literatureUploadIntent';
 import type { LibraryReadView } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
 
 export type LibraryImportProjects = LibraryReadView<XScienceProject[]>;
 type Draft = { file?: File; title: string; projectId: string };
@@ -116,7 +117,7 @@ export function useLibraryPdfImport({
   const busy = pdfActivity || local.writing;
   const otherPending = Boolean(view.pending && !pending);
   const selectedProject =
-    projects.status === 'ready' && projects.value?.some((project) => project.projectId === local.draft.projectId);
+    isLibraryReadFresh(projects) && projects.value?.some((project) => project.projectId === local.draft.projectId);
   const canImport =
     current() &&
     !scope.call &&
@@ -273,7 +274,8 @@ export function useLibraryPdfImport({
       if (!busy && !pending && current()) update((value) => ({ draft: { ...value.draft, title } }));
     },
     setProject: (projectId: string) => {
-      if (!busy && !pending && current()) update((value) => ({ draft: { ...value.draft, projectId } }));
+      if (!busy && !pending && isLibraryReadFresh(projects) && current())
+        update((value) => ({ draft: { ...value.draft, projectId } }));
     },
     submit: () => {
       if (canImport && local.draft.file)

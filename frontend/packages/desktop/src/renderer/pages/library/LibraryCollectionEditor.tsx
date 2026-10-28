@@ -13,6 +13,8 @@ import {
 } from '@/common/adapter/literatureCollections';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { LibraryReadView } from './useLibraryWorkbench';
+import { isLibraryReadFresh } from './useLibraryWorkbench';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 import { libraryCollectionRows } from './LibraryCollectionSidebar';
 
 export type LibraryCollectionEditorMode =
@@ -120,7 +122,7 @@ export function LibraryCollectionEditor({
     if (receipt?.schema === 'x-science.literature-collection-receipt.v1') accept(receipt);
   }, [receipt, accept]);
   const save = async () => {
-    if (latch.current || busy || fieldsLocked || collections.status !== 'ready' || !current()) return;
+    if (latch.current || busy || fieldsLocked || !isLibraryReadFresh(collections) || !current()) return;
     if (mode.kind === 'delete' ? missing || collisions.length > 0 : !normalized || conflict || parentMissing) return;
     const operationId = crypto.randomUUID();
     const command: LiteratureCollectionCommand =
@@ -306,8 +308,10 @@ export function LibraryCollectionEditor({
                   {t('conversation.libraryWorkbench.collectionParent')}
                   <select
                     value={parentId}
-                    disabled={fieldsLocked || collections.status !== 'ready'}
-                    onChange={(event) => setParentId(event.target.value)}
+                    disabled={fieldsLocked || !isLibraryReadFresh(collections)}
+                    onChange={(event) => {
+                      if (isLibraryReadFresh(collections)) setParentId(event.target.value);
+                    }}
                   >
                     <option value=''>{t('conversation.libraryWorkbench.collectionTopLevel')}</option>
                     {parentMissing && (
@@ -327,20 +331,11 @@ export function LibraryCollectionEditor({
               {error === 'name' && <p role='alert'>{t('conversation.libraryWorkbench.collectionNameConflict')}</p>}
             </>
           )}
-          {collections.status !== 'ready' && (
-            <div role={collections.status === 'error' ? 'alert' : 'status'}>
-              <p>
-                {t(
-                  collections.status === 'error' ? 'conversation.libraryWorkbench.collectionsFailed' : 'common.loading'
-                )}
-              </p>
-              {collections.status === 'error' && (
-                <button type='button' onClick={refresh}>
-                  {t('common.retry')}
-                </button>
-              )}
-            </div>
-          )}
+          <LibraryDirectoryState
+            view={collections}
+            errorText={t('conversation.libraryWorkbench.collectionsFailed')}
+            retry={refresh}
+          />
           {(missing || parentMissing) && <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>}
           {conflict && !missing && mode.kind === 'update' && (
             <div role='alert'>
@@ -376,7 +371,7 @@ export function LibraryCollectionEditor({
                 disabled={
                   busy ||
                   fieldsLocked ||
-                  collections.status !== 'ready' ||
+                  !isLibraryReadFresh(collections) ||
                   (mode.kind === 'delete'
                     ? missing || collisions.length > 0
                     : !normalized || conflict || Boolean(parentMissing))

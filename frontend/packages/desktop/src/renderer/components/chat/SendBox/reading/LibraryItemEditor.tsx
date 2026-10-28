@@ -29,6 +29,7 @@ export type RegisterLibraryEditorDraft = (owner: object) => (state: LibraryEdito
 export function LibraryItemEditor({
   item,
   projectId,
+  membershipDisabled = false,
   busy,
   readOnly = false,
   receipt,
@@ -39,6 +40,7 @@ export function LibraryItemEditor({
 }: {
   item: LiteratureItem;
   projectId?: string;
+  membershipDisabled?: boolean;
   busy: boolean;
   readOnly?: boolean;
   receipt?: LiteratureReceipt;
@@ -120,7 +122,7 @@ export function LibraryItemEditor({
       finish(attempt, attempt.removesItem && receipt.item.deleted);
   }, [receipt, item.id, finish]);
   const run = (command: LiteratureCommand, savesDraft = false): void => {
-    if (busy || readOnly) return;
+    if (busy || readOnly || (command.kind === 'membership' && membershipDisabled)) return;
     const attempt = {
       operationId: command.operation_id,
       before: receipt,
@@ -203,7 +205,7 @@ export function LibraryItemEditor({
         {projectId && (
           <button
             type='button'
-            disabled={busy || readOnly}
+            disabled={busy || readOnly || membershipDisabled}
             onClick={() =>
               run({
                 kind: 'membership',
