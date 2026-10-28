@@ -74,6 +74,8 @@ vi.mock('@/renderer/components/layout/Titlebar', async () => {
       return (
         <button
           type='button'
+          id={layout.siderToggleId}
+          aria-controls={layout.siderId}
           aria-label={layout.siderCollapsed ? 'Open navigation' : 'Close navigation'}
           aria-expanded={!layout.siderCollapsed}
           onClick={() => layout.setSiderCollapsed(!layout.siderCollapsed)}
@@ -182,7 +184,8 @@ describe('mobile sidebar external menu lifetime', () => {
     async ({ kind, triggerName, copyName, copiedId }) => {
       const user = userEvent.setup();
       const { container } = renderLayout();
-      await user.click(screen.getByRole('button', { name: 'Open navigation' }));
+      const toggle = screen.getByRole('button', { name: 'Open navigation' });
+      await user.click(toggle);
       const trigger = await screen.findByRole('button', { name: triggerName });
       trigger.focus();
       await user.keyboard('{ArrowDown}');
@@ -192,18 +195,19 @@ describe('mobile sidebar external menu lifetime', () => {
       const orderWritesBeforeClose = mocks.saveOrder.mock.calls.length;
 
       // Keyboard activation avoids the unrelated outside-mousedown cleanup path.
-      const close = screen.getByRole('button', { name: 'Close navigation' });
+      const close = screen.getByTestId('mobile-sider-close');
       close.focus();
       await user.keyboard(' ');
-      expect(close).toHaveAttribute('aria-expanded', 'false');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
       expect(screen.queryByRole('menu', { name: triggerName, hidden: true })).toBeNull();
       expect(container.querySelector('.layout-sider [inert]')).toHaveAttribute('aria-hidden', 'true');
       expect(screen.getByText('Example project')).toBeInTheDocument();
       expect(screen.getByText('Example conversation')).toBeInTheDocument();
       expect(mocks.copy).not.toHaveBeenCalled();
 
+      toggle.focus();
       await user.keyboard('{Enter}');
-      expect(close).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
       expect(screen.queryByRole('menu', { name: triggerName })).toBeNull();
       const nextTrigger = screen.getByRole('button', { name: triggerName });
       expect(nextTrigger).toHaveAttribute('aria-expanded', 'false');

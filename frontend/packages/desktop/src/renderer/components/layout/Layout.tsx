@@ -10,7 +10,7 @@ import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import ArchiveUndoNotice from '@/renderer/components/chat/ArchiveUndoNotice';
@@ -24,6 +24,7 @@ import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelectio
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
+import { useMobileSiderFocus } from './Sider/useMobileSiderFocus';
 import '@renderer/styles/layout.css';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
@@ -302,6 +303,22 @@ const Layout: React.FC<{
     collapsedRef.current = nextCollapsed;
     setCollapsed(nextCollapsed);
   }, []);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const mobileSiderRef = useRef<HTMLDivElement>(null);
+  const mobileBackdropRef = useRef<HTMLDivElement>(null);
+  const siderId = useId();
+  const siderToggleId = `${siderId}-toggle`;
+  const closeMobileSider = useCallback(() => updateSiderCollapsed(true), [updateSiderCollapsed]);
+  useMobileSiderFocus({
+    mobile: isMobile,
+    open: !collapsed,
+    routeKey: `${location.key}:${location.pathname}:${location.search}:${location.hash}`,
+    root: mobileSiderRef,
+    shell: shellRef,
+    backdrop: mobileBackdropRef,
+    toggleId: siderToggleId,
+    onClose: closeMobileSider,
+  });
 
   const beginSiderResizeDrag = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -399,9 +416,11 @@ const Layout: React.FC<{
       };
 
   return (
-    <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: updateSiderCollapsed }}>
+    <LayoutContext.Provider
+      value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: updateSiderCollapsed, siderId, siderToggleId }}
+    >
       <NavigationHistoryProvider>
-        <div className='app-shell flex flex-col size-full min-h-0'>
+        <div ref={shellRef} className='app-shell flex flex-col size-full min-h-0'>
           <button
             type='button'
             className='workspace-skip-control'
@@ -413,6 +432,7 @@ const Layout: React.FC<{
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
           {isMobile && !collapsed && (
             <div
+              ref={mobileBackdropRef}
               className='workbench-modal-backdrop fixed inset-0 z-90'
               onClick={() => setCollapsed(true)}
               aria-hidden='true'
@@ -433,6 +453,12 @@ const Layout: React.FC<{
               style={siderStyle}
             >
               <div
+                ref={mobileSiderRef}
+                id={siderId}
+                role={isMobile && !collapsed ? 'dialog' : undefined}
+                aria-modal={isMobile && !collapsed ? true : undefined}
+                aria-label={isMobile && !collapsed ? t('common.workspaceNavigation') : undefined}
+                tabIndex={-1}
                 className='flex h-full min-h-0 flex-col'
                 inert={isMobile && collapsed}
                 aria-hidden={isMobile && collapsed ? true : undefined}

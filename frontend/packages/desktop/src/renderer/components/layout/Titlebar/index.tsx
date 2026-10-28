@@ -297,6 +297,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             <button
               type='button'
               data-testid='sider-toggle'
+              id={layout?.siderToggleId}
+              aria-controls={layout?.siderId}
               className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
               onClick={handleSiderToggle}
               aria-label={siderTooltip}

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "926e987dff3eba726b01b016ab37d3c0d98a8ad61192b55560ef0624d867f584",
+  "adaptationFingerprintSHA256": "40f33d000e8e00ca30ded0254d3686be4f03adf149d3637063e3a85982970eb7",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "8a1e4921f17d12abf966e2311400c4c93236ceba110fb6401de4538d90227e0b",
+  "additionFingerprintSHA256": "6e4dd69b8a396840efb5ce540131627ff5c6227315304f30caee871a570f27d1",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 267,
-    "adaptedSourceFiles": 792,
+    "unchangedSourceFiles": 266,
+    "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1336
+    "addedFiles": 1338
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "1bcf216b28fad0c43b84780ca644f3e9c25b7f3e6a5d178c44db41fd0a1c0f18",
+      "targetSHA256": "6fa0ecdc3b376d2d064ef1ceb0437578101f884d48a9c3d3003dc0f353325e59",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "0b046a8bce8234cac149df203785f36c8471ab47160535be2eb5a97a16308f98",
+      "targetSHA256": "942b20ff21a7208a59a997877ce3636c16dd460d4cb7351f54b18deae8b8fe73",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -505,8 +505,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Layout.tsx",
       "sourceSHA256": "35ef10ff243ca3acfdb7b10692ab15cc3f722d85877e6935bff78f06507791b7",
-      "targetSHA256": "ac23c91b35c44401684ef9162bd1a867452c8ad0ab5d97064e9ac9b9d430a9ec",
-      "bytes": 21573,
+      "targetSHA256": "5075af9a3b5102ec32e900064c8b3f31c33cd7a28a07e0f02717303a529110f6",
+      "bytes": 22705,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -554,8 +554,8 @@
     {
       "path": "packages/desktop/src/renderer/components/layout/Titlebar/index.tsx",
       "sourceSHA256": "7b153bd44dd2f1ecd46c3153d779ba5fe40294f9b70db169a5ff5355ad57949e",
-      "targetSHA256": "e8abcba6f08d4d64dc0c6ccada1e541c032716e7d0c21095accf951d0639fd39",
-      "bytes": 16382,
+      "targetSHA256": "f7ff653e5a2605aeecb8ce5796ee0b527ff73eed4cbd179eddb6a3fe872d0e0e",
+      "bytes": 16469,
       "reason": "Adapt the desktop layout, command palette, navigation, and window controls to authenticated responsive browser operation."
     },
     {
@@ -962,6 +962,13 @@
       "sourceSHA256": "484079c85e09b6a2dd59d48c480af08466d463b984cc2bb746e72ff0c7dad75d",
       "targetSHA256": "d2de7f1cac821f00778a0047e38ba8fea01ca7ab676ae4b298ee0f078671e8ab",
       "bytes": 4586,
+      "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/hooks/context/LayoutContext.tsx",
+      "sourceSHA256": "ebf30f1b66a3dd934ad5fda72748194fbddc4ecb2841a12b5c7b791bb6489d08",
+      "targetSHA256": "f1e87202a8c363c08e54a063b44f552f592eca2f320de878e9c2820f9ff33832",
+      "bytes": 488,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
@@ -2889,8 +2896,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/common.json",
       "sourceSHA256": "7f0551495cb6843a54ed515cfc052468d8857ceec658f91f76b852690339c8db",
-      "targetSHA256": "5a7c2d031c71f1459b1b2aed50fa39b289720cd928f2898d36bdc463a59feb5d",
-      "bytes": 5361,
+      "targetSHA256": "6d906d3604be2ddbb96c2797d98ef273fea244de6134b3ff52f2a46ffbac7969",
+      "bytes": 5410,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2980,8 +2987,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/common.json",
       "sourceSHA256": "58e5974433b46b9f30c07816e305c5b4f792710e487ac50ca3d2e1c96f1c197e",
-      "targetSHA256": "d91b4997cec7c1d60cdb24962f17b542e821dd32bf0f8a7fe6ee89fc8364edd5",
-      "bytes": 5293,
+      "targetSHA256": "1135808476850539ba2461b8d629050e1f1de374df3660e819e82230ea40c692",
+      "bytes": 5337,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7584,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "215252ad3292455726eaa36b148f05b2edebcb9ce4cd540616c57948c43cd77e",
+      "sha256": "5592785bdb70eddd2544e9d23c2a69976f41048f692fa976c59a0a0c3f27cf63",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8043,6 +8050,12 @@
       "sha256": "4afe277e9fb72c29084f4d58099fde21e89fcf017686a54b8b869ac0d478221e",
       "bytes": 1085,
       "reason": "Expose the native Library route in the existing sidebar while retaining navigation cleanup, keyboard semantics and account authority; no task admission or catalogue mutation owner is added."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/layout/Sider/useMobileSiderFocus.ts",
+      "sha256": "50ba0aceaa8bf17176461c0dcd82e7e961fd1143007fc28b35210c0f26abc183",
+      "bytes": 11086,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/StorageNamespaceUpgradeNotice.tsx",
@@ -13115,9 +13128,15 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/MobileSiderFocus.dom.test.tsx",
+      "sha256": "a65a1c67861cd2f2ca9ca20d5ef206a6bbe9ac60abf1e0d1e087b390fb253725",
+      "bytes": 18266,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/MobileSiderMenuLifetime.dom.test.tsx",
-      "sha256": "0a0e2b202f7c83c45ba9b7423318303836ee3f46ec8c6ea8022a870557b3b275",
-      "bytes": 9071,
+      "sha256": "75035740b2d4bb217e825e7f00be48169730563d24dd5efe8432a4da92f2059a",
+      "bytes": 9185,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
