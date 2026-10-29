@@ -64,7 +64,11 @@ for (const returnToOriginal of [false, true]) {
       ack.resolve(json(receipt));
       await ack.promise;
     });
-    await waitFor(() => expect(http.requests.filter((request) => request.path.startsWith('/api/literature/items?')).length).toBeGreaterThan(readCount));
+    await waitFor(() =>
+      expect(
+        http.requests.filter((request) => request.path.startsWith('/api/literature/items?')).length
+      ).toBeGreaterThan(readCount)
+    );
     expect(screen.getByLabelText('Library location').textContent).toBe(location);
     expect(search).toHaveFocus();
     expect(http.requests.filter((request) => request.method === 'PATCH')).toHaveLength(1);
@@ -79,12 +83,16 @@ it('keeps a delayed lifecycle ACK from taking focus after selecting another item
   const http = installCollectionHTTP({
     collections: () => [],
     detail: (id) => paper(id, id === 'b' ? 'Paper B' : 'Paper A'),
-    items: () => committed ? [paper('b', 'Paper B')] : [paper(), paper('b', 'Paper B')],
+    items: () => (committed ? [paper('b', 'Paper B')] : [paper(), paper('b', 'Paper B')]),
     intercept: (url, init) => {
       if (url.pathname === '/api/literature/items/a' && init.method === 'PATCH') {
         const command = JSON.parse(String(init.body));
         committed = true;
-        receipt = { schema: 'x-science.literature-receipt.v1', operation_id: command.operation_id, item: { ...paper(), deleted: true, metadata_revision: 2 } };
+        receipt = {
+          schema: 'x-science.literature-receipt.v1',
+          operation_id: command.operation_id,
+          item: { ...paper(), deleted: true, metadata_revision: 2 },
+        };
         started.resolve();
         return ack.promise;
       }
@@ -106,7 +114,11 @@ it('keeps a delayed lifecycle ACK from taking focus after selecting another item
     ack.resolve(json(receipt));
     await ack.promise;
   });
-  await waitFor(() => expect(http.requests.filter((request) => request.path.startsWith('/api/literature/items?')).length).toBeGreaterThan(reads));
+  await waitFor(() =>
+    expect(http.requests.filter((request) => request.path.startsWith('/api/literature/items?')).length).toBeGreaterThan(
+      reads
+    )
+  );
   expect(screen.getByLabelText('Library location').textContent).toBe(location);
   expect(search).toHaveFocus();
 });

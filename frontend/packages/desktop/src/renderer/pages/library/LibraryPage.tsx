@@ -44,6 +44,7 @@ import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
 import { LibraryLifecycleAction } from './LibraryLifecycleAction';
 import { useLibraryLifecycleAction } from './useLibraryLifecycleAction';
+import { useLibraryLifecycleVisit } from './useLibraryLifecycleVisit';
 import { useLibraryNavigation } from './useLibraryNavigation';
 import './libraryWorkbench.css';
 
@@ -76,6 +77,7 @@ export default function LibraryPage() {
   useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
   const libraryColumns = useLibraryColumnPreferences(reads.account, true);
   const mutation = useLiteratureMutation();
+  const lifecycleVisit = useLibraryLifecycleVisit(reads.account, params.toString());
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
     failed: false,
@@ -218,11 +220,13 @@ export default function LibraryPage() {
       mutation.view.action?.kind === 'edit' &&
       mutation.view.action.deleted !== undefined
     ) {
-      const next = new URLSearchParams(params);
-      next.delete('cursor');
-      if (receipt.item.id === selectedId) next.delete('item');
-      if (next.toString() !== params.toString()) setParams(next, { replace: true });
-      listElement.current?.focus();
+      if (lifecycleVisit.owns(receipt.operation_id)) {
+        const next = new URLSearchParams(params);
+        next.delete('cursor');
+        if (receipt.item.id === selectedId) next.delete('item');
+        if (next.toString() !== params.toString()) setParams(next, { replace: true });
+        listElement.current?.focus();
+      }
     } else if (
       receipt.schema === 'x-science.literature-receipt.v1' &&
       (receipt.item.deleted || (projectId && !receipt.item.project_ids.includes(projectId))) &&
@@ -246,6 +250,7 @@ export default function LibraryPage() {
     }
   }, [
     mutation.view.receipt,
+    lifecycleVisit.owns,
     mutation.view.action,
     mutation.view.mutating,
     reads.refresh,
@@ -270,6 +275,7 @@ export default function LibraryPage() {
       const account = reads.account;
       const attempt = { account, failed: false, operationId: command.operation_id };
       setAction(attempt);
+      if (command.kind === 'edit' && command.deleted !== undefined) lifecycleVisit.capture(command.operation_id);
       try {
         return await mutation.controller.submit(command);
       } catch (error) {
@@ -282,7 +288,7 @@ export default function LibraryPage() {
         throw error;
       }
     },
-    [mutation.controller, reads.account]
+    [mutation.controller, reads.account, lifecycleVisit.capture]
   );
   const retryPendingMutation = useCallback(async () => {
     const account = reads.account;
