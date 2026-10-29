@@ -29,6 +29,7 @@ export type LibraryTableProps = {
   authors: (item: LiteratureItem) => string;
   statusCell: (item: LiteratureItem) => React.ReactNode;
   noteCell?: (item: LiteratureItem) => React.ReactNode;
+  actionsCell?: (item: LiteratureItem) => React.ReactNode;
   open: (item: LiteratureItem) => void;
   registerTitleButton: (itemId: string, element: HTMLButtonElement | null) => void;
   onRetry: () => void;
@@ -57,6 +58,7 @@ export function LibraryTable({
   authors,
   statusCell,
   noteCell,
+  actionsCell,
   open,
   registerTitleButton,
   onRetry,
@@ -139,7 +141,13 @@ export function LibraryTable({
         >
           <table
             aria-label={t('conversation.libraryTable.title')}
-            style={{ minWidth: 280 + (selection ? 40 : 0) + columns.reduce((sum, column) => sum + widths[column], 0) }}
+            style={{
+              minWidth:
+                280 +
+                (selection ? 40 : 0) +
+                (actionsCell ? 48 : 0) +
+                columns.reduce((sum, column) => sum + widths[column], 0),
+            }}
           >
             <colgroup>
               {selection && <col style={{ width: 40 }} />}
@@ -147,6 +155,7 @@ export function LibraryTable({
               {columns.map((column) => (
                 <col key={column} style={{ width: widths[column] }} />
               ))}
+              {actionsCell && <col style={{ width: 48 }} />}
             </colgroup>
             <thead>
               <tr>
@@ -174,6 +183,13 @@ export function LibraryTable({
                     {t(`conversation.libraryTable.columns.${column}`)}
                   </th>
                 ))}
+                {actionsCell && (
+                  <th
+                    scope='col'
+                    className='library-table__actions'
+                    aria-label={t('conversation.libraryLifecycle.actions')}
+                  />
+                )}
               </tr>
             </thead>
             <tbody>
@@ -203,6 +219,7 @@ export function LibraryTable({
                       className='library-table__title'
                       ref={(element) => registerTitleButton(item.id, element)}
                       aria-pressed={item.id === selectedId}
+                      disabled={item.deleted}
                       onClick={() => open(item)}
                     >
                       <span>{item.title}</span>
@@ -217,6 +234,7 @@ export function LibraryTable({
                       {cell(column, item)}
                     </td>
                   ))}
+                  {actionsCell && <td className='library-table__actions'>{actionsCell(item)}</td>}
                 </tr>
               ))}
             </tbody>

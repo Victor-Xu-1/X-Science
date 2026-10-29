@@ -15,8 +15,12 @@ type LiteratureSelection struct {
 // ListLiteratureItemIDs resolves all matches in one read snapshot. It does not
 // hydrate metadata or attachments, and never returns a truncated success.
 func (s *Store) ListLiteratureItemIDs(ctx context.Context, owner, query, project, collection string, readingStatus LiteratureReadingStatus) (LiteratureSelection, error) {
+	return s.ListLiteratureItemIDsInLifecycle(ctx, owner, LiteratureQueryFilters{Query: query, ProjectID: project, CollectionID: collection, ReadingStatus: readingStatus})
+}
+
+func (s *Store) ListLiteratureItemIDsInLifecycle(ctx context.Context, owner string, filters LiteratureQueryFilters) (LiteratureSelection, error) {
 	empty := LiteratureSelection{Schema: "x-science.literature-selection.v1", ItemIDs: []string{}}
-	scope := literatureQueryScope{owner, query, project, collection, readingStatus}
+	scope := literatureScope(owner, filters)
 	if err := scope.validate(); err != nil {
 		return empty, err
 	}

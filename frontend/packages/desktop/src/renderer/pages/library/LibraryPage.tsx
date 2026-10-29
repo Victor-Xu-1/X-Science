@@ -18,7 +18,6 @@ import {
   type LiteratureReceipt,
 } from '@/common/adapter/literatureLibrary';
 import {
-  literatureReadingStatuses,
   type LiteratureReadingStatus,
   type LiteratureReadingStatusCommand,
 } from '@/common/adapter/literatureReadingStatus';
@@ -43,6 +42,9 @@ import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
+import { LibraryLifecycleAction } from './LibraryLifecycleAction';
+import { useLibraryLifecycleAction } from './useLibraryLifecycleAction';
+import { useLibraryNavigation } from './useLibraryNavigation';
 import './libraryWorkbench.css';
 
 type CollectionEditorState = { owner: object; id: number; mode: LibraryCollectionEditorMode };
@@ -50,23 +52,23 @@ type CollectionEditorState = { owner: object; id: number; mode: LibraryCollectio
 export default function LibraryPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const query = params.get('q') ?? '';
-  const cursor = params.get('cursor') ?? '';
-  const selectedId = params.get('item') ?? '';
-  const collectionId = params.get('collection') ?? '';
-  const inbox = params.get('inbox') === '1';
-  const projectId = params.get('project') ?? '';
-  const readingStatus = literatureReadingStatuses.find((value) => value === params.get('reading_status')) ?? '';
-  useEffect(() => {
-    if (params.has('reading_status') && params.get('reading_status') !== readingStatus) {
-      const next = new URLSearchParams(params);
-      next.delete('reading_status');
-      next.delete('cursor');
-      next.delete('item');
-      setParams(next, { replace: true });
-    }
-  }, [params, readingStatus, setParams]);
-  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus);
+  const {
+    query,
+    cursor,
+    lifecycle,
+    trash,
+    invalidLifecycle,
+    selectedId,
+    collectionId,
+    inbox,
+    projectId,
+    readingStatus,
+    selectCollection,
+    selectProject,
+    selectTrash,
+    selectInbox,
+  } = useLibraryNavigation(params, setParams);
+  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus, lifecycle);
   const layout = useLayoutContext();
   const history = useNavigationHistory();
   const rail = layout?.libraryRail;
@@ -81,7 +83,16 @@ export default function LibraryPage() {
   });
   const actionFailed = action.account === reads.account && action.failed;
   const lastAction = action.account === reads.account ? action.operationId : null;
-  const formScope = JSON.stringify([reads.account, collectionId, projectId, query, cursor, selectedId, readingStatus]);
+  const formScope = JSON.stringify([
+    reads.account,
+    collectionId,
+    projectId,
+    query,
+    cursor,
+    selectedId,
+    readingStatus,
+    ...(trash ? ['deleted'] : []),
+  ]);
   const editorBoundary = useRef({ key: formScope });
   if (editorBoundary.current.key !== formScope) editorBoundary.current = { key: formScope };
   const editorSequence = useRef(0);
@@ -109,40 +120,24 @@ export default function LibraryPage() {
   const items = reads.list.value?.items ?? [];
   const listReady = reads.list.status === 'ready' && !reads.list.refreshing && !reads.list.refreshError;
   const baseBusy =
-    mutation.view.mutating || Boolean(mutation.view.pending) || mutation.view.error === 'storage' || pdfOpen;
+    invalidLifecycle ||
+    mutation.view.mutating ||
+    Boolean(mutation.view.pending) ||
+    mutation.view.error === 'storage' ||
+    pdfOpen;
   const bulk = useLibraryBulkReadingStatus({
     account: reads.account,
-    scope: { query, collectionId, projectId, readingStatus },
+    scope: { query, collectionId, projectId, readingStatus, lifecycle },
     cursor,
     rows: items,
     readReady: listReady,
-    blocked: baseBusy || Boolean(visibleEditor),
+    blocked: trash || baseBusy || Boolean(visibleEditor),
     controller: mutation.controller,
     view: mutation.view,
   });
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
       setEditor({ owner: editorBoundary.current, id: ++editorSequence.current, mode });
-  };
-  const selectCollection = (id: string) => {
-    const next = new URLSearchParams(params);
-    next.delete('project');
-    next.delete('inbox');
-    if (id) next.set('collection', id);
-    else next.delete('collection');
-    next.delete('cursor');
-    next.delete('item');
-    setParams(next);
-  };
-  const selectProject = (id: string) => {
-    const next = new URLSearchParams(params);
-    next.delete('inbox');
-    if (id) next.set('project', id);
-    else next.delete('project');
-    next.delete('collection');
-    next.delete('cursor');
-    next.delete('item');
-    setParams(next);
   };
   const observedReceipt = useRef(mutation.view.receipt);
   const rowButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -157,6 +152,7 @@ export default function LibraryPage() {
   const viewImportedReference = (receipt: LiteratureReceipt) => {
     if (reads.account !== getRendererAccountScopeToken() || !pdfImport.completeSuccess(receipt)) return;
     const next = new URLSearchParams(params);
+    next.delete('lifecycle');
     next.delete('q');
     next.delete('collection');
     next.delete('project');
@@ -218,6 +214,16 @@ export default function LibraryPage() {
     }
     reads.refresh();
     if (
+      receipt.schema === 'x-science.literature-receipt.v1' &&
+      mutation.view.action?.kind === 'edit' &&
+      mutation.view.action.deleted !== undefined
+    ) {
+      const next = new URLSearchParams(params);
+      next.delete('cursor');
+      if (receipt.item.id === selectedId) next.delete('item');
+      if (next.toString() !== params.toString()) setParams(next, { replace: true });
+      listElement.current?.focus();
+    } else if (
       receipt.schema === 'x-science.literature-receipt.v1' &&
       (receipt.item.deleted || (projectId && !receipt.item.project_ids.includes(projectId))) &&
       receipt.item.id === selectedId
@@ -321,7 +327,24 @@ export default function LibraryPage() {
     }
   };
   const busy = baseBusy || bulk.resolving;
-  const noteScope = JSON.stringify([reads.account, query, cursor, collectionId, projectId, readingStatus]);
+  const lifecycleAction = useLibraryLifecycleAction({
+    account: reads.account,
+    readKey: reads.list.key,
+    ready: listReady,
+    blocked: busy || Boolean(visibleEditor),
+    items,
+    controller: mutation.controller,
+    submit,
+  });
+  const noteScope = JSON.stringify([
+    reads.account,
+    query,
+    cursor,
+    collectionId,
+    projectId,
+    readingStatus,
+    ...(trash ? ['deleted'] : []),
+  ]);
   const noteState = useRef({ scope: noteScope, account: reads.account, ready: listReady, blocked: busy, items });
   noteState.current = {
     scope: noteScope,
@@ -421,14 +444,12 @@ export default function LibraryPage() {
             toggle={() => layout?.setSiderCollapsed(!layout.siderCollapsed)}
             back={() => history?.returnFromLibrary()}
             inbox={inbox}
+            trash={trash}
             collectionId={collectionId}
             projectId={projectId}
             busy={busy}
-            selectInbox={() => {
-              const next = new URLSearchParams(params);
-              next.set('inbox', '1');
-              setParams(next);
-            }}
+            selectInbox={selectInbox}
+            selectTrash={selectTrash}
             selectCollection={selectCollection}
             selectProject={selectProject}
             create={() => openCollection({ kind: 'create' })}
@@ -447,18 +468,22 @@ export default function LibraryPage() {
               type='button'
               className='library-workbench__button'
               aria-current={inbox ? 'page' : undefined}
-              onClick={() => {
-                const next = new URLSearchParams(params);
-                next.set('inbox', '1');
-                setParams(next);
-              }}
+              onClick={selectInbox}
             >
               {t('conversation.libraryInbox.title')}
+            </button>
+            <button
+              type='button'
+              className='library-workbench__button'
+              aria-current={trash ? 'page' : undefined}
+              onClick={selectTrash}
+            >
+              {t('conversation.libraryLifecycle.trash')}
             </button>
             <LibraryCollectionSidebar
               view={reads.collections}
               selectedId={collectionId}
-              allSelected={!inbox && !collectionId && !projectId}
+              allSelected={!inbox && !trash && !collectionId && !projectId}
               busy={busy}
               select={selectCollection}
               create={() => openCollection({ kind: 'create' })}
@@ -488,6 +513,7 @@ export default function LibraryPage() {
             }}
             openItem={(id) => {
               const next = new URLSearchParams(params);
+              next.delete('lifecycle');
               next.delete('inbox');
               next.delete('collection');
               next.delete('project');
@@ -506,6 +532,7 @@ export default function LibraryPage() {
         >
           <LibraryWorkspaceHeader
             title={
+              (trash ? t('conversation.libraryLifecycle.trash') : undefined) ??
               selectedCollection?.name ??
               (projectId
                 ? (selectedProject?.name ??
@@ -520,7 +547,11 @@ export default function LibraryPage() {
                       : 'conversation.libraryWorkbench.allReferences'
                   ))
             }
-            description={selectedCollection?.description || t('conversation.libraryWorkbench.description')}
+            description={
+              trash
+                ? t('conversation.libraryLifecycle.description')
+                : selectedCollection?.description || t('conversation.libraryWorkbench.description')
+            }
             query={query}
             onQueryChange={(value) => {
               const next = new URLSearchParams(params);
@@ -532,7 +563,7 @@ export default function LibraryPage() {
             }}
             actions={
               <>
-                <LibraryPdfImport model={pdfImport} />
+                {!trash && <LibraryPdfImport model={pdfImport} />}
                 <button type='button' className='library-workbench__button' onClick={reads.refresh}>
                   <RefreshCw size={14} aria-hidden='true' />
                   {t('common.refresh')}
@@ -588,7 +619,7 @@ export default function LibraryPage() {
             refreshProjects={reads.refresh}
             viewReference={viewImportedReference}
           />
-          {(bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
+          {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
               selection={bulk.selection}
               totalMatching={reads.list.value?.total_count}
@@ -629,14 +660,26 @@ export default function LibraryPage() {
                 refreshError={reads.list.refreshError}
                 selectedId={selectedId}
                 preferences={libraryColumns.preferences}
-                selection={{
-                  selected: bulk.isSelected,
-                  toggle: bulk.toggle,
-                  pageChecked: bulk.pageChecked,
-                  pageMixed: bulk.pageMixed,
-                  togglePage: bulk.togglePage,
-                  disabled: busy || !listReady || Boolean(visibleEditor),
-                }}
+                selection={
+                  trash
+                    ? undefined
+                    : {
+                        selected: bulk.isSelected,
+                        toggle: bulk.toggle,
+                        pageChecked: bulk.pageChecked,
+                        pageMixed: bulk.pageMixed,
+                        togglePage: bulk.togglePage,
+                        disabled: busy || !listReady || Boolean(visibleEditor),
+                      }
+                }
+                actionsCell={(item) => (
+                  <LibraryLifecycleAction
+                    key={JSON.stringify([reads.account, reads.list.key, item.id])}
+                    item={item}
+                    disabled={busy || !listReady || Boolean(visibleEditor)}
+                    change={lifecycleAction}
+                  />
+                )}
                 authors={libraryAuthors}
                 noteCell={(item) => (
                   <LibraryNoteControl
@@ -675,7 +718,9 @@ export default function LibraryPage() {
                     accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
                   />
                 )}
-                open={(item) => selectItem(item.id)}
+                open={(item) => {
+                  if (!item.deleted) selectItem(item.id);
+                }}
                 registerTitleButton={(itemId, node) => {
                   if (node) rowButtons.current.set(itemId, node);
                   else rowButtons.current.delete(itemId);
@@ -684,16 +729,20 @@ export default function LibraryPage() {
                 emptyTitle={t(
                   query || readingStatus
                     ? 'conversation.libraryWorkbench.noMatches'
-                    : projectId
-                      ? 'conversation.libraryWorkbench.projectEmpty'
-                      : 'conversation.libraryWorkbench.empty'
+                    : trash
+                      ? 'conversation.libraryLifecycle.empty'
+                      : projectId
+                        ? 'conversation.libraryWorkbench.projectEmpty'
+                        : 'conversation.libraryWorkbench.empty'
                 )}
                 emptyDescription={t(
                   query || readingStatus
                     ? 'conversation.libraryWorkbench.searchHint'
-                    : projectId
-                      ? 'conversation.libraryWorkbench.projectEmptyHint'
-                      : 'conversation.libraryPdfImport.emptyHint'
+                    : trash
+                      ? 'conversation.libraryLifecycle.emptyHint'
+                      : projectId
+                        ? 'conversation.libraryWorkbench.projectEmptyHint'
+                        : 'conversation.libraryPdfImport.emptyHint'
                 )}
                 emptyAction={
                   (query || readingStatus) && (

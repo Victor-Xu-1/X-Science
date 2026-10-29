@@ -1,0 +1,27 @@
+.library-lifecycle__trigger {
+  display: inline-flex;
+  width: var(--ui-control-md);
+  height: var(--ui-control-md);
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  color: var(--workspace-text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+.library-lifecycle__trigger:hover {
+  color: var(--workspace-text);
+  background: var(--workspace-hover);
+}
+.library-lifecycle__trigger:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.library-table__actions {
+  position: sticky;
+  right: 0;
+  width: 48px;
+  text-align: center;
+}

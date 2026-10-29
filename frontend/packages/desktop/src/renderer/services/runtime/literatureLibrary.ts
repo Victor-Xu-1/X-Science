@@ -2,6 +2,7 @@ import { literatureMetadataPatchMatches } from '@/common/adapter/literatureMetad
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { appendLiteratureScopeQuery } from '@/common/adapter/literatureSelection';
+import { decodeLiteratureLifecycle, type LiteratureLifecycle } from '@/common/adapter/literatureLifecycle';
 import {
   decodeLiteratureCommand,
   decodeLiteratureItem,
@@ -31,6 +32,7 @@ export async function loadLiteraturePage(
     projectId?: string;
     collectionId?: string;
     readingStatus?: LiteratureReadingStatus;
+    lifecycle?: LiteratureLifecycle;
     cursor?: string;
     signal?: AbortSignal;
   } = {}
@@ -45,7 +47,10 @@ export async function loadLiteraturePage(
     timeoutMs: 15_000,
   });
   requireAccount(account);
-  return decodeLiteraturePage(raw);
+  const page = decodeLiteraturePage(raw);
+  const deleted = decodeLiteratureLifecycle(options.lifecycle) === 'deleted';
+  if (page.items.some((item) => item.deleted !== deleted)) throw new Error('Library lifecycle response changed');
+  return page;
 }
 /** Reads the existing owner-authorized catalogue item, independent of PDF eligibility. */
 export async function loadLiteratureItem(itemId: string, signal?: AbortSignal): Promise<LiteratureItem> {

@@ -3,8 +3,6 @@ package workspace
 import (
 	"context"
 	"database/sql"
-	"encoding/base64"
-	"encoding/json"
 )
 
 // Preserve the four original unscoped cursor fields and their encoding. Order
@@ -21,18 +19,20 @@ func (s *Store) ListLiteratureItemsInCollection(ctx context.Context, owner, quer
 }
 
 func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner, query, project, collectionID string, readingStatus LiteratureReadingStatus, cursor string, limit int) (LiteraturePage, error) {
+	return s.ListLiteratureItemsInLifecycle(ctx, owner, LiteratureQueryFilters{Query: query, ProjectID: project, CollectionID: collectionID, ReadingStatus: readingStatus}, cursor, limit)
+}
+
+func (s *Store) ListLiteratureItemsInLifecycle(ctx context.Context, owner string, filters LiteratureQueryFilters, cursor string, limit int) (LiteraturePage, error) {
 	page := LiteraturePage{Schema: "x-science.literature-page.v1", Items: []LiteratureItem{}}
-	scope := literatureQueryScope{owner, query, project, collectionID, readingStatus}
+	scope := literatureScope(owner, filters)
+	collectionID := filters.CollectionID
 	if scope.validate() != nil || limit < 1 || limit > 100 || len(cursor) > 4096 {
 		return page, ErrLiteratureInvalid
 	}
-	bound := literatureCursor{Query: query, Project: project, Owner: owner, Collection: collectionID, ReadingStatus: readingStatus}
+	bound := literatureCursor{Query: filters.Query, Project: filters.ProjectID, Owner: owner, Collection: collectionID, ReadingStatus: filters.ReadingStatus}
 	if cursor != "" {
-		raw, err := base64.RawURLEncoding.DecodeString(cursor)
-		var decoded literatureCursor
-		if err != nil || json.Unmarshal(raw, &decoded) != nil || decoded.Query != query || decoded.Project != project ||
-			decoded.Owner != owner || decoded.Collection != collectionID || decoded.ReadingStatus != readingStatus ||
-			collectionID == "" && decoded.Order != nil || collectionID != "" && (decoded.Order == nil || *decoded.Order < 0) {
+		decoded, err := decodeLiteratureCursor(cursor, bound, filters.Lifecycle)
+		if err != nil {
 			return page, ErrLiteratureInvalid
 		}
 		bound = decoded
@@ -94,11 +94,11 @@ func (s *Store) ListLiteratureItemsWithReadingStatus(ctx context.Context, owner,
 		if collectionID != "" {
 			bound.Order = &last.order
 		}
-		raw, err := json.Marshal(bound)
+		encoded, err := encodeLiteratureCursor(bound, filters.Lifecycle)
 		if err != nil {
 			return page, err
 		}
-		page.NextCursor = base64.RawURLEncoding.EncodeToString(raw)
+		page.NextCursor = encoded
 	}
 	for _, value := range positions {
 		item, err := readLiteratureItem(ctx, tx, owner, value.id)
