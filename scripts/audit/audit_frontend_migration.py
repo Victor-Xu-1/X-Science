@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity.ts": "Extract the scoped composer context-activity presentation bridge, preserving render-time account, conversation and incarnation fences and equal-value deduplication while reusing the original context reader; no request, timer or execution authority is added.",
     "packages/desktop/src/renderer/components/xScience/runtime/contextRequestActivity.ts": "Project the existing authenticated context request activity into task status using account, conversation, incarnation, attempt and input-revision fences; no additional request, clock or execution owner is introduced.",
     'packages/desktop/src/common/adapter/literatureLifecycle.ts': 'Define the closed active/deleted Literature lifecycle shared by the existing typed list and selection transports; no alternate query or persistence owner is introduced.',
     "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup.",
@@ -712,9 +713,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "e2a829ae2aa9511aa38d3275eb67545587f04c6cbe7e7e9bcc1dd09c1b71c3a7"
+APPROVED_ADAPTATION_FINGERPRINT = "7f4339d5accc6e294ea39e2988b5dfe557004dbf4d19678496727b8573e30b88"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "53bf9519da6bd63e7cbcb1b8e62c1fef70763e935c7dff6de488c287c7fcaa89"
+APPROVED_ADDITION_FINGERPRINT = "13f979b5e086614907169b1c50a2e6e9c240642da2ca5ba066b04c9065548f5f"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

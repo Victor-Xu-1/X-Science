@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e2a829ae2aa9511aa38d3275eb67545587f04c6cbe7e7e9bcc1dd09c1b71c3a7",
+  "adaptationFingerprintSHA256": "7f4339d5accc6e294ea39e2988b5dfe557004dbf4d19678496727b8573e30b88",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "53bf9519da6bd63e7cbcb1b8e62c1fef70763e935c7dff6de488c287c7fcaa89",
+  "additionFingerprintSHA256": "13f979b5e086614907169b1c50a2e6e9c240642da2ca5ba066b04c9065548f5f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1394
+    "addedFiles": 1395
   },
   "adaptations": [
     {
@@ -2204,8 +2204,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "562e1ba8f61dd8660c13f5d85f0c5e5eb191837fc8e9170fe7aac7aca9d57332",
-      "bytes": 54114,
+      "targetSHA256": "fdc4665f91ebb0b55556400be0c6d2aa9d98c0614086ee7896d10cc8c0d506cd",
+      "bytes": 52971,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -9810,6 +9810,12 @@
       "reason": "Bind one composer maintenance controller to account and frame incarnation, keeping recovery reachable with a draft."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity.ts",
+      "sha256": "0218dcc6eb7e39166961673ee71438700ca837cb13694b7e6ed0166ea21f3c26",
+      "bytes": 1574,
+      "reason": "Extract the scoped composer context-activity presentation bridge, preserving render-time account, conversation and incarnation fences and equal-value deduplication while reusing the original context reader; no request, timer or execution authority is added."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx",
       "sha256": "799fa27825ddd58015a7f669a88e87ea9e95705d58581b9f0e0e1830f2767316",
       "bytes": 7587,
@@ -13207,8 +13213,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextTaskActivity.dom.test.tsx",
-      "sha256": "859abc16d9c6c837526a0790499936258ce7c959dc02b87d803f6f18eea58609",
-      "bytes": 8626,
+      "sha256": "a6770c8dea45b06e33ca3503dd27ac2cab7db677b8f1979c32322e8e17495be4",
+      "bytes": 11537,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
