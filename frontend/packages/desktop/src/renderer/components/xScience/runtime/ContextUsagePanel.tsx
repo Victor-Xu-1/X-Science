@@ -6,9 +6,10 @@
 
 import { Dropdown, Spin, Tooltip } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
-import React, { useId, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContextUsage } from '@/renderer/hooks/xScience/useContextUsage';
+import { contextRequestActivity, type ContextRequestActivity } from './contextRequestActivity';
 import {
   projectContextUsage,
   estimateContextUsageBreakdown,
@@ -89,6 +90,7 @@ type ContextUsagePanelProps = {
   openRequest?: number;
   triggerVisible?: boolean;
   returnFocus?: HTMLButtonElement | null;
+  onRequestActivityChange?: (activity: ContextRequestActivity | null) => void;
 };
 
 /** The server's latest main-agent request is the only usage authority. */
@@ -99,6 +101,7 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({
   openRequest = 0,
   triggerVisible = true,
   returnFocus,
+  onRequestActivityChange,
 }) => {
   const { t } = useTranslation();
   const ownerScope = JSON.stringify([getRendererAccountScopeToken(), conversationId]);
@@ -140,6 +143,17 @@ const ContextUsagePanel: React.FC<ContextUsagePanelProps> = ({
     restoreScopedFocus(triggerRef.current, panelNode);
   };
   const { state, retry } = useContextUsage(conversationId, visible || inspectorVisible, active, inspectorVisible);
+  const activityCallback = useRef(onRequestActivityChange);
+  activityCallback.current = onRequestActivityChange;
+  const accountScope = getRendererAccountScopeToken();
+  const activity = useMemo(
+    () => (active ? contextRequestActivity(state, accountScope) : null),
+    [state, accountScope, active]
+  );
+  useEffect(() => {
+    activityCallback.current?.(activity);
+    return () => activityCallback.current?.(null);
+  }, [activity]);
   const usage = state.status === 'available' ? projectContextUsage(state.snapshot) : null;
   const policy = state.status === 'available' ? state.autoCompaction : undefined;
   const history = state.status === 'available' ? state.history : undefined;

@@ -1,4 +1,5 @@
 import type { XScienceAskUserResponse } from '@/renderer/services/xScienceRuntimeOperations';
+import type { ContextRequestActivity } from './contextRequestActivity';
 import type { RefObject } from 'react';
 import React from 'react';
 import AskUserCard from './AskUserCard';
@@ -13,6 +14,8 @@ import type { XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
 import XScienceTaskStatus, { type XScienceTaskStatusError } from './XScienceTaskStatus';
 
 type Props = {
+  contextActivity?: ContextRequestActivity | null;
+  contextFrameIncarnationId?: string;
   snapshot: XScienceRuntimeSnapshot | null;
   loading: boolean;
   snapshotError: XScienceTaskStatusError;
@@ -46,6 +49,8 @@ type Props = {
 };
 
 const XScienceRuntimeStatusSurface = ({
+  contextActivity,
+  contextFrameIncarnationId,
   snapshot,
   loading,
   snapshotError,
@@ -77,6 +82,8 @@ const XScienceRuntimeStatusSurface = ({
   return (
     <>
       <XScienceTaskStatus
+        contextActivity={contextActivity}
+        contextFrameIncarnationId={contextFrameIncarnationId}
         snapshot={snapshot}
         loading={loading}
         snapshotError={snapshotError}

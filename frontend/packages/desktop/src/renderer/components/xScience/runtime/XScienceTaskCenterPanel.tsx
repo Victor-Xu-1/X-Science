@@ -23,6 +23,7 @@ export type XScienceTaskCenterMetrics = {
 };
 
 type XScienceTaskCenterPanelProps = {
+  requestActivityLabel?: string | null;
   phase: XScienceLongTaskPhase | null;
   statusTitle: string;
   startedAtValue: string | null;
@@ -133,6 +134,7 @@ const TaskCenterRecordRow: React.FC<TaskCenterRecordRowProps> = ({ label, meta, 
 );
 
 const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
+  requestActivityLabel,
   phase,
   statusTitle,
   startedAtValue,
@@ -254,6 +256,16 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
       </header>
 
       <div className='x-science-task-center-panel__body'>
+        {requestActivityLabel ? (
+          <p
+            className='m-0 text-12px text-t-secondary'
+            role='status'
+            aria-live='polite'
+            data-testid='x-science-task-request-activity'
+          >
+            {requestActivityLabel}
+          </p>
+        ) : null}
         <div className='x-science-task-center-panel__snapshot' data-testid='x-science-task-status-snapshot'>
           <dl className='x-science-task-center-panel__timeline'>
             <div>
@@ -292,6 +304,7 @@ const XScienceTaskCenterPanel: React.FC<XScienceTaskCenterPanelProps> = ({
               value={exactTaskModelCalls ?? '—'}
               detail={latestDetail(exactLatestModelCalls)}
               testId='x-science-task-metric-model-calls'
+              title={t('conversation.xscienceRuntime.runtimeOperations.modelCallsRecordedHelp')}
             />
             <TaskCenterMetric
               label={t('conversation.xscienceRuntime.runtimeOperations.taskMetricToolCalls')}

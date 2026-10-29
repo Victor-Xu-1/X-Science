@@ -9,6 +9,7 @@ import XScienceSendOptionsMenu, {
 } from '@/renderer/components/xScience/runtime/XScienceSendOptionsMenu';
 import XScienceSessionOptionsMenu from '@/renderer/components/xScience/runtime/XScienceSessionOptionsMenu';
 import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
+import { useAcpContextRequestActivity } from './useAcpContextRequestActivity';
 import OptimizePromptAction from '@/renderer/components/xScience/runtime/OptimizePromptAction';
 import XScienceRuntimeOperations from '@/renderer/components/xScience/runtime/XScienceRuntimeOperations';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -209,10 +210,8 @@ const AcpSendBox: React.FC<{
     mobilePlusTrigger
   );
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
-  const frameIncarnationId =
-    initialConversation?.type === 'acp' && initialConversation.id === conversation_id
-      ? initialConversation.extra.frame_incarnation_id
-      : undefined;
+  const contextActivity = useAcpContextRequestActivity(conversation_id, initialConversation);
+  const { frameIncarnationId } = contextActivity;
   const {
     options: xscienceSessionOptions,
     setOptions: setXScienceSessionOptions,
@@ -1104,7 +1103,7 @@ const AcpSendBox: React.FC<{
   const contextUsagePanel = isXScienceConversation ? (
     <ContextUsagePanel
       key={`${ownerId}:${conversation_id}:${frameIncarnationId ?? ''}`}
-      conversationId={conversation_id}
+      {...contextActivity.panelProps}
       active={isBusy}
       compaction={compaction}
       openRequest={contextWindow.sequence}
@@ -1122,6 +1121,7 @@ const AcpSendBox: React.FC<{
       <BtwOverlay controller={aside.sideQuestion} parentTaskRunning={isBusy} />
       {aside.branchStatus}
       <XScienceRuntimeOperations
+        {...contextActivity.runtimeProps}
         key={planPresentation.key}
         conversationId={conversation_id}
         runtimeState={runtimeView.state}

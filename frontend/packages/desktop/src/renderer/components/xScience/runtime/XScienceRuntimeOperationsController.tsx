@@ -1,4 +1,5 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
+import type { ContextRequestActivity } from './contextRequestActivity';
 import { XScienceContinueIntent, type XScienceContinueInput } from './resumeCommandIntent';
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -50,6 +51,8 @@ import {
 } from './runtimeOperationsControllerModel';
 
 type XScienceRuntimeOperationsProps = {
+  contextActivity?: ContextRequestActivity | null;
+  contextFrameIncarnationId?: string;
   conversationId: string;
   runtimeState: string;
   terminalProjectionPending?: boolean;
@@ -72,6 +75,8 @@ type XScienceRuntimeOperationsProps = {
 };
 
 const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsProps> = ({
+  contextActivity,
+  contextFrameIncarnationId,
   conversationId,
   runtimeState,
   terminalProjectionPending = false,
@@ -837,6 +842,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     <>
       {messageContextHolder}
       <XScienceRuntimeStatusSurface
+        contextActivity={contextActivity}
+        contextFrameIncarnationId={contextFrameIncarnationId}
         snapshot={statusSnapshot}
         loading={visibleLoading}
         snapshotError={ownsConversation ? snapshotError : null}
