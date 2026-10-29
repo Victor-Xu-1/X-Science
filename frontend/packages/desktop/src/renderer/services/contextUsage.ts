@@ -45,6 +45,14 @@ export type ContextCompactionPolicy = {
 export type ContextUsageSnapshot = {
   sessionId: string;
   requestId: string;
+  attempt?: number;
+  observationKind?: 'model_call' | 'context_preparation';
+  association?: {
+    version: 1;
+    scope: { conversationId: string; frameIncarnationId: string };
+    claimedInputRevision: number;
+    runnerAttempt: number;
+  };
   model: string;
   observedAt: string;
   state: 'request' | 'complete' | 'failed';
@@ -184,6 +192,31 @@ export function parseContextUsage(payload: unknown, conversationId: string): Con
     value.inputEstimates.length !== CONTEXT_USAGE_CATEGORIES.length
   ) {
     throw new Error('Invalid context usage record');
+  }
+  if (Object.hasOwn(value, 'attempt') && (!Number.isSafeInteger(value.attempt) || Number(value.attempt) < 0))
+    throw new Error('Invalid context usage attempt');
+  if (
+    Object.hasOwn(value, 'observationKind') &&
+    !['model_call', 'context_preparation'].includes(String(value.observationKind))
+  )
+    throw new Error('Invalid context observation kind');
+  if (Object.hasOwn(value, 'association')) {
+    const association = value.association;
+    if (
+      !isObject(association) ||
+      association.version !== 1 ||
+      !isObject(association.scope) ||
+      association.scope.conversationId !== conversationId ||
+      typeof association.scope.frameIncarnationId !== 'string' ||
+      !association.scope.frameIncarnationId ||
+      association.scope.frameIncarnationId.length > 512 ||
+      !Number.isSafeInteger(association.claimedInputRevision) ||
+      Number(association.claimedInputRevision) <= 0 ||
+      !Number.isSafeInteger(association.runnerAttempt) ||
+      Number(association.runnerAttempt) <= 0 ||
+      association.runnerAttempt !== value.attempt
+    )
+      throw new Error('Invalid context activity association');
   }
   for (const [index, row] of value.inputEstimates.entries()) {
     if (!isObject(row) || row.key !== CONTEXT_USAGE_CATEGORIES[index] || !isTokenCount(row.tokens)) {

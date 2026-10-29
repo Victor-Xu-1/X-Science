@@ -5,6 +5,12 @@
  */
 
 import { Spin, Tooltip, Trigger } from '@arco-design/web-react';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import {
+  currentContextRequestActivity,
+  contextRequestActivityLabels,
+  type ContextRequestActivity,
+} from './contextRequestActivity';
 import { Attention, CheckOne, Close, CloseOne, PauseOne, Redo, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +34,8 @@ import './XScienceTaskStatus.css';
 export type XScienceTaskStatusError = 'load' | 'refresh' | null;
 
 type XScienceTaskStatusProps = {
+  contextActivity?: ContextRequestActivity | null;
+  contextFrameIncarnationId?: string;
   snapshot: XScienceRuntimeSnapshot | null;
   loading: boolean;
   snapshotError: XScienceTaskStatusError;
@@ -229,6 +237,8 @@ const StatusIcon: React.FC<{
 };
 
 const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
+  contextActivity,
+  contextFrameIncarnationId,
   snapshot,
   loading,
   snapshotError,
@@ -475,6 +485,16 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
             duration: elapsedValue,
           });
   const attentionCount = pendingInputCount + (snapshot?.planApproval ? 1 : 0);
+  const requestActivity =
+    !loading && !snapshotError && !runtimeAuthorityUnavailable && (phase === 'running' || phase === 'starting')
+      ? currentContextRequestActivity(
+          contextActivity,
+          snapshot,
+          getRendererAccountScopeToken(),
+          contextFrameIncarnationId
+        )
+      : null;
+  const requestActivityLabel = requestActivity ? t(contextRequestActivityLabels[requestActivity.phase]) : null;
   const secondaryLabelCandidate =
     attentionCount > 0
       ? t('conversation.xscienceRuntime.runtimeOperations.taskPendingCount', { count: attentionCount })
@@ -484,7 +504,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
           ? specializedFailure
             ? elapsedLabel
             : publicFailureLabel
-          : elapsedLabel;
+          : (requestActivityLabel ?? elapsedLabel);
   const secondaryLabel = secondaryLabelCandidate === title ? null : secondaryLabelCandidate;
   const taskCenterAvailable = !busy && Boolean(status || unsupported || authorityPending || failure);
 
@@ -561,6 +581,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
             unmountOnExit
             popup={() => (
               <XScienceTaskCenterPanel
+                requestActivityLabel={requestActivityLabel}
                 phase={phase}
                 statusTitle={title}
                 startedAtValue={startedAtValue}
