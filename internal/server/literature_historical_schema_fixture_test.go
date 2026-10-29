@@ -50,7 +50,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 87
+	const reviewedTarget = 88
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -60,6 +60,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// Reviewed85 adds the empty publication evidence child of literature_items.
 	// Reviewed86 adds the status column on the same empty Library parent.
 	// Reviewed87 adds empty candidates and sources; the source child is removed first.
+	// Reviewed88 is the exact journal-only startup reader floor; it adds no DDL
+	// or data to remove from these empty private historical fixtures.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -69,8 +71,13 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "literature-candidates" || len(current.Checksum) != 64 {
-		t.Fatalf("historical reconstruction requires the reviewed candidate identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "kernel-worker-startup-reader-floor" ||
+		current.Checksum != "edab43e8d1d6ae0778bbe6c0b4c48ddfd936e9a72650e52b724af699621ae971" {
+		t.Fatalf("historical reconstruction requires the reviewed journal-only startup88 identity: %+v", current)
+	}
+	original87 := expected.Migrations[86]
+	if original87.Version != 87 || original87.Name != "literature-candidates" || len(original87.Checksum) != 64 {
+		t.Fatalf("historical reconstruction requires the reviewed candidate identity: %+v", original87)
 	}
 	original86 := expected.Migrations[85]
 	if original86.Version != 86 || original86.Name != "literature-reading-status" || len(original86.Checksum) != 64 {
