@@ -23,7 +23,10 @@ it('closes Escape from the focused menu or trigger and restores only its current
   for (const origin of ['menu', 'trigger']) {
     const change = vi.fn();
     const openItem = vi.fn();
-    const view = await renderWithI18n(<LibraryRowActions item={paper()} disabled={false} change={change} openItem={openItem} />, 'en-US');
+    const view = await renderWithI18n(
+      <LibraryRowActions item={paper()} disabled={false} change={change} openItem={openItem} />,
+      'en-US'
+    );
     const { trigger, edit } = await openMenu();
     const target = origin === 'menu' ? edit : trigger;
     target.focus();
@@ -46,7 +49,18 @@ it('does not restore focus for outside dismissal, disabled or replaced scopes, o
     const [scope, setScope] = useState(0);
     disable = setDisabled;
     replace = () => setScope((value) => value + 1);
-    return <><button type='button'>Outside</button><LibraryRowActions key={scope} item={paper()} disabled={disabled} change={() => undefined} openItem={() => undefined} /></>;
+    return (
+      <>
+        <button type='button'>Outside</button>
+        <LibraryRowActions
+          key={scope}
+          item={paper()}
+          disabled={disabled}
+          change={() => undefined}
+          openItem={() => undefined}
+        />
+      </>
+    );
   }
   await renderWithI18n(<Fixture />, 'en-US');
   const outside = screen.getByRole('button', { name: 'Outside' });
