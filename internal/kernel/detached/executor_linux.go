@@ -1041,6 +1041,7 @@ func kernelSessionSpec(spec workspace.KernelExecutionSessionSpecV1) kernelruntim
 		FrameID: spec.FrameID, FrameIncarnationID: spec.FrameIncarnationID,
 		AgentName: spec.AgentName, DelegateName: spec.DelegateName, KernelKind: spec.KernelKind,
 		Language: spec.Language, Environment: spec.Environment, RuntimeGeneration: spec.RuntimeGeneration,
+		WorkerStartupPolicy: spec.WorkerStartupPolicy, SupervisorRuntimeGeneration: spec.SupervisorRuntimeGeneration,
 		WorkspaceDir: spec.WorkspaceDir, Mounts: mounts, ProtectedPaths: append([]string(nil), spec.ProtectedPaths...),
 		EgressAllowedDomains: append([]string(nil), spec.EgressAllowedDomains...),
 		EgressDeniedDomains:  append([]string(nil), spec.EgressDeniedDomains...),

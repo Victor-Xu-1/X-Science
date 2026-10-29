@@ -7,6 +7,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"x-science/internal/kernelcontract/bashsource"
 )
 
 type EnsuredSession struct {
@@ -17,6 +19,9 @@ type EnsuredSession struct {
 
 func StableSessionID(spec SessionSpec) (string, error) {
 	spec = normalizeSessionSpec(spec)
+	if err := bashsource.ValidateWorkerStartup(spec.WorkerStartupPolicy, spec.SupervisorRuntimeGeneration, spec.KernelKind, spec.Language); err != nil {
+		return "", err
+	}
 	if spec.OwnerID == "" || spec.ProjectID == "" || spec.FrameID == "" || spec.FrameIncarnationID == "" ||
 		spec.RootFrameID == "" || spec.RootFrameIncarnationID == "" || spec.KernelKind == "" ||
 		spec.Language == "" || spec.Environment == "" || spec.WorkspaceDir == "" {
@@ -32,6 +37,9 @@ func StableSessionID(spec SessionSpec) (string, error) {
 	// creates a distinct kernel; environment generations remain environment-only.
 	if spec.AgentDefinitionID != "" {
 		identity = append(identity, "agent-definition", spec.AgentDefinitionID)
+	}
+	if spec.WorkerStartupPolicy != "" {
+		identity = append(identity, "worker-startup", string(spec.WorkerStartupPolicy), spec.SupervisorRuntimeGeneration)
 	}
 	sum := sha256.Sum256([]byte(strings.Join(identity, "\x00")))
 	return "kernel-" + hex.EncodeToString(sum[:12]), nil

@@ -14,6 +14,7 @@ func pythonRuntimePackageAssets() []string {
 		filepath.Join("x_science_runtime", "worker_compile.py"),
 		filepath.Join("x_science_runtime", "worker_process_outcomes.py"),
 		filepath.Join("x_science_runtime", "worker_execution.py"),
+		filepath.Join("x_science_runtime", "worker_startup.py"),
 		filepath.Join("x_science_runtime", "worker_safety.py"),
 		filepath.Join("x_science_runtime", "worker_reads.py"),
 		filepath.Join("x_science_runtime", "worker_effects.py"),

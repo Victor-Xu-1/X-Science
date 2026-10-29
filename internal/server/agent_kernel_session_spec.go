@@ -56,7 +56,12 @@ func (s *Server) agentKernelSessionSpec(
 	if snapshot != nil {
 		agentName, definitionID = snapshot.AgentName, snapshot.ID
 	}
+	var startup kernelruntime.SessionSpec
+	if runtime.Kind == "bash" && runtime.Language == "python" && s.kernelManager != nil {
+		startup.WorkerStartupPolicy, startup.SupervisorRuntimeGeneration = s.kernelManager.CanonicalBashStartup()
+	}
 	return kernelruntime.SessionSpec{
+		WorkerStartupPolicy: startup.WorkerStartupPolicy, SupervisorRuntimeGeneration: startup.SupervisorRuntimeGeneration,
 		OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
 		FrameID: access.Frame.ID, FrameIncarnationID: access.Frame.IncarnationID,
 		RootFrameID: access.Frame.RootFrameID, RootFrameIncarnationID: access.RootFrameIncarnationID,

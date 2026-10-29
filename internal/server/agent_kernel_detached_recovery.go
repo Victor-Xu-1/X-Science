@@ -365,6 +365,7 @@ func recoveredKernelSessionSpec(input workspace.KernelExecutionSessionSpecV1) ke
 		RootFrameID: input.RootFrameID, RootFrameIncarnationID: input.RootFrameIncarnationID,
 		AgentName: input.AgentName, DelegateName: input.DelegateName, KernelKind: input.KernelKind,
 		Language: input.Language, Environment: input.Environment, RuntimeGeneration: input.RuntimeGeneration,
+		WorkerStartupPolicy: input.WorkerStartupPolicy, SupervisorRuntimeGeneration: input.SupervisorRuntimeGeneration,
 		WorkspaceDir: input.WorkspaceDir, Mounts: mounts,
 		ProtectedPaths:       append([]string(nil), input.ProtectedPaths...),
 		EgressAllowedDomains: append([]string(nil), input.EgressAllowedDomains...),

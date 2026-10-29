@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	"x-science/internal/kernelcontract"
+	"x-science/internal/kernelcontract/bashsource"
 	"x-science/internal/networkpolicy"
 	"x-science/internal/networktls"
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -193,29 +194,31 @@ type KernelExecutionMountSpecV1 struct {
 }
 
 type KernelExecutionSessionSpecV1 struct {
-	ResourceMemoryBytes    int64                        `json:"resource_memory_bytes,omitempty"`
-	Version                int                          `json:"version"`
-	KernelID               string                       `json:"kernel_id"`
-	OwnerUserID            string                       `json:"owner_user_id"`
-	ProjectID              string                       `json:"project_id"`
-	RootFrameID            string                       `json:"root_frame_id"`
-	RootFrameIncarnationID string                       `json:"root_frame_incarnation_id"`
-	FrameID                string                       `json:"frame_id"`
-	FrameIncarnationID     string                       `json:"frame_incarnation_id"`
-	AgentName              string                       `json:"agent_name"`
-	DelegateName           string                       `json:"delegate_name,omitempty"`
-	KernelKind             string                       `json:"kernel_kind"`
-	Language               string                       `json:"language"`
-	Environment            string                       `json:"environment"`
-	RuntimeGeneration      string                       `json:"runtime_generation,omitempty"`
-	WorkspaceDir           string                       `json:"workspace_dir"`
-	Mounts                 []KernelExecutionMountSpecV1 `json:"mounts"`
-	ProtectedPaths         []string                     `json:"protected_paths"`
-	EgressAllowedDomains   []string                     `json:"egress_allowed_domains,omitempty"`
-	EgressDeniedDomains    []string                     `json:"egress_denied_domains,omitempty"`
-	CABundle               string                       `json:"ca_bundle,omitempty"`
-	UpstreamProxy          string                       `json:"upstream_proxy,omitempty"`
-	Fresh                  bool                         `json:"fresh"`
+	ResourceMemoryBytes         int64                          `json:"resource_memory_bytes,omitempty"`
+	Version                     int                            `json:"version"`
+	KernelID                    string                         `json:"kernel_id"`
+	OwnerUserID                 string                         `json:"owner_user_id"`
+	ProjectID                   string                         `json:"project_id"`
+	RootFrameID                 string                         `json:"root_frame_id"`
+	RootFrameIncarnationID      string                         `json:"root_frame_incarnation_id"`
+	FrameID                     string                         `json:"frame_id"`
+	FrameIncarnationID          string                         `json:"frame_incarnation_id"`
+	AgentName                   string                         `json:"agent_name"`
+	DelegateName                string                         `json:"delegate_name,omitempty"`
+	KernelKind                  string                         `json:"kernel_kind"`
+	Language                    string                         `json:"language"`
+	Environment                 string                         `json:"environment"`
+	RuntimeGeneration           string                         `json:"runtime_generation,omitempty"`
+	WorkerStartupPolicy         bashsource.WorkerStartupPolicy `json:"worker_startup_policy,omitempty"`
+	SupervisorRuntimeGeneration string                         `json:"supervisor_runtime_generation,omitempty"`
+	WorkspaceDir                string                         `json:"workspace_dir"`
+	Mounts                      []KernelExecutionMountSpecV1   `json:"mounts"`
+	ProtectedPaths              []string                       `json:"protected_paths"`
+	EgressAllowedDomains        []string                       `json:"egress_allowed_domains,omitempty"`
+	EgressDeniedDomains         []string                       `json:"egress_denied_domains,omitempty"`
+	CABundle                    string                         `json:"ca_bundle,omitempty"`
+	UpstreamProxy               string                         `json:"upstream_proxy,omitempty"`
+	Fresh                       bool                           `json:"fresh"`
 }
 
 type KernelDetachedExecutionRequestV1 struct {
@@ -855,6 +858,9 @@ func normalizeCreateKernelExecutionBackendInput(input *CreateKernelExecutionBack
 func canonicalKernelExecutionSessionSpec(
 	input KernelExecutionSessionSpecV1,
 ) (KernelExecutionSessionSpecV1, string, string, error) {
+	if err := bashsource.ValidateWorkerStartup(input.WorkerStartupPolicy, input.SupervisorRuntimeGeneration, input.KernelKind, input.Language); err != nil {
+		return KernelExecutionSessionSpecV1{}, "", "", err
+	}
 	input.KernelID = strings.TrimSpace(input.KernelID)
 	input.OwnerUserID = strings.TrimSpace(input.OwnerUserID)
 	input.ProjectID = strings.TrimSpace(input.ProjectID)
