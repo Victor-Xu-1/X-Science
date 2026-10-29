@@ -61,7 +61,7 @@ const tableHeaders = () => {
   const table = within(screen.getByRole('table', { name: 'Library papers' }));
   const headers = table.getAllByRole('columnheader');
   expect(within(headers[0]).getByRole('checkbox', { name: 'Select this page' })).toBeInTheDocument();
-  const actions = table.getAllByRole('columnheader', { name: 'Actions', exact: true });
+  const actions = table.getAllByRole('columnheader', { name: 'Actions' });
   expect(actions).toHaveLength(1);
   expect(actions[0]).toHaveAttribute('scope', 'col');
   expect(headers.at(-1)).toBe(actions[0]);
