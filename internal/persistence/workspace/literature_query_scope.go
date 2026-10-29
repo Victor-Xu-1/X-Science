@@ -6,12 +6,14 @@ import "context"
 type literatureQueryScope struct {
 	owner, query, project, collection string
 	readingStatus                     LiteratureReadingStatus
+	lifecycle                         LiteratureLifecycle
 }
 
 func (scope literatureQueryScope) validate() error {
 	if !validLiteratureID(scope.owner) || len(scope.query) > 512 ||
 		scope.collection != "" && !validLiteratureID(scope.collection) ||
-		scope.readingStatus != "" && !validLiteratureReadingStatus(scope.readingStatus) {
+		scope.readingStatus != "" && !validLiteratureReadingStatus(scope.readingStatus) ||
+		scope.lifecycle != "" && scope.lifecycle != LiteratureLifecycleActive && scope.lifecycle != LiteratureLifecycleDeleted {
 		return ErrLiteratureInvalid
 	}
 	return nil
@@ -30,7 +32,13 @@ func (scope literatureQueryScope) sql() (string, []any) {
 	if scope.collection != "" {
 		statement += ` JOIN literature_collection_items m ON m.item_id=i.id`
 	}
-	statement += ` WHERE i.owner_user_id=? AND i.deleted_at IS NULL
+	statement += ` WHERE i.owner_user_id=?`
+	if scope.lifecycle == LiteratureLifecycleDeleted {
+		statement += ` AND i.deleted_at IS NOT NULL`
+	} else {
+		statement += ` AND i.deleted_at IS NULL`
+	}
+	statement += `
  AND (?='' OR instr(xscience_literature_search_text_v1(i.title),?)>0
  OR instr(xscience_literature_search_text_v1(CASE
  WHEN json_type(i.metadata_json,'$.personal_note')='text'

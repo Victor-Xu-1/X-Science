@@ -66,7 +66,7 @@ describe('Library project scope through the existing Web query owner', () => {
     let rendered = await mountCollections('/library?collection=methods&cursor=old&item=old&q=study');
     await screen.findByRole('option', { name: 'Alpha project' });
     fireEvent.change(scope(), { target: { value: 'alpha' } });
-    expect(await screen.findByRole('button', { name: /alpha first page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'alpha first page' })).toBeInTheDocument();
     expect(location().get('project')).toBe('alpha');
     expect(location().get('q')).toBe('study');
     for (const name of ['collection', 'cursor', 'item']) expect(location().get(name)).toBeNull();
@@ -76,17 +76,17 @@ describe('Library project scope through the existing Web query owner', () => {
     expect(new URL(first!.path, 'http://localhost').searchParams.get('query')).toBe('study');
     expect(new URL(first!.path, 'http://localhost').searchParams.has('cursor')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(await screen.findByRole('button', { name: /alpha second page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'alpha second page' })).toBeInTheDocument();
     expect(location().get('cursor')).toBe('alpha-next');
     const saved = '/library' + screen.getByLabelText('Library location').textContent;
     rendered.unmount();
     rendered = await mountCollections(saved);
-    expect(await screen.findByRole('button', { name: /alpha second page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'alpha second page' })).toBeInTheDocument();
     expect(scope()).toHaveValue('alpha');
     fireEvent.click(screen.getByRole('button', { name: 'Back to first page' }));
-    expect(await screen.findByRole('button', { name: /alpha first page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'alpha first page' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    fireEvent.click(await screen.findByRole('button', { name: /alpha second page/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'alpha second page' }));
     await screen.findByRole('heading', { name: 'Scoped detail' });
     fireEvent.click(screen.getByRole('button', { name: rendered.i18n.t('conversation.libraryWorkbench.edit') }));
     fireEvent.change(
@@ -99,13 +99,13 @@ describe('Library project scope through the existing Web query owner', () => {
     expect(location().get('project')).toBe('alpha');
     expect(await screen.findByRole('heading', { name: 'No matching papers' })).toBeInTheDocument();
     fireEvent.click(sidebar().getByRole('button', { name: 'Methods' }));
-    expect(await screen.findByRole('button', { name: /Unscoped paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Unscoped paper' })).toBeInTheDocument();
     expect(location().get('project')).toBeNull();
     expect(location().get('collection')).toBe('methods');
     fireEvent.change(scope(), { target: { value: 'beta' } });
-    expect(await screen.findByRole('button', { name: /beta first page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'beta first page' })).toBeInTheDocument();
     fireEvent.click(sidebar().getByRole('button', { name: 'All references' }));
-    expect(await screen.findByRole('button', { name: /Unscoped paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Unscoped paper' })).toBeInTheDocument();
     expect(location().get('project')).toBeNull();
     expect(location().get('collection')).toBeNull();
     await act(async () => {
@@ -151,7 +151,7 @@ describe('Library project scope through the existing Web query owner', () => {
       nextAccount = true;
       setRendererAccountOwner('next-project-scope-owner');
     });
-    expect(await screen.findByRole('button', { name: /Next owner beta paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Next owner beta paper' })).toBeInTheDocument();
     await act(async () => {
       alpha.resolve(json(page([paper('alpha-old', 'Late alpha paper')])));
       beta.resolve(json(page([paper('beta-old', 'Former owner beta paper')])));
@@ -161,7 +161,7 @@ describe('Library project scope through the existing Web query owner', () => {
     for (const title of ['Late alpha paper', 'Former owner beta paper', 'Late alpha detail'])
       expect(screen.queryByText(title)).toBeNull();
     expect(scope()).toHaveValue('beta');
-    expect(screen.getByRole('button', { name: /Next owner beta paper/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next owner beta paper' })).toBeInTheDocument();
   });
 
   it('retries project/catalogue errors and keeps an unavailable deep-linked scope without an all-library fallback', async () => {

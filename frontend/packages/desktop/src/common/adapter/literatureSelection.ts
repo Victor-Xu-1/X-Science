@@ -3,6 +3,7 @@ import {
   isLiteratureReadingStatusItemId,
   type LiteratureReadingStatus,
 } from './literatureReadingStatus';
+import { decodeLiteratureLifecycle, type LiteratureLifecycle } from './literatureLifecycle';
 
 /** The same explicit, owner-authorized filters used by the catalogue read. */
 export type LiteratureSelectionScope = Readonly<{
@@ -10,6 +11,7 @@ export type LiteratureSelectionScope = Readonly<{
   projectId: string;
   collectionId: string;
   readingStatus: LiteratureReadingStatus | '';
+  lifecycle?: LiteratureLifecycle;
 }>;
 export type LiteratureSelection = Readonly<{
   schema: 'x-science.literature-selection.v1';
@@ -21,6 +23,7 @@ export type LiteratureScopeInput = {
   projectId?: string;
   collectionId?: string;
   readingStatus?: LiteratureReadingStatus | '';
+  lifecycle?: LiteratureLifecycle;
 };
 
 export function normalizeLiteratureSelectionScope(input: LiteratureScopeInput): LiteratureSelectionScope {
@@ -32,6 +35,7 @@ export function normalizeLiteratureSelectionScope(input: LiteratureScopeInput): 
       input.readingStatus === undefined || input.readingStatus === ''
         ? ''
         : decodeLiteratureReadingStatus(input.readingStatus),
+    ...(decodeLiteratureLifecycle(input.lifecycle) === 'deleted' ? { lifecycle: 'deleted' as const } : {}),
   });
 }
 
@@ -41,12 +45,19 @@ export function appendLiteratureScopeQuery(params: URLSearchParams, input: Liter
   if (scope.projectId) params.set('project_id', scope.projectId);
   if (scope.collectionId) params.set('collection_id', scope.collectionId);
   if (scope.readingStatus) params.set('reading_status', scope.readingStatus);
+  if (scope.lifecycle === 'deleted') params.set('lifecycle', 'deleted');
 }
 
 /** A label/fence for a visit, never a substitute for backend authorization or membership. */
 export function literatureSelectionScopeKey(input: LiteratureScopeInput): string {
   const scope = normalizeLiteratureSelectionScope(input);
-  return JSON.stringify([scope.query, scope.projectId, scope.collectionId, scope.readingStatus]);
+  return JSON.stringify([
+    scope.query,
+    scope.projectId,
+    scope.collectionId,
+    scope.readingStatus,
+    ...(scope.lifecycle === 'deleted' ? ['deleted'] : []),
+  ]);
 }
 
 /** An all-ID read is complete or rejected; a page or truncated response cannot masquerade as all. */

@@ -16,6 +16,11 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 		}
 		switch key {
 		case "query", "project_id", "collection_id", "cursor", "limit":
+		case "lifecycle":
+			if values[0] != "active" && values[0] != "deleted" {
+				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+				return
+			}
 		case "reading_status":
 			if values[0] == "" {
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
@@ -31,12 +36,13 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
+	filters := workspace.LiteratureQueryFilters{Query: query.Get("query"), ProjectID: query.Get("project_id"), CollectionID: query.Get("collection_id"), ReadingStatus: workspace.LiteratureReadingStatus(query.Get("reading_status")), Lifecycle: workspace.LiteratureLifecycle(query.Get("lifecycle"))}
 	if query.Get("all_item_ids") == "true" {
 		if query.Has("cursor") || query.Has("limit") {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
 		}
-		selection, err := s.workspaceStore.ListLiteratureItemIDs(r.Context(), owner, query.Get("query"), query.Get("project_id"), query.Get("collection_id"), workspace.LiteratureReadingStatus(query.Get("reading_status")))
+		selection, err := s.workspaceStore.ListLiteratureItemIDsInLifecycle(r.Context(), owner, filters)
 		if err != nil {
 			writeLiteratureError(w, err)
 			return
@@ -53,7 +59,7 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 		writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 		return
 	}
-	page, err := s.workspaceStore.ListLiteratureItemsWithReadingStatus(r.Context(), owner, query.Get("query"), query.Get("project_id"), query.Get("collection_id"), workspace.LiteratureReadingStatus(query.Get("reading_status")), query.Get("cursor"), limit)
+	page, err := s.workspaceStore.ListLiteratureItemsInLifecycle(r.Context(), owner, filters, query.Get("cursor"), limit)
 	if err != nil {
 		writeLiteratureError(w, err)
 		return

@@ -8,6 +8,7 @@ import {
 import { loadXScienceProjects } from '@/renderer/services/xScienceGateway';
 import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
+import type { LiteratureLifecycle } from '@/common/adapter/literatureLifecycle';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
 
@@ -102,7 +103,8 @@ export function useLibraryWorkbench(
   selectedId: string,
   collectionId = '',
   projectId = '',
-  readingStatus: LiteratureReadingStatus | '' = ''
+  readingStatus: LiteratureReadingStatus | '' = '',
+  lifecycle: LiteratureLifecycle = 'active'
 ) {
   const [account, setAccount] = useState(getRendererAccountScopeToken);
   const [revision, setRevision] = useState(0);
@@ -120,9 +122,10 @@ export function useLibraryWorkbench(
         collectionId: collectionId || undefined,
         projectId: projectId || undefined,
         readingStatus: readingStatus || undefined,
+        lifecycle,
         signal,
       }),
-    [query, cursor, collectionId, projectId, readingStatus]
+    [query, cursor, collectionId, projectId, readingStatus, lifecycle]
   );
   const detailRequest = useCallback(
     (signal: AbortSignal) => (selectedId ? loadLiteratureItem(selectedId, signal) : Promise.resolve(undefined)),
@@ -137,10 +140,30 @@ export function useLibraryWorkbench(
   const projectRequest = useCallback((signal: AbortSignal) => loadXScienceProjects({ signal }), []);
   const list = useLibraryRead(
     account,
-    JSON.stringify([account, 'list', query, cursor, collectionId, projectId, readingStatus, revision, dataRevision]),
+    JSON.stringify([
+      account,
+      'list',
+      query,
+      cursor,
+      collectionId,
+      projectId,
+      readingStatus,
+      ...(lifecycle === 'deleted' ? ['deleted'] : []),
+      revision,
+      dataRevision,
+    ]),
     listRequest,
     query ? 200 : 0,
-    JSON.stringify([account, 'list', query, cursor, collectionId, projectId, readingStatus])
+    JSON.stringify([
+      account,
+      'list',
+      query,
+      cursor,
+      collectionId,
+      projectId,
+      readingStatus,
+      ...(lifecycle === 'deleted' ? ['deleted'] : []),
+    ])
   );
   const detail = useLibraryRead(
     account,

@@ -610,7 +610,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     await ready();
     changeStatus('read');
     await savedStatus('read');
-    await waitFor(() => expect(within(list()).queryByRole('button', { name: /Synthetic paper-a/ })).toBeNull());
+    await waitFor(() => expect(within(list()).queryByRole('button', { name: 'Synthetic paper-a' })).toBeNull());
     expect(locationParams().get('item')).toBe('paper-a');
     expect(locationParams().get('reading_status')).toBe('unread');
     expect(within(detail()).getByRole('heading', { name: 'Synthetic paper-a' })).toBeInTheDocument();
@@ -674,7 +674,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     expect(screen.getByTestId('instrumented-library-pdf')).toBe(preview);
     expect(api.count('/api/literature/items/reading-status', 'POST')).toBe(1);
     fireEvent.click(retry);
-    await within(list()).findByRole('button', { name: /Synthetic paper-a/ });
+    await within(list()).findByRole('button', { name: 'Synthetic paper-a' });
     await savedStatus('read');
     expect(within(detail()).getByRole('textbox', { name: 'Title' })).toBe(input);
     expect(input).toHaveValue('Unsaved local title');

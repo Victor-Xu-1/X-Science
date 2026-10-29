@@ -2433,6 +2433,16 @@
     "previousScope": "This batch belongs to a previous Library view.",
     "scopeChanged": "The Library view changed. Unsent work is kept for the original scope."
   },
+  "libraryLifecycle": {
+    "trash": "Trash",
+    "description": "Restore references moved to Trash. Their files and project links are preserved.",
+    "moveToTrash": "Move to Trash",
+    "restore": "Restore",
+    "actions": "Actions",
+    "actionsFor": "Actions for {{title}}",
+    "empty": "Trash is empty",
+    "emptyHint": "References moved to Trash will appear here until restored."
+  },
   "libraryNotes": {
     "forPaper": "Note for {{title}}",
     "placeholder": "Add a note…",

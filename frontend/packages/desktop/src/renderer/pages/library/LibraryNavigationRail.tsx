@@ -1,5 +1,15 @@
 import React, { useId, useState } from 'react';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronRight, FolderOpen, Inbox, PanelLeft, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+  Inbox,
+  PanelLeft,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { libraryCollectionRows } from './LibraryCollectionSidebar';
 import type { useLibraryWorkbench } from './useLibraryWorkbench';
@@ -89,10 +99,12 @@ export function LibraryNavigationRail({
   toggle,
   back,
   inbox,
+  trash = false,
   collectionId,
   projectId,
   busy,
   selectInbox,
+  selectTrash,
   selectCollection,
   selectProject,
   create,
@@ -102,10 +114,12 @@ export function LibraryNavigationRail({
   toggle: () => void;
   back: () => void;
   inbox: boolean;
+  trash?: boolean;
   collectionId: string;
   projectId: string;
   busy: boolean;
   selectInbox: () => void;
+  selectTrash?: () => void;
   selectCollection: (id: string) => void;
   selectProject: (id: string) => void;
   create: () => void;
@@ -173,12 +187,25 @@ export function LibraryNavigationRail({
           className='library-rail__entry'
           aria-label={t('conversation.libraryWorkbench.allReferences')}
           title={collapsed ? t('conversation.libraryWorkbench.allReferences') : undefined}
-          aria-current={!inbox && !collectionId && !projectId ? 'page' : undefined}
+          aria-current={!inbox && !trash && !collectionId && !projectId ? 'page' : undefined}
           onClick={() => selectCollection('')}
         >
           <BookOpen size={16} aria-hidden='true' />
           <span>{t('conversation.libraryWorkbench.allReferences')}</span>
         </button>
+        {selectTrash && (
+          <button
+            type='button'
+            className='library-rail__entry'
+            aria-label={t('conversation.libraryLifecycle.trash')}
+            title={collapsed ? t('conversation.libraryLifecycle.trash') : undefined}
+            aria-current={trash ? 'page' : undefined}
+            onClick={selectTrash}
+          >
+            <Trash2 size={16} aria-hidden='true' />
+            <span>{t('conversation.libraryLifecycle.trash')}</span>
+          </button>
+        )}
         <div className='library-rail__groups'>
           <RailGroup
             label={t('conversation.libraryWorkbench.projects')}

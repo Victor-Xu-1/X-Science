@@ -2433,6 +2433,16 @@
     "previousScope": "此批次属于之前的文献库视图。",
     "scopeChanged": "文献库视图已变化，尚未发送的操作仍保留在原范围。"
   },
+  "libraryLifecycle": {
+    "trash": "回收站",
+    "description": "可恢复移入回收站的文献，文件与项目关联均会保留。",
+    "moveToTrash": "移入回收站",
+    "restore": "恢复",
+    "actions": "操作",
+    "actionsFor": "{{title}}的操作",
+    "empty": "回收站为空",
+    "emptyHint": "移入回收站的文献会显示在此，可随时恢复。"
+  },
   "libraryNotes": {
     "forPaper": "{{title}}的笔记",
     "placeholder": "添加笔记…",

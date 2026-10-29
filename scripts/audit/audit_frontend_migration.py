@@ -130,6 +130,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    'packages/desktop/src/common/adapter/literatureLifecycle.ts': 'Define the closed active/deleted Literature lifecycle shared by the existing typed list and selection transports; no alternate query or persistence owner is introduced.',
     "tests/unit/renderer/ProjectHistoryArtifactRefresh.dom.test.tsx": "Verify the real artifact protocol/runtime/bridge refreshes canonical project totals while fencing old reads, account changes and unmount cleanup.",
     "packages/desktop/src/renderer/components/layout/useLibraryRailPresentation.ts": "Adapt Open Science b664635320b5 sidebar collapse and shortcut semantics to one existing Layout rail; account-fenced portal leases and retained Web mobile focus are X-Science additions, without another navigation or catalogue owner.",
     "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations.",
@@ -710,9 +711,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "0d35a269af65b724efbd51fd78ccbf6fa794ce206c0fc226ea2b67dba62d6ac7"
+APPROVED_ADAPTATION_FINGERPRINT = "b5a6e591cbcecd2934f90f8aecd10ea8b8a1c303b8e5a5829bbd69ccb1095f37"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "37caa13c4c16de7ec3b0e0677b11353d9e0884fb63733f925b05a8050979c64a"
+APPROVED_ADDITION_FINGERPRINT = "9dc1f0638adfc113c71a90f5b482ac26b0f7a67ceab2ac0d40006e1f6aef8c39"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
