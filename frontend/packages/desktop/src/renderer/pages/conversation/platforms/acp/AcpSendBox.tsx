@@ -97,7 +97,7 @@ import { useAcpRuntimeActions } from './useAcpRuntimeActions';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import { useAcpCommandAuthority } from './useAcpCommandAuthority';
 import { useAcpCommandPreparation } from './useAcpCommandPreparation';
-import { AcpPreparationCancelledError } from './acpCommandExecutionTypes';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import { sessionOptionsRetrySnapshot } from '@/renderer/services/xScienceSessionOptions';
 import './conversationQueueDock.css';
 
@@ -561,7 +561,7 @@ const AcpSendBox: React.FC<{
         if (specialistAuthorityInvalid)
           throw new Error(t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed'));
         if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority)
-          throw new AcpPreparationCancelledError();
+          throw new ConversationPreparationCancelledError();
         submissionTicket ??= runtimeView.markSendStarted('preparing');
         setAiProcessing(true);
         // Surface the submitted message immediately. Durable history replaces
@@ -587,7 +587,7 @@ const AcpSendBox: React.FC<{
           preparedAuthority,
           submissionTicket
         );
-        if (!runtimeView.markSendDispatched(submissionTicket)) throw new AcpPreparationCancelledError();
+        if (!runtimeView.markSendDispatched(submissionTicket)) throw new ConversationPreparationCancelledError();
         const pending = ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
@@ -652,7 +652,7 @@ const AcpSendBox: React.FC<{
       } catch (error: unknown) {
         if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) throw error;
         removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
-        if (error instanceof AcpPreparationCancelledError) throw error;
+        if (error instanceof ConversationPreparationCancelledError) throw error;
         const pendingRetry = directCommandRetryRef.current;
         if (
           pendingRetry?.item.id === id &&

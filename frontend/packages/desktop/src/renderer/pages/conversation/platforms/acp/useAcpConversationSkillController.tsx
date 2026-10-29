@@ -5,7 +5,8 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { parseError } from '@/common/utils';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
-import { AcpPreparationCancelledError, type CommandExecutionAuthority } from './acpCommandExecutionTypes';
+import type { CommandExecutionAuthority } from './acpCommandExecutionTypes';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
 import { ConversationSkillTaskStatus } from './ConversationSkillTaskStatus';
 import { redactErrorText } from './errorDiagnostics';
@@ -106,7 +107,7 @@ export function useAcpConversationSkillController(options: Options) {
       try {
         command.authority ??= await resolveCommandExecutionAuthority(false, false, true);
       } catch (error) {
-        if (!runtimeView.isSendPreparing(submissionTicket)) throw new AcpPreparationCancelledError();
+        if (!runtimeView.isSendPreparing(submissionTicket)) throw new ConversationPreparationCancelledError();
         runtimeView.markSendFailed(redactErrorText(parseError(error) || t('common.unknownError')), submissionTicket);
         if (mountedRef.current && conversationAuthorityRef.current === scope) {
           setAiProcessing(false);
@@ -119,7 +120,7 @@ export function useAcpConversationSkillController(options: Options) {
         !runtimeView.isSendPreparing(submissionTicket)
       ) {
         runtimeView.cancelSendPreparation(submissionTicket);
-        throw new AcpPreparationCancelledError();
+        throw new ConversationPreparationCancelledError();
       }
       try {
         await executeCommand(

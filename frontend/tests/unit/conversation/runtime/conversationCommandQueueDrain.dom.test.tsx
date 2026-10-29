@@ -9,7 +9,7 @@ import { createElement, type PropsWithChildren } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Message } from '@arco-design/web-react';
-import { AcpPreparationCancelledError } from '@/renderer/pages/conversation/platforms/acp/acpCommandExecutionTypes';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import {
   type ConversationCommandQueueRuntimeGate,
   type ConversationCommandQueueItem,
@@ -107,7 +107,7 @@ describe('useConversationCommandQueue drain', () => {
       .fn()
       .mockImplementationOnce(async () => {
         await preparation;
-        throw new AcpPreparationCancelledError();
+        throw new ConversationPreparationCancelledError();
       })
       .mockResolvedValue(undefined);
     const queue = renderQueue({

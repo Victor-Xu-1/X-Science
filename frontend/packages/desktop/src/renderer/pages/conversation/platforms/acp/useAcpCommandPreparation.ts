@@ -4,11 +4,8 @@ import type { ContextCompactionController } from '@/renderer/services/compaction
 import type { useConversationRuntimeView } from '../../runtime/useConversationRuntimeView';
 import type { ConversationCommandQueueItem } from '../useConversationCommandQueue';
 import type { useAcpCommandAuthority } from './useAcpCommandAuthority';
-import {
-  AcpPreparationCancelledError,
-  type CommandExecutionAuthority,
-  type DirectCommandRetry,
-} from './acpCommandExecutionTypes';
+import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 
 type Options = {
   compaction: ContextCompactionController | null;
@@ -43,7 +40,7 @@ export function useAcpCommandPreparation({
       const checkCurrent = () => {
         if (!mounted.current || authority.current !== origin || !runtime.isSendPreparing(ticket)) {
           runtime.cancelSendPreparation(ticket);
-          throw new AcpPreparationCancelledError();
+          throw new ConversationPreparationCancelledError();
         }
       };
       try {
@@ -53,7 +50,7 @@ export function useAcpCommandPreparation({
           checkCurrent();
           if (!compaction.current()) {
             runtime.cancelSendPreparation(ticket);
-            throw new AcpPreparationCancelledError();
+            throw new ConversationPreparationCancelledError();
           }
           if (!admitted) throw new Error(t('conversation.manualCompaction.waitingForPrompt'));
         }

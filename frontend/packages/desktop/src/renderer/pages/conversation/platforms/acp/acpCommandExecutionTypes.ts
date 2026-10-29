@@ -12,11 +12,3 @@ export type DirectCommandRetry = {
   item: ConversationCommandQueueItem;
   authority?: CommandExecutionAuthority;
 };
-
-/** An owned preparation was withdrawn before transport, never an admitted execution failure. */
-export class AcpPreparationCancelledError extends Error {
-  constructor() {
-    super('conversation_preparation_cancelled');
-    this.name = 'AcpPreparationCancelledError';
-  }
-}
