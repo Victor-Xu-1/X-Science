@@ -5,6 +5,9 @@ import {
   hydrateSucceeded,
   localSendAccepted,
   localSendStarted,
+  isLocalSendPreparing,
+  localSendDispatched,
+  cancelLocalSendPreparation,
   localStopAcknowledged,
   localStopRequested,
   resetConversationRuntimeViewStoreForTest,
@@ -47,6 +50,65 @@ describe('conversationRuntimeViewStore turn id contract', () => {
   beforeEach(() => {
     resetConversationRuntimeViewStoreForTest();
     resetRendererAccountScopeForTest();
+  });
+
+  it('pre-dispatch Stop cancels one exact ticket idempotently and cannot withdraw a newer or dispatched ticket', () => {
+    hydrateSucceeded('preparation-frame', idleRuntime());
+    const old = {};
+    localSendStarted('preparation-frame', old, 'preparing');
+    expect(isLocalSendPreparing('preparation-frame', old)).toBe(true);
+    expect(cancelLocalSendPreparation('preparation-frame', old).cancelled).toBe(true);
+    expect(cancelLocalSendPreparation('preparation-frame', old)).toEqual({ cancelled: true, logs: [] });
+    expect(localSendDispatched('preparation-frame', old)).toBe(false);
+    expect(
+      localSendAccepted('preparation-frame', 'old-turn', runningRuntime('old-turn'), undefined, { ticket: old })
+    ).toEqual([]);
+    hydrateSucceeded('preparation-frame', runningRuntime('admitted-other-client'));
+    expect(cancelLocalSendPreparation('preparation-frame').cancelled).toBe(false);
+    expect(
+      localSendAccepted('preparation-frame', 'old-turn', runningRuntime('old-turn'), undefined, { ticket: old })
+    ).toEqual([]);
+    const next = {};
+    localSendStarted('preparation-frame', next, 'preparing');
+    expect(cancelLocalSendPreparation('preparation-frame', old).cancelled).toBe(false);
+    expect(isLocalSendPreparing('preparation-frame', next)).toBe(true);
+    expect(localSendDispatched('preparation-frame', next)).toBe(true);
+    expect(localSendDispatched('preparation-frame', next)).toBe(false);
+    expect(cancelLocalSendPreparation('preparation-frame', next).cancelled).toBe(false);
+    expect(
+      localSendAccepted('preparation-frame', 'next-turn', runningRuntime('next-turn'), undefined, { ticket: next })
+    ).not.toEqual([]);
+    expect(getConversationRuntimeViewSnapshot('preparation-frame')).toMatchObject({
+      state: 'running',
+      activeTurnId: 'next-turn',
+    });
+    const legacy = {};
+    localSendStarted('legacy-transport-frame', legacy);
+    expect(cancelLocalSendPreparation('legacy-transport-frame', legacy).cancelled).toBe(false);
+  });
+
+  it('pre-dispatch Stop yields a cancelled marker to canonical waiting approval without accepting old callbacks', () => {
+    const ticket = {};
+    localSendStarted('approval-frame', ticket, 'preparing');
+    expect(cancelLocalSendPreparation('approval-frame', ticket).cancelled).toBe(true);
+    // Same projection emitted by webConversationRuntimeWithActions for an admitted plan approval.
+    hydrateSucceeded('approval-frame', {
+      state: 'waiting_approval',
+      can_send_message: true,
+      has_task: true,
+      task_status: 'pending',
+      is_processing: false,
+      pending_confirmations: 1,
+      turn_id: 'approval-frame',
+    });
+    expect(cancelLocalSendPreparation('approval-frame').cancelled).toBe(false);
+    expect(localSendAccepted('approval-frame', 'old-turn', runningRuntime('old-turn'), undefined, { ticket })).toEqual(
+      []
+    );
+    expect(getConversationRuntimeViewSnapshot('approval-frame')).toMatchObject({
+      state: 'waiting_approval',
+      activeTurnId: 'approval-frame',
+    });
   });
 
   it('clears runtime projection state when the authenticated owner changes', () => {

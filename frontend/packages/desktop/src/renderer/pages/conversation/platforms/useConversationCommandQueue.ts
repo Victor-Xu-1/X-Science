@@ -1,6 +1,7 @@
 import { uuid } from '@/common/utils';
 import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
 import { decodePdfReadingSelection, type PdfReadingSelection } from '@/common/adapter/pdfReadingContext';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,6 +14,7 @@ import {
 } from '@/renderer/components/chat/SendBox/composerCompositionModel';
 import {
   getRendererAccountOwnerId,
+  getRendererAccountScopeToken,
   registerRendererAccountReset,
   rendererAccountScopedKey,
 } from '@/renderer/services/rendererAccountScope';
@@ -501,6 +503,12 @@ export const useConversationCommandQueue = ({
   isItemBlocked,
 }: UseConversationCommandQueueOptions) => {
   const { t } = useTranslation();
+  const queueScopeRef = useRef(conversation_id);
+  queueScopeRef.current = conversation_id;
+  const currentQueueScope = useCallback(
+    () => JSON.stringify([getRendererAccountScopeToken(), queueScopeRef.current]),
+    []
+  );
   const executionGate = getCommandQueueExecutionGate({ isBusy, isHydrated, runtimeGate });
   const { data = createDefaultQueueState(), mutate } = useSWR(
     [`/conversation-command-queue/${conversation_id}`, conversation_id, enabled],
@@ -590,8 +598,10 @@ export const useConversationCommandQueue = ({
 
   const updateState = useCallback(
     (
-      updater: (state: ConversationCommandQueueState) => ConversationCommandQueueState
+      updater: (state: ConversationCommandQueueState) => ConversationCommandQueueState,
+      expectedScope?: string
     ): Promise<ConversationCommandQueueState | undefined> => {
+      if (expectedScope !== undefined && expectedScope !== currentQueueScope()) return Promise.resolve(undefined);
       if (!enabled) {
         const nextState = createDefaultQueueState();
         stateRef.current = nextState;
@@ -602,6 +612,7 @@ export const useConversationCommandQueue = ({
 
       return mutate(
         (current) => {
+          if (expectedScope !== undefined && expectedScope !== currentQueueScope()) return current;
           const nextState = normalizeQueueState(updater(current ?? createDefaultQueueState()));
           stateRef.current = nextState;
           pausedRef.current = nextState.isPaused;
@@ -611,7 +622,7 @@ export const useConversationCommandQueue = ({
         { revalidate: false }
       );
     },
-    [conversation_id, enabled, mutate]
+    [conversation_id, currentQueueScope, enabled, mutate]
   );
 
   const clear = useCallback(() => {
@@ -814,6 +825,8 @@ export const useConversationCommandQueue = ({
 
   const executeQueuedCommand = useCallback(
     async (commandId: string, source: 'automatic' | 'send_now' | 'retry'): Promise<boolean> => {
+      const commandScope = JSON.stringify([getRendererAccountScopeToken(), conversation_id]);
+      if (commandScope !== currentQueueScope()) return false;
       const currentState = normalizeQueueState(stateRef.current);
       const command = currentState.items.find((item) => item.id === commandId);
       if (!command) return false;
@@ -849,6 +862,26 @@ export const useConversationCommandQueue = ({
         await onExecute({ ...command, pausedReason: undefined });
         return true;
       } catch (error) {
+        if (error instanceof ConversationPreparationCancelledError) {
+          if (commandScope !== currentQueueScope()) return false;
+          waitingForTurnStartRef.current = false;
+          waitingForTurnCompletionRef.current = false;
+          pausedRef.current = true;
+          await updateState((state) => {
+            const items = [...state.items];
+            if (!items.some((item) => item.id === command.id)) {
+              const originalIndex = currentState.items.findIndex((item) => item.id === command.id);
+              items.splice(Math.min(originalIndex, items.length), 0, { ...command, pausedReason: undefined });
+            }
+            return { ...state, items, isPaused: true, pauseReason: 'interrupted' };
+          }, commandScope);
+          if (commandScope === currentQueueScope())
+            logCommandQueue(conversation_id, 'execution-interrupted', {
+              source,
+              item: summarizeQueuedCommand(command),
+            });
+          return false;
+        }
         console.error('[conversation-command-queue] Failed to execute queued command:', error);
         waitingForTurnStartRef.current = false;
         waitingForTurnCompletionRef.current = false;
@@ -867,7 +900,7 @@ export const useConversationCommandQueue = ({
         return false;
       }
     },
-    [conversation_id, onExecute, t, updateState]
+    [conversation_id, currentQueueScope, onExecute, t, updateState]
   );
 
   const sendNow = useCallback(

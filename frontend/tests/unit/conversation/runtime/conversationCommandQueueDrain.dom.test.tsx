@@ -8,6 +8,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { createElement, type PropsWithChildren } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Message } from '@arco-design/web-react';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import {
   type ConversationCommandQueueRuntimeGate,
   type ConversationCommandQueueItem,
@@ -94,6 +96,58 @@ const renderQueue = ({
   );
 
 describe('useConversationCommandQueue drain', () => {
+  it('pre-dispatch Stop restores an interrupted queued preparation without failure or automatic replay', async () => {
+    setRendererAccountOwner('queue-stop-owner');
+    vi.mocked(Message.warning).mockClear();
+    let release!: () => void;
+    const preparation = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const execute = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        await preparation;
+        throw new ConversationPreparationCancelledError();
+      })
+      .mockResolvedValue(undefined);
+    const queue = renderQueue({
+      conversation_id: 'queued-preparation',
+      runtimeGate: processingGate,
+      onExecute: execute,
+    });
+    act(() => queue.result.current.enqueue({ input: 'Preserve this queued input', files: ['frozen-input.txt'] }));
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(1));
+    const original = queue.result.current.items[0];
+    let sending!: Promise<boolean>;
+    await act(async () => {
+      sending = queue.result.current.sendNow(original.id);
+    });
+    await waitFor(() => expect(execute).toHaveBeenCalledOnce());
+    expect(queue.result.current.items).toHaveLength(0);
+    act(() => queue.result.current.resetActiveExecution('stop'));
+    await act(async () => {
+      release();
+      expect(await sending).toBe(false);
+    });
+    await waitFor(() => expect(queue.result.current.items).toHaveLength(1));
+    expect(queue.result.current.items[0]).toEqual(original);
+    expect(queue.result.current.items[0].pausedReason).toBeUndefined();
+    expect(queue.result.current.isPaused).toBe(true);
+    expect(Message.warning).not.toHaveBeenCalled();
+    const stored = JSON.parse(
+      localStorage.getItem('conversation-command-queue/v2/queue-stop-owner/queued-preparation')!
+    );
+    expect(stored).toMatchObject({ isPaused: true, pauseReason: 'interrupted', items: [original] });
+    queue.rerender({ gate: idleGate, busy: false });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(execute).toHaveBeenCalledOnce();
+    act(() => queue.result.current.resume());
+    await waitFor(() => expect(execute).toHaveBeenCalledTimes(2));
+    expect(execute.mock.calls[1][0]).toEqual(original);
+  });
+
   it('C12 freezes reading selection in the existing local queue and retains it on real admission conflict', async () => {
     setRendererAccountOwner('pdf-owner');
     const original = pdfSelection();

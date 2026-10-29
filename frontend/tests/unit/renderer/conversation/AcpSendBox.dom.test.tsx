@@ -22,6 +22,13 @@ import { pdfBinding, pdfContext } from './pdfReadingFixtures';
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
 import { getRendererAccountOwnerId, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { clearXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
+import { getContextCompactionController } from '@/renderer/services/compaction/contextCompactionRegistry';
+import {
+  localSendFailed,
+  localSendStarted,
+  resetConversationRuntimeViewStoreForTest,
+} from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+import * as runtimeStore from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import type { StagedSessionOptions } from '@/renderer/hooks/chat/sendBoxDraftPersistence';
 import { retainCompactionCapacity } from './contextCompactionCapacityTestFixture';
 import { registerSpecialistAsideCases, type SpecialistAsideFixture } from './acpSpecialistAsideCases';
@@ -56,6 +63,7 @@ const specialistAsideFixture: SpecialistAsideFixture = {
   remove: vi.fn(),
 };
 const compactionEnqueueMock = vi.fn();
+const clearFilesMock = vi.fn();
 const sendBoxProps = {
   current: null as { allowSendWhileLoading?: boolean; bottomHint?: React.ReactNode } | null,
 };
@@ -153,6 +161,9 @@ const runtimeViewMock = {
   markStopAcknowledged: vi.fn(),
   resetLocalGate: vi.fn(),
   markSendStarted: vi.fn(),
+  isSendPreparing: vi.fn(),
+  markSendDispatched: vi.fn(),
+  cancelSendPreparation: vi.fn(),
   markSendAccepted: vi.fn(),
   markSendFailed: vi.fn(),
   isProcessing: true,
@@ -538,7 +549,7 @@ vi.mock('@/renderer/hooks/chat/useSendBoxDraft', () => ({
 vi.mock('@/renderer/hooks/chat/useSendBoxFiles', () => ({
   useSendBoxFiles: () => ({
     handleFilesAdded: vi.fn(),
-    clearFiles: vi.fn(),
+    clearFiles: clearFilesMock,
   }),
   createSetUploadFile: () => vi.fn(),
 }));
@@ -558,9 +569,6 @@ vi.mock('@/renderer/hooks/file/useOpenFileSelector', () => ({
     openFileSelector: vi.fn(),
     onSlashBuiltinCommand: vi.fn(),
   }),
-}));
-vi.mock('@/renderer/hooks/ui/useLatestRef', () => ({
-  useLatestRef: <T,>(value: T) => ({ current: value }),
 }));
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
@@ -931,6 +939,202 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  it.each(['ordinary', 'save-as-skill'] as const)(
+    'pre-dispatch Stop prevents %s branch preparation from sending after Stop returns',
+    async (kind) => {
+      runtimeViewMock.isProcessing = false;
+      runtimeViewMock.canSendMessage = true;
+      runtimeViewMock.activeTurnId = null;
+      runtimeViewMock.state = 'idle';
+      runtimeViewMock.view.taskStatus = 'finished';
+      sendBoxDraftSeed.current = 'Keep the original draft.';
+      getSelectedBranchMock.mockReturnValue('branch-preparing');
+      const branch = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+      loadBranchStateMock.mockReturnValueOnce(branch.promise);
+      sendMessageInvokeMock.mockReset().mockImplementation(acceptSkillTaskSend);
+      await render(
+        <AcpSendBox conversation_id='conv-stop-preparing' backend='xscience' messageState={makeMessageState()} />
+      );
+      let saving: Promise<void> | undefined;
+      await act(async () => {
+        if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: 'send' }));
+        else {
+          const save = fileAttachProps.current?.onSaveSkill;
+          if (typeof save !== 'function') throw new Error('Missing Save-as-Skill entry');
+          saving = save() as Promise<void>;
+        }
+      });
+      await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledOnce());
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(runtimeOperationsProps.current?.onStop).toBeTypeOf('function');
+      await act(async () => {
+        await runtimeOperationsProps.current?.onStop?.();
+        await runtimeOperationsProps.current?.onStop?.();
+      });
+      if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: 'change' }));
+      await act(async () => {
+        branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
+        await branch.promise;
+        await saving;
+      });
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(clearFilesMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(
+        kind === 'ordinary' ? 'hello' : 'Keep the original draft.'
+      );
+      if (kind === 'save-as-skill') {
+        expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false);
+        fireEvent.click(screen.getByRole('button', { name: 'change' }));
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+      }
+    }
+  );
+
+  it.each(['ordinary', 'save-as-skill'] as const)(
+    'pre-dispatch Stop prevents %s final maintenance preparation from sending after Stop returns',
+    async (kind) => {
+      sendMessageInvokeMock.mockReset();
+      sendBoxDraftSeed.current = 'Keep the maintenance draft.';
+      let snapshot = manualCompactionSnapshot();
+      const cancelled = {
+        ...manualCompactionReceipt(),
+        state: 'cancelled',
+        cancellation_status: 'cancelled',
+        execution_observation: 'settled',
+        can_submit_next_input: true,
+        terminal_event_id: 25,
+      };
+      const cancellation = createDeferred<typeof cancelled>();
+      const harness = await renderManualCompaction(snapshot, manualCompactionUsage(), (method, path, body) => {
+        if (method === 'GET' && path === manualCompactionPath) return snapshot;
+        if (method === 'DELETE') {
+          expect(path).toBe(`${manualCompactionPath}/by-request/${cancelled.request.request_id}`);
+          expect(body).toEqual(cancelled.request);
+          return cancellation.promise;
+        }
+        if (method === 'GET' && path.includes('/by-request/')) return snapshot.operation;
+        throw new Error(`Unexpected maintenance Stop request: ${method} ${path}`);
+      });
+      const controller = getContextCompactionController(manualCompactionIdentity);
+      if (!controller) throw new Error('Missing original maintenance controller');
+      const preparation = createDeferred<boolean>();
+      const prepare = vi.spyOn(controller, 'prepareForPrompt').mockReturnValueOnce(preparation.promise);
+      let saving: Promise<void> | undefined;
+      try {
+        await act(async () => {
+          if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: 'send' }));
+          else {
+            const save = fileAttachProps.current?.onSaveSkill;
+            if (typeof save !== 'function') throw new Error('Missing Save-as-Skill entry');
+            saving = save() as Promise<void>;
+          }
+        });
+        await waitFor(() => expect(prepare).toHaveBeenCalledOnce());
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        expect(runtimeOperationsProps.current?.onStop).toBeTypeOf('function');
+        await act(async () => {
+          snapshot = manualCompactionSnapshot(manualCompactionReceipt());
+          await controller.refresh();
+        });
+        let stopping!: Promise<void>;
+        await act(async () => {
+          stopping = Promise.resolve(runtimeOperationsProps.current?.onStop?.());
+        });
+        await waitFor(() =>
+          expect(harness.transport.mock.calls.filter(([method]) => method === 'DELETE')).toHaveLength(1)
+        );
+        if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: 'change' }));
+        await act(async () => {
+          preparation.resolve(true);
+          await preparation.promise;
+          await saving;
+        });
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        expect(clearFilesMock).not.toHaveBeenCalled();
+        await act(async () => {
+          cancellation.resolve(cancelled);
+          await stopping;
+        });
+        expect(controller.getSnapshot().receipt).toMatchObject({
+          state: 'cancelled',
+          execution_observation: 'settled',
+        });
+        expect(stopInvokeMock).not.toHaveBeenCalled();
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(
+          kind === 'ordinary' ? 'hello' : 'Keep the maintenance draft.'
+        );
+        if (kind === 'save-as-skill') {
+          expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false);
+          fireEvent.click(screen.getByRole('button', { name: 'change' }));
+          expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('hello');
+        }
+      } finally {
+        preparation.resolve(true);
+        cancellation.resolve(cancelled);
+        prepare.mockRestore();
+        harness.dispose();
+      }
+    }
+  );
+
+  it('pre-dispatch Stop leaves an ordinary send without cancellation on its single accepted path', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.activeTurnId = null;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    sendMessageInvokeMock.mockReset().mockImplementation(acceptSkillTaskSend);
+    await render(
+      <AcpSendBox conversation_id='conv-normal-preparing' backend='xscience' messageState={makeMessageState()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'send' }));
+    await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
+    await waitFor(() => expect(clearFilesMock).toHaveBeenCalledOnce());
+    expect(runtimeViewMock.markSendAccepted).toHaveBeenCalledOnce();
+    expect(stopInvokeMock).not.toHaveBeenCalled();
+  });
+
+  it('pre-dispatch Stop keeps an invoked send and its late acknowledgement under backend cancellation', async () => {
+    runtimeViewMock.isProcessing = false;
+    runtimeViewMock.canSendMessage = true;
+    runtimeViewMock.activeTurnId = null;
+    runtimeViewMock.state = 'idle';
+    runtimeViewMock.view.taskStatus = 'finished';
+    const response = createDeferred<{
+      msg_id: string;
+      turn_id: string;
+      runtime: { state: string; is_processing: boolean };
+    }>();
+    sendMessageInvokeMock.mockReset().mockReturnValueOnce(response.promise);
+    await render(
+      <AcpSendBox conversation_id='conv-unknown-ack' backend='xscience' messageState={makeMessageState()} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'send' }));
+    await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
+    const sent = sendMessageInvokeMock.mock.calls[0]?.[0];
+    await act(async () => {
+      await runtimeOperationsProps.current?.onStop?.();
+    });
+    expect(runtimeViewMock.cancelSendPreparation).toHaveLastReturnedWith(false);
+    expect(stopInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-unknown-ack', turn_id: 'conv-unknown-ack' });
+    await act(async () => {
+      response.resolve({
+        msg_id: 'accepted-late',
+        turn_id: 'late-turn',
+        runtime: { state: 'running', is_processing: true },
+      });
+      await response.promise;
+    });
+    expect(sendMessageInvokeMock).toHaveBeenCalledOnce();
+    expect(sendMessageInvokeMock.mock.calls[0]?.[0]).toBe(sent);
+    expect(runtimeViewMock.markSendAccepted).toHaveBeenCalledWith('late-turn', expect.any(Object), 'accepted-late', {
+      ticket: runtimeViewMock.markSendStarted.mock.results[0]?.value,
+      receipt: undefined,
+    });
+    expect(stopInvokeMock).toHaveBeenCalledOnce();
+  });
+
   registerComputeRootCases({
     render,
     messageState: makeMessageState,
@@ -1186,6 +1390,7 @@ describe('AcpSendBox', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetConversationRuntimeViewStoreForTest();
     specialistAsideFixture.active = false;
     specialistAsideFixture.item = null;
     specialistAsideFixture.draft = {};
@@ -1250,7 +1455,23 @@ describe('AcpSendBox', () => {
     });
     askSideQuestionMock.mockResolvedValue(undefined);
     runtimeViewMock.activeTurnId = 'turn-1';
-    runtimeViewMock.markSendStarted.mockImplementation(() => ({}));
+    runtimeViewMock.markSendStarted.mockImplementation((phase?: 'preparing') => {
+      const ticket = {};
+      localSendStarted('composer-test-reservation', ticket, phase);
+      return ticket;
+    });
+    runtimeViewMock.isSendPreparing.mockImplementation((ticket: object) =>
+      runtimeStore.isLocalSendPreparing('composer-test-reservation', ticket)
+    );
+    runtimeViewMock.markSendDispatched.mockImplementation((ticket: object) =>
+      runtimeStore.localSendDispatched('composer-test-reservation', ticket)
+    );
+    runtimeViewMock.cancelSendPreparation.mockImplementation(
+      (ticket?: object) => runtimeStore.cancelLocalSendPreparation('composer-test-reservation', ticket).cancelled
+    );
+    runtimeViewMock.markSendFailed.mockImplementation((reason: string, ticket?: object) => {
+      localSendFailed('composer-test-reservation', reason, ticket);
+    });
     runtimeViewMock.isProcessing = true;
     runtimeViewMock.canSendMessage = false;
     runtimeViewMock.hydrated = true;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { uuid } from '@/common/utils/utils';
 import type { TMessage } from '@/common/chat/chatLib';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 
 export function isActiveConversationSkillTask(messages: readonly TMessage[], activeInputMessageId?: string | null) {
   return Boolean(
@@ -122,8 +123,14 @@ export function useConversationSkillTask({
       await startTask(scope.commandId);
       scope.sawRunning = true;
       if (isCurrent(scope)) publish(scope, { status: 'running' });
-    } catch {
-      if (isCurrent(scope)) publish(scope, { status: 'error' });
+    } catch (error) {
+      if (isCurrent(scope)) {
+        if (error instanceof ConversationPreparationCancelledError) {
+          scope.commandId = '';
+          scope.sawRunning = false;
+          publish(scope, { status: 'idle' });
+        } else publish(scope, { status: 'error' });
+      }
     } finally {
       scope.pending = false;
     }

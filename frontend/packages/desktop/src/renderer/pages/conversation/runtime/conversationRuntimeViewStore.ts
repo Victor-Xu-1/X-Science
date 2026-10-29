@@ -67,6 +67,7 @@ export type ConversationSendAcceptanceOptions = {
 type ConversationRuntimeMetadata = {
   pendingLocalSendSeq: number | null;
   pendingLocalSendTicket: object | null;
+  pendingLocalSendPhase: 'preparing' | 'dispatched' | 'cancelled' | null;
   pendingStopTurnId: string | null;
   lastCompletedTurnId: string | null;
 };
@@ -94,6 +95,7 @@ const touchRuntimeOwner = (conversation_id: string): void => {
 const createRuntimeMetadata = (): ConversationRuntimeMetadata => ({
   pendingLocalSendSeq: null,
   pendingLocalSendTicket: null,
+  pendingLocalSendPhase: null,
   pendingStopTurnId: null,
   lastCompletedTurnId: null,
 });
@@ -491,6 +493,7 @@ export const hydrateSucceeded = (
     runtime !== null &&
     runtime.can_send_message === true &&
     runtime.is_processing === false;
+  const canonicalRunObserved = runtime !== null && runtime.has_task && Boolean(runtime.turn_id);
   if (isStaleCompletedRuntimeSummary(runtime, metadata)) {
     return setConversationRuntimeSnapshot(
       conversation_id,
@@ -505,9 +508,17 @@ export const hydrateSucceeded = (
     );
   }
 
+  // A withdrawn local preparation never owned this canonical admitted run.
+  // Retire its duplicate-Stop marker without allowing its old callbacks to regain ownership.
+  if (metadata.pendingLocalSendPhase === 'cancelled' && canonicalRunObserved) {
+    metadata.pendingLocalSendTicket = null;
+    metadata.pendingLocalSendPhase = null;
+  }
+
   if (releasePendingLocalSend) {
     metadata.pendingLocalSendSeq = null;
     metadata.pendingLocalSendTicket = null;
+    metadata.pendingLocalSendPhase = null;
     metadata.pendingStopTurnId = null;
     metadata.lastCompletedTurnId = options.completedTurnId ?? metadata.lastCompletedTurnId;
   }
@@ -535,6 +546,7 @@ export const turnCompleted = (
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = null;
   metadata.pendingLocalSendTicket = null;
+  metadata.pendingLocalSendPhase = null;
   if (metadata.pendingStopTurnId === turn_id) {
     metadata.pendingStopTurnId = null;
   }
@@ -561,16 +573,58 @@ export const conversationDeleted = (conversation_id: string): ConversationRuntim
     : [];
 };
 
-export const localSendStarted = (conversation_id: string, ticket: object = {}): ConversationRuntimeViewLogEntry[] => {
+export const localSendStarted = (
+  conversation_id: string,
+  ticket: object = {},
+  phase: 'preparing' | 'dispatched' = 'dispatched'
+): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
   metadata.pendingLocalSendSeq = (metadata.pendingLocalSendSeq ?? 0) + 1;
   metadata.pendingLocalSendTicket = ticket;
+  metadata.pendingLocalSendPhase = phase;
   metadata.pendingStopTurnId = null;
   metadata.lastCompletedTurnId = null;
   return setConversationRuntimeSnapshot(
     conversation_id,
     localSendStartedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
   );
+};
+
+export const isLocalSendPreparing = (conversation_id: string, ticket: object): boolean => {
+  const metadata = getRuntimeMetadata(conversation_id);
+  return metadata.pendingLocalSendTicket === ticket && metadata.pendingLocalSendPhase === 'preparing';
+};
+
+/** Synchronous transport boundary: after this succeeds, Stop belongs to the backend. */
+export const localSendDispatched = (conversation_id: string, ticket: object): boolean => {
+  if (!isLocalSendPreparing(conversation_id, ticket)) return false;
+  getRuntimeMetadata(conversation_id).pendingLocalSendPhase = 'dispatched';
+  return true;
+};
+
+/** Cancel only the current unsubmitted reservation; duplicate Stop retains that exact result. */
+export const cancelLocalSendPreparation = (
+  conversation_id: string,
+  ticket?: object
+): { cancelled: boolean; logs: ConversationRuntimeViewLogEntry[] } => {
+  const metadata = getRuntimeMetadata(conversation_id);
+  if (!metadata.pendingLocalSendTicket || (ticket !== undefined && metadata.pendingLocalSendTicket !== ticket))
+    return { cancelled: false, logs: [] };
+  if (metadata.pendingLocalSendPhase === 'cancelled') return { cancelled: true, logs: [] };
+  if (metadata.pendingLocalSendPhase !== 'preparing') return { cancelled: false, logs: [] };
+  metadata.pendingLocalSendPhase = 'cancelled';
+  metadata.pendingLocalSendSeq = null;
+  return {
+    cancelled: true,
+    logs: setConversationRuntimeSnapshot(
+      conversation_id,
+      localSendFailedConversationRuntimeView(
+        runtimeViews.get(conversation_id),
+        conversation_id,
+        'preparation_cancelled'
+      )
+    ),
+  };
 };
 
 export const localSendAccepted = (
@@ -584,12 +638,14 @@ export const localSendAccepted = (
   // HTTP acknowledgements can arrive after a newer submission, account reset,
   // or terminal publication. Only the reservation that sent them may settle.
   if (options.ticket !== undefined && metadata.pendingLocalSendTicket !== options.ticket) return [];
+  if (metadata.pendingLocalSendPhase === 'cancelled') return [];
   if (options.receipt && (options.receipt.frame_id !== conversation_id || options.receipt.input_message_id !== msg_id))
     return [];
   const staleAfterCompleted = isStaleCompletedRuntimeSummary(runtime, metadata);
   if (!staleAfterCompleted) {
     metadata.pendingLocalSendSeq = null;
     metadata.pendingLocalSendTicket = null;
+    metadata.pendingLocalSendPhase = null;
   }
   return setConversationRuntimeSnapshot(
     conversation_id,
@@ -622,6 +678,7 @@ export const localSendFailed = (
   if (ticket !== undefined && metadata.pendingLocalSendTicket !== ticket) return [];
   metadata.pendingLocalSendSeq = null;
   metadata.pendingLocalSendTicket = null;
+  metadata.pendingLocalSendPhase = null;
   return setConversationRuntimeSnapshot(
     conversation_id,
     localSendFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, reason)

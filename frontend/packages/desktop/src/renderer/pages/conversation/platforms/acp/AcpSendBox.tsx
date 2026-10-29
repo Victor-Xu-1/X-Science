@@ -96,6 +96,8 @@ import { stopAcpConversation } from './acpStopAction';
 import { useAcpRuntimeActions } from './useAcpRuntimeActions';
 import type { CommandExecutionAuthority, DirectCommandRetry } from './acpCommandExecutionTypes';
 import { useAcpCommandAuthority } from './useAcpCommandAuthority';
+import { useAcpCommandPreparation } from './useAcpCommandPreparation';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import { sessionOptionsRetrySnapshot } from '@/renderer/services/xScienceSessionOptions';
 import './conversationQueueDock.css';
 
@@ -510,6 +512,15 @@ const AcpSendBox: React.FC<{
     sessionAutoReview
   );
 
+  const prepareCommand = useAcpCommandPreparation({
+    compaction: compaction.controller,
+    authority: conversationAuthorityRef,
+    mounted: mountedRef,
+    runtime: runtimeView,
+    resolveAuthority: resolveCommandExecutionAuthority,
+    retry: directCommandRetryRef,
+    t,
+  });
   const executeCommand = useCallback(
     async (
       {
@@ -549,19 +560,10 @@ const AcpSendBox: React.FC<{
         if (readingContextInvalid) throw new Error(t('conversation.reading.invalidQueued'));
         if (specialistAuthorityInvalid)
           throw new Error(t('conversation.xscienceRuntime.sessionOptions.specialistState.prepareFailed'));
-        if (compaction.controller) {
-          const admitted = await compaction.controller.prepareForPrompt();
-          if (!compaction.controller.current()) return;
-          if (!admitted) throw new Error(t('conversation.manualCompaction.waitingForPrompt'));
-        }
-        if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) return;
-        if (!turnIntent) void checkAndUpdateTitle(conversation_id, input);
-        // A control command reserves the same runtime gate before resolving
-        // branch authority. Ordinary commands reserve it here.
-        if (!turnIntent) {
-          submissionTicket = runtimeView.markSendStarted();
-          setAiProcessing(true);
-        }
+        if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority)
+          throw new ConversationPreparationCancelledError();
+        submissionTicket ??= runtimeView.markSendStarted('preparing');
+        setAiProcessing(true);
         // Surface the submitted message immediately. Durable history replaces
         // this optimistic row on the next canonical refresh; long-running
         // turns must never look empty while the model is still thinking.
@@ -580,17 +582,13 @@ const AcpSendBox: React.FC<{
             },
             true
           );
-        const commandAuthority =
-          preparedAuthority ??
-          (await resolveCommandExecutionAuthority(planMode, !turnIntent, false, specialistAuthority ?? {}));
-        const pendingRetry = directCommandRetryRef.current;
-        if (pendingRetry?.item.id === id && pendingRetry.authority === undefined) {
-          directCommandRetryRef.current = {
-            ...pendingRetry,
-            authority: commandAuthority,
-          };
-        }
-        const result = await ipcBridge.acpConversation.sendMessage.invoke({
+        const commandAuthority = await prepareCommand(
+          { id, planMode, turnIntent, specialistAuthority },
+          preparedAuthority,
+          submissionTicket
+        );
+        if (!runtimeView.markSendDispatched(submissionTicket)) throw new ConversationPreparationCancelledError();
+        const pending = ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           loading_id: id,
@@ -602,6 +600,8 @@ const AcpSendBox: React.FC<{
           inject_mcp_server_ids: capabilityPayload.injectMcpServerIds,
           session_options: commandAuthority.sessionOptions,
         });
+        if (!turnIntent) void checkAndUpdateTitle(conversation_id, input);
+        const result = await pending;
         if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) return;
         const accepted = runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id, {
           ticket: submissionTicket,
@@ -652,6 +652,7 @@ const AcpSendBox: React.FC<{
       } catch (error: unknown) {
         if (!mountedRef.current || conversationAuthorityRef.current !== conversationAuthority) throw error;
         removeMessageByMsgIdRef.current(`${X_SCIENCE_OPTIMISTIC_USER_MESSAGE_PREFIX}${id}`);
+        if (error instanceof ConversationPreparationCancelledError) throw error;
         const pendingRetry = directCommandRetryRef.current;
         if (
           pendingRetry?.item.id === id &&
@@ -716,10 +717,9 @@ const AcpSendBox: React.FC<{
     [
       backend,
       checkAndUpdateTitle,
-      compaction.controller,
+      prepareCommand,
       conversation_id,
       resetState,
-      resolveCommandExecutionAuthority,
       runtimeView,
       setAiProcessing,
       t,
