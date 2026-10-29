@@ -42,8 +42,8 @@ import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryPdfImport } from './LibraryPdfImport';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
-import { LibraryLifecycleAction } from './LibraryLifecycleAction';
-import { useLibraryLifecycleAction } from './useLibraryLifecycleAction';
+import { LibraryRowActions } from './LibraryRowActions';
+import { useLibraryRowActions } from './useLibraryRowActions';
 import { useLibraryLifecycleVisit } from './useLibraryLifecycleVisit';
 import { useLibraryNavigation } from './useLibraryNavigation';
 import './libraryWorkbench.css';
@@ -333,7 +333,7 @@ export default function LibraryPage() {
     }
   };
   const busy = baseBusy || bulk.resolving;
-  const lifecycleAction = useLibraryLifecycleAction({
+  const rowActions = useLibraryRowActions({
     account: reads.account,
     readKey: reads.list.key,
     ready: listReady,
@@ -341,6 +341,7 @@ export default function LibraryPage() {
     items,
     controller: mutation.controller,
     submit,
+    openItem: selectItem,
   });
   const noteScope = JSON.stringify([
     reads.account,
@@ -679,11 +680,12 @@ export default function LibraryPage() {
                       }
                 }
                 actionsCell={(item) => (
-                  <LibraryLifecycleAction
+                  <LibraryRowActions
                     key={JSON.stringify([reads.account, reads.list.key, item.id])}
                     item={item}
                     disabled={busy || !listReady || Boolean(visibleEditor)}
-                    change={lifecycleAction}
+                    change={rowActions.change}
+                    openItem={rowActions.open}
                   />
                 )}
                 authors={libraryAuthors}

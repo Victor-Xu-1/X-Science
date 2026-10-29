@@ -14,6 +14,8 @@
   grid-template-rows: minmax(0, 1fr);
 }
 .library-rail {
+  --workspace-ui-font-size: var(--ui-font-subtitle);
+  --workspace-ui-line-height: var(--ui-line-height-body);
   box-sizing: border-box;
   display: flex;
   height: 100%;
@@ -21,7 +23,8 @@
   flex-direction: column;
   padding: 12px;
   color: var(--workspace-text);
-  font-size: 14px;
+  font-size: var(--ui-font-subtitle);
+  line-height: var(--ui-line-height-body);
 }
 .library-rail button {
   font: inherit;
@@ -120,10 +123,10 @@
 .library-rail__entry:hover,
 .library-rail__toggle:hover,
 .library-rail__add:hover {
-  background: var(--workspace-hover);
+  background: color-mix(in srgb, var(--workspace-hover) 55%, var(--workspace-canvas));
 }
 .library-rail__entry[aria-current='page'] {
-  background: var(--workspace-selected);
+  background: color-mix(in srgb, var(--workspace-selected) 40%, var(--workspace-canvas));
   font-weight: 500;
 }
 .library-rail__groups {

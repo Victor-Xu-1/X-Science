@@ -4,6 +4,8 @@
 @import './libraryWorkbench.collections.css';
 
 .library-workbench {
+  --workspace-ui-font-size: var(--ui-font-subtitle);
+  --workspace-ui-line-height: var(--ui-line-height-body);
   box-sizing: border-box;
   display: flex;
   width: 100%;
@@ -13,7 +15,7 @@
   flex-direction: column;
   color: var(--workspace-text);
   background: var(--workspace-canvas);
-  font-size: var(--ui-font-body);
+  font-size: var(--ui-font-subtitle);
   line-height: var(--ui-line-height-body);
   container: library-workbench / inline-size;
 }
@@ -57,9 +59,9 @@
   border: 1px solid var(--workspace-border);
   border-radius: var(--ui-radius-sm);
   color: var(--workspace-text);
-  background: var(--workspace-canvas);
-  font-size: var(--ui-font-meta);
-  line-height: var(--ui-line-height-meta);
+  background: var(--x-science-surface-card, var(--workspace-overlay-surface));
+  font-size: var(--ui-font-subtitle);
+  line-height: var(--ui-line-height-body);
 }
 .library-workbench__button:hover:not(:disabled),
 .library-workbench__paging > button:hover:not(:disabled),
@@ -139,7 +141,7 @@
   min-height: 0;
   flex-direction: column;
   gap: var(--ui-space-5);
-  padding: var(--ui-space-7);
+  padding: var(--ui-space-8) var(--ui-space-7) var(--ui-space-7);
   overflow: auto;
   container: library-content / inline-size;
 }
