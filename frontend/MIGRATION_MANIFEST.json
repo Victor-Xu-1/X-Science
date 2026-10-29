@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "0d35a269af65b724efbd51fd78ccbf6fa794ce206c0fc226ea2b67dba62d6ac7",
+  "adaptationFingerprintSHA256": "eed68c9cf69c773012ddbb177b535c5a816af6cc963d4006504542a37035b254",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "37caa13c4c16de7ec3b0e0677b11353d9e0884fb63733f925b05a8050979c64a",
+  "additionFingerprintSHA256": "fbfec384d1993f00c61eb094c6eac434b8f5718ac543c34ff779038383fc048d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1379
+    "addedFiles": 1389
   },
   "adaptations": [
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "0719494f2ccd633cabdb734f88ed9c6a409d67d7f7e4f9210eacc7c98a154c33",
-      "bytes": 299970,
+      "targetSHA256": "e5d6d34c39568d775e25be3eb35af4e9cba68ed85a9c5d8d904e850f4b7d6d2c",
+      "bytes": 300331,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "7ed4dc7b98bcefb6241e6ee0432ba8975353b31d4895ce420301138b455d58ff",
-      "bytes": 132571,
+      "targetSHA256": "ce569c00ef21d3900a036775e0543d4175d9b9552e9bbccf8d1b4d15814daf3d",
+      "bytes": 132964,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "6f86b89ed69e007c78176f22c46ae35f83bd24673f39de847ab2dce987fa4e85",
-      "bytes": 125221,
+      "targetSHA256": "fe4a25ccd1096c3622bd245d1fccedf7b3ee6008b61e42b9c87130458d0eb95e",
+      "bytes": 125611,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7698,6 +7698,12 @@
       "reason": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner."
     },
     {
+      "path": "packages/desktop/src/common/adapter/literatureLifecycle.ts",
+      "sha256": "5b14767264779eab1f2537fa98f689140735c22c03e702f5552509819c1013c4",
+      "bytes": 295,
+      "reason": "Define the closed active/deleted Literature lifecycle shared by the existing typed list and selection transports; no alternate query or persistence owner is introduced."
+    },
+    {
       "path": "packages/desktop/src/common/adapter/literatureMetadataPatch.ts",
       "sha256": "7bdec423164da0b344c901a49b973a08b26c9827c75081fbe322f08553bd2135",
       "bytes": 3419,
@@ -7723,8 +7729,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureSelection.ts",
-      "sha256": "552cffe82eafa18d03c7d8a21980d3f4ae337e9ebe3c7fb73def7e463959e42e",
-      "bytes": 2964,
+      "sha256": "4fe49fce3603d20d7c3727c97af58a6a5dac13d71bc197fbcb078d80fbade5cc",
+      "bytes": 3388,
       "reason": "Validate the complete authorized Library membership projection and reuse catalogue filters for real cross-page reading-status selection; no second mutation, persistence, or authorization owner."
     },
     {
@@ -10002,6 +10008,12 @@
       "reason": "Present owned literature metadata, attachment versions and project membership through the existing catalogue DTO and metadata editor; no attachment storage or mutation authority is duplicated."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryLifecycleAction.tsx",
+      "sha256": "f30054ebec7c9279406bbc2f6aa5420649a461645b2ae93ccbf6ed64cc2acfa9",
+      "bytes": 1830,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryMutationNotice.tsx",
       "sha256": "04244a5fd0c417f750b214b53450087926456d8912cbe75c27279c1dad1df58e",
       "bytes": 2213,
@@ -10009,8 +10021,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryNavigationRail.tsx",
-      "sha256": "bb4b8fd9947859460d8879aedf551b617033b7af2269d790c5c4fa1f241c7d0d",
-      "bytes": 7870,
+      "sha256": "370d22a753e760fb7f5db3b81f3388aa320556e17af575c790a115f3a9811b7c",
+      "bytes": 8502,
       "reason": "Adapt Open Science b664635320b5 Library sidebar and grouped navigation to the Page-owned project, collection and Inbox snapshots; retain current authenticated navigation, account footer and mutation authorities without fake destinations."
     },
     {
@@ -10021,8 +10033,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "656f70d66435ae7200e4e143d8d2985fc941aa664fea1126d0f7243db257272c",
-      "bytes": 33028,
+      "sha256": "472e16299c4b19a55c798a4757e521acfbac3bf9f7de5f077239299d6d2aef97",
+      "bytes": 34557,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10069,8 +10081,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryTable.tsx",
-      "sha256": "d45542d5ee884f197fc0c52b7d27a22b1caf09645d0093089b3a83ac019639b7",
-      "bytes": 8496,
+      "sha256": "a8b5b0966fc9c9d19283abe8540fed7c3cc52482fdb4819e5854b18fb7e60ae7",
+      "bytes": 9151,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10128,6 +10140,12 @@
       "reason": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/libraryLifecycle.css",
+      "sha256": "485ea321bd3d8e7fc5523d77d2474f2f75aaebf3ae4282513b5169fb283d5ec3",
+      "bytes": 604,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css",
       "sha256": "5c0aac4ea1b46d3189b1d472fbd6fb581b43dcd1b7cc5eb5bacee1f5a86f2807",
       "bytes": 3907,
@@ -10161,6 +10179,12 @@
       "path": "packages/desktop/src/renderer/pages/library/libraryReadingStatus.css",
       "sha256": "1a3bffa92dcc6ea43cd5b9297c85ea411ea68b4b727cfe62990e5e767ef244c8",
       "bytes": 2637,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/librarySectionNavigation.ts",
+      "sha256": "51ad384e08c70fa6caaf45bb3976e9d62cdd812421ecba6d403b0e95b6db859b",
+      "bytes": 911,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10236,6 +10260,24 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/useLibraryLifecycleAction.ts",
+      "sha256": "fa23d4cb0e4e23b81ccd1f3457530fa4ae90c4880c2f913e65c3d06e6b13e780",
+      "bytes": 2089,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/useLibraryLifecycleVisit.ts",
+      "sha256": "14dbc439cce8e7bc8b09229a1f531b78f894c53bb912cac41a69a7b9bffb12cf",
+      "bytes": 1381,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/useLibraryNavigation.ts",
+      "sha256": "520b01f52e7ce67cdf67e842be9b4017e3122c61ad69dd1c4c020ac3061ba3bb",
+      "bytes": 2406,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryPdfImport.ts",
       "sha256": "6fa077e5e8ae2c71a065b136c74d90370fe96b793b7357aced826f841a212855",
       "bytes": 11358,
@@ -10249,8 +10291,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts",
-      "sha256": "cb4ba4a701d5224ead83e11d7cf417488944b2bb976b654b3765bfa480a8d6af",
-      "bytes": 7033,
+      "sha256": "a80e40f1cd120ae3a470eaec6f2cec12974c0061ea3d91aa93991e38cf8753cb",
+      "bytes": 7409,
       "reason": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities."
     },
     {
@@ -11329,8 +11371,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
-      "sha256": "b65519176d67b91ae47b894c772b51e02d033efe9ef4e6b6037cadda695238ee",
-      "bytes": 7210,
+      "sha256": "df5170d675f7bc946520c23fc9dedd99d377261542550cb90640712be592f740",
+      "bytes": 7568,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14079,6 +14121,24 @@
       "path": "tests/unit/renderer/library/LibraryInbox.dom.test.tsx",
       "sha256": "ce414d1f93fb63658fd22d1c88b7cd054e4050ebe05f70a5a095aa045c240364",
       "bytes": 18422,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryLifecycle.dom.test.tsx",
+      "sha256": "2dd865767a70c3b20a2d82b6822878914dabf184cf01df104a70b9ed6ef07fa1",
+      "bytes": 8850,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryLifecycleMenu.dom.test.tsx",
+      "sha256": "fca62e97e65804547213577970e15cc91fdd888fd0b1f7fded9d3560455e6998",
+      "bytes": 1243,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryLifecycleReceiptVisit.dom.test.tsx",
+      "sha256": "66f421437e2fe567b09cc20aac6194a88e3ab98ccdbc7a2bf84d321632c925e6",
+      "bytes": 8371,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
