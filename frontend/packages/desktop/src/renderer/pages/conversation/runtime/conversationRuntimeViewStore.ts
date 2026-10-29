@@ -493,7 +493,7 @@ export const hydrateSucceeded = (
     runtime !== null &&
     runtime.can_send_message === true &&
     runtime.is_processing === false;
-  const canonicalRunObserved = runtime !== null && (runtime.is_processing || runtime.state === 'cancelling');
+  const canonicalRunObserved = runtime !== null && runtime.has_task && Boolean(runtime.turn_id);
   if (isStaleCompletedRuntimeSummary(runtime, metadata)) {
     return setConversationRuntimeSnapshot(
       conversation_id,

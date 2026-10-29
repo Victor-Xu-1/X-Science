@@ -87,6 +87,30 @@ describe('conversationRuntimeViewStore turn id contract', () => {
     expect(cancelLocalSendPreparation('legacy-transport-frame', legacy).cancelled).toBe(false);
   });
 
+  it('pre-dispatch Stop yields a cancelled marker to canonical waiting approval without accepting old callbacks', () => {
+    const ticket = {};
+    localSendStarted('approval-frame', ticket, 'preparing');
+    expect(cancelLocalSendPreparation('approval-frame', ticket).cancelled).toBe(true);
+    // Same projection emitted by webConversationRuntimeWithActions for an admitted plan approval.
+    hydrateSucceeded('approval-frame', {
+      state: 'waiting_approval',
+      can_send_message: true,
+      has_task: true,
+      task_status: 'pending',
+      is_processing: false,
+      pending_confirmations: 1,
+      turn_id: 'approval-frame',
+    });
+    expect(cancelLocalSendPreparation('approval-frame').cancelled).toBe(false);
+    expect(localSendAccepted('approval-frame', 'old-turn', runningRuntime('old-turn'), undefined, { ticket })).toEqual(
+      []
+    );
+    expect(getConversationRuntimeViewSnapshot('approval-frame')).toMatchObject({
+      state: 'waiting_approval',
+      activeTurnId: 'approval-frame',
+    });
+  });
+
   it('clears runtime projection state when the authenticated owner changes', () => {
     setRendererAccountOwner('owner-a');
     hydrateSucceeded('conv-shared', runningRuntime('turn-owner-a'));
