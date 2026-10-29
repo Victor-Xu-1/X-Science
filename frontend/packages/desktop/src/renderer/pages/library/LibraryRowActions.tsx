@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
-import { MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
-import './libraryLifecycle.css';
+import './libraryRowActions.css';
 
-/** A single reversible action; batch and permanent deletion have no placeholder controls. */
-export function LibraryLifecycleAction({
+/** The existing detail route and reversible lifecycle owner serve the row menu. */
+export function LibraryRowActions({
   item,
   disabled,
   change,
+  openItem,
 }: {
   item: LiteratureItem;
   disabled: boolean;
+  openItem: (item: LiteratureItem) => void;
   change: (item: LiteratureItem, deleted: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -28,12 +30,18 @@ export function LibraryLifecycleAction({
       onVisibleChange={setOpen}
       droplist={
         <Menu
-          onClickMenuItem={() => {
+          onClickMenuItem={(key) => {
             setOpen(false);
-            if (!disabled) change(item, !item.deleted);
+            if (disabled) return;
+            if (key === 'edit' && !item.deleted) openItem(item);
+            else if (key === 'lifecycle') change(item, !item.deleted);
           }}
         >
-          <Menu.Item key='lifecycle' disabled={disabled}>
+          <Menu.Item key='edit' disabled={disabled || item.deleted} aria-disabled={disabled || item.deleted}>
+            <Pencil size={14} aria-hidden='true' />
+            <span>{t('common.edit')}</span>
+          </Menu.Item>
+          <Menu.Item key='lifecycle' disabled={disabled} aria-disabled={disabled}>
             {item.deleted ? <RotateCcw size={14} aria-hidden='true' /> : <Trash2 size={14} aria-hidden='true' />}
             <span>
               {t(item.deleted ? 'conversation.libraryLifecycle.restore' : 'conversation.libraryLifecycle.moveToTrash')}
@@ -44,7 +52,7 @@ export function LibraryLifecycleAction({
     >
       <button
         type='button'
-        className='library-lifecycle__trigger'
+        className='library-row-actions__trigger'
         disabled={disabled}
         aria-label={t('conversation.libraryLifecycle.actionsFor', { title: item.title })}
         aria-haspopup='menu'

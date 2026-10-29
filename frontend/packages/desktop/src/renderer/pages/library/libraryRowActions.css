@@ -1,4 +1,4 @@
-.library-lifecycle__trigger {
+.library-row-actions__trigger {
   display: inline-flex;
   width: var(--ui-control-md);
   height: var(--ui-control-md);
@@ -11,11 +11,11 @@
   background: transparent;
   cursor: pointer;
 }
-.library-lifecycle__trigger:hover {
+.library-row-actions__trigger:hover {
   color: var(--workspace-text);
   background: var(--workspace-hover);
 }
-.library-lifecycle__trigger:disabled {
+.library-row-actions__trigger:disabled {
   opacity: 0.45;
   cursor: default;
 }

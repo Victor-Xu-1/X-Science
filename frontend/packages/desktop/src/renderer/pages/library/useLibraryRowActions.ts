@@ -3,14 +3,15 @@ import type { LiteratureCommand, LiteratureItem, LiteratureReceipt } from '@/com
 import type { LiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 
-/** Admission projection only. Page and its original durable controller own the write and failure UI. */
-export function useLibraryLifecycleAction(input: {
+/** Admission projection only. Page and its original durable controller own writes; its existing detail route owns opens. */
+export function useLibraryRowActions(input: {
   account: string;
   readKey: string;
   ready: boolean;
   blocked: boolean;
   items: readonly LiteratureItem[];
   controller: LiteratureMutationController;
+  openItem: (itemId: string) => void;
   submit: (command: LiteratureCommand) => Promise<LiteratureReceipt>;
 }) {
   const owner = useRef({ account: input.account, key: input.readKey });
@@ -19,7 +20,7 @@ export function useLibraryLifecycleAction(input: {
   const visit = owner.current;
   const state = useRef(input);
   state.current = input;
-  return (item: LiteratureItem, deleted: boolean): void => {
+  const admit = (item: LiteratureItem) => {
     const current = state.current;
     const snapshot = current.controller.getSnapshot();
     const fresh = current.items.find((value) => value.id === item.id);
@@ -32,11 +33,16 @@ export function useLibraryLifecycleAction(input: {
       snapshot.pending ||
       snapshot.error === 'storage' ||
       !fresh ||
-      fresh.deleted === deleted ||
       fresh.metadata_revision !== item.metadata_revision ||
       fresh.deleted !== item.deleted
     )
       return;
+    return { current, fresh };
+  };
+  const change = (item: LiteratureItem, deleted: boolean): void => {
+    const admitted = admit(item);
+    if (!admitted || admitted.fresh.deleted === deleted) return;
+    const { current, fresh } = admitted;
     // This exact intent is captured by the original outbox before network I/O.
     // Page records the rejection and its existing Retry owns uncertain results.
     void current
@@ -49,4 +55,9 @@ export function useLibraryLifecycleAction(input: {
       })
       .catch((): undefined => undefined);
   };
+  const open = (item: LiteratureItem): void => {
+    const admitted = admit(item);
+    if (admitted && !admitted.fresh.deleted) admitted.current.openItem(admitted.fresh.id);
+  };
+  return { change, open };
 }

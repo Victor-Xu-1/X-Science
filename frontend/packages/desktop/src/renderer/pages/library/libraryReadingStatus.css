@@ -46,7 +46,7 @@
   color: inherit;
   background: var(--workspace-canvas);
   font-family: inherit;
-  font-size: var(--ui-font-body);
+  font-size: inherit;
   line-height: var(--ui-line-height-body);
   cursor: pointer;
 }
@@ -76,7 +76,7 @@
   color: var(--workspace-text-secondary);
   background: var(--workspace-canvas);
   font: inherit;
-  font-size: var(--ui-font-meta);
+  font-size: inherit;
 }
 [data-theme='dark'] :is(.library-reading-status-label, .library-reading-status-control) {
   --library-reading-status-blue: var(--workspace-link, #60a5fa);
