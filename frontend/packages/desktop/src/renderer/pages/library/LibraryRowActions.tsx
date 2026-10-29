@@ -45,7 +45,10 @@ export function LibraryRowActions({
       droplist={
         <Menu
           onKeyDownCapture={dismissOnEscape}
-          onClickMenuItem={(key) => {
+          onClickMenuItem={(key, event) => {
+            // Arco focuses the trigger before the browser's Enter default click.
+            // Consume that default only; the original menu dispatch still runs.
+            if (event.type === 'keydown' && (event.key === 'Enter' || event.keyCode === 13)) event.preventDefault();
             setOpen(false);
             if (disabled) return;
             if (key === 'edit' && !item.deleted) openItem(item);
