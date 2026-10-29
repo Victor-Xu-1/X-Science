@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import ContextUsagePanel from '@/renderer/components/xScience/runtime/ContextUsagePanel';
 import XScienceTaskStatus from '@/renderer/components/xScience/runtime/XScienceTaskStatus';
@@ -8,6 +8,8 @@ import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/ren
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { contextRequestActivity } from '@/renderer/components/xScience/runtime/contextRequestActivity';
 import { parseContextUsage } from '@/renderer/services/contextUsage';
+import type { TChatConversation } from '@/common/config/storage';
+import { useAcpContextRequestActivity } from '@/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity';
 import { renderWithI18n } from '../i18nTestUtils';
 
 const frame = 'context-task-activity';
@@ -57,6 +59,56 @@ const wire = () => ({
       runnerAttempt: 7,
     },
   },
+});
+
+const conversation = (id = frame, frameIncarnationId = incarnation) =>
+  ({ type: 'acp', id, extra: { frame_incarnation_id: frameIncarnationId } }) as TChatConversation;
+
+it('keeps the composer bridge deduplicated and passes null from the existing reader without fetching', () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  const { result } = renderHook(() => useAcpContextRequestActivity(frame, conversation()));
+  const parsed = parseContextUsage(wire(), frame);
+  const activity = contextRequestActivity({ ...parsed, conversationId: frame }, getRendererAccountScopeToken());
+  act(() => result.current.panelProps.onRequestActivityChange(activity));
+  expect(result.current.runtimeProps.contextActivity).toBe(activity);
+  act(() => result.current.panelProps.onRequestActivityChange({ ...activity! }));
+  expect(result.current.runtimeProps.contextActivity).toBe(activity);
+  act(() => result.current.panelProps.onRequestActivityChange(null));
+  expect(result.current.runtimeProps.contextActivity).toBeNull();
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it('rejects captured old-scope callbacks after account, conversation or incarnation changes during render', () => {
+  for (const change of ['account', 'conversation', 'incarnation']) {
+    setRendererAccountOwner('activity-account');
+    const view = renderHook(({ id, generation }) => useAcpContextRequestActivity(id, conversation(id, generation)), {
+      initialProps: { id: frame, generation: incarnation },
+    });
+    const { result } = view;
+    const parsed = parseContextUsage(wire(), frame);
+    const activity = contextRequestActivity({ ...parsed, conversationId: frame }, getRendererAccountScopeToken());
+    const captured = result.current.panelProps.onRequestActivityChange;
+    act(() => captured(activity));
+    expect(result.current.runtimeProps.contextActivity).toBe(activity);
+    if (change === 'account') setRendererAccountOwner('replacement-account');
+    view.rerender({
+      id: change === 'conversation' ? 'replacement-frame' : frame,
+      generation: change === 'incarnation' ? 'replacement-incarnation' : incarnation,
+    });
+    expect(result.current.runtimeProps.contextActivity).toBeNull();
+    act(() => captured(activity));
+    expect(result.current.runtimeProps.contextActivity).toBeNull();
+    const current = {
+      ...activity!,
+      accountScope: getRendererAccountScopeToken(),
+      conversationId: result.current.panelProps.conversationId,
+      frameIncarnationId: result.current.frameIncarnationId!,
+    };
+    act(() => result.current.panelProps.onRequestActivityChange(current));
+    expect(result.current.runtimeProps.contextActivity).toBe(current);
+    view.unmount();
+  }
 });
 
 it('retires stale attempt, revision, incarnation, account, terminal and failed-read activity without changing counters', async () => {
