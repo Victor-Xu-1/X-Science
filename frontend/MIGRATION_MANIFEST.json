@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7f4339d5accc6e294ea39e2988b5dfe557004dbf4d19678496727b8573e30b88",
+  "adaptationFingerprintSHA256": "42a48d35fe32b3d0b2e95173199e3a63c019974b17ac961ca824654d455f8e87",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "13f979b5e086614907169b1c50a2e6e9c240642da2ca5ba066b04c9065548f5f",
+  "additionFingerprintSHA256": "911ae045c15c238341fb05173666f1319529077776296e487247f0b159041410",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1395
+    "addedFiles": 1397
   },
   "adaptations": [
     {
@@ -2204,8 +2204,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx",
       "sourceSHA256": "8f99e14a4de14e19821d60b145b3cbfdbbe6686becd6150d19283dc7cedf8f80",
-      "targetSHA256": "fdc4665f91ebb0b55556400be0c6d2aa9d98c0614086ee7896d10cc8c0d506cd",
-      "bytes": 52971,
+      "targetSHA256": "749ec93bf9f2764bcba42f6615b4a10d167553331868db8518abfc11016f99a0",
+      "bytes": 52943,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2247,22 +2247,22 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/useConversationCommandQueue.ts",
       "sourceSHA256": "cf7a9539a0d271056ac7fe92af353f8871f7c34c64802a53ae4283d9ccba5fda",
-      "targetSHA256": "1ce416de08d502a1ded86330301f4378b72e8dbb1d4cd0fd57ec6e0a89f6c53b",
-      "bytes": 31397,
+      "targetSHA256": "42ba200dd7f36e29b493794c5fd5fe240b9f0f096128ad0831f329a46a3bfa73",
+      "bytes": 33203,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/runtime/conversationRuntimeViewStore.ts",
       "sourceSHA256": "ae55f79a9925ce597b3dfe2b81629a92389a08d8cdb6ed76553bbd6ae48d60fa",
-      "targetSHA256": "e63c53b2a4ff4c915c373461d71a33e95ed9fdef43f639fee83ce848cfe3eacf",
-      "bytes": 23943,
+      "targetSHA256": "c7696756bfa855fbe8babc2aa43f572de4ae3981ac8c798645084aaf6f39a9dd",
+      "bytes": 26427,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/runtime/useConversationRuntimeView.ts",
       "sourceSHA256": "a4dc43c8ddc2b36de3228ceace4dec9f1564c2f5412562d7ca27b17c1ecce420",
-      "targetSHA256": "6f856bc119b4c31ac2eac3c50d83ad6f38ec69772f6853c81bc0701cbc0cd5a7",
-      "bytes": 14448,
+      "targetSHA256": "1a9b58f8ccf46b55e1a30fc90807a616e83562886114571a6c4f18923932377f",
+      "bytes": 15445,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -4096,8 +4096,8 @@
     {
       "path": "tests/unit/conversation/runtime/conversationCommandQueueDrain.dom.test.tsx",
       "sourceSHA256": "95496ed747979d933d086d2cf91da9ad1a4fd465efc6fee1a395886ba77bb0a9",
-      "targetSHA256": "f62469eb8edff5e0edf25eaca55f69ce6f39ab1e504c56785c3dee69827623b3",
-      "bytes": 12455,
+      "targetSHA256": "c76293420c2cec2749d42aa3918b5e01d1c29b24801d98b4f6e36f8e823c9560",
+      "bytes": 14836,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4646,8 +4646,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "bf2a88b0c83075a58aad0dbf5281bb0d10a9eba59d58ac8385a90aae4c681d75",
-      "bytes": 215817,
+      "targetSHA256": "960b899cadb58ea335e28e6613f90efa34c408128af729b5b0cc00d1e132c327",
+      "bytes": 226321,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4674,8 +4674,8 @@
     {
       "path": "tests/unit/renderer/conversationRuntimeViewStore.test.ts",
       "sourceSHA256": "a3abf3f00720ba5503211d82fd0018c8ae009a598a6527eb38789106685be778",
-      "targetSHA256": "a5c243fbcab9c5b7038b12d65b39943cd640b7bbaf473a2982563f5f437ae909",
-      "bytes": 7839,
+      "targetSHA256": "eab6db755c8516880caab42b2344246bad9b230b83f5ddcc2b48907ee51dcaf5",
+      "bytes": 10954,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7782,6 +7782,12 @@
       "reason": "Define the shared closed Specialist input-reference and frozen send-authority wire contract for IPC, queues and initial-message decoding; no execution or transport owner."
     },
     {
+      "path": "packages/desktop/src/common/chat/conversationSubmission.ts",
+      "sha256": "aec4d14feaecc8ecde27d4f177ea579bcade01414329e3bcff4270f77da9d96b",
+      "bytes": 293,
+      "reason": "Share the typed pre-transport cancellation outcome between conversation producers and the generic queue without importing an ACP implementation or adding runtime authority."
+    },
+    {
       "path": "packages/desktop/src/common/chat/largeToolResultReference.ts",
       "sha256": "ee3eb8f87921096aca531908ef75f90475504c9d0ab2c5bb19bea746d8f28da7",
       "bytes": 1847,
@@ -9769,8 +9775,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/acpStopAction.ts",
-      "sha256": "1fb1b44e98021db0cde2b48397eb4d1984c7fa0e3f4862bbf54dfa5b84c9b144",
-      "bytes": 2498,
+      "sha256": "8683d99776a8a97dd814d4610ce0ab079223c763947dceabf37d7c2a6a6178ed",
+      "bytes": 2828,
       "reason": "Route Stop through the observed maintenance owner only; ordinary Stop does not wait for optional bootstrap."
     },
     {
@@ -9798,6 +9804,12 @@
       "reason": "Extract the existing X-Science branch/session-option authority capture from AcpSendBox so ordinary and typed sends retain one implementation. Preserve the original imported/adapted ancestry of the extracted target code."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts",
+      "sha256": "389ca087873daa2bc2771a86e4401e2b34203b876064a859df989ed3bc850805",
+      "bytes": 2808,
+      "reason": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection.ts",
       "sha256": "748d874e504f21da1a7c6deabe0500aef860e5fd0722350816166df023a86457",
       "bytes": 9189,
@@ -9817,8 +9829,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx",
-      "sha256": "799fa27825ddd58015a7f669a88e87ea9e95705d58581b9f0e0e1830f2767316",
-      "bytes": 7587,
+      "sha256": "ac501c4b11bf18f2d0fd0b8b417c0fc0950c501fdea55f4cf8fbbfa7d26ae532",
+      "bytes": 7889,
       "reason": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity."
     },
     {
@@ -9877,8 +9889,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useConversationSkillTask.ts",
-      "sha256": "70731cf54a8ab681a2818faebe34313ce7c299b3007a47f4c8d420289d22ff98",
-      "bytes": 4958,
+      "sha256": "46d7f67eaeb4ce1262c53c6006ac32b29cc76899660a3e6a22982174828c6b78",
+      "bytes": 5269,
       "reason": "Admit a typed ordinary-agent Skill continuation, fence duplicate and stale frontend actions and refresh only actual catalogs."
     },
     {

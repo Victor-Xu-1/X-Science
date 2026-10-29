@@ -130,6 +130,8 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/chat/conversationSubmission.ts": "Share the typed pre-transport cancellation outcome between conversation producers and the generic queue without importing an ACP implementation or adding runtime authority.",
+    "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity.ts": "Extract the scoped composer context-activity presentation bridge, preserving render-time account, conversation and incarnation fences and equal-value deduplication while reusing the original context reader; no request, timer or execution authority is added.",
     "packages/desktop/src/renderer/components/xScience/runtime/contextRequestActivity.ts": "Project the existing authenticated context request activity into task status using account, conversation, incarnation, attempt and input-revision fences; no additional request, clock or execution owner is introduced.",
     'packages/desktop/src/common/adapter/literatureLifecycle.ts': 'Define the closed active/deleted Literature lifecycle shared by the existing typed list and selection transports; no alternate query or persistence owner is introduced.',
@@ -713,9 +715,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "7f4339d5accc6e294ea39e2988b5dfe557004dbf4d19678496727b8573e30b88"
+APPROVED_ADAPTATION_FINGERPRINT = "42a48d35fe32b3d0b2e95173199e3a63c019974b17ac961ca824654d455f8e87"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "13f979b5e086614907169b1c50a2e6e9c240642da2ca5ba066b04c9065548f5f"
+APPROVED_ADDITION_FINGERPRINT = "911ae045c15c238341fb05173666f1319529077776296e487247f0b159041410"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
