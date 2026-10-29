@@ -224,7 +224,7 @@ describe('Collection editors use canonical receipts and retained original reques
     fireEvent.click(next.getByRole('button', { name: 'Delete collection' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(screen.getByLabelText('Library location').textContent).toBe(''));
-    await waitFor(() => expect(screen.getByRole('button', { name: /Paper A/ })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Paper A' })).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Promoted child' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Parent' })).toBeNull();
     expect(writes.map((value) => value.method)).toEqual(['PATCH', 'DELETE']);

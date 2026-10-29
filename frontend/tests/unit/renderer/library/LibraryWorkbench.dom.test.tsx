@@ -95,17 +95,17 @@ describe('Library workbench entry and original HTTP owners', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Library' }));
     expect(onNavigate).toHaveBeenCalledTimes(1);
     // This item intentionally has no PDF: Library is not the Reading picker.
-    fireEvent.click(await screen.findByRole('button', { name: /Paper A/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Paper A' }));
     expect(await screen.findByRole('heading', { name: 'Current persisted title' })).toBeInTheDocument();
     expect(requests).toContain('/api/literature/items/a');
     expect(
       within(screen.getByRole('region', { name: 'Literature details' })).getByText('Ada; Grace')
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(await screen.findByRole('button', { name: /Paper B/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Paper B' })).toBeInTheDocument();
     expect(requests.some((path) => path.includes('cursor=next-page'))).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Back to first page' }));
-    expect(await screen.findByRole('button', { name: /Paper A/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Paper A' })).toBeInTheDocument();
   });
 
   it('does not publish an older query or selected detail after route state changes', async () => {
@@ -140,9 +140,9 @@ describe('Library workbench entry and original HTTP owners', () => {
     fireEvent.change(search, { target: { value: 'old' } });
     await waitFor(() => expect(queryStarted).toBe(true));
     fireEvent.change(search, { target: { value: 'new' } });
-    fireEvent.click(await screen.findByRole('button', { name: /Paper A/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Paper A' }));
     await waitFor(() => expect(detailStarted).toBe(true));
-    fireEvent.click(screen.getByRole('button', { name: /Paper B/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paper B' }));
     expect(await screen.findByRole('heading', { name: 'Current B detail' })).toBeInTheDocument();
     await act(async () => {
       oldQuery.resolve(json(page([item('old', 'Late old query')])));
@@ -181,7 +181,7 @@ describe('Library workbench entry and original HTTP owners', () => {
       nextOwner = true;
       setRendererAccountOwner('next-library-owner');
     });
-    expect(await screen.findByRole('button', { name: /Next owner paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Next owner paper' })).toBeInTheDocument();
     await act(async () => {
       old.resolve(json(page([item('old', 'Previous owner paper')])));
       await old.promise;
@@ -315,7 +315,7 @@ describe('Library workbench entry and original HTTP owners', () => {
     expect(await screen.findByText('Your Library is empty')).toBeInTheDocument();
     empty = false;
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Paper A/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Paper A' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Updated paper' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));

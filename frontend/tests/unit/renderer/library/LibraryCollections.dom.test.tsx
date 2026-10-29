@@ -178,7 +178,7 @@ describe('Library collections through the original Web request owners', () => {
       ).toBe(true)
     );
     fireEvent.click(sidebar().getByRole('button', { name: 'All references' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Paper A/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Paper A' }));
     const checkbox = await screen.findByRole('checkbox', { name: 'Methods' });
     expect(checkbox).not.toBeChecked();
     fireEvent.click(checkbox);
@@ -186,7 +186,7 @@ describe('Library collections through the original Web request owners', () => {
     expect(writes[1]).toMatchObject({ path: '/api/literature/collections/methods/items/a', body: { included: true } });
     expect(sidebar().getByRole('button', { name: 'Methods' })).toHaveTextContent('1');
     fireEvent.click(sidebar().getByRole('button', { name: 'Methods' }));
-    expect(await screen.findByRole('button', { name: /Paper A/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Paper A' })).toBeInTheDocument();
     expect(location().get('item')).toBeNull();
     await act(async () => {
       await rendered.i18n.changeLanguage('zh-CN');
@@ -228,7 +228,7 @@ describe('Library collections through the original Web request owners', () => {
         .filter((name) => ['Aardvark', 'Alpha', 'Beta'].includes(name ?? ''))
     ).toEqual(['Aardvark', 'Alpha', 'Beta']);
     fireEvent.click(sidebar().getByRole('button', { name: 'Beta' }));
-    expect(await screen.findByRole('button', { name: /Beta paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Beta paper' })).toBeInTheDocument();
     expect(location().get('collection')).toBe('b');
     expect(location().get('q')).toBe('study');
     expect(location().get('cursor')).toBeNull();
@@ -239,10 +239,10 @@ describe('Library collections through the original Web request owners', () => {
     });
     expect(screen.queryByText('Late Alpha page')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    expect(await screen.findByRole('button', { name: /Second Beta page/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Second Beta page' })).toBeInTheDocument();
     expect(location().get('cursor')).toBe('beta-next');
     fireEvent.click(screen.getByRole('button', { name: 'Back to first page' }));
-    expect(await screen.findByRole('button', { name: /Beta paper/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Beta paper' })).toBeInTheDocument();
     expect(location().get('collection')).toBe('b');
     const beta = http.requests.filter(
       (request) =>
