@@ -117,7 +117,8 @@ func TestBashStartupWorkerRejectsUnknownOrUnisolatedProfile(t *testing.T) {
 		{"-I", "-S", manager.config.WorkerPath, "--x-science-startup-policy=unknown"},
 	} {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		command := exec.CommandContext(ctx, executable, args...)
+		// Invalid isolated starts import the sidecar before refusing the policy.
+		command := exec.CommandContext(ctx, executable, append([]string{"-B"}, args...)...)
 		command.Env = kernelEnvironment(map[string]string{"PYTHONDONTWRITEBYTECODE": "1"})
 		output, err := command.CombinedOutput()
 		cancel()

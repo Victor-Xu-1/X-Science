@@ -27,7 +27,9 @@ type startupProtocol struct {
 
 func startStartupProtocol(t *testing.T, executable string, args, environment []string, workspace string) *startupProtocol {
 	t.Helper()
-	command := exec.Command(executable, args...)
+	// Callers pass Python sessionRuntime argv, never the egress shell. Isolated
+	// Python ignores PYTHONDONTWRITEBYTECODE, so source fixtures need explicit -B.
+	command := exec.Command(executable, append([]string{"-B"}, args...)...)
 	command.Env, command.Dir = mergeKernelEnvironment(environment, map[string]string{"HOME": workspace, "PYTHONDONTWRITEBYTECODE": "1"}), workspace
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	input, err := command.StdinPipe()
