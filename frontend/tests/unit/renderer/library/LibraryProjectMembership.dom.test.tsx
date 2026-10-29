@@ -72,10 +72,13 @@ describe('Overview project membership through the existing Web owner', () => {
     expect(writes[0]).toMatchObject({ path: '/api/literature/items/a/projects/beta', body: { included: true } });
     expect(typeof writes[0].body.operation_id).toBe('string');
     expect(links().getByRole('searchbox')).toHaveValue('beta');
+    // Receipt readback may render before the original mutation owner settles.
+    await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     rendered.unmount();
     rendered = await mountCollections('/library?item=a');
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeChecked());
     expect(links().getByRole('searchbox')).toHaveValue('');
+    await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     fireEvent.click(links().getByRole('checkbox', { name: 'Beta project' }));
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked());
     expect(writes).toHaveLength(2);
