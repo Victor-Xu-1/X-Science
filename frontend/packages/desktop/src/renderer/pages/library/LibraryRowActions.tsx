@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
 import { MoreHorizontal, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
+import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import './libraryRowActions.css';
 
 /** The existing detail route and reversible lifecycle owner serve the row menu. */
@@ -19,6 +20,19 @@ export function LibraryRowActions({
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const account = useRef(getRendererAccountScopeToken()).current;
+  const dismissOnEscape = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Escape' || !open) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(false);
+    const target = trigger.current;
+    // Only this explicit Escape may return focus; invalidation and outside
+    // dismissal retain their existing owners and never borrow this permission.
+    if (target?.isConnected && !disabled && !target.disabled && account === getRendererAccountScopeToken())
+      target.focus({ preventScroll: true });
+  };
   useEffect(() => {
     if (disabled) setOpen(false);
   }, [disabled]);
@@ -30,6 +44,7 @@ export function LibraryRowActions({
       onVisibleChange={setOpen}
       droplist={
         <Menu
+          onKeyDownCapture={dismissOnEscape}
           onClickMenuItem={(key) => {
             setOpen(false);
             if (disabled) return;
@@ -51,6 +66,8 @@ export function LibraryRowActions({
       }
     >
       <button
+        ref={trigger}
+        onKeyDownCapture={dismissOnEscape}
         type='button'
         className='library-row-actions__trigger'
         disabled={disabled}
