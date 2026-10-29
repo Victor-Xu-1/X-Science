@@ -5,7 +5,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { parseError } from '@/common/utils';
 import type { ConversationCommandQueueItem } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
-import type { CommandExecutionAuthority } from './acpCommandExecutionTypes';
+import { AcpPreparationCancelledError, type CommandExecutionAuthority } from './acpCommandExecutionTypes';
 import { ConversationSkillActivationDialog } from './ConversationSkillActivationDialog';
 import { ConversationSkillTaskStatus } from './ConversationSkillTaskStatus';
 import { redactErrorText } from './errorDiagnostics';
@@ -42,7 +42,6 @@ type SkillTaskCommand = {
   input: string;
   authority?: CommandExecutionAuthority;
   submissionTicket?: object;
-  dispatched: boolean;
 };
 
 // Compose the existing Skill admission/catalog hooks with the ordinary command
@@ -79,42 +78,49 @@ export function useAcpConversationSkillController(options: Options) {
   useEffect(
     () => () => {
       const command = skillTaskCommandRef.current;
-      if (command?.scope === skillTaskScope && !command.dispatched && command.submissionTicket) {
+      if (
+        command?.scope === skillTaskScope &&
+        command.submissionTicket &&
+        runtimeView.isSendPreparing(command.submissionTicket)
+      ) {
         runtimeView.markSendFailed('control_submission_cancelled', command.submissionTicket);
       }
     },
-    [runtimeView.markSendFailed, skillTaskScope]
+    [runtimeView.isSendPreparing, runtimeView.markSendFailed, skillTaskScope]
   );
   const startSkillTask = useCallback(
     async (id: string) => {
       const scope = conversationAuthorityRef.current;
       let command = skillTaskCommandRef.current;
       if (!command || command.id !== id || command.scope !== scope) {
-        command = { scope, id, input: t('conversation.attachMenu.saveAsSkillTaskPrompt'), dispatched: false };
+        command = { scope, id, input: t('conversation.attachMenu.saveAsSkillTaskPrompt') };
         skillTaskCommandRef.current = command;
       }
       // Reserve before the first await. The shared runtime gate owns sending;
       // the Skill hook's synchronous admission latch guards same-tick UI calls.
-      const submissionTicket = runtimeView.markSendStarted();
+      const submissionTicket = runtimeView.markSendStarted('preparing');
       command.submissionTicket = submissionTicket;
-      command.dispatched = false;
       setAiProcessing(true);
       // A lost HTTP reply is retried with the same input and branch authority,
       // even after a language switch. Never rebind one mutation to a newer draft.
       try {
         command.authority ??= await resolveCommandExecutionAuthority(false, false, true);
       } catch (error) {
+        if (!runtimeView.isSendPreparing(submissionTicket)) throw new AcpPreparationCancelledError();
         runtimeView.markSendFailed(redactErrorText(parseError(error) || t('common.unknownError')), submissionTicket);
         if (mountedRef.current && conversationAuthorityRef.current === scope) {
           setAiProcessing(false);
         }
         throw error;
       }
-      if (!mountedRef.current || conversationAuthorityRef.current !== scope) {
-        runtimeView.markSendFailed('control_submission_cancelled', submissionTicket);
-        return;
+      if (
+        !mountedRef.current ||
+        conversationAuthorityRef.current !== scope ||
+        !runtimeView.isSendPreparing(submissionTicket)
+      ) {
+        runtimeView.cancelSendPreparation(submissionTicket);
+        throw new AcpPreparationCancelledError();
       }
-      command.dispatched = true;
       try {
         await executeCommand(
           { id, input: command.input, files: [], contextItems: [], turnIntent: 'save-as-skill', planMode: false },

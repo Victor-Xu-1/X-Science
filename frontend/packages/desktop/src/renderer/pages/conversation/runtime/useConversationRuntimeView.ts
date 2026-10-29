@@ -24,6 +24,9 @@ import {
   localSendAccepted,
   localSendFailed,
   localSendStarted,
+  isLocalSendPreparing,
+  localSendDispatched,
+  cancelLocalSendPreparation,
   localStopAcknowledged,
   localStopRequested,
   resetLocalGate,
@@ -42,7 +45,10 @@ type UseConversationRuntimeViewReturn = {
   isProcessing: boolean;
   canSendMessage: boolean;
   activeTurnId: string | null;
-  markSendStarted: () => object;
+  markSendStarted: (phase?: 'preparing') => object;
+  isSendPreparing: (ticket: object) => boolean;
+  markSendDispatched: (ticket: object) => boolean;
+  cancelSendPreparation: (ticket?: object) => boolean;
   markSendAccepted: (
     turn_id: string,
     runtime: TConversationRuntimeSummary,
@@ -310,11 +316,31 @@ export const useConversationRuntimeView = (
     return acquireConversationRuntimeBinding(conversation_id, { reconcileTerminalFromAuthority });
   }, [conversation_id, reconcileTerminalFromAuthority]);
 
-  const markSendStarted = useCallback(() => {
-    const ticket = {};
-    flushRuntimeViewLogs(localSendStarted(conversation_id, ticket));
-    return ticket;
-  }, [conversation_id]);
+  const markSendStarted = useCallback(
+    (phase?: 'preparing') => {
+      const ticket = {};
+      // Unadapted callers already hand off to transport: never classify their work as withdrawable.
+      flushRuntimeViewLogs(localSendStarted(conversation_id, ticket, phase));
+      return ticket;
+    },
+    [conversation_id]
+  );
+  const isSendPreparing = useCallback(
+    (ticket: object) => isLocalSendPreparing(conversation_id, ticket),
+    [conversation_id]
+  );
+  const markSendDispatched = useCallback(
+    (ticket: object) => localSendDispatched(conversation_id, ticket),
+    [conversation_id]
+  );
+  const cancelSendPreparation = useCallback(
+    (ticket?: object) => {
+      const result = cancelLocalSendPreparation(conversation_id, ticket);
+      flushRuntimeViewLogs(result.logs);
+      return result.cancelled;
+    },
+    [conversation_id]
+  );
 
   const markSendAccepted = useCallback(
     (
@@ -377,6 +403,9 @@ export const useConversationRuntimeView = (
     canSendMessage: view.canSendMessage,
     activeTurnId: view.activeTurnId,
     markSendStarted,
+    isSendPreparing,
+    markSendDispatched,
+    cancelSendPreparation,
     markSendAccepted,
     markSendFailed,
     markStopRequested,

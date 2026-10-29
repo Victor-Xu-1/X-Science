@@ -23,7 +23,15 @@ type StopOptions = {
 export async function stopAcpConversation(options: StopOptions): Promise<void> {
   const { backend, conversationId, compaction, authority, mounted, runtime, t } = options;
   const origin = authority.current;
+  // Latch before maintenance Stop can yield. A dispatched/uncertain send is never withdrawn here.
+  const preparationCancelled = runtime.cancelSendPreparation();
+  if (preparationCancelled) {
+    options.resetQueueExecution();
+    options.setAiProcessing(false);
+    options.resetState();
+  }
   if (compaction && (await compaction.stop())) return;
+  if (preparationCancelled) return;
   if (!mounted.current || authority.current !== origin) return;
   // Compatibility cancellation is frame-authority based. Preserve that fallback
   // for ordinary X-Science turns, never for context maintenance.
