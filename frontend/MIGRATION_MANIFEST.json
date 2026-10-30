@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "11c84f03834c6e7ae5d4d749d1cb4ed9a44837f5e653730591c7616b03814811",
+  "adaptationFingerprintSHA256": "7eb3d3216b0de01364b5087344dd082650f5b51153949d1fdfe4219142bcf849",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "edd6df5601d395e9df1a7f3d827efec0bec1d1237072f0986fedab8f3962717a",
+  "additionFingerprintSHA256": "ac1fafeecbc1b81707dc8804b4b034ee954bfb2c32ace6df7adc11e264fa441d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "79abfd895d0853e6a5921d527cd5574708648fbb1cdc3b4d935ea52bfbdc4f72",
-      "bytes": 133864,
+      "targetSHA256": "fb4cb91f4680999729f646db2551bf1d556891c9dc6aea25d9dc01992f7d06ae",
+      "bytes": 133895,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "2228dfe5c183561a2b7615ae2c850621f6726966df0e8cc49835119d088b531c",
-      "bytes": 126502,
+      "targetSHA256": "654fa2e879d7e0b928e88cd5c92da5ced5ce565e1c62a01dd6c4f53b974fd2ca",
+      "bytes": 126533,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -9985,8 +9985,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryBibtexExportMenu.tsx",
-      "sha256": "c420f77d6f7252756420dbc7004594e37a3fb055ae24ca1d594ac9841a2d7735",
-      "bytes": 1886,
+      "sha256": "d13d794b1eb957eee99e1d1d95d9affd078c22c5b3d6f0404317a503266b005a",
+      "bytes": 1913,
       "reason": "Adapt Open Science 23898639 selected-reference export entry, busy and failure feedback through the existing Library-local menu and compact X-Science controls; expose only the connected BibTeX format."
     },
     {
@@ -13849,8 +13849,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/literatureBibtex.test.ts",
-      "sha256": "57a48d91f62835595a2384d74cab18515b22e2f34591358e6ac8565f29fc9a00",
-      "bytes": 3612,
+      "sha256": "b8b3cb2b686488dcc37f471f94a67aa03807e40fb36e656aad0a9ef56e9d2192",
+      "bytes": 2767,
       "reason": "Verify bounded complete-selection export, all-or-none response handling and cleanup through the original browser download helper using isolated synthetic input."
     },
     {
@@ -14173,8 +14173,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryBibtexExport.dom.test.tsx",
-      "sha256": "e9754e3a780509ee582f4a9e9af3e7bead96033e3063b63129b66f300114857c",
-      "bytes": 6641,
+      "sha256": "a3ed3a32988b91c4a1f33f08922145f26ef6cba6d98cc9bf9ebf4e316be87b66",
+      "bytes": 7366,
       "reason": "Verify actual Library selection export entry, busy feedback, complete download and late account or visit fencing without a provider, catalogue mutation or scientific execution."
     },
     {
