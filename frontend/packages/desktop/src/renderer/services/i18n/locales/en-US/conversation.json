@@ -2199,6 +2199,14 @@
     "label": "References per page",
     "count": "Total: {{count}}"
   },
+  "librarySort": {
+    "label": "Sort references",
+    "current": "Current order",
+    "titleAscending": "Title A–Z",
+    "titleDescending": "Title Z–A",
+    "cursorStale": "The references changed. Return to the first page to continue with your current filters and sort order.",
+    "firstPage": "Return to first page"
+  },
   "libraryWorkbench": {
     "eyebrow": "Your research references",
     "title": "Library",

@@ -3,6 +3,7 @@ import {
   loadLiteratureItem,
   loadLiteraturePage,
   type LiteraturePageSize,
+  type LiteraturePageSort,
 } from '@/renderer/services/runtime/literatureLibrary';
 import { LiteratureDetailUnavailableError } from '@/common/adapter/literatureLibrary';
 import {
@@ -22,6 +23,7 @@ export type LibraryReadView<T> = {
   value?: T;
   refreshing?: boolean;
   refreshError?: boolean;
+  cursorStale?: boolean;
 };
 export type LibraryReadPhase = Pick<LibraryReadView<unknown>, 'status' | 'refreshing' | 'refreshError'>;
 
@@ -53,13 +55,23 @@ function useLibraryRead<T>(
       previous.value !== undefined;
     const failure = (error?: unknown) => {
       if (owner.current !== token || account !== getRendererAccountScopeToken()) return;
+      const cursorStale =
+        (isBackendHttpError(error) || isXScienceHttpError(error)) &&
+        error.status === 409 &&
+        error.code === 'LITERATURE_CURSOR_STALE';
       const unavailable =
+        cursorStale ||
         error instanceof LiteratureDetailUnavailableError ||
         ((isBackendHttpError(error) || isXScienceHttpError(error)) && [400, 401, 403, 404].includes(error.status));
       setView((previous) =>
         !unavailable && retained(previous)
           ? { ...previous, key, refreshing: false, refreshError: true }
-          : { key, status: 'error', ...(retainKey === undefined ? {} : { retainKey }) }
+          : {
+              key,
+              status: 'error',
+              ...(cursorStale ? { cursorStale: true } : {}),
+              ...(retainKey === undefined ? {} : { retainKey }),
+            }
       );
     };
     setView((previous) =>
@@ -109,7 +121,8 @@ export function useLibraryWorkbench(
   projectId = '',
   readingStatus: LiteratureReadingStatus | '' = '',
   lifecycle: LiteratureLifecycle = 'active',
-  pageSize?: LiteraturePageSize
+  pageSize?: LiteraturePageSize,
+  sort?: LiteraturePageSort
 ) {
   const [account, setAccount] = useState(getRendererAccountScopeToken);
   const [revision, setRevision] = useState(0);
@@ -129,9 +142,10 @@ export function useLibraryWorkbench(
         readingStatus: readingStatus || undefined,
         lifecycle,
         pageSize,
+        sort,
         signal,
       }),
-    [query, cursor, collectionId, projectId, readingStatus, lifecycle, pageSize]
+    [query, cursor, collectionId, projectId, readingStatus, lifecycle, pageSize, sort]
   );
   const detailRequest = useCallback(
     (signal: AbortSignal) => (selectedId ? loadLiteratureItem(selectedId, signal) : Promise.resolve(undefined)),
@@ -152,6 +166,7 @@ export function useLibraryWorkbench(
       query,
       cursor,
       pageSize ?? 20,
+      sort ?? '',
       collectionId,
       projectId,
       readingStatus,
@@ -167,6 +182,7 @@ export function useLibraryWorkbench(
       query,
       cursor,
       pageSize ?? 20,
+      sort ?? '',
       collectionId,
       projectId,
       readingStatus,

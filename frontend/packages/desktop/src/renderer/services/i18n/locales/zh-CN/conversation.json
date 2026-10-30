@@ -2199,6 +2199,14 @@
     "label": "每页文献数",
     "count": "共 {{count}} 篇"
   },
+  "librarySort": {
+    "label": "文献排序",
+    "current": "当前顺序",
+    "titleAscending": "标题 A–Z",
+    "titleDescending": "标题 Z–A",
+    "cursorStale": "文献已发生变化。返回第一页后，可保留当前筛选条件和排序继续浏览。",
+    "firstPage": "返回第一页"
+  },
   "libraryWorkbench": {
     "eyebrow": "你的研究文献",
     "title": "文献库",

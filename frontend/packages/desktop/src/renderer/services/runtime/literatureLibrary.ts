@@ -28,6 +28,8 @@ const requireAccount = (token: string) => {
 };
 export const literaturePageSizes = [25, 50, 100] as const;
 export type LiteraturePageSize = (typeof literaturePageSizes)[number];
+export const literaturePageSorts = ['title-asc', 'title-desc'] as const;
+export type LiteraturePageSort = (typeof literaturePageSorts)[number];
 
 export async function loadLiteraturePage(
   options: {
@@ -38,17 +40,21 @@ export async function loadLiteraturePage(
     lifecycle?: LiteratureLifecycle;
     cursor?: string;
     pageSize?: LiteraturePageSize;
+    sort?: LiteraturePageSort;
     signal?: AbortSignal;
   } = {}
 ) {
   const account = getRendererAccountScopeToken();
   if (options.pageSize !== undefined && !literaturePageSizes.includes(options.pageSize))
     throw new Error('Invalid Literature Library page size');
+  if (options.sort !== undefined && !literaturePageSorts.includes(options.sort))
+    throw new Error('Invalid Literature Library page sort');
   // Non-UI readers retain their original 20-item window.
   const query = new URLSearchParams({ limit: String(options.pageSize ?? 20) });
   if (options.readingStatus !== undefined) decodeLiteratureReadingStatus(options.readingStatus);
   appendLiteratureScopeQuery(query, options);
   if (options.cursor) query.set('cursor', options.cursor);
+  if (options.sort) query.set('sort', options.sort);
   const raw = await httpRequest<unknown>('GET', `/api/literature/items?${query}`, undefined, {
     signal: options.signal,
     timeoutMs: 15_000,
