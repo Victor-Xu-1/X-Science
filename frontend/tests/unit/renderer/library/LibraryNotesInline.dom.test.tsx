@@ -46,12 +46,12 @@ describe('Library inline Notes through the existing Page owners', () => {
     await screen.findByRole('button', { name: 'Paper A' });
     expect(settingWrites).toEqual([]);
     expect(screen.queryByRole('textbox', { name: 'Note for Paper A' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Customize columns' }));
     const menu = await screen.findByRole('dialog', { name: 'Customize columns' });
-    await waitFor(() => expect(within(menu).getByRole('checkbox', { name: 'Show Authors' })).toBeEnabled());
-    const notes = within(menu).queryByRole('checkbox', { name: 'Show Notes' });
+    await waitFor(() => expect(within(menu).getByRole('button', { name: 'Hide Authors' })).toBeEnabled());
+    const notes = within(menu).queryByRole('button', { name: 'Show Notes' });
     expect(notes, 'the optional Notes column must exist in the real column menu').not.toBeNull();
-    expect(notes).not.toBeChecked();
+    expect(notes).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(notes!);
     await waitFor(() => expect(settingWrites).toHaveLength(1));
     expect(saved).toEqual({
