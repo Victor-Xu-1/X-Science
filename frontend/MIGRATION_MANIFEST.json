@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "b1e480cded42c11701cadab433097bb70bfaa478869cef1734fb401f8c69d403",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e2da522c0fb39382ac4666f188d308d2499d65cdc0a84e3f7d7cb2b59e00bbba",
+  "additionFingerprintSHA256": "a78b0712ea817359c6cf9e422986d68bbe1a567dbf970c8cbd530176c384a6a0",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -10039,8 +10039,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryManualCreate.tsx",
-      "sha256": "03a36b4a890e8f0129a27e5df24feeaf0166c36677d289dd1046662df071c727",
-      "bytes": 5170,
+      "sha256": "36e4119fdae2b868cc5e9a7f84776639cbedd374dea143bdc7685320b1d19143",
+      "bytes": 5520,
       "reason": "Present one explicit manual reference form using the existing bibliographic fields, canonical reading tokens and WorkbenchModal, with truthful pending feedback and no attachment or external-provider substitution."
     },
     {
@@ -10063,8 +10063,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "040ff8e4f6b69a83ea47653459b53c91a21f7297f74c83b4fdd5d1152ba12be0",
-      "bytes": 36380,
+      "sha256": "5e9869bcc722708cd3193c1eecd948f9327858d3a8e38b6f249a61f444ee0125",
+      "bytes": 36494,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10315,8 +10315,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryManualCreate.ts",
-      "sha256": "f3aac8a040043da9c8b32f06419bc4c1857ab805cfd6c1bde1ab5415de914b8c",
-      "bytes": 5145,
+      "sha256": "86c084362721d7b7ff2842aa8e024e24f93457c6cbb2a50c504fe2050a3cf069",
+      "bytes": 5843,
       "reason": "Own only the manual form draft and scoped receipt feedback; route one immutable creation and uncertain retry through the original account-wide Library mutation outbox without discarding an unknown write."
     },
     {
@@ -14203,8 +14203,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryManualCreate.dom.test.tsx",
-      "sha256": "aa53f6cfc65a14213678c65269fdfe7d4db6e88aabc6972cd6879a93a3e5aaf5",
-      "bytes": 11775,
+      "sha256": "1eb429221cb0c770f9bcc8f0827126eff2a42b209a2733fbabecb33eb7164c06",
+      "bytes": 14329,
       "reason": "Verify one-step manual creation, original-operation retry and refresh, project/collection placement, late-account fences, Trash conflict and real Add menu keyboard and PDF chooser behavior with synthetic owned inputs."
     },
     {
