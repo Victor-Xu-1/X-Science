@@ -1,10 +1,19 @@
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { decodeLiteratureBibtex } from '@/common/adapter/literatureBibtex';
+import {
+  decodeLiteratureReferenceExport,
+  isLiteratureExportFormat,
+  type LiteratureExportFormat,
+} from '@/common/adapter/literatureReferenceExport';
 import { getRendererAccountScopeToken } from '../rendererAccountScope';
 
 /** The original authenticated catalogue supplies text; no mutation receipt or provider is involved. */
-export async function loadLiteratureBibtex(itemIds: readonly string[], signal: AbortSignal): Promise<string> {
+export async function loadLiteratureReferenceExport(
+  itemIds: readonly string[],
+  format: LiteratureExportFormat,
+  signal: AbortSignal
+): Promise<string> {
   if (
+    !isLiteratureExportFormat(format) ||
     !itemIds.length ||
     new Set(itemIds).size !== itemIds.length ||
     itemIds.some((id) => !id || id.trim() !== id || id.length > 512)
@@ -22,7 +31,7 @@ export async function loadLiteratureBibtex(itemIds: readonly string[], signal: A
     const next = [...batch, id];
     if (
       batch.length &&
-      (next.length > 200 || new TextEncoder().encode(JSON.stringify({ item_ids: next })).length > 64 * 1024)
+      (next.length > 200 || new TextEncoder().encode(JSON.stringify({ item_ids: next, format })).length > 64 * 1024)
     ) {
       batches.push(batch);
       batch = [];
@@ -35,12 +44,12 @@ export async function loadLiteratureBibtex(itemIds: readonly string[], signal: A
     current();
     const raw = await httpRequest<unknown>(
       'POST',
-      '/api/literature/export-bibtex',
-      { item_ids: ids },
+      '/api/literature/export-references',
+      { item_ids: ids, format },
       { signal, timeoutMs: 30_000 }
     );
     current();
-    parts.push(decodeLiteratureBibtex(raw, ids).bibtex.trim());
+    parts.push(decodeLiteratureReferenceExport(raw, ids, format).content.trim());
   }
   current();
   return parts.join('\n\n') + '\n';

@@ -2,10 +2,8 @@ package workspace
 
 import (
 	"context"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"unicode"
@@ -18,51 +16,13 @@ type LiteratureBibtex struct {
 	Bibtex  string   `json:"bibtex"`
 }
 
-// ExportLiteratureBibtex reads the original catalogue in one snapshot. No mutation,
-// attachment access, provider call or partially formatted success is performed.
+// Cached clients keep their exact wire shape while sharing the canonical reader.
 func (s *Store) ExportLiteratureBibtex(ctx context.Context, owner string, ids []string) (LiteratureBibtex, error) {
-	empty := LiteratureBibtex{}
-	if !validLiteratureID(owner) || len(ids) == 0 || len(ids) > 200 {
-		return empty, ErrLiteratureInvalid
-	}
-	seen := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		if !validLiteratureID(id) || !utf8.ValidString(id) || seen[id] {
-			return empty, ErrLiteratureInvalid
-		}
-		seen[id] = true
-	}
-	database := s.readDatabase()
-	if database == nil {
-		return empty, errors.New("workspace store is closed")
-	}
-	tx, err := database.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	result, err := s.ExportLiteratureReferences(ctx, owner, ids, LiteratureExportBibtex)
 	if err != nil {
-		return empty, err
+		return LiteratureBibtex{}, err
 	}
-	defer tx.Rollback()
-	entries := make([]string, 0, len(ids))
-	for _, id := range ids {
-		item, err := readLiteratureItem(ctx, tx, owner, id)
-		if err != nil {
-			return empty, err
-		}
-		if item.Deleted {
-			return empty, ErrLiteratureUnavailable
-		}
-		entry, err := literatureBibtexEntry(item)
-		if err != nil {
-			return empty, err
-		}
-		entries = append(entries, entry)
-	}
-	if err := ctx.Err(); err != nil {
-		return empty, err
-	}
-	if err := tx.Commit(); err != nil {
-		return empty, err
-	}
-	return LiteratureBibtex{Schema: "x-science.literature-bibtex.v1", ItemIDs: append([]string(nil), ids...), Bibtex: strings.Join(entries, "\n\n") + "\n"}, nil
+	return LiteratureBibtex{Schema: "x-science.literature-bibtex.v1", ItemIDs: result.ItemIDs, Bibtex: result.Content}, nil
 }
 
 func literatureBibtexEntry(item LiteratureItem) (string, error) {

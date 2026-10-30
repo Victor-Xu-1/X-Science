@@ -9,7 +9,6 @@ export function LibraryWorkspaceHeader({
   query,
   onQueryChange,
   actions,
-  collectionActions,
   filters,
 }: {
   title: string;
@@ -17,7 +16,6 @@ export function LibraryWorkspaceHeader({
   query: string;
   onQueryChange: (value: string) => void;
   actions: React.ReactNode;
-  collectionActions?: React.ReactNode;
   filters?: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -27,7 +25,6 @@ export function LibraryWorkspaceHeader({
         <div className='library-workbench__heading'>
           <div className='library-workbench__title-row'>
             <h1 id='library-workbench-title'>{title}</h1>
-            {collectionActions}
           </div>
           {description && <p>{description}</p>}
         </div>

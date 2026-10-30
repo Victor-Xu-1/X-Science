@@ -131,12 +131,14 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
-    "packages/desktop/src/common/adapter/literatureBibtex.ts": "Validate the typed read-only BibTeX response against the exact requested canonical item IDs before any file download.",
-    "packages/desktop/src/renderer/pages/library/LibraryBibtexExportMenu.tsx": "Adapt Open Science 23898639 selected-reference export entry, busy and failure feedback through the existing Library-local menu and compact X-Science controls; expose only the connected BibTeX format.",
-    "packages/desktop/src/renderer/pages/library/useLibraryBibtexExport.ts": "Bind one explicit-selection export to the existing account, selection and visit boundaries, with synchronous request ownership and no late-scope download or mutation outbox.",
-    "packages/desktop/src/renderer/services/runtime/literatureBibtex.ts": "Read authenticated canonical Library BibTeX batches through the existing HTTP and renderer account authority, then return complete UTF-8 content only after all exact replies succeed.",
-    "tests/unit/renderer/conversation/literatureBibtex.test.ts": "Verify bounded complete-selection export, all-or-none response handling and cleanup through the original browser download helper using isolated synthetic input.",
-    "tests/unit/renderer/library/LibraryBibtexExport.dom.test.tsx": "Verify actual Library selection export entry, busy feedback, complete download and late account or visit fencing without a provider, catalogue mutation or scientific execution.",
+    "packages/desktop/src/common/adapter/literatureReferenceExport.ts": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff.",
+    "packages/desktop/src/renderer/pages/library/LibraryReferenceExportMenu.tsx": "Adapt Open Science 8f479374 complete Library reference export menus, format choices and collection actions to compact X-Science controls and the existing Library editor/menu authorities.",
+    "packages/desktop/src/renderer/pages/library/useLibraryExportMenu.ts": "Adapt reference hover timing and keyboard focus through the original Library action-menu owner; display-only timers introduce no request or persistence authority.",
+    "packages/desktop/src/renderer/pages/library/useLibraryReferenceExport.ts": "Use one account-fenced export work slot for explicit selections, all matching selections and current project or collection scope, retiring stale owners and preserving complete-file semantics.",
+    "packages/desktop/src/renderer/services/runtime/literatureReferenceExport.ts": "Read bounded authenticated canonical BibTeX/RIS batches through the existing HTTP and account authority and return content only after every exact reply succeeds.",
+    "tests/unit/renderer/conversation/literatureReferenceExport.test.ts": "Verify complete bounded reference transport, both format contracts, all-or-none replies and filename normalization with isolated synthetic input.",
+    "tests/unit/renderer/library/LibraryReferenceExport.dom.test.tsx": "Verify actual Library selection export, complete Web download, failure feedback and retired account/visit handling through the canonical DOM project.",
+    "tests/unit/renderer/library/LibraryReferenceExportScopes.dom.test.tsx": "Verify all-matching exclusions, independent whole-scope reads, canonical title order, More Actions and stale scope availability/ABA fences in the actual Library Page without provider or research execution.",
     "packages/desktop/src/common/chat/conversationSubmission.ts": "Share the typed pre-transport cancellation outcome between conversation producers and the generic queue without importing an ACP implementation or adding runtime authority.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity.ts": "Extract the scoped composer context-activity presentation bridge, preserving render-time account, conversation and incarnation fences and equal-value deduplication while reusing the original context reader; no request, timer or execution authority is added.",
@@ -729,9 +731,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "7eb3d3216b0de01364b5087344dd082650f5b51153949d1fdfe4219142bcf849"
+APPROVED_ADAPTATION_FINGERPRINT = "9d76c7aa2b43de7f71b1a7fdfd9f272fd18ecea35824bba2b2509b791e745800"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "ac1fafeecbc1b81707dc8804b4b034ee954bfb2c32ace6df7adc11e264fa441d"
+APPROVED_ADDITION_FINGERPRINT = "858f9bee20612bef6eea93dbfddda1a76d060f0f8f2c5bd4d2e96c89f002e75f"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

@@ -13,9 +13,18 @@ import {
 } from './libraryCollectionsFixtures';
 
 const open = async (name: 'New collection' | 'Edit collection' | 'Delete collection') => {
-  const button = await screen.findByRole('button', { name });
-  await waitFor(() => expect(button).toBeEnabled());
-  fireEvent.click(button);
+  if (name === 'New collection') {
+    const button = await screen.findByRole('button', { name });
+    await waitFor(() => expect(button).toBeEnabled());
+    fireEvent.click(button);
+  } else {
+    const more = await screen.findByRole('button', { name: 'More actions' });
+    await waitFor(() => expect(more).toBeEnabled());
+    fireEvent.click(more);
+    const action = await screen.findByRole('menuitem', { name });
+    expect(action).not.toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(action);
+  }
   return within(await screen.findByRole('dialog', { name }));
 };
 
