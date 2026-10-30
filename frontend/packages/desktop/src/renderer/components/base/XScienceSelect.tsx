@@ -9,6 +9,7 @@ import type { SelectProps } from '@arco-design/web-react';
 import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import classNames from 'classnames';
 import React from 'react';
+import { useSelectCloseFocus } from './useSelectCloseFocus';
 
 /**
  * 自定义下拉选择组件属性 / Custom select component props
@@ -115,13 +116,50 @@ type XScienceSelectComponent = React.ForwardRefExoticComponent<
 const InternalSelect = React.forwardRef<SelectHandle, XScienceSelectProps>(
   ({ className, getPopupContainer, size = 'middle', ...rest }, ref) => {
     const normalizedSize = mapSizeToNative(size);
+    const select = React.useRef<SelectHandle>(null);
+    // Arco replaces this handle when its internal active option changes, even
+    // without a wrapper render. Forward each original object, not a snapshot.
+    const selectRef = React.useCallback<React.RefCallback<SelectHandle>>(
+      (handle: SelectHandle | null) => {
+        select.current = handle;
+        if (typeof ref === 'function') {
+          const cleanup = (ref as React.RefCallback<SelectHandle>)(handle);
+          if (typeof cleanup === 'function') {
+            return () => {
+              if (select.current === handle) select.current = null;
+              cleanup();
+            };
+          }
+        } else if (ref) ref.current = handle;
+      },
+      [ref]
+    );
+    const trigger = rest.triggerProps?.trigger ?? rest.trigger ?? 'click';
+    const clickOnly = trigger === 'click' || (Array.isArray(trigger) && trigger.length === 1 && trigger[0] === 'click');
+    // A focus-triggered/custom owner may intentionally reopen or move focus.
+    // Keep that owner's semantics instead of competing with it on close.
+    const controlledVisible = 'popupVisible' in rest ? rest.popupVisible : rest.triggerProps?.popupVisible;
+    const focus = useSelectCloseFocus(
+      select,
+      clickOnly && rest.triggerElement == null && !rest.onFocus,
+      !!rest.disabled,
+      controlledVisible
+    );
     return (
       <Select
-        ref={ref}
+        ref={selectRef}
         size={normalizedSize}
         className={classNames(BASE_CLASS, className)}
         getPopupContainer={getPopupContainer || defaultGetPopupContainer}
         {...rest}
+        onVisibleChange={(next) => {
+          focus.visibleChange(next);
+          rest.onVisibleChange?.(next);
+        }}
+        onKeyDown={(event) => {
+          rest.onKeyDown?.(event);
+          focus.keyDown(event);
+        }}
       />
     );
   }

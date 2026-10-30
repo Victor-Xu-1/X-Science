@@ -17,7 +17,6 @@ export function LibrarySortControl({
 }) {
   const { t } = useTranslation();
   const select = useRef<SelectHandle>(null);
-  const focusReturn = useRef<HTMLDivElement | undefined>(undefined);
   const [open, setOpen] = useState(false);
   const visible = open && !disabled;
   const dateOrder = value === 'updated-desc' || value === 'created-desc' || value === 'created-asc';
@@ -34,32 +33,10 @@ export function LibrarySortControl({
   const selectedLabel = choices.find((choice) => choice.value === selected)?.label;
   useEffect(() => {
     if (disabled) {
-      focusReturn.current = undefined;
       setOpen(false);
     }
   }, [disabled]);
-  useEffect(() => {
-    if (visible) return;
-    const control = focusReturn.current;
-    focusReturn.current = undefined;
-    // Arco blurs its view on close. Restore only this owned control after that
-    // effect, without taking focus from an outside element or a disabled view.
-    if (
-      !disabled &&
-      control?.isConnected &&
-      control === select.current?.dom &&
-      (document.activeElement === document.body || control.contains(document.activeElement))
-    )
-      select.current?.focus();
-  }, [visible, disabled]);
   const changeVisibility = (next: boolean) => {
-    const control = select.current?.dom;
-    const menuId = control?.getAttribute('aria-controls');
-    const menu = menuId ? document.getElementById(menuId) : undefined;
-    focusReturn.current =
-      !next && (control?.contains(document.activeElement) || menu?.contains(document.activeElement))
-        ? control
-        : undefined;
     setOpen(next && !disabled);
   };
   return (
