@@ -390,7 +390,9 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     status?.taskCompleted && status.reviewStatus === 'completed' && snapshot?.reviewFrameId && onOpenReviewFindings
   );
   const pausePending = pausing && taskActive;
-  const inlinePause = Boolean((localPreparing || status?.canCancel) && status?.phase !== 'cancelling' && onStop && !pausing);
+  const inlinePause = Boolean(
+    (localPreparing || status?.canCancel) && status?.phase !== 'cancelling' && onStop && !pausing
+  );
 
   useEffect(() => {
     setNow(Date.now());
@@ -525,7 +527,9 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const statusIcon = (
     <StatusIcon
       phase={phase}
-      busy={localPreparing || busy || authorityPending || completedAnswerPending || resuming || taskActive || pausePending}
+      busy={
+        localPreparing || busy || authorityPending || completedAnswerPending || resuming || taskActive || pausePending
+      }
       reviewNeedsAttention={reviewNeedsAttention}
     />
   );

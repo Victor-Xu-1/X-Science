@@ -34,6 +34,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
+import type { ConversationRuntimeView } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import { useRealtime } from '@/renderer/hooks/context/RealtimeContext';
 import type { XScienceTaskStatusError } from './XScienceTaskStatus';
 import type { XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
@@ -54,9 +55,9 @@ type XScienceRuntimeOperationsProps = {
   contextActivity?: ContextRequestActivity | null;
   contextFrameIncarnationId?: string;
   conversationId: string;
-  runtimeState: string;
+  runtimeState?: string;
   terminalProjectionPending?: boolean;
-  localPreparing?: boolean;
+  runtimeView?: Pick<ConversationRuntimeView, 'state' | 'terminalProjectionPending' | 'localPreparing'>;
   onResumeStarted?: () => void;
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
@@ -79,9 +80,9 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   contextActivity,
   contextFrameIncarnationId,
   conversationId,
-  runtimeState,
-  terminalProjectionPending = false,
-  localPreparing = false,
+  runtimeState: suppliedRuntimeState = 'idle',
+  terminalProjectionPending: suppliedTerminalProjectionPending = false,
+  runtimeView,
   onResumeStarted,
   onResumeFailed,
   onResumed,
@@ -96,6 +97,9 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   modelInfo,
   onChooseModel,
 }) => {
+  const runtimeState = runtimeView?.state ?? suppliedRuntimeState;
+  const terminalProjectionPending = runtimeView?.terminalProjectionPending ?? suppliedTerminalProjectionPending;
+  const localPreparing = runtimeView?.localPreparing === true;
   const layout = useLayoutContext();
   const { snapshot: realtimeSnapshot } = useRealtime();
   const { t } = useTranslation();
@@ -862,7 +866,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         recoveryModelLabel={recoveryModel?.label ?? null}
         onResume={recoveryCanResume ? () => void resumeTask(recoveryResumeModelId) : undefined}
         onChooseModel={onChooseModel}
-        onStop={onStop ? localPreparing ? () => void onStop() : () => void pauseTask() : undefined}
+        onStop={onStop ? (localPreparing ? () => void onStop() : () => void pauseTask()) : undefined}
         onRefresh={refreshRuntime}
         onOpenReviewFindings={openReviewFindings}
         onOpenPlan={planAvailable ? openPlanReview : undefined}

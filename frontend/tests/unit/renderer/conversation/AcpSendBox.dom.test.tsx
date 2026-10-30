@@ -357,34 +357,35 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceBranchMenu', () => ({
 vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', async (original) => {
   const actual = await original<typeof import('@/renderer/components/xScience/runtime/XScienceRuntimeOperations')>();
   return {
-  default: (props: {
-    onChooseModel?: () => void;
-    runtimeState?: string;
-    runtimeAuthorityUnavailable?: boolean;
-    onRetryRuntimeAuthority?: () => void;
-    onStop?: () => void | Promise<void>;
-    onReviewActivityChange?: (active: boolean) => void;
-    onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
-    onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
-    onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
-    taskCenterMetrics?: {
-      total: {
-        tokenUsage: number | null;
-        modelCallCount: number | null;
-        toolCallCount: number | null;
+    default: (props: {
+      onChooseModel?: () => void;
+      runtimeState?: string;
+      runtimeAuthorityUnavailable?: boolean;
+      onRetryRuntimeAuthority?: () => void;
+      onStop?: () => void | Promise<void>;
+      onReviewActivityChange?: (active: boolean) => void;
+      onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+      onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+      onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
+      taskCenterMetrics?: {
+        total: {
+          tokenUsage: number | null;
+          modelCallCount: number | null;
+          toolCallCount: number | null;
+        };
+        latest: {
+          tokenUsage: number | null;
+          modelCallCount: number | null;
+          toolCallCount: number | null;
+        };
       };
-      latest: {
-        tokenUsage: number | null;
-        modelCallCount: number | null;
-        toolCallCount: number | null;
-      };
-    };
-  }) => {
-    runtimeOperationsProps.current = props;
-    if (realPreparationRuntime.current) return <actual.default {...(props as React.ComponentProps<typeof actual.default>)} />;
-    return null;
-  },
-};
+    }) => {
+      runtimeOperationsProps.current = props;
+      if (realPreparationRuntime.current)
+        return <actual.default {...(props as React.ComponentProps<typeof actual.default>)} />;
+      return null;
+    },
+  };
 });
 vi.mock('@/renderer/services/xScienceRuntimeOperations', async (original) => ({
   ...(await original<typeof import('@/renderer/services/xScienceRuntimeOperations')>()),
@@ -964,20 +965,39 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
-  it.each([['ordinary', false], ['save-as-skill', false], ['ordinary', true], ['save-as-skill', true]] as const)(
+  it.each([
+    ['ordinary', false],
+    ['save-as-skill', false],
+    ['ordinary', true],
+    ['save-as-skill', true],
+  ] as const)(
     'real preparation controls expose Stop for %s with initial snapshot held=%s and withdraw its exact send',
     async (kind, initialSnapshotHeld) => {
       realPreparationRuntime.current = true;
       const conversationId = 'conv-real-preparing';
       const completedRuntime: TConversationRuntimeSummary = {
-        state: 'idle', can_send_message: true, has_task: false, task_status: 'finished',
-        is_processing: false, pending_confirmations: 0, turn_id: null,
+        state: 'idle',
+        can_send_message: true,
+        has_task: false,
+        task_status: 'finished',
+        is_processing: false,
+        pending_confirmations: 0,
+        turn_id: null,
       };
       const priorSnapshot = {
-        frameId: conversationId, rootFrameId: conversationId, status: 'completed',
-        runtimeAttempt: 47, runtimeInputRevision: 47, pendingInputRequests: [],
-        canCancel: false, canResume: false, taskPlan: null, planApproval: null,
-        runtimeActive: false, runtimeTaskActive: false, runtimeStage: null,
+        frameId: conversationId,
+        rootFrameId: conversationId,
+        status: 'completed',
+        runtimeAttempt: 47,
+        runtimeInputRevision: 47,
+        pendingInputRequests: [],
+        canCancel: false,
+        canResume: false,
+        taskPlan: null,
+        planApproval: null,
+        runtimeActive: false,
+        runtimeTaskActive: false,
+        runtimeStage: null,
       };
       if (initialSnapshotHeld) preparationSnapshotMock.mockReturnValue(new Promise(() => {}));
       else preparationSnapshotMock.mockResolvedValue(priorSnapshot);
@@ -986,9 +1006,16 @@ describe('AcpSendBox', () => {
       loadBranchStateMock.mockReturnValueOnce(branch.promise);
       sendBoxDraftSeed.current = 'Keep the original draft.';
       sendMessageInvokeMock.mockReset();
-      await render(<AcpSendBox conversation_id={conversationId} backend='xscience'
-        initialConversation={{ id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation}
-        messageState={makeMessageState()} />);
+      await render(
+        <AcpSendBox
+          conversation_id={conversationId}
+          backend='xscience'
+          initialConversation={
+            { id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation
+          }
+          messageState={makeMessageState()}
+        />
+      );
       if (!initialSnapshotHeld) await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
       await waitFor(() => expect(screen.getByRole('button', { name: 'send', exact: true })).not.toBeDisabled());
       let saving: Promise<void> | undefined;
@@ -1017,7 +1044,9 @@ describe('AcpSendBox', () => {
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
         expect(stopInvokeMock).not.toHaveBeenCalled();
         expect(clearFilesMock).not.toHaveBeenCalled();
-        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(kind === 'ordinary' ? 'Hello' : 'Keep the original draft.');
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(
+          kind === 'ordinary' ? 'Hello' : 'Keep the original draft.'
+        );
         if (kind === 'save-as-skill') expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false);
       } finally {
         branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });

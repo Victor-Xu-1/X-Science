@@ -70,10 +70,20 @@ export const projectAcceptedRuntimeStart = (
       runtimeElapsedAvailable: false,
       runtimeTaskElapsedMs: null,
       runtimeTaskElapsedAvailable: false,
-      taskMetrics: snapshot.taskMetrics ? { ...snapshot.taskMetrics, latest: {
-        inputTokens: null, outputTokens: null, cacheReadTokens: null, cacheWriteTokens: null,
-        totalTokens: null, modelCallCount: null, toolCallCount: null,
-      } } : null,
+      taskMetrics: snapshot.taskMetrics
+        ? {
+            ...snapshot.taskMetrics,
+            latest: {
+              inputTokens: null,
+              outputTokens: null,
+              cacheReadTokens: null,
+              cacheWriteTokens: null,
+              totalTokens: null,
+              modelCallCount: null,
+              toolCallCount: null,
+            },
+          }
+        : null,
       reviewStatus: null,
       reviewKind: null,
       reviewTrigger: null,
