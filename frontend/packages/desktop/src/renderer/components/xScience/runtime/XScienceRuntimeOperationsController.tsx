@@ -850,6 +850,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         loading={visibleLoading}
         snapshotError={ownsConversation ? snapshotError : null}
         runtimeState={runtimeState}
+        localPreparing={localPreparing}
         terminalProjectionPending={terminalProjectionPending}
         runtimeAuthorityUnavailable={runtimeAuthorityUnavailable}
         showLoadingStatus={ownerTransitionLoading}
@@ -861,7 +862,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         recoveryModelLabel={recoveryModel?.label ?? null}
         onResume={recoveryCanResume ? () => void resumeTask(recoveryResumeModelId) : undefined}
         onChooseModel={onChooseModel}
-        onStop={onStop ? () => void pauseTask() : undefined}
+        onStop={onStop ? localPreparing ? () => void onStop() : () => void pauseTask() : undefined}
         onRefresh={refreshRuntime}
         onOpenReviewFindings={openReviewFindings}
         onOpenPlan={planAvailable ? openPlanReview : undefined}

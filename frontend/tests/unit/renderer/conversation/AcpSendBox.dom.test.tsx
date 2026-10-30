@@ -964,21 +964,23 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
-  it.each(['ordinary', 'save-as-skill'] as const)(
-    'real preparation controls expose Stop after a completed attempt for %s and withdraw its exact send',
-    async (kind) => {
+  it.each([['ordinary', false], ['save-as-skill', false], ['ordinary', true], ['save-as-skill', true]] as const)(
+    'real preparation controls expose Stop for %s with initial snapshot held=%s and withdraw its exact send',
+    async (kind, initialSnapshotHeld) => {
       realPreparationRuntime.current = true;
       const conversationId = 'conv-real-preparing';
       const completedRuntime: TConversationRuntimeSummary = {
         state: 'idle', can_send_message: true, has_task: false, task_status: 'finished',
         is_processing: false, pending_confirmations: 0, turn_id: conversationId,
       };
-      preparationSnapshotMock.mockResolvedValue({
+      const priorSnapshot = {
         frameId: conversationId, rootFrameId: conversationId, status: 'completed',
         runtimeAttempt: 47, runtimeInputRevision: 47, pendingInputRequests: [],
         canCancel: false, canResume: false, taskPlan: null, planApproval: null,
         runtimeActive: false, runtimeTaskActive: false, runtimeStage: null,
-      });
+      };
+      if (initialSnapshotHeld) preparationSnapshotMock.mockReturnValue(new Promise(() => {}));
+      else preparationSnapshotMock.mockResolvedValue(priorSnapshot);
       const branch = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
       getSelectedBranchMock.mockReturnValue('branch-preparing');
       loadBranchStateMock.mockReturnValueOnce(branch.promise);
@@ -987,7 +989,7 @@ describe('AcpSendBox', () => {
       await render(<AcpSendBox conversation_id={conversationId} backend='xscience'
         initialConversation={{ id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation}
         messageState={makeMessageState()} />);
-      await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
+      if (!initialSnapshotHeld) await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
       let saving: Promise<void> | undefined;
       try {
         await act(async () => {
