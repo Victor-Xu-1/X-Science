@@ -427,20 +427,12 @@ func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action
 		if e != nil {
 			return c, e
 		}
-		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, sources...)
+		item, e := s.findOrCreateLiteratureMetadataTx(ctx, tx, owner, c.Title, func() (string, error) {
+			_, raw, err := candidateLibraryMetadata(c.Metadata, c.Provider, c.ExternalID)
+			return raw, err
+		}, ids, sources...)
 		if e != nil {
 			return c, e
-		}
-		if item == "" {
-			item = uuid.NewString()
-			_, raw, e := candidateLibraryMetadata(c.Metadata, c.Provider, c.ExternalID)
-			if e != nil {
-				return c, e
-			}
-			now := s.now().UTC()
-			if _, e = tx.ExecContext(ctx, `INSERT INTO literature_items(id,owner_user_id,title,metadata_json,created_at,updated_at) VALUES(?,?,?,?,?,?)`, item, owner, c.Title, raw, now, now); e != nil {
-				return c, e
-			}
 		}
 		_, e = tx.ExecContext(ctx, `UPDATE literature_candidates SET state='accepted',item_id=?,updated_at=? WHERE id=? AND owner_user_id=?`, item, s.now().UTC(), id, owner)
 		if e != nil {

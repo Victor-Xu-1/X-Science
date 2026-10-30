@@ -3,6 +3,7 @@
 .pdf-reading-composer,
 .pdf-reading-picker,
 .pdf-reading-preview-action,
+.library-manual-create,
 .library-workbench__detail .pdf-library-related {
   --reading-bg: hsl(60 14% 99%);
   --reading-surface: hsl(0 0% 100%);
@@ -19,9 +20,11 @@
 [data-theme='dark'] .pdf-reading-composer,
 [data-theme='dark'] .pdf-reading-picker,
 [data-theme='dark'] .pdf-reading-preview-action,
+[data-theme='dark'] .library-manual-create,
 body[arco-theme='dark'] .pdf-reading-composer,
 body[arco-theme='dark'] .pdf-reading-picker,
 body[arco-theme='dark'] .pdf-reading-preview-action,
+body[arco-theme='dark'] .library-manual-create,
 [data-theme='dark'] .library-workbench__detail,
 body[arco-theme='dark'] .library-workbench__detail .pdf-library-related {
   --reading-bg: hsl(60 3% 10%);

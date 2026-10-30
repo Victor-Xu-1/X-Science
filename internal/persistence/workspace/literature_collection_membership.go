@@ -6,6 +6,14 @@ import (
 	"errors"
 )
 
+// Callers admit the owner, live item and collection in this same transaction.
+func (s *Store) linkLiteratureCollectionItemTx(ctx context.Context, tx *sql.Tx, collectionID, itemID string) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO literature_collection_items(collection_id,item_id,sort_order,added_at)
+ SELECT ?,?,COALESCE(MAX(sort_order)+1,0),? FROM literature_collection_items WHERE collection_id=?
+ ON CONFLICT(collection_id,item_id) DO NOTHING`, collectionID, itemID, s.now().UTC(), collectionID)
+	return err
+}
+
 func (s *Store) SetLiteratureCollectionItem(ctx context.Context, owner, collectionID, itemID, operationID string, included bool) (LiteratureCollectionReceipt, error) {
 	if !validLiteratureID(collectionID) || !validLiteratureID(itemID) {
 		return LiteratureCollectionReceipt{}, ErrLiteratureInvalid
@@ -30,9 +38,7 @@ func (s *Store) SetLiteratureCollectionItem(ctx context.Context, owner, collecti
 			if included {
 				// Ignore the existing row: a duplicate inclusion preserves its
 				// original position and never advances metadata revision.
-				_, err = tx.ExecContext(ctx, `INSERT INTO literature_collection_items(collection_id,item_id,sort_order,added_at)
- SELECT ?,?,COALESCE(MAX(sort_order)+1,0),? FROM literature_collection_items WHERE collection_id=?
- ON CONFLICT(collection_id,item_id) DO NOTHING`, collectionID, itemID, s.now().UTC(), collectionID)
+				err = s.linkLiteratureCollectionItemTx(ctx, tx, collectionID, itemID)
 			} else {
 				_, err = tx.ExecContext(ctx, `DELETE FROM literature_collection_items WHERE collection_id=? AND item_id=?`, collectionID, itemID)
 			}

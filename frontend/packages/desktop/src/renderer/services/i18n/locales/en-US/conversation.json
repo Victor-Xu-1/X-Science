@@ -2453,5 +2453,15 @@
     "tooLong": "The note exceeds 10,000 UTF-16 units. The draft is preserved.",
     "savedReloadFailed": "Saved, but could not be reloaded. Retry only reloads.",
     "draftPreserved": "Draft preserved. Escape to discard."
+  },
+  "libraryManual": {
+    "addMenu": "Add",
+    "add": "Add reference",
+    "description": "Create a reference in your library.",
+    "create": "Create reference",
+    "discard": "Discard this unsaved reference?",
+    "discardAction": "Discard reference",
+    "trashConflict": "A reference with this identifier is in Trash. Restore it there before creating another reference.",
+    "openTrash": "Open Trash"
   }
 }
