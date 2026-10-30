@@ -12,7 +12,10 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import * as httpBridge from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
-import type { XSciencePlanReference } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import type {
+  XSciencePlanReference,
+  XScienceRuntimeSnapshot,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import * as composerContextSelection from '@/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
@@ -54,6 +57,8 @@ let settleDefaultSessionOptions: (() => Promise<void>) | null = null;
 let settleDefaultFramePlan: (() => Promise<void>) | null = null;
 let queuedCommandSequence = 0;
 const realContextDropdown = { current: false };
+const realPreparationRuntime = { current: false };
+const preparationSnapshotMock = vi.fn();
 const specialistAsideFixture: SpecialistAsideFixture = {
   active: false,
   item: null,
@@ -210,17 +215,25 @@ const mobileActionSheetEntries = {
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
+      responseStream: { on: () => () => {} },
       sendMessage: {
         invoke: (...args: unknown[]) => sendMessageInvokeMock(...args),
       },
     },
     conversation: {
+      confirmation: {
+        add: { on: () => () => {} },
+        update: { on: () => () => {} },
+        remove: { on: () => () => {} },
+      },
       listChanged: { on: () => () => {} },
+      turnCompleted: { on: () => () => {} },
       stop: {
         invoke: (...args: unknown[]) => stopInvokeMock(...args),
       },
     },
     realtime: { reconnected: { on: () => () => {} } },
+    runtime: { statusChanged: { on: () => () => {} } },
   },
 }));
 
@@ -344,35 +357,46 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceBranchMenu', () => ({
     </button>
   ),
 }));
-vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', () => ({
-  default: (props: {
-    onChooseModel?: () => void;
-    runtimeState?: string;
-    runtimeAuthorityUnavailable?: boolean;
-    onRetryRuntimeAuthority?: () => void;
-    onStop?: () => void | Promise<void>;
-    onReviewActivityChange?: (active: boolean) => void;
-    onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
-    onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
-    onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
-    taskCenterMetrics?: {
-      total: {
-        tokenUsage: number | null;
-        modelCallCount: number | null;
-        toolCallCount: number | null;
+vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', async (original) => {
+  const actual = await original<typeof import('@/renderer/components/xScience/runtime/XScienceRuntimeOperations')>();
+  return {
+    default: (props: {
+      conversationId: string;
+      onChooseModel?: () => void;
+      runtimeState?: string;
+      runtimeAuthorityUnavailable?: boolean;
+      onRetryRuntimeAuthority?: () => void;
+      onStop?: () => void | Promise<void>;
+      onReviewActivityChange?: (active: boolean) => void;
+      onResumed?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+      onRuntimeUpdated?: (turnId: string, runtime: TConversationRuntimeSummary) => void;
+      onPlanReferenceChange?: (owner: string, reference: XSciencePlanReference | null) => void;
+      taskCenterMetrics?: {
+        total: {
+          tokenUsage: number | null;
+          modelCallCount: number | null;
+          toolCallCount: number | null;
+        };
+        latest: {
+          tokenUsage: number | null;
+          modelCallCount: number | null;
+          toolCallCount: number | null;
+        };
       };
-      latest: {
-        tokenUsage: number | null;
-        modelCallCount: number | null;
-        toolCallCount: number | null;
+    }) => {
+      runtimeOperationsProps.current = {
+        ...props,
+        runtimeState: props.runtimeState ?? (props as { runtimeView?: { state: string } }).runtimeView?.state,
       };
-    };
-  }) => {
-    runtimeOperationsProps.current = props;
-    return null;
-  },
-}));
-vi.mock('@/renderer/services/xScienceRuntimeOperations', () => ({
+      if (realPreparationRuntime.current)
+        return <actual.default {...(props as React.ComponentProps<typeof actual.default>)} />;
+      return null;
+    },
+  };
+});
+vi.mock('@/renderer/services/xScienceRuntimeOperations', async (original) => ({
+  ...(await original<typeof import('@/renderer/services/xScienceRuntimeOperations')>()),
+  loadXScienceRuntimeSnapshot: (...args: unknown[]) => preparationSnapshotMock(...args),
   loadXScienceFramePlanArtifact: (...args: unknown[]) => loadFramePlanMock(...args),
   notifyXScienceRuntimeInvalidation: (...args: unknown[]) => notifyRuntimeInvalidationMock(...args),
   resumeXScienceFrame: (...args: unknown[]) => resumeFrameMock(...args),
@@ -614,8 +638,17 @@ vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
   loadXScienceConversationBranches: (...args: unknown[]) => loadBranchStateMock(...args),
   selectXScienceBranch: (...args: unknown[]) => selectBranchMock(...args),
 }));
-vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
-  useConversationRuntimeView: () => runtimeViewMock,
+vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', async (original) => {
+  const actual = await original<typeof import('@/renderer/pages/conversation/runtime/useConversationRuntimeView')>();
+  return {
+    useConversationRuntimeView: (...args: Parameters<typeof actual.useConversationRuntimeView>) =>
+      realPreparationRuntime.current
+        ? actual.useConversationRuntimeView(...args)
+        : { ...runtimeViewMock, view: { ...runtimeViewMock.view, state: runtimeViewMock.state } },
+  };
+});
+vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
+  useRealtime: () => ({ runtime: {}, snapshot: { identity: 'authenticated', status: 'connected' } }),
 }));
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
@@ -710,6 +743,7 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () =
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
+    ...actual,
     Input: ({
       value,
       onChange,
@@ -889,6 +923,7 @@ async function renderManualCompaction(
     usageFetch.mockRestore();
     setRendererAccountOwner(null);
     realContextDropdown.current = false;
+    realPreparationRuntime.current = false;
   };
   try {
     const composer = (
@@ -939,6 +974,140 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  it.each([
+    ['ordinary', false, false],
+    ['save-as-skill', false, false],
+    ['ordinary', true, false],
+    ['save-as-skill', true, false],
+    ['ordinary', false, true],
+    ['ordinary', false, 'acknowledged'],
+  ] as const)(
+    'real preparation controls expose Stop for %s with snapshot held=%s and dispatched=%s',
+    async (kind, initialSnapshotHeld, dispatched) => {
+      realPreparationRuntime.current = true;
+      const conversationId = 'conv-real-preparing';
+      const completedRuntime: TConversationRuntimeSummary = {
+        state: 'idle',
+        can_send_message: true,
+        has_task: false,
+        task_status: 'finished',
+        is_processing: false,
+        pending_confirmations: 0,
+        turn_id: null,
+      };
+      const priorSnapshot: Partial<XScienceRuntimeSnapshot> = {
+        frameId: conversationId,
+        rootFrameId: conversationId,
+        status: 'completed',
+        runtimeAttempt: 47,
+        runtimeInputRevision: 47,
+        pendingInputRequests: [],
+        canCancel: false,
+        canResume: false,
+        taskPlan: null,
+        planApproval: null,
+        runtimeActive: false,
+        runtimeTaskActive: false,
+        runtimeStage: null,
+      };
+      if (initialSnapshotHeld) preparationSnapshotMock.mockReturnValue(new Promise(() => {}));
+      else preparationSnapshotMock.mockResolvedValue(priorSnapshot);
+      const branch = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+      getSelectedBranchMock.mockReturnValue('branch-preparing');
+      loadBranchStateMock.mockReturnValueOnce(branch.promise);
+      sendBoxDraftSeed.current = 'Keep the original draft.';
+      sendMessageInvokeMock.mockReset();
+      const acknowledgement = createDeferred<unknown>();
+      if (dispatched) sendMessageInvokeMock.mockReturnValueOnce(acknowledgement.promise);
+      stopInvokeMock.mockResolvedValue({ runtime: completedRuntime });
+      await render(
+        <AcpSendBox
+          conversation_id={conversationId}
+          backend='xscience'
+          initialConversation={
+            { id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation
+          }
+          messageState={makeMessageState()}
+        />
+      );
+      if (!initialSnapshotHeld) await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).not.toBeDisabled());
+      let saving: Promise<void> | undefined;
+      try {
+        await act(async () => {
+          if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: 'send' }));
+          else {
+            const save = fileAttachProps.current?.onSaveSkill;
+            if (typeof save !== 'function') throw new Error('Missing Save-as-Skill entry');
+            saving = save() as Promise<void>;
+          }
+        });
+        await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledOnce());
+        expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(true);
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        if (dispatched) {
+          await act(async () => {
+            branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
+            await branch.promise;
+          });
+          await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
+          expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(false);
+          if (dispatched === 'acknowledged') {
+            await act(async () => {
+              acknowledgement.resolve({
+                msg_id: 'new-input',
+                turn_id: conversationId,
+                runtime: {
+                  state: 'running',
+                  can_send_message: false,
+                  has_task: true,
+                  task_status: 'running',
+                  is_processing: true,
+                  pending_confirmations: 0,
+                  turn_id: conversationId,
+                },
+              });
+              await acknowledgement.promise;
+            });
+            await waitFor(() =>
+              expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false)
+            );
+          }
+        }
+        const stop = screen.getByRole('button', { name: '暂停任务' });
+        fireEvent.click(stop);
+        await waitFor(() =>
+          expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false)
+        );
+        await act(async () => {
+          branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
+          await branch.promise;
+          await saving;
+        });
+        if (dispatched) {
+          expect(stopInvokeMock).toHaveBeenCalledWith({ conversation_id: conversationId, turn_id: conversationId });
+          await act(async () => {
+            acknowledgement.resolve({ msg_id: 'late-input', turn_id: conversationId, runtime: completedRuntime });
+            await acknowledgement.promise;
+          });
+          expect(sendMessageInvokeMock).toHaveBeenCalledOnce();
+          expect(stopInvokeMock).toHaveBeenCalledOnce();
+          return;
+        }
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        expect(stopInvokeMock).not.toHaveBeenCalled();
+        expect(clearFilesMock).not.toHaveBeenCalled();
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(
+          kind === 'ordinary' ? 'Hello' : 'Keep the original draft.'
+        );
+        if (kind === 'save-as-skill') expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false);
+      } finally {
+        branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
+        await saving;
+      }
+    }
+  );
+
   it.each(['ordinary', 'save-as-skill'] as const)(
     'pre-dispatch Stop prevents %s branch preparation from sending after Stop returns',
     async (kind) => {
@@ -1390,6 +1559,7 @@ describe('AcpSendBox', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    realPreparationRuntime.current = false;
     resetConversationRuntimeViewStoreForTest();
     specialistAsideFixture.active = false;
     specialistAsideFixture.item = null;

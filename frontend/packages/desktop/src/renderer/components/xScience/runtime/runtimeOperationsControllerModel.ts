@@ -43,8 +43,60 @@ export const isRuntimePauseTransitionSettled = (snapshot: XScienceRuntimeSnapsho
 
 export const projectAcceptedRuntimeStart = (
   snapshot: XScienceRuntimeSnapshot | null,
-  acceptedStartPending: boolean
+  acceptedStartPending: boolean,
+  localSubmissionPending = false
 ): XScienceRuntimeSnapshot | null => {
+  // A previous durable attempt cannot acknowledge the current submission.
+  // Stop continues through its same ticket owner before or after dispatch.
+  if (snapshot && localSubmissionPending) {
+    return {
+      ...snapshot,
+      status: 'starting',
+      statusDescription: null,
+      error: null,
+      failureReason: null,
+      failureKind: null,
+      completedAt: null,
+      runtimeStage: null,
+      runtimeActive: false,
+      runtimeTaskActive: false,
+      runtimeAttempt: null,
+      runtimeInputRevision: null,
+      runtimeStartedAt: null,
+      runtimeFinishedAt: null,
+      runtimeTaskStartedAt: null,
+      runtimeTaskFinishedAt: null,
+      runtimeElapsedMs: null,
+      runtimeElapsedAvailable: false,
+      runtimeTaskElapsedMs: null,
+      runtimeTaskElapsedAvailable: false,
+      taskMetrics: snapshot.taskMetrics
+        ? {
+            ...snapshot.taskMetrics,
+            latest: {
+              inputTokens: null,
+              outputTokens: null,
+              cacheReadTokens: null,
+              cacheWriteTokens: null,
+              totalTokens: null,
+              modelCallCount: null,
+              toolCallCount: null,
+            },
+          }
+        : null,
+      reviewStatus: null,
+      reviewKind: null,
+      reviewTrigger: null,
+      reviewVerdict: null,
+      reviewIssueCount: 0,
+      reviewBlockingIssueCount: 0,
+      canCancel: true,
+      canResume: false,
+      pendingInputRequiresContinue: false,
+      pendingInputRequests: [],
+      planApproval: null,
+    };
+  }
   if (
     !snapshot ||
     !acceptedStartPending ||

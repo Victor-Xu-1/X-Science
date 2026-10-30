@@ -54,8 +54,14 @@ type XScienceRuntimeOperationsProps = {
   contextActivity?: ContextRequestActivity | null;
   contextFrameIncarnationId?: string;
   conversationId: string;
-  runtimeState: string;
+  runtimeState?: string;
   terminalProjectionPending?: boolean;
+  runtimeView?: Readonly<{
+    state: string;
+    terminalProjectionPending: boolean;
+    localPreparing?: boolean;
+    localSubmitting?: boolean;
+  }>;
   onResumeStarted?: () => void;
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
@@ -78,8 +84,9 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   contextActivity,
   contextFrameIncarnationId,
   conversationId,
-  runtimeState,
-  terminalProjectionPending = false,
+  runtimeState: suppliedRuntimeState = 'idle',
+  terminalProjectionPending: suppliedTerminalProjectionPending = false,
+  runtimeView,
   onResumeStarted,
   onResumeFailed,
   onResumed,
@@ -94,6 +101,10 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   modelInfo,
   onChooseModel,
 }) => {
+  const runtimeState = runtimeView?.state ?? suppliedRuntimeState;
+  const terminalProjectionPending = runtimeView?.terminalProjectionPending ?? suppliedTerminalProjectionPending;
+  const localPreparing = runtimeView?.localPreparing === true;
+  const localSubmissionPending = runtimeView?.localSubmitting === true;
   const layout = useLayoutContext();
   const { snapshot: realtimeSnapshot } = useRealtime();
   const { t } = useTranslation();
@@ -101,6 +112,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const snapshotRef = useRef<XScienceRuntimeSnapshot | null>(null);
   const publishedRuntimeRef = useRef<TConversationRuntimeSummary | null>(null);
   const acceptedStartPendingRef = useRef(runtimeState === 'starting' || runtimeState === 'running');
+  const acceptedStartBaselineRef = useRef<string | null>(null);
   const previousRuntimeAuthorityRef = useRef({ conversationId, runtimeState });
   const onRuntimeUpdatedRef = useRef(onRuntimeUpdated);
   onRuntimeUpdatedRef.current = onRuntimeUpdated;
@@ -778,17 +790,32 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
 
   const ownsConversation = loadedConversationRef.current === conversationId;
   const visibleSnapshot = ownsConversation ? snapshot : null;
+  const visibleAttemptIdentity = visibleSnapshot
+    ? JSON.stringify([visibleSnapshot.runtimeAttempt, visibleSnapshot.runtimeInputRevision])
+    : null;
   const previousRuntimeAuthority = previousRuntimeAuthorityRef.current;
   if (previousRuntimeAuthority.conversationId !== conversationId) {
     acceptedStartPendingRef.current = runtimeState === 'starting' || runtimeState === 'running';
+    acceptedStartBaselineRef.current = visibleAttemptIdentity;
   } else if (
     (runtimeState === 'starting' || runtimeState === 'running') &&
     previousRuntimeAuthority.runtimeState !== 'starting' &&
     previousRuntimeAuthority.runtimeState !== 'running'
   ) {
     acceptedStartPendingRef.current = true;
+    acceptedStartBaselineRef.current = visibleAttemptIdentity;
   }
-  if (
+  if (runtimeView) {
+    if (
+      (runtimeState !== 'starting' && runtimeState !== 'running') ||
+      visibleSnapshot?.runtimeActive === true ||
+      visibleSnapshot?.runtimeTaskActive === true ||
+      (visibleAttemptIdentity !== null &&
+        acceptedStartBaselineRef.current !== null &&
+        visibleAttemptIdentity !== acceptedStartBaselineRef.current)
+    )
+      acceptedStartPendingRef.current = false;
+  } else if (
     visibleSnapshot &&
     visibleSnapshot.status !== 'completed' &&
     visibleSnapshot.status !== 'failed' &&
@@ -799,7 +826,12 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     acceptedStartPendingRef.current = false;
   }
   previousRuntimeAuthorityRef.current = { conversationId, runtimeState };
-  const statusSnapshot = projectAcceptedRuntimeStart(visibleSnapshot, acceptedStartPendingRef.current);
+  const submissionPending = localSubmissionPending || Boolean(runtimeView && acceptedStartPendingRef.current);
+  const statusSnapshot = projectAcceptedRuntimeStart(
+    visibleSnapshot,
+    acceptedStartPendingRef.current,
+    submissionPending
+  );
   const visibleTaskCenterMetrics: XScienceTaskCenterMetrics = {
     total: {
       tokenUsage: statusSnapshot?.taskMetrics?.total?.totalTokens ?? taskCenterMetrics?.total.tokenUsage ?? null,
@@ -808,13 +840,15 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       toolCallCount:
         statusSnapshot?.taskMetrics?.total?.toolCallCount ?? taskCenterMetrics?.total.toolCallCount ?? null,
     },
-    latest: {
-      tokenUsage: statusSnapshot?.taskMetrics?.latest?.totalTokens ?? taskCenterMetrics?.latest.tokenUsage ?? null,
-      modelCallCount:
-        statusSnapshot?.taskMetrics?.latest?.modelCallCount ?? taskCenterMetrics?.latest.modelCallCount ?? null,
-      toolCallCount:
-        statusSnapshot?.taskMetrics?.latest?.toolCallCount ?? taskCenterMetrics?.latest.toolCallCount ?? null,
-    },
+    latest: submissionPending
+      ? { tokenUsage: null, modelCallCount: null, toolCallCount: null }
+      : {
+          tokenUsage: statusSnapshot?.taskMetrics?.latest?.totalTokens ?? taskCenterMetrics?.latest.tokenUsage ?? null,
+          modelCallCount:
+            statusSnapshot?.taskMetrics?.latest?.modelCallCount ?? taskCenterMetrics?.latest.modelCallCount ?? null,
+          toolCallCount:
+            statusSnapshot?.taskMetrics?.latest?.toolCallCount ?? taskCenterMetrics?.latest.toolCallCount ?? null,
+        },
   };
   const planAvailable = Boolean(visibleSnapshot?.taskPlan);
   const recoveryModel = visibleSnapshot
@@ -848,6 +882,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         loading={visibleLoading}
         snapshotError={ownsConversation ? snapshotError : null}
         runtimeState={runtimeState}
+        localSubmissionPending={submissionPending}
         terminalProjectionPending={terminalProjectionPending}
         runtimeAuthorityUnavailable={runtimeAuthorityUnavailable}
         showLoadingStatus={ownerTransitionLoading}
@@ -859,7 +894,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         recoveryModelLabel={recoveryModel?.label ?? null}
         onResume={recoveryCanResume ? () => void resumeTask(recoveryResumeModelId) : undefined}
         onChooseModel={onChooseModel}
-        onStop={onStop ? () => void pauseTask() : undefined}
+        onStop={onStop ? (localPreparing ? () => void onStop() : () => void pauseTask()) : undefined}
         onRefresh={refreshRuntime}
         onOpenReviewFindings={openReviewFindings}
         onOpenPlan={planAvailable ? openPlanReview : undefined}

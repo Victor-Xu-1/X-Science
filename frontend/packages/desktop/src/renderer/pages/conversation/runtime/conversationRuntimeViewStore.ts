@@ -24,6 +24,8 @@ export type ConversationRuntimeView = {
   taskStatus: TChatConversationStatus | null;
   hasBackendRuntime: boolean;
   localSubmitting: boolean;
+  /** Current renderer reservation has not crossed the transport boundary. */
+  localPreparing?: boolean;
   hydrated: boolean;
   hydrationError: string | null;
   localStopping: boolean;
@@ -123,6 +125,7 @@ export const createDefaultConversationRuntimeView = (conversation_id: string): C
   taskStatus: null,
   hasBackendRuntime: false,
   localSubmitting: false,
+  localPreparing: false,
   hydrated: false,
   hydrationError: null,
   localStopping: false,
@@ -191,6 +194,7 @@ const viewFromRuntimeSummary = (
     hydrated: true,
     hydrationError: null,
     localSubmitting: pendingLocalSend,
+    localPreparing: pendingLocalSend && metadata.pendingLocalSendPhase === 'preparing',
     localStopping,
     terminalProjectionPending,
   };
@@ -246,6 +250,7 @@ export const hydrateSucceededConversationRuntimeView = (
       taskStatus: null,
       hasBackendRuntime: false,
       localSubmitting: false,
+      localPreparing: false,
       hydrated: true,
       hydrationError: null,
       localStopping: false,
@@ -304,7 +309,8 @@ export const turnCompletedConversationRuntimeView = (
 
 export const localSendStartedConversationRuntimeView = (
   previous: ConversationRuntimeView | undefined,
-  conversation_id: string
+  conversation_id: string,
+  preparing = false
 ): ConversationRuntimeSnapshot => {
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
   const view: ConversationRuntimeView = {
@@ -319,6 +325,7 @@ export const localSendStartedConversationRuntimeView = (
     isProcessing: true,
     canSendMessage: false,
     localSubmitting: true,
+    localPreparing: preparing,
     hydrated: true,
     terminalProjectionPending: false,
   };
@@ -380,6 +387,7 @@ export const localSendFailedConversationRuntimeView = (
     isProcessing: false,
     canSendMessage: base.hydrationError === null,
     localSubmitting: false,
+    localPreparing: false,
     hydrated: true,
     terminalProjectionPending: false,
   };
@@ -422,6 +430,7 @@ export const resetLocalGateConversationRuntimeView = (
     ...base,
     localSubmitting: false,
     localStopping: false,
+    localPreparing: false,
     hydrated: true,
   };
   return withLogs(view, [createLog('info', 'runtime_view_cleaned', view, { reason })]);
@@ -586,7 +595,7 @@ export const localSendStarted = (
   metadata.lastCompletedTurnId = null;
   return setConversationRuntimeSnapshot(
     conversation_id,
-    localSendStartedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
+    localSendStartedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, phase === 'preparing')
   );
 };
 
@@ -599,6 +608,8 @@ export const isLocalSendPreparing = (conversation_id: string, ticket: object): b
 export const localSendDispatched = (conversation_id: string, ticket: object): boolean => {
   if (!isLocalSendPreparing(conversation_id, ticket)) return false;
   getRuntimeMetadata(conversation_id).pendingLocalSendPhase = 'dispatched';
+  const view = getConversationRuntimeViewSnapshot(conversation_id);
+  setConversationRuntimeSnapshot(conversation_id, { view: { ...view, localPreparing: false }, logs: [] });
   return true;
 };
 

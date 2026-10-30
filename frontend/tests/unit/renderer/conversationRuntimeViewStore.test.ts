@@ -5,6 +5,7 @@ import {
   hydrateSucceeded,
   localSendAccepted,
   localSendStarted,
+  localSendFailed,
   isLocalSendPreparing,
   localSendDispatched,
   cancelLocalSendPreparation,
@@ -50,6 +51,35 @@ describe('conversationRuntimeViewStore turn id contract', () => {
   beforeEach(() => {
     resetConversationRuntimeViewStoreForTest();
     resetRendererAccountScopeForTest();
+  });
+
+  it('local preparation projection follows the current ticket across dispatch, reset and account changes', () => {
+    const owner = 'local-preparing-frame';
+    const first = {};
+    const next = {};
+    localSendStarted(owner, first, 'preparing');
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(true);
+    localSendStarted(owner, next, 'preparing');
+    localSendFailed(owner, 'late failure', first);
+    expect(cancelLocalSendPreparation(owner, first).cancelled).toBe(false);
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(true);
+    expect(localSendDispatched(owner, next)).toBe(true);
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
+    localSendStarted(owner, {}, 'preparing');
+    hydrateSucceeded(owner, null);
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
+    localSendStarted(owner, {}, 'preparing');
+    resetLocalGate(owner, 'reset');
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
+    localSendStarted(owner, {}, 'preparing');
+    localSendFailed(owner, 'failed');
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
+    localSendStarted(owner, {}, 'preparing');
+    expect(cancelLocalSendPreparation(owner).cancelled).toBe(true);
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
+    localSendStarted(owner, {}, 'preparing');
+    setRendererAccountOwner('next-account');
+    expect(getConversationRuntimeViewSnapshot(owner).localPreparing).toBe(false);
   });
 
   it('pre-dispatch Stop cancels one exact ticket idempotently and cannot withdraw a newer or dispatched ticket', () => {
