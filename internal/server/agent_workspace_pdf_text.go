@@ -22,7 +22,7 @@ func readAgentWorkspacePDFTextWindow(ctx context.Context, path, filename, conten
 	}
 	streamCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	reader, finished := streamAgentWorkspacePDFText(streamCtx, converter, path, pages)
+	reader, finished, coverage := streamAgentWorkspacePDFText(streamCtx, converter, path, pages)
 	defer func() {
 		cancel()
 		_ = reader.Close()
@@ -41,13 +41,31 @@ func readAgentWorkspacePDFTextWindow(ctx context.Context, path, filename, conten
 		"status": "no_extractable_text", "method": "pdftotext", "pages": pages,
 		"size_bytes": int64(math.MaxInt64), "total_bytes": int64(math.MaxInt64), "truncated": true,
 	}
+	if len(pages) > 0 {
+		// Either category may contain every selected page. Reserve both maxima
+		// before the original line window chooses its serialized byte budget.
+		extraction["text_pages"] = pages
+		extraction["no_text_pages"] = pages
+	}
 	reserved["text_extraction"] = extraction
 	view, err := readAgentWorkspaceTextWindowWithMetadata(ctx, counted, filename, contentType, size, offset, limit, reserved)
 	if err != nil {
 		return nil, err
 	}
-	if numberValue(view["total_lines"]) > 0 {
+	if view["_policy_skip"] == true || !counted.eof {
+		// A rejected text window may stop before EOF. Leave cancellation and
+		// the join to the original defer instead of waiting on a blocked pipe.
+		return nil, errors.New("PDF text extractor did not provide a complete UTF-8 stream")
+	}
+	// EOF can precede the producer's successful-page observation and final
+	// cleanup. Its original join publishes immutable coverage without a race.
+	<-finished
+	if coverage.hasText {
 		extraction["status"] = "parsed"
+	}
+	if len(pages) > 0 {
+		extraction["text_pages"] = coverage.textPages
+		extraction["no_text_pages"] = coverage.noTextPages
 	}
 	extraction["size_bytes"] = len(stringValue(view["content"]))
 	extraction["total_bytes"] = counted.bytes
@@ -58,17 +76,20 @@ func readAgentWorkspacePDFTextWindow(ctx context.Context, path, filename, conten
 type agentWorkspacePDFTextCounter struct {
 	io.Reader
 	bytes int64
+	eof   bool
 }
 
 func (reader *agentWorkspacePDFTextCounter) Read(buffer []byte) (int, error) {
 	count, err := reader.Reader.Read(buffer)
 	reader.bytes += int64(count)
+	reader.eof = reader.eof || errors.Is(err, io.EOF)
 	return count, err
 }
 
-func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pages []int) (*io.PipeReader, <-chan struct{}) {
+func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pages []int) (*io.PipeReader, <-chan struct{}, *agentWorkspacePDFTextCoverage) {
 	reader, writer := io.Pipe()
 	finished := make(chan struct{})
+	coverage := &agentWorkspacePDFTextCoverage{textPages: []int{}, noTextPages: []int{}}
 	selected := append([]int(nil), pages...)
 	if len(selected) == 0 {
 		selected = []int{0}
@@ -97,7 +118,8 @@ func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pa
 			arguments = append(arguments, path, "-")
 			command := exec.CommandContext(ctx, converter, arguments...)
 			command.WaitDelay = time.Second
-			command.Stdout = writer
+			body := &agentWorkspacePDFBodyWriter{destination: writer}
+			command.Stdout = body
 			stderr := &agentWorkspaceBoundedCapture{limit: 4 << 10}
 			command.Stderr = stderr
 			if err := command.Run(); err != nil {
@@ -107,7 +129,10 @@ func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pa
 				}
 				return
 			}
+			// Host provenance markers never pass through this observer. Failed
+			// or cancelled extraction is not a successful empty-page result.
+			coverage.record(page, body.hasText)
 		}
 	}()
-	return reader, finished
+	return reader, finished, coverage
 }

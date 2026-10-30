@@ -145,7 +145,7 @@ func TestAgentWorkspacePDFTextCancellationReapsExtractor(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	reader, finished := streamAgentWorkspacePDFText(ctx, converter, path, nil)
+	reader, finished, _ := streamAgentWorkspacePDFText(ctx, converter, path, nil)
 	defer reader.Close()
 	buffer := make([]byte, 64)
 	if count, err := reader.Read(buffer); err != nil || count == 0 {
