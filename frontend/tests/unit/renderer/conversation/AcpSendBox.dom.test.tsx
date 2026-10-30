@@ -168,6 +168,7 @@ const runtimeViewMock = {
   resetLocalGate: vi.fn(),
   markSendStarted: vi.fn(),
   isSendPreparing: vi.fn(),
+  awaitSendPreparation: vi.fn(),
   markSendDispatched: vi.fn(),
   cancelSendPreparation: vi.fn(),
   markSendAccepted: vi.fn(),
@@ -1025,6 +1026,7 @@ describe('AcpSendBox', () => {
         fireEvent.click(screen.getByRole('button', { name: '暂停任务' }));
         await waitFor(() => expect(input).not.toBeDisabled());
         await waitFor(() => expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false));
+        await waitFor(() => expect(input).toHaveValue('Original draft'));
         fireEvent.change(input, { target: { value: 'Newer draft' } });
         fireEvent.click(screen.getByRole('button', { name: '发送' }));
         await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(2));
@@ -1033,7 +1035,7 @@ describe('AcpSendBox', () => {
         await act(async () => { first.resolve(state); await first.promise; });
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
         expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
-        expect(input).toHaveValue('');
+        await waitFor(() => expect(input).toHaveValue(''));
         fireEvent.click(screen.getByRole('button', { name: '暂停任务' }));
         await waitFor(() => expect(input).not.toBeDisabled());
         await waitFor(() => expect(input).toHaveValue('Newer draft'));
@@ -1704,6 +1706,9 @@ describe('AcpSendBox', () => {
     });
     runtimeViewMock.isSendPreparing.mockImplementation((ticket: object) =>
       runtimeStore.isLocalSendPreparing('composer-test-reservation', ticket)
+    );
+    runtimeViewMock.awaitSendPreparation.mockImplementation((ticket: object, pending: Promise<unknown>) =>
+      runtimeStore.awaitLocalSendPreparation('composer-test-reservation', ticket, pending)
     );
     runtimeViewMock.markSendDispatched.mockImplementation((ticket: object) =>
       runtimeStore.localSendDispatched('composer-test-reservation', ticket)

@@ -105,7 +105,8 @@ export function useAcpConversationSkillController(options: Options) {
       // A lost HTTP reply is retried with the same input and branch authority,
       // even after a language switch. Never rebind one mutation to a newer draft.
       try {
-        command.authority ??= await resolveCommandExecutionAuthority(false, false, true);
+        command.authority ??= await runtimeView.awaitSendPreparation(submissionTicket,
+          resolveCommandExecutionAuthority(false, false, true));
       } catch (error) {
         if (!runtimeView.isSendPreparing(submissionTicket)) throw new ConversationPreparationCancelledError();
         runtimeView.markSendFailed(redactErrorText(parseError(error) || t('common.unknownError')), submissionTicket);
