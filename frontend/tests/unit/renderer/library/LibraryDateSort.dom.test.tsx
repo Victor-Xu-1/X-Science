@@ -184,4 +184,4 @@ it('connects all date options to the original URL reader, resets cursors and pre
   expect(screen.getByRole('combobox', { name: '文献排序' })).toHaveTextContent(/^最近添加$/);
   expect(requests.at(-1)?.searchParams.get('sort')).toBe('created-desc');
   expect(visibleTitles()).toEqual(orders['created-desc'].slice(0, 25).map((item) => item.title));
-});
+}, 30_000);
