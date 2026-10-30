@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8aca1c81f611dd53473e410b4a6e82a308a9409f08caa24b4dfb961d83403f93",
+  "adaptationFingerprintSHA256": "eef4a64dcb941300aa45a29db29f212cf7e96c0fe444b23e64b4f70c56ba761f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1c7b6018d5f0aa4a727b5e4c69f49cfd0afa25191c7b9563fc3ec9fa089fb751",
+  "additionFingerprintSHA256": "628d3a2cfb4c3b009d4a207b87ef3677cd54a813f58f916f9d9f1b3e059c3e23",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -4646,8 +4646,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "4e574ca1892fdbbf80c2c8d78470bd300570c0e23893e3ffdd5b69ceb06de731",
-      "bytes": 239005,
+      "targetSHA256": "1c7b79745c67310a3b9bc7d28c8cb476903b9040c1f1bf243a2ab56288f8911e",
+      "bytes": 245173,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -9805,8 +9805,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts",
-      "sha256": "c1940e797a20ed2e21641726b6f4a494b0a27d6da829ff5701e86e1450409513",
-      "bytes": 2920,
+      "sha256": "cbbff8c3d3b3443af334b64ad89d1d3ec1089ee9b3cbcf336612b46637979e28",
+      "bytes": 3615,
       "reason": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner."
     },
     {
