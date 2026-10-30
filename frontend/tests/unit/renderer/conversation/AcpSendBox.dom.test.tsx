@@ -1014,7 +1014,7 @@ describe('AcpSendBox', () => {
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
         expect(stopInvokeMock).not.toHaveBeenCalled();
         expect(clearFilesMock).not.toHaveBeenCalled();
-        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent('Keep the original draft.');
+        expect(screen.getByTestId('sendbox-draft')).toHaveTextContent(kind === 'ordinary' ? 'Hello' : 'Keep the original draft.');
         if (kind === 'save-as-skill') expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false);
       } finally {
         branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
