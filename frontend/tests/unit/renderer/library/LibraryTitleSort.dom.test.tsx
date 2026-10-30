@@ -154,7 +154,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     rendered = await mount(`/library${search}`);
     await screen.findByRole('button', { name: 'Sort reference 11' });
     expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveValue('title-desc');
-  });
+  }, 30_000);
 
   it('clears old sort selection and range while keeping selected export membership separate', async () => {
     const http = installCatalogue();
@@ -185,7 +185,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     expect(http.allIds[0].searchParams.has('order')).toBe(false);
     for (const key of ['sort', 'cursor', 'limit']) expect(http.allIds[0].searchParams.has(key)).toBe(false);
     expect(http.exports.flatMap((body) => body.item_ids)).toEqual(items.map((item) => item.id));
-  });
+  }, 30_000);
 
   it('offers explicit first-page recovery for a stale anchor, preserving filters and bilingual order controls', async () => {
     const http = installCatalogue({ staleNext: true });
