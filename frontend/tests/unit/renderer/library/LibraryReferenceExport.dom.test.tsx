@@ -46,7 +46,7 @@ function catalogue() {
         return json({ schema: 'x-science.literature-collections.v1', collections: [] });
       if (url.pathname === '/api/literature/items')
         return json({ schema: 'x-science.literature-page.v1', items: papers, total_count: 2 });
-      if (url.pathname === '/api/literature/export-bibtex' && init?.method === 'POST') {
+      if (url.pathname === '/api/literature/export-references' && init?.method === 'POST') {
         requests.push(JSON.parse(String(init.body)).item_ids);
         return response; // Deliberately ignores AbortSignal to exercise late-response fencing.
       }
@@ -121,7 +121,9 @@ describe('Selected Library BibTeX export through the real page and HTTP adapter'
     expect(clicks).toEqual([]);
     const bibtex = '@misc{x_one,\n  title = {Paper one}\n}\n\n@misc{x_two,\n  title = {Paper two}\n}\n';
     await act(async () =>
-      http.release(json({ schema: 'x-science.literature-bibtex.v1', item_ids: ['one', 'two'], bibtex }))
+      http.release(
+        json({ schema: 'x-science.literature-export.v1', item_ids: ['one', 'two'], format: 'bibtex', content: bibtex })
+      )
     );
     await waitFor(() => expect(clicks).toEqual(['selected-references.bib']));
     expect(blobs).toHaveLength(1);
@@ -148,9 +150,10 @@ describe('Selected Library BibTeX export through the real page and HTTP adapter'
         if (boundary === 'account') setRendererAccountOwner('another-owner');
         next.release(
           json({
-            schema: 'x-science.literature-bibtex.v1',
+            schema: 'x-science.literature-export.v1',
             item_ids: ['one', 'two'],
-            bibtex: '@misc{x_one, title={Old}}',
+            format: 'bibtex',
+            content: '@misc{x_one, title={Old}}',
           })
         );
       });

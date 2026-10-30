@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadLiteratureBibtex } from '@/renderer/services/runtime/literatureBibtex';
+import { loadLiteratureReferenceExport } from '@/renderer/services/runtime/literatureReferenceExport';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
@@ -18,18 +18,19 @@ describe('Library BibTeX export transport completeness', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-        expect(String(input)).toContain('/api/literature/export-bibtex');
+        expect(String(input)).toContain('/api/literature/export-references');
         expect(init?.method).toBe('POST');
         const batch = JSON.parse(String(init?.body)).item_ids as string[];
         groups.push(batch);
         return json({
-          schema: 'x-science.literature-bibtex.v1',
+          schema: 'x-science.literature-export.v1',
           item_ids: batch,
-          bibtex: batch.map((id) => `@misc{${id}, title={Stored}}`).join('\n'),
+          format: 'bibtex',
+          content: batch.map((id) => `@misc{${id}, title={Stored}}`).join('\n'),
         });
       })
     );
-    const text = await loadLiteratureBibtex(ids, new AbortController().signal);
+    const text = await loadLiteratureReferenceExport(ids, 'bibtex', new AbortController().signal);
     expect(groups.map((group) => group.length)).toEqual([200, 1]);
     expect(groups.flat()).toEqual(ids);
     expect(text.match(/@misc\{/g)).toHaveLength(201);
@@ -42,22 +43,30 @@ describe('Library BibTeX export transport completeness', () => {
       vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
         const batch = JSON.parse(String(init?.body)).item_ids;
         return ++calls === 1
-          ? json({ schema: 'x-science.literature-bibtex.v1', item_ids: batch, bibtex: '@misc{first, title={Stored}}' })
+          ? json({
+              schema: 'x-science.literature-export.v1',
+              item_ids: batch,
+              format: 'bibtex',
+              content: '@misc{first, title={Stored}}',
+            })
           : json({ code: 'LITERATURE_UNAVAILABLE' }, 404);
       })
     );
-    await expect(loadLiteratureBibtex(ids, new AbortController().signal)).rejects.toThrow();
+    await expect(loadLiteratureReferenceExport(ids, 'bibtex', new AbortController().signal)).rejects.toThrow();
     expect(calls).toBe(2);
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
         json({
-          schema: 'x-science.literature-bibtex.v1',
+          schema: 'x-science.literature-export.v1',
           item_ids: ['foreign'],
-          bibtex: '@misc{foreign, title={Wrong}}',
+          format: 'bibtex',
+          content: '@misc{foreign, title={Wrong}}',
         })
       )
     );
-    await expect(loadLiteratureBibtex(['owned'], new AbortController().signal)).rejects.toThrow('Invalid Library');
+    await expect(loadLiteratureReferenceExport(['owned'], 'bibtex', new AbortController().signal)).rejects.toThrow(
+      'Invalid Library'
+    );
   });
 });

@@ -18,8 +18,23 @@ func (s *Store) ListLiteratureItemIDs(ctx context.Context, owner, query, project
 	return s.ListLiteratureItemIDsInLifecycle(ctx, owner, LiteratureQueryFilters{Query: query, ProjectID: project, CollectionID: collection, ReadingStatus: readingStatus})
 }
 
+type LiteratureSelectionReadOrder string
+
+const LiteratureSelectionTitleAscending LiteratureSelectionReadOrder = "title-asc"
+
+type LiteratureSelectionReadOptions struct{ Order LiteratureSelectionReadOrder }
+
 func (s *Store) ListLiteratureItemIDsInLifecycle(ctx context.Context, owner string, filters LiteratureQueryFilters) (LiteratureSelection, error) {
+	return s.ListLiteratureItemIDsWithReadOptions(ctx, owner, filters, LiteratureSelectionReadOptions{})
+}
+
+// Read options never enter catalogue mutation payloads or their durable identities.
+func (s *Store) ListLiteratureItemIDsWithReadOptions(ctx context.Context, owner string, filters LiteratureQueryFilters, options LiteratureSelectionReadOptions) (LiteratureSelection, error) {
+
 	empty := LiteratureSelection{Schema: "x-science.literature-selection.v1", ItemIDs: []string{}}
+	if options.Order != "" && options.Order != LiteratureSelectionTitleAscending {
+		return empty, ErrLiteratureInvalid
+	}
 	scope := literatureScope(owner, filters)
 	if err := scope.validate(); err != nil {
 		return empty, err
@@ -37,7 +52,11 @@ func (s *Store) ListLiteratureItemIDsInLifecycle(ctx context.Context, owner stri
 		return empty, err
 	}
 	statement, args := scope.sql()
-	rows, err := tx.QueryContext(ctx, `SELECT i.id`+statement+` ORDER BY `+scope.orderBy(), args...)
+	order := scope.orderBy()
+	if options.Order == LiteratureSelectionTitleAscending {
+		order = "i.title ASC,i.id ASC"
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT i.id`+statement+` ORDER BY `+order, args...)
 	if err != nil {
 		return empty, err
 	}

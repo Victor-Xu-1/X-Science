@@ -35,8 +35,8 @@ import type { LibraryNoteCommand } from './libraryPersonalNote';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
 import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
-import { useLibraryBibtexExport } from './useLibraryBibtexExport';
-import { LibraryBibtexExportMenu } from './LibraryBibtexExportMenu';
+import { useLibraryReferenceExport } from './useLibraryReferenceExport';
+import { LibraryReferenceExportMenu } from './LibraryReferenceExportMenu';
 import { LibrarySelectionToolbar } from './LibrarySelectionToolbar';
 import { LibraryBulkProgress } from './LibraryBulkProgress';
 import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureReadingBulkIntent';
@@ -144,12 +144,27 @@ export default function LibraryPage() {
     controller: mutation.controller,
     view: mutation.view,
   });
-  const bibtexExport = useLibraryBibtexExport(
-    reads.account,
-    formScope,
-    bulk.selection,
-    trash || baseBusy || bulk.resolving || !listReady || Boolean(visibleEditor)
-  );
+  const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
+  const selectedCollection =
+    reads.collections.status === 'ready'
+      ? reads.collections.value?.collections.find((value) => value.id === collectionId)
+      : undefined;
+  const currentExportScope =
+    !trash &&
+    !inbox &&
+    (projectId || collectionId) &&
+    (!projectId || (isLibraryReadFresh(reads.projects) && selectedProject)) &&
+    (!collectionId || (isLibraryReadFresh(reads.collections) && selectedCollection))
+      ? { projectId, collectionId, name: selectedProject?.name ?? selectedCollection!.name }
+      : undefined;
+  const referenceExport = useLibraryReferenceExport({
+    account: reads.account,
+    visitKey: formScope,
+    selection: bulk.selection,
+    scope: { query, collectionId, projectId, readingStatus, lifecycle },
+    currentScope: currentExportScope,
+    blocked: trash || baseBusy || bulk.resolving || !listReady || Boolean(visibleEditor),
+  });
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
       setEditor({ owner: editorBoundary.current, id: ++editorSequence.current, mode });
@@ -348,7 +363,7 @@ export default function LibraryPage() {
         );
     }
   };
-  const busy = baseBusy || bulk.resolving || bibtexExport.phase === 'loading';
+  const busy = baseBusy || bulk.resolving || referenceExport.pending;
   const rowActions = useLibraryRowActions({
     account: reads.account,
     readKey: reads.list.key,
@@ -422,11 +437,6 @@ export default function LibraryPage() {
   };
   const selected = reads.detail.status === 'ready' ? reads.detail.value : undefined;
   const detailOpen = !inbox && Boolean(selectedId);
-  const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
-  const selectedCollection =
-    reads.collections.status === 'ready'
-      ? reads.collections.value?.collections.find((value) => value.id === collectionId)
-      : undefined;
   const acknowledged =
     lastAction &&
     !mutation.view.mutating &&
@@ -586,6 +596,13 @@ export default function LibraryPage() {
             }}
             actions={
               <>
+                {referenceExport.scopeAvailable && (
+                  <LibraryReferenceExportMenu
+                    key={referenceExport.identityKey + ':scope'}
+                    model={referenceExport.scope}
+                    scope
+                  />
+                )}
                 {!trash && (
                   <LibraryAddMenu
                     key={reads.account}
@@ -683,11 +700,12 @@ export default function LibraryPage() {
           {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
               exportControl={
-                !bulk.selection.allMatchingSelected ? (
-                  <LibraryBibtexExportMenu key={reads.account} model={bibtexExport} />
-                ) : undefined
+                <LibraryReferenceExportMenu
+                  key={referenceExport.identityKey + ':selected'}
+                  model={referenceExport.selected}
+                />
               }
-              busy={bibtexExport.phase === 'loading'}
+              busy={referenceExport.pending}
               selection={bulk.selection}
               totalMatching={reads.list.value?.total_count}
               canSelectAllMatching={

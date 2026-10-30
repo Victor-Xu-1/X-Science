@@ -2465,6 +2465,8 @@
     "openTrash": "打开回收站"
   },
   "libraryExport": {
+    "ris": "RIS (.ris)",
+    "moreActions": "更多操作",
     "bibtex": "BibTeX (.bib)",
     "entry": "导出文献",
     "loading": "正在导出…",

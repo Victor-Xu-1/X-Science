@@ -2465,6 +2465,8 @@
     "openTrash": "Open Trash"
   },
   "libraryExport": {
+    "ris": "RIS (.ris)",
+    "moreActions": "More actions",
     "bibtex": "BibTeX (.bib)",
     "entry": "Export references",
     "loading": "Exporting…",

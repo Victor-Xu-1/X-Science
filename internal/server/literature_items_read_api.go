@@ -26,6 +26,11 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 				return
 			}
+		case "order":
+			if values[0] != "title-asc" || query.Get("all_item_ids") != "true" {
+				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+				return
+			}
 		case "all_item_ids":
 			if values[0] != "true" && values[0] != "false" {
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
@@ -42,7 +47,7 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
 		}
-		selection, err := s.workspaceStore.ListLiteratureItemIDsInLifecycle(r.Context(), owner, filters)
+		selection, err := s.workspaceStore.ListLiteratureItemIDsWithReadOptions(r.Context(), owner, filters, workspace.LiteratureSelectionReadOptions{Order: workspace.LiteratureSelectionReadOrder(query.Get("order"))})
 		if err != nil {
 			writeLiteratureError(w, err)
 			return
