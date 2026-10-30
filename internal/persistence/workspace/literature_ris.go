@@ -1,13 +1,11 @@
 package workspace
 
 import (
-	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 )
-
-var risYear = regexp.MustCompile(`^[0-9]{4}$`)
 
 // RIS values are literal UTF-8 text. No value may introduce a record/tag boundary.
 func risText(value string) string {
@@ -32,7 +30,8 @@ func literatureRISEntry(item LiteratureItem) (string, error) {
 		return "", ErrLiteratureInvalid
 	}
 	// PAT/STAND/GEN preserve known X-only item types; these are explicit X extensions.
-	kind := map[string]string{"journalArticle": "JOUR", "review": "JOUR", "preprint": "JOUR", "conferencePaper": "CONF", "book": "BOOK", "bookSection": "CHAP", "thesis": "THES", "report": "RPRT", "dataset": "DATA", "standard": "STAND", "patent": "PAT", "webpage": "ELEC", "document": "GEN"}[bibtexScalar(item.Metadata["item_type"])]
+	itemType := bibtexScalar(item.Metadata["item_type"])
+	kind := map[string]string{"journalArticle": "JOUR", "review": "JOUR", "preprint": "JOUR", "conferencePaper": "CONF", "book": "BOOK", "bookSection": "CHAP", "thesis": "THES", "report": "RPRT", "dataset": "DATA", "standard": "STAND", "patent": "PAT", "webpage": "ELEC", "document": "GEN"}[itemType]
 	if kind == "" {
 		kind = "JOUR"
 	}
@@ -55,15 +54,15 @@ func literatureRISEntry(item LiteratureItem) (string, error) {
 		return "", err
 	}
 	container := "T2"
-	if kind == "JOUR" || kind == "NEWS" {
+	if itemType == "journalArticle" || itemType == "review" {
 		container = "JO"
 	}
 	if err := add(container, bibtexScalar(item.Metadata["container_title"])); err != nil {
 		return "", err
 	}
 	year := bibtexScalar(item.Metadata["year"])
-	if risYear.MatchString(year) {
-		_ = add("PY", year+"///")
+	if parsed, err := strconv.ParseInt(year, 10, 64); err == nil && parsed > 0 {
+		_ = add("PY", strconv.FormatInt(parsed, 10)+"///")
 	}
 	fields := [][2]string{{"volume", "VL"}, {"issue", "IS"}}
 	for _, field := range fields {
@@ -90,19 +89,20 @@ func literatureRISEntry(item LiteratureItem) (string, error) {
 			return "", err
 		}
 	}
-	keywordText := bibtexScalar(item.Metadata["keywords"])
+	// Structured X tags retain each literal label; string keywords follow native comma separation.
 	if keywords, ok := item.Metadata["keywords"].([]any); ok {
-		values := []string{}
 		for _, keyword := range keywords {
 			if text, ok := keyword.(string); ok {
-				values = append(values, text)
+				if err := add("KW", text); err != nil {
+					return "", err
+				}
 			}
 		}
-		keywordText = strings.Join(values, ",")
-	}
-	for _, keyword := range strings.Split(keywordText, ",") {
-		if err := add("KW", keyword); err != nil {
-			return "", err
+	} else {
+		for _, keyword := range strings.Split(bibtexScalar(item.Metadata["keywords"]), ",") {
+			if err := add("KW", keyword); err != nil {
+				return "", err
+			}
 		}
 	}
 	for _, field := range [][2]string{{"pmid", "PMID"}, {"pmcid", "PMCID"}, {"arxiv", "arXiv"}} {

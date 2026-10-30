@@ -159,11 +159,12 @@ export default function LibraryPage() {
       : undefined;
   const referenceExport = useLibraryReferenceExport({
     account: reads.account,
-    visitKey: formScope,
     selection: bulk.selection,
     scope: { query, collectionId, projectId, readingStatus, lifecycle },
     currentScope: currentExportScope,
-    blocked: trash || baseBusy || bulk.resolving || !listReady || Boolean(visibleEditor),
+    blocked: trash || baseBusy || bulk.resolving || Boolean(visibleEditor),
+    selectionBlocked: !listReady,
+    scopeBlocked: (reads.list.status === 'loading' && !reads.list.value) || selectedCollection?.item_count === 0,
   });
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
@@ -598,8 +599,17 @@ export default function LibraryPage() {
               <>
                 {referenceExport.scopeAvailable && (
                   <LibraryReferenceExportMenu
-                    key={referenceExport.identityKey + ':scope'}
+                    key={referenceExport.scope.identityKey}
                     model={referenceExport.scope}
+                    collectionActions={
+                      selectedCollection
+                        ? {
+                            disabled: busy,
+                            edit: () => openCollection({ kind: 'update', collection: selectedCollection }),
+                            remove: () => openCollection({ kind: 'delete', collection: selectedCollection }),
+                          }
+                        : undefined
+                    }
                     scope
                   />
                 )}
@@ -622,26 +632,6 @@ export default function LibraryPage() {
                   {t('common.refresh')}
                 </button>
               </>
-            }
-            collectionActions={
-              selectedCollection && (
-                <div className='library-workbench__attachment-actions'>
-                  <button
-                    type='button'
-                    disabled={busy}
-                    onClick={() => openCollection({ kind: 'update', collection: selectedCollection })}
-                  >
-                    {t('conversation.libraryWorkbench.editCollection')}
-                  </button>
-                  <button
-                    type='button'
-                    disabled={busy}
-                    onClick={() => openCollection({ kind: 'delete', collection: selectedCollection })}
-                  >
-                    {t('conversation.libraryWorkbench.deleteCollection')}
-                  </button>
-                </div>
-              )
             }
             filters={
               <>
@@ -701,7 +691,7 @@ export default function LibraryPage() {
             <LibrarySelectionToolbar
               exportControl={
                 <LibraryReferenceExportMenu
-                  key={referenceExport.identityKey + ':selected'}
+                  key={referenceExport.selected.identityKey}
                   model={referenceExport.selected}
                 />
               }

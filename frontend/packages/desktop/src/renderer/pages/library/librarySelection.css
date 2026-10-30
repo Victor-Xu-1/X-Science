@@ -110,3 +110,8 @@
     animation: none;
   }
 }
+
+.library-export-menu__separator {
+  border-top: 1px solid var(--workspace-border);
+  margin: var(--ui-space-2) 0;
+}

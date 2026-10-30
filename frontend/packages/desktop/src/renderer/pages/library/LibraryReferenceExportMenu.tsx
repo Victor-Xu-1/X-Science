@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
-import { Check, ChevronRight, Download, FileText, LoaderCircle, MoreHorizontal } from 'lucide-react';
+import { Check, ChevronRight, Download, FileText, LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isLiteratureExportFormat } from '@/common/adapter/literatureReferenceExport';
 import { useLibraryExportMenu } from './useLibraryExportMenu';
@@ -8,14 +8,17 @@ import type { LibraryReferenceExportModel } from './useLibraryReferenceExport';
 export function LibraryReferenceExportMenu({
   model,
   scope = false,
+  collectionActions,
 }: {
   model: LibraryReferenceExportModel;
   scope?: boolean;
+  collectionActions?: { edit: () => void; remove: () => void; disabled: boolean };
 }) {
   const { t } = useTranslation();
-  const menu = useLibraryExportMenu(model.disabled);
+  const triggerDisabled = scope ? model.triggerDisabled : model.disabled;
+  const menu = useLibraryExportMenu(triggerDisabled);
   const formats = ['bibtex', 'ris'].map((format) => (
-    <Menu.Item key={format}>
+    <Menu.Item key={format} disabled={model.disabled} aria-disabled={model.disabled}>
       <FileText size={14} aria-hidden='true' />
       {t(format === 'ris' ? 'conversation.libraryExport.ris' : 'conversation.libraryExport.bibtex')}
     </Menu.Item>
@@ -48,10 +51,18 @@ export function LibraryReferenceExportMenu({
             <Menu
               onClickMenuItem={(key, event) =>
                 menu.select(event, () => {
-                  if (isLiteratureExportFormat(key)) void model.start(key);
+                  if (isLiteratureExportFormat(key) && !model.disabled) void model.start(key);
+                  if (key === 'edit' && collectionActions && !collectionActions.disabled) collectionActions.edit();
+                  if (key === 'delete' && collectionActions && !collectionActions.disabled) collectionActions.remove();
                 })
               }
             >
+              {scope && collectionActions && (
+                <Menu.Item key='edit' disabled={collectionActions.disabled}>
+                  <Pencil size={14} aria-hidden='true' />
+                  {t('conversation.libraryWorkbench.editCollection')}
+                </Menu.Item>
+              )}
               {scope ? (
                 <Menu.SubMenu
                   key='export'
@@ -63,6 +74,13 @@ export function LibraryReferenceExportMenu({
               ) : (
                 formats
               )}
+              {scope && collectionActions && <div role='separator' className='library-export-menu__separator' />}
+              {scope && collectionActions && (
+                <Menu.Item key='delete' disabled={collectionActions.disabled}>
+                  <Trash2 size={14} aria-hidden='true' />
+                  {t('conversation.libraryWorkbench.deleteCollection')}
+                </Menu.Item>
+              )}
             </Menu>
           </div>
         }
@@ -71,7 +89,7 @@ export function LibraryReferenceExportMenu({
           ref={menu.trigger}
           type='button'
           className='library-workbench__button'
-          disabled={model.disabled}
+          disabled={triggerDisabled}
           aria-label={t(scope ? 'conversation.libraryExport.moreActions' : 'conversation.libraryExport.entry')}
           aria-busy={model.phase === 'loading'}
           aria-invalid={model.phase === 'error' || undefined}

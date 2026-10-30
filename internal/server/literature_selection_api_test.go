@@ -76,3 +76,33 @@ func TestLiteratureSelectionHTTPRejectsInvalidAllIDParameters(t *testing.T) {
 		t.Fatalf("false flag changed ordinary pagination: HTTP%d %s", response.Code, response.Body.String())
 	}
 }
+
+func TestLiteratureExportSelectionTitleOrderDoesNotChangeDefault(t *testing.T) {
+	f := newLiteratureHTTPNumberFixture(t, "patch")
+	owner := f.f.stream.OwnerID
+	if err := f.f.store.WithTransaction(t.Context(), func(tx *sql.Tx) error {
+		for index, title := range []string{"Order beta", "Order Alpha", "Order alpha", "Order Alpha"} {
+			if _, err := tx.ExecContext(t.Context(), `INSERT INTO literature_items(id,owner_user_id,title,metadata_json,created_at,updated_at) VALUES(?,?,?,'{}','2026-01-01','2026-01-01')`, fmt.Sprintf("order-%c", 'a'+index), owner, title); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		suffix string
+		ids    []string
+	}{{"", []string{"order-a", "order-b", "order-c", "order-d"}}, {"&order=title-asc", []string{"order-b", "order-d", "order-c", "order-a"}}} {
+		response := p3JSONRequest(t, f.f.server, http.MethodGet, "/api/literature/items?all_item_ids=true&query=Order"+test.suffix, nil, owner)
+		var selection workspace.LiteratureSelection
+		if response.Code != 200 || json.Unmarshal(response.Body.Bytes(), &selection) != nil || !reflect.DeepEqual(selection.ItemIDs, test.ids) {
+			t.Fatalf("read order %q HTTP%d %s", test.suffix, response.Code, response.Body.String())
+		}
+	}
+	for _, path := range []string{"/api/literature/items?order=title-asc", "/api/literature/items?all_item_ids=false&order=title-asc", "/api/literature/items?all_item_ids=true&order=unknown", "/api/literature/items?all_item_ids=true&order=title-asc&cursor=page"} {
+		if response := p3JSONRequest(t, f.f.server, http.MethodGet, path, nil, owner); response.Code != 400 {
+			t.Fatalf("unsupported order context HTTP%d %s", response.Code, path)
+		}
+	}
+}
