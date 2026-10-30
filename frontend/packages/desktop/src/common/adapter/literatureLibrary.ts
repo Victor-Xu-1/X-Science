@@ -1,6 +1,7 @@
 import { decodeLiteratureMetadataPatch, type LiteratureMetadataPatch } from './literatureMetadataPatch';
 import { literatureValueIdentity } from './literatureValueIdentity';
 import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from './literatureReadingStatus';
+import { LITERATURE_METADATA_SNAPSHOT_BYTES, literatureMetadataEncodedBytes } from './literatureMetadataCapacity';
 
 export { literatureValueIdentity } from './literatureValueIdentity';
 export type { LiteratureMetadataPatch } from './literatureMetadataPatch';
@@ -256,7 +257,6 @@ export function decodeLiteratureCommand(value: unknown): LiteratureCommand {
     )
       return fail();
     const metadata = value.metadata === undefined ? undefined : decodeLiteratureMetadata(value.metadata);
-    if (metadata && new TextEncoder().encode(JSON.stringify(metadata)).length > 16384) return fail();
     return {
       kind: 'manual-create',
       operation_id: value.operation_id,
@@ -356,7 +356,9 @@ export function decodeLiteratureCommand(value: unknown): LiteratureCommand {
 function decodeLiteratureMetadata(value: unknown): Record<string, unknown> {
   if (!record(value)) return fail();
   const raw = JSON.stringify(value);
-  if (raw.length > 65536) return fail();
+  // This is a bounded command/replay receiver, not new-write admission. The
+  // canonical Store decides whether a first larger object may be committed.
+  if (literatureMetadataEncodedBytes(raw) > LITERATURE_METADATA_SNAPSHOT_BYTES) return fail();
   const normalized: unknown = JSON.parse(raw);
   literatureValueIdentity(normalized);
   return normalized as Record<string, unknown>;

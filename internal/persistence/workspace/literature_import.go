@@ -17,7 +17,7 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 	if !validLiteratureID(owner) || !validLiteratureID(input.OperationID) || !validLiteratureID(input.ArtifactID) || !validLiteratureID(input.VersionID) || strings.TrimSpace(input.Title) == "" || len(input.Title) > 4096 {
 		return receipt, ErrLiteratureInvalid
 	}
-	metadata, err := literatureMetadata(input.Metadata)
+	metadata, err := normalizeLiteratureMetadata(input.Metadata)
 	if err != nil {
 		return receipt, err
 	}
@@ -37,6 +37,9 @@ func (s *Store) ImportLiteratureArtifact(ctx context.Context, owner string, inpu
 		return receipt, err
 	} else if found {
 		return receipt, s.recoverLiteratureImportContent(ctx, owner, receipt.VersionID)
+	}
+	if err := admitNewLiteratureCatalogMetadata(metadata); err != nil {
+		return receipt, err
 	}
 	if input.PageCount < 1 {
 		return receipt, ErrLiteratureInvalid

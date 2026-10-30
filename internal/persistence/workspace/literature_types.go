@@ -81,12 +81,9 @@ func validLiteratureID(value string) bool {
 }
 
 func literatureMetadata(value map[string]any) (string, error) {
-	if value == nil {
-		return "{}", nil
-	}
-	raw, err := json.Marshal(value)
-	if err != nil || len(raw) > 16384 {
+	raw, err := normalizeLiteratureMetadata(value)
+	if err != nil || len(raw) > literatureMetadataLegacyBytes {
 		return "", ErrLiteratureInvalid
 	}
-	return string(raw), nil
+	return raw, nil
 }

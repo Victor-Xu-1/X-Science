@@ -18,7 +18,7 @@ func normalizeLiteratureMetadataPatch(raw json.RawMessage) (*literatureMetadataF
 	if len(raw) == 0 {
 		return nil, nil, nil
 	}
-	if len(raw) > 64<<10 || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+	if len(raw) > literatureMetadataPatchBytes || bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
 		return nil, nil, ErrLiteratureInvalid
 	}
 	var operators map[string]json.RawMessage
@@ -84,7 +84,7 @@ func mergeLiteratureMetadataFields(raw string, fields *literatureMetadataFields)
 	for _, key := range fields.Remove {
 		delete(metadata, key)
 	}
-	// Original json.Number encoding and complete-object limit remain the
-	// authority; no unedited value passes through float64 or the renderer.
-	return literatureMetadata(metadata)
+	// Preserve json.Number encoding; final admission uses the canonical prior
+	// row inside the existing CAS owner, never unedited renderer metadata.
+	return normalizeLiteratureMetadata(metadata)
 }

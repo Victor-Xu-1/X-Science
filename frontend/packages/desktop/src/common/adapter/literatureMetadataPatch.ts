@@ -1,4 +1,5 @@
 import { literatureValueIdentity } from './literatureValueIdentity';
+import { LITERATURE_METADATA_PATCH_BYTES } from './literatureMetadataCapacity';
 
 export type LiteratureMetadataPatch = {
   set?: Record<string, unknown>;
@@ -58,7 +59,7 @@ export function decodeLiteratureMetadataPatch(value: unknown): LiteratureMetadat
     ...(set !== undefined ? { set } : {}),
     ...(remove !== undefined ? { remove: [...remove] as string[] } : {}),
   };
-  if (JSON.stringify(patch).length > 65536) return fail();
+  if (new TextEncoder().encode(JSON.stringify(patch)).length > LITERATURE_METADATA_PATCH_BYTES) return fail();
   return patch;
 }
 

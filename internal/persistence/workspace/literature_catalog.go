@@ -90,7 +90,7 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 	if !validLiteratureID(owner) || !validLiteratureID(id) || !validLiteratureID(input.OperationID) || input.ExpectedRevision < 1 {
 		return receipt, ErrLiteratureInvalid
 	}
-	metadata, err := literatureMetadata(input.Metadata)
+	metadata, err := normalizeLiteratureMetadata(input.Metadata)
 	if err != nil {
 		return receipt, err
 	}
@@ -128,6 +128,7 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 		if revision != input.ExpectedRevision {
 			return ErrLiteratureConflict
 		}
+		prior := raw
 		if input.Title != nil {
 			title = strings.TrimSpace(*input.Title)
 		}
@@ -139,6 +140,9 @@ func (s *Store) PatchLiteratureItem(ctx context.Context, owner, id string, input
 			if err != nil {
 				return err
 			}
+		}
+		if err := admitLiteratureCatalogMetadataUpdate(prior, raw); err != nil {
+			return err
 		}
 		if input.Deleted != nil {
 			deleted = sql.NullString{String: s.now().UTC().Format("2006-01-02T15:04:05.999999999Z07:00"), Valid: *input.Deleted}

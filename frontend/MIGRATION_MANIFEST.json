@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "c919a8b1fda121e9a5fb0e7fb0127eb4bd24bdb70f7d4fb2f620ee2ebe007f80",
+  "adaptationFingerprintSHA256": "c90729933bdcae727ab148796bd20aa2aef97a59687324939ed8d8cfdc6fbc34",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "f30e6e2d22d271a0ddbf8d7cc7e6ff33ff88ee74b7e58c4386eb90c3dec7c313",
+  "additionFingerprintSHA256": "dfe90840ec9679ff5216c78039bc9edccdd7d957fbee9c0d1b9de5e2b5ac5244",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1412
+    "addedFiles": 1414
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "78432be3e03443c4fa8ac80c7d4d904b4046ebbb4043128b6365beeba60ac72e",
+      "targetSHA256": "e6122c981c99633c3f085086698aadaa02b950fd0dd22902be455b68e84be47b",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "a32fd338c530e85cccfe00f14ad18b793d8f065d374146a9a0be3e7a029fc963",
+      "targetSHA256": "fad55c64615bf051904049a1b2b47385a710b4815ed771128cc9dc1fc5a18984",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "4a2c6a161618d410d0779d8a9ca536d9c4ca18a683ad0acda7233c84c846ea8c",
+      "sha256": "f84de9f0b3ac7c59722ec83e7faff9f10c899db6439154dd430224006d2af177",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7693,8 +7693,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureLibrary.ts",
-      "sha256": "2021bf19f613fafbd55ea7fb4a5d2c1c2d717fd5bc2c018805127cf265a11d77",
-      "bytes": 13215,
+      "sha256": "0e110920e652d7504033272cfd1f91309dd91732d1f7c172a68b962ec2565988",
+      "bytes": 13436,
       "reason": "Define the first-party closed independent-literature item, attachment-version, mutation and receipt wire contract without creating another transport or persistence owner."
     },
     {
@@ -7704,9 +7704,15 @@
       "reason": "Define the closed active/deleted Literature lifecycle shared by the existing typed list and selection transports; no alternate query or persistence owner is introduced."
     },
     {
+      "path": "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts",
+      "sha256": "acb67689c269b6bbad6a9df6ebcef5cf36497d35a963c194cd095b83af6c208e",
+      "bytes": 542,
+      "reason": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority."
+    },
+    {
       "path": "packages/desktop/src/common/adapter/literatureMetadataPatch.ts",
-      "sha256": "7bdec423164da0b344c901a49b973a08b26c9827c75081fbe322f08553bd2135",
-      "bytes": 3419,
+      "sha256": "9bc66cbf7d3f4f0d5f9acff92a250a22c286937fdcbfee2259764566101ed41c",
+      "bytes": 3551,
       "reason": "Strictly snapshot generic Library metadata field deltas and validate only changed receipt keys while preserving unedited canonical metadata, the existing mutation owner, and literal JSON field semantics."
     },
     {
@@ -13864,6 +13870,12 @@
       "sha256": "b0c9986359958f03092c1ea86099e6616f9979fb499128a0cb6439c7603ed79e",
       "bytes": 9751,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/literatureMetadataCapacity.test.ts",
+      "sha256": "61e4e33db9ce2b1aebceabea5864e14c0f3caebf5f44dbd993f3c020cdccacbd",
+      "bytes": 3391,
+      "reason": "Verify future-size command and durable pending replay with bounded Unicode metadata, original identity, and unchanged invalid field-action rejection using synthetic input."
     },
     {
       "path": "tests/unit/renderer/conversation/literatureMetadataFields.test.ts",

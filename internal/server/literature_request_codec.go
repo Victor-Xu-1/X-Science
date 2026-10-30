@@ -8,10 +8,15 @@ import (
 	workspace "x-science/internal/persistence/workspace"
 )
 
-// Only Library import/Patch metadata is an opaque number-preserving object.
-// Keep the original envelope limits; PDF and membership decoding is unchanged.
+// Metadata-bearing commands also receive original pending requests from a
+// capable newer writer. Keep all other mutation envelopes at their old limit.
 func decodeLiteratureMutationBody(w http.ResponseWriter, r *http.Request, value any) error {
-	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
+	limit := int64(64 << 10)
+	switch value.(type) {
+	case *workspace.LiteratureImport, *workspace.LiteraturePatch, *workspace.LiteratureManualCreate:
+		limit = 128 << 10
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, limit))
 	decoder.UseNumber()
 	decoder.DisallowUnknownFields()
 	var trailing any
