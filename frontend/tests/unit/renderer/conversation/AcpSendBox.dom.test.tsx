@@ -12,7 +12,7 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import * as httpBridge from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
-import type { XSciencePlanReference } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import type { XSciencePlanReference, XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import * as composerContextSelection from '@/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
@@ -358,6 +358,7 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', asyn
   const actual = await original<typeof import('@/renderer/components/xScience/runtime/XScienceRuntimeOperations')>();
   return {
     default: (props: {
+      conversationId: string;
       onChooseModel?: () => void;
       runtimeState?: string;
       runtimeAuthorityUnavailable?: boolean;
@@ -974,6 +975,7 @@ describe('AcpSendBox', () => {
     ['ordinary', true, false],
     ['save-as-skill', true, false],
     ['ordinary', false, true],
+      ['ordinary', false, 'acknowledged'],
   ] as const)(
     'real preparation controls expose Stop for %s with snapshot held=%s and dispatched=%s',
     async (kind, initialSnapshotHeld, dispatched) => {
@@ -988,7 +990,7 @@ describe('AcpSendBox', () => {
         pending_confirmations: 0,
         turn_id: null,
       };
-      const priorSnapshot = {
+      const priorSnapshot: Partial<XScienceRuntimeSnapshot> = {
         frameId: conversationId,
         rootFrameId: conversationId,
         status: 'completed',
@@ -1024,7 +1026,7 @@ describe('AcpSendBox', () => {
         />
       );
       if (!initialSnapshotHeld) await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
-      await waitFor(() => expect(screen.getByRole('button', { name: 'send', exact: true })).not.toBeDisabled());
+      await waitFor(() => expect(screen.getByRole('button', { name: 'send' })).not.toBeDisabled());
       let saving: Promise<void> | undefined;
       try {
         await act(async () => {
@@ -1045,6 +1047,16 @@ describe('AcpSendBox', () => {
           });
           await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
           expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(false);
+          if (dispatched === 'acknowledged') {
+            await act(async () => {
+              acknowledgement.resolve({ msg_id: 'new-input', turn_id: conversationId, runtime: {
+                state: 'running', can_send_message: false, has_task: true, task_status: 'running',
+                is_processing: true, pending_confirmations: 0, turn_id: conversationId,
+              } });
+              await acknowledgement.promise;
+            });
+            await waitFor(() => expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false));
+          }
         }
         const stop = screen.getByRole('button', { name: '暂停任务' });
         fireEvent.click(stop);
