@@ -25,7 +25,7 @@ import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutati
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { libraryAuthors } from './LibraryItemDetails';
 import { LibraryDetailsPane } from './LibraryDetailsPane';
-import { useLibraryWorkbench } from './useLibraryWorkbench';
+import { isLibraryReadFresh, useLibraryWorkbench } from './useLibraryWorkbench';
 import { LibraryProjectScope } from './LibraryProjectScope';
 import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
 import { LibraryReadingStatus, LibraryReadingStatusFilter } from './LibraryReadingStatus';
@@ -39,7 +39,8 @@ import { LibrarySelectionToolbar } from './LibrarySelectionToolbar';
 import { LibraryBulkProgress } from './LibraryBulkProgress';
 import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureReadingBulkIntent';
 import { LibraryMutationNotice } from './LibraryMutationNotice';
-import { LibraryPdfImport } from './LibraryPdfImport';
+import { LibraryAddMenu } from './LibraryAddMenu';
+import { LibraryManualCreate } from './LibraryManualCreate';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
 import { LibraryRowActions } from './LibraryRowActions';
@@ -93,6 +94,7 @@ export default function LibraryPage() {
     cursor,
     selectedId,
     readingStatus,
+    inbox,
     ...(trash ? ['deleted'] : []),
   ]);
   const editorBoundary = useRef({ key: formScope });
@@ -100,6 +102,8 @@ export default function LibraryPage() {
   const editorSequence = useRef(0);
   const [editor, setEditor] = useState<CollectionEditorState>();
   const visibleEditor = editor?.owner === editorBoundary.current ? editor : undefined;
+  const [manualEditor, setManualEditor] = useState<object>();
+  const manualOpen = !inbox && !trash && manualEditor === editorBoundary.current;
   const [pdfEditor, setPdfEditor] = useState({ account: reads.account, open: false });
   const pdfOpen = pdfEditor.account === reads.account && pdfEditor.open;
   const setPdfOpen = useCallback(
@@ -117,7 +121,7 @@ export default function LibraryPage() {
     projects: reads.projects,
     open: pdfOpen,
     setOpen: setPdfOpen,
-    blockedByEditor: Boolean(visibleEditor),
+    blockedByEditor: Boolean(visibleEditor) || manualOpen,
   });
   const items = reads.list.value?.items ?? [];
   const listReady = reads.list.status === 'ready' && !reads.list.refreshing && !reads.list.refreshError;
@@ -126,7 +130,8 @@ export default function LibraryPage() {
     mutation.view.mutating ||
     Boolean(mutation.view.pending) ||
     mutation.view.error === 'storage' ||
-    pdfOpen;
+    pdfOpen ||
+    manualOpen;
   const bulk = useLibraryBulkReadingStatus({
     account: reads.account,
     scope: { query, collectionId, projectId, readingStatus, lifecycle },
@@ -151,8 +156,8 @@ export default function LibraryPage() {
     else next.delete('item');
     setParams(next);
   };
-  const viewImportedReference = (receipt: LiteratureReceipt) => {
-    if (reads.account !== getRendererAccountScopeToken() || !pdfImport.completeSuccess(receipt)) return;
+  const viewReference = (receipt: LiteratureReceipt) => {
+    if (reads.account !== getRendererAccountScopeToken()) return;
     const next = new URLSearchParams(params);
     next.delete('lifecycle');
     next.delete('q');
@@ -162,6 +167,9 @@ export default function LibraryPage() {
     next.delete('reading_status');
     next.set('item', receipt.item.id);
     setParams(next);
+  };
+  const viewImportedReference = (receipt: LiteratureReceipt) => {
+    if (pdfImport.completeSuccess(receipt)) viewReference(receipt);
   };
   const closeDetails = () => {
     if (reads.account !== getRendererAccountScopeToken()) return;
@@ -429,7 +437,7 @@ export default function LibraryPage() {
   );
   const mutationNotice = (
     <LibraryMutationNotice
-      hidden={pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
+      hidden={manualOpen || pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
       error={mutation.view.error}
       failed={actionFailed}
       mutating={mutation.view.mutating}
@@ -570,7 +578,20 @@ export default function LibraryPage() {
             }}
             actions={
               <>
-                {!trash && <LibraryPdfImport model={pdfImport} />}
+                {!trash && (
+                  <LibraryAddMenu
+                    key={reads.account}
+                    pdf={pdfImport}
+                    disabled={Boolean(visibleEditor) || manualOpen}
+                    manualDisabled={
+                      busy ||
+                      !listReady ||
+                      (Boolean(projectId) && !isLibraryReadFresh(reads.projects)) ||
+                      (Boolean(collectionId) && (!isLibraryReadFresh(reads.collections) || !selectedCollection))
+                    }
+                    add={() => setManualEditor(editorBoundary.current)}
+                  />
+                )}
                 <button type='button' className='library-workbench__button' onClick={reads.refresh}>
                   <RefreshCw size={14} aria-hidden='true' />
                   {t('common.refresh')}
@@ -626,6 +647,29 @@ export default function LibraryPage() {
             refreshProjects={reads.refresh}
             viewReference={viewImportedReference}
           />
+          {manualOpen && (
+            <LibraryManualCreate
+              key={formScope}
+              account={reads.account}
+              projectId={projectId}
+              collection={selectedCollection}
+              view={mutation.view}
+              retry={retryPendingMutation}
+              submit={(command) => {
+                lifecycleVisit.capture(command.operation_id);
+                return submit(command);
+              }}
+              close={() => setManualEditor(undefined)}
+              openTrash={() => {
+                setManualEditor(undefined);
+                selectTrash();
+              }}
+              created={(receipt) => {
+                setManualEditor(undefined);
+                if (lifecycleVisit.owns(receipt.operation_id)) viewReference(receipt);
+              }}
+            />
+          )}
           {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
               selection={bulk.selection}

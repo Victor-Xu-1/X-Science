@@ -76,13 +76,19 @@ export async function runLiteratureCommand(input: LiteratureCommand): Promise<Li
   const path =
     kind === 'import'
       ? '/api/literature/import-artifact-version'
-      : `/api/literature/items/${encodeURIComponent(command.item_id!)}` +
-        (kind === 'membership' ? `/projects/${encodeURIComponent(command.project_id!)}` : '');
+      : kind === 'manual-create'
+        ? '/api/literature/items'
+        : `/api/literature/items/${encodeURIComponent(command.item_id!)}` +
+          (kind === 'membership' ? `/projects/${encodeURIComponent(command.project_id!)}` : '');
   // Routing coordinates are not a competing payload identity.
   if ('item_id' in body) delete (body as Partial<typeof body>).item_id;
   if (kind === 'membership' && 'project_id' in body) delete (body as Partial<typeof body>).project_id;
   const raw = await httpRequest<unknown>(
-    kind === 'import' ? 'POST' : kind === 'edit' || kind === 'edit-metadata' ? 'PATCH' : 'PUT',
+    kind === 'import' || kind === 'manual-create'
+      ? 'POST'
+      : kind === 'edit' || kind === 'edit-metadata'
+        ? 'PATCH'
+        : 'PUT',
     path,
     body,
     {
@@ -91,7 +97,13 @@ export async function runLiteratureCommand(input: LiteratureCommand): Promise<Li
   );
   requireAccount(account);
   const receipt = decodeLiteratureReceipt(raw, command.operation_id);
-  if (command.kind !== 'import' && receipt.item.id !== command.item_id) throw new Error('Literature item changed');
+  if (command.kind !== 'import' && command.kind !== 'manual-create' && receipt.item.id !== command.item_id)
+    throw new Error('Literature item changed');
+  if (
+    command.kind === 'manual-create' &&
+    (receipt.item.deleted || (command.project_id && !receipt.item.project_ids.includes(command.project_id)))
+  )
+    throw new Error('Literature creation not acknowledged');
   if (command.kind === 'import' && (!receipt.attachment_id || !receipt.version_id))
     throw new Error('Literature import not acknowledged');
   if (command.kind === 'membership' && receipt.item.project_ids.includes(command.project_id) !== command.included)

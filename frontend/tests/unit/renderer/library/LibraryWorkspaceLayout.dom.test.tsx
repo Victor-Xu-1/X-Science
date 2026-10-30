@@ -51,7 +51,7 @@ describe('Library workspace scope and navigation hierarchy', () => {
         within(header).getByRole('searchbox', { name: label('conversation.libraryWorkbench.search') })
       ).toBeInTheDocument();
       expect(
-        within(header).getByRole('button', { name: label('conversation.libraryPdfImport.entry') })
+        within(header).getByRole('button', { name: label('conversation.libraryManual.addMenu') })
       ).toBeInTheDocument();
       expect(within(header).getByRole('button', { name: label('common.refresh') })).toBeInTheDocument();
       await screen.findByRole('heading', { name: label('conversation.libraryWorkbench.projectEmpty') });

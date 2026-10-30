@@ -49,6 +49,15 @@ export type LiteratureReceipt = {
 };
 export type LiteratureCommand =
   | {
+      kind: 'manual-create';
+      operation_id: string;
+      title: string;
+      metadata?: Record<string, unknown>;
+      project_id?: string;
+      collection_id?: string;
+      expected_collection_revision?: number;
+    }
+  | {
       kind: 'import';
       operation_id: string;
       artifact_id: string;
@@ -220,6 +229,48 @@ export function decodeLiteratureCommand(value: unknown): LiteratureCommand {
     !/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value.operation_id)
   )
     return fail();
+  if (value.kind === 'manual-create') {
+    if (
+      Reflect.ownKeys(value).some(
+        (key) =>
+          typeof key !== 'string' ||
+          ![
+            'kind',
+            'operation_id',
+            'title',
+            'metadata',
+            'project_id',
+            'collection_id',
+            'expected_collection_revision',
+          ].includes(key)
+      ) ||
+      typeof value.title !== 'string' ||
+      !value.title.trim() ||
+      value.title.length > 4096 ||
+      (value.project_id !== undefined && !identity(value.project_id)) ||
+      (value.collection_id === undefined
+        ? value.expected_collection_revision !== undefined
+        : !identity(value.collection_id) ||
+          !count(value.expected_collection_revision) ||
+          value.expected_collection_revision < 1)
+    )
+      return fail();
+    const metadata = value.metadata === undefined ? undefined : decodeLiteratureMetadata(value.metadata);
+    if (metadata && new TextEncoder().encode(JSON.stringify(metadata)).length > 16384) return fail();
+    return {
+      kind: 'manual-create',
+      operation_id: value.operation_id,
+      title: value.title.trim(),
+      ...(metadata ? { metadata } : {}),
+      ...(typeof value.project_id === 'string' ? { project_id: value.project_id } : {}),
+      ...(typeof value.collection_id === 'string'
+        ? {
+            collection_id: value.collection_id,
+            expected_collection_revision: value.expected_collection_revision as number,
+          }
+        : {}),
+    };
+  }
   if (value.kind === 'edit-metadata') {
     if (
       Reflect.ownKeys(value).some(

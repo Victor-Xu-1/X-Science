@@ -20,6 +20,8 @@ func writeLiteratureError(w http.ResponseWriter, err error) {
 		status, code = 404, "LITERATURE_UNAVAILABLE"
 	case errors.Is(err, workspace.ErrLiteratureCollectionNameConflict):
 		status, code = 409, "LITERATURE_COLLECTION_NAME_CONFLICT"
+	case errors.Is(err, workspace.ErrLiteratureTrashConflict):
+		status, code = 409, "LITERATURE_TRASH_CONFLICT"
 	case errors.Is(err, workspace.ErrLiteratureConflict), errors.Is(err, workspace.ErrMutationIdempotencyConflict):
 		status, code = 409, "LITERATURE_CONFLICT"
 	}
@@ -61,6 +63,20 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
 		s.handleLiteratureItemsRead(w, r, owner)
+		return
+	}
+	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodPost {
+		var input workspace.LiteratureManualCreate
+		if decodeLiteratureMutationBody(w, r, &input) != nil || !validLiteratureOperation(input.OperationID) {
+			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+			return
+		}
+		receipt, err := s.workspaceStore.CreateManualLiterature(r.Context(), owner, input)
+		if err != nil {
+			writeLiteratureError(w, err)
+			return
+		}
+		writeWorkspaceJSON(w, 200, receipt)
 		return
 	}
 	if len(parts) == 1 && parts[0] == "import-artifact-version" && r.Method == http.MethodPost {

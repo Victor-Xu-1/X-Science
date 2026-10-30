@@ -1,0 +1,57 @@
+.library-manual-create .arco-modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: min(76vh, 760px);
+  overflow: hidden;
+}
+.library-manual-create__body,
+.library-manual-create form {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+.library-manual-create__description {
+  flex-shrink: 0;
+  color: var(--reading-secondary);
+  font-size: var(--ui-font-meta);
+  margin: 0 0 var(--ui-space-6);
+}
+.library-manual-create__fields {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  gap: var(--ui-space-5);
+  overflow: auto;
+}
+.library-manual-create__actions {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  gap: var(--ui-space-4);
+  padding-top: var(--ui-space-5);
+}
+.library-manual-create__actions button,
+.library-manual-create__discard button,
+.library-manual-create [role='alert'] button {
+  min-height: var(--ui-control-md);
+  border: 1px solid var(--reading-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-space-3) var(--ui-space-5);
+  font: inherit;
+}
+.library-manual-create button[type='submit'] {
+  background: var(--reading-text);
+  color: var(--reading-surface);
+}
+.library-manual-create button:disabled {
+  opacity: 0.5;
+}
+.library-manual-create__discard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-4);
+}
+.library-manual-create__discard p {
+  width: 100%;
+}

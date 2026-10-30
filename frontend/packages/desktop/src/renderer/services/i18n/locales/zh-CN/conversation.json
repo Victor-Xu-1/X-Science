@@ -2453,5 +2453,15 @@
     "tooLong": "笔记超过 10,000 个 UTF-16 单元，草稿已保留。",
     "savedReloadFailed": "已保存，但重新加载失败。重试仅重新加载。",
     "draftPreserved": "草稿已保留。按 Escape 放弃。"
+  },
+  "libraryManual": {
+    "addMenu": "添加",
+    "add": "新增文献",
+    "description": "在文献库中创建文献记录。",
+    "create": "创建文献",
+    "discard": "放弃这条尚未保存的文献？",
+    "discardAction": "放弃文献",
+    "trashConflict": "回收站中已有相同标识符的文献。请先前往回收站恢复，避免重复创建。",
+    "openTrash": "打开回收站"
   }
 }

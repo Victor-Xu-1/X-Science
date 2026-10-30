@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
 import { MoreHorizontal, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
-import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { useLibraryActionMenu } from './useLibraryActionMenu';
 import './libraryRowActions.css';
 
 /** The existing detail route and reversible lifecycle owner serve the row menu. */
@@ -19,40 +19,21 @@ export function LibraryRowActions({
   change: (item: LiteratureItem, deleted: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
-  const account = useRef(getRendererAccountScopeToken()).current;
-  const dismissOnEscape = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'Escape' || !open) return;
-    event.preventDefault();
-    event.stopPropagation();
-    setOpen(false);
-    const target = trigger.current;
-    // Only this explicit Escape may return focus; invalidation and outside
-    // dismissal retain their existing owners and never borrow this permission.
-    if (target?.isConnected && !disabled && !target.disabled && account === getRendererAccountScopeToken())
-      target.focus({ preventScroll: true });
-  };
-  useEffect(() => {
-    if (disabled) setOpen(false);
-  }, [disabled]);
+  const menu = useLibraryActionMenu(disabled);
   return (
     <Dropdown
       trigger='click'
       position='br'
-      popupVisible={open && !disabled}
-      onVisibleChange={setOpen}
+      popupVisible={menu.visible}
+      onVisibleChange={menu.visibility}
       droplist={
         <Menu
-          onKeyDownCapture={dismissOnEscape}
+          onKeyDownCapture={menu.escape}
           onClickMenuItem={(key, event) => {
-            // Arco focuses the trigger before the browser's Enter default click.
-            // Consume that default only; the original menu dispatch still runs.
-            if (event.type === 'keydown' && (event.key === 'Enter' || event.keyCode === 13)) event.preventDefault();
-            setOpen(false);
-            if (disabled) return;
-            if (key === 'edit' && !item.deleted) openItem(item);
-            else if (key === 'lifecycle') change(item, !item.deleted);
+            menu.select(event, () => {
+              if (key === 'edit' && !item.deleted) openItem(item);
+              else if (key === 'lifecycle') change(item, !item.deleted);
+            });
           }}
         >
           <Menu.Item key='edit' disabled={disabled || item.deleted} aria-disabled={disabled || item.deleted}>
@@ -69,14 +50,14 @@ export function LibraryRowActions({
       }
     >
       <button
-        ref={trigger}
-        onKeyDownCapture={dismissOnEscape}
+        ref={menu.trigger}
+        onKeyDownCapture={menu.escape}
         type='button'
         className='library-row-actions__trigger'
         disabled={disabled}
         aria-label={t('conversation.libraryLifecycle.actionsFor', { title: item.title })}
         aria-haspopup='menu'
-        aria-expanded={open && !disabled}
+        aria-expanded={menu.visible}
       >
         <MoreHorizontal size={16} aria-hidden='true' />
       </button>
