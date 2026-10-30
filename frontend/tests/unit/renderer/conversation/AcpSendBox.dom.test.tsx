@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { act, fireEvent, screen, waitFor, type RenderOptions } from '@testing-library/react';
+import { act, fireEvent, renderHook, screen, waitFor, type RenderOptions } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { MemoryRouter } from 'react-router';
@@ -17,6 +17,7 @@ import type {
   XScienceRuntimeSnapshot,
 } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
+import { useAcpCommandPreparation } from '@/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation';
 import * as composerContextSelection from '@/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import type { ComposerContextItem } from '@/renderer/components/chat/SendBox/composerCompositionModel';
@@ -991,6 +992,131 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  it.each(['replaced', 'dispatched'] as const)('ordinary cleanup cannot withdraw a %s ticket', async (phase) => {
+    const owner = 'ordinary-cleanup-fence';
+    const original = {};
+    const sibling = {};
+    const authority = { current: { conversationId: owner, ownerId: 'fixture-owner' } };
+    const peer =
+      createDeferred<Awaited<ReturnType<Parameters<typeof useAcpCommandPreparation>[0]['resolveAuthority']>>>();
+    const runtime = {
+      ...runtimeViewMock,
+      view: runtimeStore.createDefaultConversationRuntimeView(owner),
+      state: 'idle' as const,
+      isSendPreparing: (ticket: object) => runtimeStore.isLocalSendPreparing(owner, ticket),
+      cancelSendPreparation: (ticket?: object) => runtimeStore.cancelLocalSendPreparation(owner, ticket).cancelled,
+      awaitSendPreparation: <T,>(ticket: object, pending: Promise<T>) =>
+        runtimeStore.awaitLocalSendPreparation(owner, ticket, pending),
+    } as Parameters<typeof useAcpCommandPreparation>[0]['runtime'];
+    const resolveAuthority = vi.fn(() => peer.promise);
+    const view = renderHook(() =>
+      useAcpCommandPreparation({
+        compaction: null,
+        authority,
+        mounted: { current: true },
+        runtime,
+        resolveAuthority,
+        retry: { current: null },
+        t: ((key: string) => key) as Parameters<typeof useAcpCommandPreparation>[0]['t'],
+      })
+    );
+    runtimeStore.localSendStarted(owner, original, 'preparing');
+    const preparing = view.result.current({ id: 'command-original' }, undefined, original);
+    const rejected = expect(preparing).rejects.toThrow('conversation_preparation_cancelled');
+    if (phase === 'replaced') runtimeStore.localSendStarted(owner, sibling, 'preparing');
+    else expect(runtimeStore.localSendDispatched(owner, original)).toBe(true);
+    view.unmount();
+    await rejected;
+    if (phase === 'replaced') expect(runtimeStore.isLocalSendPreparing(owner, sibling)).toBe(true);
+    else expect(runtimeStore.getConversationRuntimeViewSnapshot(owner).localSubmitting).toBe(true);
+    peer.resolve({ targetBranchId: null, targetBranchRevision: 0, sessionOptions: { ultra_mode: false } });
+    await peer.promise;
+    if (phase === 'replaced') expect(runtimeStore.isLocalSendPreparing(owner, sibling)).toBe(true);
+    else expect(runtimeStore.getConversationRuntimeViewSnapshot(owner).localSubmitting).toBe(true);
+  });
+
+  it('retires an ordinary unsubmitted ticket on unmount without touching the remounted preparation', async () => {
+    realPreparationRuntime.current = true;
+    realPreparationComposer.current = true;
+    const conversationId = 'conv-ordinary-unmount';
+    const runtime: TConversationRuntimeSummary = {
+      state: 'idle',
+      can_send_message: true,
+      has_task: false,
+      task_status: 'finished',
+      is_processing: false,
+      pending_confirmations: 0,
+      turn_id: null,
+    };
+    preparationSnapshotMock.mockResolvedValue({
+      frameId: conversationId,
+      rootFrameId: conversationId,
+      status: 'completed',
+      runtimeAttempt: 47,
+      runtimeInputRevision: 47,
+      pendingInputRequests: [],
+      canCancel: false,
+      canResume: false,
+      taskPlan: null,
+      planApproval: null,
+      runtimeActive: false,
+      runtimeTaskActive: false,
+      runtimeStage: null,
+    });
+    const first = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+    const second = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+    const state = { activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] };
+    getSelectedBranchMock.mockReturnValue('branch-preparing');
+    loadBranchStateMock.mockReset().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    sendBoxDraftSeed.current = 'Original draft';
+    sendMessageInvokeMock.mockReset();
+    const composer = () => (
+      <AcpSendBox
+        conversation_id={conversationId}
+        backend='xscience'
+        initialConversation={{ id: conversationId, type: 'acp', runtime, extra: {} } as TChatConversation}
+        messageState={makeMessageState()}
+      />
+    );
+    let mounted = await render(composer());
+    try {
+      await waitFor(() => expect(screen.getByRole('textbox')).not.toBeDisabled());
+      fireEvent.click(screen.getByRole('button', { name: '发送' }));
+      await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(1));
+      expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
+      mounted.unmount();
+      await waitFor(() =>
+        expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false)
+      );
+      sendBoxDraftSeed.current = 'Newer draft';
+      mounted = await render(composer());
+      const input = screen.getByRole('textbox');
+      await waitFor(() => expect(input).not.toBeDisabled());
+      expect(input).toHaveValue('Newer draft');
+      fireEvent.click(screen.getByRole('button', { name: '发送' }));
+      await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(2));
+      expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
+      await act(async () => {
+        first.resolve(state);
+        await first.promise;
+      });
+      expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+      expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
+      fireEvent.click(screen.getByRole('button', { name: '暂停任务' }));
+      await waitFor(() => expect(input).not.toBeDisabled());
+      await waitFor(() => expect(input).toHaveValue('Newer draft'));
+      expect(stopInvokeMock).not.toHaveBeenCalled();
+      expect(messageErrorMock).not.toHaveBeenCalled();
+    } finally {
+      mounted.unmount();
+      await act(async () => {
+        first.resolve(state);
+        second.resolve(state);
+        await Promise.all([first.promise, second.promise]);
+      });
+    }
+  });
+
   it.each(['ordinary', 'save-as-skill'] as const)(
     'withdrawn preparation restores the actual composer before old transport settles for %s',
     async (kind) => {
