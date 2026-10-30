@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { act, cleanup, createEvent, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
+  projectLibraryNotesColumns,
   type LibraryColumnPreferencesWire,
 } from '@/common/adapter/libraryColumnPreferences';
 import { LibraryTable, type LibraryTableProps } from '@/renderer/pages/library/LibraryTable';
@@ -50,8 +52,14 @@ const tableProps = (extra: Partial<LibraryTableProps> = {}): LibraryTableProps =
   ...extra,
 });
 const headings = () => screen.getAllByRole('columnheader').map((element) => element.textContent);
-function Controlled({ changed = vi.fn() }: { changed?: (preferences: LibraryColumnPreferencesWire) => void }) {
-  const [preferences, setPreferences] = useState<LibraryColumnPreferencesWire>(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
+function Controlled({
+  changed = vi.fn(),
+  initialPreferences = DEFAULT_LIBRARY_COLUMN_PREFERENCES,
+}: {
+  changed?: (preferences: LibraryColumnPreferencesWire) => void;
+  initialPreferences?: LibraryColumnPreferencesWire;
+}) {
+  const [preferences, setPreferences] = useState<LibraryColumnPreferencesWire>(initialPreferences);
   return (
     <>
       <LibraryColumnMenu
@@ -69,9 +77,10 @@ function Controlled({ changed = vi.fn() }: { changed?: (preferences: LibraryColu
   );
 }
 async function openColumns() {
-  const trigger = screen.getByRole('button', { name: 'Columns' });
+  const trigger = screen.getByRole('button', { name: 'Customize columns' });
   fireEvent.click(trigger);
   const panel = await screen.findByRole('dialog', { name: 'Customize columns' });
+  await waitFor(() => expect(panel).toContainElement(document.activeElement as HTMLElement));
   return { panel, trigger };
 }
 function dispatchDrag(kind: 'dragStart' | 'dragOver' | 'drop', target: HTMLElement, transfer: object, clientY: number) {
@@ -131,8 +140,7 @@ describe('Pure Library table and controlled column settings', () => {
     fireEvent.keyDown(move, { key: 'ArrowUp' });
     expect(headings()).toEqual(['Title', 'Status', 'Authors', 'Year', 'Files']);
     expect(within(panel).getByRole('button', { name: 'Move Authors' })).toHaveFocus();
-    for (const checkbox of within(panel).getAllByRole('checkbox') as HTMLInputElement[])
-      if (checkbox.checked) fireEvent.click(checkbox);
+    for (const button of within(panel).getAllByRole('button', { pressed: true })) fireEvent.click(button);
     expect(headings()).toEqual(['Title']);
     expect(parseFloat((screen.getByRole('table') as HTMLTableElement).style.minWidth)).toBeLessThan(
       parseFloat(originalWidth)
@@ -141,6 +149,33 @@ describe('Pure Library table and controlled column settings', () => {
     fireEvent.keyDown(panel, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(trigger).toHaveFocus();
+  });
+
+  it('toggles only Notes with the first visibility button action and preserves the controlled Year state', async () => {
+    const changed = vi.fn();
+    const rendered = await renderWithI18n(
+      <Controlled
+        changed={changed}
+        initialPreferences={projectLibraryNotesColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES)}
+      />,
+      'en-US'
+    );
+    const { panel } = await openColumns();
+    fireEvent.click(within(panel).getByText('Notes'));
+    expect(changed).not.toHaveBeenCalled();
+    const notes = within(panel).getByRole('button', { name: 'Show Notes' });
+    expect(notes).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(notes);
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(changed.mock.calls[0][0].visible).toEqual([...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'notes']);
+    expect(within(panel).getByRole('button', { name: 'Hide Notes' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(panel).getByRole('button', { name: 'Hide Year' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(panel).queryByRole('checkbox')).toBeNull();
+    await act(async () => {
+      await rendered.i18n.changeLanguage('zh-CN');
+    });
+    expect(within(panel).getByRole('button', { name: '隐藏笔记列' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(panel).getByRole('button', { name: '隐藏年份列' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('applies a controlled drag before a known column and ignores a drop without a local drag', async () => {
@@ -184,10 +219,10 @@ describe('Pure Library table and controlled column settings', () => {
     expect(panel).toHaveAttribute('aria-modal', 'false');
     expect(panel).toHaveAttribute('aria-busy', 'true');
     expect(within(panel).getByText('Loading column preferences…')).toBeInTheDocument();
-    expect(within(panel).getByRole('checkbox', { name: 'Show Authors' })).toBeDisabled();
+    expect(within(panel).getByRole('button', { name: 'Hide Authors' })).toBeDisabled();
     rendered.rerender(<LibraryColumnMenu {...props} status='invalid' />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Saved column settings are invalid.');
-    expect(screen.getByRole('checkbox', { name: 'Show Authors' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hide Authors' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(props.onRetry).toHaveBeenCalledTimes(1);
     rendered.rerender(<LibraryColumnMenu {...props} status='read-error' />);
@@ -195,9 +230,9 @@ describe('Pure Library table and controlled column settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Restore default columns' }));
     expect(props.onReset).toHaveBeenCalledTimes(1);
     rendered.rerender(<LibraryColumnMenu {...props} status='saving' />);
-    expect(screen.getByRole('checkbox', { name: 'Show Authors' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Hide Authors' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Restore default columns' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Show Authors' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Authors' }));
     expect(props.onPreferencesChange).toHaveBeenCalledTimes(1);
     rendered.rerender(<LibraryColumnMenu {...props} status='write-error' />);
     expect(screen.getByRole('alert')).toHaveTextContent('Your layout has not been saved.');
@@ -206,6 +241,42 @@ describe('Pure Library table and controlled column settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close column settings' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(trigger).toHaveFocus();
+  });
+
+  it('keeps the open menu usable through retry feedback and leaves outside-click focus with the real target', async () => {
+    const user = userEvent.setup();
+    const retry = vi.fn();
+    const reset = vi.fn();
+    const view = (status: LibraryColumnMenuProps['status']) => (
+      <>
+        <LibraryColumnMenu
+          preferences={DEFAULT_LIBRARY_COLUMN_PREFERENCES}
+          status={status}
+          onPreferencesChange={vi.fn()}
+          onRetry={retry}
+          onReset={reset}
+        />
+        <button type='button'>Outside control</button>
+      </>
+    );
+    const rendered = await renderWithI18n(view('write-error'), 'en-US');
+    const { panel } = await openColumns();
+    await user.click(within(panel).getByRole('button', { name: 'Retry' }));
+    expect(retry).toHaveBeenCalledTimes(1);
+    rendered.rerender(view('loading'));
+    expect(panel).toHaveAttribute('aria-busy', 'true');
+    await waitFor(() => expect(panel).toContainElement(document.activeElement as HTMLElement));
+    rendered.rerender(view('ready'));
+    expect(within(panel).getByRole('button', { name: 'Hide Authors' })).toBeEnabled();
+    await user.click(within(panel).getByRole('button', { name: 'Restore default columns' }));
+    expect(reset).toHaveBeenCalledTimes(1);
+    rendered.rerender(view('saving'));
+    await waitFor(() => expect(panel).toContainElement(document.activeElement as HTMLElement));
+    rendered.rerender(view('ready'));
+    const outside = screen.getByRole('button', { name: 'Outside control' });
+    await user.click(outside);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(outside).toHaveFocus();
   });
 
   it('distinguishes loading, failed and empty reads while leaving clear-filter and retry ownership with the caller', async () => {

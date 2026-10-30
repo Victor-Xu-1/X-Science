@@ -73,9 +73,9 @@ const detail = () =>
     name: 'Literature details',
   })[0];
 async function openColumns() {
-  fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Customize columns' }));
   const panel = await screen.findByRole('dialog', { name: 'Customize columns' });
-  await waitFor(() => expect(within(panel).getByRole('checkbox', { name: 'Show Authors' })).toBeEnabled());
+  await waitFor(() => expect(within(panel).getByRole('button', { name: 'Hide Authors' })).toBeEnabled());
   return panel;
 }
 
@@ -102,7 +102,7 @@ describe('Library table through the real Page and account setting transport', ()
     fireEvent.change(title, { target: { value: 'Draft survives column edits' } });
     const panel = await openColumns();
     expect(settings.writes).toEqual([]);
-    fireEvent.click(within(panel).getByRole('checkbox', { name: 'Show Authors' }));
+    fireEvent.click(within(panel).getByRole('button', { name: 'Hide Authors' }));
     await waitFor(() => {
       expect(settings.writes).toHaveLength(1);
       expect(panel).toHaveAttribute('aria-busy', 'false');
@@ -163,9 +163,9 @@ describe('Library table through the real Page and account setting transport', ()
     });
     await mountCollections('/library?item=a');
     await waitFor(() => expect(settings.reads).toEqual([ownerA]));
-    fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Customize columns' }));
     const oldPanel = await screen.findByRole('dialog', { name: 'Customize columns' });
-    expect(within(oldPanel).getByRole('checkbox', { name: 'Show Authors' })).toBeDisabled();
+    expect(within(oldPanel).getByRole('button', { name: 'Hide Authors' })).toBeDisabled();
     act(() => {
       setRendererAccountOwner(ownerB);
     });

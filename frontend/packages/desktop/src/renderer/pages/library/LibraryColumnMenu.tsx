@@ -1,6 +1,19 @@
-import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { Trigger } from '@arco-design/web-react';
-import { Columns3, GripVertical, LoaderCircle, X } from 'lucide-react';
+import React, { useCallback, useId, useLayoutEffect, useRef, useState } from 'react';
+import {
+  autoUpdate,
+  flip,
+  FloatingFocusManager,
+  FloatingPortal,
+  offset,
+  shift,
+  size,
+  useClick,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+} from '@floating-ui/react';
+import { Columns3, Eye, EyeOff, GripVertical, LoaderCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type {
   LibraryColumnWireId as LibraryColumnId,
@@ -16,24 +29,11 @@ export type LibraryColumnMenuProps = {
   onReset: () => void;
 };
 
-function ColumnPanel({
-  preferences,
-  status,
-  onPreferencesChange,
-  onRetry,
-  onReset,
-  close,
-  panelId,
-}: LibraryColumnMenuProps & { close: () => void; panelId: string }) {
+const canEditColumns = (status: LibraryColumnMenuProps['status']) =>
+  status === 'ready' || status === 'saving' || status === 'write-error';
+
+function ColumnFeedback({ status, onRetry }: Pick<LibraryColumnMenuProps, 'status' | 'onRetry'>) {
   const { t } = useTranslation();
-  const panel = useRef<HTMLElement>(null);
-  const handles = useRef(new Map<LibraryColumnId, HTMLButtonElement>());
-  const focusAfterMove = useRef<LibraryColumnId | undefined>(undefined);
-  const dragged = useRef<LibraryColumnId | undefined>(undefined);
-  const [drop, setDrop] = useState<{ column: LibraryColumnId; before: boolean }>();
-  const visibleColumns = preferences.visible as readonly LibraryColumnId[];
-  const editable = status === 'ready' || status === 'saving' || status === 'write-error';
-  const busy = status === 'loading' || status === 'saving';
   const errorKey =
     status === 'invalid'
       ? 'preferenceInvalid'
@@ -42,10 +42,71 @@ function ColumnPanel({
         : status === 'write-error'
           ? 'preferenceWriteError'
           : undefined;
+  const busy = status === 'loading' || status === 'saving';
+  const message = errorKey
+    ? t(`conversation.libraryTable.${errorKey}`)
+    : busy
+      ? t(
+          status === 'loading'
+            ? 'conversation.libraryTable.preferenceLoading'
+            : 'conversation.libraryTable.preferenceSaving'
+        )
+      : '';
+  return (
+    <div
+      className='library-column-menu__message'
+      role={errorKey ? 'alert' : busy ? 'status' : undefined}
+      aria-live={errorKey ? 'assertive' : 'polite'}
+      aria-atomic='true'
+    >
+      {busy && <LoaderCircle size={14} className='library-column-menu__spin' aria-hidden='true' />}
+      <span title={message}>{message}</span>
+      {errorKey && (
+        <button type='button' onClick={onRetry}>
+          {t('common.retry')}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ColumnPanel({
+  preferences,
+  status,
+  onPreferencesChange,
+  onRetry,
+  onReset,
+  close,
+  panelId,
+  floatingRef,
+  floatingStyles,
+  getFloatingProps,
+  firstHandle,
+}: LibraryColumnMenuProps & {
+  close: () => void;
+  panelId: string;
+  floatingRef: (element: HTMLElement | null) => void;
+  floatingStyles: React.CSSProperties;
+  getFloatingProps: ReturnType<typeof useInteractions>['getFloatingProps'];
+  firstHandle: React.MutableRefObject<HTMLButtonElement | null>;
+}) {
+  const { t } = useTranslation();
+  const panel = useRef<HTMLElement | null>(null);
+  const setPanelRef = useCallback(
+    (element: HTMLElement | null) => {
+      panel.current = element;
+      floatingRef(element);
+    },
+    [floatingRef]
+  );
+  const handles = useRef(new Map<LibraryColumnId, HTMLButtonElement>());
+  const focusAfterMove = useRef<LibraryColumnId | undefined>(undefined);
+  const [dragged, setDragged] = useState<LibraryColumnId>();
+  const [drop, setDrop] = useState<{ column: LibraryColumnId; before: boolean }>();
+  const visibleColumns = preferences.visible as readonly LibraryColumnId[];
+  const editable = canEditColumns(status);
+  const busy = status === 'loading' || status === 'saving';
   const label = (column: LibraryColumnId) => t(`conversation.libraryTable.columns.${column}`);
-  useEffect(() => {
-    panel.current?.focus();
-  }, []);
   useLayoutEffect(() => {
     const column = focusAfterMove.current;
     if (column) {
@@ -64,30 +125,30 @@ function ColumnPanel({
     onPreferencesChange({ ...preferences, order } as LibraryColumnPreferences);
   };
   const stopDrag = () => {
-    dragged.current = undefined;
+    setDragged(undefined);
     setDrop(undefined);
+  };
+  const retainActionFocus = (action: () => void) => () => {
+    const element = panel.current;
+    if (element?.contains(element.ownerDocument.activeElement)) element.focus({ preventScroll: true });
+    action();
   };
   return (
     <section
-      ref={panel}
+      ref={setPanelRef}
+      {...getFloatingProps()}
       id={panelId}
       role='dialog'
       aria-modal='false'
-      aria-labelledby={`${panelId}-title`}
-      aria-describedby={`${panelId}-help`}
+      aria-labelledby={panelId + '-title'}
+      aria-describedby={panelId + '-help'}
       aria-busy={busy}
       className='library-column-menu'
+      style={floatingStyles}
       tabIndex={-1}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          event.stopPropagation();
-          close();
-        }
-      }}
     >
       <header className='library-column-menu__heading'>
-        <h2 id={`${panelId}-title`}>{t('conversation.libraryTable.customize')}</h2>
+        <h2 id={panelId + '-title'}>{t('conversation.libraryTable.customize')}</h2>
         <button
           type='button'
           className='library-column-menu__icon'
@@ -97,137 +158,169 @@ function ColumnPanel({
           <X size={16} aria-hidden='true' />
         </button>
       </header>
-      <p id={`${panelId}-help`} className='library-column-menu__help'>
+      <p id={panelId + '-help'} className='library-column-menu__help'>
         {t('conversation.libraryTable.columnHelp')}
       </p>
-      {busy && (
-        <p role='status' className='library-column-menu__message'>
-          <LoaderCircle size={14} className='library-column-menu__spin' aria-hidden='true' />
-          {t(
-            status === 'loading'
-              ? 'conversation.libraryTable.preferenceLoading'
-              : 'conversation.libraryTable.preferenceSaving'
-          )}
-        </p>
-      )}
-      {errorKey && (
-        <div role='alert' className='library-column-menu__message'>
-          <span>{t(`conversation.libraryTable.${errorKey}`)}</span>
-          <button type='button' onClick={onRetry}>
-            {t('common.retry')}
-          </button>
-        </div>
-      )}
       <ul className='library-column-menu__columns'>
-        {preferences.order.map((column, index) => (
-          <li
-            key={column}
-            data-column={column}
-            data-drop={drop?.column === column ? (drop.before ? 'before' : 'after') : undefined}
-            onDragOver={(event) => {
-              if (!editable || !dragged.current || dragged.current === column) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = 'move';
-              const bounds = event.currentTarget.getBoundingClientRect();
-              setDrop({ column, before: event.clientY < bounds.top + bounds.height / 2 });
-            }}
-            onDrop={(event) => {
-              const source = dragged.current;
-              if (!editable || !source) return;
-              event.preventDefault();
-              const bounds = event.currentTarget.getBoundingClientRect();
-              move(source, column, event.clientY < bounds.top + bounds.height / 2);
-              stopDrag();
-            }}
-          >
-            <button
-              type='button'
-              className='library-column-menu__move'
-              disabled={!editable}
+        {preferences.order.map((column, index) => {
+          const checked = visibleColumns.includes(column);
+          const visibilityLabel = t(
+            checked ? 'conversation.libraryTable.hideColumn' : 'conversation.libraryTable.showColumn',
+            { column: label(column) }
+          );
+          return (
+            <li
+              key={column}
+              data-column={column}
+              data-dragging={dragged === column ? true : undefined}
+              data-drop={drop?.column === column ? (drop.before ? 'before' : 'after') : undefined}
               draggable={editable}
-              ref={(element) => {
-                if (element) handles.current.set(column, element);
-                else handles.current.delete(column);
-              }}
-              aria-label={t('conversation.libraryTable.moveColumn', { column: label(column) })}
-              onKeyDown={(event) => {
-                if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-                event.preventDefault();
-                const target = preferences.order[index + (event.key === 'ArrowUp' ? -1 : 1)];
-                if (target) move(column, target, event.key === 'ArrowUp');
-              }}
               onDragStart={(event) => {
                 if (!editable) {
                   event.preventDefault();
                   return;
                 }
-                dragged.current = column;
+                setDragged(column);
                 event.dataTransfer.effectAllowed = 'move';
                 event.dataTransfer.setData('text/plain', column);
               }}
               onDragEnd={stopDrag}
+              onDragOver={(event) => {
+                if (!editable || !dragged || dragged === column) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                const bounds = event.currentTarget.getBoundingClientRect();
+                setDrop({ column, before: event.clientY < bounds.top + bounds.height / 2 });
+              }}
+              onDrop={(event) => {
+                if (!editable || !dragged) return;
+                event.preventDefault();
+                const bounds = event.currentTarget.getBoundingClientRect();
+                move(dragged, column, event.clientY < bounds.top + bounds.height / 2);
+                stopDrag();
+              }}
             >
-              <GripVertical size={14} aria-hidden='true' />
-            </button>
-            <label className='library-column-menu__visibility'>
-              <span>{label(column)}</span>
-              <input
-                type='checkbox'
-                checked={visibleColumns.includes(column)}
+              <button
+                type='button'
+                className='library-column-menu__move'
                 disabled={!editable}
-                aria-label={t('conversation.libraryTable.showColumn', { column: label(column) })}
-                onChange={(event) => {
+                ref={(element) => {
+                  if (element) handles.current.set(column, element);
+                  else handles.current.delete(column);
+                  if (index === 0) firstHandle.current = element;
+                }}
+                aria-label={t('conversation.libraryTable.moveColumn', { column: label(column) })}
+                onKeyDown={(event) => {
+                  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+                  event.preventDefault();
+                  const target = preferences.order[index + (event.key === 'ArrowUp' ? -1 : 1)];
+                  if (target) move(column, target, event.key === 'ArrowUp');
+                }}
+              >
+                <GripVertical size={16} aria-hidden='true' />
+              </button>
+              <span className='library-column-menu__label'>{label(column)}</span>
+              <button
+                type='button'
+                className='library-column-menu__visibility'
+                disabled={!editable}
+                aria-label={visibilityLabel}
+                aria-pressed={checked}
+                title={visibilityLabel}
+                onClick={() => {
                   if (!editable) return;
-                  const visible = event.currentTarget.checked
-                    ? [...visibleColumns, column]
-                    : visibleColumns.filter((value) => value !== column);
+                  const visible = checked
+                    ? visibleColumns.filter((value) => value !== column)
+                    : [...visibleColumns, column];
                   onPreferencesChange({ ...preferences, visible } as LibraryColumnPreferences);
                 }}
-              />
-            </label>
-          </li>
-        ))}
+              >
+                {checked ? <Eye size={16} aria-hidden='true' /> : <EyeOff size={16} aria-hidden='true' />}
+              </button>
+            </li>
+          );
+        })}
       </ul>
       <footer className='library-column-menu__footer'>
-        <button type='button' disabled={busy} onClick={onReset}>
-          {t('conversation.libraryTable.reset')}
+        <ColumnFeedback status={status} onRetry={retainActionFocus(onRetry)} />
+        <button
+          type='button'
+          disabled={busy}
+          onClick={retainActionFocus(onReset)}
+          aria-label={t('conversation.libraryTable.reset')}
+          title={t('conversation.libraryTable.reset')}
+        >
+          {t('conversation.libraryTable.resetShort')}
         </button>
       </footer>
     </section>
   );
 }
 
-/** Controlled preference presentation. The caller alone loads, saves and reconciles the layout. */
+/** The existing caller alone loads, saves and reconciles the column preferences. */
 export function LibraryColumnMenu(props: LibraryColumnMenuProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const firstHandle = useRef<HTMLButtonElement | null>(null);
   const id = useId();
-  const close = () => {
-    setOpen(false);
-    trigger.current?.focus();
-  };
+  const { refs, floatingStyles, context, isPositioned } = useFloating({
+    open,
+    onOpenChange: setOpen,
+    placement: 'bottom-end',
+    strategy: 'fixed',
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(4),
+      flip({ padding: 8 }),
+      shift({ padding: 8 }),
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }: { availableHeight: number; elements: { floating: HTMLElement } }) {
+          elements.floating.style.setProperty('--library-column-available-height', Math.max(0, availableHeight) + 'px');
+        },
+      }),
+    ],
+  });
+  const click = useClick(context);
+  const dismiss = useDismiss(context);
+  const role = useRole(context, { role: 'dialog' });
+  const { getReferenceProps, getFloatingProps } = useInteractions([click, dismiss, role]);
   return (
-    <Trigger
-      trigger='click'
-      position='br'
-      popupVisible={open}
-      onVisibleChange={setOpen}
-      popupAlign={{ top: 6 }}
-      unmountOnExit
-      popup={() => <ColumnPanel {...props} panelId={id} close={close} />}
-    >
+    <>
       <button
-        ref={trigger}
+        ref={refs.setReference}
+        {...getReferenceProps()}
         type='button'
         className='library-column-menu-trigger'
+        aria-label={t('conversation.libraryTable.customize')}
+        title={t('conversation.libraryTable.customize')}
         aria-haspopup='dialog'
         aria-expanded={open}
         aria-controls={open ? id : undefined}
       >
-        <Columns3 size={14} aria-hidden='true' />
-        {t('conversation.libraryTable.columnsButton')}
+        <Columns3 size={16} aria-hidden='true' />
       </button>
-    </Trigger>
+      {open && (
+        <FloatingPortal>
+          <FloatingFocusManager
+            context={context}
+            modal={false}
+            disabled={!isPositioned}
+            initialFocus={canEditColumns(props.status) ? firstHandle : 0}
+            restoreFocus
+          >
+            <ColumnPanel
+              {...props}
+              panelId={id}
+              close={() => setOpen(false)}
+              floatingRef={refs.setFloating}
+              floatingStyles={{ ...floatingStyles, visibility: isPositioned ? 'visible' : 'hidden' }}
+              getFloatingProps={getFloatingProps}
+              firstHandle={firstHandle}
+            />
+          </FloatingFocusManager>
+        </FloatingPortal>
+      )}
+    </>
   );
 }

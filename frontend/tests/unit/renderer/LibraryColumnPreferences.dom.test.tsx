@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_LIBRARY_COLUMN_PREFERENCES as defaults } from '@/common/adapter/libraryColumnPreferences';
 import { LibraryColumnMenu } from '@/renderer/pages/library/LibraryColumnMenu';
 import { renderWithI18n } from '../i18nTestUtils';
-import '@arco-design/web-react/lib/_util/react-19-adapter';
 
 const mocks = vi.hoisted(() => ({ account: 'account:a', load: vi.fn(), save: vi.fn() }));
 vi.mock('@/renderer/services/rendererAccountScope', () => ({
@@ -49,16 +48,16 @@ describe('Library column preference mounted view', () => {
       );
     }
     const mounted = await renderWithI18n(<ExistingMenu />, 'en-US');
-    fireEvent.click(screen.getByRole('button', { name: 'Columns' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Customize columns' }));
     const menu = await screen.findByRole('dialog');
     await waitFor(() =>
       expect(
         within(menu)
-          .getAllByRole('checkbox')
-          .every((element) => !(element as HTMLInputElement).disabled)
+          .getAllByRole('button', { name: /^(Show|Hide) / })
+          .every((element) => !(element as HTMLButtonElement).disabled)
       ).toBe(true)
     );
-    expect(within(menu).getAllByRole('checkbox')).toHaveLength(5);
+    expect(within(menu).getAllByRole('button', { name: /^(Show|Hide) / })).toHaveLength(5);
     expect(within(menu).queryByText(/notes/i)).toBeNull();
     expect(menu.querySelector('[data-column="notes"]')).toBeNull();
     expect(mocks.save).not.toHaveBeenCalled();
