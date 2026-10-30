@@ -21,6 +21,7 @@ from scripts.quality import frontend_related_partition as partition
 SCHEMA = 'x-science.frontend-related-ci.v1'
 MAX_SHARDS = 4
 MAX_JSON = 16 * 1024 * 1024
+_MISSING = object()
 
 
 def digest(path: Path) -> str:
@@ -44,6 +45,67 @@ def read_json(path: Path) -> dict:
 def write_json(path: Path, value: dict | list) -> None:
     with path.open('x', encoding='utf-8') as stream:
         json.dump(value, stream, ensure_ascii=False, sort_keys=True, allow_nan=False)
+
+
+def redacted_differences(expected: object, actual: object) -> dict:
+    """Locate bounded JSON differences without logging configuration values."""
+    differences = []
+    truncated = False
+
+    def fingerprint(value):
+        raw = (b'missing-json-member' if value is _MISSING else
+               json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False,
+                          separators=(',', ':')).encode('utf-8'))
+        return hashlib.sha256(raw).hexdigest()
+
+    def leaf(path, left, right):
+        differences.append({'path': path, 'expected_sha256': fingerprint(left),
+                            'actual_sha256': fingerprint(right)})
+
+    def visit(path, left, right, depth):
+        nonlocal truncated
+        if type(left) is type(right) and left == right:
+            return
+        if len(differences) >= 16:
+            truncated = True
+            return
+        if depth >= 12:
+            truncated = True
+            leaf(path, left, right)
+        elif isinstance(left, dict) and isinstance(right, dict):
+            keys = sorted(left.keys() | right.keys())
+            parts = [key.replace('~', '~0').replace('/', '~1') for key in keys]
+            if any(len(json.dumps(part, ensure_ascii=True)) > 128
+                   or len(json.dumps(path + '/' + part, ensure_ascii=True)) > 512 for part in parts):
+                truncated = True
+                leaf(path, left, right)
+                return
+            for key, part in zip(keys, parts):
+                visit(path + '/' + part, left.get(key, _MISSING), right.get(key, _MISSING), depth + 1)
+                if truncated and len(differences) >= 16:
+                    break
+        elif isinstance(left, list) and isinstance(right, list):
+            for index in range(max(len(left), len(right))):
+                child = path + '/' + str(index)
+                if len(json.dumps(child, ensure_ascii=True)) > 512:
+                    truncated = True
+                    leaf(path, left, right)
+                    return
+                visit(child, left[index] if index < len(left) else _MISSING,
+                      right[index] if index < len(right) else _MISSING, depth + 1)
+                if truncated and len(differences) >= 16:
+                    break
+        else:
+            leaf(path, left, right)
+
+    visit('', expected, actual, 0)
+    return {'differences': differences, 'truncated': truncated}
+
+
+def reject_mismatch(message: str, expected: dict, actual: dict) -> None:
+    diagnostic = json.dumps(redacted_differences(expected, actual), sort_keys=True,
+                            ensure_ascii=True, allow_nan=False, separators=(',', ':'))
+    raise ValueError(message + '; redacted_diff=' + diagnostic)
 
 
 def external_directory(repo: Path, path: Path, *, create: bool = False) -> Path:
@@ -193,10 +255,14 @@ def worker(repo: Path, plan_path: Path, plan_digest: str, output: Path, index: i
     if selected.get('eligible') is not True:
         raise ValueError('worker cannot prove original configuration')
     source, runtime, binding = capture(repo, execution, command, selected['configuration'])
+    resolved_plan = partition.plan(binding, selected['specs'], max_shards=MAX_SHARDS)
     if (source != bundle['source'] or runtime != bundle['runtime']
             or binding != bundle['plan']['binding']
-            or partition.plan(binding, selected['specs'], max_shards=MAX_SHARDS) != bundle['plan']):
-        raise ValueError('worker independently resolved different inputs/configuration/specifications')
+            or resolved_plan != bundle['plan']):
+        reject_mismatch('worker independently resolved different inputs/configuration/specifications',
+                        {'source': bundle['source'], 'runtime': bundle['runtime'],
+                         'binding': bundle['plan']['binding'], 'plan': bundle['plan']},
+                        {'source': source, 'runtime': runtime, 'binding': binding, 'plan': resolved_plan})
     native = output / 'native-report.json'
     wrapper = output / 'shard.config.mjs'
     with wrapper.open('x', encoding='utf-8', newline='\n') as stream:
@@ -214,8 +280,14 @@ def worker(repo: Path, plan_path: Path, plan_digest: str, output: Path, index: i
     if (after_source != source or after_runtime != runtime or after_binding != binding):
         raise ValueError('worker inputs changed during actual execution')
     observed = read_json(native)
-    if observed.pop('configuration_sha256', None) != selected['configuration']['sha256']:
-        raise ValueError('actual worker effective configuration differs from discovery')
+    configuration_record = observed.pop('configuration_record', None)
+    configuration_sha256 = observed.pop('configuration_sha256', None)
+    if configuration_sha256 != selected['configuration']['sha256']:
+        reject_mismatch('actual worker effective configuration differs from discovery',
+                        {'configuration_record': selected['configuration'].get('record'),
+                         'configuration_sha256': selected['configuration']['sha256']},
+                        {'configuration_record': configuration_record,
+                         'configuration_sha256': configuration_sha256})
     report = {'index': index, 'binding': binding, 'exit_code': result.returncode, 'report': observed}
     write_json(output / f'worker-{index}.json', report)
     if result.returncode:

@@ -26,6 +26,11 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 				return
 			}
+		case "sort":
+			if (values[0] != "title-asc" && values[0] != "title-desc") || query.Get("all_item_ids") == "true" {
+				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+				return
+			}
 		case "order":
 			if values[0] != "title-asc" || query.Get("all_item_ids") != "true" {
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
@@ -64,7 +69,7 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 		writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 		return
 	}
-	page, err := s.workspaceStore.ListLiteratureItemsInLifecycle(r.Context(), owner, filters, query.Get("cursor"), limit)
+	page, err := s.workspaceStore.ListLiteratureItemsInLifecycleWithReadOptions(r.Context(), owner, filters, query.Get("cursor"), limit, workspace.LiteraturePageReadOptions{Sort: workspace.LiteraturePageSort(query.Get("sort"))})
 	if err != nil {
 		writeLiteratureError(w, err)
 		return

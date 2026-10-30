@@ -23,7 +23,11 @@ import {
 } from '@/common/adapter/literatureReadingStatus';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import { literaturePageSizes } from '@/renderer/services/runtime/literatureLibrary';
+import {
+  literaturePageSizes,
+  literaturePageSorts,
+  type LiteraturePageSort,
+} from '@/renderer/services/runtime/literatureLibrary';
 import { libraryAuthors } from './LibraryItemDetails';
 import { LibraryDetailsPane } from './LibraryDetailsPane';
 import { isLibraryReadFresh, useLibraryWorkbench } from './useLibraryWorkbench';
@@ -34,6 +38,7 @@ import { LibraryTable } from './LibraryTable';
 import { LibraryNoteControl } from './LibraryNoteControl';
 import type { LibraryNoteCommand } from './libraryPersonalNote';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
+import { LibrarySortControl } from './LibrarySortControl';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
 import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
 import { useLibraryReferenceExport } from './useLibraryReferenceExport';
@@ -76,6 +81,8 @@ export default function LibraryPage() {
   const requestedPageSizes = params.getAll('page_size');
   const pageSize =
     literaturePageSizes.find((size) => requestedPageSizes.length === 1 && String(size) === requestedPageSizes[0]) ?? 25;
+  const requestedSorts = params.getAll('sort');
+  const sort = literaturePageSorts.find((value) => requestedSorts.length === 1 && requestedSorts[0] === value);
   const reads = useLibraryWorkbench(
     query,
     cursor,
@@ -84,7 +91,8 @@ export default function LibraryPage() {
     projectId,
     readingStatus,
     lifecycle,
-    pageSize
+    pageSize,
+    sort
   );
   const layout = useLayoutContext();
   const history = useNavigationHistory();
@@ -108,6 +116,7 @@ export default function LibraryPage() {
     query,
     cursor,
     pageSize,
+    sort,
     selectedId,
     readingStatus,
     inbox,
@@ -153,6 +162,7 @@ export default function LibraryPage() {
     scope: { query, collectionId, projectId, readingStatus, lifecycle },
     cursor,
     pageSize,
+    sort,
     rows: items,
     readReady: listReady,
     blocked: trash || baseBusy || Boolean(visibleEditor),
@@ -247,6 +257,17 @@ export default function LibraryPage() {
     bulk.clear();
     const next = new URLSearchParams(params);
     next.set('page_size', String(nextSize));
+    next.delete('cursor');
+    next.delete('item');
+    setParams(next);
+  };
+  const changeSort = (nextSort: LiteraturePageSort | undefined) => {
+    if (nextSort === sort || !listReady || busy || visibleEditor || reads.account !== getRendererAccountScopeToken())
+      return;
+    bulk.clear();
+    const next = new URLSearchParams(params);
+    if (nextSort) next.set('sort', nextSort);
+    else next.delete('sort');
     next.delete('cursor');
     next.delete('item');
     setParams(next);
@@ -412,6 +433,7 @@ export default function LibraryPage() {
     reads.account,
     query,
     cursor,
+    sort,
     collectionId,
     projectId,
     readingStatus,
@@ -679,6 +701,13 @@ export default function LibraryPage() {
                     setParams(next);
                   }}
                 />
+                {!bulk.selection.allMatchingSelected && bulk.selection.selectedIds.length === 0 && (
+                  <LibrarySortControl
+                    value={sort}
+                    disabled={busy || !listReady || Boolean(visibleEditor)}
+                    onChange={changeSort}
+                  />
+                )}
                 <LibraryColumnMenu
                   key={reads.account}
                   preferences={libraryColumns.preferences}
@@ -761,117 +790,132 @@ export default function LibraryPage() {
               className='library-workbench__list'
               aria-label={t('conversation.libraryWorkbench.items')}
             >
-              <LibraryTable
-                rows={items}
-                readStatus={reads.list.status}
-                refreshing={reads.list.refreshing}
-                refreshError={reads.list.refreshError}
-                selectedId={selectedId}
-                preferences={libraryColumns.preferences}
-                selection={
-                  trash
-                    ? undefined
-                    : {
-                        selected: bulk.isSelected,
-                        toggle: bulk.toggle,
-                        pageChecked: bulk.pageChecked,
-                        pageMixed: bulk.pageMixed,
-                        togglePage: bulk.togglePage,
-                        disabled: busy || !listReady || Boolean(visibleEditor),
-                      }
-                }
-                actionsCell={(item) => (
-                  <LibraryRowActions
-                    key={JSON.stringify([reads.account, reads.list.key, item.id])}
-                    item={item}
-                    disabled={busy || !listReady || Boolean(visibleEditor)}
-                    change={rowActions.change}
-                    openItem={rowActions.open}
-                  />
-                )}
-                authors={libraryAuthors}
-                noteCell={(item) => (
-                  <LibraryNoteControl
-                    key={JSON.stringify([noteScope, item.id])}
-                    item={item}
-                    scope={noteScope}
-                    readKey={reads.list.key}
-                    readStatus={reads.list.status}
-                    refreshing={reads.list.refreshing}
-                    refreshError={reads.list.refreshError}
-                    disabled={busy || !listReady || Boolean(visibleEditor) || item.deleted}
-                    retryDisabled={
-                      mutation.view.mutating ||
-                      mutation.view.error === 'storage' ||
-                      pdfOpen ||
-                      Boolean(visibleEditor) ||
-                      item.deleted
-                    }
-                    pendingId={mutation.view.pending?.operation_id}
-                    receipt={
-                      mutation.view.receipt?.schema === 'x-science.literature-receipt.v1'
-                        ? mutation.view.receipt
-                        : undefined
-                    }
-                    commit={commitNote}
-                    reload={reloadNote}
-                  />
-                )}
-                statusCell={(item) => (
-                  <LibraryReadingStatus
-                    value={literatureItemReadingStatus(item)}
-                    disabled={busy || !listReady || item.deleted}
-                    onChange={(value) => {
-                      if (listReady) changeReadingStatus(item.id, value);
+              {reads.list.cursorStale ? (
+                <div className='library-table__state' role='alert'>
+                  <p>{t('conversation.librarySort.cursorStale')}</p>
+                  <button
+                    type='button'
+                    disabled={busy || Boolean(visibleEditor)}
+                    onClick={() => {
+                      if (reads.account === getRendererAccountScopeToken() && !busy && !visibleEditor) changePage();
                     }}
-                    accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
-                  />
-                )}
-                open={(item) => {
-                  if (!item.deleted) selectItem(item.id);
-                }}
-                registerTitleButton={(itemId, node) => {
-                  if (node) rowButtons.current.set(itemId, node);
-                  else rowButtons.current.delete(itemId);
-                }}
-                onRetry={reads.refresh}
-                emptyTitle={t(
-                  query || readingStatus
-                    ? 'conversation.libraryWorkbench.noMatches'
-                    : trash
-                      ? 'conversation.libraryLifecycle.empty'
-                      : projectId
-                        ? 'conversation.libraryWorkbench.projectEmpty'
-                        : 'conversation.libraryWorkbench.empty'
-                )}
-                emptyDescription={t(
-                  query || readingStatus
-                    ? 'conversation.libraryWorkbench.searchHint'
-                    : trash
-                      ? 'conversation.libraryLifecycle.emptyHint'
-                      : projectId
-                        ? 'conversation.libraryWorkbench.projectEmptyHint'
-                        : 'conversation.libraryPdfImport.emptyHint'
-                )}
-                emptyAction={
-                  (query || readingStatus) && (
-                    <button
-                      type='button'
-                      onClick={() => {
-                        // Clear explicit view filters; preserve project/collection deep links.
-                        const next = new URLSearchParams(params);
-                        next.delete('q');
-                        next.delete('reading_status');
-                        next.delete('cursor');
-                        next.delete('item');
-                        setParams(next, { replace: true });
+                  >
+                    {t('conversation.librarySort.firstPage')}
+                  </button>
+                </div>
+              ) : (
+                <LibraryTable
+                  rows={items}
+                  readStatus={reads.list.status}
+                  refreshing={reads.list.refreshing}
+                  refreshError={reads.list.refreshError}
+                  selectedId={selectedId}
+                  preferences={libraryColumns.preferences}
+                  selection={
+                    trash
+                      ? undefined
+                      : {
+                          selected: bulk.isSelected,
+                          toggle: bulk.toggle,
+                          pageChecked: bulk.pageChecked,
+                          pageMixed: bulk.pageMixed,
+                          togglePage: bulk.togglePage,
+                          disabled: busy || !listReady || Boolean(visibleEditor),
+                        }
+                  }
+                  actionsCell={(item) => (
+                    <LibraryRowActions
+                      key={JSON.stringify([reads.account, reads.list.key, item.id])}
+                      item={item}
+                      disabled={busy || !listReady || Boolean(visibleEditor)}
+                      change={rowActions.change}
+                      openItem={rowActions.open}
+                    />
+                  )}
+                  authors={libraryAuthors}
+                  noteCell={(item) => (
+                    <LibraryNoteControl
+                      key={JSON.stringify([noteScope, item.id])}
+                      item={item}
+                      scope={noteScope}
+                      readKey={reads.list.key}
+                      readStatus={reads.list.status}
+                      refreshing={reads.list.refreshing}
+                      refreshError={reads.list.refreshError}
+                      disabled={busy || !listReady || Boolean(visibleEditor) || item.deleted}
+                      retryDisabled={
+                        mutation.view.mutating ||
+                        mutation.view.error === 'storage' ||
+                        pdfOpen ||
+                        Boolean(visibleEditor) ||
+                        item.deleted
+                      }
+                      pendingId={mutation.view.pending?.operation_id}
+                      receipt={
+                        mutation.view.receipt?.schema === 'x-science.literature-receipt.v1'
+                          ? mutation.view.receipt
+                          : undefined
+                      }
+                      commit={commitNote}
+                      reload={reloadNote}
+                    />
+                  )}
+                  statusCell={(item) => (
+                    <LibraryReadingStatus
+                      value={literatureItemReadingStatus(item)}
+                      disabled={busy || !listReady || item.deleted}
+                      onChange={(value) => {
+                        if (listReady) changeReadingStatus(item.id, value);
                       }}
-                    >
-                      {t('common.clear')}
-                    </button>
-                  )
-                }
-              />
+                      accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+                    />
+                  )}
+                  open={(item) => {
+                    if (!item.deleted) selectItem(item.id);
+                  }}
+                  registerTitleButton={(itemId, node) => {
+                    if (node) rowButtons.current.set(itemId, node);
+                    else rowButtons.current.delete(itemId);
+                  }}
+                  onRetry={reads.refresh}
+                  emptyTitle={t(
+                    query || readingStatus
+                      ? 'conversation.libraryWorkbench.noMatches'
+                      : trash
+                        ? 'conversation.libraryLifecycle.empty'
+                        : projectId
+                          ? 'conversation.libraryWorkbench.projectEmpty'
+                          : 'conversation.libraryWorkbench.empty'
+                  )}
+                  emptyDescription={t(
+                    query || readingStatus
+                      ? 'conversation.libraryWorkbench.searchHint'
+                      : trash
+                        ? 'conversation.libraryLifecycle.emptyHint'
+                        : projectId
+                          ? 'conversation.libraryWorkbench.projectEmptyHint'
+                          : 'conversation.libraryPdfImport.emptyHint'
+                  )}
+                  emptyAction={
+                    (query || readingStatus) && (
+                      <button
+                        type='button'
+                        onClick={() => {
+                          // Clear explicit view filters; preserve project/collection deep links.
+                          const next = new URLSearchParams(params);
+                          next.delete('q');
+                          next.delete('reading_status');
+                          next.delete('cursor');
+                          next.delete('item');
+                          setParams(next, { replace: true });
+                        }}
+                      >
+                        {t('common.clear')}
+                      </button>
+                    )
+                  }
+                />
+              )}
               <footer className='library-workbench__paging'>
                 {listReady &&
                   reads.account === getRendererAccountScopeToken() &&

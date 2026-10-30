@@ -3,7 +3,7 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { literatureSelectionScopeKey, type LiteratureScopeInput } from '@/common/adapter/literatureSelection';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import type { LiteraturePageSize } from '@/renderer/services/runtime/literatureLibrary';
+import type { LiteraturePageSize, LiteraturePageSort } from '@/renderer/services/runtime/literatureLibrary';
 import type {
   LiteratureMutationController,
   LiteratureMutationView,
@@ -38,6 +38,7 @@ export function useLibraryBulkReadingStatus({
   scope,
   cursor,
   pageSize,
+  sort,
   rows,
   readReady,
   blocked,
@@ -48,6 +49,7 @@ export function useLibraryBulkReadingStatus({
   scope: LiteratureScopeInput;
   cursor: string;
   pageSize?: LiteraturePageSize;
+  sort?: LiteraturePageSort;
   rows: readonly LiteratureItem[];
   readReady: boolean;
   blocked: boolean;
@@ -55,7 +57,7 @@ export function useLibraryBulkReadingStatus({
   view: LiteratureMutationView;
 }) {
   const scopeKey = literatureSelectionScopeKey(scope);
-  const visitKey = JSON.stringify([account, scopeKey, cursor, pageSize ?? 20]);
+  const visitKey = JSON.stringify([account, scopeKey, cursor, pageSize ?? 20, sort ?? '']);
   const owner = useRef<Visit>({ key: visitKey });
   if (owner.current.key !== visitKey) owner.current = { key: visitKey };
   const visit = owner.current;

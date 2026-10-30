@@ -14,6 +14,8 @@ import (
 func writeLiteratureError(w http.ResponseWriter, err error) {
 	status, code := 500, "LITERATURE_INTERNAL"
 	switch {
+	case errors.Is(err, workspace.ErrLiteratureCursorStale):
+		status, code = http.StatusConflict, "LITERATURE_CURSOR_STALE"
 	case errors.Is(err, workspace.ErrLiteratureInvalid):
 		status, code = 400, "LITERATURE_INVALID"
 	case errors.Is(err, workspace.ErrLiteratureUnavailable):

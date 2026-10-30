@@ -19,7 +19,9 @@ export default class RelatedShardReporter {
     }
     this.context = context;
     this.assignment = { index, count };
-    this.configuration = resolvedRelatedConfiguration(context, this.root, this.assignment).sha256;
+    const configuration = resolvedRelatedConfiguration(context, this.root, this.assignment);
+    this.configuration = configuration.sha256;
+    this.configurationRecord = configuration.record;
     const output = process.env.X_SCIENCE_RELATED_REPORT;
     if (!output || !isAbsolute(output)) throw new Error('An absolute related shard report path is required');
     const parent = realpathSync(dirname(output));
@@ -49,6 +51,9 @@ export default class RelatedShardReporter {
   async onTestRunEnd(_modules, errors, reason) {
     await writeFile(this.output, JSON.stringify({
       configuration_sha256: this.configuration,
+      // External native diagnostics only; Python removes this before emitting
+      // the existing worker protocol. Configuration values are never logged.
+      configuration_record: this.configurationRecord,
       planned: this.planned,
       queued: this.queued,
       ended: this.ended,

@@ -113,3 +113,48 @@
     flex-basis: 100%;
   }
 }
+
+.library-sort-control {
+  position: relative;
+  display: inline-flex;
+  width: 192px;
+  max-width: 100%;
+  margin-inline-start: auto;
+  align-items: center;
+  color: var(--workspace-text-secondary);
+}
+.library-sort-control > svg {
+  position: absolute;
+  inset-inline-start: var(--ui-control-padding-x);
+  pointer-events: none;
+}
+.library-sort-control select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ui-control-md);
+  padding-block: var(--ui-space-2);
+  padding-inline: calc(var(--ui-control-padding-x) + 14px + var(--ui-space-3)) var(--ui-control-padding-x);
+  border: 1px solid var(--workspace-border);
+  border-radius: var(--ui-radius-sm);
+  color: inherit;
+  background: var(--workspace-canvas);
+  font: inherit;
+  font-size: var(--ui-font-body);
+  line-height: var(--ui-line-height-body);
+  cursor: pointer;
+}
+.library-sort-control select:hover:not(:disabled) {
+  background: var(--workspace-hover);
+}
+.library-sort-control select:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+}
+.library-sort-control select:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.library-workbench__controls > .library-sort-control + .library-column-menu-trigger {
+  margin-inline-start: 0;
+}
