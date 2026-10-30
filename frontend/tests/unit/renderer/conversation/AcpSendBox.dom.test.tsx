@@ -642,7 +642,9 @@ vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', asyn
   const actual = await original<typeof import('@/renderer/pages/conversation/runtime/useConversationRuntimeView')>();
   return {
     useConversationRuntimeView: (...args: Parameters<typeof actual.useConversationRuntimeView>) =>
-      realPreparationRuntime.current ? actual.useConversationRuntimeView(...args) : runtimeViewMock,
+      realPreparationRuntime.current
+        ? actual.useConversationRuntimeView(...args)
+        : { ...runtimeViewMock, view: { ...runtimeViewMock.view, state: runtimeViewMock.state } },
   };
 });
 vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
