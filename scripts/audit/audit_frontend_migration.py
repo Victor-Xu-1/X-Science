@@ -131,6 +131,8 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority.",
+    "tests/unit/renderer/conversation/literatureMetadataCapacity.test.ts": "Verify future-size command and durable pending replay with bounded Unicode metadata, original identity, and unchanged invalid field-action rejection using synthetic input.",
     "packages/desktop/src/common/adapter/literatureReferenceExport.ts": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff.",
     "packages/desktop/src/renderer/pages/library/LibraryReferenceExportMenu.tsx": "Adapt Open Science 8f479374 complete Library reference export menus, format choices and collection actions to compact X-Science controls and the existing Library editor/menu authorities.",
     "packages/desktop/src/renderer/pages/library/useLibraryExportMenu.ts": "Adapt reference hover timing and keyboard focus through the original Library action-menu owner; display-only timers introduce no request or persistence authority.",
@@ -733,7 +735,7 @@ ALLOWED_ADAPTATION_RULES = (
 
 APPROVED_ADAPTATION_FINGERPRINT = "c919a8b1fda121e9a5fb0e7fb0127eb4bd24bdb70f7d4fb2f620ee2ebe007f80"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "f30e6e2d22d271a0ddbf8d7cc7e6ff33ff88ee74b7e58c4386eb90c3dec7c313"
+APPROVED_ADDITION_FINGERPRINT = "467ac259a7bcba0e67ae1ed5045d9701797636a8f711f099ce932a909ef8d6eb"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
