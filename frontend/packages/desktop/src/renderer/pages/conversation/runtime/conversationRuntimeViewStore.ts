@@ -184,7 +184,7 @@ const viewFromRuntimeSummary = (
     ...previous,
     activeTurnId,
     activeInputMessageId: runtime.has_task ? (runtime.active_input_message_id ?? null) : null,
-    state: pendingLocalSend && !runtime.is_processing && !runtime.has_task ? 'starting' : runtime.state,
+    state: pendingLocalSend && runtime.state === 'idle' ? 'starting' : runtime.state,
     isProcessing: pendingLocalSend || isCancelling || runtime.is_processing,
     canSendMessage: !pendingLocalSend && !isCancelling && runtime.can_send_message,
     pendingConfirmations: runtime.pending_confirmations,
@@ -250,6 +250,7 @@ export const hydrateSucceededConversationRuntimeView = (
       taskStatus: null,
       hasBackendRuntime: false,
       localSubmitting: false,
+      localPreparing: false,
       hydrated: true,
       hydrationError: null,
       localStopping: false,
@@ -318,7 +319,7 @@ export const localSendStartedConversationRuntimeView = (
       base.state === 'idle' ||
       base.state === 'waiting_approval' ||
       base.state === 'waiting_input' ||
-      base.state === 'paused' || base.state === 'completed' || base.state === 'failed' || base.state === 'cancelled'
+      base.state === 'paused'
         ? 'starting'
         : base.state,
     isProcessing: true,
@@ -429,6 +430,7 @@ export const resetLocalGateConversationRuntimeView = (
     ...base,
     localSubmitting: false,
     localStopping: false,
+    localPreparing: false,
     hydrated: true,
   };
   return withLogs(view, [createLog('info', 'runtime_view_cleaned', view, { reason })]);
