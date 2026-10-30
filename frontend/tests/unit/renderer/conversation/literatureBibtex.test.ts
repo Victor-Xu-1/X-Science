@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadTextContent } from '@/renderer/utils/file/download';
 import { loadLiteratureBibtex } from '@/renderer/services/runtime/literatureBibtex';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 const json = (value: unknown, status = 200) =>
@@ -60,24 +59,5 @@ describe('Library BibTeX export transport completeness', () => {
       )
     );
     await expect(loadLiteratureBibtex(['owned'], new AbortController().signal)).rejects.toThrow('Invalid Library');
-  });
-  it('cleans up the existing download owner when the browser refuses the click', () => {
-    const BrowserURL = URL;
-    const revoke = vi.fn();
-    vi.stubGlobal(
-      'URL',
-      class extends BrowserURL {
-        static createObjectURL = vi.fn(() => 'blob:rejected-export');
-        static revokeObjectURL = revoke;
-      }
-    );
-    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
-      throw new Error('Download refused');
-    });
-    expect(() => downloadTextContent('stored', 'selected-references.bib', 'application/x-bibtex')).toThrow(
-      'Download refused'
-    );
-    expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:rejected-export');
-    expect(document.querySelector('a[download="selected-references.bib"]')).toBeNull();
   });
 });

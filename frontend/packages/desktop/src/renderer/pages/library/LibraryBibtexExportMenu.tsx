@@ -20,7 +20,7 @@ export function LibraryBibtexExportMenu({ model }: { model: LibraryBibtexExportM
             onKeyDownCapture={menu.escape}
             onClickMenuItem={(_key, event) => menu.select(event, () => void model.start())}
           >
-            <Menu.Item key='bibtex'>BibTeX (.bib)</Menu.Item>
+            <Menu.Item key='bibtex'>{t('conversation.libraryExport.bibtex')}</Menu.Item>
           </Menu>
         }
       >

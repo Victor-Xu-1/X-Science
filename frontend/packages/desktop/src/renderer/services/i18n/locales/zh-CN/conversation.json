@@ -2465,6 +2465,7 @@
     "openTrash": "打开回收站"
   },
   "libraryExport": {
+    "bibtex": "BibTeX (.bib)",
     "entry": "导出文献",
     "loading": "正在导出…",
     "success": "已导出",

@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
+import { downloadTextContent } from '@/renderer/utils/file/download';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
@@ -161,4 +162,23 @@ describe('Selected Library BibTeX export through the real page and HTTP adapter'
       expect(screen.queryByRole('alert')).toBeNull();
     }
   );
+  it('cleans up the existing download owner when the browser refuses the click', () => {
+    const BrowserURL = URL;
+    const revoke = vi.fn();
+    vi.stubGlobal(
+      'URL',
+      class extends BrowserURL {
+        static createObjectURL = vi.fn(() => 'blob:rejected-export');
+        static revokeObjectURL = revoke;
+      }
+    );
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      throw new Error('Download refused');
+    });
+    expect(() => downloadTextContent('stored', 'selected-references.bib', 'application/x-bibtex')).toThrow(
+      'Download refused'
+    );
+    expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:rejected-export');
+    expect(document.querySelector('a[download="selected-references.bib"]')).toBeNull();
+  });
 });

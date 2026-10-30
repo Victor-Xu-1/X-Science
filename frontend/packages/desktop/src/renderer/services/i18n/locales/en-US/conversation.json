@@ -2465,6 +2465,7 @@
     "openTrash": "Open Trash"
   },
   "libraryExport": {
+    "bibtex": "BibTeX (.bib)",
     "entry": "Export references",
     "loading": "Exporting…",
     "success": "Exported",
