@@ -56,8 +56,10 @@ export function useAcpCommandPreparation({
         }
         const result =
           prepared ??
-          (await runtime.awaitSendPreparation(ticket,
-            resolveAuthority(command.planMode, !command.turnIntent, false, command.specialistAuthority ?? {})));
+          (await runtime.awaitSendPreparation(
+            ticket,
+            resolveAuthority(command.planMode, !command.turnIntent, false, command.specialistAuthority ?? {})
+          ));
         checkCurrent();
         const pending = retry.current;
         if (pending?.item.id === command.id && pending.authority === undefined)

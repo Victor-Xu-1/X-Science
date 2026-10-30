@@ -336,7 +336,7 @@ export const useConversationRuntimeView = (
     [conversation_id]
   );
   const awaitSendPreparation = useCallback(
-    <T,>(ticket: object, pending: Promise<T>) => awaitLocalSendPreparation(conversation_id, ticket, pending),
+    <T>(ticket: object, pending: Promise<T>) => awaitLocalSendPreparation(conversation_id, ticket, pending),
     [conversation_id]
   );
   const cancelSendPreparation = useCallback(

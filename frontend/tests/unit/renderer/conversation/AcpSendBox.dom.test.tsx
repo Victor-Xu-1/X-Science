@@ -313,8 +313,8 @@ vi.mock('@/renderer/components/chat/SendBox', async (original) => {
     </div>
   );
   return {
-    default: (props: React.ComponentProps<typeof actual.default>) => realPreparationComposer.current
-      ? <actual.default {...props} /> : <MockSendBox {...props} />,
+    default: (props: React.ComponentProps<typeof actual.default>) =>
+      realPreparationComposer.current ? <actual.default {...props} /> : <MockSendBox {...props} />,
   };
 });
 
@@ -661,9 +661,13 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (i
   const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
   return {
     ...actual,
-    usePreviewContext: () => actual.useOptionalPreviewContext() ?? {
-      setSendBoxHandler: setSendBoxHandlerMock, domSnippets: [], removeDomSnippet: vi.fn(), clearDomSnippets: vi.fn(),
-    },
+    usePreviewContext: () =>
+      actual.useOptionalPreviewContext() ?? {
+        setSendBoxHandler: setSendBoxHandlerMock,
+        domSnippets: [],
+        removeDomSnippet: vi.fn(),
+        clearDomSnippets: vi.fn(),
+      },
   };
 });
 vi.mock('@/renderer/services/FileService', () => ({
@@ -753,16 +757,18 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
     ...actual,
-    Input: Object.assign(({
-      value,
-      onChange,
-      placeholder,
-    }: {
-      value?: string;
-      onChange?: (value: string) => void;
-      placeholder?: string;
-    }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
-      { TextArea: actual.Input.TextArea }),
+    Input: Object.assign(
+      ({
+        value,
+        onChange,
+        placeholder,
+      }: {
+        value?: string;
+        onChange?: (value: string) => void;
+        placeholder?: string;
+      }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
+      { TextArea: actual.Input.TextArea }
+    ),
     Trigger: ({
       children,
       popup,
@@ -992,14 +998,28 @@ describe('AcpSendBox', () => {
       realPreparationComposer.current = true;
       const conversationId = 'conv-withdraw-preparation';
       const runtime: TConversationRuntimeSummary = {
-        state: 'idle', can_send_message: true, has_task: false, task_status: 'finished',
-        is_processing: false, pending_confirmations: 0, turn_id: null,
+        state: 'idle',
+        can_send_message: true,
+        has_task: false,
+        task_status: 'finished',
+        is_processing: false,
+        pending_confirmations: 0,
+        turn_id: null,
       };
       preparationSnapshotMock.mockResolvedValue({
-        frameId: conversationId, rootFrameId: conversationId, status: 'completed',
-        runtimeAttempt: 47, runtimeInputRevision: 47, pendingInputRequests: [],
-        canCancel: false, canResume: false, taskPlan: null, planApproval: null,
-        runtimeActive: false, runtimeTaskActive: false, runtimeStage: null,
+        frameId: conversationId,
+        rootFrameId: conversationId,
+        status: 'completed',
+        runtimeAttempt: 47,
+        runtimeInputRevision: 47,
+        pendingInputRequests: [],
+        canCancel: false,
+        canResume: false,
+        taskPlan: null,
+        planApproval: null,
+        runtimeActive: false,
+        runtimeTaskActive: false,
+        runtimeStage: null,
       });
       const first = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
       const second = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
@@ -1008,9 +1028,14 @@ describe('AcpSendBox', () => {
       loadBranchStateMock.mockReset().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
       sendBoxDraftSeed.current = 'Original draft';
       sendMessageInvokeMock.mockReset();
-      await render(<AcpSendBox conversation_id={conversationId} backend='xscience'
-        initialConversation={{ id: conversationId, type: 'acp', runtime, extra: {} } as TChatConversation}
-        messageState={makeMessageState()} />);
+      await render(
+        <AcpSendBox
+          conversation_id={conversationId}
+          backend='xscience'
+          initialConversation={{ id: conversationId, type: 'acp', runtime, extra: {} } as TChatConversation}
+          messageState={makeMessageState()}
+        />
+      );
       const input = screen.getByRole('textbox');
       await waitFor(() => expect(input).not.toBeDisabled());
       try {
@@ -1032,7 +1057,10 @@ describe('AcpSendBox', () => {
         await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(2));
         const current = runtimeStore.getConversationRuntimeViewSnapshot(conversationId);
         expect(current.localPreparing).toBe(true);
-        await act(async () => { first.resolve(state); await first.promise; });
+        await act(async () => {
+          first.resolve(state);
+          await first.promise;
+        });
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
         expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
         await waitFor(() => expect(input).toHaveValue(''));
@@ -1042,7 +1070,11 @@ describe('AcpSendBox', () => {
         expect(stopInvokeMock).not.toHaveBeenCalled();
         expect(messageErrorMock).not.toHaveBeenCalled();
       } finally {
-        await act(async () => { first.resolve(state); second.resolve(state); await Promise.all([first.promise, second.promise]); });
+        await act(async () => {
+          first.resolve(state);
+          second.resolve(state);
+          await Promise.all([first.promise, second.promise]);
+        });
       }
     }
   );
