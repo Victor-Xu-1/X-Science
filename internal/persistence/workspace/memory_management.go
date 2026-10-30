@@ -459,7 +459,11 @@ func (s *Store) GroupMemoryEntities(ctx context.Context, memories []Memory) ([]M
 }
 
 func (s *Store) ListMemorySessions(ctx context.Context, userID, projectID string) ([]MemorySessionSummary, error) {
-	query := `SELECT f.id, f.project_id, COALESCE(NULLIF(f.name, ''), 'Untitled session'), COUNT(m.id), MAX(m.updated_at)
+	// Aggregates lose SQLite's declared TIMESTAMP type. Resolve the newest
+	// original column after grouping so the driver's existing time decoder
+	// retains its precision and supported storage formats.
+	query := `WITH session_summaries AS (
+		SELECT f.id AS frame_id, m.user_id AS owner_user_id, COUNT(m.id) AS row_count, MAX(m.updated_at) AS newest_at
 		FROM memories AS m JOIN frames AS f ON f.id = m.subject_frame_id JOIN projects AS p ON p.id = f.project_id
 		WHERE m.user_id = ? AND p.user_id = ? AND m.superseded_by IS NULL`
 	args := []any{strings.TrimSpace(userID), strings.TrimSpace(userID)}
@@ -467,7 +471,14 @@ func (s *Store) ListMemorySessions(ctx context.Context, userID, projectID string
 		query += ` AND f.project_id = ?`
 		args = append(args, projectID)
 	}
-	query += ` GROUP BY f.id ORDER BY MAX(m.updated_at) DESC, f.id`
+	query += ` GROUP BY f.id
+		)
+		SELECT f.id, f.project_id, COALESCE(NULLIF(f.name, ''), 'Untitled session'), summary.row_count, newest.updated_at
+		FROM session_summaries AS summary JOIN frames AS f ON f.id = summary.frame_id
+		LEFT JOIN memories AS newest ON newest.subject_frame_id = summary.frame_id
+			AND newest.user_id = summary.owner_user_id AND newest.superseded_by IS NULL
+			AND newest.updated_at = summary.newest_at
+		GROUP BY f.id ORDER BY summary.newest_at DESC, f.id`
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list memory sessions: %w", err)
