@@ -12,10 +12,13 @@ function triggerBlobDownload(blob: Blob, file_name: string): void {
   const link = document.createElement('a');
   link.href = url;
   link.download = file_name;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    document.body.appendChild(link);
+    link.click();
+  } finally {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
 }
 
 /**

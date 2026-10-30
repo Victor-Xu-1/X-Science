@@ -61,6 +61,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		s.handleLiteraturePublication(w, r, owner, parts[1])
 		return
 	}
+	if len(parts) == 1 && parts[0] == "export-bibtex" && r.Method == http.MethodPost {
+		s.handleLiteratureBibtex(w, r, owner)
+		return
+	}
 	if len(parts) == 1 && parts[0] == "items" && r.Method == http.MethodGet {
 		s.handleLiteratureItemsRead(w, r, owner)
 		return

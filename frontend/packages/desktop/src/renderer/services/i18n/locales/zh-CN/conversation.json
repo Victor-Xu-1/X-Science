@@ -2463,5 +2463,11 @@
     "discardAction": "放弃文献",
     "trashConflict": "回收站中已有相同标识符的文献。请先前往回收站恢复，避免重复创建。",
     "openTrash": "打开回收站"
+  },
+  "libraryExport": {
+    "entry": "导出文献",
+    "loading": "正在导出…",
+    "success": "已导出",
+    "error": "无法导出文献，请重试。"
   }
 }

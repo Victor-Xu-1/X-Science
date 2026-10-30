@@ -35,6 +35,8 @@ import type { LibraryNoteCommand } from './libraryPersonalNote';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
 import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
+import { useLibraryBibtexExport } from './useLibraryBibtexExport';
+import { LibraryBibtexExportMenu } from './LibraryBibtexExportMenu';
 import { LibrarySelectionToolbar } from './LibrarySelectionToolbar';
 import { LibraryBulkProgress } from './LibraryBulkProgress';
 import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureReadingBulkIntent';
@@ -142,6 +144,12 @@ export default function LibraryPage() {
     controller: mutation.controller,
     view: mutation.view,
   });
+  const bibtexExport = useLibraryBibtexExport(
+    reads.account,
+    formScope,
+    bulk.selection,
+    trash || baseBusy || bulk.resolving || !listReady || Boolean(visibleEditor)
+  );
   const openCollection = (mode: LibraryCollectionEditorMode) => {
     if (reads.account === getRendererAccountScopeToken())
       setEditor({ owner: editorBoundary.current, id: ++editorSequence.current, mode });
@@ -340,7 +348,7 @@ export default function LibraryPage() {
         );
     }
   };
-  const busy = baseBusy || bulk.resolving;
+  const busy = baseBusy || bulk.resolving || bibtexExport.phase === 'loading';
   const rowActions = useLibraryRowActions({
     account: reads.account,
     readKey: reads.list.key,
@@ -674,6 +682,12 @@ export default function LibraryPage() {
           )}
           {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
+              exportControl={
+                !bulk.selection.allMatchingSelected ? (
+                  <LibraryBibtexExportMenu key={reads.account} model={bibtexExport} />
+                ) : undefined
+              }
+              busy={bibtexExport.phase === 'loading'}
               selection={bulk.selection}
               totalMatching={reads.list.value?.total_count}
               canSelectAllMatching={
