@@ -137,7 +137,16 @@ it('connects all date options to the original URL reader, resets cursors and pre
     within(englishMenu)
       .getAllByRole('option')
       .map((option) => option.textContent)
-  ).toEqual(['Recently updated', 'Recently added', 'First added', 'Title: A–Z', 'Title: Z–A', 'Current order']);
+  ).toEqual([
+    'Recently updated',
+    'Recently added',
+    'First added',
+    'Title: A–Z',
+    'Title: Z–A',
+    'Year: newest first',
+    'Year: oldest first',
+    'Current order',
+  ]);
   pressSortKey('Escape', 27);
   await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
   expect(control).toHaveAttribute('aria-description', 'Unrecognized dates appear last.');
@@ -172,7 +181,16 @@ it('connects all date options to the original URL reader, resets cursors and pre
     within(chineseMenu)
       .getAllByRole('option')
       .map((option) => option.textContent)
-  ).toEqual(['最近更新', '最近添加', '最早添加', '标题：A–Z', '标题：Z–A', '当前顺序']);
+  ).toEqual([
+    '最近更新',
+    '最近添加',
+    '最早添加',
+    '标题：A–Z',
+    '标题：Z–A',
+    '年份：从新到旧',
+    '年份：从旧到新',
+    '当前顺序',
+  ]);
   pressSortKey('Escape', 27);
   await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
   expect(control).toHaveAttribute('aria-description', '无法识别的日期排在最后。');

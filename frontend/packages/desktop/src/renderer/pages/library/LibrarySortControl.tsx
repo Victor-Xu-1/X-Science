@@ -20,13 +20,20 @@ export function LibrarySortControl({
   const [open, setOpen] = useState(false);
   const visible = open && !disabled;
   const dateOrder = value === 'updated-desc' || value === 'created-desc' || value === 'created-asc';
-  const dateHint = dateOrder ? t('conversation.librarySort.unknownDatesLast') : undefined;
+  const yearOrder = value === 'year-asc' || value === 'year-desc';
+  const sortHint = yearOrder
+    ? t('conversation.librarySort.unknownYearsLast')
+    : dateOrder
+      ? t('conversation.librarySort.unknownDatesLast')
+      : undefined;
   const choices: Array<{ value: LiteraturePageSort | ''; label: string }> = [
     { value: 'updated-desc', label: t('conversation.librarySort.updatedDescending') },
     { value: 'created-desc', label: t('conversation.librarySort.createdDescending') },
     { value: 'created-asc', label: t('conversation.librarySort.createdAscending') },
     { value: 'title-asc', label: t('conversation.librarySort.titleAscending') },
     { value: 'title-desc', label: t('conversation.librarySort.titleDescending') },
+    { value: 'year-desc', label: t('conversation.librarySort.yearDescending') },
+    { value: 'year-asc', label: t('conversation.librarySort.yearAscending') },
     { value: '', label: t('conversation.librarySort.current') },
   ];
   const selected = value ?? '';
@@ -40,14 +47,14 @@ export function LibrarySortControl({
     setOpen(next && !disabled);
   };
   return (
-    <div className='library-sort-control' title={dateHint}>
+    <div className='library-sort-control' title={sortHint}>
       <XScienceSelect
         ref={select}
         className='library-sort-select'
         value={selected}
         disabled={disabled}
         aria-label={t('conversation.librarySort.label')}
-        aria-description={dateHint}
+        aria-description={sortHint}
         showSearch={false}
         popupVisible={visible}
         onVisibleChange={changeVisibility}

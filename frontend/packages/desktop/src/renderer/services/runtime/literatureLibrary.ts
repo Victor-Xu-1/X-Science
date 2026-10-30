@@ -28,7 +28,15 @@ const requireAccount = (token: string) => {
 };
 export const literaturePageSizes = [25, 50, 100] as const;
 export type LiteraturePageSize = (typeof literaturePageSizes)[number];
-export const literaturePageSorts = ['title-asc', 'title-desc', 'updated-desc', 'created-desc', 'created-asc'] as const;
+export const literaturePageSorts = [
+  'title-asc',
+  'title-desc',
+  'updated-desc',
+  'created-desc',
+  'created-asc',
+  'year-asc',
+  'year-desc',
+] as const;
 export type LiteraturePageSort = (typeof literaturePageSorts)[number];
 
 export async function loadLiteraturePage(
