@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
@@ -7,6 +7,50 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
 import { renderWithI18n } from '../../i18nTestUtils';
+import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { URL as NodeURL } from 'node:url';
+import sortControlCSS from '@/renderer/pages/library/libraryWorkbench.header.css?inline';
+
+// Arco's public handler uses the deprecated numeric fields supplied by real
+// browser keys; user-event intentionally leaves them zero in jsdom.
+function pressSortKey(key: string, keyCode: number) {
+  fireEvent.keyDown(document.activeElement!, { key, code: key === ' ' ? 'Space' : key, keyCode, which: keyCode });
+}
+
+let sortStyles: HTMLStyleElement;
+function installSortStyles() {
+  sortStyles = document.createElement('style');
+  // Vitest may stub CSS imports. Read the same source only in that test mode;
+  // keep the static import above so related-test discovery retains this edge.
+  const css =
+    sortControlCSS ||
+    readFileSync(
+      new NodeURL(
+        '../../../../packages/desktop/src/renderer/pages/library/libraryWorkbench.header.css',
+        import.meta.url
+      ),
+      'utf8'
+    );
+  expect(css.length).toBeGreaterThan(0);
+  expect(css).toContain('.library-sort-popup-transition-appear');
+  sortStyles.textContent = css.slice(css.indexOf('.library-sort-control'));
+  document.head.append(sortStyles);
+}
+async function openSortMenu(user: ReturnType<typeof userEvent.setup>, name = 'Sort references') {
+  const control = screen.getByRole('combobox', { name });
+  await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
+  await user.click(control);
+  const menu = await screen.findByRole('listbox');
+  expect(control).toHaveAttribute('aria-expanded', 'true');
+  expect(menu.closest('.library-sort-popup')).not.toHaveStyle({ pointerEvents: 'none' });
+  return menu;
+}
+async function chooseSort(user: ReturnType<typeof userEvent.setup>, label: string, name = 'Sort references') {
+  const menu = await openSortMenu(user, name);
+  await user.click(within(menu).getByRole('option', { name: label }));
+  await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+}
 
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
@@ -27,6 +71,7 @@ function LocationProbe() {
   return (
     <>
       <output aria-label='Library location'>{search}</output>
+      <button type='button'>Outside sort</button>
       <button onClick={() => void navigate('/library?q=Sort&page_size=50&sort=title-asc')}>Open ascending visit</button>
       <button onClick={() => void navigate('/library?q=Sort&page_size=50&sort=title-desc')}>
         Open descending visit
@@ -116,37 +161,67 @@ describe('Library title order through the original URL and HTTP owners', () => {
     setRendererAccountOwner('library-title-sort-owner');
     localStorage.clear();
     installLiteratureLocks();
+    installSortStyles();
   });
   afterEach(() => {
     cleanup();
+    sortStyles.remove();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
   it('changes global order, resets the cursor and restores URL state', async () => {
     const http = installCatalogue();
+    const user = userEvent.setup();
     let rendered = await mount();
     await screen.findByRole('button', { name: 'Sort reference 60' });
     expect(http.pages[0].searchParams.has('sort')).toBe(false);
     const sort = screen.getByRole('combobox', { name: 'Sort references' });
-    expect(sort).toHaveValue('');
-    expect(Array.from((sort as HTMLSelectElement).options, (option) => option.text)).toEqual([
-      'Current order',
-      'Title: A–Z',
-      'Title: Z–A',
-      'Recently updated',
-      'Recently added',
-      'First added',
-    ]);
+    const menu = await openSortMenu(user);
+    expect(
+      within(menu)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Recently updated', 'Recently added', 'First added', 'Title: A–Z', 'Title: Z–A', 'Current order']);
+    expect(within(menu).getByRole('option', { name: 'Current order' })).toHaveAttribute('aria-selected', 'true');
+    pressSortKey('Escape', 27);
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+    expect(sort).toHaveFocus();
+    expect(sort).toHaveTextContent(/^Current order$/);
+    for (const [key, keyCode] of [
+      ['ArrowDown', 40],
+      ['ArrowUp', 38],
+      [' ', 32],
+    ] as const) {
+      pressSortKey(key, keyCode);
+      const opened = await screen.findByRole('listbox');
+      expect(opened.closest('.library-sort-popup')).not.toHaveStyle({ pointerEvents: 'none' });
+      pressSortKey('Escape', 27);
+      await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+      expect(sort).toHaveFocus();
+    }
+    await openSortMenu(user);
+    const outside = screen.getByRole('button', { name: 'Outside sort' });
+    await user.click(outside);
+    await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+    expect(outside).toHaveFocus();
+    expect(http.pages).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByRole('button', { name: 'Sort reference 59' });
-    fireEvent.change(sort, { target: { value: 'title-asc' } });
+    await chooseSort(user, 'Current order');
+    expect(http.pages).toHaveLength(2);
+    expect(location().get('cursor')).toBe('after-50');
+    await chooseSort(user, 'Title: A–Z');
     await screen.findByRole('button', { name: 'Sort reference 01' });
     expect(http.pages.at(-1)?.searchParams.get('sort')).toBe('title-asc');
     expect(http.pages.at(-1)?.searchParams.has('cursor')).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByRole('button', { name: 'Sort reference 60' });
-    fireEvent.change(sort, { target: { value: 'title-desc' } });
+    sort.focus();
+    pressSortKey(' ', 32);
+    await screen.findByRole('listbox');
+    pressSortKey('ArrowDown', 40);
+    pressSortKey(' ', 32);
     await screen.findByRole('button', { name: 'Sort reference 11' });
     expect(location().get('q')).toBe('Sort');
     expect(location().get('page_size')).toBe('50');
@@ -156,7 +231,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     rendered.unmount();
     rendered = await mount(`/library${search}`);
     await screen.findByRole('button', { name: 'Sort reference 11' });
-    expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveValue('title-desc');
+    expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveTextContent(/^Title: Z–A$/);
   }, 30_000);
 
   it('clears old sort selection and range while keeping selected export membership separate', async () => {
@@ -209,8 +284,9 @@ describe('Library title order through the original URL and HTTP owners', () => {
     expect(location().get('page_size')).toBe('50');
     expect(http.pages).toHaveLength(3);
     await act(async () => rendered.i18n.changeLanguage('zh-CN'));
-    expect(screen.getByRole('combobox', { name: '文献排序' })).toHaveValue('title-asc');
-    expect(screen.getByRole('option', { name: '当前顺序' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '文献排序' })).toHaveTextContent(/^标题：A–Z$/);
+    const translatedMenu = await openSortMenu(userEvent.setup(), '文献排序');
+    expect(within(translatedMenu).getByRole('option', { name: '当前顺序' })).toBeInTheDocument();
     expect(http.pages).toHaveLength(3);
   });
 
@@ -219,11 +295,23 @@ describe('Library title order through the original URL and HTTP owners', () => {
     try {
       await mount('/library?q=Sort&sort=title-asc&cursor=old-title-page&page_size=50');
       await waitFor(() => expect(http.pages).toHaveLength(1));
+      const disabledSort = screen.getByRole('combobox', { name: 'Sort references' });
+      expect(disabledSort).toHaveAttribute('aria-disabled', 'true');
+      const user = userEvent.setup();
+      expect(disabledSort).toHaveAttribute('tabindex', '-1');
+      await user.click(disabledSort);
+      disabledSort.focus();
+      pressSortKey('Enter', 13);
+      pressSortKey(' ', 32);
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(http.pages).toHaveLength(1);
+      expect(disabledSort).toHaveTextContent(/^Title: A–Z$/);
+      expect(location().get('sort')).toBe('title-asc');
       fireEvent.click(screen.getByRole('button', { name: 'Open descending visit' }));
       await screen.findByRole('button', { name: 'Sort reference 60' });
       expect(http.signals[0]?.aborted).toBe(true);
       await act(async () => http.releaseFirst());
-      expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveValue('title-desc');
+      expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveTextContent(/^Title: Z–A$/);
       expect(screen.queryByRole('button', { name: 'Return to first page' })).not.toBeInTheDocument();
       expect(location().get('sort')).toBe('title-desc');
       expect(location().has('cursor')).toBe(false);

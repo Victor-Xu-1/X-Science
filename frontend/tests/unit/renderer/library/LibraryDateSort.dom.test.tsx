@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
@@ -7,6 +7,50 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
 import { renderWithI18n } from '../../i18nTestUtils';
+import userEvent from '@testing-library/user-event';
+import { readFileSync } from 'node:fs';
+import { URL as NodeURL } from 'node:url';
+import sortControlCSS from '@/renderer/pages/library/libraryWorkbench.header.css?inline';
+
+// Arco's public handler uses the deprecated numeric fields supplied by real
+// browser keys; user-event intentionally leaves them zero in jsdom.
+function pressSortKey(key: string, keyCode: number) {
+  fireEvent.keyDown(document.activeElement!, { key, code: key === ' ' ? 'Space' : key, keyCode, which: keyCode });
+}
+
+let sortStyles: HTMLStyleElement;
+function installSortStyles() {
+  sortStyles = document.createElement('style');
+  // Vitest may stub CSS imports. Read the same source only in that test mode;
+  // keep the static import above so related-test discovery retains this edge.
+  const css =
+    sortControlCSS ||
+    readFileSync(
+      new NodeURL(
+        '../../../../packages/desktop/src/renderer/pages/library/libraryWorkbench.header.css',
+        import.meta.url
+      ),
+      'utf8'
+    );
+  expect(css.length).toBeGreaterThan(0);
+  expect(css).toContain('.library-sort-popup-transition-appear');
+  sortStyles.textContent = css.slice(css.indexOf('.library-sort-control'));
+  document.head.append(sortStyles);
+}
+async function openSortMenu(user: ReturnType<typeof userEvent.setup>, name = 'Sort references') {
+  const control = screen.getByRole('combobox', { name });
+  await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
+  await user.click(control);
+  const menu = await screen.findByRole('listbox');
+  expect(control).toHaveAttribute('aria-expanded', 'true');
+  expect(menu.closest('.library-sort-popup')).not.toHaveStyle({ pointerEvents: 'none' });
+  return menu;
+}
+async function chooseSort(user: ReturnType<typeof userEvent.setup>, label: string, name = 'Sort references') {
+  const menu = await openSortMenu(user, name);
+  await user.click(within(menu).getByRole('option', { name: label }));
+  await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+}
 
 const json = (value: unknown) =>
   new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
@@ -51,15 +95,18 @@ beforeEach(() => {
   setRendererAccountOwner('library-date-sort-owner');
   localStorage.clear();
   installLiteratureLocks();
+  installSortStyles();
 });
 afterEach(() => {
   cleanup();
+  sortStyles.remove();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 it('connects all date options to the original URL reader, resets cursors and preserves server order in both languages', async () => {
   const requests: URL[] = [];
+  const user = userEvent.setup();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -84,24 +131,30 @@ it('connects all date options to the original URL reader, resets cursors and pre
   let rendered = await mount('/library?q=Date&page_size=25&sort=created-desc');
   await screen.findByRole('button', { name: 'Date reference 29' });
   let control = screen.getByRole('combobox', { name: 'Sort references' });
-  expect(control).toHaveValue('created-desc');
-  expect(Array.from((control as HTMLSelectElement).options, (option) => option.text)).toEqual([
-    'Current order',
-    'Title: A–Z',
-    'Title: Z–A',
-    'Recently updated',
-    'Recently added',
-    'First added',
-  ]);
-  expect(control).toHaveAttribute('title', 'Unrecognized dates appear last.');
+  expect(control).toHaveTextContent(/^Recently added$/);
+  const englishMenu = await openSortMenu(user);
+  expect(
+    within(englishMenu)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+  ).toEqual(['Recently updated', 'Recently added', 'First added', 'Title: A–Z', 'Title: Z–A', 'Current order']);
+  pressSortKey('Escape', 27);
+  await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+  expect(control).toHaveAttribute('aria-description', 'Unrecognized dates appear last.');
+  expect(control.closest('.library-sort-control')).toHaveAttribute('title', 'Unrecognized dates appear last.');
   expect(visibleTitles()).toEqual(orders['created-desc'].slice(0, 25).map((item) => item.title));
   fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
   await screen.findByRole('button', { name: 'Date reference 00' });
   expect(currentLocation().get('cursor')).toBe('after-25');
   for (const mode of ['created-asc', 'updated-desc', 'created-desc'] as const) {
     control = screen.getByRole('combobox', { name: 'Sort references' });
-    await waitFor(() => expect(control).toBeEnabled());
-    fireEvent.change(control, { target: { value: mode } });
+    await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
+    await chooseSort(
+      user,
+      ({ 'created-asc': 'First added', 'updated-desc': 'Recently updated', 'created-desc': 'Recently added' } as const)[
+        mode
+      ]
+    );
     await waitFor(() => expect(visibleTitles()).toEqual(orders[mode].slice(0, 25).map((item) => item.title)));
     expect(requests.at(-1)?.searchParams.get('sort')).toBe(mode);
     expect(requests.at(-1)?.searchParams.get('limit')).toBe('25');
@@ -114,20 +167,21 @@ it('connects all date options to the original URL reader, resets cursors and pre
     await rendered.i18n.changeLanguage('zh-CN');
   });
   control = screen.getByRole('combobox', { name: '文献排序' });
-  expect(Array.from((control as HTMLSelectElement).options, (option) => option.text)).toEqual([
-    '当前顺序',
-    '标题：A–Z',
-    '标题：Z–A',
-    '最近更新',
-    '最近添加',
-    '最早添加',
-  ]);
-  expect(control).toHaveAttribute('title', '无法识别的日期排在最后。');
+  const chineseMenu = await openSortMenu(user, '文献排序');
+  expect(
+    within(chineseMenu)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+  ).toEqual(['最近更新', '最近添加', '最早添加', '标题：A–Z', '标题：Z–A', '当前顺序']);
+  pressSortKey('Escape', 27);
+  await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
+  expect(control).toHaveAttribute('aria-description', '无法识别的日期排在最后。');
+  expect(control.closest('.library-sort-control')).toHaveAttribute('title', '无法识别的日期排在最后。');
   const restoredSearch = screen.getByLabelText('Date sort location').textContent ?? '';
   rendered.unmount();
   rendered = await mount(`/library${restoredSearch}`, 'zh-CN');
   await screen.findByRole('button', { name: 'Date reference 29' });
-  expect(screen.getByRole('combobox', { name: '文献排序' })).toHaveValue('created-desc');
+  expect(screen.getByRole('combobox', { name: '文献排序' })).toHaveTextContent(/^最近添加$/);
   expect(requests.at(-1)?.searchParams.get('sort')).toBe('created-desc');
   expect(visibleTitles()).toEqual(orders['created-desc'].slice(0, 25).map((item) => item.title));
 });
