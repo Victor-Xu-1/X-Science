@@ -33,8 +33,13 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 	if scope.validate() != nil || !options.Sort.valid() || limit < 1 || limit > 100 || len(cursor) > 4096 {
 		return page, ErrLiteratureInvalid
 	}
+	dateExpression := options.Sort.dateExpression()
+	if dateExpression != "" && literatureTimeKeyRegistrationError != nil {
+		return page, literatureTimeKeyRegistrationError
+	}
 	bound := literatureCursor{Query: filters.Query, Project: filters.ProjectID, Owner: owner, Collection: collectionID, ReadingStatus: filters.ReadingStatus}
 	var titleAnchor literatureTitleAnchor
+	var dateAnchor literatureDateAnchor
 	if cursor != "" {
 		if options.Sort == "" {
 			decoded, err := decodeLiteratureCursor(cursor, bound, filters.Lifecycle)
@@ -42,6 +47,12 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 				return page, err
 			}
 			bound = decoded
+		} else if dateExpression != "" {
+			decoded, err := decodeLiteratureDateCursor(cursor, scope, options.Sort)
+			if err != nil {
+				return page, err
+			}
+			dateAnchor = decoded
 		} else {
 			decoded, err := decodeLiteratureTitleCursor(cursor, scope, options.Sort)
 			if err != nil {
@@ -65,7 +76,27 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 	from, args := scope.sql()
 	statement := `SELECT i.id,0,i.title` + from
 	orderBy := scope.orderBy()
-	if options.Sort != "" {
+	if dateExpression != "" {
+		statement = `SELECT i.id,0,i.title,` + dateExpression + from
+		orderBy = options.Sort.orderBy()
+		if cursor != "" {
+			key, err := readLiteratureDateAnchor(ctx, tx, scope, options.Sort, dateAnchor)
+			if err != nil {
+				return page, err
+			}
+			if key.Valid {
+				comparison := "<"
+				if options.Sort == LiteraturePageCreatedAscending {
+					comparison = ">"
+				}
+				statement += ` AND (` + dateExpression + comparison + `? OR (` + dateExpression + `=? AND i.id>?) OR ` + dateExpression + ` IS NULL)`
+				args = append(args, key.String, key.String, dateAnchor.id)
+			} else {
+				statement += ` AND (` + dateExpression + ` IS NULL AND i.id>?)`
+				args = append(args, dateAnchor.id)
+			}
+		}
+	} else if options.Sort != "" {
 		orderBy = options.Sort.orderBy()
 		if cursor != "" {
 			title, err := readLiteratureTitleAnchor(ctx, tx, scope, titleAnchor)
@@ -97,14 +128,20 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 		return page, err
 	}
 	type position struct {
-		id    string
-		order int64
-		title string
+		id      string
+		order   int64
+		title   string
+		dateKey sql.NullString
 	}
 	positions := []position{}
 	for rows.Next() {
 		var value position
-		if err = rows.Scan(&value.id, &value.order, &value.title); err != nil {
+		if dateExpression != "" {
+			err = rows.Scan(&value.id, &value.order, &value.title, &value.dateKey)
+		} else {
+			err = rows.Scan(&value.id, &value.order, &value.title)
+		}
+		if err != nil {
 			break
 		}
 		positions = append(positions, value)
@@ -126,6 +163,8 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 		var encoded string
 		if options.Sort == "" {
 			encoded, err = encodeLiteratureCursor(bound, filters.Lifecycle)
+		} else if dateExpression != "" {
+			encoded, err = encodeLiteratureDateCursor(literatureDateAnchor{id: last.id, keyHash: literatureDateHash(last.dateKey), known: last.dateKey.Valid}, scope, options.Sort)
 		} else {
 			encoded, err = encodeLiteratureTitleCursor(literatureTitleAnchor{id: last.id, titleHash: literatureTitleHash(last.title)}, scope, options.Sort)
 		}
