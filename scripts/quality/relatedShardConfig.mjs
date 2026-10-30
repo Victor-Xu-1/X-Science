@@ -105,12 +105,18 @@ function comparable(config, root, sharded, activeReporters) {
   }
   delete copy.reporter;
   if (config.coverage?.enabled !== false || !Array.isArray(config.coverage.exclude) ||
+      config.coverage.exclude.some((path) => typeof path !== 'string' || !path || path.includes('\0') || path.startsWith('!')) ||
       config.coverage.exclude.filter((path) => path === active).length !== 1) {
     throw new Error('Unknown automatic coverage config exclusion');
   }
-  // Coverage is disabled; only the automatically excluded active config file
-  // changes with the exact reviewed wrapper. Preserve every other exclusion.
-  copy.coverage = { ...config.coverage, exclude: config.coverage.exclude.map((path) => path === active ? original : path) };
+  // Vitest 4.1.11 does not create a coverage provider while coverage is off.
+  // Its appended positive exclusions have no execution order in this profile.
+  // Bind their complete multiset, including duplicates, without mutating the
+  // runtime array or normalizing the separate, active test.exclude selection.
+  copy.coverage = {
+    ...config.coverage,
+    exclude: config.coverage.exclude.map((path) => path === active ? original : path).sort(),
+  };
   if (sharded && Object.hasOwn(copy, 'config')) copy.config = original;
   return copy;
 }
