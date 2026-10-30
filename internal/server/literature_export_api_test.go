@@ -22,7 +22,7 @@ type referenceExportWire struct {
 func TestLiteratureReferenceExportHTTPPreservesLegacyBytesAndFormats(t *testing.T) {
 	f := newLiteratureHTTPNumberFixture(t, "patch")
 	owner := f.f.stream.OwnerID
-	item, err := f.f.store.CreateManualLiterature(t.Context(), owner, workspace.LiteratureManualCreate{OperationID: uuid.NewString(), Title: "Preserved title", Metadata: map[string]any{"authors": []string{"Ada Lovelace"}, "year": json.Number("2024"), "doi": "10.1234/stable"}})
+	item, err := f.f.store.CreateManualLiterature(t.Context(), owner, workspace.LiteratureManualCreate{OperationID: uuid.NewString(), Title: "Preserved title", Metadata: map[string]any{"authors": []string{"Ada Lovelace"}, "year": json.Number("2024"), "doi": "10.1234/stable", "keywords": "one, two"}})
 	if err != nil {
 		t.Fatal(err)
 	}
