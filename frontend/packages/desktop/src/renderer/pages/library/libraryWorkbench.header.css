@@ -115,46 +115,119 @@
 }
 
 .library-sort-control {
-  position: relative;
   display: inline-flex;
   width: 192px;
   max-width: 100%;
   margin-inline-start: auto;
-  align-items: center;
-  color: var(--workspace-text-secondary);
+  color: var(--workspace-text);
 }
-.library-sort-control > svg {
-  position: absolute;
-  inset-inline-start: var(--ui-control-padding-x);
-  pointer-events: none;
-}
-.library-sort-control select {
-  box-sizing: border-box;
+.library-sort-control .library-sort-select {
   width: 100%;
   min-width: 0;
-  min-height: var(--ui-control-md);
-  padding-block: var(--ui-space-2);
-  padding-inline: calc(var(--ui-control-padding-x) + 14px + var(--ui-space-3)) var(--ui-control-padding-x);
-  border: 1px solid var(--workspace-border);
-  border-radius: var(--ui-radius-sm);
-  color: inherit;
-  background: var(--workspace-canvas);
-  font: inherit;
-  font-size: var(--ui-font-body);
-  line-height: var(--ui-line-height-body);
-  cursor: pointer;
+  font-size: 14px;
+  line-height: 20px;
 }
-.library-sort-control select:hover:not(:disabled) {
+.library-sort-control .library-sort-select .arco-select-view {
+  box-sizing: border-box;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--workspace-border);
+  border-radius: 8px;
+  color: var(--workspace-text);
+  background: var(--x-science-surface-card, var(--workspace-overlay-surface));
+  font-size: inherit;
+  line-height: 30px;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+.library-sort-control .library-sort-select .arco-select-view-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-sort-control .library-sort-select .arco-select-suffix {
+  color: var(--workspace-text-secondary);
+}
+.library-sort-control .library-sort-select:not(.arco-select-disabled):hover .arco-select-view,
+.library-sort-control .library-sort-select.arco-select-open .arco-select-view {
   background: var(--workspace-hover);
 }
-.library-sort-control select:focus-visible {
+.library-sort-control .library-sort-select:focus-visible {
+  outline: none;
+}
+.library-sort-control .library-sort-select:focus-visible .arco-select-view {
   outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: var(--ui-focus-offset);
 }
-.library-sort-control select:disabled {
-  cursor: default;
-  opacity: 0.55;
+.library-sort-control .library-sort-select.arco-select-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.library-sort-popup {
+  width: 194px;
+  max-width: calc(100vw - 16px);
+}
+.library-sort-popup .arco-select-popup {
+  box-sizing: border-box;
+  width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--workspace-border);
+  border-radius: 15px;
+  color: var(--workspace-text);
+  background: var(--workspace-overlay-surface);
+  box-shadow: var(--ui-shadow-popover);
+}
+.library-sort-popup .library-sort-options {
+  box-sizing: border-box;
+  max-height: 288px;
+  overflow-y: auto;
+  padding: 6px;
+}
+.library-sort-popup .arco-select-option {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 32px;
+  padding: 6px 32px 6px 8px;
+  border-radius: 8px;
+  color: var(--workspace-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+}
+.library-sort-popup .arco-select-option-selected,
+.library-sort-popup .arco-select-option-hover {
+  background: var(--workspace-hover);
+}
+.library-sort-option-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.library-sort-option-check {
+  position: absolute;
+  inset-inline-end: 8px;
+  top: 8px;
+}
+/* The primitive owns positioning and lifecycle. Hidden entry frames cannot intercept
+   a visible option's first click while Arco still disables pointer events. */
+.library-sort-popup-transition-appear,
+.library-sort-popup-transition-appear-active,
+.library-sort-popup-transition-enter,
+.library-sort-popup-transition-enter-active,
+.library-sort-popup-transition-exit,
+.library-sort-popup-transition-exit-active {
+  visibility: hidden;
 }
 .library-workbench__controls > .library-sort-control + .library-column-menu-trigger {
   margin-inline-start: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-sort-control .library-sort-select .arco-select-view {
+    transition: none;
+  }
 }
