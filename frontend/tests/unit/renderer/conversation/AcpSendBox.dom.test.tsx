@@ -12,7 +12,10 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import * as httpBridge from '@/common/adapter/httpBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TConversationRuntimeSummary } from '@/common/config/storage';
-import type { XSciencePlanReference, XScienceRuntimeSnapshot } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import type {
+  XSciencePlanReference,
+  XScienceRuntimeSnapshot,
+} from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import * as composerContextSelection from '@/renderer/pages/conversation/platforms/acp/useAcpComposerContextSelection';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
@@ -975,7 +978,7 @@ describe('AcpSendBox', () => {
     ['ordinary', true, false],
     ['save-as-skill', true, false],
     ['ordinary', false, true],
-      ['ordinary', false, 'acknowledged'],
+    ['ordinary', false, 'acknowledged'],
   ] as const)(
     'real preparation controls expose Stop for %s with snapshot held=%s and dispatched=%s',
     async (kind, initialSnapshotHeld, dispatched) => {
@@ -1049,13 +1052,24 @@ describe('AcpSendBox', () => {
           expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(false);
           if (dispatched === 'acknowledged') {
             await act(async () => {
-              acknowledgement.resolve({ msg_id: 'new-input', turn_id: conversationId, runtime: {
-                state: 'running', can_send_message: false, has_task: true, task_status: 'running',
-                is_processing: true, pending_confirmations: 0, turn_id: conversationId,
-              } });
+              acknowledgement.resolve({
+                msg_id: 'new-input',
+                turn_id: conversationId,
+                runtime: {
+                  state: 'running',
+                  can_send_message: false,
+                  has_task: true,
+                  task_status: 'running',
+                  is_processing: true,
+                  pending_confirmations: 0,
+                  turn_id: conversationId,
+                },
+              });
               await acknowledgement.promise;
             });
-            await waitFor(() => expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false));
+            await waitFor(() =>
+              expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(false)
+            );
           }
         }
         const stop = screen.getByRole('button', { name: '暂停任务' });

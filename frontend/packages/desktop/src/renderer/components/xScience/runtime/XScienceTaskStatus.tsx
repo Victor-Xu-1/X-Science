@@ -477,7 +477,8 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
       title = t(titleKeys[status.phase]);
     }
   }
-  const failure = !localSubmissionPending && (phase === 'failed' || unsupported || (!snapshot && !busy && !authorityPending));
+  const failure =
+    !localSubmissionPending && (phase === 'failed' || unsupported || (!snapshot && !busy && !authorityPending));
   const elapsedValue = taskElapsed === null ? null : formatElapsed(taskElapsed);
   const taskElapsedValue = taskElapsed === null ? null : formatElapsed(taskElapsed);
   const latestElapsedValue = latestElapsed === null ? null : formatElapsed(latestElapsed);
@@ -528,7 +529,13 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     <StatusIcon
       phase={phase}
       busy={
-        localSubmissionPending || busy || authorityPending || completedAnswerPending || resuming || taskActive || pausePending
+        localSubmissionPending ||
+        busy ||
+        authorityPending ||
+        completedAnswerPending ||
+        resuming ||
+        taskActive ||
+        pausePending
       }
       reviewNeedsAttention={reviewNeedsAttention}
     />
