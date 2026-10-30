@@ -526,17 +526,6 @@ func validAgentSSHWorkdir(remoteWorkdir, jobID string) bool {
 }
 
 func (s *Server) harvestAgentSSHJob(ctx context.Context, owned workspace.OwnedComputeJob, provider workspace.ComputeProvider, status agentSSHJobStatus) bool {
-	return s.harvestAgentSSHJobWithOutcome(ctx, owned, provider, status, "", "")
-}
-
-func (s *Server) harvestAgentSSHJobWithOutcome(
-	ctx context.Context,
-	owned workspace.OwnedComputeJob,
-	provider workspace.ComputeProvider,
-	status agentSSHJobStatus,
-	forcedState string,
-	forcedKind string,
-) bool {
 	job := owned.Job
 	// Recover original files after legacy packaging failure; it does not prove
 	// that the physical calculation failed.
@@ -589,9 +578,6 @@ func (s *Server) harvestAgentSSHJobWithOutcome(
 	} else if status.Exit != 0 {
 		next, kind = workspace.ComputeJobFailed, "nonzero_exit"
 	}
-	if forcedState != "" {
-		next, kind = forcedState, forcedKind
-	}
 	result := map[string]any{
 		"exit_code": status.Exit, "job_wall_s": status.Wall, "stdout_tail": stdout, "stderr_tail": stderr,
 		"output_files": files, "output_file_count": harvest.Count,
@@ -639,28 +625,4 @@ func readAgentSSHHarvestTail(workspaceDir, jobID, name string) string {
 		raw = raw[len(raw)-(64<<10):]
 	}
 	return string(raw)
-}
-
-func (s *Server) cancelManagedAgentSSHJob(ctx context.Context, owned workspace.OwnedComputeJob) {
-	provider, found, err := s.workspaceStore.GetComputeProvider(owned.Job.Provider, owned.OwnerUserID)
-	if err != nil || !found {
-		s.failComputeProviderJob(owned, workspace.ComputeJobOrphaned, "authority_changed", err)
-		return
-	}
-	remoteWorkdir := strings.TrimSpace(stringValue(mapValue(owned.Job.HardwareDetails)["remote_workdir"]))
-	_, _ = runKernelComputeSSHCommand(ctx, provider, kernelComputeCommandRequest{
-		Command: "cd " + shellSingleQuote(remoteWorkdir) + " && " + agentSSHProcessIdentityShell + " if [ -s .scheduler_id ]; then scancel \"$(cat .scheduler_id)\" 2>/dev/null || true; elif x_science_process_alive; then read -r identity < .wrapper_identity; pid=${identity%%:*}; kill -TERM \"$pid\" 2>/dev/null || true; fi",
-		Intent:  "Cancel the durable remote job", Timeout: 30 * time.Second,
-	})
-	deadline := time.Now().Add(byocTerminationGrace + 15*time.Second)
-	for time.Now().Before(deadline) {
-		status, pollErr := pollAgentSSHJob(context.Background(), provider, remoteWorkdir)
-		if pollErr == nil && status.Phase != "running" {
-			if s.harvestAgentSSHJobWithOutcome(context.Background(), owned, provider, status, workspace.ComputeJobFailed, "cancelled") {
-				return
-			}
-		}
-		time.Sleep(250 * time.Millisecond)
-	}
-	s.failComputeProviderJob(owned, workspace.ComputeJobFailed, "cancelled", errors.New("remote job cancellation did not finish staging before the grace deadline"))
 }

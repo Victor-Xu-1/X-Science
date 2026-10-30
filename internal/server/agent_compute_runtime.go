@@ -196,7 +196,7 @@ func agentComputeToolSchemas() []agentruntime.ToolSchema {
 		},
 		{
 			Name:        cancelComputeJobToolName,
-			Description: "Cancel one running compute job owned by this task.",
+			Description: "Request cancellation of one compute job owned by this task. Remote request acceptance is not proof of termination: inspect cancellation_status, cancel_request_accepted, termination_observed, and the original job status. An unconfirmed or rejected request leaves the job supervised; use wait_job or running_jobs to observe its eventual result.",
 			Parameters: map[string]any{"type": "object", "additionalProperties": false,
 				"properties": map[string]any{"job_id": map[string]any{"type": "string"}, "provider": provider, "human_description": human},
 				"required":   []string{"job_id", "provider", "human_description"},
@@ -661,12 +661,15 @@ func (s *Server) cancelAgentComputeJob(ctx context.Context, access workspace.Ker
 		return map[string]any{"cancelled": true, "job_id": jobID, "status": updated.State}, nil
 	}
 	if job.ProviderFamily == "ssh" && boolValue(mapValue(job.HardwareDetails)["managed_ssh"], false) {
-		s.cancelManagedAgentSSHJob(ctx, workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job})
+		outcome, cancelErr := s.cancelManagedAgentSSHJob(ctx, workspace.OwnedComputeJob{OwnerUserID: access.UserID, Job: job})
+		if cancelErr != nil {
+			return nil, cancelErr
+		}
 		updated, found, err := s.workspaceStore.GetComputeJob(access.UserID, jobID)
 		if err != nil || !found {
 			return nil, errors.New("cancelled SSH job state could not be read")
 		}
-		return map[string]any{"cancelled": true, "job_id": jobID, "status": updated.State}, nil
+		return outcome.reply(updated), nil
 	}
 	return map[string]any{"cancelled": false, "job_id": jobID, "status": job.State}, nil
 }
