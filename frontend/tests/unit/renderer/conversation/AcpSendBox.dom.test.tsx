@@ -660,7 +660,9 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (i
   const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
   return {
     ...actual,
-    usePreviewContext: () => actual.useOptionalPreviewContext() ?? { setSendBoxHandler: setSendBoxHandlerMock },
+    usePreviewContext: () => actual.useOptionalPreviewContext() ?? {
+      setSendBoxHandler: setSendBoxHandlerMock, domSnippets: [], removeDomSnippet: vi.fn(), clearDomSnippets: vi.fn(),
+    },
   };
 });
 vi.mock('@/renderer/services/FileService', () => ({
