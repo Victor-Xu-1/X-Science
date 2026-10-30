@@ -212,6 +212,7 @@ const mobileActionSheetEntries = {
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
+      responseStream: { on: () => () => {} },
       sendMessage: {
         invoke: (...args: unknown[]) => sendMessageInvokeMock(...args),
       },
