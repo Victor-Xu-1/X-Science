@@ -48,7 +48,6 @@ import (
 	"x-science/internal/tools/mcpstdio"
 
 	"x-science/internal/tools/registry"
-	"x-science/internal/tools/shellops"
 	"x-science/internal/tools/webfetch"
 	"x-science/internal/tools/websearch"
 	"x-science/internal/vmresources"
@@ -329,7 +328,7 @@ type Server struct {
 	transcriptWebCatchups                 map[transcriptWebCatchupKey]*transcriptWebCatchupFlight
 	streamingCacheClock                   uint64
 	backgroundShellMu                     sync.Mutex
-	backgroundShells                      map[string]*shellops.RunningCommand
+	backgroundShells                      map[string]*backgroundShellEntry
 	backgroundShellWG                     sync.WaitGroup
 	backgroundShellClosing                bool
 	backgroundShellErr                    error
@@ -674,7 +673,7 @@ func New(options Options) *Server {
 		transcriptIMRoutes:                    map[string]string{},
 		imInboundLocks:                        map[string]*imInboundSessionLock{},
 		readState:                             map[string]fileReadSnapshot{},
-		backgroundShells:                      map[string]*shellops.RunningCommand{},
+		backgroundShells:                      map[string]*backgroundShellEntry{},
 		webResearchSessions:                   map[string]*webResearchSessionState{},
 		webZipCancels:                         map[string]context.CancelFunc{},
 		webSnapshots:                          map[string]*webFSSnapshot{},

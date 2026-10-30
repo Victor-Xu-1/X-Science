@@ -16,13 +16,14 @@ import (
 )
 
 type serverAgentRuntimeGatewayExecution struct {
-	gateway       serverAgentRuntimeToolGateway
-	call          agentruntime.ToolCall
-	response      any
-	responseParts []agentruntime.ContentPart
-	result        agentruntime.ToolResult
-	resultReady   bool
-	badRequest    bool
+	gateway        serverAgentRuntimeToolGateway
+	call           agentruntime.ToolCall
+	response       any
+	responseParts  []agentruntime.ContentPart
+	result         agentruntime.ToolResult
+	resultReady    bool
+	badRequest     bool
+	taskOutputWait *taskOutputWaitObservation
 }
 
 type serverAgentRuntimeGatewayReceipt struct {
@@ -506,6 +507,10 @@ func serverAgentRuntimeGatewayExecute(invocation *toolgateway.Invocation) {
 	}
 	invocation.Context = executionprep.WithObservation(invocation.Context,
 		gateway.agentRuntimeDiagnosticObservation(invocation.Context, name, invocation.Input))
+	if name == "TaskOutput" {
+		execution.taskOutputWait = &taskOutputWaitObservation{}
+		invocation.Context = context.WithValue(invocation.Context, taskOutputWaitObservationKey{}, execution.taskOutputWait)
+	}
 	if name == "wait_for_notification" {
 		result, err := gateway.server.executeAgentKernelNotificationWait(
 			invocation.Context, gateway.kernel, execution.call.ID, invocation.Input,
@@ -599,6 +604,9 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution.response = response
 	execution.responseParts = parts
 	execution.result = gateway.trustedAgentRuntimeToolResult(invocation.Context, execution.call, response, parts)
+	if execution.taskOutputWait != nil && status == "completed" && agentRuntimeContextError(invocation.Context) == nil {
+		execution.result.PendingWorkWait = execution.taskOutputWait.confirmed
+	}
 	if status == "completed" && isCompletedSkillToolName(name) {
 		if agentruntime.ClassifyToolResult(response) == agentruntime.ToolResultSucceeded &&
 			agentRuntimeContextError(invocation.Context) == nil && skillLoadReceipt.BoundToCall(execution.call.ID) {
