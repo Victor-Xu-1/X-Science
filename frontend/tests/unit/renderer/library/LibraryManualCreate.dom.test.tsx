@@ -167,6 +167,60 @@ it('reports a typed Trash collision and navigates there without a hidden restore
   expect(http.requests.filter((request) => request.method !== 'GET')).toHaveLength(1);
 });
 
+it('refreshes a definitely rejected collection revision without discarding the draft or reusing its operation', async () => {
+  let current = { ...collection('methods', 'Methods'), revision: 7 };
+  const held = deferred<Response>();
+  let collectionReads = 0;
+  let creates = 0;
+  const http = installCollectionHTTP({
+    collections: () => [current],
+    items: () => [],
+    detail: () => saved,
+    intercept: (url, init) => {
+      if (url.pathname === '/api/literature/collections' && (init.method ?? 'GET') === 'GET') {
+        collectionReads++;
+        if (creates === 1) return held.promise;
+      }
+      if (url.pathname === '/api/literature/items' && init.method === 'POST') {
+        creates++;
+        if (creates === 1) {
+          current = { ...current, name: 'Renamed methods', revision: 8 };
+          return json({ code: 'LITERATURE_CONFLICT' }, 409);
+        }
+        return json(receipt(JSON.parse(String(init.body)).operation_id));
+      }
+    },
+  });
+  await mountCollections('/library?collection=methods');
+  const dialog = await openForm();
+  const initialReads = collectionReads;
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Create reference' }));
+  await waitFor(() => expect(creates).toBe(1));
+  await waitFor(() => expect(collectionReads).toBeGreaterThan(initialReads));
+  expect(within(dialog).getByRole('textbox', { name: 'Title' })).toHaveValue('Draft manual reference');
+  expect(within(dialog).getByRole('button', { name: 'Create reference' })).toBeDisabled();
+  fireEvent.submit(dialog.querySelector('form')!);
+  expect(creates).toBe(1);
+  await act(async () => {
+    held.resolve(json({ schema: 'x-science.literature-collections.v1', collections: [current] }));
+    await held.promise;
+  });
+  await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Create reference' })).toBeEnabled());
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Create reference' }));
+  await screen.findByRole('heading', { name: saved.title });
+  const writes = http.requests.filter((request) => request.method === 'POST');
+  expect(writes).toHaveLength(2);
+  const commands = writes.map((request) => JSON.parse(request.body!));
+  expect(commands[0]).toMatchObject({ collection_id: 'methods', expected_collection_revision: 7 });
+  expect(commands[1]).toMatchObject({
+    collection_id: 'methods',
+    expected_collection_revision: 8,
+    title: 'Draft manual reference',
+    metadata: { doi: '10.1234/manual' },
+  });
+  expect(commands[1].operation_id).not.toBe(commands[0].operation_id);
+});
+
 it('admits only the typed metadata command and rejects fake provider or attachment fields', () => {
   const value = {
     kind: 'manual-create',
