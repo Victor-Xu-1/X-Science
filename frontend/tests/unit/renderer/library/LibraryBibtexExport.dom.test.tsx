@@ -163,15 +163,8 @@ describe('Selected Library BibTeX export through the real page and HTTP adapter'
     }
   );
   it('cleans up the existing download owner when the browser refuses the click', () => {
-    const BrowserURL = URL;
-    const revoke = vi.fn();
-    vi.stubGlobal(
-      'URL',
-      class extends BrowserURL {
-        static createObjectURL = vi.fn(() => 'blob:rejected-export');
-        static revokeObjectURL = revoke;
-      }
-    );
+    vi.mocked(URL.createObjectURL).mockReturnValue('blob:rejected-export');
+    const revoke = vi.mocked(URL.revokeObjectURL);
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
       throw new Error('Download refused');
     });
