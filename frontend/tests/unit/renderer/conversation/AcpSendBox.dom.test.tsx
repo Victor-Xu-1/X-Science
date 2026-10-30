@@ -380,10 +380,10 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', asyn
         };
       };
     }) => {
-    runtimeOperationsProps.current = {
-      ...props,
-      runtimeState: props.runtimeState ?? (props as { runtimeView?: { state: string } }).runtimeView?.state,
-    };
+      runtimeOperationsProps.current = {
+        ...props,
+        runtimeState: props.runtimeState ?? (props as { runtimeView?: { state: string } }).runtimeView?.state,
+      };
       if (realPreparationRuntime.current)
         return <actual.default {...(props as React.ComponentProps<typeof actual.default>)} />;
       return null;
@@ -969,11 +969,11 @@ async function renderManualCompaction(
 
 describe('AcpSendBox', () => {
   it.each([
-      ['ordinary', false, false],
-      ['save-as-skill', false, false],
-      ['ordinary', true, false],
-      ['save-as-skill', true, false],
-      ['ordinary', false, true],
+    ['ordinary', false, false],
+    ['save-as-skill', false, false],
+    ['ordinary', true, false],
+    ['save-as-skill', true, false],
+    ['ordinary', false, true],
   ] as const)(
     'real preparation controls expose Stop for %s with snapshot held=%s and dispatched=%s',
     async (kind, initialSnapshotHeld, dispatched) => {

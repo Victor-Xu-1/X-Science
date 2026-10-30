@@ -40,7 +40,7 @@ type XScienceTaskStatusProps = {
   loading: boolean;
   snapshotError: XScienceTaskStatusError;
   runtimeState?: string;
-  localPreparing?: boolean;
+  localSubmissionPending?: boolean;
   terminalProjectionPending?: boolean;
   runtimeAuthorityUnavailable?: boolean;
   showLoadingStatus?: boolean;
@@ -244,7 +244,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   loading,
   snapshotError,
   runtimeState = 'idle',
-  localPreparing = false,
+  localSubmissionPending = false,
   terminalProjectionPending = false,
   runtimeAuthorityUnavailable = false,
   showLoadingStatus = false,
@@ -320,7 +320,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
       : (guidedFailureDetail ?? publicFailureLabel);
   const failureDetail = failureDetailSource ? redactErrorText(failureDetailSource).trim().slice(0, 500) || null : null;
   const unsupported = Boolean(snapshot && projected && !projected.ok);
-  const busy = loading && !snapshot && !localPreparing;
+  const busy = loading && !snapshot && !localSubmissionPending;
   const phase = status?.phase ?? null;
   // Pending transcript hydration is not execution liveness. Only a successful
   // completed run can be waiting to display its final answer; failure, pause,
@@ -391,7 +391,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   );
   const pausePending = pausing && taskActive;
   const inlinePause = Boolean(
-    (localPreparing || status?.canCancel) && status?.phase !== 'cancelling' && onStop && !pausing
+    (localSubmissionPending || status?.canCancel) && status?.phase !== 'cancelling' && onStop && !pausing
   );
 
   useEffect(() => {
@@ -419,7 +419,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
   const taskElapsed = status ? taskElapsedMilliseconds(status, now) : null;
   let title = t('conversation.xscienceRuntime.sendBox.runtimeStatusUnavailable');
   let dataState = phase ?? 'unavailable';
-  if (localPreparing) {
+  if (localSubmissionPending) {
     title = t('conversation.xscienceRuntime.runtimeOperations.taskStarting');
     dataState = 'starting';
   } else if (busy || authorityPending) {
@@ -477,7 +477,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
       title = t(titleKeys[status.phase]);
     }
   }
-  const failure = !localPreparing && (phase === 'failed' || unsupported || (!snapshot && !busy && !authorityPending));
+  const failure = !localSubmissionPending && (phase === 'failed' || unsupported || (!snapshot && !busy && !authorityPending));
   const elapsedValue = taskElapsed === null ? null : formatElapsed(taskElapsed);
   const taskElapsedValue = taskElapsed === null ? null : formatElapsed(taskElapsed);
   const latestElapsedValue = latestElapsed === null ? null : formatElapsed(latestElapsed);
@@ -528,7 +528,7 @@ const XScienceTaskStatus: React.FC<XScienceTaskStatusProps> = ({
     <StatusIcon
       phase={phase}
       busy={
-        localPreparing || busy || authorityPending || completedAnswerPending || resuming || taskActive || pausePending
+        localSubmissionPending || busy || authorityPending || completedAnswerPending || resuming || taskActive || pausePending
       }
       reviewNeedsAttention={reviewNeedsAttention}
     />

@@ -56,7 +56,12 @@ type XScienceRuntimeOperationsProps = {
   conversationId: string;
   runtimeState?: string;
   terminalProjectionPending?: boolean;
-  runtimeView?: Readonly<{ state: string; terminalProjectionPending: boolean; localPreparing?: boolean }>;
+  runtimeView?: Readonly<{
+    state: string;
+    terminalProjectionPending: boolean;
+    localPreparing?: boolean;
+    localSubmitting?: boolean;
+  }>;
   onResumeStarted?: () => void;
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
@@ -99,6 +104,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const runtimeState = runtimeView?.state ?? suppliedRuntimeState;
   const terminalProjectionPending = runtimeView?.terminalProjectionPending ?? suppliedTerminalProjectionPending;
   const localPreparing = runtimeView?.localPreparing === true;
+  const localSubmissionPending = runtimeView?.localSubmitting === true;
   const layout = useLayoutContext();
   const { snapshot: realtimeSnapshot } = useRealtime();
   const { t } = useTranslation();
@@ -804,7 +810,11 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     acceptedStartPendingRef.current = false;
   }
   previousRuntimeAuthorityRef.current = { conversationId, runtimeState };
-  const statusSnapshot = projectAcceptedRuntimeStart(visibleSnapshot, acceptedStartPendingRef.current, localPreparing);
+  const statusSnapshot = projectAcceptedRuntimeStart(
+    visibleSnapshot,
+    acceptedStartPendingRef.current,
+    localSubmissionPending
+  );
   const visibleTaskCenterMetrics: XScienceTaskCenterMetrics = {
     total: {
       tokenUsage: statusSnapshot?.taskMetrics?.total?.totalTokens ?? taskCenterMetrics?.total.tokenUsage ?? null,
@@ -853,7 +863,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
         loading={visibleLoading}
         snapshotError={ownsConversation ? snapshotError : null}
         runtimeState={runtimeState}
-        localPreparing={localPreparing}
+        localSubmissionPending={localSubmissionPending}
         terminalProjectionPending={terminalProjectionPending}
         runtimeAuthorityUnavailable={runtimeAuthorityUnavailable}
         showLoadingStatus={ownerTransitionLoading}

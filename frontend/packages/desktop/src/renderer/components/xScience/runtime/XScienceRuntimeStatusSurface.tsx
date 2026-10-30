@@ -20,7 +20,7 @@ type Props = {
   loading: boolean;
   snapshotError: XScienceTaskStatusError;
   runtimeState: string;
-  localPreparing?: boolean;
+  localSubmissionPending?: boolean;
   terminalProjectionPending: boolean;
   runtimeAuthorityUnavailable: boolean;
   showLoadingStatus: boolean;
@@ -56,7 +56,7 @@ const XScienceRuntimeStatusSurface = ({
   loading,
   snapshotError,
   runtimeState,
-  localPreparing,
+  localSubmissionPending,
   terminalProjectionPending,
   runtimeAuthorityUnavailable,
   showLoadingStatus,
@@ -90,7 +90,7 @@ const XScienceRuntimeStatusSurface = ({
         loading={loading}
         snapshotError={snapshotError}
         runtimeState={runtimeState}
-        localPreparing={localPreparing}
+        localSubmissionPending={localSubmissionPending}
         terminalProjectionPending={terminalProjectionPending}
         runtimeAuthorityUnavailable={runtimeAuthorityUnavailable}
         showLoadingStatus={showLoadingStatus}
