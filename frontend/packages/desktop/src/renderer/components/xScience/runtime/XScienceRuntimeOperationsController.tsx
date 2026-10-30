@@ -34,7 +34,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
-import type { ConversationRuntimeView } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import { useRealtime } from '@/renderer/hooks/context/RealtimeContext';
 import type { XScienceTaskStatusError } from './XScienceTaskStatus';
 import type { XScienceTaskCenterMetrics } from './XScienceTaskCenterPanel';
@@ -57,7 +56,7 @@ type XScienceRuntimeOperationsProps = {
   conversationId: string;
   runtimeState?: string;
   terminalProjectionPending?: boolean;
-  runtimeView?: Pick<ConversationRuntimeView, 'state' | 'terminalProjectionPending' | 'localPreparing'>;
+  runtimeView?: Readonly<{ state: string; terminalProjectionPending: boolean; localPreparing?: boolean }>;
   onResumeStarted?: () => void;
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
