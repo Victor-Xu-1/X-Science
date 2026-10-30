@@ -42,7 +42,9 @@ async function mount(path = '/library') {
   );
 }
 async function findPaper(title: string) {
-  const button = await screen.findByText(title, { selector: 'button' });
+  const text = await screen.findByText(title);
+  const button = text.closest('button');
+  expect(button).toHaveRole('button');
   expect(button).toHaveAccessibleName(title);
   expect(button).toBeVisible();
   return button;
