@@ -34,6 +34,8 @@ type windowsProcessAPI struct {
 	openThread               func(uint32, bool, uint32) (windows.Handle, error)
 	resumeThread             func(windows.Handle) (uint32, error)
 	waitForSingleObject      func(windows.Handle, uint32) (uint32, error)
+	detachDebuggee           func(uint32) error
+	runStartupThread         func(func()) error
 }
 
 var systemWindowsProcessAPI = windowsProcessAPI{
@@ -48,10 +50,14 @@ var systemWindowsProcessAPI = windowsProcessAPI{
 	openThread:               windows.OpenThread,
 	resumeThread:             windows.ResumeThread,
 	waitForSingleObject:      windows.WaitForSingleObject,
+	detachDebuggee:           detachStartupDebugger,
+	runStartupThread:         runWindowsStartupThread,
 }
 
-// Start creates the command suspended, assigns it to a preconfigured
-// kill-on-close job, and only then permits its primary thread to execute.
+// Start binds ordinary commands to a temporary creation-time debugger on a
+// private native thread until a kill-on-close Job owns the suspended process.
+// Explicit DEBUG_PROCESS/DEBUG_ONLY_THIS_PROCESS requests retain their caller's
+// debugger/thread policy, including any intentional kill-on-exit opt-out.
 func Start(command *exec.Cmd) (*Job, error) {
 	return start(command, systemWindowsProcessAPI)
 }
@@ -86,37 +92,103 @@ func start(command *exec.Cmd, api windowsProcessAPI) (*Job, error) {
 		attributes = *command.SysProcAttr
 	}
 	attributes.CreationFlags |= windows.CREATE_SUSPENDED
+	callerDebugged := attributes.CreationFlags&0x00000003 != 0
+	if !callerDebugged {
+		attributes.CreationFlags |= 0x00000002 // DEBUG_ONLY_THIS_PROCESS
+		// This is our temporary creation guard, not a caller opt-in. Do not
+		// leave it on a SysProcAttr value that may configure a later command.
+		defer func() { attributes.CreationFlags &^= 0x00000002 }()
+	}
 	command.SysProcAttr = &attributes
-	if err := command.Start(); err != nil {
-		_ = job.Close()
-		return nil, err
+	attempt := &windowsStartupAttempt{command: command, job: job, api: api, managed: !callerDebugged}
+	startupOwnerExited := false
+	if callerDebugged {
+		attempt.launch()
+	} else {
+		err := api.runStartupThread(attempt.launch)
+		startupOwnerExited = startupThreadHasExited(err)
+		attempt.err = errors.Join(attempt.err, err)
 	}
-	processHandle, err := api.openProcess(
-		windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE|windows.SYNCHRONIZE,
-		false,
-		uint32(command.Process.Pid),
-	)
-	if err != nil {
-		return nil, errors.Join(err, cleanupStartedCommand(command, job, 0, false, api))
-	}
-	defer windows.CloseHandle(processHandle)
-	threadHandle, err := openSuspendedThread(uint32(command.Process.Pid), api)
-	if err != nil {
-		return nil, errors.Join(err, cleanupStartedCommand(command, job, processHandle, false, api))
-	}
-	defer windows.CloseHandle(threadHandle)
-	if err := api.assignProcessToJobObject(jobHandle, processHandle); err != nil {
-		return nil, errors.Join(err, cleanupStartedCommand(command, job, processHandle, false, api))
-	}
-	previousSuspendCount, err := api.resumeThread(threadHandle)
-	if err != nil {
-		return nil, errors.Join(err, cleanupStartedCommand(command, job, processHandle, true, api))
-	}
-	if previousSuspendCount != 1 {
-		resumeErr := fmt.Errorf("supervised process primary thread had unexpected suspend count %d", previousSuspendCount)
-		return nil, errors.Join(resumeErr, cleanupStartedCommand(command, job, processHandle, true, api))
+	defer attempt.closeHandles()
+	if attempt.err != nil {
+		if command.Process == nil {
+			return nil, errors.Join(attempt.err, job.Close())
+		}
+		// The callback has published the attempt's resource ownership. A managed
+		// wait error keeps startupOwnerExited=false; publication alone never
+		// proves that the debugger backstop terminated an unassigned child.
+		// Only this caller runs synchronous Cmd.Wait/failed-start cleanup.
+		return nil, errors.Join(attempt.err, cleanupStartedCommand(command, job, attempt.process, attempt.assigned, api, startupOwnerExited))
 	}
 	return job, nil
+}
+
+// A failed callback transfers all created resources without synchronously
+// waiting for its debuggee. The caller alone owns the subsequent cleanup/reap.
+type windowsStartupAttempt struct {
+	command  *exec.Cmd
+	job      *Job
+	api      windowsProcessAPI
+	managed  bool
+	process  windows.Handle
+	thread   windows.Handle
+	assigned bool
+	err      error
+}
+
+func (attempt *windowsStartupAttempt) launch() {
+	defer func() {
+		if recover() != nil {
+			attempt.err = errors.Join(attempt.err, errors.New("Windows process startup callback panicked"))
+		}
+	}()
+	if err := attempt.command.Start(); err != nil {
+		attempt.err = err
+		return
+	}
+	var err error
+	attempt.process, err = attempt.api.openProcess(
+		windows.PROCESS_SET_QUOTA|windows.PROCESS_TERMINATE|windows.SYNCHRONIZE,
+		false,
+		uint32(attempt.command.Process.Pid),
+	)
+	if err != nil {
+		attempt.err = err
+		return
+	}
+	attempt.thread, err = openSuspendedThread(uint32(attempt.command.Process.Pid), attempt.api)
+	if err != nil {
+		attempt.err = err
+		return
+	}
+	if err := attempt.api.assignProcessToJobObject(attempt.job.handle, attempt.process); err != nil {
+		attempt.err = err
+		return
+	}
+	attempt.assigned = true
+	if attempt.managed {
+		if err := attempt.api.detachDebuggee(uint32(attempt.command.Process.Pid)); err != nil {
+			attempt.err = err
+			return
+		}
+	}
+	previousSuspendCount, err := attempt.api.resumeThread(attempt.thread)
+	if err != nil {
+		attempt.err = err
+		return
+	}
+	if previousSuspendCount != 1 {
+		attempt.err = fmt.Errorf("supervised process primary thread had unexpected suspend count %d", previousSuspendCount)
+	}
+}
+
+func (attempt *windowsStartupAttempt) closeHandles() {
+	if attempt.thread != 0 {
+		_ = windows.CloseHandle(attempt.thread)
+	}
+	if attempt.process != 0 {
+		_ = windows.CloseHandle(attempt.process)
+	}
 }
 
 func openSuspendedThread(processID uint32, api windowsProcessAPI) (windows.Handle, error) {
@@ -143,7 +215,7 @@ func openSuspendedThread(processID uint32, api windowsProcessAPI) (windows.Handl
 	}
 }
 
-func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Handle, assigned bool, api windowsProcessAPI) error {
+func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Handle, assigned bool, api windowsProcessAPI, startupOwnerExited bool) error {
 	var terminationErr error
 	terminationRequested := false
 	if assigned {
@@ -179,7 +251,11 @@ func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Ha
 			cleanupErr = errors.Join(cleanupErr, fmt.Errorf("supervised process did not exit during failed start: wait status %#x", status))
 		}
 	} else {
-		exited = terminationRequested
+		// An already-terminated Windows process may reject a second Kill with
+		// ERROR_ACCESS_DENIED before Wait has populated ProcessState. The retired
+		// creation debugger (or its assigned kill-on-close Job) supplies the exact
+		// termination authority even when OpenProcess failed. Reap the Cmd once.
+		exited = terminationRequested || startupOwnerExited
 	}
 	if command != nil && command.Process != nil {
 		if exited {
