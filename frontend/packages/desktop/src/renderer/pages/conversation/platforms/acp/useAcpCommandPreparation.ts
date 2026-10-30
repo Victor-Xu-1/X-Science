@@ -1,4 +1,4 @@
-import { useCallback, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, type RefObject } from 'react';
 import type { TFunction } from 'i18next';
 import type { ContextCompactionController } from '@/renderer/services/compaction/ContextCompactionController';
 import type { useConversationRuntimeView } from '../../runtime/useConversationRuntimeView';
@@ -27,6 +27,19 @@ export function useAcpCommandPreparation({
   retry,
   t,
 }: Options) {
+  const scope = authority.current;
+  // Retain only this mounted scope's exact ticket. The runtime store remains
+  // its authority; navigation must never withdraw an admitted backend run or
+  // another composer's newer preparation in the same conversation.
+  const preparation = useMemo(() => ({ ticket: null as object | null }), [scope]);
+  useEffect(
+    () => () => {
+      const ticket = preparation.ticket;
+      preparation.ticket = null;
+      if (ticket && runtime.isSendPreparing(ticket)) runtime.cancelSendPreparation(ticket);
+    },
+    [preparation, runtime.isSendPreparing, runtime.cancelSendPreparation]
+  );
   return useCallback(
     async (
       command: Pick<ConversationCommandQueueItem, 'id' | 'specialistAuthority'> & {
@@ -45,6 +58,7 @@ export function useAcpCommandPreparation({
       };
       try {
         checkCurrent();
+        preparation.ticket = ticket;
         if (compaction) {
           const admitted = await runtime.awaitSendPreparation(ticket, compaction.prepareForPrompt());
           checkCurrent();
@@ -70,6 +84,6 @@ export function useAcpCommandPreparation({
         throw error;
       }
     },
-    [authority, compaction, mounted, resolveAuthority, retry, runtime, t]
+    [authority, compaction, mounted, preparation, resolveAuthority, retry, runtime, t]
   );
 }

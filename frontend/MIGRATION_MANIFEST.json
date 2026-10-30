@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8aca1c81f611dd53473e410b4a6e82a308a9409f08caa24b4dfb961d83403f93",
+  "adaptationFingerprintSHA256": "8900d909f69943c0d2848fc7ea4ab8f8b41ee2b9f9ffbba1b087d915fcd184ee",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1c7b6018d5f0aa4a727b5e4c69f49cfd0afa25191c7b9563fc3ec9fa089fb751",
+  "additionFingerprintSHA256": "24847ecf2d33c4580df404d8f713f532a2de7c9c9af1fbc7778cd484c3fb53b1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "ea3038dc2b1b62ed50266606e4fb95546136f1d26a8bf76d2593577b1152b504",
+      "targetSHA256": "ec5c5cc298c7b6ffbdc14d1413ddd87e87763c0e3404610694483c6152af138e",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "05e374a03a24a3c9e52d722693f9371e69d8e3f4b3867e6c52397aa965cc867b",
+      "targetSHA256": "a15d82a5edc8a02d2cee4ef1b021c8bb410da5467fbacc11156e7d256599dfd8",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -4646,8 +4646,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "4e574ca1892fdbbf80c2c8d78470bd300570c0e23893e3ffdd5b69ceb06de731",
-      "bytes": 239005,
+      "targetSHA256": "1c7b79745c67310a3b9bc7d28c8cb476903b9040c1f1bf243a2ab56288f8911e",
+      "bytes": 245173,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "b24323b539b962c3fd633c91698b83b84353b0fde5b4c8b7901d75aa3cc20b54",
+      "sha256": "226aedbd9171f3883d76eefb133c32ba3b23b80745c66a51ed3b193edbd5443d",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9805,8 +9805,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts",
-      "sha256": "c1940e797a20ed2e21641726b6f4a494b0a27d6da829ff5701e86e1450409513",
-      "bytes": 2920,
+      "sha256": "cbbff8c3d3b3443af334b64ad89d1d3ec1089ee9b3cbcf336612b46637979e28",
+      "bytes": 3615,
       "reason": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner."
     },
     {
