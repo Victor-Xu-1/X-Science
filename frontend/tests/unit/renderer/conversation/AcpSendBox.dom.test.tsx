@@ -218,6 +218,11 @@ vi.mock('@/common', () => ({
       },
     },
     conversation: {
+      confirmation: {
+        add: { on: () => () => {} },
+        update: { on: () => () => {} },
+        remove: { on: () => () => {} },
+      },
       listChanged: { on: () => () => {} },
       turnCompleted: { on: () => () => {} },
       stop: {
