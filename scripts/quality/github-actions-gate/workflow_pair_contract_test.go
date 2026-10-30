@@ -94,7 +94,7 @@ func TestRepositoryWorkflowRoutingAndChangedScopeRuntimeEnvironment(t *testing.T
 		root *yaml.Node
 		jobs []string
 	}{
-		{pr, []string{"pr-quality", "pr-go-shards", "pr-frontend-tests"}},
+		{pr, []string{"pr-quality", "pr-go-shards", "pr-frontend-plan", "pr-frontend-related-shards", "pr-frontend-tests"}},
 		{main, []string{"main-quality", "main-go-shards", "main-frontend-tests"}},
 	} {
 		for _, job := range workflow.jobs {

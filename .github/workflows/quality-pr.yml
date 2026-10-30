@@ -174,7 +174,7 @@ jobs:
 
   pr-frontend-related-shards:
     name: PR related frontend partition (${{ matrix.index }})
-    needs: pr-frontend-plan
+    needs: [pr-quality, pr-frontend-plan]
     if: needs.pr-frontend-plan.result == 'success' && needs.pr-frontend-plan.outputs.mode == 'sharded'
     strategy:
       fail-fast: false
@@ -229,20 +229,20 @@ jobs:
 
   pr-frontend-tests:
     name: PR frontend scope
-    needs: [pr-frontend-plan, pr-frontend-related-shards]
+    needs: [pr-quality, pr-frontend-plan, pr-frontend-related-shards]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Require original preparation success
-        run: test '${{ needs.pr-frontend-plan.result }}' = 'success'
-
       - name: Check out exact verifier source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           fetch-depth: 2
           persist-credentials: false
+
+      - name: Require original preparation success
+        run: test '${{ needs.pr-frontend-plan.result }}' = 'success'
 
       - name: Download same-attempt preparation
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
