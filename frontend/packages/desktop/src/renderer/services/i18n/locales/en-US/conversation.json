@@ -2202,8 +2202,12 @@
   "librarySort": {
     "label": "Sort references",
     "current": "Current order",
-    "titleAscending": "Title A–Z",
-    "titleDescending": "Title Z–A",
+    "titleAscending": "Title: A–Z",
+    "titleDescending": "Title: Z–A",
+    "updatedDescending": "Recently updated",
+    "createdDescending": "Recently added",
+    "createdAscending": "First added",
+    "unknownDatesLast": "Unrecognized dates appear last.",
     "cursorStale": "The references changed. Return to the first page to continue with your current filters and sort order.",
     "firstPage": "Return to first page"
   },

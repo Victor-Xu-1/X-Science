@@ -2202,8 +2202,12 @@
   "librarySort": {
     "label": "文献排序",
     "current": "当前顺序",
-    "titleAscending": "标题 A–Z",
-    "titleDescending": "标题 Z–A",
+    "titleAscending": "标题：A–Z",
+    "titleDescending": "标题：Z–A",
+    "updatedDescending": "最近更新",
+    "createdDescending": "最近添加",
+    "createdAscending": "最早添加",
+    "unknownDatesLast": "无法识别的日期排在最后。",
     "cursorStale": "文献已发生变化。返回第一页后，可保留当前筛选条件和排序继续浏览。",
     "firstPage": "返回第一页"
   },

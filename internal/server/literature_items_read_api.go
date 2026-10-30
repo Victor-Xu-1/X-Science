@@ -27,7 +27,13 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 				return
 			}
 		case "sort":
-			if (values[0] != "title-asc" && values[0] != "title-desc") || query.Get("all_item_ids") == "true" {
+			if query.Get("all_item_ids") == "true" {
+				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+				return
+			}
+			switch values[0] {
+			case "title-asc", "title-desc", "updated-desc", "created-desc", "created-asc":
+			default:
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 				return
 			}

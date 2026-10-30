@@ -132,8 +132,11 @@ describe('Library title order through the original URL and HTTP owners', () => {
     expect(sort).toHaveValue('');
     expect(Array.from((sort as HTMLSelectElement).options, (option) => option.text)).toEqual([
       'Current order',
-      'Title A–Z',
-      'Title Z–A',
+      'Title: A–Z',
+      'Title: Z–A',
+      'Recently updated',
+      'Recently added',
+      'First added',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByRole('button', { name: 'Sort reference 59' });

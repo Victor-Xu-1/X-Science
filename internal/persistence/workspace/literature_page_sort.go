@@ -18,9 +18,12 @@ import (
 type LiteraturePageSort string
 
 const (
-	LiteraturePageTitleAscending  LiteraturePageSort = "title-asc"
-	LiteraturePageTitleDescending LiteraturePageSort = "title-desc"
-	literatureTitleCursorPrefix                      = "xscience-literature-title-v1."
+	LiteraturePageTitleAscending    LiteraturePageSort = "title-asc"
+	LiteraturePageTitleDescending   LiteraturePageSort = "title-desc"
+	LiteraturePageUpdatedDescending LiteraturePageSort = "updated-desc"
+	LiteraturePageCreatedDescending LiteraturePageSort = "created-desc"
+	LiteraturePageCreatedAscending  LiteraturePageSort = "created-asc"
+	literatureTitleCursorPrefix                        = "xscience-literature-title-v1."
 )
 
 var ErrLiteratureCursorStale = errors.New("literature page anchor changed")
@@ -28,10 +31,28 @@ var ErrLiteratureCursorStale = errors.New("literature page anchor changed")
 type LiteraturePageReadOptions struct{ Sort LiteraturePageSort }
 
 func (sort LiteraturePageSort) valid() bool {
-	return sort == "" || sort == LiteraturePageTitleAscending || sort == LiteraturePageTitleDescending
+	return sort == "" || sort == LiteraturePageTitleAscending || sort == LiteraturePageTitleDescending || sort.dateExpression() != ""
+}
+
+func (sort LiteraturePageSort) dateExpression() string {
+	switch sort {
+	case LiteraturePageUpdatedDescending:
+		return `xscience_literature_time_key_v1(i.updated_at)`
+	case LiteraturePageCreatedAscending, LiteraturePageCreatedDescending:
+		return `xscience_literature_time_key_v1(i.created_at)`
+	default:
+		return ""
+	}
 }
 
 func (sort LiteraturePageSort) orderBy() string {
+	if key := sort.dateExpression(); key != "" {
+		direction := " DESC"
+		if sort == LiteraturePageCreatedAscending {
+			direction = " ASC"
+		}
+		return key + ` IS NULL ASC,` + key + direction + `,i.id ASC`
+	}
 	if sort == LiteraturePageTitleDescending {
 		return `i.title DESC,i.id ASC`
 	}
