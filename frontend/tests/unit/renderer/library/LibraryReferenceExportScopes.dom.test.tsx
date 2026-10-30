@@ -7,8 +7,8 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
 import { renderWithI18n } from '../../i18nTestUtils';
-const json = (value: unknown) =>
-  new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
+const json = (value: unknown, status = 200) =>
+  new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 const ids = Array.from({ length: 203 }, (_, index) => `paper-${index}`);
 const rows: LiteratureItem[] = ids.slice(0, 2).map<LiteratureItem>((id) => ({
   id,
@@ -27,14 +27,22 @@ function fixture({
   emptyMembership = false,
   emptyPage = false,
   collectionCount = ids.length,
+  failedPage = false,
+  holdFormats = false,
 }: {
   hold?: boolean;
   staleCursor?: boolean;
   emptyMembership?: boolean;
   emptyPage?: boolean;
   collectionCount?: number;
+  failedPage?: boolean;
+  holdFormats?: boolean;
 } = {}) {
   const gates: Array<() => void> = [];
+  const formatGates: Array<() => void> = [];
+  const pageFailures: URL[] = [];
+  let metadataAvailable = true;
+  const metadataReads: boolean[] = [];
   const queries: URL[] = [];
   const writes: Array<{ format: string; item_ids: string[] }> = [];
   vi.stubGlobal(
@@ -42,8 +50,10 @@ function fixture({
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'http://localhost');
       if (url.pathname === '/api/settings/client') return json({});
-      if (url.pathname === '/api/projects')
-        return json({ projects: [{ project_id: 'project', name: 'Project / Science' }] });
+      if (url.pathname === '/api/projects') {
+        metadataReads.push(metadataAvailable);
+        return json({ projects: metadataAvailable ? [{ project_id: 'project', name: 'Project / Science' }] : [] });
+      }
       if (url.pathname === '/api/literature/collections')
         return json({
           schema: 'x-science.literature-collections.v1',
@@ -73,6 +83,10 @@ function fixture({
             total_count: emptyMembership ? 0 : ids.length,
           });
         }
+        if (failedPage) {
+          pageFailures.push(url);
+          return json({ code: 'LITERATURE_UNAVAILABLE' }, 500);
+        }
         return json({
           schema: 'x-science.literature-page.v1',
           items: emptyPage ? [] : rows,
@@ -89,6 +103,11 @@ function fixture({
       if (url.pathname === '/api/literature/export-references' && init?.method === 'POST') {
         const body = JSON.parse(String(init.body));
         writes.push(body);
+        if (holdFormats)
+          await new Promise<void>((done) => {
+            formatGates.push(done);
+            releases.push(done);
+          });
         return json({
           schema: 'x-science.literature-export.v1',
           ...body,
@@ -102,7 +121,17 @@ function fixture({
       throw new Error(`Unexpected scope-export request ${url.pathname}`);
     })
   );
-  return { release: (index = 0) => gates[index]?.(), queries, writes };
+  return {
+    release: (index = 0) => gates[index]?.(),
+    releaseFormat: (index = 0) => formatGates[index]?.(),
+    setMetadataAvailable: (available: boolean) => {
+      metadataAvailable = available;
+    },
+    pageFailures,
+    metadataReads,
+    queries,
+    writes,
+  };
 }
 function Navigation() {
   const navigate = useNavigate();
@@ -115,6 +144,11 @@ function Navigation() {
       <button onClick={() => void navigate('/library?project=project')}>Back export project</button>
     </>
   );
+}
+async function chooseFormat(label: string) {
+  const text = await screen.findByText(label);
+  await waitFor(() => expect(text.closest('[role="menuitem"]')).not.toHaveAttribute('aria-disabled', 'true'));
+  fireEvent.click(text);
 }
 async function mount(path: string) {
   return renderWithI18n(
@@ -158,7 +192,7 @@ describe('Library reference export scopes through the actual page', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select paper-0' }));
     const exportButton = await screen.findByRole('button', { name: 'Export references' });
     fireEvent.click(exportButton);
-    fireEvent.click(await screen.findByText('RIS (.ris)'));
+    await chooseFormat('RIS (.ris)');
     await waitFor(() => expect(http.queries).toHaveLength(1));
     expect(http.writes).toHaveLength(0);
     expect(downloads).toHaveLength(0);
@@ -183,7 +217,7 @@ describe('Library reference export scopes through the actual page', () => {
       await waitFor(() => expect(more).toBeEnabled());
       fireEvent.click(more);
       fireEvent.mouseEnter(await screen.findByText('Export references'));
-      fireEvent.click(await screen.findByText(format === 'ris' ? 'RIS (.ris)' : 'BibTeX (.bib)'));
+      await chooseFormat(format === 'ris' ? 'RIS (.ris)' : 'BibTeX (.bib)');
       await waitFor(() =>
         expect(downloads).toEqual([`Project - Science-references.${format === 'ris' ? 'ris' : 'bib'}`])
       );
@@ -197,14 +231,14 @@ describe('Library reference export scopes through the actual page', () => {
     }
   );
   it('keeps current-scope export independent of a failed/stale paginated cursor', async () => {
-    const http = fixture({ staleCursor: true });
+    const http = fixture({ failedPage: true });
     await mount('/library?project=project&cursor=next&q=filtered');
     const more = await screen.findByRole('button', { name: 'More actions' });
     await waitFor(() => expect(more).toBeEnabled());
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(http.pageFailures).toHaveLength(1);
     fireEvent.click(more);
     fireEvent.mouseEnter(await screen.findByText('Export references'));
-    fireEvent.click(await screen.findByText('RIS (.ris)'));
+    await chooseFormat('RIS (.ris)');
     await waitFor(() => expect(downloads).toEqual(['Project - Science-references.ris']));
     expect(http.queries[0].searchParams.has('query')).toBe(false);
     expect(http.queries[0].searchParams.has('cursor')).toBe(false);
@@ -222,7 +256,7 @@ describe('Library reference export scopes through the actual page', () => {
       };
       const start = async () => {
         fireEvent.click(await screen.findByRole('button', { name: 'Export references' }));
-        fireEvent.click(await screen.findByText('RIS (.ris)'));
+        await chooseFormat('RIS (.ris)');
       };
       await select();
       await start();
@@ -256,7 +290,7 @@ describe('Library reference export scopes through the actual page', () => {
     await waitFor(() => expect(more).toBeEnabled());
     fireEvent.click(more);
     fireEvent.mouseEnter(await screen.findByText('Export references'));
-    fireEvent.click(await screen.findByText('RIS (.ris)'));
+    await chooseFormat('RIS (.ris)');
     await waitFor(() => expect(http.queries).toHaveLength(1));
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'More actions' })).toHaveAttribute('data-state', 'idle')
@@ -279,15 +313,15 @@ describe('Library reference export scopes through the actual page', () => {
     fireEvent.pointerLeave(entry, { pointerType: 'mouse' });
     await waitFor(() => expect(screen.queryByText('RIS (.ris)')).toBeNull());
     entry.focus();
-    fireEvent.keyDown(entry, { key: 'ArrowDown' });
+    fireEvent.keyDown(entry, { key: 'ArrowDown', keyCode: 40, which: 40 });
     const bibtex = await screen.findByText('BibTeX (.bib)');
     await waitFor(() => expect(document.activeElement).toBe(bibtex.closest('[role="menuitem"]')));
-    fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape', keyCode: 27, which: 27 });
     await waitFor(() => expect(screen.queryByText('BibTeX (.bib)')).toBeNull());
     expect(document.activeElement).toBe(entry);
-    fireEvent.keyDown(entry, { key: 'ArrowDown' });
+    fireEvent.keyDown(entry, { key: 'ArrowDown', keyCode: 40, which: 40 });
     const chosen = await screen.findByText('BibTeX (.bib)');
-    fireEvent.keyDown(chosen.closest('[role="menuitem"]')!, { key: 'Enter' });
+    fireEvent.keyDown(chosen.closest('[role="menuitem"]')!, { key: 'Enter', keyCode: 13, which: 13 });
     await waitFor(() => expect(downloads).toEqual(['selected-references.bib']));
     expect(http.writes).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Export references' })).toHaveAttribute('data-state', 'success');
@@ -304,7 +338,7 @@ describe('Library reference export scopes through the actual page', () => {
     await waitFor(() => expect(more).toBeEnabled());
     fireEvent.click(more);
     fireEvent.mouseEnter(await screen.findByText('Export references'));
-    fireEvent.click(await screen.findByText('RIS (.ris)'));
+    await chooseFormat('RIS (.ris)');
     await waitFor(() => expect(downloads).toEqual(['Project - Science-references.ris']));
     expect(http.queries[0].searchParams.has('query')).toBe(false);
     expect(http.writes.flatMap((body) => body.item_ids)).toEqual(ids);
@@ -330,7 +364,7 @@ describe('Library reference export scopes through the actual page', () => {
     await waitFor(() => expect(more).toBeEnabled());
     fireEvent.click(more);
     fireEvent.mouseEnter(await screen.findByText('Export references'));
-    fireEvent.click(await screen.findByText('RIS (.ris)'));
+    await chooseFormat('RIS (.ris)');
     await waitFor(() => expect(http.queries).toHaveLength(1));
     fireEvent.click(screen.getByRole('button', { name: 'Change export visit' }));
     await act(async () => http.release());
@@ -345,7 +379,7 @@ describe('Library reference export scopes through the actual page', () => {
       await waitFor(() => expect(more).toBeEnabled());
       fireEvent.click(more);
       fireEvent.mouseEnter(await screen.findByText('Export references'));
-      fireEvent.click(await screen.findByText('RIS (.ris)'));
+      await chooseFormat('RIS (.ris)');
     };
     await start();
     await waitFor(() => expect(http.queries).toHaveLength(1));
@@ -359,6 +393,35 @@ describe('Library reference export scopes through the actual page', () => {
     expect(downloads).toEqual([]);
     expect(screen.getByRole('button', { name: 'More actions' })).toHaveAttribute('aria-busy', 'true');
     await act(async () => http.release(1));
+    await waitFor(() => expect(downloads).toEqual(['Project - Science-references.ris']));
+  });
+  it('retires held scope formatting when metadata disappears and availability ABA cannot revive it', async () => {
+    const http = fixture({ holdFormats: true });
+    await mount('/library?project=project');
+    const start = async () => {
+      const more = await screen.findByRole('button', { name: 'More actions' });
+      await waitFor(() => expect(more).toBeEnabled());
+      fireEvent.click(more);
+      fireEvent.mouseEnter(await screen.findByText('Export references'));
+      await chooseFormat('RIS (.ris)');
+    };
+    await start();
+    await waitFor(() => expect(http.writes).toHaveLength(1));
+    http.setMetadataAvailable(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'More actions' })).toBeNull());
+    await waitFor(() => expect(http.metadataReads.at(-1)).toBe(false));
+    http.setMetadataAvailable(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'More actions' })).toBeEnabled());
+    await start();
+    await waitFor(() => expect(http.writes).toHaveLength(2));
+    await act(async () => http.releaseFormat(0));
+    expect(downloads).toEqual([]);
+    expect(screen.getByRole('button', { name: 'More actions' })).toHaveAttribute('aria-busy', 'true');
+    await act(async () => http.releaseFormat(1));
+    await waitFor(() => expect(http.writes).toHaveLength(3));
+    await act(async () => http.releaseFormat(2));
     await waitFor(() => expect(downloads).toEqual(['Project - Science-references.ris']));
   });
 });

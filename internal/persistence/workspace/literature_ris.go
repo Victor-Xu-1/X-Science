@@ -29,7 +29,8 @@ func literatureRISEntry(item LiteratureItem) (string, error) {
 	if strings.TrimSpace(item.Title) == "" || !utf8.ValidString(item.Title) {
 		return "", ErrLiteratureInvalid
 	}
-	// PAT/STAND/GEN preserve known X-only item types; these are explicit X extensions.
+	// Preserve conventional RIS tags for known types instead of the reference formatter
+	// JOUR fallback; explicit X-Science export extension.
 	itemType := bibtexScalar(item.Metadata["item_type"])
 	kind := map[string]string{"journalArticle": "JOUR", "review": "JOUR", "preprint": "JOUR", "conferencePaper": "CONF", "book": "BOOK", "bookSection": "CHAP", "thesis": "THES", "report": "RPRT", "dataset": "DATA", "standard": "STAND", "patent": "PAT", "webpage": "ELEC", "document": "GEN"}[itemType]
 	if kind == "" {

@@ -73,7 +73,8 @@ export function useLibraryReferenceExport({
   const filterKey = literatureSelectionScopeKey(scope);
   const scopeTargetKey = JSON.stringify([scope.projectId ?? '', scope.collectionId ?? '']);
   const selectedOwner = useMemo(() => ({}), [account, selectionKey, filterKey]);
-  const scopeOwner = useMemo(() => ({}), [account, scopeTargetKey]);
+  const scopeAvailable = Boolean(currentScope);
+  const scopeOwner = useMemo(() => ({}), [account, scopeTargetKey, scopeAvailable]);
   const owners = { selected: selectedOwner, scope: scopeOwner };
   const latest = useRef(owners);
   latest.current = owners;
@@ -176,5 +177,5 @@ export function useLibraryReferenceExport({
       (kind === 'scope' ? !currentScope : !selection.allMatchingSelected && !selection.selectedIds.length),
     start: (format) => run(kind, format),
   });
-  return { pending, selected: model('selected'), scope: model('scope'), scopeAvailable: Boolean(currentScope) };
+  return { pending, selected: model('selected'), scope: model('scope'), scopeAvailable };
 }

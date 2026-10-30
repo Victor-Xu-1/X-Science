@@ -32,12 +32,14 @@ export function decodeLiteratureReferenceExport(
   return result as LiteratureReferenceExport;
 }
 export function literatureExportFilename(stem: string, format: LiteratureExportFormat): string {
+  const normalized = Array.from(stem.normalize('NFKC'), (character) => {
+    const code = character.codePointAt(0)!;
+    return code < 32 || code === 127 ? ' ' : character;
+  }).join('');
   const safe =
-    stem
-      .normalize('NFKC')
+    normalized
       .trim()
       .replace(/[/:*?"<>|\\]/gu, '-')
-      .replace(/[\u0000-\u001f\u007f]/gu, ' ')
       .replace(/\s+/gu, ' ')
       .slice(0, 80) || 'references';
   return `${safe}.${literatureExportFormats[format].extension}`;
