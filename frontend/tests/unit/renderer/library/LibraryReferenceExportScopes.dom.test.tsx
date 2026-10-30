@@ -417,6 +417,7 @@ describe('Library reference export scopes through the actual page', () => {
     await start();
     await waitFor(() => expect(http.writes).toHaveLength(2));
     await act(async () => http.releaseFormat(0));
+    expect(http.writes).toHaveLength(2);
     expect(downloads).toEqual([]);
     expect(screen.getByRole('button', { name: 'More actions' })).toHaveAttribute('aria-busy', 'true');
     await act(async () => http.releaseFormat(1));

@@ -99,4 +99,7 @@ describe('Library reference export transport completeness', () => {
     expect(text.match(/^TY  - /gm)).toHaveLength(201);
     expect(literatureExportFilename('Ｐroject / Test-references', 'ris')).toBe('Project - Test-references.ris');
   });
+  it('hands a safe filename to the existing browser owner without losing Unicode text', () => {
+    expect(literatureExportFilename('研究/\u0000Test\n Name-references', 'ris')).toBe('研究- Test Name-references.ris');
+  });
 });
