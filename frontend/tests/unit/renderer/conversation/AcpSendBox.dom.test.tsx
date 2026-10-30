@@ -380,7 +380,10 @@ vi.mock('@/renderer/components/xScience/runtime/XScienceRuntimeOperations', asyn
         };
       };
     }) => {
-      runtimeOperationsProps.current = props;
+    runtimeOperationsProps.current = {
+      ...props,
+      runtimeState: props.runtimeState ?? (props as { runtimeView?: { state: string } }).runtimeView?.state,
+    };
       if (realPreparationRuntime.current)
         return <actual.default {...(props as React.ComponentProps<typeof actual.default>)} />;
       return null;
@@ -1506,6 +1509,7 @@ describe('AcpSendBox', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    realPreparationRuntime.current = false;
     resetConversationRuntimeViewStoreForTest();
     specialistAsideFixture.active = false;
     specialistAsideFixture.item = null;
