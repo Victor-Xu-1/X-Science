@@ -851,7 +851,18 @@
         "scripts/quality/test_pr_test_partition.py",
         "scripts/quality/runtime_input_scope.py",
         "scripts/quality/runtime_input_scope.json",
-        "scripts/quality/test_runtime_input_scope.py"
+        "scripts/quality/test_runtime_input_scope.py",
+        "scripts/quality/frontend_related_ci.py",
+        "scripts/quality/frontend_related_manifest.py",
+        "scripts/quality/frontend_related_partition.py",
+        "scripts/quality/relatedShardConfig.mjs",
+        "scripts/quality/relatedShardDiscover.mjs",
+        "scripts/quality/relatedShardIdentity.mjs",
+        "scripts/quality/relatedShardReporter.mjs",
+        "scripts/quality/relatedShardSequencer.mjs",
+        "scripts/quality/test_frontend_related_ci.py",
+        "scripts/quality/test_frontend_related_manifest.py",
+        "scripts/quality/test_frontend_related_partition.py"
       ],
       "frontend": false,
       "checks": [

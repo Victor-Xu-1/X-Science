@@ -266,11 +266,14 @@ def main() -> int:
     mode.add_argument("--vet", action="store_true")
     mode.add_argument("--matrix", action="store_true")
     parser.add_argument("--log-dir", type=Path)
+    parser.add_argument("--related-plan-dir", type=Path)
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=1)
     args = parser.parse_args()
     repo = args.repo.resolve()
     try:
+        if args.related_plan_dir is not None and not args.frontend:
+            raise ValueError("related planning is only an original frontend workflow mode")
         phases = RuntimePhaseEvidence(None)
         if args.log_dir is not None and not (args.frontend or args.vet or args.matrix):
             log_dir = args.log_dir.resolve()
@@ -329,7 +332,12 @@ def main() -> int:
                 ["npm", "run", "test:packaged"],
             ]
             for command in commands:
-                result = run(repo / "frontend", *command)
+                if related and command == related and args.related_plan_dir is not None:
+                    from scripts.quality.frontend_related_ci import defer_or_run
+                    code = defer_or_run(repo, args.base, args.head, related, args.related_plan_dir)
+                    result = subprocess.CompletedProcess(command, code)
+                else:
+                    result = run(repo / "frontend", *command)
                 if result.returncode:
                     return result.returncode
             return 0

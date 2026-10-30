@@ -45,7 +45,7 @@ jobs:
         run: |
           go mod verify
           go mod tidy -diff
-          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_portable_paths scripts.quality.test_module_topology_gate scripts.quality.test_product_identity_gate scripts.quality.test_release_candidate_manifest scripts.quality.test_release_receipt_gate scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope scripts.quality.test_pr_go_reuse scripts.quality.test_pr_reuse_github
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.quality.test_portable_paths scripts.quality.test_module_topology_gate scripts.quality.test_product_identity_gate scripts.quality.test_release_candidate_manifest scripts.quality.test_release_receipt_gate scripts.quality.test_pr_fast_scope scripts.quality.test_pr_dependency_scope scripts.quality.test_pr_test_partition scripts.quality.test_verification_scope scripts.quality.test_pr_go_reuse scripts.quality.test_pr_reuse_github scripts.quality.test_frontend_related_manifest scripts.quality.test_frontend_related_partition scripts.quality.test_frontend_related_ci
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/portable_paths.py --repo .
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/module_topology_gate.py --repo .
           PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/product_identity_gate.py --repo . --mode candidate
@@ -134,11 +134,16 @@ jobs:
           test '${{ needs.pr-quality.result }}' = 'success'
           test '${{ needs.pr-go-shards.result }}' = 'success'
 
-  pr-frontend-tests:
-    name: PR frontend scope
+  pr-frontend-plan:
+    name: PR frontend preparation
     needs: pr-quality
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      mode: ${{ steps.frontend.outputs.mode }}
+      matrix: ${{ steps.frontend.outputs.matrix }}
+      node-version: ${{ steps.frontend.outputs.node-version }}
+      plan-sha256: ${{ steps.frontend.outputs.plan-sha256 }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,9 +159,112 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Test changed frontend scope
+      - name: Preserve frontend checks and plan exact related workers
+        id: frontend
         run: |
-          PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py --frontend --base '${{ github.event.pull_request.base.sha }}' --head '${{ github.sha }}'
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/quality/frontend_related_ci.py prepare --directory "$RUNNER_TEMP/frontend-related-plan"
+
+      - name: Upload same-attempt related plan
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr-frontend-related-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/frontend-related-plan/
+          if-no-files-found: error
+          retention-days: 7
+
+  pr-frontend-related-shards:
+    name: PR related frontend partition (${{ matrix.index }})
+    needs: [pr-quality, pr-frontend-plan]
+    if: needs.pr-frontend-plan.result == 'success' && needs.pr-frontend-plan.outputs.mode == 'sharded'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.pr-frontend-plan.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact execution source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Set up preparation-bound frontend runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ needs.pr-frontend-plan.outputs.node-version }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install original locked test runtime
+        working-directory: frontend
+        run: |
+          npm ci --ignore-scripts
+          npx --no-install playwright install chromium
+          npm run i18n:types
+
+      - name: Download same-attempt preparation
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pr-frontend-related-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/frontend-related-plan/
+
+      - name: Execute independently bound exact partition
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/quality/frontend_related_ci.py worker \
+            --plan "$RUNNER_TEMP/frontend-related-plan/plan.json" \
+            --plan-digest '${{ needs.pr-frontend-plan.outputs.plan-sha256 }}' \
+            --directory "$RUNNER_TEMP/frontend-related-worker-${{ matrix.index }}" \
+            --index '${{ matrix.index }}'
+
+      - name: Upload actual worker terminal evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pr-frontend-related-result-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.index }}
+          path: ${{ runner.temp }}/frontend-related-worker-${{ matrix.index }}/worker-${{ matrix.index }}.json
+          if-no-files-found: error
+          retention-days: 7
+
+  pr-frontend-tests:
+    name: PR frontend scope
+    needs: [pr-quality, pr-frontend-plan, pr-frontend-related-shards]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact verifier source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Require original preparation success
+        run: test '${{ needs.pr-frontend-plan.result }}' = 'success'
+
+      - name: Download same-attempt preparation
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: pr-frontend-related-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/frontend-related-plan/
+
+      - name: Download every current related result
+        if: needs.pr-frontend-plan.outputs.mode == 'sharded'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: pr-frontend-related-result-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/frontend-related-results/
+
+      - name: Verify complete unique execution or original serial completion
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/quality/frontend_related_ci.py aggregate \
+            --plan "$RUNNER_TEMP/frontend-related-plan/plan.json" \
+            --plan-digest '${{ needs.pr-frontend-plan.outputs.plan-sha256 }}' \
+            --directory "$RUNNER_TEMP/frontend-related-results" \
+            --preparation-result '${{ needs.pr-frontend-plan.result }}' \
+            --shard-result '${{ needs.pr-frontend-related-shards.result }}'
 
   merge-gate:
     name: Merge Gate / CI required

@@ -88,6 +88,7 @@ type workflowState struct {
 	aggregateJobs   int
 	currentWorkflow string
 	currentJob      string
+	relatedFrontend bool
 }
 
 func loadPolicy(path string) (actionsPolicy, error) {
@@ -377,6 +378,11 @@ func validateWorkflow(relative string, root *yaml.Node, state *workflowState) er
 	if err := validateVersionTransitionStep(relative, jobs, bootstrapJob); err != nil {
 		return err
 	}
+	relatedFrontend, err := validateRelatedFrontendWorkflow(relative, jobs)
+	if err != nil {
+		return err
+	}
+	state.relatedFrontend = relatedFrontend
 	aggregate, requiresAggregate := state.policy.RequiredAggregates[relative]
 	aggregateFound := false
 	for index := 0; index < len(jobs.Content); index += 2 {
@@ -441,7 +447,7 @@ func validateJob(job *yaml.Node, state *workflowState, bootstrap bool) error {
 	if job.Kind != yaml.MappingNode {
 		return errors.New("actions_workflow_invalid")
 	}
-	if mappingValue(job, "if") != nil {
+	if mappingValue(job, "if") != nil && !relatedFrontendJobCondition(job, state) {
 		return errors.New("actions_conditional_forbidden")
 	}
 	if mappingValue(job, "defaults") != nil {
@@ -500,7 +506,7 @@ func validateStep(step *yaml.Node, state *workflowState, bootstrapJob, requireCh
 	if step.Kind != yaml.MappingNode {
 		return errors.New("actions_workflow_invalid")
 	}
-	if mappingValue(step, "if") != nil &&
+	if mappingValue(step, "if") != nil && !relatedFrontendStepCondition(step, state) &&
 		(!state.policy.Requirements.UnconditionalTestEvidenceAllowed || requireCheckout || requireGate || !unconditionalTestEvidenceStep(step)) {
 		return errors.New("actions_conditional_forbidden")
 	}
