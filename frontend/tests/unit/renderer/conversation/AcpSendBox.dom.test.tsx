@@ -971,7 +971,7 @@ describe('AcpSendBox', () => {
       const conversationId = 'conv-real-preparing';
       const completedRuntime: TConversationRuntimeSummary = {
         state: 'idle', can_send_message: true, has_task: false, task_status: 'finished',
-        is_processing: false, pending_confirmations: 0, turn_id: conversationId,
+        is_processing: false, pending_confirmations: 0, turn_id: null,
       };
       const priorSnapshot = {
         frameId: conversationId, rootFrameId: conversationId, status: 'completed',
