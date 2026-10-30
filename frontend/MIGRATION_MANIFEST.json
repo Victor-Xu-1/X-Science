@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e5d20ca3c59dbae2f08bbbb9500d5456280ba6e338ae759d83f0589a93e4980e",
+  "adaptationFingerprintSHA256": "9435de28837d43b4dbfdf9d37f6b3c9f857019f97e4bd94bf5fb7b5cade20e13",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "de4bb16fb772239d46c3774ca0f825450b61ca9cdb8d3bdcb4c5b19c0bbd818f",
+  "additionFingerprintSHA256": "efee395c81453926e0143e2e7932bd2ed25fdafcd0da0c50238b521cdd6315bc",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1415
+    "addedFiles": 1417
   },
   "adaptations": [
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "e24a48365cc1ccd366b33a05ceb7c72cbed3fb5ba186392bf136e9746544eef8",
-      "bytes": 134115,
+      "targetSHA256": "0a33cff16a6f1f528473c341afcac7eea2f4d2fa08615c085c13d685253c24b8",
+      "bytes": 134443,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "486e87fda3d582c80dfdd56ecd12ff578dbe6f58ea4d8aae639764c5bcfef0ee",
-      "bytes": 126755,
+      "targetSHA256": "19bdb9d7d3c5edd64d775234c4481d3028e21af0bff8762268bbc87c1e413df9",
+      "bytes": 127070,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -10075,8 +10075,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "d2f6dc9a2be94c5d43aaa42f29382a77b7042c03ae72400f9056fa0473c64239",
-      "bytes": 40059,
+      "sha256": "873fbad9014a9ed0423233d48721e9a2d202ece8ad582887246970f0f36cbdd2",
+      "bytes": 41990,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10131,6 +10131,12 @@
       "path": "packages/desktop/src/renderer/pages/library/LibrarySelectionToolbar.tsx",
       "sha256": "5bb823f2fc804bdb38a102316790d6e34e5192118363f81c5460e7b0bdb64005",
       "bytes": 4060,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/LibrarySortControl.tsx",
+      "sha256": "6eb6e26744d390048a3cb9b1d38fcf9d79054bf402dbc60417a163ff1cd2fbb8",
+      "bytes": 1345,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10285,8 +10291,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.header.css",
-      "sha256": "e4fcc826ae388618516e6d5e5c1b455477842d8c9defd11ded24796d7fa3e1cd",
-      "bytes": 2806,
+      "sha256": "a57094ff4130c61d902e4cf534482bc8fa55e3e0898934be19e1800564e8a42e",
+      "bytes": 4101,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10303,8 +10309,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryBulkReadingStatus.ts",
-      "sha256": "3c23ecfa624982dbfa90ba63f583a802f367bd0d7810e46a54d27c3165cfe956",
-      "bytes": 11144,
+      "sha256": "2ecc34d61c3f494729967730820f97a9fdae324cc62833d3cd52b83150a079eb",
+      "bytes": 11213,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10375,8 +10381,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryWorkbench.ts",
-      "sha256": "18b0642c21a94c6a0f48f111b368f6ac3dba7b6ffb7c74b4b5ff0e836a7aebfb",
-      "bytes": 7546,
+      "sha256": "5a0f4b47dc0ed3b8dde1867e238e3093c71611fcf10a7220b81da5fa6777a86c",
+      "bytes": 7999,
       "reason": "Own cancellable view reads for the Library list, selected item and project labels with bounded waits and current account/request fencing, while reusing the original HTTP and catalogue authorities."
     },
     {
@@ -11455,8 +11461,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
-      "sha256": "3b09796459283524ef59058dec0329739dd69d9b7a2d04c32a5b3b67fb86829e",
-      "bytes": 8356,
+      "sha256": "16f0b388426968da39d1c7389a49d5976142b48672a9ae68dd71acbad1ef060a",
+      "bytes": 8726,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14373,6 +14379,12 @@
       "path": "tests/unit/renderer/library/LibraryTableIntegration.dom.test.tsx",
       "sha256": "6e1695f05554dab37c70ba250464704aea3b4e7239c0469f5b92a7cdd4038686",
       "bytes": 11665,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryTitleSort.dom.test.tsx",
+      "sha256": "4c386e96165feb9f22041d2e6419fdb5bce237c7843a99eba68238eadf251797",
+      "bytes": 11742,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
