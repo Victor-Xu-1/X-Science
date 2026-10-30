@@ -43,8 +43,34 @@ export const isRuntimePauseTransitionSettled = (snapshot: XScienceRuntimeSnapsho
 
 export const projectAcceptedRuntimeStart = (
   snapshot: XScienceRuntimeSnapshot | null,
-  acceptedStartPending: boolean
+  acceptedStartPending: boolean,
+  localPreparing = false
 ): XScienceRuntimeSnapshot | null => {
+  // A previous durable attempt cannot acknowledge the current unsubmitted
+  // reservation. Stop continues through the same local ticket owner.
+  if (snapshot && localPreparing) {
+    return {
+      ...snapshot,
+      status: 'starting',
+      statusDescription: null,
+      error: null,
+      failureReason: null,
+      failureKind: null,
+      completedAt: null,
+      runtimeStage: null,
+      runtimeActive: false,
+      runtimeTaskActive: false,
+      runtimeElapsedMs: null,
+      runtimeElapsedAvailable: false,
+      runtimeTaskElapsedMs: null,
+      runtimeTaskElapsedAvailable: false,
+      canCancel: true,
+      canResume: false,
+      pendingInputRequiresContinue: false,
+      pendingInputRequests: [],
+      planApproval: null,
+    };
+  }
   if (
     !snapshot ||
     !acceptedStartPending ||

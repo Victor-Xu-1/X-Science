@@ -56,6 +56,7 @@ type XScienceRuntimeOperationsProps = {
   conversationId: string;
   runtimeState: string;
   terminalProjectionPending?: boolean;
+  localPreparing?: boolean;
   onResumeStarted?: () => void;
   onResumeFailed?: (reason: string) => void;
   onResumed: (turnId: string, runtime: TConversationRuntimeSummary) => void;
@@ -80,6 +81,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   conversationId,
   runtimeState,
   terminalProjectionPending = false,
+  localPreparing = false,
   onResumeStarted,
   onResumeFailed,
   onResumed,
@@ -799,7 +801,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     acceptedStartPendingRef.current = false;
   }
   previousRuntimeAuthorityRef.current = { conversationId, runtimeState };
-  const statusSnapshot = projectAcceptedRuntimeStart(visibleSnapshot, acceptedStartPendingRef.current);
+  const statusSnapshot = projectAcceptedRuntimeStart(visibleSnapshot, acceptedStartPendingRef.current, localPreparing);
   const visibleTaskCenterMetrics: XScienceTaskCenterMetrics = {
     total: {
       tokenUsage: statusSnapshot?.taskMetrics?.total?.totalTokens ?? taskCenterMetrics?.total.tokenUsage ?? null,

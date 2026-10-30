@@ -1126,6 +1126,7 @@ const AcpSendBox: React.FC<{
         conversationId={conversation_id}
         runtimeState={runtimeView.state}
         terminalProjectionPending={runtimeView.view.terminalProjectionPending}
+        localPreparing={runtimeView.view.localPreparing === true}
         onResumeStarted={handleResumeStarted}
         onResumeFailed={handleResumeFailed}
         onResumed={handleRuntimeUpdated}
