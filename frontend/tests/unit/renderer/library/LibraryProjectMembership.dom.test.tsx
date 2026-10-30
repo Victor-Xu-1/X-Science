@@ -39,12 +39,19 @@ describe('Overview project membership through the existing Web owner', () => {
     let included = false;
     const writes: { path: string; body: Record<string, unknown> }[] = [];
     const detail = () => ({ ...paper(), project_ids: included ? ['beta'] : [] });
+    const unlinkReadbackStarted = deferred<void>();
+    const unlinkReadback = deferred<Response>();
+    releaseHeldStages.push(() => unlinkReadback.resolve(json(detail())));
     const http = installCollectionHTTP({
       collections: () => [],
       items: () => [detail()],
       detail,
       intercept: (url, init) => {
         if (url.pathname === '/api/projects') return json({ projects });
+        if ((init.method ?? 'GET') === 'GET' && url.pathname === '/api/literature/items/a' && writes.length === 2) {
+          unlinkReadbackStarted.resolve();
+          return unlinkReadback.promise;
+        }
         if (init.method !== 'PUT') return undefined;
         const body = JSON.parse(String(init.body));
         writes.push({ path: url.pathname, body });
@@ -80,10 +87,18 @@ describe('Overview project membership through the existing Web owner', () => {
     expect(links().getByRole('searchbox')).toHaveValue('');
     await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     fireEvent.click(links().getByRole('checkbox', { name: 'Beta project' }));
-    await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked());
-    expect(writes).toHaveLength(2);
+    await waitFor(() => expect(writes).toHaveLength(2));
     expect(writes[1]).toMatchObject({ path: '/api/literature/items/a/projects/beta', body: { included: false } });
     expect(writes[1].body.operation_id).not.toBe(writes[0].body.operation_id);
+    await unlinkReadbackStarted.promise;
+    expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeChecked();
+    expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeDisabled();
+    await act(async () => {
+      unlinkReadback.resolve(json(detail()));
+      await unlinkReadback.promise;
+    });
+    await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).not.toBeChecked());
+    await waitFor(() => expect(links().getByRole('checkbox', { name: 'Beta project' })).toBeEnabled());
     expect(http.requests.filter((request) => !['GET', 'PUT'].includes(request.method))).toHaveLength(0);
     await act(async () => {
       await rendered.i18n.changeLanguage('zh-CN');
