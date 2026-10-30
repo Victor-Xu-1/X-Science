@@ -1023,7 +1023,7 @@ describe('AcpSendBox', () => {
           }
         });
         await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(1));
-        fireEvent.click(screen.getByRole('button', { name: '暂停任务' }));
+        fireEvent.click(await screen.findByRole('button', { name: '暂停任务' }));
         await waitFor(() => expect(input).not.toBeDisabled());
         await waitFor(() => expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false));
         await waitFor(() => expect(input).toHaveValue('Original draft'));
