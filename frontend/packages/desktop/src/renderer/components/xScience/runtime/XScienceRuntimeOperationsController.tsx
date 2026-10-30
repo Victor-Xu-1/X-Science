@@ -808,6 +808,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   if (runtimeView) {
     if (
       (runtimeState !== 'starting' && runtimeState !== 'running') ||
+      visibleSnapshot?.runtimeActive === true ||
+      visibleSnapshot?.runtimeTaskActive === true ||
       (visibleAttemptIdentity !== null &&
         acceptedStartBaselineRef.current !== null &&
         visibleAttemptIdentity !== acceptedStartBaselineRef.current)
