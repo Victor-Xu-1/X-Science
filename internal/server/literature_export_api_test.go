@@ -109,4 +109,17 @@ func TestLiteratureReferenceExportHTTPRISLiteralTagsAndUnavailableSelection(t *t
 	if response.Code != 400 {
 		t.Fatalf("unbounded export HTTP%d", response.Code)
 	}
+	longIDs := make([]string, 200)
+	for i := range longIDs {
+		longIDs[i] = strings.Repeat("x", 509) + fmt.Sprintf("%03d", i)
+	}
+	response = p3JSONRequest(t, f.f.server, http.MethodPost, "/api/literature/export-references", map[string]any{"item_ids": longIDs, "format": "ris"}, owner)
+	if response.Code != 400 {
+		t.Fatalf("oversized UTF8 envelope HTTP%d", response.Code)
+	}
+	response = p3JSONRequest(t, f.f.server, http.MethodPost, "/api/literature/export-references", map[string]any{"item_ids": []string{f.itemID}, "format": "ris", "owner": owner}, owner)
+	if response.Code != 400 {
+		t.Fatalf("unknown export request field HTTP%d", response.Code)
+	}
+
 }

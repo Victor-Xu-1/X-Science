@@ -168,6 +168,7 @@ describe('Library reference export scopes through the actual page', () => {
     expect(http.queries[0].searchParams.get('reading_status')).toBe('read');
     expect(http.queries[0].searchParams.get('project_id')).toBe('project');
     expect(http.queries[0].searchParams.has('cursor')).toBe(false);
+    expect(http.queries[0].searchParams.has('order')).toBe(false);
     await act(async () => http.release());
     await waitFor(() => expect(downloads).toEqual(['selected-references.ris']));
     expect(http.writes.map((body) => body.item_ids.length)).toEqual([200, 2]);
