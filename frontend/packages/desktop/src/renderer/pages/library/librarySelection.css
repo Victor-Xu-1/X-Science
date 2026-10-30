@@ -91,3 +91,22 @@
     animation: none;
   }
 }
+
+.library-selection-toolbar__export,
+.library-selection-toolbar__export button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.library-selection-toolbar__export [role='alert'] {
+  color: var(--workspace-danger-text);
+}
+
+.library-selection-toolbar__export [aria-busy='true'] svg {
+  animation: library-selection-spin 0.85s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-selection-toolbar__export [aria-busy='true'] svg {
+    animation: none;
+  }
+}

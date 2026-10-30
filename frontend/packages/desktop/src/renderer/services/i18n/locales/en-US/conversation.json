@@ -2463,5 +2463,12 @@
     "discardAction": "Discard reference",
     "trashConflict": "A reference with this identifier is in Trash. Restore it there before creating another reference.",
     "openTrash": "Open Trash"
+  },
+  "libraryExport": {
+    "bibtex": "BibTeX (.bib)",
+    "entry": "Export references",
+    "loading": "Exporting…",
+    "success": "Exported",
+    "error": "Could not export references. Try again."
   }
 }

@@ -42,6 +42,7 @@ BLOCKED_SERVER_PACKAGES = {
 }
 
 ALLOWED_ADAPTATIONS = {
+    "packages/desktop/src/renderer/utils/file/download.ts": "Retain the existing browser Blob download owner while guaranteeing anchor and object-URL cleanup when the download trigger throws; no second saving or file-access path.",
     "packages/desktop/src/common/platform/IPlatformServices.ts": "Document the canonical current log-directory namespace without changing configured operator paths.",
     "packages/desktop/src/common/platform/index.ts": "Use the canonical environment and development application names, preserving multi-instance behavior.",
     "packages/desktop/src/common/platform/NodePlatformServices.ts": "Derive only the package-name fallback from the current root product slug, retaining configured package names and existing data/log paths.",
@@ -130,6 +131,12 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureBibtex.ts": "Validate the typed read-only BibTeX response against the exact requested canonical item IDs before any file download.",
+    "packages/desktop/src/renderer/pages/library/LibraryBibtexExportMenu.tsx": "Adapt Open Science 23898639 selected-reference export entry, busy and failure feedback through the existing Library-local menu and compact X-Science controls; expose only the connected BibTeX format.",
+    "packages/desktop/src/renderer/pages/library/useLibraryBibtexExport.ts": "Bind one explicit-selection export to the existing account, selection and visit boundaries, with synchronous request ownership and no late-scope download or mutation outbox.",
+    "packages/desktop/src/renderer/services/runtime/literatureBibtex.ts": "Read authenticated canonical Library BibTeX batches through the existing HTTP and renderer account authority, then return complete UTF-8 content only after all exact replies succeed.",
+    "tests/unit/renderer/conversation/literatureBibtex.test.ts": "Verify bounded complete-selection export, all-or-none response handling and cleanup through the original browser download helper using isolated synthetic input.",
+    "tests/unit/renderer/library/LibraryBibtexExport.dom.test.tsx": "Verify actual Library selection export entry, busy feedback, complete download and late account or visit fencing without a provider, catalogue mutation or scientific execution.",
     "packages/desktop/src/common/chat/conversationSubmission.ts": "Share the typed pre-transport cancellation outcome between conversation producers and the generic queue without importing an ACP implementation or adding runtime authority.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner.",
     "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpContextRequestActivity.ts": "Extract the scoped composer context-activity presentation bridge, preserving render-time account, conversation and incarnation fences and equal-value deduplication while reusing the original context reader; no request, timer or execution authority is added.",
@@ -722,9 +729,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "2becc6b06656e300ea8fa87d36c6139f4534826770fb15c18029201fc1c905e7"
+APPROVED_ADAPTATION_FINGERPRINT = "7eb3d3216b0de01364b5087344dd082650f5b51153949d1fdfe4219142bcf849"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "575772c4095cc986bbadcbab2479809f826c07cfb942cd30c36949a9458e2710"
+APPROVED_ADDITION_FINGERPRINT = "ac1fafeecbc1b81707dc8804b4b034ee954bfb2c32ace6df7adc11e264fa441d"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
