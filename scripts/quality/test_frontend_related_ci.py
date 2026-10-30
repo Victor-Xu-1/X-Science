@@ -127,11 +127,13 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
         self.persist_plan()
         with self.assertRaises(ValueError): self.aggregate(shards='skipped')
 
-    def run_worker(self, *, wrong_configuration=False):
+    def run_worker(self, *, wrong_configuration=False, wrong_source=False):
         from scripts.quality import pr_fast_scope as scope
         related = ['npx', '--no-install', 'vitest', 'related', '--run',
                    '--project', 'node', '--project', 'dom', 'packages/desktop/src/value.ts']
-        configuration = {'sha256': 'e' * 64, 'default_reporters': ['default', 'github-actions']}
+        configuration_record = {'test': {'fixture_value': 'private-expected-value'}}
+        configuration = {'sha256': 'e' * 64, 'default_reporters': ['default', 'github-actions'],
+                         'record': configuration_record}
         self.runtime = {'command': related, 'configuration': configuration}
         self.binding = identity.execution_binding(self.source, self.context, self.runtime)
         self.plan = partition.plan(self.binding, self.plan['specs'], max_shards=4)
@@ -149,6 +151,8 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
             self.assertEqual(wrapper.read_text(), 'synthetic independently generated wrapper')
             self.assertIn('--reporter=github-actions', command)
             report = {'configuration_sha256': 'wrong' if wrong_configuration else 'e' * 64,
+                      'configuration_record': ({'test': {'fixture_value': 'private-actual-value'}}
+                                               if wrong_configuration else configuration_record),
                       'planned': self.plan['specs'], 'queued': self.plan['shards'][0]['specs'],
                       'ended': [{**item, 'state': 'passed', 'ok': True}
                                 for item in self.plan['shards'][0]['specs']],
@@ -156,6 +160,7 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
             ci.write_json(Path(options['env']['X_SCIENCE_RELATED_REPORT']), report)
             return subprocess.CompletedProcess(command, 0)
 
+        actual_source = {**self.source, 'marker/token': 'private-source-value'} if wrong_source else self.source
         with patch.object(ci, 'context', return_value=self.context), \
                 patch.object(scope, 'changed_paths', return_value=[]), \
                 patch.object(scope, 'behavior_scope', return_value=([], [], [])), \
@@ -163,7 +168,7 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
                 patch.object(scope.pr_frontend_scope, 'related_command', return_value=related), \
                 patch.object(ci, 'discover', return_value={'eligible': True, 'specs': self.plan['specs'],
                     'configuration': configuration, 'wrapper_source': 'synthetic independently generated wrapper'}), \
-                patch.object(ci, 'capture', return_value=(self.source, self.runtime, self.binding)), \
+                patch.object(ci, 'capture', return_value=(actual_source, self.runtime, self.binding)), \
                 patch.object(ci.subprocess, 'run', side_effect=native):
             ci.worker(repo, self.plan_path, self.plan_digest, output, 0)
         return output
@@ -178,6 +183,54 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
     def test_zero_exit_with_wrong_effective_native_configuration_is_rejected(self):
         with self.assertRaises(ValueError):
             self.run_worker(wrong_configuration=True)
+
+    def test_successful_worker_keeps_configuration_record_only_in_external_native_report(self):
+        output = self.run_worker()
+        native = ci.read_json(output / 'native-report.json')
+        self.assertEqual(native['configuration_record'], {'test': {'fixture_value': 'private-expected-value'}})
+        worker = ci.read_json(output / 'worker-0.json')
+        self.assertNotIn('configuration_record', worker['report'])
+        self.assertNotIn('private-expected-value', json.dumps(worker))
+
+    def test_native_configuration_mismatch_preserves_rejection_without_logging_values(self):
+        with self.assertRaisesRegex(ValueError, 'actual worker effective configuration differs') as caught:
+            self.run_worker(wrong_configuration=True)
+        message = str(caught.exception)
+        self.assertIn('/configuration_record/test/fixture_value', message)
+        self.assertNotIn('private-expected-value', message)
+        self.assertNotIn('private-actual-value', message)
+        self.assertFalse((self.root / 'new-worker/worker-0.json').exists())
+
+    def test_discovery_mismatch_preserves_rejection_before_tests_without_logging_values(self):
+        with self.assertRaisesRegex(ValueError, 'worker independently resolved different inputs') as caught:
+            self.run_worker(wrong_source=True)
+        message = str(caught.exception)
+        self.assertIn('/source/marker~1token', message)
+        self.assertNotIn('private-source-value', message)
+        self.assertFalse((self.root / 'new-worker/native-report.json').exists())
+        self.assertFalse((self.root / 'new-worker/worker-0.json').exists())
+
+    def test_difference_diagnostics_are_bounded_and_escape_json_pointers(self):
+        expected = {'a/b': {'~key': 'private-expected-value'}}
+        actual = {'a/b': {'~key': 'private-actual-value'}}
+        difference = ci.redacted_differences(expected, actual)
+        self.assertEqual(difference['differences'][0]['path'], '/a~1b/~0key')
+        for field in ['expected_sha256', 'actual_sha256']:
+            self.assertRegex(difference['differences'][0][field], r'^[0-9a-f]{64}$')
+        encoded = json.dumps(difference)
+        self.assertNotIn('private-expected-value', encoded)
+        self.assertNotIn('private-actual-value', encoded)
+        self.assertFalse(difference['truncated'])
+        limited = ci.redacted_differences({str(i): 'before' for i in range(40)},
+                                          {str(i): 'after' for i in range(40)})
+        self.assertLessEqual(len(limited['differences']), 16)
+        self.assertTrue(limited['truncated'])
+        self.assertLess(len(json.dumps(limited)), 16000)
+        oversized_key = 'do-not-echo-this-key-' * 100
+        limited = ci.redacted_differences({oversized_key: 'before'}, {oversized_key: 'after'})
+        self.assertEqual(limited['differences'][0]['path'], '')
+        self.assertNotIn(oversized_key, json.dumps(limited))
+        self.assertTrue(limited['truncated'])
 
     def test_malformed_and_unexpected_plan_records_fail(self):
         for mutate in [lambda value: value.update(extra=True),
