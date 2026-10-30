@@ -6,6 +6,7 @@ import {
   LibraryReferenceTypeField,
 } from '@/renderer/components/chat/SendBox/reading/LibraryBibliographicFields';
 import { useLibraryDetailDialog } from './useLibraryDetailDialog';
+import { LibraryDirectoryState } from './LibraryDirectoryState';
 import { useLibraryManualCreate, type LibraryManualCreateProps } from './useLibraryManualCreate';
 import '@/renderer/components/chat/SendBox/reading/readingContext.css';
 import './libraryManualCreate.css';
@@ -78,6 +79,13 @@ export function LibraryManualCreate(props: LibraryManualCreateProps) {
                 </label>
               ))}
               <LibraryBibliographicFields {...scalarProps} />
+              {props.collectionRead && (
+                <LibraryDirectoryState
+                  view={props.collectionRead}
+                  errorText={t('conversation.libraryWorkbench.collectionsFailed')}
+                  retry={props.refresh}
+                />
+              )}
               {(failure || (pending && view.error)) && (
                 <div role='alert'>
                   <p>

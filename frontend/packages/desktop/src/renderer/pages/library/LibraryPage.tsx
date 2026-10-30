@@ -653,6 +653,8 @@ export default function LibraryPage() {
               account={reads.account}
               projectId={projectId}
               collection={selectedCollection}
+              collectionRead={collectionId ? reads.collections : undefined}
+              refresh={reads.refresh}
               view={mutation.view}
               retry={retryPendingMutation}
               submit={(command) => {

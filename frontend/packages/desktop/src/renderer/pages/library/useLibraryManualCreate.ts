@@ -4,11 +4,14 @@ import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/lite
 import { projectLibraryScalars } from '@/renderer/components/chat/SendBox/reading/libraryBibliographicDraft';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { LiteratureMutationView } from '@/renderer/services/runtime/LiteratureMutationController';
+import { isLibraryReadFresh, type LibraryReadPhase } from './useLibraryWorkbench';
 
 export type LibraryManualCreateProps = {
   account: string;
   projectId: string;
   collection?: { id: string; revision: number };
+  collectionRead?: LibraryReadPhase;
+  refresh: () => void;
   view: LiteratureMutationView;
   submit: (command: LiteratureCommand) => Promise<LiteratureReceipt>;
   retry: () => Promise<unknown>;
@@ -22,6 +25,8 @@ export function useLibraryManualCreate({
   account,
   projectId,
   collection,
+  collectionRead,
+  refresh,
   view,
   submit,
   retry,
@@ -32,7 +37,7 @@ export function useLibraryManualCreate({
   const [scalars, setScalars] = useState(() => projectLibraryScalars({}));
   const [failure, setFailure] = useState<'trash' | 'rejected' | undefined>();
   const [discard, setDiscard] = useState(false);
-  const destination = useRef({ projectId, collection }).current;
+  const destination = useRef({ projectId, collectionId: collection?.id }).current;
   const alive = useRef(true);
   const operation = useRef<string | undefined>(undefined);
   const latch = useRef(false);
@@ -45,7 +50,11 @@ export function useLibraryManualCreate({
     };
   }, []);
   const pending = Boolean(view.pending && view.pending.operation_id === operation.current);
-  const locked = Boolean(view.mutating || view.pending || view.error === 'storage');
+  const destinationUnavailable = Boolean(
+    destination.collectionId &&
+    (!collectionRead || !isLibraryReadFresh(collectionRead) || collection?.id !== destination.collectionId)
+  );
+  const locked = Boolean(view.mutating || view.pending || view.error === 'storage' || destinationUnavailable);
   const dirty = Object.values(basic).some(Boolean) || Object.values(scalars).some(Boolean);
   const requestClose = () => {
     if (!current() || view.mutating) return;
@@ -110,18 +119,22 @@ export function useLibraryManualCreate({
             title: basic.title.trim(),
             metadata,
             ...(destination.projectId ? { project_id: destination.projectId } : {}),
-            ...(destination.collection
+            ...(destination.collectionId && collection
               ? {
-                  collection_id: destination.collection.id,
-                  expected_collection_revision: destination.collection.revision,
+                  collection_id: destination.collectionId,
+                  expected_collection_revision: collection.revision,
                 }
               : {}),
           })
         );
       }
     } catch (error) {
-      if (current())
+      if (current()) {
         setFailure(isBackendHttpError(error) && error.code === 'LITERATURE_TRASH_CONFLICT' ? 'trash' : 'rejected');
+        // Definite rejection has no pending write. The next explicit Create may
+        // use a refreshed revision; an uncertain retry still delegates unchanged.
+        if (isBackendHttpError(error) && error.code === 'LITERATURE_CONFLICT' && destination.collectionId) refresh();
+      }
     } finally {
       latch.current = false;
     }
