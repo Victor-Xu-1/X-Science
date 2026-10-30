@@ -1005,7 +1005,7 @@ describe('AcpSendBox', () => {
       const second = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
       const state = { activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] };
       getSelectedBranchMock.mockReturnValue('branch-preparing');
-      loadBranchStateMock.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+      loadBranchStateMock.mockReset().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
       sendBoxDraftSeed.current = 'Original draft';
       sendMessageInvokeMock.mockReset();
       await render(<AcpSendBox conversation_id={conversationId} backend='xscience'
