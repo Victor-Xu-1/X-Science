@@ -37,6 +37,7 @@ vi.mock('@/renderer/pages/library/LibraryAttachmentPreview', () => ({
 }));
 
 const owner = 'library-page-bulk-owner';
+const defaultUiPageSize = 25;
 const itemId = (n: number) => `paper-${String(n).padStart(3, '0')}`;
 const title = (n: number) => `Synthetic ${itemId(n)}`;
 const json = (value: unknown, status = 200) =>
@@ -334,7 +335,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await screen.findByRole('checkbox', { name: `Select ${title(1)}` });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select this page' }));
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    await screen.findByRole('checkbox', { name: `Select ${title(21)}` });
+    await screen.findByRole('checkbox', { name: `Select ${title(defaultUiPageSize + 1)}` });
     expect(screen.queryByRole('toolbar', { name: 'Reference selection' })).toBeNull();
     expect(screen.getByRole('checkbox', { name: 'Select this page' })).not.toBeChecked();
     fireEvent.click(screen.getByRole('button', { name: 'Back to first page' }));
@@ -389,7 +390,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
   });
 
   it('shows a new complete-selection failure instead of the previous completed batch and keeps selection retryable', async () => {
-    const http = catalogue(21);
+    const http = catalogue(defaultUiPageSize + 1);
     const readback = deferred();
     release.push(readback.resolve);
     await mount();
@@ -397,7 +398,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     fireEvent.click(pageSelection);
     http.delayNextListUntil(readback.promise);
     start();
-    await screen.findByText('20 references saved.');
+    await screen.findByText(`${defaultUiPageSize} references saved.`);
     const controller = getLiteratureMutationController(owner);
     await waitFor(() => expect(controller.getSnapshot().mutating).toBe(false));
     const completed = controller.getSnapshot().action;
@@ -448,6 +449,6 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(screen.getByRole('checkbox', { name: 'Select this page' })).toBeChecked();
     expect(within(toolbar()).getByText('All matching references selected')).toBeInTheDocument();
     expect(await screen.findByText('The complete selection could not be loaded. No batch was started.')).toBeVisible();
-    expect(screen.queryByText('20 references saved.')).toBeNull();
+    expect(screen.queryByText(`${defaultUiPageSize} references saved.`)).toBeNull();
   });
 });

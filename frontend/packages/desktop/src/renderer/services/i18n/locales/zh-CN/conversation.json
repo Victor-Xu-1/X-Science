@@ -2195,6 +2195,10 @@
     "reading": "在读",
     "read": "已读"
   },
+  "libraryPageSize": {
+    "label": "每页文献数",
+    "count": "共 {{count}} 篇"
+  },
   "libraryWorkbench": {
     "eyebrow": "你的研究文献",
     "title": "文献库",

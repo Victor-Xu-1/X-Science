@@ -26,6 +26,9 @@ import { inspectPdfReadingCandidates, type PdfReadingOption } from './pdfReading
 const requireAccount = (token: string) => {
   if (token !== getRendererAccountScopeToken()) throw new Error('Literature Library account changed');
 };
+export const literaturePageSizes = [25, 50, 100] as const;
+export type LiteraturePageSize = (typeof literaturePageSizes)[number];
+
 export async function loadLiteraturePage(
   options: {
     query?: string;
@@ -34,11 +37,15 @@ export async function loadLiteraturePage(
     readingStatus?: LiteratureReadingStatus;
     lifecycle?: LiteratureLifecycle;
     cursor?: string;
+    pageSize?: LiteraturePageSize;
     signal?: AbortSignal;
   } = {}
 ) {
   const account = getRendererAccountScopeToken();
-  const query = new URLSearchParams({ limit: '20' });
+  if (options.pageSize !== undefined && !literaturePageSizes.includes(options.pageSize))
+    throw new Error('Invalid Literature Library page size');
+  // Non-UI readers retain their original 20-item window.
+  const query = new URLSearchParams({ limit: String(options.pageSize ?? 20) });
   if (options.readingStatus !== undefined) decodeLiteratureReadingStatus(options.readingStatus);
   appendLiteratureScopeQuery(query, options);
   if (options.cursor) query.set('cursor', options.cursor);

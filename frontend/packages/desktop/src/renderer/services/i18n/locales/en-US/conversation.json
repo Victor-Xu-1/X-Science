@@ -2195,6 +2195,10 @@
     "reading": "Reading",
     "read": "Read"
   },
+  "libraryPageSize": {
+    "label": "References per page",
+    "count": "Total: {{count}}"
+  },
   "libraryWorkbench": {
     "eyebrow": "Your research references",
     "title": "Library",
