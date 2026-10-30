@@ -615,14 +615,24 @@ describe('Library PDF import UI', () => {
     pageState.controller = x.controller;
     pageState.reads = reads;
     const user = userEvent.setup();
+    const selectPdf = async (addLabel = 'Add', pdfLabel = 'Import PDF') => {
+      await user.click(screen.getByRole('button', { name: addLabel, exact: true }));
+      await screen.findByRole('menuitem', { name: pdfLabel, exact: true });
+      // Arco initially mounts its measured popup with pointer-events:none.
+      await waitFor(() =>
+        expect(getComputedStyle(screen.getByRole('menuitem', { name: pdfLabel, exact: true })).pointerEvents).not.toBe(
+          'none'
+        )
+      );
+      await user.click(screen.getByRole('menuitem', { name: pdfLabel, exact: true }));
+    };
     const rendered = await renderWithI18n(<PageRoot />, 'en-US');
     await user.click(screen.getByRole('button', { name: 'New collection' }));
     const collectionDialog = screen.getByRole('dialog');
     expect(collectionDialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
     await user.click(within(collectionDialog).getByRole('button', { name: 'Cancel' }));
-    await user.click(screen.getByRole('button', { name: 'Add', exact: true }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Import PDF', exact: true }));
+    await selectPdf();
     const dialog = await choose(user);
     expect(dialog).toHaveAttribute('aria-modal', 'false');
     expect(screen.getByRole('button', { name: 'New collection' })).toBeDisabled();
@@ -642,8 +652,7 @@ describe('Library PDF import UI', () => {
       });
     });
     await waitFor(() => expect(x.run).toHaveBeenCalledTimes(1));
-    await user.click(screen.getByRole('button', { name: 'Add', exact: true }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Import PDF', exact: true }));
+    await selectPdf();
     expect(screen.getByText('Finish the existing Library change before importing another PDF.')).toBeInTheDocument();
     fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
     expect(start).not.toHaveBeenCalled();
@@ -656,8 +665,7 @@ describe('Library PDF import UI', () => {
     pageState.controller = chinese.controller;
     pageState.reads = pageReads();
     await renderWithI18n(<PageRoot />, 'zh-CN');
-    await user.click(screen.getByRole('button', { name: '添加', exact: true }));
-    await user.click(await screen.findByRole('menuitem', { name: '导入 PDF', exact: true }));
+    await selectPdf('添加', '导入 PDF');
     await user.upload(screen.getByLabelText('选择 PDF 文件'), pdf());
     const translated = await screen.findByRole('dialog', { name: '导入 PDF 文献' });
     expect(within(translated).getByRole('combobox', { name: '项目' })).toBeInTheDocument();
