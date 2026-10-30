@@ -23,6 +23,7 @@ import {
 } from '@/common/adapter/literatureReadingStatus';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { literaturePageSizes } from '@/renderer/services/runtime/literatureLibrary';
 import { libraryAuthors } from './LibraryItemDetails';
 import { LibraryDetailsPane } from './LibraryDetailsPane';
 import { isLibraryReadFresh, useLibraryWorkbench } from './useLibraryWorkbench';
@@ -72,7 +73,19 @@ export default function LibraryPage() {
     selectTrash,
     selectInbox,
   } = useLibraryNavigation(params, setParams);
-  const reads = useLibraryWorkbench(query, cursor, selectedId, collectionId, projectId, readingStatus, lifecycle);
+  const requestedPageSizes = params.getAll('page_size');
+  const pageSize =
+    literaturePageSizes.find((size) => requestedPageSizes.length === 1 && String(size) === requestedPageSizes[0]) ?? 25;
+  const reads = useLibraryWorkbench(
+    query,
+    cursor,
+    selectedId,
+    collectionId,
+    projectId,
+    readingStatus,
+    lifecycle,
+    pageSize
+  );
   const layout = useLayoutContext();
   const history = useNavigationHistory();
   const rail = layout?.libraryRail;
@@ -94,6 +107,7 @@ export default function LibraryPage() {
     projectId,
     query,
     cursor,
+    pageSize,
     selectedId,
     readingStatus,
     inbox,
@@ -138,6 +152,7 @@ export default function LibraryPage() {
     account: reads.account,
     scope: { query, collectionId, projectId, readingStatus, lifecycle },
     cursor,
+    pageSize,
     rows: items,
     readReady: listReady,
     blocked: trash || baseBusy || Boolean(visibleEditor),
@@ -215,6 +230,24 @@ export default function LibraryPage() {
     const next = new URLSearchParams(params);
     if (nextCursor) next.set('cursor', nextCursor);
     else next.delete('cursor');
+    next.delete('item');
+    setParams(next);
+  };
+  const changePageSize = (value: string) => {
+    const nextSize = literaturePageSizes.find((size) => String(size) === value);
+    if (
+      nextSize === undefined ||
+      nextSize === pageSize ||
+      !listReady ||
+      busy ||
+      visibleEditor ||
+      reads.account !== getRendererAccountScopeToken()
+    )
+      return;
+    bulk.clear();
+    const next = new URLSearchParams(params);
+    next.set('page_size', String(nextSize));
+    next.delete('cursor');
     next.delete('item');
     setParams(next);
   };
@@ -839,25 +872,53 @@ export default function LibraryPage() {
                   )
                 }
               />
-              {(cursor || reads.list.value?.next_cursor) && (
-                <footer className='library-workbench__paging'>
-                  <button
-                    type='button'
-                    disabled={!cursor || reads.list.status === 'loading'}
-                    onClick={() => changePage()}
-                  >
-                    {t('conversation.libraryWorkbench.firstPage')}
-                  </button>
-                  <button
-                    type='button'
-                    disabled={!listReady || !reads.list.value?.next_cursor}
-                    onClick={() => changePage(reads.list.value?.next_cursor)}
-                  >
-                    {t('conversation.libraryWorkbench.nextPage')}
-                    <ChevronRight size={14} aria-hidden='true' />
-                  </button>
-                </footer>
-              )}
+              <footer className='library-workbench__paging'>
+                {listReady &&
+                  reads.account === getRendererAccountScopeToken() &&
+                  reads.list.value?.total_count !== undefined && (
+                    <p className='library-workbench__paging-count'>
+                      {t('conversation.libraryPageSize.count', { count: reads.list.value.total_count })}
+                    </p>
+                  )}
+                <div className='library-workbench__paging-controls'>
+                  <label className='library-workbench__page-size-field'>
+                    <span>{t('conversation.libraryPageSize.label')}</span>
+                    <select
+                      className='library-workbench__button library-workbench__page-size'
+                      value={pageSize}
+                      disabled={busy || !listReady || Boolean(visibleEditor)}
+                      onChange={(event) => changePageSize(event.currentTarget.value)}
+                    >
+                      {literaturePageSizes.map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {Boolean(cursor || reads.list.value?.next_cursor) && (
+                    <div className='library-workbench__paging-navigation'>
+                      <button
+                        type='button'
+                        className='library-workbench__button'
+                        disabled={!cursor || reads.list.status === 'loading'}
+                        onClick={() => changePage()}
+                      >
+                        {t('conversation.libraryWorkbench.firstPage')}
+                      </button>
+                      <button
+                        type='button'
+                        className='library-workbench__button'
+                        disabled={!listReady || !reads.list.value?.next_cursor}
+                        onClick={() => changePage(reads.list.value?.next_cursor)}
+                      >
+                        {t('conversation.libraryWorkbench.nextPage')}
+                        <ChevronRight size={14} aria-hidden='true' />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </footer>
             </section>
           </div>
           {selectedId && (

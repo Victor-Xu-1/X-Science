@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { loadLiteratureItem, loadLiteraturePage } from '@/renderer/services/runtime/literatureLibrary';
+import {
+  loadLiteratureItem,
+  loadLiteraturePage,
+  type LiteraturePageSize,
+} from '@/renderer/services/runtime/literatureLibrary';
 import { LiteratureDetailUnavailableError } from '@/common/adapter/literatureLibrary';
 import {
   loadLiteratureCollections,
@@ -104,7 +108,8 @@ export function useLibraryWorkbench(
   collectionId = '',
   projectId = '',
   readingStatus: LiteratureReadingStatus | '' = '',
-  lifecycle: LiteratureLifecycle = 'active'
+  lifecycle: LiteratureLifecycle = 'active',
+  pageSize?: LiteraturePageSize
 ) {
   const [account, setAccount] = useState(getRendererAccountScopeToken);
   const [revision, setRevision] = useState(0);
@@ -123,9 +128,10 @@ export function useLibraryWorkbench(
         projectId: projectId || undefined,
         readingStatus: readingStatus || undefined,
         lifecycle,
+        pageSize,
         signal,
       }),
-    [query, cursor, collectionId, projectId, readingStatus, lifecycle]
+    [query, cursor, collectionId, projectId, readingStatus, lifecycle, pageSize]
   );
   const detailRequest = useCallback(
     (signal: AbortSignal) => (selectedId ? loadLiteratureItem(selectedId, signal) : Promise.resolve(undefined)),
@@ -145,6 +151,7 @@ export function useLibraryWorkbench(
       'list',
       query,
       cursor,
+      pageSize ?? 20,
       collectionId,
       projectId,
       readingStatus,
@@ -159,6 +166,7 @@ export function useLibraryWorkbench(
       'list',
       query,
       cursor,
+      pageSize ?? 20,
       collectionId,
       projectId,
       readingStatus,
