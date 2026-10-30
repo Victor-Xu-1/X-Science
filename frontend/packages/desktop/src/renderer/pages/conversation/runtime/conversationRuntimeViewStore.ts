@@ -5,6 +5,7 @@
  */
 
 import type { ConversationInputReceipt } from '@/common/adapter/conversationInputReceipt';
+import { ConversationPreparationCancelledError } from '@/common/chat/conversationSubmission';
 import type {
   TChatConversationStatus,
   TConversationRuntimeStateKind,
@@ -603,6 +604,30 @@ export const isLocalSendPreparing = (conversation_id: string, ticket: object): b
   const metadata = getRuntimeMetadata(conversation_id);
   return metadata.pendingLocalSendTicket === ticket && metadata.pendingLocalSendPhase === 'preparing';
 };
+
+/** Retire the original await with its ticket, even when a preparation peer ignores cancellation. */
+export function awaitLocalSendPreparation<T>(conversation_id: string, ticket: object, pending: Promise<T>): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    let release = () => {};
+    const finish = (action: () => void) => {
+      if (settled) return;
+      settled = true;
+      release();
+      action();
+    };
+    const check = () => {
+      if (!isLocalSendPreparing(conversation_id, ticket))
+        finish(() => reject(new ConversationPreparationCancelledError()));
+    };
+    release = subscribeConversationRuntimeView(check);
+    pending.then(
+      (value) => finish(() => resolve(value)),
+      (error) => finish(() => reject(error))
+    );
+    check();
+  });
+}
 
 /** Synchronous transport boundary: after this succeeds, Stop belongs to the backend. */
 export const localSendDispatched = (conversation_id: string, ticket: object): boolean => {

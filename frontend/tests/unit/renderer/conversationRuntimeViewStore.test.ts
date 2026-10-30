@@ -7,6 +7,7 @@ import {
   localSendStarted,
   localSendFailed,
   isLocalSendPreparing,
+  awaitLocalSendPreparation,
   localSendDispatched,
   cancelLocalSendPreparation,
   localStopAcknowledged,
@@ -51,6 +52,35 @@ describe('conversationRuntimeViewStore turn id contract', () => {
   beforeEach(() => {
     resetConversationRuntimeViewStoreForTest();
     resetRendererAccountScopeForTest();
+  });
+
+  it('withdrawn preparation await settles once and ignores late transport after a newer ticket or account reset', async () => {
+    const owner = 'await-preparation-frame';
+    const first = {};
+    let resolveOld!: (value: string) => void;
+    const oldTransport = new Promise<string>((resolve) => {
+      resolveOld = resolve;
+    });
+    localSendStarted(owner, first, 'preparing');
+    const oldWait = awaitLocalSendPreparation(owner, first, oldTransport);
+    const rejectedOld = expect(oldWait).rejects.toThrow('conversation_preparation_cancelled');
+    cancelLocalSendPreparation(owner, first);
+    await rejectedOld;
+    const next = {};
+    localSendStarted(owner, next, 'preparing');
+    resolveOld('late response');
+    await oldTransport;
+    expect(isLocalSendPreparing(owner, next)).toBe(true);
+    let rejectPeer!: (error: Error) => void;
+    const pending = new Promise<string>((_resolve, reject) => {
+      rejectPeer = reject;
+    });
+    const nextWait = awaitLocalSendPreparation(owner, next, pending);
+    const rejectedNext = expect(nextWait).rejects.toThrow('conversation_preparation_cancelled');
+    setRendererAccountOwner('replacement-account');
+    await rejectedNext;
+    rejectPeer(new Error('late transport failure'));
+    await expect(pending).rejects.toThrow('late transport failure');
   });
 
   it('local preparation projection follows the current ticket across dispatch, reset and account changes', () => {
