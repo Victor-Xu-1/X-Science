@@ -727,6 +727,7 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () =
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
+    ...actual,
     Input: ({
       value,
       onChange,
