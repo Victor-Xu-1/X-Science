@@ -969,13 +969,14 @@ async function renderManualCompaction(
 
 describe('AcpSendBox', () => {
   it.each([
-    ['ordinary', false],
-    ['save-as-skill', false],
-    ['ordinary', true],
-    ['save-as-skill', true],
+      ['ordinary', false, false],
+      ['save-as-skill', false, false],
+      ['ordinary', true, false],
+      ['save-as-skill', true, false],
+      ['ordinary', false, true],
   ] as const)(
-    'real preparation controls expose Stop for %s with initial snapshot held=%s and withdraw its exact send',
-    async (kind, initialSnapshotHeld) => {
+    'real preparation controls expose Stop for %s with snapshot held=%s and dispatched=%s',
+    async (kind, initialSnapshotHeld, dispatched) => {
       realPreparationRuntime.current = true;
       const conversationId = 'conv-real-preparing';
       const completedRuntime: TConversationRuntimeSummary = {
@@ -1009,6 +1010,9 @@ describe('AcpSendBox', () => {
       loadBranchStateMock.mockReturnValueOnce(branch.promise);
       sendBoxDraftSeed.current = 'Keep the original draft.';
       sendMessageInvokeMock.mockReset();
+      const acknowledgement = createDeferred<unknown>();
+      if (dispatched) sendMessageInvokeMock.mockReturnValueOnce(acknowledgement.promise);
+      stopInvokeMock.mockResolvedValue({ runtime: completedRuntime });
       await render(
         <AcpSendBox
           conversation_id={conversationId}
@@ -1034,6 +1038,14 @@ describe('AcpSendBox', () => {
         await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledOnce());
         expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localSubmitting).toBe(true);
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        if (dispatched) {
+          await act(async () => {
+            branch.resolve({ activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] });
+            await branch.promise;
+          });
+          await waitFor(() => expect(sendMessageInvokeMock).toHaveBeenCalledOnce());
+          expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(false);
+        }
         const stop = screen.getByRole('button', { name: '暂停任务' });
         fireEvent.click(stop);
         await waitFor(() =>
@@ -1044,6 +1056,16 @@ describe('AcpSendBox', () => {
           await branch.promise;
           await saving;
         });
+        if (dispatched) {
+          expect(stopInvokeMock).toHaveBeenCalledWith({ conversation_id: conversationId, turn_id: conversationId });
+          await act(async () => {
+            acknowledgement.resolve({ msg_id: 'late-input', turn_id: conversationId, runtime: completedRuntime });
+            await acknowledgement.promise;
+          });
+          expect(sendMessageInvokeMock).toHaveBeenCalledOnce();
+          expect(stopInvokeMock).toHaveBeenCalledOnce();
+          return;
+        }
         expect(sendMessageInvokeMock).not.toHaveBeenCalled();
         expect(stopInvokeMock).not.toHaveBeenCalled();
         expect(clearFilesMock).not.toHaveBeenCalled();
