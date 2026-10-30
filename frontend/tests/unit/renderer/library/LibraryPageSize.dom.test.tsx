@@ -41,6 +41,12 @@ async function mount(path = '/library') {
     'en-US'
   );
 }
+async function findPaper(title: string) {
+  const button = await screen.findByText(title, { selector: 'button' });
+  expect(button).toHaveAccessibleName(title);
+  expect(button).toBeVisible();
+  return button;
+}
 function installCatalogue({ holdFirstPage = false } = {}) {
   const pages: URL[] = [];
   const signals: Array<AbortSignal | null | undefined> = [];
@@ -107,34 +113,48 @@ describe('Library URL-owned page size through the original HTTP reader', () => {
     vi.restoreAllMocks();
   });
 
-  it('requests 25/50/100, resets the old cursor and restores the selected size after remount', async () => {
+  it('requests 25/50/100 and resets the old cursor when the page size changes', async () => {
     const { pages } = installCatalogue();
-    const rendered = await mount();
-    await screen.findByRole('button', { name: 'Paper 001' });
+    await mount();
+    await findPaper('Paper 001');
     expect(pages[0].searchParams.get('limit')).toBe('25');
     const size = screen.getByRole('combobox', { name: 'References per page' });
     expect(size).toHaveValue('25');
     fireEvent.change(size, { target: { value: '50' } });
-    await screen.findByRole('button', { name: 'Paper 050' });
+    await findPaper('Paper 050');
     expect(pages.at(-1)?.searchParams.get('limit')).toBe('50');
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    await screen.findByRole('button', { name: 'Paper 100' });
+    await findPaper('Paper 100');
     expect(pages.at(-1)?.searchParams.get('cursor')).toBe('after-50');
-    fireEvent.change(screen.getByRole('combobox', { name: 'References per page' }), {
+    fireEvent.change(size, {
       target: { value: '100' },
     });
-    await screen.findByRole('button', { name: 'Paper 001' });
+    await findPaper('Paper 001');
+    await findPaper('Paper 100');
     expect(pages.at(-1)?.searchParams.get('limit')).toBe('100');
     expect(pages.at(-1)?.searchParams.has('cursor')).toBe(false);
     const search = screen.getByLabelText('Library location').textContent ?? '';
     expect(new URLSearchParams(search).get('page_size')).toBe('100');
+    expect(size).toHaveValue('100');
+  });
+
+  it('restores the 100-item URL window after a fresh mount and remount', async () => {
+    const { pages } = installCatalogue();
+    const rendered = await mount('/library?page_size=100');
+    await findPaper('Paper 001');
+    await findPaper('Paper 100');
+    expect(pages[0].searchParams.get('limit')).toBe('100');
+    expect(pages[0].searchParams.has('cursor')).toBe(false);
+    expect(screen.getByRole('combobox', { name: 'References per page' })).toHaveValue('100');
+    const search = screen.getByLabelText('Library location').textContent ?? '';
+    expect(new URLSearchParams(search).get('page_size')).toBe('100');
     rendered.unmount();
     await mount(`/library${search}`);
-    await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: 'References per page' })).toHaveValue('100');
-    });
-    await screen.findByRole('button', { name: 'Paper 100' });
+    await findPaper('Paper 001');
+    await findPaper('Paper 100');
+    expect(screen.getByRole('combobox', { name: 'References per page' })).toHaveValue('100');
     expect(pages.at(-1)?.searchParams.get('limit')).toBe('100');
+    expect(pages.at(-1)?.searchParams.has('cursor')).toBe(false);
   });
 
   it('clears the prior selection and range anchor, while all-matching export still reads the full catalogue', async () => {
