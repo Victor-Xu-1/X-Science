@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func TestLiteratureMutationDecoderPreservesStrictEnvelope(t *testing.T) {
@@ -45,5 +47,26 @@ func TestLiteratureMutationDecoderPreservesStrictEnvelope(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestLiteratureMutationDecoderLargeCatalogEnvelope(t *testing.T) {
+	metadata := map[string]any{"abstract": strings.Repeat("a", 16000), "personal_note": strings.Repeat("\x01", 10000)}
+	for _, value := range []any{
+		&workspace.LiteraturePatch{}, &workspace.LiteratureImport{}, &workspace.LiteratureManualCreate{},
+	} {
+		body, err := json.Marshal(map[string]any{"metadata": metadata})
+		if err != nil || len(body) <= 64<<10 || len(body) >= 128<<10 {
+			t.Fatalf("fixture must exercise only the expanded bounded catalog receiver: bytes=%d err=%v", len(body), err)
+		}
+		request := httptest.NewRequest("POST", "/api/literature/items", strings.NewReader(string(body)))
+		if err := decodeLiteratureMutationBody(httptest.NewRecorder(), request, value); err != nil {
+			t.Fatalf("original large catalog request could not reach its ledger receiver: %T %v", value, err)
+		}
+		oversized := `{"metadata":{"padding":"` + strings.Repeat("x", 128<<10) + `"}}`
+		request = httptest.NewRequest("POST", "/api/literature/items", strings.NewReader(oversized))
+		if err := decodeLiteratureMutationBody(httptest.NewRecorder(), request, value); err == nil {
+			t.Fatalf("catalog envelope lost its finite byte ceiling: %T", value)
+		}
 	}
 }

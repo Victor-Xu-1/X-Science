@@ -75,7 +75,7 @@ func (s *Store) CreateManualLiterature(ctx context.Context, owner string, input 
 	if input.CollectionID == "" && input.ExpectedCollectionRevision != 0 || input.CollectionID != "" && (!validLiteratureID(input.CollectionID) || input.ExpectedCollectionRevision < 1) {
 		return receipt, ErrLiteratureInvalid
 	}
-	raw, err := literatureMetadata(input.Metadata)
+	raw, err := normalizeLiteratureMetadata(input.Metadata)
 	if err != nil {
 		return receipt, err
 	}
@@ -93,6 +93,9 @@ func (s *Store) CreateManualLiterature(ctx context.Context, owner string, input 
 	}
 	const operation = "literature.manual-create"
 	if found, err := s.lookupMutationResult(ctx, owner, input.OperationID, operation, hash, &receipt); err != nil || found {
+		return receipt, err
+	}
+	if err := admitNewLiteratureCatalogMetadata(raw); err != nil {
 		return receipt, err
 	}
 	ids, err := candidateIdentities(frozen)
