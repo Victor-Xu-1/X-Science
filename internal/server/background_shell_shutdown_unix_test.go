@@ -156,7 +156,7 @@ func TestServerCloseRejectsNewBackgroundShellAdmission(t *testing.T) {
 
 func TestBackgroundShellFailedStartReleasesShutdownReservation(t *testing.T) {
 	srv := New(Options{FileRoot: t.TempDir()})
-	if _, err := srv.startBackgroundShellCommand("unsupported-shell", "", "", map[string]any{"command": "exit"}); err == nil {
+	if _, err := srv.startBackgroundShellCommand(context.Background(), "unsupported-shell", "", "", map[string]any{"command": "exit"}); err == nil {
 		t.Fatal("unsupported shell started")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)

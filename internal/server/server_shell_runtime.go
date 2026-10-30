@@ -35,7 +35,7 @@ func (s *Server) executeShellTool(ctx context.Context, toolName string, input ma
 			return nil, err
 		}
 		if boolValue(input["run_in_background"], false) {
-			return s.startBackgroundShellCommand(routeTool, routeShell, routeReason, input, executionprep.ObservationFromContext(ctx))
+			return s.startBackgroundShellCommand(ctx, routeTool, routeShell, routeReason, input, executionprep.ObservationFromContext(ctx))
 		}
 		result, err := shellops.ExecuteShellCommand(
 			ctx,
@@ -60,7 +60,7 @@ func (s *Server) executeShellTool(ctx context.Context, toolName string, input ma
 		}
 		if boolValue(input["run_in_background"], false) {
 			shellName := strings.ToLower(executorToolName)
-			return s.startBackgroundShellCommand(executorToolName, shellName, "", input, executionprep.ObservationFromContext(ctx))
+			return s.startBackgroundShellCommand(ctx, executorToolName, shellName, "", input, executionprep.ObservationFromContext(ctx))
 		}
 		return shellops.ExecuteShellCommand(
 			ctx,
@@ -84,7 +84,7 @@ func (s *Server) executeShellTool(ctx context.Context, toolName string, input ma
 	)
 }
 
-func (s *Server) startBackgroundShellCommand(toolName string, shellName string, routeReason string, input map[string]any, observations ...*executionprep.Observation) (map[string]any, error) {
+func (s *Server) startBackgroundShellCommand(ctx context.Context, toolName string, shellName string, routeReason string, input map[string]any, observations ...*executionprep.Observation) (map[string]any, error) {
 	if s.taskStore == nil {
 		return nil, errors.New("task store is not configured")
 	}
@@ -135,6 +135,7 @@ func (s *Server) startBackgroundShellCommand(toolName string, shellName string, 
 	if _, _, _, err := s.taskStore.UpdateWithOptions(task.ID, taskstore.UpdateOptions{Metadata: metadata, MetadataSet: true}); err != nil {
 		return nil, err
 	}
+	owner := s.currentBackgroundShellOwner(ctx)
 	executionContext := context.Background()
 	if len(observations) > 0 {
 		executionContext = executionprep.WithObservation(executionContext, observations[0])
@@ -146,7 +147,7 @@ func (s *Server) startBackgroundShellCommand(toolName string, shellName string, 
 		_, _, _, _ = s.taskStore.UpdateWithOptions(task.ID, taskstore.UpdateOptions{Status: &failedStatus, Metadata: metadata, MetadataSet: true})
 		return nil, err
 	}
-	s.storeBackgroundShell(task.ID, running)
+	s.storeBackgroundShell(task.ID, running, owner)
 	settlementStarted = true
 	go s.finishBackgroundShell(task.ID, outputPath, running)
 	result := map[string]any{
@@ -167,13 +168,17 @@ func (s *Server) startBackgroundShellCommand(toolName string, shellName string, 
 	return result, nil
 }
 
-func (s *Server) storeBackgroundShell(taskID string, running *shellops.RunningCommand) {
+func (s *Server) storeBackgroundShell(taskID string, running *shellops.RunningCommand, owners ...*backgroundShellOwner) {
 	s.backgroundShellMu.Lock()
 	defer s.backgroundShellMu.Unlock()
 	if s.backgroundShells == nil {
-		s.backgroundShells = map[string]*shellops.RunningCommand{}
+		s.backgroundShells = map[string]*backgroundShellEntry{}
 	}
-	s.backgroundShells[taskID] = running
+	entry := &backgroundShellEntry{RunningCommand: running}
+	if len(owners) > 0 {
+		entry.owner = owners[0]
+	}
+	s.backgroundShells[taskID] = entry
 	// Shutdown may start while an already admitted launch prepares its process.
 	// It remains in the wait group and must be killed before registration returns.
 	if s.backgroundShellClosing && running != nil {
@@ -190,7 +195,10 @@ func (s *Server) takeBackgroundShell(taskID string) *shellops.RunningCommand {
 	defer s.backgroundShellMu.Unlock()
 	running := s.backgroundShells[taskID]
 	delete(s.backgroundShells, taskID)
-	return running
+	if running == nil {
+		return nil
+	}
+	return running.RunningCommand
 }
 
 func (s *Server) finishBackgroundShell(taskID string, outputPath string, running *shellops.RunningCommand) {

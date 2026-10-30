@@ -40,7 +40,9 @@ func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 	done := s.backgroundShellDone
 	running := make([]*shellops.RunningCommand, 0, len(s.backgroundShells))
 	for _, command := range s.backgroundShells {
-		running = append(running, command)
+		if command != nil {
+			running = append(running, command.RunningCommand)
+		}
 	}
 	s.backgroundShellMu.Unlock()
 

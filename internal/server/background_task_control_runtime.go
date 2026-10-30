@@ -52,6 +52,7 @@ func (s *Server) executeTaskOutputTool(ctx context.Context, toolName string, inp
 		case <-ctx.Done():
 			return map[string]any{"retrieval_status": "timeout", "task": taskOutputPayload(task)}, nil
 		case <-deadline.C:
+			s.observeTaskOutputPendingWait(ctx, taskID)
 			return map[string]any{"retrieval_status": "timeout", "task": taskOutputPayload(task)}, nil
 		case <-ticker.C:
 			nextTask, nextFound, err := s.taskStore.Get(taskID)
