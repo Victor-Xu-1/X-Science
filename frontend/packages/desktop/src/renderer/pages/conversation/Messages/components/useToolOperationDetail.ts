@@ -185,6 +185,7 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
       assertAccountScope();
       const enriched: NormalizedToolCall = {
         ...next,
+        ...(branchId ? { branchId } : {}),
         ...(hydration.output ? { output: hydration.output, truncated: false } : {}),
         ...(hydration.remote
           ? {
