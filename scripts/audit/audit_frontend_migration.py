@@ -479,6 +479,13 @@ ALLOWED_ADDITIONS = {
     'packages/desktop/src/renderer/pages/library/LibraryCollectionSidebar.tsx': 'Project the owned ordinary collection tree and server order into real filtering and creation controls without decorative smart or batch entries.',
     'packages/desktop/src/renderer/pages/library/LibraryCollectionEditor.tsx': 'Bind collection create, revision edits, deletion and exact uncertain-request retry to the existing account-wide mutation owner and form generation.',
     'packages/desktop/src/renderer/pages/library/LibraryCollectionMembership.tsx': 'Read and mutate the selected owned paper memberships through the same Library slot while fencing old item and account responses.',
+    "packages/desktop/src/renderer/pages/library/LibraryAddMenu.tsx": "Expose only connected manual reference creation and the original PDF chooser through the shared Library-local Arco menu dismissal and keyboard owner.",
+    "packages/desktop/src/renderer/pages/library/LibraryManualCreate.tsx": "Present one explicit manual reference form using the existing bibliographic fields, canonical reading tokens and WorkbenchModal, with truthful pending feedback and no attachment or external-provider substitution.",
+    "packages/desktop/src/renderer/pages/library/libraryManualCreate.css": "Keep the manual reference form compact and scoped while consuming the existing field, spacing, radius and light/dark token authorities.",
+    "packages/desktop/src/renderer/pages/library/useLibraryActionMenu.ts": "Share existing Library row and Add menu trigger, account fence, Escape return and Enter-default consumption while leaving Arco Arrow and selection dispatch authoritative.",
+    "packages/desktop/src/renderer/pages/library/useLibraryManualCreate.ts": "Own only the manual form draft and scoped receipt feedback; route one immutable creation and uncertain retry through the original account-wide Library mutation outbox without discarding an unknown write.",
+    "tests/unit/renderer/library/LibraryManualCreate.dom.test.tsx": "Verify one-step manual creation, original-operation retry and refresh, project/collection placement, late-account fences, Trash conflict and real Add menu keyboard and PDF chooser behavior with synthetic owned inputs.",
+    "tests/unit/renderer/library/LibraryManualScope.dom.test.tsx": "Verify existing manual portals retire on All-to-Inbox history navigation and do not revive drafts, steal hidden focus or write across a changed visit.",
 }
 
 ALLOWED_ADDITION_RULES = (
@@ -715,9 +722,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "9d49cadf10d002ac577b400c9fb1439cb2dd371f39c6f690b8f8eb3080225b60"
+APPROVED_ADAPTATION_FINGERPRINT = "05db53be3cda83d21e4a477de7c070ac253832c79e8fafa1f8ea1ded618f000e"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "3d8b771d9c0c4a8a17a31a7e17af0e790bc2be9afe5873316492963d0a8a0734"
+APPROVED_ADDITION_FINGERPRINT = "af01cb28b596be4c6865178dd4fe5ce8c9673406cbba3e634efbaf7953ea15e4"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
