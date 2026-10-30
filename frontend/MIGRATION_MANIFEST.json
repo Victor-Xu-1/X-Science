@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "7eb3d3216b0de01364b5087344dd082650f5b51153949d1fdfe4219142bcf849",
+  "adaptationFingerprintSHA256": "23ad2e3a38732d7375e4cd0d9ba5e5a67cf310c58e8ef4e80e1f10e64a26ce00",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ac1fafeecbc1b81707dc8804b4b034ee954bfb2c32ace6df7adc11e264fa441d",
+  "additionFingerprintSHA256": "9ec69d02d59305fde3bdc1d39909e067ea905ac425513d6e2c8a6a0edacbdc06",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1410
+    "addedFiles": 1412
   },
   "adaptations": [
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "fb4cb91f4680999729f646db2551bf1d556891c9dc6aea25d9dc01992f7d06ae",
-      "bytes": 133895,
+      "targetSHA256": "646123048f6e3e0e516619621c25231328de8ef8c60a1c5dc18364f78bc3d517",
+      "bytes": 133955,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "654fa2e879d7e0b928e88cd5c92da5ced5ce565e1c62a01dd6c4f53b974fd2ca",
-      "bytes": 126533,
+      "targetSHA256": "55f67e074d91963d315ff5add7df7ca615e4c420bc349dbbd5d035826964b743",
+      "bytes": 126593,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7680,12 +7680,6 @@
       "reason": "Validate the bounded account-scoped Library column visibility and order setting through the existing authenticated client settings authority; no second persistence or catalogue mutation path."
     },
     {
-      "path": "packages/desktop/src/common/adapter/literatureBibtex.ts",
-      "sha256": "64180545e185d673db3f9716002a55188090d64a1066655f520e59f367ea319c",
-      "bytes": 691,
-      "reason": "Validate the typed read-only BibTeX response against the exact requested canonical item IDs before any file download."
-    },
-    {
       "path": "packages/desktop/src/common/adapter/literatureCandidates.ts",
       "sha256": "17592ab191e9f8a9b6eaeec657d9d141692bd0352ee190152ce274cc7b1ca1b3",
       "bytes": 6505,
@@ -7726,6 +7720,12 @@
       "sha256": "0bd571c8a24c13b8dab960ac9e51b32f74d93af1bcdba1539e0107ab7e1155ce",
       "bytes": 3722,
       "reason": "Define personal reading-state values and closed original-operation batch acknowledgements for the existing authenticated Library mutation owner, independent of bibliographic revisions or PDF progress."
+    },
+    {
+      "path": "packages/desktop/src/common/adapter/literatureReferenceExport.ts",
+      "sha256": "38b8092fda6f9312cf8d445924f4a530eae7d5a1cf02c393129adf763c1f0cac",
+      "bytes": 1789,
+      "reason": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff."
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureRelated.ts",
@@ -9984,12 +9984,6 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/pages/library/LibraryBibtexExportMenu.tsx",
-      "sha256": "d13d794b1eb957eee99e1d1d95d9affd078c22c5b3d6f0404317a503266b005a",
-      "bytes": 1913,
-      "reason": "Adapt Open Science 23898639 selected-reference export entry, busy and failure feedback through the existing Library-local menu and compact X-Science controls; expose only the connected BibTeX format."
-    },
-    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryBulkProgress.tsx",
       "sha256": "198b1d81a9bd3ff5b3ec52069a9db4c786bbd5b030b03c96c264f690f9d6529f",
       "bytes": 3842,
@@ -10075,8 +10069,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "cbc6f0ae5f5b780c7db687ca5661b206ed71c0df9bffc8cdce71a7a4b22f8bd6",
-      "bytes": 37125,
+      "sha256": "13294536affa5da8edbd5f492cb3c737dffcc0a4507fb8ae09cf7c5d02df01c7",
+      "bytes": 37654,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10116,6 +10110,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryReferenceExportMenu.tsx",
+      "sha256": "05b263f098ef8f39b4ceabffd6782e3fc5af3722cd301f3e316f36f03871a929",
+      "bytes": 4986,
+      "reason": "Adapt Open Science 8f479374 complete Library reference export menus, format choices and collection actions to compact X-Science controls and the existing Library editor/menu authorities."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryRowActions.tsx",
       "sha256": "6641939ef56963eaa222a6134b5fa7b6df86e5fa7bba5096165042329c6ab9ee",
       "bytes": 2332,
@@ -10135,8 +10135,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryWorkspaceHeader.tsx",
-      "sha256": "530f9cf1e90af9d7061b1d20fc3635daac8a5f9bade5c9ea0307f4eb79884814",
-      "bytes": 1627,
+      "sha256": "94764843c0e730ef1d74babf5b581a581c94ec67493d68058d01b4af02715a40",
+      "bytes": 1535,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10243,8 +10243,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/librarySelection.css",
-      "sha256": "6b66da1ed1ff06afa9a2266c2ed4ef762c412530a688cc102da16d0b23ad4283",
-      "bytes": 2920,
+      "sha256": "c91f0a2c33f039893e62a9ad16a48169fd442048c4da2fbe7ad815ef3c5b5460",
+      "bytes": 3037,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10296,12 +10296,6 @@
       "reason": "Share existing Library row and Add menu trigger, account fence, Escape return and Enter-default consumption while leaving Arco Arrow and selection dispatch authoritative."
     },
     {
-      "path": "packages/desktop/src/renderer/pages/library/useLibraryBibtexExport.ts",
-      "sha256": "9077654a6be178b6269d2f68e95741bbe9e95738e27173fd2d79451e92dc43b7",
-      "bytes": 2723,
-      "reason": "Bind one explicit-selection export to the existing account, selection and visit boundaries, with synchronous request ownership and no late-scope download or mutation outbox."
-    },
-    {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryBulkReadingStatus.ts",
       "sha256": "df6721c11f0521b203b34573b1715e737eb290b70a55307742c928e2b90db73d",
       "bytes": 10994,
@@ -10324,6 +10318,12 @@
       "sha256": "13eac3e21cd8d7c21418d33a77b3561834fefef251b6e6a59143bb8c6070fca1",
       "bytes": 7203,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/useLibraryExportMenu.ts",
+      "sha256": "e65e1f696fe39a71e1973b8911fdf0f8d4da5dbd0fda6b3101bf23566c77807a",
+      "bytes": 1777,
+      "reason": "Adapt reference hover timing and keyboard focus through the original Library action-menu owner; display-only timers introduce no request or persistence authority."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryLifecycleVisit.ts",
@@ -10354,6 +10354,12 @@
       "sha256": "f20ad22da7e80bc5a502ff084f0d4c1283febdf0c241118c20ade41497d28c1a",
       "bytes": 12624,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/useLibraryReferenceExport.ts",
+      "sha256": "d3712fb9594d413a6ec51ef0f5e0b3178cd70d62d8b931fe90f221471aa9af6f",
+      "bytes": 7488,
+      "reason": "Use one account-fenced export work slot for explicit selections, all matching selections and current project or collection scope, retiring stale owners and preserving complete-file semantics."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryRowActions.ts",
@@ -11430,12 +11436,6 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
-      "path": "packages/desktop/src/renderer/services/runtime/literatureBibtex.ts",
-      "sha256": "e3b5aec16ecfc8c45056f6cbd98a5f73b626771898f42a58bb42172438d23caf",
-      "bytes": 1718,
-      "reason": "Read authenticated canonical Library BibTeX batches through the existing HTTP and renderer account authority, then return complete UTF-8 content only after all exact replies succeed."
-    },
-    {
       "path": "packages/desktop/src/renderer/services/runtime/literatureCandidates.ts",
       "sha256": "0bdc9f484d6aaa4a6c9a07f9a45ef910f0579f763814c3b6d98d66bba5fc8ded",
       "bytes": 2328,
@@ -11490,6 +11490,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/literatureReferenceExport.ts",
+      "sha256": "f700cc8c8d10130c39c3b0ae55f620099d173f51332beae10d82ff633ce1fef9",
+      "bytes": 1926,
+      "reason": "Read bounded authenticated canonical BibTeX/RIS batches through the existing HTTP and account authority and return content only after every exact reply succeeds."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/literatureRelated.ts",
       "sha256": "ec993cfc292120b6800c34ee6b23e66aa2125f01bc808913bcfd6e09426830d1",
       "bytes": 651,
@@ -11497,8 +11503,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureSelection.ts",
-      "sha256": "aaa333efc66fc54032082b26c407912a4407600f6a17def2426f9a5cfc8611a8",
-      "bytes": 1133,
+      "sha256": "f927b2aca5ded373d75c091740e3286409249c062d9c853e6801c88ff8935a6c",
+      "bytes": 1244,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13848,12 +13854,6 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
-      "path": "tests/unit/renderer/conversation/literatureBibtex.test.ts",
-      "sha256": "b8b3cb2b686488dcc37f471f94a67aa03807e40fb36e656aad0a9ef56e9d2192",
-      "bytes": 2767,
-      "reason": "Verify bounded complete-selection export, all-or-none response handling and cleanup through the original browser download helper using isolated synthetic input."
-    },
-    {
       "path": "tests/unit/renderer/conversation/literatureCollections.test.ts",
       "sha256": "fef7e00979594cbfa76f13a48b98fe752fa37a8de4043769a5e25159ffdc4ba4",
       "bytes": 11860,
@@ -13906,6 +13906,12 @@
       "sha256": "f8c24aa5107af73f3473b96cd8a8052f6de452111b760b3b1ab5b98d47251bfe",
       "bytes": 7016,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/literatureReferenceExport.test.ts",
+      "sha256": "804d23467aece5d70be70287791c9e1dace7a6b320e6818577e60c16a048b7af",
+      "bytes": 5012,
+      "reason": "Verify complete bounded reference transport, both format contracts, all-or-none replies and filename normalization with isolated synthetic input."
     },
     {
       "path": "tests/unit/renderer/conversation/literatureRelated.test.ts",
@@ -14172,12 +14178,6 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
-      "path": "tests/unit/renderer/library/LibraryBibtexExport.dom.test.tsx",
-      "sha256": "a3ed3a32988b91c4a1f33f08922145f26ef6cba6d98cc9bf9ebf4e316be87b66",
-      "bytes": 7366,
-      "reason": "Verify actual Library selection export entry, busy feedback, complete download and late account or visit fencing without a provider, catalogue mutation or scientific execution."
-    },
-    {
       "path": "tests/unit/renderer/library/LibraryBulkProgress.dom.test.tsx",
       "sha256": "d8260abbcce5ab19f848a4f63de52f44108cb9a70bdfcf30a8d34df5de03ee66",
       "bytes": 5051,
@@ -14185,8 +14185,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryCollectionEditor.dom.test.tsx",
-      "sha256": "0d0d97bb4ba3501d2e232bcbbff0a8d5c70eb93a5e2340717e10acc59540cff5",
-      "bytes": 14114,
+      "sha256": "524516b4b0cb05a7bc812b1a7ed912e3fc768271f0fd17baad74a2762d872e3e",
+      "bytes": 14488,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14302,6 +14302,18 @@
       "sha256": "1e71128a60581f9f1c7d6da630cf2dbba603923cea86faf6cf51c33ee1c4d8ae",
       "bytes": 36903,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryReferenceExport.dom.test.tsx",
+      "sha256": "483e7cc8d54bc8b0ed61491b97be7a1a2bb2abe429ccdd48a5722eff249ee443",
+      "bytes": 7444,
+      "reason": "Verify actual Library selection export, complete Web download, failure feedback and retired account/visit handling through the canonical DOM project."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryReferenceExportScopes.dom.test.tsx",
+      "sha256": "92d35e08bf55dd31403910a2fbd30e697d94f6a451238362ec74e562caf7b957",
+      "bytes": 20021,
+      "reason": "Verify all-matching exclusions, independent whole-scope reads, canonical title order, More Actions and stale scope availability/ABA fences in the actual Library Page without provider or research execution."
     },
     {
       "path": "tests/unit/renderer/library/LibraryRowActions.dom.test.tsx",
