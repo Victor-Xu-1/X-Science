@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// This isolated fixture represents a future writer's canonical large row.
-// It does not claim that the compatibility build admits first large writes.
+// This isolated fixture retains rollback-writer coverage for an existing row.
+// First large writes use the public Store APIs in the capacity write tests.
 func seedFutureLiteratureMetadata(t *testing.T, store *Store, item LiteratureItem) map[string]any {
 	t.Helper()
 	metadata := make(map[string]any, len(item.Metadata)+1)
@@ -120,27 +120,6 @@ func TestLiteratureMetadataCapacityCompatibleWriter(t *testing.T) {
 		t.Fatal("large replay rewrote its original request identity or ACK")
 	}
 	assertLiteraturePrecisionCatalog(t, reopened, metadataFieldsOwner, seed.Item.ID, title, literatureMetadataPrecisionJSON(t, remaining))
-}
-
-func TestLiteratureMetadataCapacityCompatibilityCannotEnableFirstLargeWrite(t *testing.T) {
-	store, _, seed := newMetadataFieldsFixture(t)
-	var ledgerBefore int
-	if err := store.db.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM mutation_result_ledger`).Scan(&ledgerBefore); err != nil {
-		t.Fatal(err)
-	}
-	for _, full := range []bool{false, true} {
-		input := LiteraturePatch{OperationID: uuid.NewString(), ExpectedRevision: seed.Item.MetadataRevision}
-		metadata := map[string]any{"personal_note": strings.Repeat("汉", 6000)}
-		if full {
-			input.Metadata = metadata
-		} else {
-			input.MetadataPatch = literatureMetadataPrecisionJSON(t, map[string]any{"set": metadata})
-		}
-		if _, err := store.PatchLiteratureItem(t.Context(), metadataFieldsOwner, seed.Item.ID, input); !errors.Is(err, ErrLiteratureInvalid) {
-			t.Fatalf("compatibility build enabled first large write (full=%t): %v", full, err)
-		}
-		assertCapacityMutationUnchanged(t, store, seed.Item, seed.Item.Metadata, ledgerBefore)
-	}
 }
 
 func TestLiteratureMetadataCapacityFutureShapeAndLegacyDomain(t *testing.T) {
