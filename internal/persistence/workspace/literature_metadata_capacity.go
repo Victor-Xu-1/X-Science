@@ -52,17 +52,17 @@ func validExpandedLiteratureMetadata(raw string) bool {
 	return err == nil && len(ordinary) <= literatureMetadataLegacyBytes
 }
 
-// This compatibility writer does not introduce the first large catalog row.
+// Catalog writes retain the legacy domain and admit the bounded note shape.
 // Discovery candidate staging keeps its separate historical metadata admission.
 func admitNewLiteratureCatalogMetadata(raw string) error {
-	if len(raw) > literatureMetadataLegacyBytes {
-		return ErrLiteratureInvalid
+	if len(raw) <= literatureMetadataLegacyBytes || validExpandedLiteratureMetadata(raw) {
+		return nil
 	}
-	return nil
+	return ErrLiteratureInvalid
 }
 
-// Only the canonical prior row, read in the existing CAS transaction, can
-// authorize continued large writes after rollback from a capable new writer.
+// Updates use new-write admission first. A compatibility policy can retain a
+// valid larger row only from its canonical prior inside the existing CAS.
 func admitLiteratureCatalogMetadataUpdate(prior, next string) error {
 	if err := admitNewLiteratureCatalogMetadata(next); err == nil {
 		return nil
