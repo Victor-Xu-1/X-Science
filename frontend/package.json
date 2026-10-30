@@ -1,6 +1,6 @@
 {
   "name": "@x-science/workbench-web",
-  "version": "0.4.19",
+  "version": "0.4.20",
   "private": true,
   "description": "X-Science scientific workbench Web application.",
   "license": "Apache-2.0",
