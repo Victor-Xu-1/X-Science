@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b1e480cded42c11701cadab433097bb70bfaa478869cef1734fb401f8c69d403",
+  "adaptationFingerprintSHA256": "dd2f96e39b9f4e25b3fbf75d44befd09815d9fb71c8ee7e63e840031f27b9a2a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "a78b0712ea817359c6cf9e422986d68bbe1a567dbf970c8cbd530176c384a6a0",
+  "additionFingerprintSHA256": "e402a9a213ddf57a88c381506921c7f778c9331fde2575de0365f3ad941e851f",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -2254,15 +2254,15 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/runtime/conversationRuntimeViewStore.ts",
       "sourceSHA256": "ae55f79a9925ce597b3dfe2b81629a92389a08d8cdb6ed76553bbd6ae48d60fa",
-      "targetSHA256": "64edc7815d14e11dd12f5ff96b982d87873b85ef9129e8af0fc5d63ee158b238",
-      "bytes": 26979,
+      "targetSHA256": "f76de95c49072c232d251431368670d12f623e96daa4c1207b7e77bf22f571ba",
+      "bytes": 27889,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/runtime/useConversationRuntimeView.ts",
       "sourceSHA256": "a4dc43c8ddc2b36de3228ceace4dec9f1564c2f5412562d7ca27b17c1ecce420",
-      "targetSHA256": "1a9b58f8ccf46b55e1a30fc90807a616e83562886114571a6c4f18923932377f",
-      "bytes": 15445,
+      "targetSHA256": "698c15f482dacf1d6c18f67e89625a59e037394cf28c82e3777736b05e1fdf7c",
+      "bytes": 15760,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -4646,8 +4646,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "5fa5a25656ea198f509f1e4dc152a2930742435877414864c97f6da23d7106e9",
-      "bytes": 234032,
+      "targetSHA256": "4e574ca1892fdbbf80c2c8d78470bd300570c0e23893e3ffdd5b69ceb06de731",
+      "bytes": 239005,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4674,8 +4674,8 @@
     {
       "path": "tests/unit/renderer/conversationRuntimeViewStore.test.ts",
       "sourceSHA256": "a3abf3f00720ba5503211d82fd0018c8ae009a598a6527eb38789106685be778",
-      "targetSHA256": "330a326260f1d7842885ec0913187cf2d740e01bb55a302d40d166552cf16330",
-      "bytes": 12568,
+      "targetSHA256": "a6bfb2df09341a460582e6f052f75ca7144392f381f61ed40da6640426ec6930",
+      "bytes": 13922,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -9805,8 +9805,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpCommandPreparation.ts",
-      "sha256": "389ca087873daa2bc2771a86e4401e2b34203b876064a859df989ed3bc850805",
-      "bytes": 2808,
+      "sha256": "c1940e797a20ed2e21641726b6f4a494b0a27d6da829ff5701e86e1450409513",
+      "bytes": 2920,
       "reason": "Await existing preparation under the original runtime submission ticket with exact conversation scope and dispatch fencing, without a duplicate transport, execution or retry owner."
     },
     {
@@ -9829,8 +9829,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpConversationSkillController.tsx",
-      "sha256": "ac501c4b11bf18f2d0fd0b8b417c0fc0950c501fdea55f4cf8fbbfa7d26ae532",
-      "bytes": 7889,
+      "sha256": "054670113549f45368f6f9c1dd87ced51c114eac8292f5b834cef4f2a29cd94a",
+      "bytes": 7971,
       "reason": "Compose existing Skill admission, catalog and source-aligned controls outside the composer while retaining the shared execution authority and exact retry identity."
     },
     {
@@ -14239,8 +14239,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryProjectMembership.dom.test.tsx",
-      "sha256": "2d8d421586f9b0b7546f121820ce0c2b2e2bb76d7f14fd8d9b8890aa39a3428f",
-      "bytes": 13074,
+      "sha256": "06ca584e7763fb6a3b5d29148f757aae0fadfa950ff9c0c1b4caab1d4af267af",
+      "bytes": 13911,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

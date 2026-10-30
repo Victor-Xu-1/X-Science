@@ -58,6 +58,7 @@ let settleDefaultFramePlan: (() => Promise<void>) | null = null;
 let queuedCommandSequence = 0;
 const realContextDropdown = { current: false };
 const realPreparationRuntime = { current: false };
+const realPreparationComposer = { current: false };
 const preparationSnapshotMock = vi.fn();
 const specialistAsideFixture: SpecialistAsideFixture = {
   active: false,
@@ -167,6 +168,7 @@ const runtimeViewMock = {
   resetLocalGate: vi.fn(),
   markSendStarted: vi.fn(),
   isSendPreparing: vi.fn(),
+  awaitSendPreparation: vi.fn(),
   markSendDispatched: vi.fn(),
   cancelSendPreparation: vi.fn(),
   markSendAccepted: vi.fn(),
@@ -237,8 +239,9 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/renderer/components/chat/SendBox', () => ({
-  default: ({
+vi.mock('@/renderer/components/chat/SendBox', async (original) => {
+  const actual = await original<typeof import('@/renderer/components/chat/SendBox')>();
+  const MockSendBox = ({
     value,
     onSend,
     onChange,
@@ -308,8 +311,12 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
         </button>
       ) : null}
     </div>
-  ),
-}));
+  );
+  return {
+    default: (props: React.ComponentProps<typeof actual.default>) =>
+      realPreparationComposer.current ? <actual.default {...props} /> : <MockSendBox {...props} />,
+  };
+});
 
 vi.mock('@/renderer/components/chat/BtwOverlay', () => ({
   default: () => null,
@@ -654,7 +661,13 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (i
   const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Preview/context/PreviewContext')>();
   return {
     ...actual,
-    usePreviewContext: () => actual.useOptionalPreviewContext() ?? { setSendBoxHandler: setSendBoxHandlerMock },
+    usePreviewContext: () =>
+      actual.useOptionalPreviewContext() ?? {
+        setSendBoxHandler: setSendBoxHandlerMock,
+        domSnippets: [] as Array<{ id: string; tag: string; html: string }>,
+        removeDomSnippet: vi.fn(),
+        clearDomSnippets: vi.fn(),
+      },
   };
 });
 vi.mock('@/renderer/services/FileService', () => ({
@@ -744,15 +757,18 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
     ...actual,
-    Input: ({
-      value,
-      onChange,
-      placeholder,
-    }: {
-      value?: string;
-      onChange?: (value: string) => void;
-      placeholder?: string;
-    }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
+    Input: Object.assign(
+      ({
+        value,
+        onChange,
+        placeholder,
+      }: {
+        value?: string;
+        onChange?: (value: string) => void;
+        placeholder?: string;
+      }) => <input aria-label={placeholder} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)} />,
+      { TextArea: actual.Input.TextArea }
+    ),
     Trigger: ({
       children,
       popup,
@@ -924,6 +940,7 @@ async function renderManualCompaction(
     setRendererAccountOwner(null);
     realContextDropdown.current = false;
     realPreparationRuntime.current = false;
+    realPreparationComposer.current = false;
   };
   try {
     const composer = (
@@ -974,6 +991,94 @@ async function renderManualCompaction(
 }
 
 describe('AcpSendBox', () => {
+  it.each(['ordinary', 'save-as-skill'] as const)(
+    'withdrawn preparation restores the actual composer before old transport settles for %s',
+    async (kind) => {
+      realPreparationRuntime.current = true;
+      realPreparationComposer.current = true;
+      const conversationId = 'conv-withdraw-preparation';
+      const runtime: TConversationRuntimeSummary = {
+        state: 'idle',
+        can_send_message: true,
+        has_task: false,
+        task_status: 'finished',
+        is_processing: false,
+        pending_confirmations: 0,
+        turn_id: null,
+      };
+      preparationSnapshotMock.mockResolvedValue({
+        frameId: conversationId,
+        rootFrameId: conversationId,
+        status: 'completed',
+        runtimeAttempt: 47,
+        runtimeInputRevision: 47,
+        pendingInputRequests: [],
+        canCancel: false,
+        canResume: false,
+        taskPlan: null,
+        planApproval: null,
+        runtimeActive: false,
+        runtimeTaskActive: false,
+        runtimeStage: null,
+      });
+      const first = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+      const second = createDeferred<{ activeBranchId: string; generation: number; branches: Array<{ id: string }> }>();
+      const state = { activeBranchId: 'branch-main', generation: 1, branches: [{ id: 'branch-preparing' }] };
+      getSelectedBranchMock.mockReturnValue('branch-preparing');
+      loadBranchStateMock.mockReset().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+      sendBoxDraftSeed.current = 'Original draft';
+      sendMessageInvokeMock.mockReset();
+      await render(
+        <AcpSendBox
+          conversation_id={conversationId}
+          backend='xscience'
+          initialConversation={{ id: conversationId, type: 'acp', runtime, extra: {} } as TChatConversation}
+          messageState={makeMessageState()}
+        />
+      );
+      const input = screen.getByRole('textbox');
+      await waitFor(() => expect(input).not.toBeDisabled());
+      try {
+        await act(async () => {
+          if (kind === 'ordinary') fireEvent.click(screen.getByRole('button', { name: '发送' }));
+          else {
+            const save = fileAttachProps.current?.onSaveSkill;
+            if (typeof save !== 'function') throw new Error('Missing Save-as-Skill entry');
+            void save();
+          }
+        });
+        await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(1));
+        fireEvent.click(await screen.findByRole('button', { name: '暂停任务' }));
+        await waitFor(() => expect(input).not.toBeDisabled());
+        await waitFor(() => expect(fileAttachProps.current?.saveAsSkillInFlight).toBe(false));
+        await waitFor(() => expect(input).toHaveValue('Original draft'));
+        fireEvent.change(input, { target: { value: 'Newer draft' } });
+        fireEvent.click(screen.getByRole('button', { name: '发送' }));
+        await waitFor(() => expect(loadBranchStateMock).toHaveBeenCalledTimes(2));
+        const current = runtimeStore.getConversationRuntimeViewSnapshot(conversationId);
+        expect(current.localPreparing).toBe(true);
+        await act(async () => {
+          first.resolve(state);
+          await first.promise;
+        });
+        expect(sendMessageInvokeMock).not.toHaveBeenCalled();
+        expect(runtimeStore.getConversationRuntimeViewSnapshot(conversationId).localPreparing).toBe(true);
+        await waitFor(() => expect(input).toHaveValue(''));
+        fireEvent.click(screen.getByRole('button', { name: '暂停任务' }));
+        await waitFor(() => expect(input).not.toBeDisabled());
+        await waitFor(() => expect(input).toHaveValue('Newer draft'));
+        expect(stopInvokeMock).not.toHaveBeenCalled();
+        expect(messageErrorMock).not.toHaveBeenCalled();
+      } finally {
+        await act(async () => {
+          first.resolve(state);
+          second.resolve(state);
+          await Promise.all([first.promise, second.promise]);
+        });
+      }
+    }
+  );
+
   it.each([
     ['ordinary', false, false],
     ['save-as-skill', false, false],
@@ -1560,6 +1665,7 @@ describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     realPreparationRuntime.current = false;
+    realPreparationComposer.current = false;
     resetConversationRuntimeViewStoreForTest();
     specialistAsideFixture.active = false;
     specialistAsideFixture.item = null;
@@ -1632,6 +1738,9 @@ describe('AcpSendBox', () => {
     });
     runtimeViewMock.isSendPreparing.mockImplementation((ticket: object) =>
       runtimeStore.isLocalSendPreparing('composer-test-reservation', ticket)
+    );
+    runtimeViewMock.awaitSendPreparation.mockImplementation((ticket: object, pending: Promise<unknown>) =>
+      runtimeStore.awaitLocalSendPreparation('composer-test-reservation', ticket, pending)
     );
     runtimeViewMock.markSendDispatched.mockImplementation((ticket: object) =>
       runtimeStore.localSendDispatched('composer-test-reservation', ticket)

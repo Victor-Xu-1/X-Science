@@ -46,7 +46,7 @@ export function useAcpCommandPreparation({
       try {
         checkCurrent();
         if (compaction) {
-          const admitted = await compaction.prepareForPrompt();
+          const admitted = await runtime.awaitSendPreparation(ticket, compaction.prepareForPrompt());
           checkCurrent();
           if (!compaction.current()) {
             runtime.cancelSendPreparation(ticket);
@@ -56,7 +56,10 @@ export function useAcpCommandPreparation({
         }
         const result =
           prepared ??
-          (await resolveAuthority(command.planMode, !command.turnIntent, false, command.specialistAuthority ?? {}));
+          (await runtime.awaitSendPreparation(
+            ticket,
+            resolveAuthority(command.planMode, !command.turnIntent, false, command.specialistAuthority ?? {})
+          ));
         checkCurrent();
         const pending = retry.current;
         if (pending?.item.id === command.id && pending.authority === undefined)

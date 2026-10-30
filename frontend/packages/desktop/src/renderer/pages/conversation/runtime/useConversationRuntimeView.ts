@@ -25,6 +25,7 @@ import {
   localSendFailed,
   localSendStarted,
   isLocalSendPreparing,
+  awaitLocalSendPreparation,
   localSendDispatched,
   cancelLocalSendPreparation,
   localStopAcknowledged,
@@ -47,6 +48,7 @@ type UseConversationRuntimeViewReturn = {
   activeTurnId: string | null;
   markSendStarted: (phase?: 'preparing') => object;
   isSendPreparing: (ticket: object) => boolean;
+  awaitSendPreparation: <T>(ticket: object, pending: Promise<T>) => Promise<T>;
   markSendDispatched: (ticket: object) => boolean;
   cancelSendPreparation: (ticket?: object) => boolean;
   markSendAccepted: (
@@ -333,6 +335,10 @@ export const useConversationRuntimeView = (
     (ticket: object) => localSendDispatched(conversation_id, ticket),
     [conversation_id]
   );
+  const awaitSendPreparation = useCallback(
+    <T>(ticket: object, pending: Promise<T>) => awaitLocalSendPreparation(conversation_id, ticket, pending),
+    [conversation_id]
+  );
   const cancelSendPreparation = useCallback(
     (ticket?: object) => {
       const result = cancelLocalSendPreparation(conversation_id, ticket);
@@ -404,6 +410,7 @@ export const useConversationRuntimeView = (
     activeTurnId: view.activeTurnId,
     markSendStarted,
     isSendPreparing,
+    awaitSendPreparation,
     markSendDispatched,
     cancelSendPreparation,
     markSendAccepted,
