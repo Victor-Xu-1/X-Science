@@ -978,7 +978,7 @@ describe('AcpSendBox', () => {
       sendBoxDraftSeed.current = 'Keep the original draft.';
       sendMessageInvokeMock.mockReset();
       await render(<AcpSendBox conversation_id={conversationId} backend='xscience'
-        initialConversation={{ id: conversationId, type: 'acp', runtime: completedRuntime } as TChatConversation}
+        initialConversation={{ id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation}
         messageState={makeMessageState()} />);
       await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
       let saving: Promise<void> | undefined;
