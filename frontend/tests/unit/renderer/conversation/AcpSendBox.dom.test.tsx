@@ -664,7 +664,7 @@ vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', async (i
     usePreviewContext: () =>
       actual.useOptionalPreviewContext() ?? {
         setSendBoxHandler: setSendBoxHandlerMock,
-      domSnippets: [] as Array<{ id: string; tag: string; html: string }>,
+        domSnippets: [] as Array<{ id: string; tag: string; html: string }>,
         removeDomSnippet: vi.fn(),
         clearDomSnippets: vi.fn(),
       },
