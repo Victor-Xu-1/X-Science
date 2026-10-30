@@ -990,6 +990,7 @@ describe('AcpSendBox', () => {
         initialConversation={{ id: conversationId, type: 'acp', runtime: completedRuntime, extra: {} } as TChatConversation}
         messageState={makeMessageState()} />);
       if (!initialSnapshotHeld) await waitFor(() => expect(screen.getByText('任务已完成')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByRole('button', { name: 'send', exact: true })).not.toBeDisabled());
       let saving: Promise<void> | undefined;
       try {
         await act(async () => {
