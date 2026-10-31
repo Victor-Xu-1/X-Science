@@ -1,5 +1,26 @@
 import { isAbsolute, relative, sep } from 'node:path';
 
+/** Compare the execution inputs, not GitHub's rolling image publication label.
+ * The image label remains in the Actions job provenance. The actual Node
+ * versions, platform/architecture, C runtime and test environment remain bound.
+ */
+export function relatedRuntimeEnvironment(runtime = process, environment = process.env) {
+  const glibc = runtime.platform === 'linux' ? runtime.report?.getReport()?.header?.glibcVersionRuntime : undefined;
+  if (runtime.platform === 'linux' && (typeof glibc !== 'string' || !/^\d+\.\d+$/.test(glibc))) {
+    throw new Error('Unsupported related-test C runtime');
+  }
+  return {
+    runtime: {
+      node: runtime.versions,
+      platform: runtime.platform,
+      arch: runtime.arch,
+      ...(runtime.platform === 'linux' ? { glibc } : {}),
+    },
+    environment: Object.fromEntries(['CI', 'GITHUB_ACTIONS', 'NODE_OPTIONS', 'NODE_ENV', 'TZ', 'LANG', 'ImageOS']
+      .map((name) => [name, environment[name]])),
+  };
+}
+
 /** Convert a Vitest specification to the stable identity used by every shard. */
 export function relatedShardIdentity(specification, root) {
   const project = specification.project?.name;
