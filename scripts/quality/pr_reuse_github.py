@@ -29,6 +29,8 @@ _MAX_ARCHIVE = 32 * 1024 * 1024
 _MAX_MEMBER = 64 * 1024 * 1024
 _MAX_EXTRACTED = 96 * 1024 * 1024
 _MAX_PAGES = 10
+GO_PROFILE = "go-runtime-v1"
+FRONTEND_PROFILE = "frontend-related-v1"
 
 
 class _EvidenceUnavailable(RuntimeError):
@@ -185,7 +187,16 @@ def _step(job: dict, name: str) -> None:
         _fail("required Actions step did not succeed")
 
 
-def _archive_files(data: bytes) -> dict[str, bytes]:
+def _archive_files(data: bytes, *, profile: str = GO_PROFILE, index: int | None = None) -> dict[str, bytes]:
+    if profile == GO_PROFILE:
+        required, optional = _FILES, {"runtime-phases.jsonl"}
+    elif profile == "frontend-plan-v1":
+        required = frozenset({"plan.json", "pending-plan.json", "discovery.json", "discovery-inputs.json"})
+        optional = set()
+    elif profile == "frontend-worker-v1" and type(index) is int and 0 <= index < 4:
+        required, optional = frozenset({f"worker-{index}.json"}), set()
+    else:
+        _fail("unknown artifact evidence profile")
     if not isinstance(data, bytes) or len(data) > _MAX_ARCHIVE:
         _fail("artifact archive is invalid or oversized")
     try:
@@ -196,14 +207,14 @@ def _archive_files(data: bytes) -> dict[str, bytes]:
             files, seen = {}, set()
             for info in entries:
                 mode = info.external_attr >> 16
-                if (info.is_dir() or info.filename not in _FILES | {"runtime-phases.jsonl"} or
+                if (info.is_dir() or info.filename not in required | optional or
                         info.filename in seen or info.file_size > _MAX_MEMBER or
                         (mode and stat.S_IFMT(mode) not in (0, stat.S_IFREG))):
                     _fail("artifact archive contains invalid entries")
                 seen.add(info.filename)
-                if info.filename in _FILES:
+                if info.filename in required:
                     files[info.filename] = archive.read(info)
-            if set(files) != _FILES:
+            if set(files) != required:
                 _fail("artifact lacks required producer evidence")
             return files
     except (zipfile.BadZipFile, OSError, EOFError, RuntimeError) as error:
@@ -234,7 +245,9 @@ class _DeadlineTransport:
 
 
 def _fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, token: str,
-                              api_base: str, transport, deadline: float, clock) -> dict:
+                              api_base: str, transport, deadline: float, clock, profile: str) -> dict:
+    if profile not in (GO_PROFILE, FRONTEND_PROFILE):
+        _fail("unknown execution evidence profile")
     if (not isinstance(repository, str) or _REPO.fullmatch(repository) is None or
             not _valid_sha(main_sha) or not _valid_sha(base_sha) or main_sha == base_sha):
         _fail("repository or merge identity is invalid")
@@ -287,37 +300,59 @@ def _fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, tok
     jobs = _page_items(transport, f"{root}/actions/runs/{run_id}/attempts/{attempt}/jobs", "jobs")
     checks = _page_items(transport, f"{root}/commits/{head_sha}/check-runs?filter=all", "check_runs")
     required_checks = []
-    for name in ("Merge Gate / CI required", "PR changed Go packages", "PR policy and static analysis"):
+    required_names = (("Merge Gate / CI required", "PR changed Go packages", "PR policy and static analysis")
+                      if profile == GO_PROFILE else
+                      ("Merge Gate / CI required", "PR frontend preparation", "PR frontend scope", "PR policy and static analysis"))
+    for name in required_names:
         check, job = _check_from_run(checks, name, head_sha, run_id, repository), _job(jobs, name, attempt)
         if check["id"] != job["id"] or job.get("run_id") != run_id:
             _fail("check and exact-attempt job identities differ")
         required_checks.append(check)
+    shard_prefix = "PR affected Go partition" if profile == GO_PROFILE else "PR related frontend partition"
     indices = []
     for job in jobs:
         if isinstance(job, dict):
-            match = re.fullmatch(r"PR affected Go partition \(([0-9]+)\)", str(job.get("name", "")))
+            match = re.fullmatch(re.escape(shard_prefix) + r" \(([0-9]+)\)", str(job.get("name", "")))
             if match:
                 indices.append(int(match.group(1)))
-    if not 1 <= len(indices) <= 4 or sorted(indices) != list(range(len(indices))):
+    minimum = 1 if profile == GO_PROFILE else 2
+    if not minimum <= len(indices) <= 4 or sorted(indices) != list(range(len(indices))):
         _fail("PR partition indices are missing, duplicated or unsupported")
     shard_count = len(indices)
     shard_jobs = []
     for index in range(shard_count):
-        name = f"PR affected Go partition ({index})"
+        name = f"{shard_prefix} ({index})"
         check, job = _check_from_run(checks, name, head_sha, run_id, repository), _job(jobs, name, attempt)
         if check["id"] != job["id"] or job.get("run_id") != run_id:
             _fail("shard check and exact-attempt job identities differ")
-        for step in ("Test changed Go dependency closure", "Audit PR test source residue", "Upload PR test evidence"):
+        steps = (("Test changed Go dependency closure", "Audit PR test source residue", "Upload PR test evidence")
+                 if profile == GO_PROFILE else
+                 ("Install original locked test runtime", "Download same-attempt preparation",
+                  "Execute independently bound exact partition", "Upload actual worker terminal evidence"))
+        for step in steps:
             _step(job, step)
         required_checks.append(check)
         shard_jobs.append({"id": job["id"], "name": name, "index": index})
     artifacts = _page_items(transport, f"{root}/actions/runs/{run_id}/artifacts", "artifacts")
-    if any(isinstance(item, dict) and re.fullmatch(r"pr-runtime-evidence-[0-9]+", str(item.get("name", "")))
-           and item["name"] not in {f"pr-runtime-evidence-{i}" for i in range(shard_count)} for item in artifacts):
+    if profile == FRONTEND_PROFILE:
+        preparation = _job(jobs, "PR frontend preparation", attempt)
+        aggregate = _job(jobs, "PR frontend scope", attempt)
+        for step in ("Preserve frontend checks and plan exact related workers", "Upload same-attempt related plan"):
+            _step(preparation, step)
+        for step in ("Require original preparation success", "Download same-attempt preparation",
+                     "Download every current related result", "Verify complete unique execution or original serial completion"):
+            _step(aggregate, step)
+    specs = ([(f"pr-runtime-evidence-{i}", i, GO_PROFILE) for i in range(shard_count)] if profile == GO_PROFILE else
+             [(f"pr-frontend-related-plan-{run_id}-{attempt}", None, "frontend-plan-v1")] +
+             [(f"pr-frontend-related-result-{run_id}-{attempt}-{i}", i, "frontend-worker-v1") for i in range(shard_count)])
+    names = {name for name, _, _ in specs}
+    prefix = "pr-runtime-evidence-" if profile == GO_PROFILE else "pr-frontend-related-"
+    if any(isinstance(item, dict) and (re.fullmatch(r"pr-runtime-evidence-[0-9]+", str(item.get("name", "")))
+                                     if profile == GO_PROFILE else str(item.get("name", "")).startswith(prefix))
+           and item["name"] not in names for item in artifacts):
         _fail("unexpected PR partition artifact")
     output_artifacts = []
-    for index in range(shard_count):
-        name = f"pr-runtime-evidence-{index}"
+    for name, index, archive_profile in specs:
         item = _one(artifacts, lambda value: value.get("name") == name,
                     "PR partition artifact is missing or ambiguous")
         origin, digest = item.get("workflow_run"), item.get("digest")
@@ -333,9 +368,9 @@ def _fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, tok
                 "sha256:" + hashlib.sha256(archive).hexdigest() != digest):
             _fail("artifact digest does not match GitHub metadata")
         output_artifacts.append({"id": item["id"], "name": name, "index": index,
-                                 "digest": digest, "files": _archive_files(archive)})
+                                 "digest": digest, "files": _archive_files(archive, profile=archive_profile, index=index)})
     provenances = []
-    for item in output_artifacts:
+    for item in output_artifacts if profile == GO_PROFILE else []:
         try:
             value = json.loads(item["files"]["provenance.json"])
         except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
@@ -350,6 +385,23 @@ def _fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, tok
                 not _valid_sha(value.get("execution_sha")) or not _valid_sha(value.get("tree"))):
             _fail("artifact producer identity does not match the PR attempt")
         provenances.append(value)
+    if profile == FRONTEND_PROFILE:
+        try:
+            plan = json.loads(output_artifacts[0]["files"]["plan.json"])
+            context = plan["context"]
+        except (KeyError, TypeError, ValueError, RecursionError):
+            _fail("frontend plan execution identity is invalid")
+        if (not isinstance(context, dict) or plan.get("schema") != "x-science.frontend-related-ci.v1"
+                or plan.get("prepared") is not True or plan.get("mode") != "sharded"
+                or context.get("repository_id") != repo_id or context.get("repository") != repository
+                or context.get("pull_request") != number or context.get("event") != "pull_request"
+                or context.get("base") != base_sha or context.get("pr_head") != head_sha
+                or context.get("run_id") != str(run_id) or context.get("run_attempt") != str(attempt)
+                or context.get("workflow_ref") != repository + "/.github/workflows/quality-pr.yml@refs/pull/" + str(number) + "/merge"
+                or not _valid_sha(context.get("workflow_commit"))
+                or not _valid_sha(context.get("execution_commit")) or not _valid_sha(context.get("execution_tree"))):
+            _fail("frontend producer does not match the exact PR attempt")
+        provenances = [{"execution_sha": context["execution_commit"], "tree": context["execution_tree"]}]
     execution_sha, execution_tree = provenances[0]["execution_sha"], provenances[0]["tree"]
     if any(p["execution_sha"] != execution_sha or p["tree"] != execution_tree for p in provenances):
         _fail("PR artifacts refer to different execution commits")
@@ -379,7 +431,8 @@ def _fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, tok
 
 def fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, token: str,
                              api_base: str = "https://api.github.com", *, transport=None,
-                             deadline: float | None = None, clock=time.monotonic) -> dict:
+                             deadline: float | None = None, clock=time.monotonic,
+                             profile: str = GO_PROFILE) -> dict:
     """Fetch verified PR receipts; any uncertainty raises RuntimeError for fallback.
 
     Fake transports expose get_json(path) and get_archive(repository, artifact_id).
@@ -387,7 +440,7 @@ def fetch_merged_pr_receipts(repository: str, main_sha: str, base_sha: str, toke
     """
     try:
         deadline = clock() + 25 if deadline is None else deadline
-        return _fetch_merged_pr_receipts(repository, main_sha, base_sha, token, api_base, transport, deadline, clock)
+        return _fetch_merged_pr_receipts(repository, main_sha, base_sha, token, api_base, transport, deadline, clock, profile)
     except _EvidenceUnavailable:
         raise
     except Exception:

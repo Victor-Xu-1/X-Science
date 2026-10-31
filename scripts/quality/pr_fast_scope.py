@@ -267,6 +267,8 @@ def main() -> int:
     mode.add_argument("--matrix", action="store_true")
     parser.add_argument("--log-dir", type=Path)
     parser.add_argument("--related-plan-dir", type=Path)
+    parser.add_argument("--frontend-reuse-dir", type=Path)
+    parser.add_argument("--frontend-reuse-digest", default="")
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--shard-count", type=int, default=1)
     args = parser.parse_args()
@@ -274,6 +276,8 @@ def main() -> int:
     try:
         if args.related_plan_dir is not None and not args.frontend:
             raise ValueError("related planning is only an original frontend workflow mode")
+        if args.frontend_reuse_dir is not None and (not args.frontend or args.related_plan_dir is not None):
+            raise ValueError("main reuse and original PR planning are separate frontend modes")
         phases = RuntimePhaseEvidence(None)
         if args.log_dir is not None and not (args.frontend or args.vet or args.matrix):
             log_dir = args.log_dir.resolve()
@@ -336,6 +340,12 @@ def main() -> int:
                     from scripts.quality.frontend_related_ci import defer_or_run
                     code = defer_or_run(repo, args.base, args.head, related, args.related_plan_dir)
                     result = subprocess.CompletedProcess(command, code)
+                elif related and command == related and args.frontend_reuse_dir is not None:
+                    from scripts.quality.pr_frontend_reuse import try_reuse
+                    reused = try_reuse(repo, args.base, args.head, related,
+                                       args.frontend_reuse_dir, args.frontend_reuse_digest)
+                    result = (subprocess.CompletedProcess(command, 0) if reused else
+                              run(repo / "frontend", *command))
                 else:
                     result = run(repo / "frontend", *command)
                 if result.returncode:

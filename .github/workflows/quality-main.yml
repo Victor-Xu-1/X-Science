@@ -155,6 +155,15 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
+      - name: Read original PR frontend evidence
+        id: frontend-origin
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/quality/pr_frontend_reuse.py fetch \
+            --base '${{ github.event.before }}' --head '${{ github.sha }}' \
+            --directory "$RUNNER_TEMP/runtime-test-evidence/frontend-related-reuse"
+
       - name: Set up frontend build runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -164,7 +173,18 @@ jobs:
 
       - name: Test integrated frontend scope
         run: |
-          PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py --frontend --base '${{ github.event.before }}' --head '${{ github.sha }}'
+          PYTHONDONTWRITEBYTECODE=1 python3 scripts/quality/pr_fast_scope.py --frontend --base '${{ github.event.before }}' --head '${{ github.sha }}' \
+            --frontend-reuse-dir "$RUNNER_TEMP/runtime-test-evidence/frontend-related-reuse" \
+            --frontend-reuse-digest '${{ steps.frontend-origin.outputs.receipt-sha256 }}'
+
+      - name: Upload main frontend verification evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: main-frontend-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/runtime-test-evidence/
+          if-no-files-found: ignore
+          retention-days: 7
 
   main-integration-gate:
     name: Main Integration / required
