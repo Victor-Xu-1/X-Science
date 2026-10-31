@@ -2182,6 +2182,20 @@
     "showMore": "展开更多",
     "showLess": "收起"
   },
+  "libraryRating": {
+    "section": "文献评分",
+    "label": "评分",
+    "oneStar": "1 星",
+    "stars": "{{count}} 星",
+    "value": "{{value}} / 5",
+    "unrated": "未评分",
+    "unknown": "评分无法识别",
+    "unavailable": "评分暂不可用",
+    "saving": "正在保存评分…",
+    "confirming": "正在刷新评分…",
+    "uncertain": "无法确认评分是否保存。请先查看上方操作状态，再决定是否重试。",
+    "refresh": "刷新评分"
+  },
   "libraryReadingStatus": {
     "label": "阅读状态",
     "all": "全部状态",

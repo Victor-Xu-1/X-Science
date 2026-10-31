@@ -1,3 +1,4 @@
+import { decodeLiteratureRatingView, type LiteratureRatingView } from './literatureRating';
 import { decodeLiteratureMetadataPatch, type LiteratureMetadataPatch } from './literatureMetadataPatch';
 import { literatureValueIdentity } from './literatureValueIdentity';
 import { decodeLiteratureReadingStatus, type LiteratureReadingStatus } from './literatureReadingStatus';
@@ -30,6 +31,7 @@ export type LiteratureItem = {
   metadata_revision: number;
   reading_status?: LiteratureReadingStatus;
   metadata: Record<string, unknown>;
+  readonly rating_view?: LiteratureRatingView;
   deleted: boolean;
   project_ids: string[];
   attachments: Array<{ id: string; kind: string; versions: LiteratureVersion[] }>;
@@ -172,6 +174,7 @@ export function decodeLiteratureItem(value: unknown): LiteratureItem {
     ...(Object.hasOwn(value, 'reading_status')
       ? { reading_status: decodeLiteratureReadingStatus(value.reading_status) }
       : {}),
+    ...(Object.hasOwn(value, 'rating_view') ? { rating_view: decodeLiteratureRatingView(value.rating_view) } : {}),
     metadata: structuredClone(value.metadata),
     deleted: value.deleted,
     project_ids: [...value.project_ids],

@@ -37,6 +37,7 @@ type LiteratureItem struct {
 	MetadataRevision int64                   `json:"metadata_revision"`
 	ReadingStatus    LiteratureReadingStatus `json:"reading_status,omitempty"`
 	Metadata         map[string]any          `json:"metadata"`
+	RatingView       *LiteratureRatingView   `json:"rating_view,omitempty"`
 	Deleted          bool                    `json:"deleted"`
 	ProjectIDs       []string                `json:"project_ids"`
 	Attachments      []LiteratureAttachment  `json:"attachments"`
