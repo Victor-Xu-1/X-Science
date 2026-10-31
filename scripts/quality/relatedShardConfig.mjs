@@ -3,6 +3,7 @@ import { lstatSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import { relatedRuntimeEnvironment } from './relatedShardIdentity.mjs';
 
 // Configuration and custom reporters use different Vitest module loaders.
 // Read the reviewed constructor through Node's shared native module cache.
@@ -153,9 +154,7 @@ export function resolvedRelatedConfiguration(context, root, shard) {
       define: project.vite.config.define,
       alias: project.vite.config.resolve?.alias,
     })),
-    runtime: { node: process.versions, platform: process.platform, arch: process.arch },
-    environment: Object.fromEntries(['CI', 'GITHUB_ACTIONS', 'NODE_OPTIONS', 'NODE_ENV', 'TZ', 'LANG', 'ImageOS', 'ImageVersion']
-      .map((name) => [name, process.env[name]])),
+    ...relatedRuntimeEnvironment(),
   }, root);
   const encoded = JSON.stringify(record);
   return { record, sha256: digest(encoded), default_reporters: defaults };

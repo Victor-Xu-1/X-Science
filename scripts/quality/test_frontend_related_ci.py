@@ -1,4 +1,4 @@
-"""Focused workflow result/digest checks; synthetic evidence, no Node or CI."""
+"""Focused workflow result/digest checks and one real Node runtime identity contract."""
 import copy
 import os
 import sys
@@ -242,6 +242,43 @@ class FrontendRelatedWorkflowTests(unittest.TestCase):
                 ci.validate_bundle(value, self.context)
         self.plan_path.write_text('{"same": 1, "same": 2}', encoding='utf-8')
         with self.assertRaises(ValueError): ci.read_json(self.plan_path)
+
+
+class RelatedExecutionRuntimeTests(unittest.TestCase):
+    def test_runtime_inputs_remain_bound_across_image_publication_labels(self):
+        repo = Path(__file__).resolve().parents[2]
+        module = (repo / 'scripts/quality/relatedShardIdentity.mjs').as_uri()
+        script = '''
+import assert from 'node:assert/strict';
+import { relatedRuntimeEnvironment } from MODULE;
+const node = { versions: { node: '22.17.0', v8: '12.4', modules: '127' },
+  platform: 'linux', arch: 'x64', report: { getReport: () => ({ header: { glibcVersionRuntime: '2.39' } }) } };
+const env = { CI: 'true', GITHUB_ACTIONS: 'true', NODE_ENV: 'test', LANG: 'C.UTF-8',
+  ImageOS: 'ubuntu24', ImageVersion: '20261022.1' };
+const baseline = relatedRuntimeEnvironment(node, env);
+assert.deepEqual(baseline, relatedRuntimeEnvironment(node, { ...env, ImageVersion: '20261030.1' }));
+assert.equal(baseline.runtime.glibc, '2.39');
+for (const [key, value] of [['TZ', 'Asia/Shanghai'], ['NODE_OPTIONS', '--conditions=other'],
+  ['NODE_ENV', 'production'], ['LANG', 'en_US'], ['CI', 'false'], ['GITHUB_ACTIONS', 'false'], ['ImageOS', 'ubuntu26']]) {
+  assert.notDeepEqual(baseline, relatedRuntimeEnvironment(node, { ...env, [key]: value }));
+}
+for (const changed of [{ ...node, arch: 'arm64' }, { ...node, versions: { ...node.versions, node: '22.18.0' } },
+  { ...node, report: { getReport: () => ({ header: { glibcVersionRuntime: '2.40' } }) } }]) {
+  assert.notDeepEqual(baseline, relatedRuntimeEnvironment(changed, env));
+}
+for (const report of [undefined, { getReport: () => ({ header: {} }) },
+  { getReport: () => ({ header: { glibcVersionRuntime: 'unknown' } }) }]) {
+  assert.throws(() => relatedRuntimeEnvironment({ ...node, report }, env), /C runtime/);
+}
+const actual = relatedRuntimeEnvironment();
+assert.equal(actual.runtime.node.node, process.versions.node);
+assert.equal(actual.runtime.platform, process.platform);
+assert.equal(actual.runtime.arch, process.arch);
+if (process.platform === 'linux') assert.match(actual.runtime.glibc, /^\\d+\\.\\d+$/);
+'''.replace('MODULE', json.dumps(module))
+        result = subprocess.run(['node', '--input-type=module', '-'], input=script,
+                                text=True, capture_output=True, cwd=repo, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == '__main__':

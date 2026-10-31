@@ -121,6 +121,7 @@ export function LibraryDetailsPane({
                   if (!stale) changeStatus(selected.id, value);
                 }}
                 submit={submit}
+                reload={reads.refreshData}
                 receipt={receipt}
                 close={dialog.close}
                 requestEditorClose={exit.requestExit}

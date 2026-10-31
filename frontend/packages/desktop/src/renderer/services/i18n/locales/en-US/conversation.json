@@ -2182,6 +2182,20 @@
     "showMore": "Show more",
     "showLess": "Show less"
   },
+  "libraryRating": {
+    "section": "Reference rating",
+    "label": "Rating",
+    "oneStar": "1 star",
+    "stars": "{{count}} stars",
+    "value": "{{value}} / 5",
+    "unrated": "Unrated",
+    "unknown": "Unrecognized rating",
+    "unavailable": "Rating unavailable",
+    "saving": "Saving rating…",
+    "confirming": "Refreshing rating…",
+    "uncertain": "Could not confirm the rating. Check the operation above before retrying.",
+    "refresh": "Refresh rating"
+  },
   "libraryReadingStatus": {
     "label": "Reading status",
     "all": "All statuses",

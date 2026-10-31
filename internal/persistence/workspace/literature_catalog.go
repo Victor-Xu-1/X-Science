@@ -36,6 +36,7 @@ func readLiteratureItem(ctx context.Context, query literatureItemQuery, owner, i
 	if item.Metadata, err = decodeLiteratureMetadataObject(raw); err != nil {
 		return item, err
 	}
+	item.RatingView = literatureRatingView(item.Metadata)
 	item.Deleted = deleted.Valid
 	rows, err := query.QueryContext(ctx, `SELECT project_id FROM project_literature WHERE item_id=? ORDER BY project_id`, id)
 	if err != nil {

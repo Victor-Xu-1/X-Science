@@ -131,6 +131,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureRating.ts": "Decode only the canonical read-only rating projection before opaque metadata can be rounded in JavaScript; retain original metadata field patches and immutable legacy receipt omission.",
     "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority.",
     "tests/unit/renderer/conversation/literatureMetadataCapacity.test.ts": "Verify future-size command and durable pending replay with bounded Unicode metadata, original identity, and unchanged invalid field-action rejection using synthetic input.",
     "packages/desktop/src/common/adapter/literatureReferenceExport.ts": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff.",
@@ -733,9 +734,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "0dd0511ffb5a33cd5db840cba4c5bdb8094504af70ea06ac6ed85ecdce3590ae"
+APPROVED_ADAPTATION_FINGERPRINT = "c1d2e4dafab3b241fe3dc22e59f3e8f4494925e5d85cf3e8664a63a43fed19c9"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "f3c55630f955a2ad1774e21714a0dbc822e27c79d24c291a0b6271f8a41cb2dc"
+APPROVED_ADDITION_FINGERPRINT = "eb00374c59e00d28d5087b5466a5c12600d5dad46392bb7d5b71b730d89366aa"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

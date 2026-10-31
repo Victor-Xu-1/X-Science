@@ -26,6 +26,7 @@ import { LibraryBibliographicDetails } from './LibraryBibliographicDetails';
 import { LibraryDetailHeader } from './LibraryDetailHeader';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
+import { LibraryRating } from './LibraryRating';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
@@ -50,6 +51,7 @@ export function LibraryItemDetails({
   changeReadingStatus,
   receipt,
   submit,
+  reload,
   close,
   requestEditorClose,
   registerDraft,
@@ -71,6 +73,7 @@ export function LibraryItemDetails({
   changeReadingStatus: (value: LiteratureReadingStatus) => void;
   receipt?: LiteratureReceipt;
   submit: (command: LiteratureCommand) => Promise<unknown>;
+  reload?: () => void;
   close: () => void;
   requestEditorClose?: (action: () => void) => void;
   registerDraft?: RegisterLibraryEditorDraft;
@@ -209,6 +212,14 @@ export function LibraryItemDetails({
           disabled={busy || item.deleted}
           onChange={changeReadingStatus}
           accessibleLabel={t('conversation.libraryReadingStatus.forPaper', { title: item.title })}
+        />
+        <LibraryRating
+          item={item}
+          account={account}
+          visible={visible && !editBase}
+          disabled={busy || stale || Boolean(editBase)}
+          submit={submit}
+          reload={reload}
         />
         <dl className='library-workbench__facts'>
           <div>
