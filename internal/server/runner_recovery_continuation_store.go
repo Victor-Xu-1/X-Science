@@ -19,6 +19,30 @@ func (s *Server) scanTranscriptProjection(
 	through int64,
 	visit func(transcriptstore.ProjectedEvent) error,
 ) error {
+	return s.scanTranscriptProjectionPages(ctx, snapshot, ownerID, through, visit, false)
+}
+
+// Recovery consumers which only inspect immutable events and payloads do not
+// need artifact associations. Keep their page/cursor authority in the same
+// scanner as consumers which still require the complete projection.
+func (s *Server) scanTranscriptPayloadProjection(
+	ctx context.Context,
+	snapshot transcriptstore.ProjectionSnapshot,
+	ownerID string,
+	through int64,
+	visit func(transcriptstore.ProjectedEvent) error,
+) error {
+	return s.scanTranscriptProjectionPages(ctx, snapshot, ownerID, through, visit, true)
+}
+
+func (s *Server) scanTranscriptProjectionPages(
+	ctx context.Context,
+	snapshot transcriptstore.ProjectionSnapshot,
+	ownerID string,
+	through int64,
+	visit func(transcriptstore.ProjectedEvent) error,
+	payloadOnly bool,
+) error {
 	if s == nil || s.transcriptStore == nil || snapshot.StreamUID == "" || snapshot.BranchID == "" ||
 		snapshot.BranchGeneration <= 0 || strings.TrimSpace(ownerID) == "" || through < 0 {
 		return errors.New("provider continuation projection authority is invalid")
@@ -26,9 +50,13 @@ func (s *Server) scanTranscriptProjection(
 	if through == 0 {
 		return nil
 	}
+	readPage := s.transcriptStore.ListProjectedEvents
+	if payloadOnly {
+		readPage = s.transcriptStore.ListProjectedCoordinateEvents
+	}
 	after := int64(0)
 	for after < through {
-		page, err := s.transcriptStore.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{
+		page, err := readPage(ctx, transcriptstore.ListProjectedEventsInput{
 			StreamUID: snapshot.StreamUID, OwnerID: ownerID, BranchID: snapshot.BranchID,
 			BranchGeneration: snapshot.BranchGeneration, AfterPublicationSequence: after,
 			ThroughPublicationSequence: through, Limit: 1000,
@@ -70,7 +98,7 @@ func (s *Server) loadProviderContinuation(
 	contracts := make([]sessionRunnerProviderContinuationV1, 0, 4)
 	pendingInterruption := false
 	chainOpen := false
-	err = s.scanTranscriptProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
+	err = s.scanTranscriptPayloadProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
 		var payload map[string]any
 		if len(projected.ResolvedPayloadJSON) > 0 {
 			decoder := json.NewDecoder(bytes.NewReader(projected.ResolvedPayloadJSON))
@@ -158,7 +186,7 @@ func (s *Server) loadProviderContinuation(
 	state := &sessionRunnerProviderContinuationState{Contract: latest, Digest: sha256.New()}
 	selectedStarted := false
 	var firstEventID, firstPublication, lastEventID, lastPublication int64
-	err = s.scanTranscriptProjection(ctx, snapshot, authority.Stream.OwnerID, latest.AcceptedThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
+	err = s.scanTranscriptPayloadProjection(ctx, snapshot, authority.Stream.OwnerID, latest.AcceptedThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
 		if projected.Event.RunnerAttempt == nil {
 			return nil
 		}
