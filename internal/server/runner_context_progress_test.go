@@ -19,6 +19,33 @@ func (m contextProgressModel) Complete(context.Context, agentruntime.ModelReques
 	return agentruntime.ModelResponse{}, nil
 }
 
+func TestContextProgressPublishesToolBoundaryPhaseInsideThrottle(t *testing.T) {
+	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
+	t.Cleanup(func() { _ = store.Close() })
+	recorder := &sessionContextUsageRecorder{store: store, sessionID: "phase-transition", attempt: 1, limit: 1000, limitSource: "configured"}
+	snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+	tracker := recorder.streamProgress(snapshot)
+	now := snapshot.ObservedAt
+	tracker.now = func() time.Time { return now }
+	tracker.observe(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true})
+	first := readContextUsageTest(t, store, "phase-transition")
+	if first.Progress == nil || first.Progress.Phase != "thinking" {
+		t.Fatalf("initial private activity did not publish thinking: %+v", first.Progress)
+	}
+
+	// Native providers send this boundary only once. The remaining argument
+	// fragments need not emit any other activity before the response finishes.
+	now = now.Add(50 * time.Millisecond)
+	tracker.observe(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary})
+	got := readContextUsageTest(t, store, "phase-transition")
+	if got.State != "request" || got.Progress == nil || got.Progress.Phase != "generating" {
+		t.Fatalf("tool boundary phase was throttled before provider finish: state=%s progress=%+v", got.State, got.Progress)
+	}
+	if !got.Progress.ObservedAt.Equal(now.UTC()) || got.Progress.OutputTokens != 0 || got.Progress.UsedTokens != snapshot.UsedTokens {
+		t.Fatalf("tool boundary changed public token counts or lost its observed time: %+v", got.Progress)
+	}
+}
+
 func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })

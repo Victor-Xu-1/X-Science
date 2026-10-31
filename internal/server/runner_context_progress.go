@@ -71,9 +71,12 @@ func (progress *contextStreamProgress) observe(event agentruntime.ModelStreamEve
 		phase = "thinking"
 	}
 	now := progress.now()
+	phaseChanged := progress.snapshot.Progress == nil || progress.snapshot.Progress.Phase != phase
 	progress.snapshot.Progress = &runnerContextProgress{Phase: phase, ObservedAt: now.UTC(),
 		UsedTokens: progress.snapshot.UsedTokens + output, OutputTokens: output}
-	if !progress.lastWrite.IsZero() && now.Sub(progress.lastWrite) < contextProgressInterval {
+	// A one-off boundary may be followed only by private argument fragments.
+	// Publish its real phase now; throttle repeated samples within that phase.
+	if !phaseChanged && !progress.lastWrite.IsZero() && now.Sub(progress.lastWrite) < contextProgressInterval {
 		return
 	}
 	progress.lastWrite = now
