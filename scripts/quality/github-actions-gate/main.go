@@ -492,6 +492,9 @@ func validateJob(job *yaml.Node, state *workflowState, bootstrap bool) error {
 		}
 		state.bootstrapJobs++
 	}
+	if err := uniqueFrontendReuseReader(steps, state); err != nil {
+		return err
+	}
 	for index, step := range steps.Content {
 		requireCheckout := bootstrap && index == 0
 		requireGate := bootstrap && index == 1
@@ -603,10 +606,11 @@ func exactRootPermissions(root *yaml.Node, workflow string) bool {
 	return len(allowed) == 0
 }
 
-// Only the existing main Go executor can receive a read-only Actions token.
-// Its exact command prevents passing that token to an unrelated step.
+// A read-only Actions token belongs only to the existing Go executor or the
+// exact pure frontend-origin reader, never frontend npm/config/test execution.
 func mainReuseTokenStep(step *yaml.Node, state *workflowState) bool {
-	if state.currentWorkflow != ".github/workflows/quality-main.yml" || state.currentJob != "main-go-shards" {
+	if state.currentWorkflow != ".github/workflows/quality-main.yml" ||
+		(state.currentJob != "main-go-shards" && state.currentJob != "main-frontend-tests") {
 		return false
 	}
 	env, run, name := mappingValue(step, "env"), mappingValue(step, "run"), mappingValue(step, "name")
@@ -618,9 +622,38 @@ func mainReuseTokenStep(step *yaml.Node, state *workflowState) bool {
   --base '${{ github.event.before }}' --head '${{ github.sha }}' \
   --shard-index '${{ matrix.index }}' --shard-count '${{ matrix.count }}' \
   --log-dir "$RUNNER_TEMP/runtime-test-evidence"`
-	return name.Kind == yaml.ScalarNode && name.Tag == "!!str" && name.Value == "Test integrated Go dependency closure" &&
+	valid := name.Kind == yaml.ScalarNode && name.Tag == "!!str" &&
 		run.Kind == yaml.ScalarNode && run.Tag == "!!str" && token != nil && token.Kind == yaml.ScalarNode &&
-		token.Tag == "!!str" && token.Value == "$"+"{{ github.token }}" && strings.TrimSpace(run.Value) == command
+		token.Tag == "!!str" && token.Value == "$"+"{{ github.token }}"
+	if !valid {
+		return false
+	}
+	if state.currentJob == "main-go-shards" {
+		return name.Value == "Test integrated Go dependency closure" && strings.TrimSpace(run.Value) == command
+	}
+	const frontendCommand = `PYTHONDONTWRITEBYTECODE=1 python3 -B scripts/quality/pr_frontend_reuse.py fetch \
+  --base '${{ github.event.before }}' --head '${{ github.sha }}' \
+  --directory "$RUNNER_TEMP/runtime-test-evidence/frontend-related-reuse"`
+	id := mappingValue(step, "id")
+	return name.Value == "Read original PR frontend evidence" && id != nil && id.Kind == yaml.ScalarNode &&
+		id.Tag == "!!str" && id.Value == "frontend-origin" && mappingValue(step, "if") == nil &&
+		strings.TrimSpace(run.Value) == frontendCommand
+}
+
+func uniqueFrontendReuseReader(steps *yaml.Node, state *workflowState) error {
+	if state.currentWorkflow != ".github/workflows/quality-main.yml" || state.currentJob != "main-frontend-tests" {
+		return nil
+	}
+	count := 0
+	for _, step := range steps.Content {
+		if mainReuseTokenStep(step, state) {
+			count++
+		}
+	}
+	if count > 1 {
+		return errors.New("actions_frontend_reuse_reader_duplicated")
+	}
+	return nil
 }
 
 func validateContinueOnError(mapping *yaml.Node) error {
