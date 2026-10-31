@@ -26,7 +26,7 @@ func (s *Server) runnerAskUserSelectionEntries(ctx context.Context, run *session
 	}
 	reached := !required
 	var entries []eventjournal.Entry
-	err = s.scanTranscriptProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
+	err = s.scanTranscriptPayloadProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
 		if !reached && sessionRunnerProjectedEventMatchesTaskBoundary(projected.Event, boundary) {
 			reached = true
 		}
