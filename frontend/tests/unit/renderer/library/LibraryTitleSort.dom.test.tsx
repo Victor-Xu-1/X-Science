@@ -182,7 +182,16 @@ describe('Library title order through the original URL and HTTP owners', () => {
       within(menu)
         .getAllByRole('option')
         .map((option) => option.textContent)
-    ).toEqual(['Recently updated', 'Recently added', 'First added', 'Title: A–Z', 'Title: Z–A', 'Current order']);
+    ).toEqual([
+      'Recently updated',
+      'Recently added',
+      'First added',
+      'Title: A–Z',
+      'Title: Z–A',
+      'Year: newest first',
+      'Year: oldest first',
+      'Current order',
+    ]);
     expect(within(menu).getByRole('option', { name: 'Current order' })).toHaveAttribute('aria-selected', 'true');
     pressSortKey('Escape', 27);
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());

@@ -32,7 +32,7 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 				return
 			}
 			switch values[0] {
-			case "title-asc", "title-desc", "updated-desc", "created-desc", "created-asc":
+			case "title-asc", "title-desc", "updated-desc", "created-desc", "created-asc", "year-asc", "year-desc":
 			default:
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 				return

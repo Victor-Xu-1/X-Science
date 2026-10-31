@@ -23,6 +23,8 @@ const (
 	LiteraturePageUpdatedDescending LiteraturePageSort = "updated-desc"
 	LiteraturePageCreatedDescending LiteraturePageSort = "created-desc"
 	LiteraturePageCreatedAscending  LiteraturePageSort = "created-asc"
+	LiteraturePageYearAscending     LiteraturePageSort = "year-asc"
+	LiteraturePageYearDescending    LiteraturePageSort = "year-desc"
 	literatureTitleCursorPrefix                        = "xscience-literature-title-v1."
 )
 
@@ -31,7 +33,14 @@ var ErrLiteratureCursorStale = errors.New("literature page anchor changed")
 type LiteraturePageReadOptions struct{ Sort LiteraturePageSort }
 
 func (sort LiteraturePageSort) valid() bool {
-	return sort == "" || sort == LiteraturePageTitleAscending || sort == LiteraturePageTitleDescending || sort.dateExpression() != ""
+	return sort == "" || sort == LiteraturePageTitleAscending || sort == LiteraturePageTitleDescending || sort.dateExpression() != "" || sort.yearExpression() != ""
+}
+
+func (sort LiteraturePageSort) yearExpression() string {
+	if sort == LiteraturePageYearAscending || sort == LiteraturePageYearDescending {
+		return `xscience_literature_year_key_v1(i.metadata_json)`
+	}
+	return ""
 }
 
 func (sort LiteraturePageSort) dateExpression() string {
@@ -46,6 +55,13 @@ func (sort LiteraturePageSort) dateExpression() string {
 }
 
 func (sort LiteraturePageSort) orderBy() string {
+	if key := sort.yearExpression(); key != "" {
+		direction := " DESC"
+		if sort == LiteraturePageYearAscending {
+			direction = " ASC"
+		}
+		return key + ` IS NULL ASC,` + key + direction + `,i.title ASC,i.id ASC`
+	}
 	if key := sort.dateExpression(); key != "" {
 		direction := " DESC"
 		if sort == LiteraturePageCreatedAscending {
