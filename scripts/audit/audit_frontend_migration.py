@@ -131,6 +131,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureRating.ts": "Decode only the canonical read-only rating projection before opaque metadata can be rounded in JavaScript; retain original metadata field patches and immutable legacy receipt omission.",
     "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority.",
     "tests/unit/renderer/conversation/literatureMetadataCapacity.test.ts": "Verify future-size command and durable pending replay with bounded Unicode metadata, original identity, and unchanged invalid field-action rejection using synthetic input.",
     "packages/desktop/src/common/adapter/literatureReferenceExport.ts": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff.",
