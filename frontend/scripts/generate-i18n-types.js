@@ -12,10 +12,7 @@ const { execFileSync } = require('child_process');
 
 const LOCALES_DIR = path.resolve(__dirname, '../packages/desktop/src/renderer/services/i18n/locales');
 const OUTPUT_FILE = path.resolve(__dirname, '../packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts');
-const OXFMT_BIN = path.resolve(
-  __dirname,
-  process.platform === 'win32' ? '../node_modules/.bin/oxfmt.exe' : '../node_modules/.bin/oxfmt'
-);
+const OXFMT_ENTRY = path.resolve(__dirname, '../node_modules/oxfmt/bin/oxfmt');
 const i18nConfig = require('../packages/desktop/src/common/config/i18n-config.json');
 const REFERENCE_LANGUAGE = i18nConfig.referenceLanguage;
 const REQUIRED_MODULES = i18nConfig.modules;
@@ -69,10 +66,10 @@ function generateI18nKeysDtsContent() {
 }
 
 function formatOutputFile(filePath) {
-  if (!fs.existsSync(OXFMT_BIN)) {
-    throw new Error(`Required formatter is missing: ${OXFMT_BIN}`);
+  if (!fs.existsSync(OXFMT_ENTRY)) {
+    throw new Error(`Required formatter is missing: ${OXFMT_ENTRY}`);
   }
-  execFileSync(OXFMT_BIN, [filePath], { stdio: 'inherit' });
+  execFileSync(process.execPath, [OXFMT_ENTRY, filePath], { stdio: 'inherit' });
 }
 
 function writeOutputFile(content) {
