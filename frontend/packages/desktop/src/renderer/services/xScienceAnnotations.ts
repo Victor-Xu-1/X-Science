@@ -1,3 +1,4 @@
+import { readBackendHttpError } from '@/common/adapter/httpBridge';
 import { invalidateXScienceFrameReads } from './xScienceFrameReads';
 
 export type XScienceAnnotationType = 'point' | 'text_selection' | 'screenshot' | 'html_element';
@@ -614,10 +615,7 @@ function toVerificationCheck(value: unknown): XScienceVerificationCheck | null {
 
 async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike): Promise<unknown> {
   const response = await fetchImpl(path, { credentials: 'include', ...init });
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`X-Science annotation request failed with ${response.status}${detail ? `: ${detail}` : ''}`);
-  }
+  if (!response.ok) throw await readBackendHttpError(init.method ?? 'GET', path, response);
   if (response.status === 204) return null;
   return response.json();
 }
