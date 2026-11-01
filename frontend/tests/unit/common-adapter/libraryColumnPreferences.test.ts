@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES as defaults,
   LIBRARY_COLUMN_IDS,
+  liftLibraryColumnPreferences,
   normalizeLibraryColumnPreferences,
   parseLibraryColumnPreferences,
   parseLibraryColumnPreferencesWire,
@@ -9,6 +10,57 @@ import {
 } from '@/common/adapter/libraryColumnPreferences';
 
 describe('Library column preference wire', () => {
+  it('reads a strict seven-ID V3 without widening V1 or V2', () => {
+    const stored = {
+      version: 3,
+      order: ['readingStatus', 'rating', 'notes', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['rating', 'year', 'notes'],
+    };
+    const decoded = parseLibraryColumnPreferencesWire(stored);
+    expect(decoded).toEqual({ ...stored, visible: ['rating', 'notes', 'year'] });
+    expect(parseLibraryColumnPreferences(stored)).toBeNull();
+    expect(projectLibraryColumnPreferences(decoded!)).toEqual({
+      version: 1,
+      order: ['readingStatus', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['year'],
+    });
+    for (const malformed of [
+      { ...stored, version: 2 },
+      { ...stored, version: 4 },
+      { ...stored, version: '3' },
+      { ...stored, order: stored.order.slice(1) },
+      { ...stored, order: [...stored.order, 'rating'] },
+      { ...stored, order: ['rating', ...stored.order.slice(1)] },
+      { ...stored, visible: ['rating', 'rating'] },
+      { ...stored, visible: ['title'] },
+      { ...stored, visible: Array(1) },
+      { ...stored, extra: true },
+    ])
+      expect(parseLibraryColumnPreferencesWire(malformed)).toBeNull();
+    expect(Object.isFrozen(decoded?.order)).toBe(true);
+    expect(stored.visible).toEqual(['rating', 'year', 'notes']);
+  });
+
+  it('preserves Rating and Notes positions and visibility when a legacy view edits its subset', () => {
+    const decoded = parseLibraryColumnPreferencesWire({
+      version: 3,
+      order: ['readingStatus', 'rating', 'notes', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['rating', 'notes', 'year'],
+    });
+    expect(decoded).not.toBeNull();
+    expect(
+      liftLibraryColumnPreferences(decoded!, {
+        version: 1,
+        order: ['attachments', 'year', 'authors', 'doi', 'readingStatus'],
+        visible: ['attachments', 'readingStatus'],
+      })
+    ).toEqual({
+      version: 3,
+      order: ['attachments', 'rating', 'notes', 'year', 'authors', 'doi', 'readingStatus'],
+      visible: ['attachments', 'rating', 'notes', 'readingStatus'],
+    });
+  });
+
   it('reads a strict six-ID V2 while keeping the V1 parser and five-column presentation closed', () => {
     const stored = {
       version: 2,

@@ -16,6 +16,8 @@ export function LibraryRating({
   disabled,
   submit,
   reload,
+  compact = false,
+  accessibleLabel,
 }: {
   item: LiteratureItem;
   account: string;
@@ -23,6 +25,8 @@ export function LibraryRating({
   disabled: boolean;
   submit: (command: LiteratureCommand) => Promise<unknown>;
   reload?: () => void;
+  compact?: boolean;
+  accessibleLabel?: string;
 }) {
   const { t } = useTranslation();
   const identity = JSON.stringify([account, item.id, item.metadata_revision]);
@@ -82,13 +86,16 @@ export function LibraryRating({
   };
 
   return (
-    <section className='library-rating' aria-label={t('conversation.libraryRating.section')}>
+    <section
+      className={`library-rating${compact ? ' library-rating--inline' : ''}`}
+      aria-label={accessibleLabel ?? t('conversation.libraryRating.section')}
+    >
       <div className='library-rating__row'>
-        <span className='library-rating__label'>{t('conversation.libraryRating.label')}</span>
+        {!compact && <span className='library-rating__label'>{t('conversation.libraryRating.label')}</span>}
         <div
           className='library-rating__stars'
           role='group'
-          aria-label={t('conversation.libraryRating.label')}
+          aria-label={accessibleLabel ?? t('conversation.libraryRating.label')}
           aria-busy={waiting}
         >
           {[1, 2, 3, 4, 5].map((option) => {
@@ -110,13 +117,15 @@ export function LibraryRating({
             );
           })}
         </div>
-        <span className='library-rating__value'>
-          {rating === undefined
-            ? t(projected ? 'conversation.libraryRating.unknown' : 'conversation.libraryRating.unavailable')
-            : rating === 0
-              ? t('conversation.libraryRating.unrated')
-              : t('conversation.libraryRating.value', { value: rating })}
-        </span>
+        {!compact && (
+          <span className='library-rating__value'>
+            {rating === undefined
+              ? t(projected ? 'conversation.libraryRating.unknown' : 'conversation.libraryRating.unavailable')
+              : rating === 0
+                ? t('conversation.libraryRating.unrated')
+                : t('conversation.libraryRating.value', { value: rating })}
+          </span>
+        )}
       </div>
       {pending && (
         <p className='library-rating__feedback' role={pending.phase === 'uncertain' ? 'alert' : 'status'}>

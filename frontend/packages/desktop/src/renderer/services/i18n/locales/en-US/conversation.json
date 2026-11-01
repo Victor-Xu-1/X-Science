@@ -2184,6 +2184,7 @@
   },
   "libraryRating": {
     "section": "Reference rating",
+    "forPaper": "Rating for {{title}}",
     "label": "Rating",
     "oneStar": "1 star",
     "stars": "{{count}} stars",
@@ -2368,7 +2369,8 @@
       "authors": "Authors",
       "doi": "DOI",
       "attachments": "Files",
-      "notes": "Notes"
+      "notes": "Notes",
+      "rating": "Rating"
     },
     "loading": "Loading references…",
     "loadFailed": "Could not load references",

@@ -2184,6 +2184,7 @@
   },
   "libraryRating": {
     "section": "文献评分",
+    "forPaper": "{{title}}的评分",
     "label": "评分",
     "oneStar": "1 星",
     "stars": "{{count}} 星",
@@ -2368,7 +2369,8 @@
       "authors": "作者",
       "doi": "DOI",
       "attachments": "文件",
-      "notes": "笔记"
+      "notes": "笔记",
+      "rating": "评分"
     },
     "loading": "正在加载文献…",
     "loadFailed": "无法加载文献",

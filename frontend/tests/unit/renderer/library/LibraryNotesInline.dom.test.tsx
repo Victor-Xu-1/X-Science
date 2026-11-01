@@ -23,7 +23,7 @@ describe('Library inline Notes through the existing Page owners', () => {
     vi.unstubAllGlobals();
   });
 
-  it('enables the optional Notes column through the original setting and restores its saved six-column layout', async () => {
+  it('enables Notes through the original setting and preserves the hidden Rating column on reload', async () => {
     let saved: LibraryColumnPreferencesWire = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
     const settingWrites: LibraryColumnPreferencesWire[] = [];
     const item = { ...paper(), metadata: { ...paper().metadata, personal_note: 'A saved note' } };
@@ -55,8 +55,8 @@ describe('Library inline Notes through the existing Page owners', () => {
     fireEvent.click(notes!);
     await waitFor(() => expect(settingWrites).toHaveLength(1));
     expect(saved).toEqual({
-      version: 2,
-      order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes'],
+      version: 3,
+      order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
       visible: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'notes'],
     });
     fireEvent.click(within(menu).getByRole('button', { name: 'Close column settings' }));

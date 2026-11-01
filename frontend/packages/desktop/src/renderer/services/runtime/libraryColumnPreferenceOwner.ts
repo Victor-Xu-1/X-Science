@@ -2,21 +2,26 @@ import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
   LIBRARY_COLUMN_IDS,
   LIBRARY_COLUMN_V2_IDS,
+  LIBRARY_COLUMN_V3_IDS,
   liftLibraryColumnPreferences,
+  liftLibraryNotesColumns,
   parseLibraryColumnPreferences,
   parseLibraryColumnPreferencesWire,
   projectLibraryColumnPreferences,
   projectLibraryNotesColumns,
+  projectLibraryRatingColumns,
   type LibraryColumnWireId,
   type LibraryColumnPreferences,
   type LibraryColumnPreferencesWire,
   type LibraryColumnPreferencesV2,
+  type LibraryColumnPreferencesV3,
 } from '@/common/adapter/libraryColumnPreferences';
 
 export type LibraryColumnPreferenceStatus = 'loading' | 'ready' | 'saving' | 'invalid' | 'read-error' | 'write-error';
 export type LibraryColumnPreferenceView = Readonly<{
   preferences: LibraryColumnPreferences;
   notesPreferences?: LibraryColumnPreferencesV2;
+  ratingPreferences?: LibraryColumnPreferencesV3;
   status: LibraryColumnPreferenceStatus;
 }>;
 export type LibraryColumnPreferenceTransport = {
@@ -44,7 +49,8 @@ export class LibraryColumnPreferenceOwner {
   constructor(
     private readonly transport: LibraryColumnPreferenceTransport,
     private readonly isCurrent: () => boolean,
-    private readonly notesEnabled = false
+    private readonly notesEnabled = false,
+    private readonly ratingEnabled = false
   ) {}
 
   getSnapshot = (): LibraryColumnPreferenceView => this.view;
@@ -66,26 +72,32 @@ export class LibraryColumnPreferenceOwner {
     this.view = {
       preferences: projectLibraryColumnPreferences(merged),
       ...(this.notesEnabled ? { notesPreferences: projectLibraryNotesColumns(merged) } : {}),
+      ...(this.ratingEnabled ? { ratingPreferences: projectLibraryRatingColumns(merged) } : {}),
       status,
     };
     this.listeners.forEach((listener) => listener());
   }
+  private project(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
+    return this.ratingEnabled
+      ? projectLibraryRatingColumns(base)
+      : this.notesEnabled
+        ? projectLibraryNotesColumns(base)
+        : projectLibraryColumnPreferences(base);
+  }
+  private supportedIds(): readonly LibraryColumnWireId[] {
+    return this.ratingEnabled ? LIBRARY_COLUMN_V3_IDS : this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS;
+  }
   private merge(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
-    const supported = this.notesEnabled ? projectLibraryNotesColumns(base) : projectLibraryColumnPreferences(base);
+    const supported = this.project(base);
     const order = this.order?.value ?? supported.order;
     const visible = supported.visible as readonly LibraryColumnWireId[];
-    if (this.notesEnabled)
-      return {
-        version: 2,
-        order,
-        visible: order.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
-      };
-    const legacyOrder = order.filter((id) => id !== 'notes');
-    return liftLibraryColumnPreferences(base, {
-      version: 1,
-      order: legacyOrder,
-      visible: legacyOrder.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
-    });
+    const next = {
+      version: supported.version,
+      order,
+      visible: order.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
+    } as LibraryColumnPreferencesWire;
+    if (next.version === 3) return next;
+    return next.version === 2 ? liftLibraryNotesColumns(base, next) : liftLibraryColumnPreferences(base, next);
   }
   private dirty() {
     return this.order !== undefined || this.visibility.size > 0;
@@ -96,7 +108,7 @@ export class LibraryColumnPreferenceOwner {
     this.confirmed = remote;
     this.loaded = true;
     // A read can confirm a lost PUT response, or an equal change from another view.
-    const supported = this.notesEnabled ? projectLibraryNotesColumns(remote) : projectLibraryColumnPreferences(remote);
+    const supported = this.project(remote);
     const visible = supported.visible as readonly LibraryColumnWireId[];
     if (this.order && sameOrder(this.order.value, supported.order)) this.order = undefined;
     for (const [id, intent] of this.visibility) if (intent.value === visible.includes(id)) this.visibility.delete(id);
@@ -150,17 +162,18 @@ export class LibraryColumnPreferenceOwner {
 
   change = (value: LibraryColumnPreferencesWire): void => {
     if (!this.current() || this.view.status === 'invalid' || this.view.status === 'read-error') return;
-    const next = this.notesEnabled ? parseLibraryColumnPreferencesWire(value) : parseLibraryColumnPreferences(value);
+    const next =
+      this.notesEnabled || this.ratingEnabled
+        ? parseLibraryColumnPreferencesWire(value)
+        : parseLibraryColumnPreferences(value);
     if (!next) return;
-    if (this.notesEnabled && next.version !== 2) return;
-    const previous = this.notesEnabled
-      ? (this.view.notesPreferences ?? projectLibraryNotesColumns(this.view.preferences))
-      : this.view.preferences;
+    if (next.version !== (this.ratingEnabled ? 3 : this.notesEnabled ? 2 : 1)) return;
+    const previous = this.project(this.merge(this.confirmed));
     const nextVisible = next.visible as readonly LibraryColumnWireId[];
     const previousVisible = previous.visible as readonly LibraryColumnWireId[];
     const revision = ++this.revision;
     if (!sameOrder(previous.order, next.order)) this.order = { value: next.order, revision };
-    for (const id of this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS)
+    for (const id of this.supportedIds())
       if (previousVisible.includes(id) !== nextVisible.includes(id))
         this.visibility.set(id, { value: nextVisible.includes(id), revision });
     this.publish();
@@ -169,13 +182,10 @@ export class LibraryColumnPreferenceOwner {
   reset = (): void => {
     if (!this.current() || this.request) return;
     const revision = ++this.revision;
-    const defaults = this.notesEnabled
-      ? projectLibraryNotesColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES)
-      : DEFAULT_LIBRARY_COLUMN_PREFERENCES;
+    const defaults = this.project(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
     const visible = defaults.visible as readonly LibraryColumnWireId[];
     this.order = { value: defaults.order, revision };
-    for (const id of this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS)
-      this.visibility.set(id, { value: visible.includes(id), revision });
+    for (const id of this.supportedIds()) this.visibility.set(id, { value: visible.includes(id), revision });
     this.loaded = true;
     this.blocked = false;
     void this.flush();
