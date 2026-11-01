@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "f6c11dd967b347d5c89a30c0463fd3d58f2cde408fa5e39bf7f62f4e252f5f2b",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6f0cb2dcec59f1cd812eaf4988247a1b2d59ce8a118146ea069ce91aff20b435",
+  "additionFingerprintSHA256": "4898d939a7a22df178d8acaa9d390a2f727837016f5e2919569f82835e4ba1d2",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -14407,8 +14407,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryReferenceExportScopes.dom.test.tsx",
-      "sha256": "92d35e08bf55dd31403910a2fbd30e697d94f6a451238362ec74e562caf7b957",
-      "bytes": 20021,
+      "sha256": "00925b62de3b5ab6ea33e52d92386af3c822c1ade8d1eabbbceb301765e6276d",
+      "bytes": 20042,
       "reason": "Verify all-matching exclusions, independent whole-scope reads, canonical title order, More Actions and stale scope availability/ABA fences in the actual Library Page without provider or research execution."
     },
     {
