@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { LibraryPdfAnnotations } from './LibraryPdfAnnotations';
 import { useTranslation } from 'react-i18next';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
 import { cachePreviewModule } from '@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders';
@@ -8,7 +9,15 @@ type PdfViewer = Awaited<ReturnType<typeof loadPdfViewer>>['default'];
 type PreviewModule = { status: 'loading' } | { status: 'error' } | { status: 'ready'; Viewer: PdfViewer };
 
 /** The shared PDF core keeps ownership of document bytes, parsing and cancellation. */
-export function LibraryAttachmentPreview({ filename, contentUrl }: { filename: string; contentUrl: string }) {
+export function LibraryAttachmentPreview({
+  filename,
+  contentUrl,
+  versionId,
+}: {
+  filename: string;
+  contentUrl: string;
+  versionId: string;
+}) {
   const { t } = useTranslation();
   const [generation, setGeneration] = useState(0);
   const [module, setModule] = useState<PreviewModule>({ status: 'loading' });
@@ -46,5 +55,7 @@ export function LibraryAttachmentPreview({ filename, contentUrl }: { filename: s
       </div>
     );
   }
-  return <module.Viewer filename={filename} contentUrl={contentUrl} />;
+  return (
+    <LibraryPdfAnnotations Viewer={module.Viewer} filename={filename} contentUrl={contentUrl} versionId={versionId} />
+  );
 }

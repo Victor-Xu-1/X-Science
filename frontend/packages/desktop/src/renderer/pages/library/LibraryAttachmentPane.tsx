@@ -50,6 +50,7 @@ export function LibraryAttachmentPane({
         <div className='library-workbench__attachment-preview-canvas'>
           <LibraryAttachmentPreview
             key={JSON.stringify([scope, current.key])}
+            versionId={current.version.id}
             filename={current.version.filename}
             contentUrl={current.contentUrl}
           />

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "d75655b83b03b6e4c2b5d05d36aaf3a10ae3db97ada7eedb3cb8bfeb5f5ac59b",
+  "adaptationFingerprintSHA256": "424b3a4a912f4b0f226bc1eea4dcd7ae6a26e611be95e14182ec0c0625cedebc",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "2e1012f0c37d6c750cbb6ac8381de7220eb9c782e91e545f9a7d81ef0e3b959f",
+  "additionFingerprintSHA256": "2252bc11a1997481580740b075f615e73849cbf33ad9dd5f787d24211b30b545",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1433
+    "addedFiles": 1436
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "5dd524e58e9ab9cdfe83f2a8c7f8fe88f5cc6896d75911c1b6c5cddc1c6dbf6a",
+      "targetSHA256": "253de793212f01345c4a5ebbba50b31d82ac9a2de6b8d2f9689920b5d67855b4",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "247cb5a836dfefb73c7f5b498364dca778dbcc0711efd8e8e514d1f0b4a25217",
+      "targetSHA256": "79ad7856e8687ce62f03b0b50d9a1af639cd12e4d5678b9b38f0612cd7ce5aa1",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1221,8 +1221,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/artifactCanvasSelection.ts",
       "sourceSHA256": "c8026aadbe21bbbff4903d637583746ffea6b5b2cc7ee2f6042ee9e4d7e2cbe2",
-      "targetSHA256": "9e0aa963bf6dffc850b40b49a4df308d41e1a1be37cf8d548c774941e9437748",
-      "bytes": 1466,
+      "targetSHA256": "015a737c9386d5c51a01d66d2f8853c657a7d8f109d5ea3f3a5e2498d4a4b752",
+      "bytes": 2777,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -3142,8 +3142,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAnnotations.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAnnotations.ts",
       "sourceSHA256": "861f6ccc291004426f0e4430a6d430224675d1152ae9ba5ca604c9e5a50f1664",
-      "targetSHA256": "ec410d513c9cd6ef296703e7047145128e60f3fbbeaeb4bd4ce6b560bbda088d",
-      "bytes": 21490,
+      "targetSHA256": "788353e67807d11479af51cbb798bb79c031ea781f4c803d6e593265af6fed43",
+      "bytes": 24138,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4359,8 +4359,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "6b05abc2c131b7d42f64a45c1d376634177e12691e31542cc773fdb5637b9030",
-      "bytes": 21723,
+      "targetSHA256": "0af5f96d7aaa696404f0425bbfc4317efefcc9345f48feb9f8004c5160169139",
+      "bytes": 22385,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4373,8 +4373,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "20371b8a1aca7d098e3c023f6bebfa9f1416a39e480b1f6c743a81a7da31f535",
-      "bytes": 29235,
+      "targetSHA256": "dee89ca32fab03697efbfaec52eaeced8f5daf86357cd42bd32eec800e238a10",
+      "bytes": 29867,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3b9c333b7288346031ec94350171b3a0afb0e8c6efb2d1c832969b18561e5ab7",
+      "sha256": "34a88505a3ef42f20add4bcf6e1465eb76e94820f288a6e0330c420e6ba96431",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8761,8 +8761,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactAnnotationStore.ts",
-      "sha256": "0904296f75f52285bf1ddd55d05dbf3bc1aa58c2145ad460e4a8203611c944e1",
-      "bytes": 4666,
+      "sha256": "1a3259c5d3c466851cbd73105b1d7ad3f403c60d75a1c1e11109ec100bcd0d5e",
+      "bytes": 5491,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8809,8 +8809,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactSelectionEditor.ts",
-      "sha256": "12ecd25351ad5ce9a148b6b09007cc6bb6ef23b580061d1787ff29978638782e",
-      "bytes": 4099,
+      "sha256": "ec885ccb408f7c30b72366acbe7125acb005a7fc34df27ec94b2c05f632fb467",
+      "bytes": 3209,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9991,14 +9991,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryAttachmentPane.tsx",
-      "sha256": "c9036fb2f0821ecc0fa0afb2fd99db76eed5b989d24dab9a768cfe9b058ec6a4",
-      "bytes": 2050,
+      "sha256": "4a2bc2e28202d3eb92ffbc5a893a76fec88c85087d05d1fbe8916f09606438cb",
+      "bytes": 2093,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryAttachmentPreview.tsx",
-      "sha256": "74cec4a931f0da7c4a1877460397c3af1998cc3964a65fe27d383c7d45bfe89a",
-      "bytes": 2021,
+      "sha256": "5a98a196eb1489be54d9966fcbed3ba500efd4a04c0f4c031b595a0cec5b337e",
+      "bytes": 2193,
       "reason": "Bound the shared PDF-core module loading, explicit retry and close lifecycle in a native Library pane; no alternate parser, content transport or storage owner is introduced."
     },
     {
@@ -10102,6 +10102,12 @@
       "sha256": "dd5113c357f9c5f60b2285bb2189334d81e67fb2488769645e7816ace37d1b0e",
       "bytes": 44144,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryPdfAnnotations.tsx",
+      "sha256": "555b252e4b808a9d7ba2fba68d1b0129272488e9825493204d1976b130750417",
+      "bytes": 5303,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPdfImport.tsx",
@@ -14233,8 +14239,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryAttachmentPreview.dom.test.tsx",
-      "sha256": "3521afbde1aa08b1ae242c6f43fa36c2bf8e89d09d81a2de54e9b2282072affb",
-      "bytes": 3706,
+      "sha256": "4bf2c387b711b46f114dbdb574062fcc624bf3bead862d2f2d5f374053a731f0",
+      "bytes": 4205,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14349,6 +14355,12 @@
       "path": "tests/unit/renderer/library/LibraryPageSize.dom.test.tsx",
       "sha256": "63063e23587b9ca499ecd0f3918ac41082d41c617f2c42fdcd109cba545321c4",
       "bytes": 10675,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryPdfAnnotations.dom.test.tsx",
+      "sha256": "e6679fd680adf7d2e43c31187a52a78d2ad4983ac46401547a4507744305fd8a",
+      "bytes": 7489,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -15532,6 +15544,12 @@
       "sha256": "c13ae1e3eb74ef2756d9ab94140b9df81d099b7c6aacbe966c23ceed5701e5d7",
       "bytes": 1346,
       "reason": "Verify bounded file-import error classification without leaking raw failures."
+    },
+    {
+      "path": "tests/unit/xscience/libraryAnnotationsService.test.ts",
+      "sha256": "e998e8d9f0953a500529bfeed1ef6a15f2de9928c95d61fbe6eac22a94c47c89",
+      "bytes": 1629,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/xscience/longTaskStatusModel.test.ts",

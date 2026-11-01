@@ -91,8 +91,20 @@ func (s *Store) ListArtifactAnnotationPageOwned(ctx context.Context, source Arti
 	if err := validateAnnotationReadSource(ctx, tx, source); err != nil {
 		return page, err
 	}
-	target := "av:" + source.VersionID
-	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM annotations WHERE project_id=? AND target_key=?`, source.ProjectID, target).Scan(&page.Total); err != nil {
+	page, err = listAnnotationPageRows(ctx, tx, "project_id=? AND target_key=?", []any{source.ProjectID, "av:" + source.VersionID}, source.Checksum, cursor)
+	if err != nil {
+		return AnnotationReadPage{}, err
+	}
+	if err := tx.Commit(); err != nil {
+		return AnnotationReadPage{}, err
+	}
+	return page, nil
+}
+
+// Both admitted source kinds consume the same table, ordering and bounded page.
+func listAnnotationPageRows(ctx context.Context, tx *sql.Tx, where string, scope []any, checksum string, cursor *AnnotationPageCursor) (AnnotationReadPage, error) {
+	var page AnnotationReadPage
+	if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM annotations WHERE `+where, scope...).Scan(&page.Total); err != nil {
 		return AnnotationReadPage{}, err
 	}
 	after := -1
@@ -101,7 +113,7 @@ func (s *Store) ListArtifactAnnotationPageOwned(ctx context.Context, source Arti
 		if cursor.ID == "" || len(cursor.ID) > 1024 || cursor.LabelIndex < 0 || cursor.CreatedAt.IsZero() {
 			return AnnotationReadPage{}, ErrAnnotationReadCursor
 		}
-		err := tx.QueryRowContext(ctx, `SELECT label_idx,created_at FROM annotations WHERE project_id=? AND target_key=? AND id=?`, source.ProjectID, target, cursor.ID).Scan(&after, &created)
+		err := tx.QueryRowContext(ctx, `SELECT label_idx,created_at FROM annotations WHERE `+where+` AND id=?`, append(append([]any{}, scope...), cursor.ID)...).Scan(&after, &created)
 		if errors.Is(err, sql.ErrNoRows) || err == nil && (after != cursor.LabelIndex || !created.Equal(cursor.CreatedAt)) {
 			return AnnotationReadPage{}, ErrAnnotationReadCursor
 		}
@@ -109,8 +121,8 @@ func (s *Store) ListArtifactAnnotationPageOwned(ctx context.Context, source Arti
 			return AnnotationReadPage{}, err
 		}
 	}
-	rows, err := tx.QueryContext(ctx, annotationSelect+` WHERE project_id=? AND target_key=? AND label_idx>?
-		ORDER BY label_idx,created_at,id LIMIT ?`, source.ProjectID, target, after, AnnotationReadPageSize+1)
+	rows, err := tx.QueryContext(ctx, annotationSelect+` WHERE `+where+` AND label_idx>?
+		ORDER BY label_idx,created_at,id LIMIT ?`, append(append([]any{}, scope...), after, AnnotationReadPageSize+1)...)
 	if err != nil {
 		return AnnotationReadPage{}, err
 	}
@@ -121,7 +133,7 @@ func (s *Store) ListArtifactAnnotationPageOwned(ctx context.Context, source Arti
 			rows.Close()
 			return AnnotationReadPage{}, err
 		}
-		if annotation.ContentChecksum != "" && annotation.ContentChecksum != source.Checksum {
+		if annotation.ContentChecksum != "" && annotation.ContentChecksum != checksum {
 			rows.Close()
 			return AnnotationReadPage{}, ErrAnnotationReadSource
 		}
@@ -139,9 +151,6 @@ func (s *Store) ListArtifactAnnotationPageOwned(ctx context.Context, source Arti
 		page.Items = page.Items[:AnnotationReadPageSize]
 		last := page.Items[len(page.Items)-1]
 		page.Next = &AnnotationPageCursor{ID: last.ID, LabelIndex: last.LabelIndex, CreatedAt: last.CreatedAt}
-	}
-	if err := tx.Commit(); err != nil {
-		return AnnotationReadPage{}, err
 	}
 	return page, nil
 }

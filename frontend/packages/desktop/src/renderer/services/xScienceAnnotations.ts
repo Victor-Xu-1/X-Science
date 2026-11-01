@@ -183,6 +183,65 @@ function invalidateTranscriptAnnotationReads(frameId: string, fetchImpl: FetchLi
   }
 }
 
+export type XScienceAnnotationTarget =
+  | { kind: 'artifact'; artifactId: string; versionId: string }
+  | { kind: 'literature'; versionId: string };
+
+/** Both PDF surfaces use the same decoded annotation shape and record writer. */
+export async function loadXScienceAnnotationTarget(
+  target: XScienceAnnotationTarget,
+  fetchImpl: FetchLike = fetch
+): Promise<XScienceArtifactAnnotationCollection> {
+  if (target.kind === 'artifact')
+    return loadXScienceArtifactAnnotations(target.artifactId, target.versionId, fetchImpl);
+  const annotations: XScienceArtifactAnnotation[] = [];
+  let cursor: string | undefined;
+  let targetKey = '';
+  let currentChecksum: string | null = null;
+  const seen = new Set<string>();
+  do {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    const payload = recordValue(
+      // A page cursor is issued by the preceding response; requests cannot run in parallel.
+      // eslint-disable-next-line no-await-in-loop
+      await requestJson(
+        `/api/literature/attachment-versions/${encodeURIComponent(target.versionId)}/annotations${query}`,
+        {},
+        fetchImpl
+      )
+    );
+    const nextKey = stringValue(payload?.target_key);
+    const nextChecksum = nullableString(payload?.current_checksum);
+    if (targetKey && (targetKey !== nextKey || currentChecksum !== nextChecksum))
+      throw new Error('PDF annotation source changed');
+    targetKey = nextKey;
+    currentChecksum = nextChecksum;
+    annotations.push(...arrayValue(payload?.annotations).map(toArtifactAnnotation).filter(isArtifactAnnotation));
+    cursor = typeof payload?.next_cursor === 'string' ? payload.next_cursor : undefined;
+    if (cursor && seen.has(cursor)) throw new Error('PDF annotation cursor did not advance');
+    if (cursor) seen.add(cursor);
+  } while (cursor);
+  return { targetKey, currentChecksum, annotations };
+}
+
+export async function createXScienceAnnotationTarget(
+  target: XScienceAnnotationTarget,
+  input: CreateXScienceArtifactAnnotationInput,
+  checksum: string | null,
+  fetchImpl: FetchLike = fetch
+): Promise<XScienceArtifactAnnotation> {
+  if (target.kind === 'artifact')
+    return createXScienceArtifactAnnotation(target.artifactId, target.versionId, input, fetchImpl);
+  const payload = await requestJson(
+    `/api/literature/attachment-versions/${encodeURIComponent(target.versionId)}/annotations`,
+    jsonRequest('POST', { ...toArtifactAnnotationBody(input), content_checksum: checksum }),
+    fetchImpl
+  );
+  const annotation = toArtifactAnnotation(payload);
+  if (!annotation) throw new Error('PDF annotation response is invalid');
+  return annotation;
+}
+
 export async function loadXScienceArtifactAnnotations(
   artifactId: string,
   versionId: string,

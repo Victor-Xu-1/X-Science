@@ -67,7 +67,8 @@ func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotatio
 	for attempt := 0; attempt < 3; attempt++ {
 		var annotation Annotation
 		err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-			if err := requireProjectOwnerTx(ctx, tx, input.ProjectID, ownerUserID); err != nil {
+			where, scope, err := annotationCreateScope(ctx, tx, input, ownerUserID)
+			if err != nil {
 				return err
 			}
 			input.ProjectID, input.TargetKind, input.TargetKey = strings.TrimSpace(input.ProjectID), strings.TrimSpace(input.TargetKind), strings.TrimSpace(input.TargetKey)
@@ -75,8 +76,7 @@ func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotatio
 				return errors.New("annotation target kind, target key, and body are required")
 			}
 			var maxIndex sql.NullInt64
-			if err := tx.QueryRowContext(ctx, `SELECT MAX(label_idx) FROM annotations WHERE project_id = ? AND target_key = ?`,
-				input.ProjectID, input.TargetKey).Scan(&maxIndex); err != nil {
+			if err := tx.QueryRowContext(ctx, `SELECT MAX(label_idx) FROM annotations WHERE `+where, scope...).Scan(&maxIndex); err != nil {
 				return fmt.Errorf("allocate annotation label: %w", err)
 			}
 			labelIndex := 0
@@ -93,8 +93,8 @@ func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotatio
 				return fmt.Errorf("marshal annotation body: %w", err)
 			}
 			_, err = tx.ExecContext(ctx, `INSERT INTO annotations
-				(id, project_id, target_kind, target_key, label_idx, content_checksum, body, created_at)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, annotation.ID, annotation.ProjectID, annotation.TargetKind,
+				(id, project_id, library_owner_id, target_kind, target_key, label_idx, content_checksum, body, created_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, annotation.ID, nullableString(annotation.ProjectID), annotationLibraryOwner(input.TargetKind, ownerUserID), annotation.TargetKind,
 				annotation.TargetKey, annotation.LabelIndex, nullableString(annotation.ContentChecksum), string(body), annotation.CreatedAt)
 			return err
 		})
@@ -102,7 +102,7 @@ func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotatio
 			return annotation, nil
 		}
 		lastErr = err
-		if !strings.Contains(err.Error(), "annotations.project_id, annotations.target_key, annotations.label_idx") {
+		if !strings.Contains(err.Error(), "annotations.project_id, annotations.target_key, annotations.label_idx") && !strings.Contains(err.Error(), "annotations.library_owner_id, annotations.target_key, annotations.label_idx") {
 			return Annotation{}, err
 		}
 	}
@@ -120,7 +120,7 @@ func (s *Store) UpdateAnnotationTextOwned(ctx context.Context, id, ownerUserID, 
 		if err != nil {
 			return fmt.Errorf("annotation not found: %w", err)
 		}
-		if err := requireProjectOwnerTx(ctx, tx, annotation.ProjectID, ownerUserID); err != nil {
+		if err := requireAnnotationOwner(ctx, tx, annotation.ID, ownerUserID); err != nil {
 			return err
 		}
 		annotation.Body["text"] = text
@@ -145,14 +145,10 @@ func (s *Store) DeleteAnnotationOwned(ctx context.Context, id, ownerUserID strin
 	}
 	deleted := false
 	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-		var projectID string
-		if err := tx.QueryRowContext(ctx, `SELECT project_id FROM annotations WHERE id = ?`, strings.TrimSpace(id)).Scan(&projectID); err != nil {
+		if err := requireAnnotationOwner(ctx, tx, strings.TrimSpace(id), ownerUserID); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return nil
 			}
-			return err
-		}
-		if err := requireProjectOwnerTx(ctx, tx, projectID, ownerUserID); err != nil {
 			return err
 		}
 		result, err := tx.ExecContext(ctx, `DELETE FROM annotations WHERE id = ?`, strings.TrimSpace(id))

@@ -46,7 +46,7 @@ type ApplyArtifactEditInput struct {
 }
 
 const annotationSelect = `
-	SELECT id, project_id, target_kind, target_key, label_idx,
+	SELECT id, COALESCE(project_id, ''), target_kind, target_key, label_idx,
 		COALESCE(content_checksum, ''), body, created_at, updated_at
 	FROM annotations`
 

@@ -41,6 +41,19 @@ vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>();
   return {
     ...actual,
+    loadXScienceAnnotationTarget: (
+      target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget
+    ) => {
+      if (target.kind !== 'artifact') throw new Error('Artifact fixture received another source');
+      return mocks.loadAnnotations(target.artifactId, target.versionId);
+    },
+    createXScienceAnnotationTarget: (
+      target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget,
+      input: unknown
+    ) => {
+      if (target.kind !== 'artifact') throw new Error('Artifact fixture received another source');
+      return mocks.createAnnotation(target.artifactId, target.versionId, input);
+    },
     loadXScienceArtifactAnnotations: mocks.loadAnnotations,
     createXScienceArtifactAnnotation: mocks.createAnnotation,
     updateXScienceArtifactAnnotation: mocks.updateAnnotation,
