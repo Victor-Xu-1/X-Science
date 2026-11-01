@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "2dedfb79ad518bf78d7c140d768a88439be4ae2e035fee6802702834a197cf86",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e76f6b901e219588bdbbbd73e8bf204bff61078d3f98cb8400d8903f809b1b76",
+  "additionFingerprintSHA256": "e8f7371ef08c431bd107498b5c16712ab52fc1ad09c1a426e46e969bfdb773de",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -13573,8 +13573,8 @@
     },
     {
       "path": "tests/unit/renderer/LibrarySingleRail.dom.test.tsx",
-      "sha256": "e049471e125cc40fc422c080f791a378b103009c5c1a2219d5671d7400a5cf01",
-      "bytes": 16957,
+      "sha256": "37c737a7010800427eee2881039d9702598bad201a367ae623aa4b4e8678bf3c",
+      "bytes": 17147,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14683,8 +14683,8 @@
     },
     {
       "path": "tests/unit/renderer/library/libraryCollectionsFixtures.tsx",
-      "sha256": "689381d92b2e923f4eb52610f937e86aeee03329edcb2c033124f5e07ef42aff",
-      "bytes": 4228,
+      "sha256": "5b9125db65ea3e78c2f5b3fd819f2a828ffa09ac69cbeb74b6305e5356a2c52c",
+      "bytes": 4527,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
