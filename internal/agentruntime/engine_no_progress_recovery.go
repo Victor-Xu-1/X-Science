@@ -12,10 +12,23 @@ const maxNoProgressRecoveryCallLabels = 8
 // budgets and cancellation, without claiming a material effect or resetting
 // durable recovery obligations.
 func pendingWaitRepetition(signature string, count int, batch ToolBatchExecution, err error) (string, int) {
-	if batch.OnlyPendingWaits && err == nil {
+	if (batch.OnlyPendingWaits || batch.PendingWaitWithObservations) && err == nil {
 		return "", 0
 	}
 	return signature, count
+}
+
+// Both live execution and admission-feedback batches use this single ALL
+// classifier. A read alone or one pending item beside unknown work is unsafe.
+type pendingWaitObservationBatch struct {
+	onlyKnown, hasWait, hasObservation bool
+}
+
+func (batch *pendingWaitObservationBatch) observe(message Message) bool {
+	batch.onlyKnown = batch.onlyKnown && (message.pendingWorkWait || message.readOnlyObservation)
+	batch.hasWait = batch.hasWait || message.pendingWorkWait
+	batch.hasObservation = batch.hasObservation || message.readOnlyObservation
+	return batch.onlyKnown && batch.hasWait && batch.hasObservation
 }
 
 func toolRoundReportsMaterialProgress(messages []Message) bool {

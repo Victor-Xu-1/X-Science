@@ -24,6 +24,7 @@ type serverAgentRuntimeGatewayExecution struct {
 	resultReady    bool
 	badRequest     bool
 	taskOutputWait *taskOutputWaitObservation
+	nativeRead     *nativeFileReadObservation
 }
 
 type serverAgentRuntimeGatewayReceipt struct {
@@ -146,6 +147,7 @@ func (g serverAgentRuntimeToolGateway) executeGateway(ctx context.Context, call 
 		receipt.Result = execution.result
 		if agentRuntimeContextError(invocation.Context) != nil || invocation.Err != nil {
 			receipt.Result.SkillLoadReceipt = nil
+			receipt.Result.ReadOnlyObservation = false
 		}
 		receipt.Value = execution.result.Value
 		return receipt
@@ -511,6 +513,10 @@ func serverAgentRuntimeGatewayExecute(invocation *toolgateway.Invocation) {
 		execution.taskOutputWait = &taskOutputWaitObservation{}
 		invocation.Context = context.WithValue(invocation.Context, taskOutputWaitObservationKey{}, execution.taskOutputWait)
 	}
+	if name == "read_file" {
+		execution.nativeRead = &nativeFileReadObservation{}
+		invocation.Context = context.WithValue(invocation.Context, nativeFileReadObservationKey{}, execution.nativeRead)
+	}
 	if name == "wait_for_notification" {
 		result, err := gateway.server.executeAgentKernelNotificationWait(
 			invocation.Context, gateway.kernel, execution.call.ID, invocation.Input,
@@ -606,6 +612,9 @@ func serverAgentRuntimeGatewayMaterialize(invocation *toolgateway.Invocation) {
 	execution.result = gateway.trustedAgentRuntimeToolResult(invocation.Context, execution.call, response, parts)
 	if execution.taskOutputWait != nil && status == "completed" && agentRuntimeContextError(invocation.Context) == nil {
 		execution.result.PendingWorkWait = execution.taskOutputWait.confirmed
+	}
+	if execution.nativeRead != nil && status == "completed" && agentRuntimeContextError(invocation.Context) == nil {
+		execution.result.ReadOnlyObservation = execution.nativeRead.confirmed
 	}
 	if status == "completed" && isCompletedSkillToolName(name) {
 		if agentruntime.ClassifyToolResult(response) == agentruntime.ToolResultSucceeded &&

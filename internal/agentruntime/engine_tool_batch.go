@@ -27,10 +27,12 @@ func (e Engine) ExecuteToolBatch(
 	pendingParts := []ContentPart{}
 	result.NoProgress = startOrdinal < len(calls)
 	result.OnlyPendingWaits = startOrdinal < len(calls)
+	pendingRound := pendingWaitObservationBatch{onlyKnown: true}
 	for ordinal := startOrdinal; ordinal < len(calls); ordinal++ {
 		toolMessage, toolErr := e.executeTool(ctx, calls[ordinal])
 		result.NoProgress = result.NoProgress && toolMessage.noProgress
 		result.OnlyPendingWaits = result.OnlyPendingWaits && toolMessage.pendingWorkWait
+		result.PendingWaitWithObservations = pendingRound.observe(toolMessage)
 		result.SourceObservation = mergeBatchSourceObservation(result.SourceObservation, toolMessage.sourceObservation)
 		if toolMessage.Role != "" {
 			pendingParts = append(pendingParts, toolMessage.pending...)
@@ -230,6 +232,7 @@ func (e Engine) executeTool(ctx context.Context, call ToolCall) (Message, error)
 	message.terminal = result.Terminal && outcome == ToolResultSucceeded
 	message.noProgress = toolResultReportsNoProgress(result.Value)
 	message.pendingWorkWait = result.PendingWorkWait && outcome == ToolResultSucceeded && !ToolResultDidNotExecute(result.Value)
+	message.readOnlyObservation = result.ReadOnlyObservation && outcome == ToolResultSucceeded && !ToolResultDidNotExecute(result.Value) && context.Cause(ctx) == nil
 	message.sourceObservation = result.SourceObservation
 	eventType := EventToolCompleted
 	eventMessage := ""
