@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { useTranslation } from 'react-i18next';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { useArtifactAnnotationStore } from './useArtifactAnnotationStore';
+import { AnnotationCreateRecovery } from './AnnotationCreateRecovery';
 
 const ANNOTATION_TYPES: XScienceAnnotationType[] = ['point', 'text_selection', 'html_element', 'screenshot'];
 
@@ -24,7 +25,8 @@ export const ArtifactAnnotationsPanel: React.FC<{
   refreshToken?: number;
   onVersionApplied?: (result: XScienceAppliedArtifactEdit) => void | Promise<void>;
   onAnnotationsChange?: (annotations: XScienceArtifactAnnotation[]) => void;
-}> = ({ artifactId, versionId, refreshToken = 0, onVersionApplied, onAnnotationsChange }) => {
+  onMissing?: () => void;
+}> = ({ artifactId, versionId, refreshToken = 0, onVersionApplied, onAnnotationsChange, onMissing }) => {
   const { t } = useTranslation();
   const {
     annotations,
@@ -36,12 +38,16 @@ export const ArtifactAnnotationsPanel: React.FC<{
     create,
     update,
     remove: deleteAnnotation,
+    createIntent,
   } = useArtifactAnnotationStore(artifactId, versionId, refreshToken, onAnnotationsChange);
   const [editorVisible, setEditorVisible] = useState(false);
   const [editing, setEditing] = useState<XScienceArtifactAnnotation | null>(null);
   const [draft, setDraft] = useState<AnnotationDraft>(emptyDraft());
   const [refining, setRefining] = useState<XScienceArtifactAnnotation | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
+  useEffect(() => {
+    if (createIntent.view.lastSuccess) setSaveFailed(false);
+  }, [createIntent.view.lastSuccess]);
   const deleteDialog = useRef<ReturnType<typeof Modal.confirm> | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
 
@@ -75,7 +81,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
 
   const save = async () => {
     const text = draft.text.trim();
-    if (!isAnnotationNoteSaveable(draft.text) || saving || loading) return;
+    if (!isAnnotationNoteSaveable(draft.text) || saving || loading || (!editing && createIntent.view.pending)) return;
     setSaveFailed(false);
     try {
       if (editing) {
@@ -148,6 +154,16 @@ export const ArtifactAnnotationsPanel: React.FC<{
           </Button>
         </div>
       </div>
+      {(!editorVisible || editing) && (
+        <div className='px-16px'>
+          <AnnotationCreateRecovery
+            key={createIntent.scopeKey}
+            view={createIntent.view}
+            retry={createIntent.retryFrozen}
+            onMissing={onMissing}
+          />
+        </div>
+      )}
       {failed && !loading && (
         <div role='alert'>
           <Empty description={t('preview.artifactAnnotations.loadFailed')} />
@@ -183,12 +199,26 @@ export const ArtifactAnnotationsPanel: React.FC<{
         onCancel={() => setEditorVisible(false)}
         onOk={() => void save()}
         confirmLoading={saving}
-        okButtonProps={{ disabled: !isAnnotationNoteSaveable(draft.text) || loading || saving }}
+        okButtonProps={{
+          disabled:
+            !isAnnotationNoteSaveable(draft.text) ||
+            loading ||
+            saving ||
+            (!editing && Boolean(createIntent.view.pending)),
+        }}
         okText={editing ? t('common.save') : t('preview.artifactAnnotations.add')}
         cancelText={t('common.cancel')}
         unmountOnExit
       >
         <AnnotationEditor draft={draft} editing={Boolean(editing)} disabled={saving} onChange={setDraft} />
+        {!editing && (
+          <AnnotationCreateRecovery
+            key={createIntent.scopeKey}
+            view={createIntent.view}
+            retry={createIntent.retryFrozen}
+            onMissing={onMissing}
+          />
+        )}
         {saveFailed && (
           <div role='alert' className='mt-12px text-12px text-danger-6'>
             {t('preview.artifactAnnotations.saveFailed')}

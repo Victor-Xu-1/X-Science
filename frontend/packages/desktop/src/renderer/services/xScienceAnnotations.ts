@@ -225,18 +225,44 @@ export async function loadXScienceAnnotationTarget(
   return { targetKey, currentChecksum, annotations };
 }
 
+export type XScienceAnnotationCreateOptions = {
+  idempotencyKey: string;
+  signal?: AbortSignal;
+  /** Explicit checksum for new keyed Artifact saves; legacy unkeyed callers retain their original DTO. */
+  checksum?: string;
+};
+function annotationCreateRequest(init: RequestInit, options?: XScienceAnnotationCreateOptions): RequestInit {
+  if (!options) return init;
+  if (!options.idempotencyKey.trim() || options.idempotencyKey.length > 256)
+    throw new Error('An explicit annotation request key is required');
+  const headers = new Headers(init.headers);
+  headers.set('Idempotency-Key', options.idempotencyKey);
+  return { ...init, headers, signal: options.signal };
+}
+
 export async function createXScienceAnnotationTarget(
   target: XScienceAnnotationTarget,
   input: CreateXScienceArtifactAnnotationInput,
   checksum: string | null,
-  fetchImpl: FetchLike = fetch
+  fetchImpl: FetchLike = fetch,
+  options?: XScienceAnnotationCreateOptions
 ): Promise<XScienceArtifactAnnotation> {
   if (target.kind === 'artifact')
-    return createXScienceArtifactAnnotation(target.artifactId, target.versionId, input, fetchImpl);
+    return createXScienceArtifactAnnotation(
+      target.artifactId,
+      target.versionId,
+      input,
+      fetchImpl,
+      options ? { ...options, checksum: checksum ?? options.checksum } : undefined
+    );
   const payload = await requestJson(
     `/api/literature/attachment-versions/${encodeURIComponent(target.versionId)}/annotations`,
-    jsonRequest('POST', { ...toArtifactAnnotationBody(input), content_checksum: checksum }),
-    fetchImpl
+    annotationCreateRequest(
+      jsonRequest('POST', { ...toArtifactAnnotationBody(input), content_checksum: checksum }),
+      options
+    ),
+    fetchImpl,
+    options ? 201 : undefined
   );
   const annotation = toArtifactAnnotation(payload);
   if (!annotation) throw new Error('PDF annotation response is invalid');
@@ -266,12 +292,16 @@ export async function createXScienceArtifactAnnotation(
   artifactId: string,
   versionId: string,
   input: CreateXScienceArtifactAnnotationInput,
-  fetchImpl: FetchLike = fetch
+  fetchImpl: FetchLike = fetch,
+  options?: XScienceAnnotationCreateOptions
 ): Promise<XScienceArtifactAnnotation> {
+  const body = toArtifactAnnotationBody(input);
+  if (options?.checksum !== undefined) body.content_checksum = options.checksum;
   const payload = await requestJson(
     `/api/artifacts/${encodeURIComponent(artifactId)}/versions/${encodeURIComponent(versionId)}/annotations`,
-    jsonRequest('POST', toArtifactAnnotationBody(input)),
-    fetchImpl
+    annotationCreateRequest(jsonRequest('POST', body), options),
+    fetchImpl,
+    options ? 201 : undefined
   );
   const annotation = toArtifactAnnotation(payload);
   if (!annotation) throw new Error('X-Science artifact annotation response is invalid');
@@ -613,9 +643,16 @@ function toVerificationCheck(value: unknown): XScienceVerificationCheck | null {
   };
 }
 
-async function requestJson(path: string, init: RequestInit, fetchImpl: FetchLike): Promise<unknown> {
+async function requestJson(
+  path: string,
+  init: RequestInit,
+  fetchImpl: FetchLike,
+  expectedStatus?: number
+): Promise<unknown> {
   const response = await fetchImpl(path, { credentials: 'include', ...init });
   if (!response.ok) throw await readBackendHttpError(init.method ?? 'GET', path, response);
+  if (expectedStatus !== undefined && response.status !== expectedStatus)
+    throw new Error('Unexpected annotation acknowledgement status');
   if (response.status === 204) return null;
   return response.json();
 }

@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  createXScienceAnnotationTarget,
   deleteXScienceArtifactAnnotation,
   loadXScienceAnnotationTarget,
   updateXScienceArtifactAnnotation,
@@ -14,6 +13,7 @@ import {
   type XScienceArtifactAnnotation,
   type XScienceAnnotationTarget,
 } from '@/renderer/services/xScienceAnnotations';
+import { useAnnotationCreateIntent } from '@/renderer/hooks/useAnnotationCreateIntent';
 
 /** One version owns the list, checksum, requests and notifications. */
 export function useArtifactAnnotationStore(
@@ -31,11 +31,13 @@ export function useAnnotationStore(
   refreshToken: number,
   onChange?: (annotations: XScienceArtifactAnnotation[]) => void
 ) {
+  const creator = useAnnotationCreateIntent(target);
   const kind = target.kind;
   const artifactId = target.kind === 'artifact' ? target.artifactId : '';
   const versionId = target.versionId;
   const [annotations, setAnnotations] = useState<XScienceArtifactAnnotation[]>([]);
   const [checksum, setChecksum] = useState<string | null>(null);
+  const [sourceKey, setSourceKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -55,11 +57,18 @@ export function useAnnotationStore(
     setAnnotations(next);
     notify.current?.(next);
   }, []);
-  const ownsCurrentVersion = () =>
-    owner.current?.kind === kind && owner.current.artifactId === artifactId && owner.current.versionId === versionId;
+  const ownsCurrentVersion = useCallback(
+    () =>
+      creator.owner.isCurrentAccount() &&
+      owner.current?.kind === kind &&
+      owner.current.artifactId === artifactId &&
+      owner.current.versionId === versionId,
+    [kind, artifactId, versionId, creator.owner]
+  );
 
   const reload = useCallback(async () => {
     if (
+      !creator.owner.isCurrentAccount() ||
       owner.current?.kind !== kind ||
       owner.current.artifactId !== artifactId ||
       owner.current.versionId !== versionId
@@ -71,7 +80,8 @@ export function useAnnotationStore(
     }
     const scope = lifecycle.current;
     const request = ++revision.current;
-    const isCurrent = () => scope === lifecycle.current && request === revision.current;
+    const isCurrent = () =>
+      creator.owner.isCurrentAccount() && scope === lifecycle.current && request === revision.current;
     setLoading(true);
     setFailed(false);
     try {
@@ -81,16 +91,18 @@ export function useAnnotationStore(
       if (!isCurrent()) return;
       publish(result.annotations);
       setChecksum(result.currentChecksum);
+      setSourceKey(result.targetKey);
     } catch (error) {
       if (!isCurrent()) return;
       console.error('[ArtifactAnnotationsPanel] Failed to load annotations', error);
       publish([]);
       setChecksum(null);
+      setSourceKey(null);
       setFailed(true);
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [kind, artifactId, versionId, publish]);
+  }, [kind, artifactId, versionId, publish, creator.owner]);
 
   useLayoutEffect(() => {
     lifecycle.current += 1;
@@ -101,33 +113,60 @@ export function useAnnotationStore(
     setLoading(true);
     setFailed(false);
     setChecksum(null);
+    setSourceKey(null);
     publish([]);
     return () => {
       owner.current = null;
       lifecycle.current += 1;
       revision.current += 1;
     };
-  }, [kind, artifactId, versionId, publish]);
+  }, [kind, artifactId, versionId, publish, creator.owner]);
 
   useEffect(() => {
     void reload();
   }, [reload, refreshToken]);
 
-  const mutate = async <T>(operation: () => Promise<T>, commit: (result: T) => void): Promise<boolean> => {
+  const seenSuccess = useRef({ owner: creator.owner, success: creator.view.lastSuccess });
+  useEffect(() => {
+    const success = creator.view.lastSuccess;
+    const previous = seenSuccess.current;
+    seenSuccess.current = { owner: creator.owner, success };
+    if (previous.owner !== creator.owner || !success || previous.success === success) return;
+    if (!ownsCurrentVersion()) return;
+    revision.current += 1;
+    setLoading(false);
+    publish([...items.current.filter((item) => item.id !== success.annotation.id), success.annotation]);
+    setChecksum(success.annotation.contentChecksum);
+    setSourceKey(success.annotation.targetKey);
+  }, [creator.owner, creator.view.lastSuccess, publish, ownsCurrentVersion]);
+
+  const observedMissing = useRef(creator.view.status === 'missing');
+  useLayoutEffect(() => {
+    const missing = creator.view.status === 'missing';
+    const previous = observedMissing.current;
+    observedMissing.current = missing;
+    if (!missing || previous || !ownsCurrentVersion()) return;
+    // A committed-missing result invalidates the list, including any older in-flight GET.
+    revision.current += 1;
+    publish([]);
+    setLoading(true);
+    void reload();
+  }, [creator.view.status, ownsCurrentVersion, publish, reload]);
+
+  const mutate = async <T>(operation: () => Promise<T>, commit: (result: T) => void | boolean): Promise<boolean> => {
     if (!ownsCurrentVersion() || loading || writing.current) return false;
     const scope = lifecycle.current;
     writing.current = true;
     setBusy(true);
     try {
       const result = await operation();
-      if (scope !== lifecycle.current) return false;
-      commit(result);
-      return true;
+      if (scope !== lifecycle.current || !creator.owner.isCurrentAccount()) return false;
+      return commit(result) !== false;
     } catch (error) {
-      if (scope !== lifecycle.current) return false;
+      if (scope !== lifecycle.current || !creator.owner.isCurrentAccount()) return false;
       throw error;
     } finally {
-      if (scope === lifecycle.current) {
+      if (scope === lifecycle.current && creator.owner.isCurrentAccount()) {
         writing.current = false;
         setBusy(false);
         if (refreshAfterWrite.current) {
@@ -140,15 +179,12 @@ export function useAnnotationStore(
 
   const create = (input: CreateXScienceArtifactAnnotationInput) =>
     mutate(
-      () =>
-        createXScienceAnnotationTarget(
-          kind === 'artifact' ? { kind, artifactId, versionId } : { kind, versionId },
-          input,
-          checksum
-        ),
+      () => creator.owner.start(input, sourceKey && checksum ? { targetKey: sourceKey, checksum } : null),
       (created) => {
-        publish([...items.current, created]);
+        if (!created) return false;
+        publish([...items.current.filter((item) => item.id !== created.id), created]);
         setChecksum((current) => created.contentChecksum ?? current);
+        setSourceKey(created.targetKey);
       }
     );
   const update = (id: string, text: string) =>
@@ -162,5 +198,16 @@ export function useAnnotationStore(
       () => publish(items.current.filter((item) => item.id !== id))
     );
 
-  return { annotations, checksum, loading, failed, busy, reload, create, update, remove };
+  return {
+    annotations,
+    checksum,
+    loading,
+    failed,
+    busy: busy || creator.view.busy,
+    reload,
+    create,
+    update,
+    remove,
+    createIntent: creator,
+  };
 }

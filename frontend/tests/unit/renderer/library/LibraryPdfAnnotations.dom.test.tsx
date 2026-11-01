@@ -1,6 +1,8 @@
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
 import React, { type ComponentProps } from 'react';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { LibraryPdfAnnotations } from '@/renderer/pages/library/LibraryPdfAnnotations';
 import type PdfViewer from '@/renderer/pages/artifact/XSciencePdfArtifactViewer';
 import { renderWithI18n } from '../../i18nTestUtils';
@@ -72,8 +74,16 @@ const Viewer = ({ onSelectionChange, annotations, targetPage }: ComponentProps<t
   </div>
 );
 
+beforeEach(() => {
+  setRendererAccountOwner('');
+  localStorage.clear();
+  setRendererAccountOwner('owner');
+  installLiteratureLocks();
+});
 afterEach(() => {
   cleanup();
+  setRendererAccountOwner('');
+  localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -147,7 +157,18 @@ it('does not deliver an old save ACK into the next account or document owner', a
   let acknowledge!: (value: Response) => void;
   const fetch = vi
     .fn()
-    .mockResolvedValueOnce(page())
+    .mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          target_key: 'litv:litv_old',
+          current_checksum: checksum,
+          annotations: [],
+          total: 0,
+          next_cursor: null,
+        }),
+        { status: 200 }
+      )
+    )
     .mockReturnValueOnce(
       new Promise<Response>((done) => {
         acknowledge = done;
@@ -171,7 +192,7 @@ it('does not deliver an old save ACK into the next account or document owner', a
     'en-US'
   );
   await act(async () => {
-    acknowledge(new Response(JSON.stringify(row), { status: 201 }));
+    acknowledge(new Response(JSON.stringify({ ...row, target_key: 'litv:litv_old' }), { status: 201 }));
   });
   expect(screen.queryByRole('button', { name: '① · Saved Library note' })).not.toBeInTheDocument();
   expect(screen.getByTestId('visible-note-count')).toHaveTextContent('0');

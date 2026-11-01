@@ -1,7 +1,10 @@
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { installLiteratureLocks } from './conversation/literatureMutationLockFixtures';
+const canonicalChecksum = 'a'.repeat(64);
 import { ConfigProvider } from '@arco-design/web-react';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ArtifactSelectionAnnotationModal } from '@/renderer/pages/artifact/ArtifactSelectionAnnotationModal';
 import { artifactCanvasSelectionIdentity } from '@/renderer/pages/artifact/artifactCanvasSelection';
 import { locateRenderedTextSelection } from '@/renderer/pages/artifact/artifactTextSelection';
@@ -25,11 +28,61 @@ const deferred = <T,>() => {
   });
   return { promise, resolve };
 };
-beforeEach(() => createAnnotation.mockReset());
+beforeEach(() => {
+  setRendererAccountOwner('');
+  localStorage.clear();
+  setRendererAccountOwner('owner');
+  installLiteratureLocks();
+  createAnnotation.mockReset();
+});
+afterEach(() => {
+  cleanup();
+  setRendererAccountOwner('');
+  localStorage.clear();
+  vi.unstubAllGlobals();
+});
 
 vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/services/xScienceAnnotations')>();
-  return { ...actual, createXScienceArtifactAnnotation: createAnnotation };
+  return {
+    ...actual,
+    createXScienceArtifactAnnotation: createAnnotation,
+    loadXScienceAnnotationTarget: async (
+      target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget
+    ) => ({ targetKey: `av:${target.versionId}`, currentChecksum: canonicalChecksum, annotations: [] }),
+    createXScienceAnnotationTarget: async (
+      target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget,
+      input: import('@/renderer/services/xScienceAnnotations').CreateXScienceArtifactAnnotationInput
+    ) => {
+      if (target.kind !== 'artifact') throw new Error('Artifact fixture received another source');
+      const row = await createAnnotation(target.artifactId, target.versionId, input);
+      if (!row || typeof row !== 'object') throw new Error('Missing canonical annotation fixture');
+      // Complete the old minimal consumer fixture at the service boundary, preserving explicit invalid fields.
+      return {
+        artifactId: target.artifactId,
+        targetKey: `av:${target.versionId}`,
+        contentChecksum: canonicalChecksum,
+        label: '①',
+        type: input.type ?? 'point',
+        xPercent: input.xPercent ?? null,
+        yPercent: input.yPercent ?? null,
+        startLine: input.startLine ?? null,
+        startColumn: input.startColumn ?? null,
+        endLine: input.endLine ?? null,
+        endColumn: input.endColumn ?? null,
+        selectionText: input.selectionText ?? null,
+        selectionPrefix: input.selectionPrefix ?? null,
+        pageNumber: input.pageNumber ?? null,
+        screenshotArtifactId: null,
+        elementSelector: input.elementSelector ?? null,
+        elementDescriptor: input.elementDescriptor ?? null,
+        addressedAt: null,
+        addressedInFrameId: null,
+        createdAt: '2026-11-01T00:00:00Z',
+        ...row,
+      };
+    },
+  };
 });
 
 describe('Artifact selection annotation', () => {
@@ -100,7 +153,7 @@ describe('Artifact selection annotation', () => {
     fireEvent.click(screen.getByRole('button', { name: '重试' }));
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(2));
     expect(createAnnotation).toHaveBeenCalledTimes(1);
-    expect(onCreated).toHaveBeenLastCalledWith(annotation);
+    expect(onCreated).toHaveBeenLastCalledWith(expect.objectContaining(annotation));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
