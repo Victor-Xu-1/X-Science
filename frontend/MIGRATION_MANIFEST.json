@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "a55be0cbddac5866978c50b947f20520e0fab931831710950f6866b1fff95697",
+  "adaptationFingerprintSHA256": "2743e7ed4dbce3848ec0474e449a5b515f3bfd1fb9e2af1a8bfcc40e5e18d4f2",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "b5f9afb4e54f5663eecbbafc8e63b8203623707df4d3eb06383ed0f5a29b7cfb",
+  "additionFingerprintSHA256": "6aed3f8dbdd0c1eb7e35bb0741173ed7e7122c91a0d1f1592f46af34aaee6863",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1437
+    "addedFiles": 1440
   },
   "adaptations": [
     {
@@ -45,8 +45,8 @@
     {
       "path": "packages/desktop/src/common/adapter/httpBridge.ts",
       "sourceSHA256": "892553ad2f86c4e3a4e0c327d72bfa5ead724857133be433e2b4ed4ecb784159",
-      "targetSHA256": "3d0e0d3823c2e0ee1737d1b756abb35f22481d3c516e802d0226f04ec1595095",
-      "bytes": 22728,
+      "targetSHA256": "82eb12a48e96bf0bdb1cbefa57ba8164641aed6151c83888e7d2407349cea944",
+      "bytes": 22923,
       "reason": "Retire the legacy WebSocket owner and bind the explicit kind-and-type bridge to the single authenticated realtime runtime."
     },
     {
@@ -3142,8 +3142,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAnnotations.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAnnotations.ts",
       "sourceSHA256": "861f6ccc291004426f0e4430a6d430224675d1152ae9ba5ca604c9e5a50f1664",
-      "targetSHA256": "788353e67807d11479af51cbb798bb79c031ea781f4c803d6e593265af6fed43",
-      "bytes": 24138,
+      "targetSHA256": "f0364806284346ab642a31a0eca0ff92b9246396cfcd93007deb9584a2b22dbc",
+      "bytes": 24100,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -11329,8 +11329,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/LiteratureMutationController.ts",
-      "sha256": "cae9218636b424086b7bd6d1fa2020396de362e8fc5a2f3686016f54130409c2",
-      "bytes": 26114,
+      "sha256": "885a9c194d398cae20e09c368b59b3718a708352530e24f5683ce849db50692d",
+      "bytes": 26367,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11515,8 +11515,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureMutationLock.ts",
-      "sha256": "84603c5ea61732fb2a5d18c1fe847c335881beebfe5b451b76cc70a0aa0abf40",
-      "bytes": 1337,
+      "sha256": "a78aad5d2932316fa70cb9c0adc73bb378c3ca7ad64fa66eb413e22a1792a348",
+      "bytes": 401,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11608,6 +11608,12 @@
       "sha256": "675debbb1c1563c7665e9b4bb5a877c6ef2eac688029b3876f14445fb30ca8b4",
       "bytes": 3283,
       "reason": "Implement click-time reading snapshot and own-link mapping over the Go contract, preserving active unlinked-source position and rejecting external selection changes."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/rendererMutationSlot.ts",
+      "sha256": "1e7f330915f96890b6ab121ec8e0dac6aecb75cbc6c086bb8180718f3c4c5d9e",
+      "bytes": 3172,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/sessionDelegationPolicy.ts",
@@ -13656,6 +13662,12 @@
       "reason": "Verify localized text-artifact rendering and actions."
     },
     {
+      "path": "tests/unit/renderer/annotationCreateTransport.test.ts",
+      "sha256": "683d6648b16b53f1c2622e301dc00c27d3500d79092b340a7b148c0c9b93c404",
+      "bytes": 2933,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/api/i18nInitialization.dom.test.ts",
       "sha256": "3973aaf8fc713c956253e71d7f91d6ce274964a6ad6eac280a6c0f198435d8dd",
       "bytes": 3662,
@@ -14044,6 +14056,12 @@
       "sha256": "3c26d83e60f3a900924906badb16cbe007ff8102f9b7cd8723b88c1235b9f361",
       "bytes": 3707,
       "reason": "Verify strict Go wire decoders/transport response binding and source validation."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/rendererMutationSlot.test.ts",
+      "sha256": "49bb2a23d0abd719aaec1108c71b84f3ae20ff6809c3f604d4db51fad1cfd93e",
+      "bytes": 3738,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/conversation/specialistCommandAuthority.dom.test.ts",
