@@ -630,7 +630,7 @@ describe('tool detail projection', () => {
 
     expect(detail.resultRows).toEqual(
       expect.arrayContaining([
-        { label: '全文可用性', value: '未发现开放获取内容' },
+        { label: '全文可用性', value: '当前不可用' },
         { label: 'DOI', value: '10.1000/example' },
         { label: 'PMC 编号', value: 'PMC12345678' },
         { label: '获取说明', value: '未发现开放获取全文' },
@@ -642,6 +642,74 @@ describe('tool detail projection', () => {
       ])
     );
     expect(JSON.stringify(detail)).not.toMatch(/Status Code|GoHTTPBackend/u);
+  });
+
+  it.each([
+    { language: 'en-US', availability: 'Not currently available', label: 'Full-text availability', yes: 'Yes' },
+    { language: 'zh-CN', availability: '当前不可用', label: '全文可用性', yes: '是' },
+  ])(
+    'keeps a transient full-text outage distinct from no open access in $language',
+    ({ language, availability, label, yes }) => {
+      const output = JSON.stringify({
+        available: false,
+        reason: 'upstream_temporarily_unavailable',
+        retryable: true,
+        record_available: true,
+        source_unavailable: true,
+        source: 'Europe PMC',
+        source_url: 'https://example.org/article/record-1',
+      });
+      const item = tool({ name: 'fetch_article_fulltext', input: '{}', output });
+      const detail = buildToolPublicDetailPresentation(item, language, null);
+
+      expect(detail.resultRows.find((row) => row.label === label)?.value).toBe(availability);
+      expect(detail.resultRows).toEqual(
+        expect.arrayContaining([
+          { label: 'Retryable', value: yes },
+          { label: 'Record Available', value: yes },
+          expect.objectContaining({ value: 'upstream_temporarily_unavailable' }),
+        ])
+      );
+      expect(JSON.stringify(detail)).not.toMatch(/No open-access|未发现开放获取/u);
+      expect(item.output).toBe(output);
+      expect(item.status).toBe('completed');
+    }
+  );
+
+  it.each([
+    { language: 'en-US', available: false, availability: 'Not currently available' },
+    { language: 'zh-CN', available: false, availability: '当前不可用' },
+    { language: 'en-US', available: true, availability: 'Available' },
+    { language: 'zh-CN', available: true, availability: '可直接获取' },
+  ])(
+    'does not infer open-access status from a general availability flag $available in $language',
+    ({ language, available, availability }) => {
+      const detail = buildToolPublicDetailPresentation(
+        tool({ name: 'manage_environments', input: '{}', output: JSON.stringify({ available }) }),
+        language,
+        null
+      );
+
+      expect(detail.resultRows).toContainEqual(expect.objectContaining({ value: availability }));
+      expect(JSON.stringify(detail)).not.toMatch(/No open-access|未发现开放获取/u);
+    }
+  );
+
+  it.each([
+    { language: 'en-US', reason: 'No open-access full text found' },
+    { language: 'zh-CN', reason: '未发现开放获取全文' },
+  ])('preserves an explicit no-open-access reason in $language', ({ language, reason }) => {
+    const detail = buildToolPublicDetailPresentation(
+      tool({
+        name: 'fetch_article_fulltext',
+        input: '{}',
+        output: JSON.stringify({ available: false, reason: 'no_open_access_full_text' }),
+      }),
+      language,
+      null
+    );
+
+    expect(detail.resultRows).toContainEqual(expect.objectContaining({ value: reason }));
   });
 
   it('extracts safe plan titles into a readable ordered list', () => {
