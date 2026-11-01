@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "509ec0ff609145030ed050eb300409c2e23e26b2f58ce7dea9a7ed48f0d87e96",
+  "adaptationFingerprintSHA256": "424b3a4a912f4b0f226bc1eea4dcd7ae6a26e611be95e14182ec0c0625cedebc",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "2252bc11a1997481580740b075f615e73849cbf33ad9dd5f787d24211b30b545",
   "summary": {
@@ -4373,8 +4373,8 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "20371b8a1aca7d098e3c023f6bebfa9f1416a39e480b1f6c743a81a7da31f535",
-      "bytes": 29235,
+      "targetSHA256": "dee89ca32fab03697efbfaec52eaeced8f5daf86357cd42bd32eec800e238a10",
+      "bytes": 29867,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
