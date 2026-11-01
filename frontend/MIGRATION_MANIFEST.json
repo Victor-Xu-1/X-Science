@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "306adefe493b365d232eff905ca8af399ee19813238bb6d0198b639dfa1744c2",
+  "adaptationFingerprintSHA256": "8ddb3d79610426cee296dc92db834bcaaaff81e1e8501c00e4cb41a629ce6b4c",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "60f6c1de038d1c7137229381b6a779fe84e6fd0afebda6a2d44f7827af3605f6",
+  "additionFingerprintSHA256": "3d8745510fa7267773956c3b5bdc39792670e85a63ebcc9dd1f339a28fa3706c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1426
+    "addedFiles": 1427
   },
   "adaptations": [
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "81096e8d32d728337efa4b9ed80812ed649f560ea186c35e6105661f779c29d1",
-      "bytes": 135320,
+      "targetSHA256": "d29e438cea5cdf8553b2e4fc095420332a6af07f133c08a8cbe9383b6b34eae5",
+      "bytes": 135420,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "dba15ff8325c616c06c031a93278998cf3e1a1043fc2b6448aa07bf9c75eb47c",
-      "bytes": 127974,
+      "targetSHA256": "f0b2eb08a6569865d3d3b2dbce28739a2c54ee01855474d529e2fea51c2e11cd",
+      "bytes": 128082,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -10153,13 +10153,13 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibrarySortControl.tsx",
-      "sha256": "a9127b532b1a81a8ff54997df26e04e49169d35fd66441aaddb8e161020f7b99",
-      "bytes": 4416,
+      "sha256": "775d46c0eb5033ae4366762af445de96f1149ace239e7ea9058d9c5ab81daf9a",
+      "bytes": 4590,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryTable.tsx",
-      "sha256": "59d1ffed7c7a8978f1c757c468711f79437538f837c86ce7c8a0e92b27e8a5df",
+      "sha256": "67eab5e64ab04abdb375d2e540ebd0adfad79fbbc31bf3f8498ab4af73163f5e",
       "bytes": 9294,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
@@ -11455,8 +11455,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/libraryColumnPreferenceOwner.ts",
-      "sha256": "049b1e6756655745b8449154ef4b49847f140c8cc770cd0203cf687b17d1d544",
-      "bytes": 9602,
+      "sha256": "316e2f8a9479f576d76b28e1aeb6d9f982db0f910acfd8c90eeddc21d872d437",
+      "bytes": 10073,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11485,8 +11485,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
-      "sha256": "0fab6af42d35e66bd1d3e28c9c37577cd27a05e188cfc8637ac8f4562cec5d29",
-      "bytes": 8815,
+      "sha256": "64738868cf449d74a7ea1bb264656533bddb1ad6bf314a3c1d591038125defd0",
+      "bytes": 8832,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14245,8 +14245,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryDateSort.dom.test.tsx",
-      "sha256": "da290bc27fb36956573ac12b923fbc302af1816e974cad7ebfafef079868fab8",
-      "bytes": 9026,
+      "sha256": "8e45c3c6a2ac7f7c75479318acde9c042f59a57866248aed22a0414bc7e6db38",
+      "bytes": 9073,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14347,8 +14347,14 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryRating.dom.test.tsx",
-      "sha256": "e45251e3c8bef145460066c89d7709380e4a5cda8cf94a398afb116a3a7c2940",
-      "bytes": 15911,
+      "sha256": "dc5b0141440887ea398d2236f84fb4c6687c74ddaeac572fb4e5412740f086e8",
+      "bytes": 17912,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryRatingSort.dom.test.tsx",
+      "sha256": "7b6ea9b53ec7f4eacb9b0b6daeb0a884e91a7130402b7ba85cca275835f9a6a8",
+      "bytes": 13603,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14413,14 +14419,14 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryTableIntegration.dom.test.tsx",
-      "sha256": "a37163788c535c69fb875d999bff1d1612559a93a5d7401811065e4e5c052ae8",
-      "bytes": 11675,
+      "sha256": "5d841a72fdf90e2f9d122bdf96bdb4266e7ac57f534c92d5290263406bd6ac6c",
+      "bytes": 11695,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
       "path": "tests/unit/renderer/library/LibraryTitleSort.dom.test.tsx",
-      "sha256": "dff67dd6dd70b61e4d47dc724ed2a4b4d3590f7f94b9239aa24a3fed8f225105",
-      "bytes": 16167,
+      "sha256": "2be48d40ee554a1c4c78c97303ede32cec4d3940b882d8d2b4622c650d0975bf",
+      "bytes": 16190,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14443,8 +14449,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryYearSort.dom.test.tsx",
-      "sha256": "0b8f648b60091d40963bcf33a30f0625d6f5e3dc3951646d1df6d5108d88bb26",
-      "bytes": 7648,
+      "sha256": "65ad98d9c9d2494c5ce214511658ef480887ed7b5c86be2b87c6741582c33ce8",
+      "bytes": 7699,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14503,8 +14509,8 @@
     },
     {
       "path": "tests/unit/renderer/libraryColumnPreferenceOwner.test.ts",
-      "sha256": "d6f541b185690af25eac2bec1c1a5e051e1d8820894d285c8e54c4e7463d1ac3",
-      "bytes": 14657,
+      "sha256": "2bb8ae95072b6e1be80e45d2ea0af88d5631af17f5571cc56b2316002a3a1f93",
+      "bytes": 17966,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
