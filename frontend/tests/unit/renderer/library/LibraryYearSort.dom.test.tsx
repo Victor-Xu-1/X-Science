@@ -45,6 +45,7 @@ const items = Array.from({ length: 30 }, (_, index): LiteratureItem => ({
   id: `year-${index}`,
   title: `Year reference ${String(index).padStart(2, '0')}`,
   metadata_revision: 1,
+  rating_view: { known: true, value: 0 },
   metadata: { year: index % 2 ? String(1990 + index) : 1990 + index },
   reading_status: 'unread',
   deleted: false,
@@ -59,10 +60,15 @@ function currentLocation() {
   return new URLSearchParams(screen.getByLabelText('Year sort location').textContent ?? '');
 }
 function visibleTitles() {
-  return screen
-    .getAllByRole('button', { name: /^Year reference / })
-    .filter((button) => button.matches('button.library-table__title'))
-    .map((button) => button.textContent);
+  // Locate the same title buttons without computing every star's accessible name.
+  return Array.from(screen.getByRole('table').querySelectorAll<HTMLButtonElement>('button.library-table__title')).map(
+    (button) => {
+      expect(button).toHaveRole('button');
+      expect(button).toHaveAccessibleName(button.textContent!);
+      expect(button).toBeVisible();
+      return button.textContent;
+    }
+  );
 }
 
 it.each([

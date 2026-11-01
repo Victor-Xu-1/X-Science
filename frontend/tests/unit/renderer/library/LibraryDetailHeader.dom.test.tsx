@@ -61,6 +61,7 @@ function headerHTTP(holdFirst = false) {
           id,
           {
             ...paper(id, name(id, owner)),
+            rating_view: { known: true, value: 0 },
             attachments:
               id === 'a'
                 ? [
@@ -184,20 +185,24 @@ describe('Library primary detail header through the real Page consumers', () => 
     await mountCollections('/library?item=a');
     await screen.findByRole('heading', { name: name('a') });
     const primary = await screen.findByRole('group', { name: 'Literature details' });
+    const detailDialog = primary.closest<HTMLElement>('[role="dialog"]')!;
+    expect(detailDialog).toHaveRole('dialog');
+    const details = within(detailDialog);
+    const primaryHeader = within(primary);
     const measureHeader = vi.spyOn(primary, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 320, 56));
-    fireEvent.click(screen.getByRole('button', { name: /Preview PDF/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Advance header fixture PDF' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Download · reference.pdf' }));
+    fireEvent.click(details.getByRole('button', { name: /Preview PDF/ }));
+    fireEvent.click(details.getByRole('button', { name: 'Advance header fixture PDF' }));
+    fireEvent.click(details.getByRole('button', { name: 'Download · reference.pdf' }));
     expect(transfer.signal?.aborted).toBe(false);
     const pdf = screen.getByTestId('header-pdf');
-    const trigger = edit();
+    const trigger = primaryHeader.getByRole('button', { name: 'Edit details' });
     fireEvent.click(trigger);
-    const panel = editor();
+    const panel = details.getByRole('region', { name: 'Edit details' });
     const title = within(panel).getByRole('textbox', { name: 'Title' });
     await waitFor(() => expect(title).toHaveFocus());
-    expect(within(header()).getByRole('heading', { name: 'Edit details' })).toBeVisible();
-    expect(within(header()).queryByRole('button', { name: 'Edit details' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Preview PDF/ })).toBeNull();
+    expect(primaryHeader.getByRole('heading', { name: 'Edit details' })).toBeVisible();
+    expect(primaryHeader.queryByRole('button', { name: 'Edit details' })).toBeNull();
+    expect(details.queryByRole('button', { name: /Preview PDF/ })).toBeNull();
     expect(pdf).not.toBeVisible();
     expect(pdf.closest('[hidden][inert]')).not.toBeNull();
     expect(transfer.signal?.aborted).toBe(false);
@@ -216,13 +221,13 @@ describe('Library primary detail header through the real Page consumers', () => 
     await waitFor(() => expect(detailReads()).toBe(beforeRefresh + 1));
     await waitFor(() => expect(title).toBeEnabled());
     expect(title).toHaveFocus();
-    const back = within(header()).getByRole('button', { name: 'Back' });
+    const back = primaryHeader.getByRole('button', { name: 'Back' });
     act(() => back.focus());
     fireEvent.click(back);
     const keep = await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });
     fireEvent.click(within(keep).getByRole('button', { name: 'Keep editing' }));
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(editor()).toBe(panel);
+    expect(details.getByRole('region', { name: 'Edit details' })).toBe(panel);
     await waitFor(() => expect(title).toHaveFocus());
     expect(within(panel).getByRole('textbox', { name: 'Title' })).toBe(title);
     expect(title).toHaveValue('Keep this exact draft');
@@ -236,11 +241,11 @@ describe('Library primary detail header through the real Page consumers', () => 
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(data.writes).toEqual([]);
     fireEvent.click(within(discard).getByRole('button', { name: 'Discard changes' }));
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(details.queryByRole('region', { name: 'Edit details' })).toBeNull());
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
-    expect(within(header()).getByRole('heading', { name: name('a') })).toBeVisible();
-    expect(within(header()).queryByRole('button', { name: 'Back' })).toBeNull();
+    expect(primaryHeader.getByRole('heading', { name: name('a') })).toBeVisible();
+    expect(primaryHeader.queryByRole('button', { name: 'Back' })).toBeNull();
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(pdf).toBeVisible();
     expect(transfer.signal?.aborted).toBe(false);
@@ -249,32 +254,32 @@ describe('Library primary detail header through the real Page consumers', () => 
     expect(data.writes).toEqual([]);
 
     fireEvent.click(trigger);
-    const cleanPanel = editor();
+    const cleanPanel = details.getByRole('region', { name: 'Edit details' });
     const cancel = within(cleanPanel).getByRole('button', { name: 'Close' });
     act(() => cancel.focus());
     fireEvent.click(cancel);
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(details.queryByRole('region', { name: 'Edit details' })).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(screen.queryByRole('alertdialog')).toBeNull();
     fireEvent.click(trigger);
-    const cleanBack = within(header()).getByRole('button', { name: 'Back' });
+    const cleanBack = primaryHeader.getByRole('button', { name: 'Back' });
     act(() => cleanBack.focus());
     fireEvent.click(cleanBack);
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(details.queryByRole('region', { name: 'Edit details' })).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
     expect(data.writes).toEqual([]);
 
     const readback = data.holdReadback('a');
     fireEvent.click(trigger);
-    const savedPanel = editor();
+    const savedPanel = details.getByRole('region', { name: 'Edit details' });
     fireEvent.change(within(savedPanel).getByRole('textbox', { name: 'Title' }), {
       target: { value: 'Saved without stealing PDF focus' },
     });
     fireEvent.click(within(savedPanel).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(readback.started()).toBe(true));
-    await waitFor(() => expect(screen.queryByRole('region', { name: 'Edit details' })).toBeNull());
+    await waitFor(() => expect(details.queryByRole('region', { name: 'Edit details' })).toBeNull());
     expect(trigger).toBeDisabled();
-    const pdfAction = screen.getByRole('button', { name: 'Advance header fixture PDF' });
+    const pdfAction = details.getByRole('button', { name: 'Advance header fixture PDF' });
     pdfAction.focus();
     await act(async () => readback.deliver());
     await waitFor(() => expect(trigger).toBeEnabled());

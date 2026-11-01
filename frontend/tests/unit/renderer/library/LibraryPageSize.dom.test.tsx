@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
@@ -15,6 +15,7 @@ const items = Array.from({ length: 120 }, (_, index): LiteratureItem => ({
   id: `paper-${String(index + 1).padStart(3, '0')}`,
   title: `Paper ${String(index + 1).padStart(3, '0')}`,
   metadata_revision: 1,
+  rating_view: { known: true, value: 0 },
   metadata: {},
   reading_status: 'unread',
   deleted: false,
@@ -169,15 +170,16 @@ describe('Library URL-owned page size through the original HTTP reader', () => {
     await waitFor(() => expect(second).toBeEnabled());
     fireEvent.click(second);
     fireEvent.change(screen.getByRole('combobox', { name: 'References per page' }), { target: { value: '50' } });
-    await screen.findByRole('button', { name: 'Paper 050' });
+    await findPaper('Paper 050');
     expect(screen.getByRole('checkbox', { name: 'Select Paper 002' })).not.toBeChecked();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select Paper 005' }), { shiftKey: true });
     expect(screen.getByRole('checkbox', { name: 'Select Paper 005' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Select Paper 003' })).not.toBeChecked();
     expect(screen.getByText('1 selected')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Select this page' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Select all matching references' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Export references' }));
+    const selection = within(screen.getByRole('toolbar', { name: 'Reference selection' }));
+    fireEvent.click(selection.getByRole('button', { name: 'Select all matching references' }));
+    fireEvent.click(selection.getByRole('button', { name: 'Export references' }));
     const ris = await screen.findByText('RIS (.ris)');
     await waitFor(() => expect(ris.closest('[role="menuitem"]')).not.toHaveAttribute('aria-disabled', 'true'));
     fireEvent.click(ris);
