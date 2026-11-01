@@ -79,10 +79,10 @@ func (s *Server) handleLibraryVersionAnnotations(w http.ResponseWriter, r *http.
 			writeAnnotationError(w, http.StatusBadRequest, "invalid PDF version")
 			return
 		}
-		item, err := s.workspaceStore.CreateAnnotationOwned(r.Context(), workspace.CreateAnnotationInput{TargetKind: workspace.LiteratureAnnotationTargetKind,
+		item, err := s.workspaceStore.CreateAnnotationOwned(workspaceMutationContext(r), workspace.CreateAnnotationInput{TargetKind: workspace.LiteratureAnnotationTargetKind,
 			TargetKey: "litv:" + version, ContentChecksum: source.Checksum, Body: body}, owner)
 		if err != nil {
-			writeAnnotationStoreError(w, err)
+			writeAnnotationCreateError(w, err)
 			return
 		}
 		writeJSON(w, http.StatusCreated, item.Public())

@@ -134,7 +134,14 @@ func annotationCreateScope(ctx context.Context, tx *sql.Tx, input CreateAnnotati
 		}
 		return "library_owner_id=? AND target_key=?", []any{owner, input.TargetKey}, nil
 	}
-	if err := requireProjectOwnerTx(ctx, tx, input.ProjectID, owner); err != nil {
+	// Keep the same project/owner predicate, but preserve a typed denial so
+	// receipt recovery cannot misclassify current revoked access as a DB fault.
+	var project string
+	err := tx.QueryRowContext(ctx, `SELECT id FROM projects WHERE id = ? AND user_id = ?`, input.ProjectID, owner).Scan(&project)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil, ErrAnnotationReadSource
+	}
+	if err != nil {
 		return "", nil, err
 	}
 	return "project_id=? AND target_key=?", []any{input.ProjectID, input.TargetKey}, nil

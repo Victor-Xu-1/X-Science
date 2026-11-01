@@ -60,20 +60,30 @@ func (s *Store) SupersedeMemoryOwned(ctx context.Context, memoryID, replacementI
 }
 
 func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotationInput, ownerUserID string) (Annotation, error) {
-	if err := mutationIdempotencyError(ctx); err != nil {
+	identity, input, err := newAnnotationCreateMutation(ctx, input, ownerUserID)
+	if err != nil {
 		return Annotation{}, err
+	}
+	ownerUserID = identity.owner
+	if s == nil || s.db == nil {
+		return Annotation{}, fmt.Errorf("%w: workspace store is closed", ErrAnnotationCreateOutcomeUnknown)
 	}
 	var lastErr error
 	for attempt := 0; attempt < 3; attempt++ {
 		var annotation Annotation
 		err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
-			where, scope, err := annotationCreateScope(ctx, tx, input, ownerUserID)
+			var result annotationCreateResult
+			replayed, err := lookupMutationResultTx(ctx, tx, identity.owner, identity.key, annotationCreateOperation, identity.requestHash, &result)
 			if err != nil {
 				return err
 			}
-			input.ProjectID, input.TargetKind, input.TargetKey = strings.TrimSpace(input.ProjectID), strings.TrimSpace(input.TargetKind), strings.TrimSpace(input.TargetKey)
-			if input.TargetKind == "" || input.TargetKey == "" || input.Body == nil {
-				return errors.New("annotation target kind, target key, and body are required")
+			if replayed {
+				annotation, err = loadAnnotationCreateResult(ctx, tx, identity, input, result)
+				return err
+			}
+			where, scope, err := annotationCreateScope(ctx, tx, input, ownerUserID)
+			if err != nil {
+				return err
 			}
 			var maxIndex sql.NullInt64
 			if err := tx.QueryRowContext(ctx, `SELECT MAX(label_idx) FROM annotations WHERE `+where, scope...).Scan(&maxIndex); err != nil {
@@ -96,17 +106,21 @@ func (s *Store) CreateAnnotationOwned(ctx context.Context, input CreateAnnotatio
 				(id, project_id, library_owner_id, target_kind, target_key, label_idx, content_checksum, body, created_at)
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, annotation.ID, nullableString(annotation.ProjectID), annotationLibraryOwner(input.TargetKind, ownerUserID), annotation.TargetKind,
 				annotation.TargetKey, annotation.LabelIndex, nullableString(annotation.ContentChecksum), string(body), annotation.CreatedAt)
-			return err
+			if err != nil {
+				return err
+			}
+			return insertMutationResultTx(ctx, tx, identity.owner, identity.key, annotationCreateOperation, identity.requestHash,
+				annotationCreateResult{AnnotationID: annotation.ID}, now)
 		})
 		if err == nil {
 			return annotation, nil
 		}
 		lastErr = err
 		if !strings.Contains(err.Error(), "annotations.project_id, annotations.target_key, annotations.label_idx") && !strings.Contains(err.Error(), "annotations.library_owner_id, annotations.target_key, annotations.label_idx") {
-			return Annotation{}, err
+			return s.resolveAnnotationCreateError(ctx, identity, input, err)
 		}
 	}
-	return Annotation{}, fmt.Errorf("allocate annotation label after retries: %w", lastErr)
+	return s.resolveAnnotationCreateError(ctx, identity, input, fmt.Errorf("allocate annotation label after retries: %w", lastErr))
 }
 
 func (s *Store) UpdateAnnotationTextOwned(ctx context.Context, id, ownerUserID, text string) (Annotation, error) {
