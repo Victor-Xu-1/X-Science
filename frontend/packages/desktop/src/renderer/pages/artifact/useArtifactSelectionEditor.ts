@@ -10,7 +10,11 @@ import {
   type XScienceArtifactAnnotation,
 } from '@/renderer/services/xScienceAnnotations';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
-import { artifactCanvasSelectionIdentity, type XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
+import {
+  annotationInputFromCanvasSelection,
+  artifactCanvasSelectionIdentity,
+  type XScienceArtifactCanvasSelection,
+} from './artifactCanvasSelection';
 import { useArtifactRequestScope } from './useArtifactRequestScope';
 
 export function useArtifactSelectionEditor(
@@ -54,21 +58,11 @@ export function useArtifactSelectionEditor(
     setSaving(true);
     setError(null);
     try {
-      const annotation = await createXScienceArtifactAnnotation(artifactId, versionId, {
-        type: selection.type,
-        text: note.trim(),
-        selectionText: selection.type === 'point' ? null : selection.text,
-        selectionPrefix: selection.type === 'text_selection' ? selection.selectionPrefix : null,
-        startLine: selection.type === 'text_selection' ? selection.startLine : null,
-        startColumn: selection.type === 'text_selection' ? selection.startColumn : null,
-        endLine: selection.type === 'text_selection' ? selection.endLine : null,
-        endColumn: selection.type === 'text_selection' ? selection.endColumn : null,
-        xPercent: selection.type === 'text_selection' ? null : selection.xPercent,
-        yPercent: selection.type === 'text_selection' ? null : selection.yPercent,
-        pageNumber: selection.type === 'html_element' ? null : selection.pageNumber,
-        elementSelector: selection.type === 'html_element' ? selection.elementSelector : null,
-        elementDescriptor: selection.type === 'html_element' ? selection.elementDescriptor : null,
-      });
+      const annotation = await createXScienceArtifactAnnotation(
+        artifactId,
+        versionId,
+        annotationInputFromCanvasSelection(selection, note.trim())
+      );
       if (!scope.isCurrent(token)) return;
       setCreated(annotation);
       await deliver(annotation, token);

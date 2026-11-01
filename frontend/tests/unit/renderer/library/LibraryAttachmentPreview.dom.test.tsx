@@ -8,6 +8,17 @@ const { loadModule } = vi.hoisted(() => ({ loadModule: vi.fn() }));
 vi.mock('@/renderer/pages/conversation/Preview/components/viewers/scientificPreviewLoaders', () => ({
   cachePreviewModule: () => loadModule,
 }));
+vi.mock('@/renderer/pages/library/LibraryPdfAnnotations', () => ({
+  LibraryPdfAnnotations: ({
+    Viewer,
+    filename,
+    contentUrl,
+  }: {
+    Viewer: React.ComponentType<{ filename: string; contentUrl: string }>;
+    filename: string;
+    contentUrl: string;
+  }) => <Viewer filename={filename} contentUrl={contentUrl} />,
+}));
 const Viewer = ({ filename, contentUrl }: { filename: string; contentUrl: string }) => (
   <div data-testid='loaded-pdf-core' data-url={contentUrl}>
     {filename}
@@ -31,7 +42,11 @@ describe('Library PDF module loading lifecycle', () => {
   it('keeps an import failure local and retries the same document in the shared core', async () => {
     loadModule.mockRejectedValueOnce(new Error('module unavailable')).mockResolvedValueOnce({ default: Viewer });
     await renderWithI18n(
-      <LibraryAttachmentPreview filename='original.pdf' contentUrl='/api/literature/attachment-versions/v1/content' />,
+      <LibraryAttachmentPreview
+        versionId='litv_fixture'
+        filename='original.pdf'
+        contentUrl='/api/literature/attachment-versions/v1/content'
+      />,
       'en-US'
     );
     expect(await screen.findByRole('alert')).toBeInTheDocument();
@@ -50,7 +65,11 @@ describe('Library PDF module loading lifecycle', () => {
     const oldViewer = vi.fn(() => <div>obsolete module result</div>);
     loadModule.mockReturnValueOnce(first.promise).mockResolvedValueOnce({ default: Viewer });
     await renderWithI18n(
-      <LibraryAttachmentPreview filename='retained.pdf' contentUrl='/api/literature/attachment-versions/v2/content' />,
+      <LibraryAttachmentPreview
+        versionId='litv_fixture'
+        filename='retained.pdf'
+        contentUrl='/api/literature/attachment-versions/v2/content'
+      />,
       'en-US'
     );
     await act(() => vi.advanceTimersByTimeAsync(20_000));
@@ -75,7 +94,11 @@ describe('Library PDF module loading lifecycle', () => {
     const closedViewer = vi.fn(() => <div>closed preview</div>);
     loadModule.mockReturnValue(pending.promise);
     const rendered = await renderWithI18n(
-      <LibraryAttachmentPreview filename='closed.pdf' contentUrl='/api/literature/attachment-versions/v3/content' />,
+      <LibraryAttachmentPreview
+        versionId='litv_fixture'
+        filename='closed.pdf'
+        contentUrl='/api/literature/attachment-versions/v3/content'
+      />,
       'en-US'
     );
     rendered.unmount();

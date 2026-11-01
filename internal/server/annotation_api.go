@@ -204,7 +204,7 @@ func (s *Server) handleAnnotationMutation(w http.ResponseWriter, r *http.Request
 		writeAnnotationError(w, http.StatusNotFound, "Annotation "+id+" not found")
 		return
 	}
-	owned, err := store.ProjectOwnedBy(annotation.ProjectID, userID)
+	owned, err := store.AnnotationOwnedByContext(r.Context(), annotation.ID, userID)
 	if err != nil {
 		writeAnnotationStoreError(w, err)
 		return
@@ -841,6 +841,8 @@ func writeAnnotationStoreError(w http.ResponseWriter, err error) {
 	message := err.Error()
 	status := http.StatusBadRequest
 	switch {
+	case errors.Is(err, workspace.ErrAnnotationReadSource):
+		status = http.StatusNotFound
 	case errors.Is(err, workspace.ErrMutationIdempotencyConflict):
 		status = http.StatusConflict
 	case strings.Contains(strings.ToLower(message), "not found"), strings.Contains(message, "does not exist"):

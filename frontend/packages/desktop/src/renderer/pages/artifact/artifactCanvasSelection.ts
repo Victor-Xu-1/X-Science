@@ -1,3 +1,4 @@
+import type { CreateXScienceArtifactAnnotationInput } from '@/renderer/services/xScienceAnnotations';
 import type { XScienceArtifactTextSelection } from './artifactTextSelection';
 
 export interface XScienceArtifactPointSelection {
@@ -47,4 +48,26 @@ export function artifactCanvasSelectionIdentity(selection: XScienceArtifactCanva
 
 export function clampPercent(value: number): number {
   return Math.min(100, Math.max(0, Number(value.toFixed(4))));
+}
+
+/** One canvas producer supplies the same normalized anchor to both PDF surfaces. */
+export function annotationInputFromCanvasSelection(
+  selection: XScienceArtifactCanvasSelection,
+  text: string
+): CreateXScienceArtifactAnnotationInput {
+  return {
+    type: selection.type,
+    text,
+    selectionText: selection.type === 'point' ? null : selection.text,
+    selectionPrefix: selection.type === 'text_selection' ? selection.selectionPrefix : null,
+    startLine: selection.type === 'text_selection' ? selection.startLine : null,
+    startColumn: selection.type === 'text_selection' ? selection.startColumn : null,
+    endLine: selection.type === 'text_selection' ? selection.endLine : null,
+    endColumn: selection.type === 'text_selection' ? selection.endColumn : null,
+    xPercent: selection.type === 'text_selection' ? null : selection.xPercent,
+    yPercent: selection.type === 'text_selection' ? null : selection.yPercent,
+    pageNumber: selection.type === 'html_element' ? null : selection.pageNumber,
+    elementSelector: selection.type === 'html_element' ? selection.elementSelector : null,
+    elementDescriptor: selection.type === 'html_element' ? selection.elementDescriptor : null,
+  };
 }

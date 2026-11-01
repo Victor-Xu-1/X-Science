@@ -21,7 +21,7 @@ const listPDFAnnotationsToolName = "list_pdf_annotations"
 
 type pdfAnnotationAuthority struct {
 	binding transcriptstore.PDFReadingBinding
-	source  workspace.ArtifactAnnotationSource
+	source  workspace.AnnotationReadSource
 	scope   string
 }
 
@@ -39,7 +39,7 @@ type pdfAnnotationCursor struct {
 
 func agentPDFAnnotationListToolSchema() agentruntime.ToolSchema {
 	return agentruntime.ToolSchema{Name: listPDFAnnotationsToolName,
-		Description: "Read one bounded page of saved annotations from an artifact-version PDF explicitly admitted to the current Reading input. Omit documentId only when exactly one document was admitted. This does not read PDF content, edit annotations, or grant filesystem access. Library attachment sources are not supported by this tool.",
+		Description: "Read one bounded page of saved annotations from an artifact-version PDF explicitly admitted to the current Reading input. Omit documentId only when exactly one document was admitted. This does not read PDF content, edit annotations, or grant filesystem access. Library and artifact-version sources use their original owner-scoped annotation target.",
 		Parameters: map[string]any{"type": "object", "additionalProperties": false, "properties": map[string]any{
 			"documentId": map[string]any{"type": "string", "minLength": 1, "maxLength": 512, "description": "An exact binding ID from this task's admitted PDF Reading snapshot."},
 			"cursor":     map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "The opaque nextCursor returned for this same task input and document."},
@@ -62,7 +62,7 @@ func (s *Server) agentPDFAnnotationToolSchemas(ctx context.Context, allowed map[
 		return nil
 	}
 	for _, binding := range admitted.snapshot.Bindings {
-		if binding.SourceKind == "artifact-version" {
+		if binding.SourceKind == "artifact-version" || binding.SourceKind == "literature-attachment-version" {
 			return []agentruntime.ToolSchema{agentPDFAnnotationListToolSchema()}
 		}
 	}
@@ -165,12 +165,17 @@ func (g serverAgentRuntimeToolGateway) pdfAnnotationAuthority(ctx context.Contex
 	if authority.binding.BindingID == "" {
 		return authority, kernelruntime.NewHostCallError("permission_denied", "documentId is not part of this admitted Reading input")
 	}
-	if authority.binding.SourceKind != "artifact-version" {
-		return authority, kernelruntime.NewHostCallError("unsupported_source", "Library attachment PDF annotation listing is not supported")
-	}
 	sourceBinding := authority.binding
-	authority.source = workspace.ArtifactAnnotationSource{OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
-		ArtifactID: sourceBinding.ArtifactID, VersionID: sourceBinding.VersionID, Checksum: sourceBinding.Checksum, SizeBytes: sourceBinding.SizeBytes}
+	switch sourceBinding.SourceKind {
+	case "artifact-version":
+		authority.source.Artifact = &workspace.ArtifactAnnotationSource{OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
+			ArtifactID: sourceBinding.ArtifactID, VersionID: sourceBinding.VersionID, Checksum: sourceBinding.Checksum, SizeBytes: sourceBinding.SizeBytes}
+	case "literature-attachment-version":
+		authority.source.Literature = &workspace.LiteratureAnnotationSource{OwnerID: access.UserID, ItemID: sourceBinding.ItemID,
+			AttachmentID: sourceBinding.AttachmentID, VersionID: sourceBinding.VersionID, Checksum: sourceBinding.Checksum, SizeBytes: sourceBinding.SizeBytes, PageCount: sourceBinding.PageCount, Accepted: true}
+	default:
+		return authority, kernelruntime.NewHostCallError("unsupported_source", "The admitted PDF source kind is not supported")
+	}
 	// This is a cursor consistency fingerprint, never a capability or claim token.
 	raw, err := json.Marshal([]any{stream.UID, stream.OwnerID, stream.SessionID, stream.Epoch, snapshot.Scope, claim.RunnerID,
 		claim.Attempt, claim.ClaimedInputRevision, input.EventID, input.PublicationSeq, input.Association, snapshot, sourceBinding.BindingID})
@@ -222,8 +227,8 @@ func pdfAnnotationReadError(err error) error {
 }
 
 func (g serverAgentRuntimeToolGateway) executePDFAnnotationList(ctx context.Context, input map[string]any) (any, error) {
-	return g.readPDFAnnotationList(ctx, input, func(ctx context.Context, source workspace.ArtifactAnnotationSource, cursor *workspace.AnnotationPageCursor) (workspace.AnnotationReadPage, error) {
-		return g.server.workspaceStore.ListArtifactAnnotationPageOwned(ctx, source, cursor)
+	return g.readPDFAnnotationList(ctx, input, func(ctx context.Context, source workspace.AnnotationReadSource, cursor *workspace.AnnotationPageCursor) (workspace.AnnotationReadPage, error) {
+		return g.server.workspaceStore.ListAnnotationPageOwned(ctx, source, cursor)
 	})
 }
 
@@ -231,7 +236,7 @@ func (g serverAgentRuntimeToolGateway) executePDFAnnotationList(ctx context.Cont
 // post-read authority fence together also makes late cancellation testable
 // without a second state owner or a runtime hook.
 func (g serverAgentRuntimeToolGateway) readPDFAnnotationList(ctx context.Context, input map[string]any,
-	read func(context.Context, workspace.ArtifactAnnotationSource, *workspace.AnnotationPageCursor) (workspace.AnnotationReadPage, error),
+	read func(context.Context, workspace.AnnotationReadSource, *workspace.AnnotationPageCursor) (workspace.AnnotationReadPage, error),
 ) (any, error) {
 	document, rawCursor, err := parsePDFAnnotationListInput(input)
 	if err != nil {
@@ -275,7 +280,7 @@ func (g serverAgentRuntimeToolGateway) readPDFAnnotationList(ctx context.Context
 	if current.scope != authority.scope {
 		return nil, kernelruntime.NewHostCallError("permission_denied", "PDF Reading task scope changed during annotation listing")
 	}
-	if err := g.server.workspaceStore.ValidateArtifactAnnotationSourceOwned(ctx, current.source); err != nil {
+	if err := g.server.workspaceStore.ValidateAnnotationSourceOwned(ctx, current.source); err != nil {
 		return nil, pdfAnnotationReadError(err)
 	}
 	return map[string]any{"documentId": authority.binding.BindingID, "readOnly": true, "total": page.Total, "nextCursor": next, "annotations": items}, nil
