@@ -7,6 +7,8 @@ import type { TMessage } from '@/common/chat/chatLib';
 import type { NormalizedToolCall, ToolMessage } from '@/common/chat/normalizeToolCall';
 import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
 import { TranscriptActivityContext } from '@/renderer/pages/conversation/Messages/components/TranscriptActivity';
+import { projectTranscriptActivity } from '@/renderer/pages/conversation/Messages/transcriptActivityModel';
+import { createDefaultConversationRuntimeView } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import { buildToolStepResultSummary } from '@/renderer/pages/conversation/Messages/components/toolStepSummaryModel';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
@@ -163,7 +165,7 @@ describe('MessageToolGroupSummary', () => {
     expect(screen.getByTestId('tool-group-header')).toHaveTextContent('data.csv · study.md');
     expect(screen.queryAllByTestId('tool-chip')).toHaveLength(0);
   });
-  it('keeps the continuation spinner inside only the last operation and moves it to the next row', () => {
+  it('keeps settled operation icons while continuation metadata follows the last row', () => {
     const messages = (count: number) =>
       Array.from({ length: count }, (_, index) => ({
         id: `inline-${index}`,
@@ -184,19 +186,72 @@ describe('MessageToolGroupSummary', () => {
     );
     const { rerender } = render(view(2));
     let rows = screen.getAllByTestId('tool-chip');
-    expect(rows[0].querySelector('[data-testid="transcript-activity-spinner"]')).toBeNull();
-    expect(rows[1].querySelector('[data-testid="transcript-activity-spinner"]')).not.toBeNull();
+    expect(rows[0]).not.toHaveAttribute('aria-description');
+    expect(rows[1]).toHaveAttribute('aria-description', 'This step has ended; continuing to the next action');
+    expect(rows[0].querySelector('.tool-status-icon--completed')).not.toBeNull();
+    expect(rows[1].querySelector('.tool-status-icon--completed')).not.toBeNull();
     expect(rows[1].closest('.tool-step')).toHaveClass('tool-step--completed');
+    expect(screen.queryByTestId('transcript-activity-spinner')).toBeNull();
     rerender(view(3));
     rows = screen.getAllByTestId('tool-chip');
-    expect(rows[1].querySelector('[data-testid="transcript-activity-spinner"]')).toBeNull();
-    expect(rows[2].querySelector('[data-testid="transcript-activity-spinner"]')).not.toBeNull();
-    expect(screen.getAllByTestId('transcript-activity-spinner')).toHaveLength(1);
+    expect(rows[1]).not.toHaveAttribute('aria-description');
+    expect(rows[2]).toHaveAttribute('aria-description', 'This step has ended; continuing to the next action');
+    expect(rows[2].querySelector('.tool-status-icon--completed')).not.toBeNull();
+    expect(screen.queryByTestId('transcript-activity-spinner')).toBeNull();
     fireEvent.click(screen.getByTestId('tool-group-header'));
-    expect(
-      screen.getByTestId('tool-group-header').querySelector('[data-testid="transcript-activity-spinner"]')
-    ).not.toBeNull();
-    expect(screen.getAllByTestId('transcript-activity-spinner')).toHaveLength(1);
+    const header = screen.getByTestId('tool-group-header');
+    expect(header).toHaveAttribute('aria-description', 'messages.processing');
+    expect(header.querySelector('.tool-group-summary__disclosure-icon')).not.toBeNull();
+    expect(screen.queryByTestId('transcript-activity-spinner')).toBeNull();
+  });
+  it('keeps an empty completed step distinct from active tools during a running task', () => {
+    const runtime = {
+      ...createDefaultConversationRuntimeView('step-task'),
+      hydrated: true,
+      hasBackendRuntime: true,
+      hasTask: true,
+      isProcessing: true,
+      state: 'running' as const,
+    };
+    const view = (status?: string) => {
+      const messages = [
+        {
+          id: 'step-message',
+          conversation_id: 'step-task',
+          type: 'tool_call',
+          content: { call_id: 'step-call', name: 'read_file', status, args: { path: 'data.csv' } },
+        },
+      ] as ToolMessage[];
+      const activity = projectTranscriptActivity(runtime, 'connected', {
+        type: 'tool_summary',
+        id: 'step-summary',
+        messages,
+        sourceMessageIds: ['step-message'],
+        created_at: 1,
+      });
+      return (
+        <TranscriptActivityContext.Provider value={activity}>
+          <MessageToolGroupSummary messages={messages} />
+        </TranscriptActivityContext.Provider>
+      );
+    };
+    const { rerender } = render(view('completed'));
+    const row = screen.getByTestId('tool-chip');
+    expect(row).toHaveTextContent('Completed');
+    expect(row.querySelector('.tool-status-icon--completed')).not.toBeNull();
+    expect(row).toHaveAttribute('title', 'This step has ended; continuing to the next action');
+    expect(screen.queryByTestId('transcript-activity-spinner')).toBeNull();
+
+    rerender(view('running'));
+    expect(row).toHaveTextContent('Running');
+    expect(row).not.toHaveTextContent('Completed');
+    expect(row.querySelector('.tool-status-icon--running .tool-status-icon__pulse')).not.toBeNull();
+    expect(row).not.toHaveAttribute('aria-description');
+
+    rerender(view());
+    expect(row).toHaveTextContent('Running');
+    expect(row.querySelector('.tool-status-icon--pending')).not.toBeNull();
+    expect(row).not.toHaveTextContent('Completed');
   });
   beforeEach(() => {
     conversationDisclosureStore.resetForTests();

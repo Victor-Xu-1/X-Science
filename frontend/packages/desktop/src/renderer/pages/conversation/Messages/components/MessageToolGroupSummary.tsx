@@ -10,7 +10,7 @@ import { collapseNestedConnectorDispatches } from '../toolSummaryGroupingModel';
 import './MessageToolGroupSummary.css';
 import { groupRepeatedNonExecutingTools, toolWasNotExecuted } from './toolExecutionDisposition';
 import ToolOperationDetail from './ToolOperationDetail';
-import TranscriptActivity, { TranscriptActivityContext } from './TranscriptActivity';
+import { TranscriptActivityContext } from './TranscriptActivity';
 import { buildToolStepGroupSummary, toolSourceUnavailable } from './toolStepSummaryModel';
 
 const aggregateStatus = (tools: NormalizedToolCall[]): NormalizedToolStatus => {
@@ -31,7 +31,7 @@ const MessageToolGroupSummary: React.FC<{
 }> = ({ messages }) => {
   const activity = useContext(TranscriptActivityContext);
   const messageWindow = useMessagePaginationState();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const tools = useMemo(() => {
     const normalized = normalizeToolMessages(messages).filter((tool) => isPublicToolActivity(tool.name));
     // Normalization creates fresh snapshots, not durable message mutations.
@@ -86,19 +86,17 @@ const MessageToolGroupSummary: React.FC<{
         className={`tool-group-summary__header tool-step--${groupStatus}`}
         aria-expanded={expanded}
         aria-controls={detailsId}
+        aria-description={activity?.spinning ? t(activity.labelKey) : undefined}
+        title={activity?.spinning ? t(activity.labelKey) : undefined}
         onClick={disclosure.toggle}
       >
         <span className='tool-group-summary__disclosure' aria-hidden='true'>
-          {!expanded && activity?.spinning ? (
-            <TranscriptActivity activity={activity} />
-          ) : (
-            <IconRight
-              className={`tool-group-summary__disclosure-icon${
-                expanded ? ' tool-group-summary__disclosure-icon--expanded' : ''
-              }`}
-              style={{ fontSize: 13 }}
-            />
-          )}
+          <IconRight
+            className={`tool-group-summary__disclosure-icon${
+              expanded ? ' tool-group-summary__disclosure-icon--expanded' : ''
+            }`}
+            style={{ fontSize: 13 }}
+          />
         </span>
         <span className={`tool-group-summary__headline${isActive ? ' tool-group-summary__headline--active' : ''}`}>
           {groupSummary.headline}
