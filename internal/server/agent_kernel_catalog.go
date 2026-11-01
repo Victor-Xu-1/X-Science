@@ -234,6 +234,9 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponseUncached(ctx cont
 	}
 	name = canonical
 	call.Name = canonical
+	if name == listPDFAnnotationsToolName {
+		return g.executePDFAnnotationList(ctx, input)
+	}
 	if name == kernelDelegateSubmitToolName && strings.TrimSpace(g.sessionID) != "" {
 		return g.server.executeKernelDelegateSubmitOutput(g.sessionID, input)
 	}

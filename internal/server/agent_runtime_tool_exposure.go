@@ -236,6 +236,8 @@ func annotateOwnedAgentRuntimeToolSchema(schema agentruntime.ToolSchema) agentru
 		schema.Capabilities = []string{"permission-control"}
 	case "readfile":
 		schema.Capabilities = []string{"artifact-read", "read-only"}
+	case "listpdfannotations":
+		schema.Capabilities = []string{"artifact-read", "read-only"}
 	case "editfile":
 		schema.Capabilities = []string{"artifact-write", "artifact-edit"}
 	case "saveartifacts":

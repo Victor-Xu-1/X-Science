@@ -69,7 +69,7 @@ func normalizeAgentToolPolicy(policy string) string {
 
 func readOnlyAgentAllowedTools(parentAllowed []string) []string {
 	readOnly := []string{
-		"read_file",
+		"read_file", "list_pdf_annotations",
 		"read_memory", "search_memory",
 		"fetch_article_fulltext", "web_fetch",
 		"search_skills", "skill",

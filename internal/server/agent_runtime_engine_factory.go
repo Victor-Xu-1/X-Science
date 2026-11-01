@@ -166,6 +166,7 @@ func (s *Server) agentRuntimeToolSchemasWithContextOptions(
 		schemas = append(schemas, s.agentRuntimeMCPToolSchemas(ctx, allowed, kernelSessionID)...)
 	}
 	schemas = append(schemas, s.agentKernelToolSchemas(kernelIdentity, allowed)...)
+	schemas = append(schemas, s.agentPDFAnnotationToolSchemas(ctx, allowed)...)
 	if kernelIdentity != nil {
 		schemas = preferCanonicalFrameFileToolSchemas(schemas)
 	}
