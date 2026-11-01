@@ -60,15 +60,17 @@ type SessionRunnerChatOptions struct {
 }
 
 type sessionRunnerChatRun struct {
-	SessionID          string
-	Attempt            int
-	ClaimToken         string
-	AfterEventID       int64
-	Transcript         *transcriptRunnerAuthority
-	TaskIntent         string
-	TaskIntentID       string
-	TaskIntentRevision int64
-	currentControl     *sessionRunnerCurrentControl
+	completionAdvisoryMu sync.Mutex
+	completionAdvisories *sessionRunnerCompletionAdvisoryPresentation
+	SessionID            string
+	Attempt              int
+	ClaimToken           string
+	AfterEventID         int64
+	Transcript           *transcriptRunnerAuthority
+	TaskIntent           string
+	TaskIntentID         string
+	TaskIntentRevision   int64
+	currentControl       *sessionRunnerCurrentControl
 	// frameOwnedJob is set only by validated internal-job admission. Its
 	// dedicated frame, not a user-message task intent, bounds durable receipts.
 	frameOwnedJob                      bool

@@ -1,4 +1,27 @@
 {
+  "completionAdvisories": {
+    "summary": "Verification notes · {{count}}",
+    "findings": "Recorded findings · {{count}}",
+    "source": "Source: {{sources}}",
+    "sources": {
+      "artifact_completion": "Artifact checks",
+      "task_expectations": "Execution checks",
+      "completion_recovery": "Recovery checks",
+      "host": "System checks"
+    },
+    "structure_preview_unverified": "Structure preview",
+    "result_quality_unverified": "Result quality",
+    "task_expectations_unverified": "Execution details",
+    "chemical_validation_unavailable": "Chemical validation",
+    "chemical_validation_history_unverified": "Earlier validation",
+    "description": {
+      "structure_preview_unverified": "Existing results are delivered without a validated combined structure preview. This does not certify scientific correctness or fulfil any missing preview deliverable.",
+      "result_quality_unverified": "Some consistency or evidence checks remain unresolved. Existing outputs are preserved; task completion does not certify their accuracy.",
+      "task_expectations_unverified": "Some actions or reporting details mentioned in the task text are not confirmed by the recorded results; this does not mean they were required or completed.",
+      "chemical_validation_unavailable": "Chemical validation was not performed because an optional validator is unavailable. Existing files are preserved without certifying molecular validity.",
+      "chemical_validation_history_unverified": "Earlier chemical-validation failures could not be matched to the current immutable selection and have not been revalidated."
+    }
+  },
   "artifactLink": {
     "resolving": "Resolving file…",
     "unavailable": "File reference unavailable",

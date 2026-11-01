@@ -285,6 +285,11 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantContent(
 		}
 		messageType := transcriptWebAssistantMessageType(payload)
 		content := transcriptWebAssistantContent(text, messageType)
+		if projected.Event.Type == "assistant_message" {
+			if advisory := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt.Attempt); advisory != nil {
+				content["completionAdvisories"] = advisory
+			}
+		}
 		content["xScience"] = map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID}
 		if durable {
 			content["assistant_attempt_id"] = transcriptAssistantMessageID(r.sessionID, attempt.Attempt, 1)
@@ -336,6 +341,10 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantContent(
 	}
 	if projected.Event.Type == "assistant_message" {
 		content["content"] = text
+		delete(content, "completionAdvisories")
+		if advisory := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt.Attempt); advisory != nil {
+			content["completionAdvisories"] = advisory
+		}
 		attempt.CurrentIsSyntheticProgress = false
 	} else if syntheticProgress {
 		// Synthetic progress is transient UI state. Repeated checkpoints replace
@@ -482,6 +491,11 @@ func (r *transcriptWebIncrementalAssistantReducer) newAssistantRecord(
 	}
 	messageType := transcriptWebAssistantMessageType(payload)
 	content := transcriptWebAssistantContent(text, messageType)
+	if projected.Event.Type == "assistant_message" {
+		if advisory := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt.Attempt); advisory != nil {
+			content["completionAdvisories"] = advisory
+		}
+	}
 	content["xScience"] = map[string]any{"messageIndex": visibleIndex, "blockIndex": 0, "branchId": r.branchID}
 	if durable {
 		content["assistant_attempt_id"] = transcriptAssistantMessageID(r.sessionID, attempt.Attempt, 1)

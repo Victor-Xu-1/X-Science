@@ -103,6 +103,7 @@ func (s *Server) loadTranscriptRunnerReplay(
 		case "assistant_message", "history_assistant_message":
 			message["type"] = "message"
 			message["role"] = "assistant"
+			projectSessionRunnerCompletionAdvisoryReplay(message, projectedEvent.Event)
 		case "history_system_message":
 			message["type"] = "message"
 			message["role"] = "system"

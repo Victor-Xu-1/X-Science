@@ -1,8 +1,138 @@
 import { decodeRoundSummary, type RoundSummary } from '../chat/roundSummary';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
 
 export const MESSAGE_STREAM_TYPES = ['start', 'thinking', 'text', 'content', 'tool_call', 'finish', 'error'] as const;
 
 export type MessageStreamType = (typeof MESSAGE_STREAM_TYPES)[number];
+
+export type CompletionAdvisories = {
+  schema: 'x-science.completion-advisories.v1';
+  attempt: number;
+  input_revision: number;
+  text_sha256: string;
+  text_length: number;
+  items: Array<{
+    code: string;
+    findings: string[];
+    sources: Array<{
+      stage: string;
+      attempt: number;
+      input_revision: number;
+      candidate_sha256: string;
+      finding_indexes: number[];
+    }>;
+  }>;
+  /** Host-issued UTF16 offsets, never inferred from a model paragraph. */
+  spans: Array<{ start: number; end: number; text: string }>;
+};
+
+const COMPLETION_ADVISORY_CODES = new Set([
+  'structure_preview_unverified',
+  'result_quality_unverified',
+  'task_expectations_unverified',
+  'chemical_validation_unavailable',
+  'chemical_validation_history_unverified',
+]);
+const COMPLETION_ADVISORY_STAGES = new Set(['artifact_completion', 'task_expectations', 'completion_recovery']);
+const digest = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) > 0;
+
+/** Invalid optional presentation preserves the original compatibility text. */
+export function decodeCompletionAdvisories(value: unknown, text: string): CompletionAdvisories | undefined {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 7 ||
+    value.schema !== 'x-science.completion-advisories.v1' ||
+    !positive(value.attempt) ||
+    !positive(value.input_revision) ||
+    !digest(value.text_sha256) ||
+    value.text_length !== text.length ||
+    !Array.isArray(value.items) ||
+    value.items.length < 1 ||
+    value.items.length > 5 ||
+    !Array.isArray(value.spans) ||
+    value.spans.length > 16
+  )
+    return undefined;
+  const codes = new Set<string>();
+  for (const item of value.items) {
+    if (
+      !isRecord(item) ||
+      Object.keys(item).length !== 3 ||
+      typeof item.code !== 'string' ||
+      !COMPLETION_ADVISORY_CODES.has(item.code) ||
+      codes.has(item.code) ||
+      !Array.isArray(item.findings) ||
+      item.findings.length > 4096 ||
+      item.findings.some((finding) => typeof finding !== 'string' || finding.length > 65536) ||
+      !Array.isArray(item.sources) ||
+      item.sources.length < 1 ||
+      item.sources.length > 64
+    )
+      return undefined;
+    codes.add(item.code);
+    const findingCount = item.findings.length;
+    const covered = new Set<number>();
+    for (const source of item.sources) {
+      if (
+        !isRecord(source) ||
+        Object.keys(source).length !== 5 ||
+        typeof source.stage !== 'string' ||
+        !COMPLETION_ADVISORY_STAGES.has(source.stage) ||
+        !positive(source.attempt) ||
+        !positive(source.input_revision) ||
+        !digest(source.candidate_sha256) ||
+        source.attempt > value.attempt ||
+        source.input_revision > value.input_revision ||
+        !Array.isArray(source.finding_indexes) ||
+        source.finding_indexes.length > findingCount ||
+        new Set(source.finding_indexes).size !== source.finding_indexes.length ||
+        source.finding_indexes.some(
+          (index) => !Number.isSafeInteger(index) || Number(index) < 0 || Number(index) >= findingCount
+        )
+      )
+        return undefined;
+      source.finding_indexes.forEach((index) => covered.add(Number(index)));
+    }
+    if (covered.size !== findingCount) return undefined;
+  }
+  const isBoundary = (index: number) => {
+    const before = text.charCodeAt(index - 1);
+    const after = text.charCodeAt(index);
+    return !(before >= 0xd800 && before <= 0xdbff && after >= 0xdc00 && after <= 0xdfff);
+  };
+  let after = 0;
+  for (const span of value.spans) {
+    if (
+      !isRecord(span) ||
+      Object.keys(span).length !== 3 ||
+      !Number.isSafeInteger(span.start) ||
+      !Number.isSafeInteger(span.end) ||
+      Number(span.start) < after ||
+      Number(span.end) <= Number(span.start) ||
+      Number(span.end) > text.length ||
+      !isBoundary(Number(span.start)) ||
+      !isBoundary(Number(span.end)) ||
+      typeof span.text !== 'string' ||
+      text.slice(Number(span.start), Number(span.end)) !== span.text
+    )
+      return undefined;
+    after = Number(span.end);
+  }
+  if (bytesToHex(sha256(utf8ToBytes(text))) !== value.text_sha256) return undefined;
+  return value as CompletionAdvisories;
+}
+
+export function completionAdvisoryModelText(text: string, value: CompletionAdvisories): string {
+  if (!decodeCompletionAdvisories(value, text)) return text;
+  let body = text;
+  for (let index = value.spans.length - 1; index >= 0; index--) {
+    const span = value.spans[index];
+    body = body.slice(0, span.start) + body.slice(span.end);
+  }
+  return body;
+}
 
 export type ToolLifecycleStatus =
   | 'pending'
@@ -66,6 +196,7 @@ export interface IResponseMessage {
   /** A later attempt accepted for this same logical input supersedes this terminal state. */
   terminal_superseded?: boolean;
   round_summary?: RoundSummary;
+  completion_advisories?: CompletionAdvisories;
   /** Replace accumulated text for the same msg_id instead of appending. */
   replace?: boolean;
   /** Replace every persisted assistant segment owned by this exact attempt. */
@@ -282,6 +413,12 @@ function decodeMessagePayload(raw: unknown): IResponseMessage | undefined {
     ...(raw.terminal_superseded !== undefined ? { terminal_superseded: raw.terminal_superseded } : {}),
     ...(raw.terminal_status === 'completed' && decodeRoundSummary(raw.round_summary)
       ? { round_summary: decodeRoundSummary(raw.round_summary) }
+      : {}),
+    ...(raw.stream_type === 'content' &&
+    typeof raw.data === 'string' &&
+    raw.position !== 'right' &&
+    decodeCompletionAdvisories(raw.completion_advisories, raw.data)
+      ? { completion_advisories: decodeCompletionAdvisories(raw.completion_advisories, raw.data) }
       : {}),
     ...(raw.replace !== undefined ? { replace: raw.replace } : {}),
     ...(raw.replace_scope !== undefined ? { replace_scope: raw.replace_scope as 'attempt' } : {}),

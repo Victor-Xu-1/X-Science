@@ -722,6 +722,9 @@ func (s *Server) publishTranscriptWebClaim(ctx context.Context, claim transcript
 			"replace": true, "artifact_refs": refs,
 			"source_publication_sequence": claim.PublicationSeq, "publication_boundary_id": baseID,
 		}
+		if advisory := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt); advisory != nil {
+			streamPayload["completion_advisories"] = advisory
+		}
 		if _, present, segmentErr := transcriptstore.ParseAssistantSegmentV1(payload); segmentErr != nil {
 			return segmentErr
 		} else if present {

@@ -110,6 +110,7 @@ func memoryExtractionTranscriptEntry(sessionID string, projected transcriptstore
 	case "assistant_message", "history_assistant_message":
 		message["type"] = "message"
 		message["role"] = "assistant"
+		projectSessionRunnerCompletionAdvisoryReplay(message, projected.Event)
 	case "history_system_message":
 		message["type"] = "message"
 		message["role"] = "system"

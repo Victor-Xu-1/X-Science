@@ -161,7 +161,8 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		}
 		receipt, finishTranscriptErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{
 			Content: assistantMessage, Status: status, Detail: message, ReasonCode: failureReason,
-			AssistantIdentity: "assistant-message", SegmentOrdinal: chatRun.assistantSegmentOrdinal(), PrepareMemory: true, ResponseLanguage: chatRun.ResponseLanguage,
+			CompletionAdvisories: chatRun.completionAdvisorySnapshot(),
+			AssistantIdentity:    "assistant-message", SegmentOrdinal: chatRun.assistantSegmentOrdinal(), PrepareMemory: true, ResponseLanguage: chatRun.ResponseLanguage,
 		})
 		if finishTranscriptErr == nil {
 			activeRun.settled = true

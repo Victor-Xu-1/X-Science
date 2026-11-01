@@ -15,6 +15,7 @@ import (
 const sessionRunnerFinalMemoryPreparationTimeout = 500 * time.Millisecond
 
 type transcriptRunnerFinalization struct {
+	CompletionAdvisories                *sessionRunnerCompletionAdvisoryPresentation
 	Content, Status, Detail, ReasonCode string
 	AssistantIdentity                   string
 	SegmentOrdinal                      int64
@@ -48,8 +49,14 @@ func (s *Server) persistTranscriptRunnerFinalization(parent context.Context, aut
 		if final.AssistantIdentity == "" {
 			final.AssistantIdentity = "assistant-message"
 		}
-		payload, err := json.Marshal(map[string]any{"text": final.Content,
-			"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(final.SegmentOrdinal, "")})
+		assistantPayload := map[string]any{"text": final.Content,
+			"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(final.SegmentOrdinal, "")}
+		if final.Status == "completed" {
+			if advisory := final.CompletionAdvisories.envelope(final.Content, authority.Claim); advisory != nil {
+				assistantPayload["completion_advisories"] = advisory
+			}
+		}
+		payload, err := json.Marshal(assistantPayload)
 		if err != nil {
 			return transcriptstore.RunnerFinalizationReceipt{}, err
 		}
