@@ -10,9 +10,12 @@ import { artifactCanvasSelectionIdentity } from '@/renderer/pages/artifact/artif
 import { locateRenderedTextSelection } from '@/renderer/pages/artifact/artifactTextSelection';
 import { XScienceImageArtifactViewer } from '@/renderer/pages/artifact/XScienceImageArtifactViewer';
 import { renderWithI18n } from '../i18nTestUtils';
+import type { XScienceArtifactPointSelection } from '@/renderer/pages/artifact/artifactCanvasSelection';
+import type { XScienceArtifactTextSelection } from '@/renderer/pages/artifact/artifactTextSelection';
+import type { XScienceArtifactAnnotationCollection } from '@/renderer/services/xScienceAnnotations';
 
 const createAnnotation = vi.hoisted(() => vi.fn());
-const selection = {
+const selection: XScienceArtifactPointSelection = {
   type: 'point' as const,
   text: 'Image position',
   x: 20,
@@ -49,7 +52,11 @@ vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
     createXScienceArtifactAnnotation: createAnnotation,
     loadXScienceAnnotationTarget: async (
       target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget
-    ) => ({ targetKey: `av:${target.versionId}`, currentChecksum: canonicalChecksum, annotations: [] }),
+    ): Promise<XScienceArtifactAnnotationCollection> => ({
+      targetKey: `av:${target.versionId}`,
+      currentChecksum: canonicalChecksum,
+      annotations: [],
+    }),
     createXScienceAnnotationTarget: async (
       target: import('@/renderer/services/xScienceAnnotations').XScienceAnnotationTarget,
       input: import('@/renderer/services/xScienceAnnotations').CreateXScienceArtifactAnnotationInput
@@ -87,7 +94,7 @@ vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
 
 describe('Artifact selection annotation', () => {
   it('keys text, page and HTML anchors independently of screen placement', () => {
-    const text = {
+    const text: XScienceArtifactTextSelection = {
       type: 'text_selection' as const,
       text: 'Passage',
       x: 10,
