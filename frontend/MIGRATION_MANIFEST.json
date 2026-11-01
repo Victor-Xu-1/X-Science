@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "69336457a1ad799c829d9dd90f9aff13b49f457d7c3bb95015ee921dd9369e8c",
+  "adaptationFingerprintSHA256": "c4a3521c053e7ce279869bad7cae2f4fbb46e23f59b75a4164b865cd1fe0fea4",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "a91fd9eec49338057c0ed79a9797b5cca40aeece22e6596b88611fe6f0365e29",
+  "additionFingerprintSHA256": "32cc4c43d5bac82d71633aa3e396b705d7905d0bb6dacfe58f8054e54a5b60a0",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1427
+    "addedFiles": 1428
   },
   "adaptations": [
     {
@@ -73,8 +73,8 @@
     {
       "path": "packages/desktop/src/common/chat/chatLib.ts",
       "sourceSHA256": "fc5bdff3c76b7826754ce2285a76c6215d797f0d21940d3518bdf8b1e4919c63",
-      "targetSHA256": "89e79c508e64518f2cfa82d215594ad09e61e18c6acedc14734c3b02cec3c2d6",
-      "bytes": 40857,
+      "targetSHA256": "723c7889a79c16070abb414f8902c79d7294f416087b47e0d712d3341d39fe44",
+      "bytes": 41874,
       "reason": "Carry validated canonical Transcript message coordinates and cancelled tool-call status through the migrated message model."
     },
     {
@@ -1480,8 +1480,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageText.tsx",
       "sourceSHA256": "d985f0bfdc719a845cd19aa11d5be56766d937f168c65df91c9cc522c06cb4fc",
-      "targetSHA256": "beac1e69a5495d2b6e6e341c654f7bcd33091c756e631340e26769d171f9b6bb",
-      "bytes": 14740,
+      "targetSHA256": "8d35958bd867c50ceb40aaa8b9db1c2092bb5f8762d5e95207d7dfd215ad6db0",
+      "bytes": 16970,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2938,8 +2938,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/messages.json",
       "sourceSHA256": "979d2f26c0896cfa1633a6123c5053deeb72741747136c25f461498dbe910986",
-      "targetSHA256": "3de9f170f159afa107e46f31fdedcd347b2a4ed7a9485add839cc877058a72c2",
-      "bytes": 22704,
+      "targetSHA256": "0b5d14ba8fd60820d81c28eb2a5e2c97b7a562848dc89ec6c7011a5d59b30ba4",
+      "bytes": 24342,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3029,8 +3029,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/messages.json",
       "sourceSHA256": "899c3e67af597e892606fac249fcaabb066316bc3190ee4d6f16a3947222d4bf",
-      "targetSHA256": "7dbea797a7b55c36e1f3b352cc61f3f95a7209283931a2bfe2cd344dd93f20a4",
-      "bytes": 22169,
+      "targetSHA256": "f99efcf15782efacd1589af67afc2126c84230187bee3d0559634047d6eaf515",
+      "bytes": 23757,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7759,8 +7759,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/messageStreamProtocol.ts",
-      "sha256": "ac542dbbae1f779a14f0fb74f7b97c2dfd4f62ac62f18dd74f0783ac7b2947ed",
-      "bytes": 13012,
+      "sha256": "80b42d67a31e9695ae336eae8d8e92afc1a912549323c52b66a0c6472bbf50c2",
+      "bytes": 18171,
       "reason": "Validate canonical streamed message envelopes without guessing terminal or artifact state."
     },
     {
@@ -13293,6 +13293,12 @@
       "path": "tests/unit/renderer/AuthenticatedWorkspace.dom.test.tsx",
       "sha256": "d624236c179a847d3dd8f72946059a39d1a27bace61391cd24f2e3606a7b88b4",
       "bytes": 4721,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/CompletionAdvisories.dom.test.tsx",
+      "sha256": "235835038676c35397871fced8584d1e65e69bdb71fad05225af873bf620f7d6",
+      "bytes": 8824,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
