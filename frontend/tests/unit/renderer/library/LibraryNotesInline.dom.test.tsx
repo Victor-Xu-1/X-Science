@@ -23,7 +23,7 @@ describe('Library inline Notes through the existing Page owners', () => {
     vi.unstubAllGlobals();
   });
 
-  it('enables Notes through the original setting and preserves the hidden Rating column on reload', async () => {
+  it('enables Notes through the original setting and preserves the hidden Rating and Tags columns on reload', async () => {
     let saved: LibraryColumnPreferencesWire = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
     const settingWrites: LibraryColumnPreferencesWire[] = [];
     const item = { ...paper(), metadata: { ...paper().metadata, personal_note: 'A saved note' } };
@@ -52,11 +52,12 @@ describe('Library inline Notes through the existing Page owners', () => {
     const notes = within(menu).queryByRole('button', { name: 'Show Notes' });
     expect(notes, 'the optional Notes column must exist in the real column menu').not.toBeNull();
     expect(notes).toHaveAttribute('aria-pressed', 'false');
+    expect(within(menu).getByRole('button', { name: 'Show Tags' })).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(notes!);
     await waitFor(() => expect(settingWrites).toHaveLength(1));
     expect(saved).toEqual({
-      version: 3,
-      order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
+      version: 4,
+      order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating', 'tags'],
       visible: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'notes'],
     });
     fireEvent.click(within(menu).getByRole('button', { name: 'Close column settings' }));
@@ -65,6 +66,8 @@ describe('Library inline Notes through the existing Page owners', () => {
     await mountCollections();
     expect(await screen.findByRole('textbox', { name: 'Note for Paper A' })).toHaveValue('A saved note');
     expect(settingWrites).toHaveLength(1);
+    expect(screen.queryByRole('columnheader', { name: 'Tags' })).toBeNull();
+    expect(screen.queryByRole('columnheader', { name: 'Rating' })).toBeNull();
     expect(
       http.requests.filter((request) => request.method !== 'GET').every((request) => request.method === 'PUT')
     ).toBe(true);
@@ -104,7 +107,7 @@ describe('Library inline Notes through the existing Page owners', () => {
           expected_revision: number;
           metadata_patch: { set?: Record<string, unknown>; remove?: string[] };
         };
-        expect(Object.keys(body).sort()).toEqual(['expected_revision', 'metadata_patch', 'operation_id']);
+        expect(Object.keys(body).toSorted()).toEqual(['expected_revision', 'metadata_patch', 'operation_id']);
         if (!receipts.has(body.operation_id)) {
           if (body.expected_revision !== item.metadata_revision) return json({ error: 'Revision changed' }, 409);
           const metadata: Record<string, unknown> = { ...item.metadata, ...body.metadata_patch.set };

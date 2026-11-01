@@ -1,4 +1,5 @@
 import React from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
@@ -112,6 +113,8 @@ function installCatalogue({ staleNext = false, holdFirstStale = false } = {}) {
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'http://localhost');
+      const tags = readEmptyResourceTagCatalog(url, init);
+      if (tags) return tags;
       if (url.pathname === '/api/settings/client') return json({});
       if (url.pathname === '/api/projects') return json({ projects: [] });
       if (url.pathname === '/api/literature/collections')
@@ -140,7 +143,7 @@ function installCatalogue({ staleNext = false, holdFirstStale = false } = {}) {
           sort === 'title-asc'
             ? items
             : sort === 'title-desc'
-              ? [...items].reverse()
+              ? items.toReversed()
               : [items[59], ...items.slice(0, 59)];
         const offset = url.searchParams.has('cursor') ? 50 : 0;
         const limit = Number(url.searchParams.get('limit'));

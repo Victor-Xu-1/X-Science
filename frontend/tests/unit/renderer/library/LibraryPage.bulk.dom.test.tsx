@@ -1,4 +1,5 @@
 import React from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
@@ -106,6 +107,8 @@ function catalogue(count = 402) {
     const method = init?.method ?? 'GET';
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as StatusWrite) : undefined;
     calls.push({ method, url, body });
+    const tags = readEmptyResourceTagCatalog(url, init);
+    if (tags) return tags;
     if (method === 'GET' && url.pathname === '/api/settings/client') return json({});
     if (method === 'GET' && url.pathname === '/api/projects')
       return json({ projects: [{ project_id: 'project', name: 'Owned project' }] });

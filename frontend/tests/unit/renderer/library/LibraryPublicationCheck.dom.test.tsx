@@ -23,6 +23,7 @@ import {
 } from '@/renderer/services/rendererAccountScope';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { installLiteratureLocks, literaturePendingStorage } from '../conversation/literatureMutationLockFixtures';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 
 const owner = vi.hoisted(() => ({ controller: undefined as unknown, reads: undefined as unknown }));
 vi.mock('@/renderer/hooks/chat/useLiteratureMutation', () => ({
@@ -106,14 +107,12 @@ function setup(options: Options = {}, storage = literaturePendingStorage()) {
   return { controller, run, storage };
 }
 function savedRead(value: LiteraturePublicationCheck = result()) {
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) =>
-    json(
-      new URL(String(input), 'http://localhost').pathname === '/api/settings/client' &&
-        (init?.method ?? 'GET') === 'GET'
-        ? {}
-        : value
-    )
-  );
+  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input), 'http://localhost');
+    const tags = readEmptyResourceTagCatalog(url, init);
+    if (tags) return tags;
+    return json(url.pathname === '/api/settings/client' && (init?.method ?? 'GET') === 'GET' ? {} : value);
+  });
   vi.stubGlobal('fetch', fetch);
   return fetch;
 }

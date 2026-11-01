@@ -8,6 +8,7 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import { resetRendererAccountScopeForTest, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 
 const item = (id = 'a', title = 'Paper A'): LiteratureItem => ({
   id,
@@ -47,7 +48,9 @@ async function mount(path = '/library', onNavigate?: () => void) {
   );
 }
 const projects = () => json({ projects: [{ project_id: 'project', name: 'Research project' }] });
-const collectionReads = (url: URL) => {
+const collectionReads = (url: URL, init?: RequestInit) => {
+  const tags = readEmptyResourceTagCatalog(url, init);
+  if (tags) return tags;
   if (url.pathname === '/api/settings/client') return json({});
   if (url.pathname === '/api/literature/collections')
     return json({ schema: 'x-science.literature-collections.v1', collections: [] });
@@ -78,10 +81,10 @@ describe('Library workbench entry and original HTTP owners', () => {
     const requests: string[] = [];
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
         requests.push(url.pathname + url.search);
-        const collections = collectionReads(url);
+        const collections = collectionReads(url, init);
         if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items')
@@ -115,9 +118,9 @@ describe('Library workbench entry and original HTTP owners', () => {
     let detailStarted = false;
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
-        const collections = collectionReads(url);
+        const collections = collectionReads(url, init);
         if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {
@@ -160,9 +163,9 @@ describe('Library workbench entry and original HTTP owners', () => {
     let nextOwner = false;
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
-        const collections = collectionReads(url);
+        const collections = collectionReads(url, init);
         if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {
@@ -201,7 +204,7 @@ describe('Library workbench entry and original HTTP owners', () => {
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
         requestMethods.push(init?.method ?? 'GET');
-        const collections = collectionReads(url);
+        const collections = collectionReads(url, init);
         if (collections) return collections;
         if (url.pathname === '/api/projects') {
           projectReads += 1;
@@ -269,7 +272,7 @@ describe('Library workbench entry and original HTTP owners', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = new URL(String(input), 'http://localhost');
-        const collections = collectionReads(url);
+        const collections = collectionReads(url, init);
         if (collections) return collections;
         if (url.pathname === '/api/projects') return projects();
         if (url.pathname === '/api/literature/items') {

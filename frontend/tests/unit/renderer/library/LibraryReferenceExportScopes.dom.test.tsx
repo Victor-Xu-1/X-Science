@@ -1,4 +1,5 @@
 import React from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useNavigate } from 'react-router';
@@ -49,6 +50,8 @@ function fixture({
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'http://localhost');
+      const tags = readEmptyResourceTagCatalog(url, init);
+      if (tags) return tags;
       if (url.pathname === '/api/settings/client') return json({});
       if (url.pathname === '/api/projects') {
         metadataReads.push(metadataAvailable);

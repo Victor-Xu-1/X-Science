@@ -5,6 +5,7 @@ import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import type { LiteratureCollection } from '@/common/adapter/literatureCollections';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
 import { renderWithI18n } from '../../i18nTestUtils';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 
 export const paper = (id = 'a', title = 'Paper A'): LiteratureItem => ({
   id,
@@ -80,16 +81,10 @@ export function installCollectionHTTP(options: ReadOptions) {
     requests.push({ path: url.pathname + url.search, method, ...(request.body ? { body: String(request.body) } : {}) });
     const intercepted = await options.intercept?.(url, request);
     if (intercepted) return intercepted;
+    const tags = readEmptyResourceTagCatalog(url, request);
+    if (tags) return tags;
     if (method !== 'GET') throw new Error('Unexpected collection fixture mutation');
     if (url.pathname === '/api/settings/client') return json({});
-    if (url.pathname === '/api/tags')
-      return json({
-        schema: 'x-science.resource-tags.v1',
-        revision: 0,
-        resource_types: ['literature.item'],
-        tags: [{ id: 'tag-favorite', system_key: 'favorite', created_at: 0, updated_at: 0 }],
-        assignments: [],
-      });
     if (url.pathname === '/api/projects') return json({ projects: [] });
     if (url.pathname === '/api/literature/collections')
       return json({ schema: 'x-science.literature-collections.v1', collections: options.collections() });
