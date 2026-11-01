@@ -7,9 +7,39 @@ import {
   parseLibraryColumnPreferences,
   parseLibraryColumnPreferencesWire,
   projectLibraryColumnPreferences,
+  projectLibraryRatingColumns,
+  projectLibraryTagColumns,
+  liftLibraryRatingColumns,
 } from '@/common/adapter/libraryColumnPreferences';
 
 describe('Library column preference wire', () => {
+  it('keeps the eight-column V4 closed and projects older views without rewriting Tags', () => {
+    const stored = {
+      version: 4,
+      order: ['readingStatus', 'tags', 'rating', 'notes', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['tags', 'year'],
+    };
+    const wire = parseLibraryColumnPreferencesWire(stored)!;
+    expect(wire).toEqual(stored);
+    expect(parseLibraryColumnPreferencesWire({ ...stored, version: 3 })).toBeNull();
+    expect(parseLibraryColumnPreferencesWire({ ...stored, order: stored.order.slice(1) })).toBeNull();
+    expect(parseLibraryColumnPreferencesWire({ ...stored, visible: ['tags', 'tags'] })).toBeNull();
+    const projected = projectLibraryRatingColumns(wire);
+    expect(projected.order).not.toContain('tags');
+    expect(projected.visible).toEqual(['year']);
+    const changed = liftLibraryRatingColumns(wire, { ...projected, visible: ['rating'] });
+    expect(changed).toEqual({ ...stored, visible: ['tags', 'rating'] });
+    expect(stored.visible).toEqual(['tags', 'year']);
+  });
+
+  it('adds hidden Tags to an existing layout through a read-only V4 projection', () => {
+    const projected = projectLibraryTagColumns(defaults);
+    expect(projected.version).toBe(4);
+    expect(projected.order).toEqual([...defaults.order, 'notes', 'rating', 'tags']);
+    expect(projected.visible).toEqual(defaults.visible);
+    expect(Object.isFrozen(projected.order)).toBe(true);
+    expect(projectLibraryColumnPreferences(projected)).toEqual(defaults);
+  });
   it('reads a strict seven-ID V3 without widening V1 or V2', () => {
     const stored = {
       version: 3,
@@ -99,9 +129,11 @@ describe('Library column preference wire', () => {
 
   it('keeps title outside a closed bounded v1 wire and rejects corrupt configurations', () => {
     expect(parseLibraryColumnPreferences(defaults)).toEqual(defaults);
-    expect(
-      parseLibraryColumnPreferences({ version: 1, order: [...LIBRARY_COLUMN_IDS].reverse(), visible: [] })
-    ).toEqual({ version: 1, order: [...LIBRARY_COLUMN_IDS].reverse(), visible: [] });
+    expect(parseLibraryColumnPreferences({ version: 1, order: LIBRARY_COLUMN_IDS.toReversed(), visible: [] })).toEqual({
+      version: 1,
+      order: LIBRARY_COLUMN_IDS.toReversed(),
+      visible: [],
+    });
     for (const value of [
       undefined,
       null,

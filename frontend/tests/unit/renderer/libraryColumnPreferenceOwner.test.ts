@@ -29,6 +29,41 @@ const withRating = {
 } as const;
 
 describe('Library column preference view owner', () => {
+  it('lets a Rating view edit its subset while preserving a newer Tags layout', async () => {
+    const remote = {
+      version: 4,
+      order: ['readingStatus', 'tags', 'rating', 'notes', 'doi', 'year', 'authors', 'attachments'],
+      visible: ['tags', 'year'],
+    };
+    const save = vi.fn(async (_value: LibraryColumnPreferencesWire, _signal: AbortSignal) => {});
+    const owner = new LibraryColumnPreferenceOwner({ load: async () => remote, save }, () => true, true, true);
+    owner.start();
+    await tick();
+    expect(save).not.toHaveBeenCalled();
+    const projected = owner.getSnapshot().ratingPreferences!;
+    expect(projected.order).not.toContain('tags');
+    owner.change({ ...projected, visible: ['rating'] });
+    await tick();
+    expect(save.mock.calls[0][0]).toEqual({ ...remote, visible: ['tags', 'rating'] });
+    owner.dispose();
+  });
+
+  it('does not write or reveal new Tags when reading an explicitly saved older layout', async () => {
+    const save = vi.fn(async (_value: LibraryColumnPreferencesWire, _signal: AbortSignal) => {});
+    const owner = new LibraryColumnPreferenceOwner({ load: async () => defaults, save }, () => true, true, true, true);
+    owner.start();
+    await tick();
+    const projected = owner.getSnapshot().tagPreferences!;
+    expect(projected.version).toBe(4);
+    expect(projected.order).toContain('tags');
+    expect(projected.visible).not.toContain('tags');
+    expect(save).not.toHaveBeenCalled();
+    owner.change({ ...projected, visible: [...projected.visible, 'tags'] });
+    await tick();
+    expect(save.mock.calls[0][0].version).toBe(4);
+    expect(save.mock.calls[0][0].visible).toContain('tags');
+    owner.dispose();
+  });
   it('shows the reference Rating default only for an absent setting and writes it only after an explicit edit or reset', async () => {
     let remote: unknown;
     const save = vi.fn(async (next: LibraryColumnPreferencesWire, _signal: AbortSignal) => {

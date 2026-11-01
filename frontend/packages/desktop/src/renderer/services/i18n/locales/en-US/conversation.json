@@ -2391,7 +2391,8 @@
       "doi": "DOI",
       "attachments": "Files",
       "notes": "Notes",
-      "rating": "Rating"
+      "rating": "Rating",
+      "tags": "Tags"
     },
     "loading": "Loading references…",
     "loadFailed": "Could not load references",
@@ -2530,5 +2531,19 @@
     "loading": "Exporting…",
     "success": "Exported",
     "error": "Could not export references. Try again."
+  },
+  "resourceTags": {
+    "manage": "Manage tags",
+    "search": "Search tags",
+    "empty": "No matching tags",
+    "create": "Create “{{name}}”",
+    "favorite": "Favorites",
+    "updateFailed": "Could not update tags",
+    "removeTag": "Remove tag {{name}}",
+    "loading": "Loading tags…",
+    "saving": "Updating tags…",
+    "readFailed": "Could not load tags",
+    "unavailable": "Tags are unavailable for this reference",
+    "resumeNeeded": "Pending tag changes need to be resumed."
   }
 }

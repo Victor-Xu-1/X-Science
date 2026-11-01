@@ -2391,7 +2391,8 @@
       "doi": "DOI",
       "attachments": "文件",
       "notes": "笔记",
-      "rating": "评分"
+      "rating": "评分",
+      "tags": "标签"
     },
     "loading": "正在加载文献…",
     "loadFailed": "无法加载文献",
@@ -2530,5 +2531,19 @@
     "loading": "正在导出…",
     "success": "已导出",
     "error": "无法导出文献，请重试。"
+  },
+  "resourceTags": {
+    "manage": "管理标签",
+    "search": "搜索标签",
+    "empty": "没有匹配的标签",
+    "create": "创建“{{name}}”",
+    "favorite": "收藏",
+    "updateFailed": "更新标签失败",
+    "removeTag": "移除标签 {{name}}",
+    "loading": "正在加载标签…",
+    "saving": "正在更新标签…",
+    "readFailed": "无法加载标签",
+    "unavailable": "此文献的标签暂不可用",
+    "resumeNeeded": "有待确认的标签更改，可重试恢复。"
   }
 }

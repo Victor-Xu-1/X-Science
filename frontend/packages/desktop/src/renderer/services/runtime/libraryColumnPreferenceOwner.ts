@@ -3,18 +3,22 @@ import {
   LIBRARY_COLUMN_IDS,
   LIBRARY_COLUMN_V2_IDS,
   LIBRARY_COLUMN_V3_IDS,
+  LIBRARY_COLUMN_V4_IDS,
   liftLibraryColumnPreferences,
   liftLibraryNotesColumns,
+  liftLibraryRatingColumns,
   parseLibraryColumnPreferences,
   parseLibraryColumnPreferencesWire,
   projectLibraryColumnPreferences,
   projectLibraryNotesColumns,
   projectLibraryRatingColumns,
+  projectLibraryTagColumns,
   type LibraryColumnWireId,
   type LibraryColumnPreferences,
   type LibraryColumnPreferencesWire,
   type LibraryColumnPreferencesV2,
   type LibraryColumnPreferencesV3,
+  type LibraryColumnPreferencesV4,
 } from '@/common/adapter/libraryColumnPreferences';
 
 export type LibraryColumnPreferenceStatus = 'loading' | 'ready' | 'saving' | 'invalid' | 'read-error' | 'write-error';
@@ -22,6 +26,7 @@ export type LibraryColumnPreferenceView = Readonly<{
   preferences: LibraryColumnPreferences;
   notesPreferences?: LibraryColumnPreferencesV2;
   ratingPreferences?: LibraryColumnPreferencesV3;
+  tagPreferences?: LibraryColumnPreferencesV4;
   status: LibraryColumnPreferenceStatus;
 }>;
 export type LibraryColumnPreferenceTransport = {
@@ -50,7 +55,8 @@ export class LibraryColumnPreferenceOwner {
     private readonly transport: LibraryColumnPreferenceTransport,
     private readonly isCurrent: () => boolean,
     private readonly notesEnabled = false,
-    private readonly ratingEnabled = false
+    private readonly ratingEnabled = false,
+    private readonly tagsEnabled = false
   ) {}
 
   getSnapshot = (): LibraryColumnPreferenceView => this.view;
@@ -73,19 +79,34 @@ export class LibraryColumnPreferenceOwner {
       preferences: projectLibraryColumnPreferences(merged),
       ...(this.notesEnabled ? { notesPreferences: projectLibraryNotesColumns(merged) } : {}),
       ...(this.ratingEnabled ? { ratingPreferences: projectLibraryRatingColumns(merged) } : {}),
+      ...(this.tagsEnabled ? { tagPreferences: projectLibraryTagColumns(merged) } : {}),
       status,
     };
     this.listeners.forEach((listener) => listener());
   }
   private project(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
-    return this.ratingEnabled
-      ? projectLibraryRatingColumns(base)
-      : this.notesEnabled
-        ? projectLibraryNotesColumns(base)
-        : projectLibraryColumnPreferences(base);
+    return this.tagsEnabled
+      ? projectLibraryTagColumns(base)
+      : this.ratingEnabled
+        ? projectLibraryRatingColumns(base)
+        : this.notesEnabled
+          ? projectLibraryNotesColumns(base)
+          : projectLibraryColumnPreferences(base);
   }
   /** Unsaved layouts and explicit Reset use current defaults; stored wires stay authoritative. */
   private defaultPreferences(): LibraryColumnPreferencesWire {
+    if (this.tagsEnabled) {
+      const defaults = projectLibraryTagColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
+      return Object.freeze({
+        ...defaults,
+        visible: Object.freeze(
+          defaults.order.filter(
+            (id) =>
+              id === 'rating' || id === 'tags' || (defaults.visible as readonly LibraryColumnWireId[]).includes(id)
+          )
+        ),
+      });
+    }
     if (!this.ratingEnabled) return DEFAULT_LIBRARY_COLUMN_PREFERENCES;
     const defaults = projectLibraryRatingColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
     return Object.freeze({
@@ -94,7 +115,13 @@ export class LibraryColumnPreferenceOwner {
     });
   }
   private supportedIds(): readonly LibraryColumnWireId[] {
-    return this.ratingEnabled ? LIBRARY_COLUMN_V3_IDS : this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS;
+    return this.tagsEnabled
+      ? LIBRARY_COLUMN_V4_IDS
+      : this.ratingEnabled
+        ? LIBRARY_COLUMN_V3_IDS
+        : this.notesEnabled
+          ? LIBRARY_COLUMN_V2_IDS
+          : LIBRARY_COLUMN_IDS;
   }
   private merge(base: LibraryColumnPreferencesWire): LibraryColumnPreferencesWire {
     const supported = this.project(base);
@@ -105,7 +132,8 @@ export class LibraryColumnPreferenceOwner {
       order,
       visible: order.filter((id) => this.visibility.get(id)?.value ?? visible.includes(id)),
     } as LibraryColumnPreferencesWire;
-    if (next.version === 3) return next;
+    if (next.version === 4) return next;
+    if (next.version === 3) return liftLibraryRatingColumns(base, next);
     return next.version === 2 ? liftLibraryNotesColumns(base, next) : liftLibraryColumnPreferences(base, next);
   }
   private dirty() {
@@ -172,11 +200,11 @@ export class LibraryColumnPreferenceOwner {
   change = (value: LibraryColumnPreferencesWire): void => {
     if (!this.current() || this.view.status === 'invalid' || this.view.status === 'read-error') return;
     const next =
-      this.notesEnabled || this.ratingEnabled
+      this.notesEnabled || this.ratingEnabled || this.tagsEnabled
         ? parseLibraryColumnPreferencesWire(value)
         : parseLibraryColumnPreferences(value);
     if (!next) return;
-    if (next.version !== (this.ratingEnabled ? 3 : this.notesEnabled ? 2 : 1)) return;
+    if (next.version !== (this.tagsEnabled ? 4 : this.ratingEnabled ? 3 : this.notesEnabled ? 2 : 1)) return;
     const previous = this.project(this.merge(this.confirmed));
     const nextVisible = next.visible as readonly LibraryColumnWireId[];
     const previousVisible = previous.visible as readonly LibraryColumnWireId[];

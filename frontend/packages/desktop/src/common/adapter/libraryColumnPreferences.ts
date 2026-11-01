@@ -7,7 +7,8 @@ export type LibraryColumnPreferences = Readonly<{
   visible: readonly LibraryColumnId[];
 }>;
 export type LibraryColumnV2Id = LibraryColumnId | 'notes';
-export type LibraryColumnWireId = LibraryColumnV2Id | 'rating';
+export type LibraryColumnV3Id = LibraryColumnV2Id | 'rating';
+export type LibraryColumnWireId = LibraryColumnV3Id | 'tags';
 export type LibraryColumnPreferencesV2 = Readonly<{
   version: 2;
   order: readonly LibraryColumnV2Id[];
@@ -15,15 +16,27 @@ export type LibraryColumnPreferencesV2 = Readonly<{
 }>;
 export type LibraryColumnPreferencesV3 = Readonly<{
   version: 3;
+  order: readonly LibraryColumnV3Id[];
+  visible: readonly LibraryColumnV3Id[];
+}>;
+export type LibraryColumnPreferencesV4 = Readonly<{
+  version: 4;
   order: readonly LibraryColumnWireId[];
   visible: readonly LibraryColumnWireId[];
 }>;
 export type LibraryColumnPreferencesWire =
   | LibraryColumnPreferences
   | LibraryColumnPreferencesV2
-  | LibraryColumnPreferencesV3;
+  | LibraryColumnPreferencesV3
+  | LibraryColumnPreferencesV4;
 export const LIBRARY_COLUMN_V2_IDS = [...LIBRARY_COLUMN_IDS, 'notes'] as const;
 export const LIBRARY_COLUMN_V3_IDS = [...LIBRARY_COLUMN_V2_IDS, 'rating'] as const;
+export const LIBRARY_COLUMN_V4_IDS = [...LIBRARY_COLUMN_V3_IDS, 'tags'] as const;
+
+const isBaseColumn = (id: LibraryColumnWireId): id is LibraryColumnId =>
+  id !== 'notes' && id !== 'rating' && id !== 'tags';
+const isNotesColumn = (id: LibraryColumnWireId): id is LibraryColumnV2Id => id !== 'rating' && id !== 'tags';
+const isRatingColumn = (id: LibraryColumnWireId): id is LibraryColumnV3Id => id !== 'tags';
 
 export const DEFAULT_LIBRARY_COLUMN_PREFERENCES: LibraryColumnPreferences = Object.freeze({
   version: 1,
@@ -69,13 +82,14 @@ export function parseLibraryColumnPreferencesWire(value: unknown): LibraryColumn
   if (legacy) return legacy;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
-  const ids = record.version === 2 ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_V3_IDS;
+  const ids =
+    record.version === 2 ? LIBRARY_COLUMN_V2_IDS : record.version === 3 ? LIBRARY_COLUMN_V3_IDS : LIBRARY_COLUMN_V4_IDS;
   if (
     Object.keys(record).length !== 3 ||
     !Object.hasOwn(record, 'version') ||
     !Object.hasOwn(record, 'order') ||
     !Object.hasOwn(record, 'visible') ||
-    (record.version !== 2 && record.version !== 3) ||
+    (record.version !== 2 && record.version !== 3 && record.version !== 4) ||
     !columns(record.order, true, ids) ||
     !columns(record.visible, false, ids)
   )
@@ -91,23 +105,21 @@ export function parseLibraryColumnPreferencesWire(value: unknown): LibraryColumn
 /** Presentation only: unsupported Notes never creates an empty menu/table column. */
 export function projectLibraryColumnPreferences(value: LibraryColumnPreferencesWire): LibraryColumnPreferences {
   if (value.version === 1) return value;
-  const supported = (id: LibraryColumnWireId): id is LibraryColumnId => id !== 'notes' && id !== 'rating';
   return Object.freeze({
     version: 1,
-    order: Object.freeze([...value.order].filter(supported)),
-    visible: Object.freeze([...value.visible].filter(supported)),
+    order: Object.freeze([...value.order].filter(isBaseColumn)),
+    visible: Object.freeze([...value.visible].filter(isBaseColumn)),
   });
 }
 
 /** Notes-capable presentation only; a legacy layout is never written merely by reading it. */
 export function projectLibraryNotesColumns(value: LibraryColumnPreferencesWire): LibraryColumnPreferencesV2 {
   if (value.version === 2) return value;
-  if (value.version === 3) {
-    const supported = (id: LibraryColumnWireId): id is LibraryColumnV2Id => id !== 'rating';
+  if (value.version === 3 || value.version === 4) {
     return Object.freeze({
       version: 2,
-      order: Object.freeze(value.order.filter(supported)),
-      visible: Object.freeze(value.visible.filter(supported)),
+      order: Object.freeze([...value.order].filter(isNotesColumn)),
+      visible: Object.freeze([...value.visible].filter(isNotesColumn)),
     });
   }
   return Object.freeze({
@@ -120,11 +132,29 @@ export function projectLibraryNotesColumns(value: LibraryColumnPreferencesWire):
 /** New columns start hidden; existing visibility/order is not changed by a read. */
 export function projectLibraryRatingColumns(value: LibraryColumnPreferencesWire): LibraryColumnPreferencesV3 {
   if (value.version === 3) return value;
+  if (value.version === 4) {
+    return Object.freeze({
+      version: 3,
+      order: Object.freeze(value.order.filter(isRatingColumn)),
+      visible: Object.freeze(value.visible.filter(isRatingColumn)),
+    });
+  }
   const notes = projectLibraryNotesColumns(value);
   return Object.freeze({
     version: 3,
-    order: Object.freeze([...notes.order, 'rating'] as LibraryColumnWireId[]),
+    order: Object.freeze([...notes.order, 'rating'] as LibraryColumnV3Id[]),
     visible: Object.freeze([...notes.visible]),
+  });
+}
+
+/** A stored older layout gains a hidden Tags column without a write. */
+export function projectLibraryTagColumns(value: LibraryColumnPreferencesWire): LibraryColumnPreferencesV4 {
+  if (value.version === 4) return value;
+  const rating = projectLibraryRatingColumns(value);
+  return Object.freeze({
+    version: 4,
+    order: Object.freeze([...rating.order, 'tags'] as LibraryColumnWireId[]),
+    visible: Object.freeze([...rating.visible]),
   });
 }
 
@@ -168,6 +198,13 @@ export function liftLibraryColumnPreferences(
 export function liftLibraryNotesColumns(
   base: LibraryColumnPreferencesWire,
   supported: LibraryColumnPreferencesV2
+): LibraryColumnPreferencesWire {
+  return liftSupportedColumns(base, supported);
+}
+
+export function liftLibraryRatingColumns(
+  base: LibraryColumnPreferencesWire,
+  supported: LibraryColumnPreferencesV3
 ): LibraryColumnPreferencesWire {
   return liftSupportedColumns(base, supported);
 }

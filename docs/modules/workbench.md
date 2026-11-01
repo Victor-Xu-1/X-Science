@@ -866,6 +866,38 @@ instant cross-window notifications.
 一次，未确认时显示未保存并由用户重试。账号切换隔离迟到响应，多窗口继续遵循
 设置服务已有的最后写入生效语义，不宣称具备即时通知或并发比较交换。
 
+### Resource tags · 资源标签
+
+The Tags column and reference details share one account catalog and command
+owner. Table cells show two badges plus the remaining count; details show all
+assigned tags and allow removal from that reference. An anchored, non-modal
+menu supports immediate desired-value selection, normalized search and creating
+a tag for the current reference. Closing it discards only the unsubmitted query;
+accepted changes continue. Favorites is a localized system tag, while custom
+names remain user data. Trash keeps assignments visible and disables writes.
+
+The V4 layout adds Tags without changing the closed V1–V3 wires. Reading a saved
+older layout projects the new column hidden and does not save anything. Older
+supported views preserve Tags position and visibility when editing their subset.
+The existing settings service remains the sole layout persistence authority.
+
+Accepted tag changes persist with their original operation IDs before network
+submission, using the shared renderer slot and same-origin locks. The account
+owner serializes commands; creating a tag atomically continues with assignment
+to its real returned ID. A lost response retains the original request. A restored
+readback must confirm that operation with the server; only a live owner's exact
+in-memory ACK evidence may skip its replay. Current catalog GET follows before
+settlement, so historical receipts and another tab's storage cleanup never
+replace current data or prove completion. Unknown outcomes finish busy state and
+retain a visible recovery action. Initial read Retry performs a new GET, and the
+Library Refresh action reloads both the reference list and the tag catalog.
+
+标签列与详情共用同一账号目录和命令 owner。表格显示两枚标签及其余数量，详情可
+查看全部标签并取消当前文献的关联；菜单支持即时多选、搜索和创建，无黑色遮罩。
+关闭菜单不会撤销已接受操作；回收站保留关联并禁用写入。旧列布局只读投影时新增
+标签列保持隐藏，编辑其他列不会丢掉已有标签布局。丢失响应沿原操作编号恢复，
+重建页面不把本地读回状态当作服务器确认；失败保留真实恢复入口，不显示假完成。
+
 ## Library selection and bulk reading · 文献选择与批量阅读状态
 
 Row selection is independent of opening a reference. The current-page checkbox
