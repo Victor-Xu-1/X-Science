@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "50ef2458f87ec8520c42773ea90ae8f099b372c885bc953cbfb414f5cc3428fb",
+  "adaptationFingerprintSHA256": "deb85ec36d29bdcff9d4a83064c2ee730ecdce520a1b93bfe9c79e475b4cfa52",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "f23c34bb55b53da721c7128f401035b7ebc5551f7520fc12026b3a8c48b24452",
   "summary": {
@@ -4359,8 +4359,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "79f145f3f4615995d552b9724bc5c3c7402df4d116f84ec6b49d1732ff660ce6",
-      "bytes": 27081,
+      "targetSHA256": "e8c69927930a73029c32c99e6014f5b867fc8ce55945cd52b8e95b1689b9209d",
+      "bytes": 27174,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4373,15 +4373,15 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "207c55495224d1d449943ff4aeb134ba0970b46b8031e74dfdb9dc23a1dc1524",
-      "bytes": 30354,
+      "targetSHA256": "3d2f8ca7ff4f711f26c799e49799193d4e9b42252102438f13cd77406a7410ff",
+      "bytes": 31814,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
       "path": "tests/unit/renderer/ArtifactSelectionAnnotation.dom.test.tsx",
       "sourceSHA256": "cbec415a9ae36e4c50f3d4e594e0fee1450484dc70a9c92a3cc3db52b6ed5b98",
-      "targetSHA256": "28008a904f0fe93f20af03aef199a759693c4ccc0680c1bab26e61050dbc9211",
-      "bytes": 17959,
+      "targetSHA256": "bdb61ef280d7912044545ca4faa1ad5565cec65d3ad6cf7df10bf5951f1cbc33",
+      "bytes": 18400,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
