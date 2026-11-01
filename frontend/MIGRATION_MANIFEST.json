@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "2dedfb79ad518bf78d7c140d768a88439be4ae2e035fee6802702834a197cf86",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "a8dfbcc2ed754495d3900700de27194d30fe78b6fe48548b1a5eeb3f876f1f5a",
+  "additionFingerprintSHA256": "1a322c73e2bf98b46d1374d4b7915ef59a58ef7d115edba8798e88d94dcceca5",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -14431,8 +14431,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryDetailHeader.dom.test.tsx",
-      "sha256": "b45e3ccd750418ce1960498475acba2d6c7968d0a88a10fd4b0706a4ddf51c95",
-      "bytes": 17129,
+      "sha256": "6e81589bb61e13f35eae03794c26d540741c9b27aa731a10ccb0801fb3e7d236",
+      "bytes": 17137,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14491,8 +14491,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryPage.bulk.dom.test.tsx",
-      "sha256": "39649998607d4bb1bc334f2af697c243960f3dcaaf9a3fbc29624abf6cd8b7d9",
-      "bytes": 20827,
+      "sha256": "cfd6d60c474dee6c1e77797c4190ce8332b22476ad2c48457d4ec50b7b5d0d5b",
+      "bytes": 20835,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14617,8 +14617,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryTitleSort.dom.test.tsx",
-      "sha256": "1b3eb95d531e5c137a0e36c7bcf0f7f18c94e3383312f94529523e748f6a5de5",
-      "bytes": 16606,
+      "sha256": "220f1e24305d709bf577bff8346e99399b0f0b2894f0f5fe419d3bb6eb6c4a6f",
+      "bytes": 16614,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
