@@ -233,9 +233,9 @@ describe('Library reference export scopes through the actual page', () => {
   it('keeps current-scope export independent of a failed/stale paginated cursor', async () => {
     const http = fixture({ failedPage: true });
     await mount('/library?project=project&cursor=next&q=filtered');
+    await waitFor(() => expect(http.pageFailures).toHaveLength(1));
     const more = await screen.findByRole('button', { name: 'More actions' });
     await waitFor(() => expect(more).toBeEnabled());
-    expect(http.pageFailures).toHaveLength(1);
     fireEvent.click(more);
     fireEvent.mouseEnter(await screen.findByText('Export references'));
     await chooseFormat('RIS (.ris)');
