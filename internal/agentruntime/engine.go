@@ -28,18 +28,19 @@ const (
 const ToolMediaContextNotice = "Visual content returned by file inspection tools."
 
 type Message struct {
-	Role               string             `json:"role"`
-	Content            string             `json:"content,omitempty"`
-	Parts              []ContentPart      `json:"parts,omitempty"`
-	ContextUsageSource ContextUsageSource `json:"-"`
-	ReasoningContent   string             `json:"-"`
-	ToolCallID         string             `json:"tool_call_id,omitempty"`
-	ToolCalls          []ToolCall         `json:"tool_calls,omitempty"`
-	pending            []ContentPart
-	terminal           bool
-	noProgress         bool
-	pendingWorkWait    bool
-	sourceObservation  *SourceObservation
+	Role                string             `json:"role"`
+	Content             string             `json:"content,omitempty"`
+	Parts               []ContentPart      `json:"parts,omitempty"`
+	ContextUsageSource  ContextUsageSource `json:"-"`
+	ReasoningContent    string             `json:"-"`
+	ToolCallID          string             `json:"tool_call_id,omitempty"`
+	ToolCalls           []ToolCall         `json:"tool_calls,omitempty"`
+	pending             []ContentPart
+	terminal            bool
+	noProgress          bool
+	pendingWorkWait     bool
+	readOnlyObservation bool
+	sourceObservation   *SourceObservation
 }
 
 // ContextUsageSource is request-local provenance for usage attribution. It is
@@ -203,6 +204,10 @@ type ToolResult struct {
 	// model-supplied result flag; it only keeps that wait from being treated as
 	// repetition of an already completed operation.
 	PendingWorkWait bool `json:"-"`
+	// ReadOnlyObservation is a host-only witness from an actually completed
+	// authorized native read. It is not source novelty or a material effect,
+	// and model JSON or tool annotations cannot confer it.
+	ReadOnlyObservation bool `json:"-"`
 	// SkillLoadReceipt is host-only load provenance. It is never accepted from
 	// model arguments or inferred from a model-facing Skill metadata string.
 	SkillLoadReceipt *SkillLoadReceipt `json:"-"`
@@ -375,8 +380,12 @@ type ToolBatchExecution struct {
 	NoProgress bool
 	// OnlyPendingWaits is host-proven for every item, never inferred from a
 	// model-visible pending_work field or a mixed batch with ordinary actions.
-	OnlyPendingWaits  bool
-	SourceObservation *SourceObservation
+	OnlyPendingWaits bool
+	// PendingWaitWithObservations requires at least one host-owned pending
+	// wait and one host-readonly observation, with every member successfully
+	// belonging to those two classes. Unknown or rejected work grants nothing.
+	PendingWaitWithObservations bool
+	SourceObservation           *SourceObservation
 }
 
 // InitialToolChoiceViolationError reports a provider response that ignored a

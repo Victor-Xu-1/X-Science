@@ -306,10 +306,12 @@ func (e Engine) executeToolCallRoundWithRejections(
 	mediaBytesUsed int64,
 ) (ToolBatchExecution, error) {
 	result := ToolBatchExecution{MediaBytesUsed: mediaBytesUsed, NoProgress: len(calls) > 0, OnlyPendingWaits: len(calls) > 0}
+	pendingRound := pendingWaitObservationBatch{onlyKnown: true}
 	pendingParts := []ContentPart{}
 	for index, call := range calls {
 		if rejection, rejected := rejections[index]; rejected {
 			result.OnlyPendingWaits = false
+			result.PendingWaitWithObservations = pendingRound.observe(Message{})
 			message, err := modelVisibleToolRejectionMessage(call, rejection)
 			if err != nil {
 				return result, err
@@ -328,6 +330,7 @@ func (e Engine) executeToolCallRoundWithRejections(
 		toolMessage, toolErr := e.executeTool(ctx, call)
 		result.NoProgress = result.NoProgress && toolMessage.noProgress
 		result.OnlyPendingWaits = result.OnlyPendingWaits && toolMessage.pendingWorkWait
+		result.PendingWaitWithObservations = pendingRound.observe(toolMessage)
 		if toolMessage.Role != "" {
 			pendingParts = append(pendingParts, toolMessage.pending...)
 			toolMessage.pending = nil

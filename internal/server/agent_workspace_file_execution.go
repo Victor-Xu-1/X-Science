@@ -38,7 +38,11 @@ func (s *Server) executeAgentWorkspaceFileTool(
 	}
 	switch name {
 	case "read_file":
-		return s.executeAgentWorkspaceReadFile(ctx, identity, access.UserID, access.Frame.ProjectID, input)
+		response, err := s.executeAgentWorkspaceReadFile(ctx, identity, access.UserID, access.Frame.ProjectID, input)
+		if err == nil && strings.TrimSpace(stringValue(input["file_path"])) != "" && strings.TrimSpace(stringValue(input["recovery_condition_id"])) == "" {
+			s.observeNativeFileRead(ctx, access, response)
+		}
+		return response, err
 	case "edit_file":
 		if preflight := agentWorkspaceArtifactSelfReferencePreflight(input); preflight != nil {
 			return preflight, nil
