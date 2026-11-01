@@ -447,9 +447,10 @@ func (s *Server) recoverTranscriptCompletionOnly(ctx context.Context, session se
 			}
 			return transcriptRunnerFinalization{Status: "failed", Detail: validationErr.Error(), SegmentOrdinal: candidate.Segment.Ordinal}, true, nil
 		}
-		content := appendSessionRunnerCompletionAdvisories(candidate.Content, candidate.SourceRun.ResponseLanguage, advisories...)
+		content := appendSessionRunnerCompletionAdvisoriesForRun(candidate.Content, candidate.SourceRun.ResponseLanguage, candidate.SourceRun, "completion_recovery", advisories...)
 		return transcriptRunnerFinalization{Content: content, Status: "completed", Detail: "runner completion validation recovered immutable published candidate",
-			AssistantIdentity: "completion-recovery-assistant", SegmentOrdinal: candidate.Segment.Ordinal, ResponseLanguage: candidate.SourceRun.ResponseLanguage}, true, nil
+			CompletionAdvisories: candidate.SourceRun.completionAdvisorySnapshot(),
+			AssistantIdentity:    "completion-recovery-assistant", SegmentOrdinal: candidate.Segment.Ordinal, ResponseLanguage: candidate.SourceRun.ResponseLanguage}, true, nil
 	}
 	return transcriptRunnerFinalization{}, false, nil
 }

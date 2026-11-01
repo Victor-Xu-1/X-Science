@@ -73,6 +73,7 @@ func (s *Server) contextCompactionSource(ctx context.Context, request transcript
 				message["type"], message["role"] = "message", "user"
 			case "assistant_message", "history_assistant_message":
 				message["type"], message["role"] = "message", "assistant"
+				projectSessionRunnerCompletionAdvisoryReplay(message, projected.Event)
 			case "history_system_message":
 				message["type"], message["role"] = "message", "system"
 			case "runner_checkpoint", transcriptstore.TerminalToolRecoveryEventType:

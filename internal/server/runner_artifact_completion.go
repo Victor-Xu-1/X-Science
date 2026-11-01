@@ -154,7 +154,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 			language = run.ResponseLanguage
 		}
 		replaceSessionRunnerFinalMessageContent(&result,
-			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory, scientificValidation.advisory(), scientificValidation.aggregateCountAdvisory(), scientificHistory,
+			appendSessionRunnerCompletionAdvisoriesForRun(result.FinalMessage.Content, language, run, "artifact_completion", advisory, scientificValidation.advisory(), scientificValidation.aggregateCountAdvisory(), scientificHistory,
 				sessionRunnerCompletionQualityAdvisory(run, crossArtifactFailures, unsupportedCitationRefs)))
 		return result, nil
 	}

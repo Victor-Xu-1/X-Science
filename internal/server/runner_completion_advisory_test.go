@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +16,248 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
 )
+
+func TestCompletionTypedAdvisoriesPreserveUnknownTextAndAllFindings(t *testing.T) {
+	claim := transcriptstore.RunnerClaim{Attempt: 3, ClaimedInputRevision: 2}
+	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Claim: claim}}
+	const body = "合成结果 🧪.\n\n> Result quality is unverified. Existing outputs are preserved."
+	one := &sessionRunnerCompletionAdvisory{Code: completionAdvisoryResultQuality, Findings: []string{"first", "same"}}
+	two := &sessionRunnerCompletionAdvisory{Code: completionAdvisoryResultQuality, Findings: []string{"same", "second"}}
+	content := appendSessionRunnerCompletionAdvisoriesForRun(body, "en", run, "artifact_completion", one)
+	content = appendSessionRunnerCompletionAdvisoriesForRun(content, "en", run, "task_expectations", two)
+	wire := run.completionAdvisorySnapshot().envelope(content, claim)
+	if wire == nil || len(wire.Items) != 1 || len(wire.Spans) != 1 || len(wire.Items[0].Sources) != 2 ||
+		!reflect.DeepEqual(wire.Items[0].Findings, []string{"first", "same", "second"}) ||
+		!reflect.DeepEqual(wire.Items[0].Sources[0].FindingIndexes, []int{0, 1}) ||
+		!reflect.DeepEqual(wire.Items[0].Sources[1].FindingIndexes, []int{1, 2}) {
+		t.Fatal("same-code findings or source identities were dropped")
+	}
+	payload := map[string]any{"text": content, "completion_advisories": wire}
+	decoded := sessionRunnerCompletionAdvisoriesFromPayload(payload, claim.Attempt)
+	if decoded == nil || sessionRunnerCompletionAdvisoryModelBody(content, decoded) != body {
+		t.Fatal("host provenance did not preserve the exact unknown-origin model paragraph")
+	}
+	if sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": content + "changed", "completion_advisories": wire}, claim.Attempt) != nil ||
+		sessionRunnerCompletionAdvisoriesFromPayload(payload, claim.Attempt+1) != nil {
+		t.Fatal("host metadata crossed a body or attempt boundary")
+	}
+	// An exact canonical notice already in model prose is not a host append.
+	english, _ := sessionRunnerCompletionAdvisoryText(completionAdvisoryResultQuality)
+	unknown := "Model-authored quotation: " + english
+	other := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Claim: claim}}
+	unchanged := appendSessionRunnerCompletionAdvisoriesForRun(unknown, "en", other, "artifact_completion", one)
+	projection := other.completionAdvisorySnapshot().envelope(unchanged, claim)
+	if len(projection.Spans) != 0 || sessionRunnerCompletionAdvisoryModelBody(unchanged, projection) != unknown {
+		t.Fatal("wording alone fabricated host ownership")
+	}
+	if sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": `{"completion_advisories":{"schema":"x-science.completion-advisories.v1"}}`}, claim.Attempt) != nil {
+		t.Fatal("model text granted a host advisory projection")
+	}
+}
+
+func TestCompletionTypedAdvisoriesRejectSplitUTF16Spans(t *testing.T) {
+	const body = "A😀B"
+	const attempt = int64(3)
+	for _, span := range []completionAdvisorySpan{{Start: 1, End: 2, Text: "\ufffd"}, {Start: 2, End: 3, Text: "\ufffd"}} {
+		wire := &completionAdvisoryEnvelope{Schema: "x-science.completion-advisories.v1", Attempt: attempt, InputRevision: 2,
+			TextSHA256: completionAdvisorySHA(body), TextLength: 4, Spans: []completionAdvisorySpan{span},
+			Items: []completionAdvisoryItem{{Code: completionAdvisoryResultQuality, Findings: []string{"observed"},
+				Sources: []completionAdvisorySource{{Stage: "artifact_completion", Attempt: attempt, InputRevision: 2,
+					CandidateSHA256: completionAdvisorySHA(body), FindingIndexes: []int{0}}}}}}
+		if sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": body, "completion_advisories": wire}, attempt) != nil {
+			t.Fatal("split surrogate pair granted host ownership")
+		}
+		if sessionRunnerCompletionAdvisoryModelBody(body, wire) != body {
+			t.Fatal("invalid UTF16 span changed the original model body")
+		}
+	}
+}
+
+func TestCompletionTypedAdvisoriesPersistAcrossFreshLiveHistoryAndReplay(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	intent, found, err := f.repo.EnsureActiveFrameTaskIntent(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil || !found {
+		t.Fatalf("task intent: found=%t err=%v", found, err)
+	}
+	run := &sessionRunnerChatRun{SessionID: f.stream.SessionID, Attempt: int(f.claim.Attempt), ClaimToken: f.claim.ClaimToken, Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
+	if err := applySessionRunnerTaskIntent(run, intent.Text, intent.Language, intent.ID, intent.Revision); err != nil {
+		t.Fatal(err)
+	}
+	const path = "out/typed_validation.json"
+	write := writeAgentSaveArtifactsFile(t, f.projectPath, path, `{"checks":{"valid":false},"status":"failed"}`)
+	f.saveExecution(t, f.identity.access, f.projectPath, "typed-validation-write", 1, write)
+	input := map[string]any{"files": []any{path}, "language": "text", "human_description": "Save observed synthetic validation"}
+	startPayload, err := json.Marshal(map[string]any{"toolName": "save_artifacts", "toolPhase": "start", "status": "running", "toolCallId": "typed-validation-save", "toolInput": input})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, source, _, err := f.repo.AppendRunnerCheckpoint(ctx, transcriptstore.AppendRunnerCheckpointInput{Claim: f.claim,
+		ClientMessageID: "typed-validation-start", Phase: transcriptstore.RunnerPhaseExecuting, PayloadJSON: startPayload, Destinations: []string{"ws"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolContext := withTranscriptArtifactRun(ctx, run.Transcript, source.EventID)
+	saved, err := f.server.executeAgentSaveArtifacts(toolContext, f.identity, "typed-validation-save", input)
+	if err != nil || saved["errors"] != nil {
+		t.Fatalf("save fixture: %v %v", saved, err)
+	}
+	appendRunnerToolCheckpoint(t, f.repo, f.claim, "typed-validation-completed", map[string]any{"toolName": "save_artifacts", "toolPhase": "completed", "status": "completed", "toolCallId": "typed-validation-save", "toolInput": input, "toolResult": saved})
+	session := sessionstore.Session{ID: f.stream.SessionID, Project: &sessionstore.Project{ID: f.stream.ProjectID}}
+	const body = "Existing synthetic result 🧪.\n\n> Result quality is unverified. Existing outputs are preserved."
+	model := &artifactReferenceRepairModel{content: body, testing: t}
+	result, err := f.server.runSessionAgentWithArtifactReferenceRepair(ctx, session, agentruntime.Engine{Model: model},
+		agentruntime.RunRequest{Messages: []agentruntime.Message{{Role: "user", Content: run.TaskIntent}}}, run, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	final, err := f.server.persistTranscriptRunnerFinalization(ctx, run.Transcript, transcriptRunnerFinalization{
+		Content: result.FinalMessage.Content, Status: "completed", Detail: "runner chat completed", SegmentOrdinal: 1, CompletionAdvisories: run.completionAdvisorySnapshot(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := f.repo.GetStream(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := f.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, ThroughPublicationSequence: stream.NextPublication - 1, Limit: 100,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected *completionAdvisoryEnvelope
+	for _, event := range events {
+		if event.Event.EventID != final.Assistant.EventID {
+			continue
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(event.ResolvedPayloadJSON, &payload); err != nil {
+			t.Fatal(err)
+		}
+		expected = sessionRunnerCompletionAdvisoriesFromPayload(payload, f.claim.Attempt)
+		if expected == nil || len(expected.Items[0].Findings) == 0 || sessionRunnerCompletionAdvisoryModelBody(stringValue(payload["text"]), expected) != body {
+			t.Fatal("fresh atomic finalization lost the model body or actual host findings")
+		}
+	}
+	if expected == nil {
+		t.Fatal("missing canonical assistant")
+	}
+	full, handled, err := f.server.loadTranscriptWebHistory(ctx, stream.OwnerID, stream.FrameID)
+	if err != nil || !handled {
+		t.Fatalf("full history: handled=%t err=%v cause=%v", handled, err, errors.Unwrap(err))
+	}
+	foundHistory := false
+	for _, message := range full {
+		content := mapValue(message["content"])
+		if content["completionAdvisories"] != nil {
+			foundHistory = true
+		}
+	}
+	if !foundHistory {
+		t.Fatal("full history dropped typed host facts")
+	}
+	if err := f.server.runTranscriptWebDeliveryCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	foundLive := false
+	for _, event := range transcriptWebEvents(t, f.store, stream.OwnerID) {
+		if event.Type == "message.stream" && event.Payload["completion_advisories"] != nil {
+			foundLive = true
+		}
+	}
+	if !foundLive {
+		t.Fatal("live content publication dropped typed host facts")
+	}
+	for reload := 0; reload < 2; reload++ {
+		page := p3JSONRequest(t, f.server, http.MethodGet, "/api/conversations/"+stream.FrameID+"/messages?limit=80", nil, stream.OwnerID)
+		if page.Code != http.StatusOK || !strings.Contains(page.Body.String(), `"completionAdvisories"`) {
+			t.Fatalf("materialized/reloaded history lost typed host facts: HTTP%d", page.Code)
+		}
+	}
+	replay, err := f.server.loadTranscriptRunnerReplay(ctx, run.Transcript, 80, 80)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundReplay := false
+	for _, entry := range replay {
+		text := stringValue(entry.Message["text"])
+		if strings.Contains(text, `"host_completion_observations"`) {
+			foundReplay = true
+			if !strings.HasPrefix(text, body) || strings.Contains(text, "Some consistency or evidence checks remain unresolved") {
+				t.Fatal("provider replay lost the model body or copied presentation boilerplate")
+			}
+		}
+	}
+	if !foundReplay {
+		t.Fatal("provider replay dropped typed host findings")
+	}
+	// Memory and compaction consume the same canonical completion, not a
+	// hand-built journal or a second presentation-generated answer.
+	facts, err := json.Marshal(map[string]any{"host_completion_observations": expected.Items})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantReplay := body + "\n\n" + string(facts)
+	proof, err := f.repo.ReadCompletedMemorySource(ctx, stream.UID, stream.OwnerID, final.Terminal.EventID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	memory := &memoryExtractionRuntime{server: f.server}
+	snapshot, err := memory.readMemoryExtractionSnapshot(ctx, stream.OwnerID, stream.SessionID,
+		memoryExtractionSource{proof: &proof, finishEventID: final.Terminal.EventID, captured: true})
+	if err != nil || snapshot.TerminalStatus != "completed" || snapshot.FinalResponseText != wantReplay {
+		t.Fatalf("memory snapshot lost model prose, exact findings or source identities: status=%q err=%v", snapshot.TerminalStatus, err)
+	}
+	coordinate, err := f.repo.GetProjectionSnapshot(ctx, stream.UID, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	compaction, err := f.server.contextCompactionSource(ctx, transcriptstore.ContextCompactionRequest{
+		Expected: transcriptstore.ContextCompactionTarget{StreamUID: stream.UID, BranchID: coordinate.BranchID,
+			BranchGeneration: coordinate.BranchGeneration, ThroughPublicationSeq: coordinate.ThroughPublicationSequence},
+	}, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundCompaction := false
+	for _, entry := range compaction {
+		if entry.EventID == final.Assistant.EventID {
+			foundCompaction = true
+			if entry.Message["text"] != wantReplay || entry.Message["role"] != "assistant" {
+				t.Fatal("compaction source lost exact typed observations or changed their role")
+			}
+		}
+	}
+	if !foundCompaction {
+		t.Fatal("compaction source dropped the final assistant")
+	}
+	for _, event := range events {
+		if event.Event.EventID != final.Assistant.EventID {
+			continue
+		}
+		var legacy map[string]any
+		if err := json.Unmarshal(event.ResolvedPayloadJSON, &legacy); err != nil {
+			t.Fatal(err)
+		}
+		delete(legacy, "completion_advisories")
+		prior := legacy["text"]
+		projectSessionRunnerCompletionAdvisoryReplay(legacy, event.Event)
+		if legacy["text"] != prior {
+			t.Fatal("untyped historical answer was rewritten")
+		}
+		if err := json.Unmarshal(event.ResolvedPayloadJSON, &legacy); err != nil {
+			t.Fatal(err)
+		}
+		imported := event.Event
+		imported.Type = "history_assistant_message"
+		projectSessionRunnerCompletionAdvisoryReplay(legacy, imported)
+		if legacy["text"] != prior {
+			t.Fatal("imported metadata granted canonical host ownership")
+		}
+	}
+}
 
 func TestCompletionAdvisoryIsLocalizedIdempotentAndCannotReplaceAnAnswer(t *testing.T) {
 	advice := &sessionRunnerCompletionAdvisory{Code: completionAdvisoryStructurePreview}
@@ -125,6 +370,14 @@ func TestCompletionRecoveryPersistsSceneNoticeOnceWithoutRewritingPriorCandidate
 			text := stringValue(payload["text"])
 			if !strings.HasPrefix(text, prior.Content) || strings.Count(text, "Structure preview is unverified") != 1 {
 				t.Fatalf("persisted public answer lost its exact candidate or notice: %q", text)
+			}
+			typed := mapValue(payload["completion_advisories"])
+			items, _ := typed["items"].([]any)
+			spans, _ := typed["spans"].([]any)
+			if typed["schema"] != "x-science.completion-advisories.v1" || len(items) != 1 || len(spans) != 1 ||
+				numberValue(typed["attempt"]) != claimed.Claim.Attempt ||
+				numberValue(typed["input_revision"]) != claimed.Claim.ClaimedInputRevision {
+				t.Fatal("canonical completion lost typed host finding provenance")
 			}
 		}
 	}

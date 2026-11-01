@@ -5,6 +5,7 @@
  */
 
 import type { IMessageText } from '@/common/chat/chatLib';
+import { completionAdvisoryModelText, decodeCompletionAdvisories } from '@/common/adapter/messageStreamProtocol';
 import { X_SCIENCE_FILES_MARKER } from '@/common/config/constants';
 import { decodeHostGrantFileReference, isHostGrantFileReference } from '@/common/adapter/hostGrantFileReference';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
@@ -92,11 +93,31 @@ type MessageTextProps = {
   showCopyRow?: boolean;
 };
 
+const completionAdvisorySourceKey = (stage: string) => {
+  switch (stage) {
+    case 'artifact_completion':
+    case 'task_expectations':
+    case 'completion_recovery':
+      return `messages.completionAdvisories.sources.${stage}`;
+    default:
+      return 'messages.completionAdvisories.sources.host';
+  }
+};
+
 const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true }) => {
+  const completionAdvisories = useMemo(
+    () =>
+      message.position !== 'right' && message.terminal_status === 'completed' && !message.terminal_superseded
+        ? decodeCompletionAdvisories(message.content.completionAdvisories, message.content.content)
+        : undefined,
+    [message.position, message.terminal_status, message.terminal_superseded, message.content]
+  );
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
-    let content = message.content.content;
+    let content = completionAdvisories
+      ? completionAdvisoryModelText(message.content.content, completionAdvisories)
+      : message.content.content;
     if (typeof content === 'string') {
       if (hasThinkTags(content)) {
         content = stripThinkTags(content);
@@ -108,7 +129,7 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
       return content;
     }
     return content;
-  }, [message.content.content]);
+  }, [message.content.content, completionAdvisories]);
 
   const artifactIndex = useConversationArtifactIndex();
   const publicContent = useMemo(
@@ -315,6 +336,34 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
             </details>
           )}
         </div>
+        {completionAdvisories && (
+          <details
+            data-testid='completion-advisories'
+            className='mt-12px w-full rounded-12px border border-base p-12px text-12px text-t-secondary'
+          >
+            <summary className='cursor-pointer'>
+              {t('messages.completionAdvisories.summary', { count: completionAdvisories.items.length })}
+            </summary>
+            <ul className='mt-8px space-y-8px pl-16px'>
+              {completionAdvisories.items.map((item) => (
+                <li key={item.code}>
+                  <strong>{t(`messages.completionAdvisories.${item.code}`)}</strong>
+                  <p>{t(`messages.completionAdvisories.description.${item.code}`)}</p>
+                  <p className='mt-4px'>
+                    {t('messages.completionAdvisories.findings', { count: item.findings.length })}
+                  </p>
+                  <p>
+                    {t('messages.completionAdvisories.source', {
+                      sources: [
+                        ...new Set(item.sources.map((source) => t(completionAdvisorySourceKey(source.stage)))),
+                      ].join(' · '),
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         {/* Only the final text block in a turn exposes a message-level action. */}
         {((showCopyRow && hasTextContent) || roundSummary) && (
           <div

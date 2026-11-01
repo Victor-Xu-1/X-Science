@@ -7,7 +7,13 @@
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
 import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { PdfReadingSnapshot } from '../adapter/pdfReadingContext';
-import type { ArtifactReferenceWire, IResponseMessage, ToolLifecycleStatus } from '../adapter/messageStreamProtocol';
+import {
+  decodeCompletionAdvisories,
+  type ArtifactReferenceWire,
+  type CompletionAdvisories,
+  type IResponseMessage,
+  type ToolLifecycleStatus,
+} from '../adapter/messageStreamProtocol';
 import { uuid } from '../utils';
 import { decodeRoundSummary, type RoundSummary } from './roundSummary';
 import type { ToolProgressWire } from './toolProgressObservation';
@@ -157,6 +163,7 @@ export type IMessageText = IMessage<
     /** Exact durable attempt identity; never inferred from msg_id prefixes. */
     assistantAttemptId?: string;
     cronMeta?: CronMessageMeta;
+    completionAdvisories?: CompletionAdvisories;
     xScience?: XScienceMessageCoordinates;
   }
 >;
@@ -386,13 +393,19 @@ export const mergeTextMessageContent = (
   existing: IMessageText['content'],
   incoming: IMessageText['content']
 ): IMessageText['content'] => {
-  const { replace: _existingReplace, ...existingRest } = existing;
-  const { replace: incomingReplace, ...incomingRest } = incoming;
+  const { replace: _existingReplace, completionAdvisories: existingAdvisories, ...existingRest } = existing;
+  const { replace: incomingReplace, completionAdvisories: incomingAdvisories, ...incomingRest } = incoming;
+  const content = incomingReplace ? incoming.content : existing.content + incoming.content;
+  const completionAdvisories = decodeCompletionAdvisories(
+    incomingAdvisories ?? (incomingReplace ? undefined : existingAdvisories),
+    content
+  );
 
   return {
     ...existingRest,
     ...incomingRest,
-    content: incomingReplace ? incoming.content : existing.content + incoming.content,
+    content,
+    ...(completionAdvisories ? { completionAdvisories } : {}),
     ...(incomingReplace ? { replace: true } : {}),
   };
 };
@@ -576,6 +589,7 @@ type RawTextMessageContent = {
   assistant_attempt_id?: unknown;
   assistantAttemptId?: unknown;
   cronMeta?: unknown;
+  completionAdvisories?: unknown;
   xScience?: unknown;
 };
 
@@ -583,6 +597,7 @@ type NormalizeTextMessageContentOptions = {
   replace?: boolean;
   replaceScope?: 'attempt';
   assistantAttemptId?: string;
+  completionAdvisories?: CompletionAdvisories;
 };
 
 const isAssistantAttemptId = (value: unknown): value is string =>
@@ -612,7 +627,8 @@ const isXScienceMessageCoordinates = (value: unknown): value is NonNullable<IMes
 
 const normalizeTextMessageContentObject = (
   data: RawTextMessageContent,
-  options?: NormalizeTextMessageContentOptions
+  options?: NormalizeTextMessageContentOptions,
+  hostObject = options === undefined
 ): IMessageText['content'] => {
   const content = typeof data.content === 'string' ? data.content : String(data.content ?? '');
   const cronMeta = isCronMessageMeta(data.cronMeta) ? data.cronMeta : undefined;
@@ -622,6 +638,10 @@ const normalizeTextMessageContentObject = (
   const replaceScope = rawReplaceScope === 'attempt' ? rawReplaceScope : undefined;
   const rawAssistantAttemptId = options?.assistantAttemptId ?? data.assistantAttemptId ?? data.assistant_attempt_id;
   const assistantAttemptId = isAssistantAttemptId(rawAssistantAttemptId) ? rawAssistantAttemptId : undefined;
+  const completionAdvisories = decodeCompletionAdvisories(
+    options?.completionAdvisories ?? (hostObject ? data.completionAdvisories : undefined),
+    content
+  );
 
   return {
     content,
@@ -630,6 +650,7 @@ const normalizeTextMessageContentObject = (
     ...(assistantAttemptId ? { assistantAttemptId } : {}),
     ...(cronMeta ? { cronMeta } : {}),
     ...(xScience ? { xScience } : {}),
+    ...(completionAdvisories ? { completionAdvisories } : {}),
   };
 };
 
@@ -641,7 +662,7 @@ export const normalizeTextMessageContent = (
     try {
       const parsed = JSON.parse(raw) as unknown;
       if (isObject(parsed)) {
-        return normalizeTextMessageContentObject(parsed as RawTextMessageContent, options);
+        return normalizeTextMessageContentObject(parsed as RawTextMessageContent, options, false);
       }
     } catch {
       // Plain text is the common streaming shape.
@@ -649,6 +670,9 @@ export const normalizeTextMessageContent = (
 
     return {
       content: raw,
+      ...(decodeCompletionAdvisories(options?.completionAdvisories, raw)
+        ? { completionAdvisories: options!.completionAdvisories }
+        : {}),
       ...(options?.replace === true ? { replace: true } : {}),
       ...(options?.replaceScope === 'attempt' ? { replaceScope: 'attempt' as const } : {}),
       ...(isAssistantAttemptId(options?.assistantAttemptId) ? { assistantAttemptId: options.assistantAttemptId } : {}),
@@ -883,6 +907,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
           replace: message.replace === true,
           replaceScope: message.replace_scope,
           assistantAttemptId: message.assistant_attempt_id,
+          completionAdvisories: message.completion_advisories,
         }),
         ...(Number.isSafeInteger(message.source_publication_sequence) && Number(message.source_publication_sequence) > 0
           ? { source_publication_sequence: message.source_publication_sequence }

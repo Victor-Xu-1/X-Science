@@ -707,6 +707,12 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 			return transcriptstore.ErrEventConflict
 		}
 		content := (*messages)[index]["content"].(map[string]any)
+		delete(content, "completionAdvisories")
+		if projected.Event.Type == "assistant_message" {
+			if advisory := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt); advisory != nil {
+				content["completionAdvisories"] = advisory
+			}
+		}
 		if durableIdentity != "" {
 			content["assistant_attempt_id"] = transcriptAssistantMessageID(sessionID, attempt, 1)
 		}

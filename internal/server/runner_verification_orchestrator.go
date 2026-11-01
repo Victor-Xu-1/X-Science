@@ -257,7 +257,7 @@ func (s *Server) runVerifiedSessionAgent(
 			language = run.ResponseLanguage
 		}
 		replaceSessionRunnerFinalMessageContent(&result,
-			appendSessionRunnerCompletionAdvisories(result.FinalMessage.Content, language, advisory))
+			appendSessionRunnerCompletionAdvisoriesForRun(result.FinalMessage.Content, language, run, "task_expectations", advisory))
 	}
 	// Task wording is not execution authority. Retain the actual tool outcomes,
 	// typed plans, permissions, active operations and artifact identity checks;
