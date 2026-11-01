@@ -1,7 +1,10 @@
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { installLiteratureLocks } from './conversation/literatureMutationLockFixtures';
+const canonicalChecksum = 'a'.repeat(64);
 import { ConfigProvider } from '@arco-design/web-react';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ArtifactAnnotationsPanel,
   ArtifactVerificationPanel,
@@ -14,6 +17,17 @@ const render = async (ui: React.ReactElement, language: 'zh-CN' | 'en-US' = 'zh-
     view = await renderWithI18n(ui, language);
   });
   return view;
+};
+
+const supplyPointCoordinates = (language: 'zh-CN' | 'en-US' = 'zh-CN') => {
+  fireEvent.change(
+    screen.getByRole('spinbutton', { name: language === 'zh-CN' ? '横向位置 (%)' : 'Horizontal position (%)' }),
+    { target: { value: '25' } }
+  );
+  fireEvent.change(
+    screen.getByRole('spinbutton', { name: language === 'zh-CN' ? '纵向位置 (%)' : 'Vertical position (%)' }),
+    { target: { value: '50' } }
+  );
 };
 
 const mocks = vi.hoisted(() => ({
@@ -70,7 +84,7 @@ const annotation = {
   artifactId: 'artifact-1',
   targetKey: 'av:version-1',
   label: '①',
-  contentChecksum: 'checksum-1',
+  contentChecksum: canonicalChecksum,
   type: 'text_selection' as const,
   text: 'Review the STAT6 assay claim',
   xPercent: null,
@@ -98,6 +112,13 @@ const deferred = <T,>() => {
   return { promise, resolve };
 };
 
+afterEach(() => {
+  cleanup();
+  setRendererAccountOwner('');
+  localStorage.clear();
+  vi.unstubAllGlobals();
+});
+
 describe('Artifact annotation and verification panels', () => {
   it.each([
     { language: 'zh-CN' as const, add: '添加', type: '批注类型', option: '文本选择' },
@@ -117,10 +138,14 @@ describe('Artifact annotation and verification panels', () => {
     }
   );
   beforeEach(() => {
+    setRendererAccountOwner('');
+    localStorage.clear();
+    setRendererAccountOwner('owner');
+    installLiteratureLocks();
     for (const mock of Object.values(mocks)) mock.mockReset();
     mocks.loadAnnotations.mockResolvedValue({
       targetKey: 'av:version-1',
-      currentChecksum: 'checksum-1',
+      currentChecksum: canonicalChecksum,
       annotations: [annotation],
     });
     mocks.createAnnotation.mockResolvedValue({
@@ -128,6 +153,8 @@ describe('Artifact annotation and verification panels', () => {
       id: 'annotation-2',
       label: '②',
       type: 'point',
+      xPercent: 25,
+      yPercent: 50,
       text: 'New review note',
       selectionText: null,
       pageNumber: null,
@@ -182,6 +209,29 @@ describe('Artifact annotation and verification panels', () => {
     });
   });
 
+  it('rejects an incomplete point before persisting an intent and saves after coordinates are supplied', async () => {
+    await render(<ArtifactAnnotationsPanel artifactId='artifact-1' versionId='version-1' />);
+    await screen.findByText(annotation.text);
+    fireEvent.click(screen.getByRole('button', { name: '添加' }));
+    const editor = screen.getByRole('textbox', { name: '批注内容' });
+    fireEvent.change(editor, { target: { value: 'New review note' } });
+    fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
+    await waitFor(() => expect(screen.getByTestId('artifact-annotations-panel')).toHaveAttribute('aria-busy', 'false'));
+    expect(mocks.createAnnotation).not.toHaveBeenCalled();
+    expect(Object.keys(localStorage).filter((key) => key.startsWith('x-science.annotation-create.v1:'))).toEqual([]);
+    expect(editor).toHaveValue('New review note');
+    fireEvent.change(screen.getByRole('spinbutton', { name: '横向位置 (%)' }), { target: { value: '25' } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: '纵向位置 (%)' }), { target: { value: '50' } });
+    fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
+    await waitFor(() => expect(mocks.createAnnotation).toHaveBeenCalledTimes(1));
+    expect(mocks.createAnnotation).toHaveBeenCalledWith(
+      'artifact-1',
+      'version-1',
+      expect.objectContaining({ type: 'point', text: 'New review note', xPercent: 25, yPercent: 50 })
+    );
+    expect(await screen.findByText('New review note')).toBeInTheDocument();
+  });
+
   it('renders version anchors and creates a real annotation-shaped record', async () => {
     await render(
       <ConfigProvider>
@@ -196,6 +246,7 @@ describe('Artifact annotation and verification panels', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '添加' }));
     fireEvent.change(screen.getByRole('textbox', { name: '批注内容' }), { target: { value: 'New review note' } });
+    supplyPointCoordinates();
     const addButtons = screen.getAllByRole('button', { name: '添加' });
     fireEvent.click(addButtons.at(-1)!);
 
@@ -224,12 +275,12 @@ describe('Artifact annotation and verification panels', () => {
     await screen.findByText('暂无批注');
     onChange.mockClear();
     await act(async () => {
-      oldRead.resolve({ currentChecksum: 'checksum-1', annotations: [annotation] });
+      oldRead.resolve({ currentChecksum: canonicalChecksum, annotations: [annotation] });
       await oldRead.promise;
     });
 
     expect(screen.queryByText(annotation.text)).not.toBeInTheDocument();
-    expect(screen.queryByText('checksum-1')).not.toBeInTheDocument();
+    expect(screen.queryByText(canonicalChecksum)).not.toBeInTheDocument();
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -260,11 +311,14 @@ describe('Artifact annotation and verification panels', () => {
     fireEvent.change(screen.getByRole('textbox', { name: '批注内容' }), {
       target: { value: 'Old version annotation' },
     });
+    supplyPointCoordinates();
     fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
-    expect(mocks.createAnnotation).toHaveBeenCalledWith(
-      'artifact-1',
-      'version-1',
-      expect.objectContaining({ text: 'Old version annotation' })
+    await waitFor(() =>
+      expect(mocks.createAnnotation).toHaveBeenCalledWith(
+        'artifact-1',
+        'version-1',
+        expect.objectContaining({ text: 'Old version annotation' })
+      )
     );
     mocks.loadAnnotations.mockResolvedValueOnce({ currentChecksum: 'new-checksum', annotations: [] });
     view.rerender(
@@ -318,6 +372,7 @@ describe('Artifact annotation and verification panels', () => {
     fireEvent.click(screen.getByRole('button', { name: '添加' }));
     const editor = screen.getByRole('textbox', { name: '批注内容' });
     fireEvent.change(editor, { target: { value: created.text } });
+    supplyPointCoordinates();
     fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
     expect(editor).toBeDisabled();
     expect(screen.getByLabelText('批注类型')).toHaveAttribute('aria-disabled', 'true');
@@ -340,15 +395,17 @@ describe('Artifact annotation and verification panels', () => {
   it('preserves a failed annotation draft with a visible error and allows a real retry', async () => {
     mocks.createAnnotation.mockRejectedValueOnce(new Error('fixture write failure'));
     await render(<ArtifactAnnotationsPanel artifactId='artifact-1' versionId='version-1' />);
+    await screen.findByText(annotation.text);
     fireEvent.click(screen.getByRole('button', { name: '添加' }));
     const editor = screen.getByRole('textbox', { name: '批注内容' });
     fireEvent.change(editor, { target: { value: 'New review note' } });
+    supplyPointCoordinates();
     fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
-    expect(await screen.findByRole('alert')).toHaveTextContent('保存批注失败');
+    expect(await screen.findByText('保存批注失败。')).toBeInTheDocument();
     expect(editor).toHaveValue('New review note');
     expect(editor).toBeEnabled();
-    fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
-    expect(await screen.findByText('New review note')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '续接原保存' }));
+    expect(await screen.findByText('②')).toBeInTheDocument();
     expect(mocks.createAnnotation).toHaveBeenCalledTimes(2);
   });
 
@@ -359,11 +416,12 @@ describe('Artifact annotation and verification panels', () => {
     expect(screen.queryByText('暂无批注')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '添加' }));
     fireEvent.change(screen.getByRole('textbox', { name: '批注内容' }), { target: { value: 'New review note' } });
+    supplyPointCoordinates();
     fireEvent.click(screen.getAllByRole('button', { name: '添加' }).at(-1)!);
     expect(await screen.findByText('New review note')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(mocks.createAnnotation).toHaveBeenCalledTimes(1);
-    expect(mocks.loadAnnotations).toHaveBeenCalledTimes(1);
+    expect(mocks.loadAnnotations).toHaveBeenCalledTimes(2);
   });
 
   it('keeps the native type selector operable and switches the editor fields without losing the draft', async () => {
@@ -540,6 +598,7 @@ describe('Artifact annotation and verification panels', () => {
       expect(mocks.createAnnotation).not.toHaveBeenCalled();
       expect(mocks.updateAnnotation).not.toHaveBeenCalled();
       fireEvent.change(field, { target: { value: text } });
+      if (!editing) supplyPointCoordinates(language);
       fireEvent.click(save);
       await waitFor(() => expect(editing ? mocks.updateAnnotation : mocks.createAnnotation).toHaveBeenCalledTimes(1));
       if (editing) expect(mocks.updateAnnotation).toHaveBeenCalledWith(annotation.id, { text });

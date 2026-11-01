@@ -967,5 +967,18 @@
     "elementTitle": "添加元素批注",
     "selectionTitle": "添加选区批注",
     "content": "选区批注内容"
+  },
+  "annotationRecovery": {
+    "restored": "此前的保存尚未确认，请续接原请求。",
+    "resolving": "正在准备此文档的保存请求…",
+    "sending": "正在确认原保存请求…",
+    "uncertain": "尚未确认保存结果，原备注已保留。",
+    "sourceUnavailable": "此文档目前不可用，原保存请求仍保留。",
+    "conflict": "此请求与已保存的输入冲突，原请求仍保留。",
+    "missing": "此前的保存已提交，但该备注已被删除，没有重新创建。",
+    "storage": "暂时无法读取本地保存请求，当前草稿仍保留。",
+    "retry": "续接原保存",
+    "retryDisplay": "刷新已保存备注",
+    "displayFailed": "备注已保存，但暂时无法刷新显示。"
   }
 }

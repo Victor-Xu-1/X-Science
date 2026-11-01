@@ -1,3 +1,6 @@
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { installLiteratureLocks } from './conversation/literatureMutationLockFixtures';
+const canonicalChecksum = 'a'.repeat(64);
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
@@ -18,6 +21,10 @@ const deferredFixture = <T,>() => {
 };
 
 beforeEach(() => {
+  setRendererAccountOwner('');
+  localStorage.clear();
+  setRendererAccountOwner('owner');
+  installLiteratureLocks();
   artifactRoute.artifactId = 'artifact-1';
   artifactRoute.search = '';
   loadArtifactMock.mockReset().mockImplementation(defaultArtifactLoader);
@@ -28,6 +35,8 @@ beforeEach(() => {
 });
 afterEach(async () => {
   cleanup();
+  setRendererAccountOwner('');
+  localStorage.clear();
   await Promise.resolve();
   vi.restoreAllMocks();
 });
@@ -74,8 +83,8 @@ const defaultArtifactLoader = loadArtifactMock.getMockImplementation()!;
 const defaultVersionLoader = loadVersionsMock.getMockImplementation()!;
 
 const loadAnnotationsMock = vi.fn(async (_artifactId: string, _versionId: string) => ({
-  targetKey: 'fixture-version-target',
-  currentChecksum: null,
+  targetKey: `av:${_versionId}`,
+  currentChecksum: canonicalChecksum,
   annotations: [] as XScienceArtifactAnnotation[],
 }));
 const defaultAnnotationLoader = loadAnnotationsMock.getMockImplementation()!;
@@ -339,9 +348,9 @@ describe('ArtifactPreview', () => {
     const annotation: XScienceArtifactAnnotation = {
       id: 'point-old',
       artifactId: original.artifactId,
-      targetKey: 'fixture-version-1',
+      targetKey: 'av:version-1',
       label: 'A',
-      contentChecksum: null,
+      contentChecksum: canonicalChecksum,
       type: 'point',
       text: 'Old version note',
       xPercent: 50,
@@ -365,7 +374,11 @@ describe('ArtifactPreview', () => {
     loadAnnotationsMock.mockImplementation((_artifactId, versionId) =>
       versionId === 'version-2'
         ? laterAnnotations.promise
-        : Promise.resolve({ targetKey: annotation.targetKey!, currentChecksum: null, annotations: [annotation] })
+        : Promise.resolve({
+            targetKey: annotation.targetKey!,
+            currentChecksum: canonicalChecksum,
+            annotations: [annotation],
+          })
     );
     const loadImage = (image: HTMLElement) => {
       Object.defineProperties(image, {
@@ -389,8 +402,8 @@ describe('ArtifactPreview', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await act(async () =>
       laterAnnotations.resolve({
-        targetKey: 'fixture-version-2',
-        currentChecksum: null,
+        targetKey: 'av:version-2',
+        currentChecksum: canonicalChecksum,
         annotations: [{ ...annotation, id: 'point-new', label: 'B', text: 'New version note' }],
       })
     );
@@ -403,9 +416,9 @@ describe('ArtifactPreview', () => {
     const annotation: XScienceArtifactAnnotation = {
       id: 'saved-point',
       artifactId: original.artifactId,
-      targetKey: 'fixture-version-1',
+      targetKey: 'av:version-1',
       label: 'A',
-      contentChecksum: null,
+      contentChecksum: canonicalChecksum,
       type: 'point',
       text: 'Saved point',
       xPercent: 50,
@@ -426,8 +439,8 @@ describe('ArtifactPreview', () => {
     };
     createAnnotationMock.mockResolvedValue(annotation);
     loadAnnotationsMock.mockImplementation(async () => ({
-      targetKey: 'fixture-version-1',
-      currentChecksum: null,
+      targetKey: 'av:version-1',
+      currentChecksum: canonicalChecksum,
       annotations: createAnnotationMock.mock.calls.length ? [annotation] : [],
     }));
     await render(<ArtifactPreview />);

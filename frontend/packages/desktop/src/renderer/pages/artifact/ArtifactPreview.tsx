@@ -31,6 +31,8 @@ import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection'
 import { ArtifactAnnotationsPanel, ArtifactVerificationPanel } from './ArtifactAnnotationPanels';
 import { ArtifactEditRefinementPanel } from './ArtifactEditRefinementPanel';
 import { ArtifactSelectionAnnotationModal } from './ArtifactSelectionAnnotationModal';
+import { AnnotationCreateRecoveryForTarget } from './AnnotationCreateRecovery';
+import type { AnnotationCreateSource } from '@/renderer/services/runtime/annotationCreateIntent';
 import { ArtifactFileActionModal } from './ArtifactFileActionModal';
 import { ArtifactPageState } from './ArtifactPageState';
 import { ArtifactMetadataState } from './ArtifactMetadataState';
@@ -113,7 +115,8 @@ const ArtifactPreview: React.FC = () => {
   const [annotationSnapshot, setAnnotationSnapshot] = useState<{
     owner: string;
     annotations: XScienceArtifactAnnotation[];
-  }>({ owner: '', annotations: [] });
+    source: AnnotationCreateSource | null;
+  }>({ owner: '', annotations: [], source: null });
   const [annotationRevision, setAnnotationRevision] = useState(0);
   const [fileAction, setFileAction] = useState<ArtifactFileAction | null>(null);
   const [notesVisible, setNotesVisible] = useState(false);
@@ -225,16 +228,19 @@ const ArtifactPreview: React.FC = () => {
     : (selectedVersionId ?? metadataArtifact?.versionId ?? null);
   const annotationOwner = JSON.stringify([artifactId, annotationVersionId]);
   const annotationOwnerRef = useRef(annotationOwner);
+  const annotationReadRevision = useRef(0);
   annotationOwnerRef.current = annotationOwner;
   const updatePreviewAnnotations = useCallback(
     (
       annotations:
         | XScienceArtifactAnnotation[]
-        | ((current: XScienceArtifactAnnotation[]) => XScienceArtifactAnnotation[])
+        | ((current: XScienceArtifactAnnotation[]) => XScienceArtifactAnnotation[]),
+      source?: AnnotationCreateSource | null
     ) => {
       if (annotationOwnerRef.current !== annotationOwner) return;
       setAnnotationSnapshot((current) => ({
         owner: annotationOwner,
+        source: source === undefined ? (current.owner === annotationOwner ? current.source : null) : source,
         annotations:
           typeof annotations === 'function'
             ? annotations(current.owner === annotationOwner ? current.annotations : [])
@@ -243,20 +249,35 @@ const ArtifactPreview: React.FC = () => {
     },
     [annotationOwner]
   );
+  const reloadMissingAnnotations = useCallback(() => {
+    if (annotationOwnerRef.current !== annotationOwner) return;
+    annotationReadRevision.current += 1;
+    updatePreviewAnnotations([]);
+    setAnnotationRevision((revision) => revision + 1);
+  }, [annotationOwner, updatePreviewAnnotations]);
   const previewAnnotations = annotationSnapshot.owner === annotationOwner ? annotationSnapshot.annotations : [];
+  const previewAnnotationSource = annotationSnapshot.owner === annotationOwner ? annotationSnapshot.source : null;
 
   useEffect(() => {
+    const request = ++annotationReadRevision.current;
     if (!metadataArtifact || !annotationVersionId) {
-      updatePreviewAnnotations([]);
+      updatePreviewAnnotations([], null);
       return;
     }
     let active = true;
+    const isCurrent = () => active && request === annotationReadRevision.current;
     void loadXScienceArtifactAnnotations(metadataArtifact.artifactId, annotationVersionId)
       .then((collection) => {
-        if (active) updatePreviewAnnotations(collection.annotations);
+        if (isCurrent())
+          updatePreviewAnnotations(
+            collection.annotations,
+            collection.currentChecksum && /^[a-f0-9]{64}$/i.test(collection.currentChecksum)
+              ? { targetKey: collection.targetKey, checksum: collection.currentChecksum }
+              : null
+          );
       })
       .catch(() => {
-        if (active) updatePreviewAnnotations([]);
+        if (isCurrent()) updatePreviewAnnotations([], null);
       });
     return () => {
       active = false;
@@ -458,6 +479,25 @@ const ArtifactPreview: React.FC = () => {
             </React.Suspense>
           </section>
           <aside className='artifact-inspector min-h-0 overflow-y-auto border-t xl:border-t-0 xl:border-l border-solid border-[var(--color-border-2)] bg-1'>
+            {!annotationSelection && activeVersionId && activeInspectorTab !== 'annotations' && (
+              <div className='px-12px'>
+                <AnnotationCreateRecoveryForTarget
+                  key={annotationOwner}
+                  target={{ kind: 'artifact', artifactId: artifact.artifactId, versionId: activeVersionId }}
+                  onMissing={reloadMissingAnnotations}
+                  onRecovered={(annotation) => {
+                    if (annotationOwnerRef.current !== annotationOwner) return;
+                    updatePreviewAnnotations(
+                      (current) => [...current.filter((item) => item.id !== annotation.id), annotation],
+                      annotation.targetKey && annotation.contentChecksum
+                        ? { targetKey: annotation.targetKey, checksum: annotation.contentChecksum }
+                        : undefined
+                    );
+                    setAnnotationRevision((revision) => revision + 1);
+                  }}
+                />
+              </div>
+            )}
             <Tabs
               activeTab={activeInspectorTab}
               onChange={setActiveInspectorTab}
@@ -513,6 +553,7 @@ const ArtifactPreview: React.FC = () => {
                     refreshToken={annotationRevision}
                     onVersionApplied={handleVersionApplied}
                     onAnnotationsChange={updatePreviewAnnotations}
+                    onMissing={reloadMissingAnnotations}
                   />
                 ) : (
                   <Empty description={t('preview.artifact.noAnnotatableVersion')} />
@@ -590,7 +631,28 @@ const ArtifactPreview: React.FC = () => {
           artifactId={artifact.artifactId}
           versionId={activeVersionId}
           selection={annotationSelection}
-          onCancel={() => setAnnotationSelection(null)}
+          sourceHint={
+            previewAnnotationSource ??
+            (activeVersionId === artifact.versionId && artifact.checksum && /^[a-f0-9]{64}$/i.test(artifact.checksum)
+              ? { targetKey: `av:${activeVersionId}`, checksum: artifact.checksum }
+              : null)
+          }
+          onMissing={reloadMissingAnnotations}
+          onRecovered={(annotation) => {
+            if (annotationOwnerRef.current !== annotationOwner) return;
+            updatePreviewAnnotations(
+              (current) => [...current.filter((item) => item.id !== annotation.id), annotation],
+              annotation.targetKey && annotation.contentChecksum
+                ? { targetKey: annotation.targetKey, checksum: annotation.contentChecksum }
+                : undefined
+            );
+            setAnnotationRevision((revision) => revision + 1);
+          }}
+          onCancel={() => {
+            setAnnotationSelection(null);
+            // A closed view can race the accepted ACK. Read the canonical list rather than reinsert a cached note.
+            setAnnotationRevision((revision) => revision + 1);
+          }}
           onCreated={(annotation) => {
             if (annotationOwnerRef.current !== annotationOwner) return;
             setAnnotationSelection(null);

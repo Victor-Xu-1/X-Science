@@ -967,5 +967,18 @@
     "elementTitle": "Add element annotation",
     "selectionTitle": "Add selection annotation",
     "content": "Selection annotation content"
+  },
+  "annotationRecovery": {
+    "restored": "An earlier save is awaiting confirmation. Resume that original request.",
+    "resolving": "Preparing the save for this document…",
+    "sending": "Confirming the original save…",
+    "uncertain": "The save outcome is unconfirmed. Your original note is retained.",
+    "sourceUnavailable": "This document is currently unavailable. The original save is retained.",
+    "conflict": "This request conflicts with saved input. The original request is retained.",
+    "missing": "The earlier save was committed, but that note was deleted. Nothing was recreated.",
+    "storage": "The saved request is unavailable in local storage. Your current draft is retained.",
+    "retry": "Resume original save",
+    "retryDisplay": "Refresh saved note",
+    "displayFailed": "The note was saved, but its display could not be refreshed."
   }
 }

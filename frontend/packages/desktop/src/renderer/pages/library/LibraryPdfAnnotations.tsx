@@ -1,9 +1,10 @@
 import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import { Input } from '@arco-design/web-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type XSciencePdfArtifactViewer from '../artifact/XSciencePdfArtifactViewer';
 import { useAnnotationStore } from '../artifact/useArtifactAnnotationStore';
+import { AnnotationCreateRecovery } from '../artifact/AnnotationCreateRecovery';
 import {
   annotationInputFromCanvasSelection,
   artifactCanvasSelectionIdentity,
@@ -28,9 +29,20 @@ export function LibraryPdfAnnotations({
   const [note, setNote] = useState('');
   const [failed, setFailed] = useState(false);
   const [reveal, setReveal] = useState<{ page: number; id: string }>();
+  useEffect(() => {
+    if (store.createIntent.view.lastSuccess) setFailed(false);
+  }, [store.createIntent.view.lastSuccess]);
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selection || !isAnnotationNoteSaveable(note) || store.busy || store.loading || store.failed || !store.checksum)
+    if (
+      !selection ||
+      !isAnnotationNoteSaveable(note) ||
+      store.busy ||
+      store.loading ||
+      store.failed ||
+      !store.checksum ||
+      store.createIntent.view.pending
+    )
       return;
     setFailed(false);
     try {
@@ -78,6 +90,11 @@ export function LibraryPdfAnnotations({
             {t('preview.artifactAnnotations.refresh')}
           </button>
         </div>
+        <AnnotationCreateRecovery
+          key={store.createIntent.scopeKey}
+          view={store.createIntent.view}
+          retry={store.createIntent.retryFrozen}
+        />
         {store.failed && <p role='alert'>{t('preview.artifactAnnotations.loadFailed')}</p>}
         {selection && (
           <form onSubmit={(event) => void save(event)} className='mt-8px flex flex-col gap-6px'>
@@ -101,7 +118,12 @@ export function LibraryPdfAnnotations({
               <button
                 type='submit'
                 disabled={
-                  store.loading || store.busy || store.failed || !store.checksum || !isAnnotationNoteSaveable(note)
+                  store.loading ||
+                  store.busy ||
+                  store.failed ||
+                  !store.checksum ||
+                  Boolean(store.createIntent.view.pending) ||
+                  !isAnnotationNoteSaveable(note)
                 }
               >
                 {t('preview.artifactAnnotations.add')}

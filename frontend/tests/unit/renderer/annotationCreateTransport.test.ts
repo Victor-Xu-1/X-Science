@@ -74,4 +74,49 @@ describe('annotation transport uses the shared typed backend-error authority', (
     expect(oversized.status).toBe(503);
     expect(JSON.stringify(oversized.body).length).toBeLessThan(1000);
   });
+
+  it('sends an explicit Artifact checksum and key while keeping the canonical DTO', async () => {
+    const key = '00000000-0000-4000-8000-000000000009';
+    const abort = new AbortController();
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: '00000000-0000-4000-8000-000000000001',
+          type: 'point',
+          text: 'Current note',
+          target_key: 'av:version-1',
+          content_checksum: checksum,
+        }),
+        { status: 201 }
+      )
+    );
+    await createXScienceAnnotationTarget(
+      { kind: 'artifact', artifactId: 'artifact-1', versionId: 'version-1' },
+      input,
+      checksum,
+      fetch,
+      { idempotencyKey: key, signal: abort.signal }
+    );
+    const [path, init] = fetch.mock.calls[0];
+    expect(path).toBe('/api/artifacts/artifact-1/versions/version-1/annotations');
+    expect(new Headers(init.headers).get('Idempotency-Key')).toBe(key);
+    expect(init.signal).toBe(abort.signal);
+    expect(JSON.parse(init.body)).toMatchObject({
+      text: input.text,
+      content_checksum: checksum,
+      x_percent: 50,
+      y_percent: 50,
+    });
+  });
+
+  it('rejects an unexpected successful status for a keyed create instead of settling it', async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ id: 'note', text: 'Current note' }), { status: 200 }));
+    await expect(
+      createXScienceAnnotationTarget({ kind: 'literature', versionId: 'litv_one' }, input, checksum, fetch, {
+        idempotencyKey: 'key-one',
+      })
+    ).rejects.toThrow('acknowledgement status');
+  });
 });

@@ -6,6 +6,8 @@ import Modal from '@/renderer/components/base/WorkbenchModal';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useArtifactSelectionEditor } from './useArtifactSelectionEditor';
+import { AnnotationCreateRecovery } from './AnnotationCreateRecovery';
+import type { AnnotationCreateSource } from '@/renderer/services/runtime/annotationCreateIntent';
 
 export const ArtifactSelectionAnnotationModal: React.FC<{
   artifactId: string;
@@ -13,14 +15,13 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
   selection: XScienceArtifactCanvasSelection;
   onCancel: () => void;
   onCreated: (annotation: XScienceArtifactAnnotation) => void | Promise<void>;
-}> = ({ artifactId, versionId, selection, onCancel, onCreated }) => {
+  sourceHint?: AnnotationCreateSource | null;
+  onRecovered?: (annotation: XScienceArtifactAnnotation) => void | Promise<void>;
+  onMissing?: () => void;
+}> = ({ artifactId, versionId, selection, onCancel, onCreated, sourceHint, onRecovered, onMissing }) => {
   const { t } = useTranslation();
-  const { note, setNote, saving, error, created, save, retryDisplay, close } = useArtifactSelectionEditor(
-    artifactId,
-    versionId,
-    selection,
-    onCreated
-  );
+  const { note, setNote, saving, error, created, save, retryDisplay, close, creator, recovered, missing } =
+    useArtifactSelectionEditor(artifactId, versionId, selection, onCreated, sourceHint, onRecovered, onMissing);
   const closeView = () => {
     close();
     onCancel();
@@ -42,7 +43,9 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
         else void (created ? retryDisplay() : save());
       }}
       confirmLoading={saving}
-      okButtonProps={{ disabled: !isAnnotationNoteSaveable(note) || saving }}
+      okButtonProps={{
+        disabled: saving || (!created && (!isAnnotationNoteSaveable(note) || Boolean(creator.view.pending))),
+      }}
       okText={created ? t(error === 'display' ? 'common.retry' : 'common.close') : t('preview.artifactAnnotations.add')}
       cancelText={t(created ? 'common.close' : 'common.cancel')}
       hideCancel={created !== null}
@@ -69,6 +72,13 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
             showWordLimit
           />
         </label>
+        <AnnotationCreateRecovery
+          key={creator.scopeKey}
+          view={creator.view}
+          retry={creator.retryFrozen}
+          onRecovered={recovered}
+          onMissing={missing}
+        />
         {created && (
           <div role='status' className='text-12px text-success-6'>
             {t('preview.artifactAnnotations.added')}
