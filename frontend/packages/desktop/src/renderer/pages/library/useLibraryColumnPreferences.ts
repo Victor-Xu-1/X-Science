@@ -2,6 +2,7 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
   projectLibraryNotesColumns,
+  projectLibraryRatingColumns,
 } from '@/common/adapter/libraryColumnPreferences';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import {
@@ -19,15 +20,16 @@ const LOADING_VIEW: LibraryColumnPreferenceView = {
 };
 
 /** Call once at the Library view; changing columns never reloads catalogue/detail data. */
-export function useLibraryColumnPreferences(account: string, notesEnabled = false) {
+export function useLibraryColumnPreferences(account: string, notesEnabled = false, ratingEnabled = false) {
   const owner = useMemo(
     () =>
       new LibraryColumnPreferenceOwner(
         { load: loadLibraryColumnPreferences, save: saveLibraryColumnPreferences },
         () => account === getRendererAccountScopeToken(),
-        notesEnabled
+        notesEnabled,
+        ratingEnabled
       ),
-    [account, notesEnabled]
+    [account, notesEnabled, ratingEnabled]
   );
   const view = useSyncExternalStore(owner.subscribe, owner.getSnapshot, owner.getSnapshot);
   useEffect(() => {
@@ -46,9 +48,11 @@ export function useLibraryColumnPreferences(account: string, notesEnabled = fals
   const scoped = account === getRendererAccountScopeToken() ? view : LOADING_VIEW;
   return {
     ...scoped,
-    preferences: notesEnabled
-      ? (scoped.notesPreferences ?? projectLibraryNotesColumns(scoped.preferences))
-      : scoped.preferences,
+    preferences: ratingEnabled
+      ? (scoped.ratingPreferences ?? projectLibraryRatingColumns(scoped.preferences))
+      : notesEnabled
+        ? (scoped.notesPreferences ?? projectLibraryNotesColumns(scoped.preferences))
+        : scoped.preferences,
     changePreferences: owner.change,
     retry: owner.retry,
     reset: owner.reset,

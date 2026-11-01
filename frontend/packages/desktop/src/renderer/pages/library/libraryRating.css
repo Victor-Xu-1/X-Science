@@ -62,6 +62,18 @@
   font: inherit;
   cursor: pointer;
 }
+.library-rating--inline .library-rating__row {
+  gap: 0;
+}
+.library-rating--inline .library-rating__stars > button {
+  width: 18px;
+  height: 18px;
+  padding: 2px;
+}
+.library-rating--inline .library-rating__feedback,
+.library-rating--inline .library-rating__refresh {
+  margin-block-start: 4px;
+}
 @media (prefers-reduced-motion: reduce) {
   .library-rating__stars > button {
     transition: none;

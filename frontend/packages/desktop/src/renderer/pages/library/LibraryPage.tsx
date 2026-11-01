@@ -36,7 +36,7 @@ import { LibraryWorkspaceHeader } from './LibraryWorkspaceHeader';
 import { LibraryReadingStatus, LibraryReadingStatusFilter } from './LibraryReadingStatus';
 import { LibraryTable } from './LibraryTable';
 import { LibraryNoteControl } from './LibraryNoteControl';
-import type { LibraryNoteCommand } from './libraryPersonalNote';
+import { LibraryRating } from './LibraryRating';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { LibrarySortControl } from './LibrarySortControl';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
@@ -99,7 +99,7 @@ export default function LibraryPage() {
   const rail = layout?.libraryRail;
   const railOwner = useMemo(() => ({}), [reads.account]);
   useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
-  const libraryColumns = useLibraryColumnPreferences(reads.account, true);
+  const libraryColumns = useLibraryColumnPreferences(reads.account, true, true);
   const mutation = useLiteratureMutation();
   const lifecycleVisit = useLibraryLifecycleVisit(reads.account, params.toString());
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
@@ -429,7 +429,7 @@ export default function LibraryPage() {
     submit,
     openItem: selectItem,
   });
-  const noteScope = JSON.stringify([
+  const rowMetadataScope = JSON.stringify([
     reads.account,
     query,
     cursor,
@@ -439,25 +439,35 @@ export default function LibraryPage() {
     readingStatus,
     ...(trash ? ['deleted'] : []),
   ]);
-  const noteState = useRef({ scope: noteScope, account: reads.account, ready: listReady, blocked: busy, items });
-  noteState.current = {
-    scope: noteScope,
+  const rowMetadataState = useRef({
+    scope: rowMetadataScope,
+    account: reads.account,
+    ready: listReady,
+    blocked: busy,
+    items,
+  });
+  rowMetadataState.current = {
+    scope: rowMetadataScope,
     account: reads.account,
     ready: listReady,
     blocked: busy || Boolean(visibleEditor),
     items,
   };
-  const commitNote = useCallback(
-    async (command: LibraryNoteCommand, scope: string): Promise<LiteratureReceipt> => {
-      const current = noteState.current;
+  const commitRowMetadata = useCallback(
+    async (
+      command: Extract<LiteratureCommand, { kind: 'edit-metadata' }>,
+      scope: string
+    ): Promise<LiteratureReceipt> => {
+      const current = rowMetadataState.current;
       if (scope !== current.scope || current.account !== getRendererAccountScopeToken())
-        throw new Error('Library note scope changed');
+        throw new Error('Library row metadata scope changed');
       const owner = mutation.controller.getSnapshot();
       if (owner.pending) {
         if (literatureValueIdentity(owner.pending) !== literatureValueIdentity(command))
           throw new Error('Another Library operation is pending');
         const receipt = await retryPendingMutation();
-        if (receipt.schema !== 'x-science.literature-receipt.v1') throw new Error('Library note receipt changed');
+        if (receipt.schema !== 'x-science.literature-receipt.v1')
+          throw new Error('Library row metadata receipt changed');
         return receipt;
       }
       const item = current.items.find((row) => row.id === command.item_id);
@@ -468,14 +478,17 @@ export default function LibraryPage() {
         item.deleted ||
         item.metadata_revision !== command.expected_revision
       )
-        throw new Error('Library note base is no longer current');
+        throw new Error('Library row metadata base is no longer current');
       return submit(command);
     },
     [mutation.controller, retryPendingMutation, submit]
   );
-  const reloadNote = useCallback(
+  const reloadRowMetadata = useCallback(
     (scope: string) => {
-      if (scope !== noteState.current.scope || noteState.current.account !== getRendererAccountScopeToken())
+      if (
+        scope !== rowMetadataState.current.scope ||
+        rowMetadataState.current.account !== getRendererAccountScopeToken()
+      )
         return false;
       reads.refreshData();
       return true;
@@ -835,9 +848,9 @@ export default function LibraryPage() {
                   authors={libraryAuthors}
                   noteCell={(item) => (
                     <LibraryNoteControl
-                      key={JSON.stringify([noteScope, item.id])}
+                      key={JSON.stringify([rowMetadataScope, item.id])}
                       item={item}
-                      scope={noteScope}
+                      scope={rowMetadataScope}
                       readKey={reads.list.key}
                       readStatus={reads.list.status}
                       refreshing={reads.list.refreshing}
@@ -856,8 +869,26 @@ export default function LibraryPage() {
                           ? mutation.view.receipt
                           : undefined
                       }
-                      commit={commitNote}
-                      reload={reloadNote}
+                      commit={commitRowMetadata}
+                      reload={reloadRowMetadata}
+                    />
+                  )}
+                  ratingCell={(item) => (
+                    <LibraryRating
+                      key={JSON.stringify([rowMetadataScope, item.id])}
+                      item={item}
+                      account={reads.account}
+                      visible={listReady}
+                      disabled={busy || !listReady || Boolean(visibleEditor) || item.deleted}
+                      compact
+                      accessibleLabel={t('conversation.libraryRating.forPaper', { title: item.title })}
+                      submit={(command) => {
+                        if (command.kind !== 'edit-metadata') throw new Error('Expected Library row metadata command');
+                        return commitRowMetadata(command, rowMetadataScope);
+                      }}
+                      reload={() => {
+                        reloadRowMetadata(rowMetadataScope);
+                      }}
                     />
                   )}
                   statusCell={(item) => (

@@ -11,7 +11,9 @@ import {
   setRendererAccountOwner,
 } from '@/renderer/services/rendererAccountScope';
 import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
-import { renderWithI18n, type TestLanguage } from '../../i18nTestUtils';
+import { LIBRARY_COLUMN_PREFERENCES_SETTING } from '@/renderer/services/runtime/libraryColumnPreferences';
+import { DEFAULT_LIBRARY_COLUMN_PREFERENCES } from '@/common/adapter/libraryColumnPreferences';
+import { createTestI18n, renderWithI18n, type TestLanguage } from '../../i18nTestUtils';
 import { installLiteratureLocks } from '../conversation/literatureMutationLockFixtures';
 import { deferred, installCollectionHTTP, json, paper } from './libraryCollectionsFixtures';
 import '@arco-design/web-react/lib/_util/react-19-adapter';
@@ -23,16 +25,18 @@ const rated = (value: number, revision = 1) => ({
   metadata: { rating: value, opaque: 'Keep this value' },
   rating_view: { known: true, value },
 });
-async function mount(language: TestLanguage = 'en-US') {
+async function mount(language: TestLanguage = 'en-US', path = '/library?item=a') {
   await renderWithI18n(
-    <MemoryRouter initialEntries={['/library?item=a']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path='/library' element={<LibraryPage />} />
       </Routes>
     </MemoryRouter>,
     language
   );
-  return screen.findByRole('dialog', { name: 'Paper A' });
+  return path === '/library'
+    ? screen.findByRole('button', { name: 'Paper A' })
+    : screen.findByRole('dialog', { name: 'Paper A' });
 }
 
 describe('Library rating through the real Page/read/field-mutation owners', () => {
@@ -52,6 +56,78 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
+
+  it.each(['en-US', 'zh-CN'] as const)(
+    'enables, saves, reloads and clears inline Rating through the same owners in %s',
+    async (language) => {
+      const { t } = await createTestI18n(language);
+      let item = rated(2);
+      let columns: unknown = DEFAULT_LIBRARY_COLUMN_PREFERENCES;
+      const settings: unknown[] = [];
+      const writes: Record<string, unknown>[] = [];
+      installCollectionHTTP({
+        collections: () => [],
+        items: () => [item],
+        detail: () => item,
+        intercept: (url, init) => {
+          if (url.pathname === '/api/settings/client') {
+            if ((init.method ?? 'GET') === 'GET') return json({ [LIBRARY_COLUMN_PREFERENCES_SETTING]: columns });
+            columns = JSON.parse(String(init.body))[LIBRARY_COLUMN_PREFERENCES_SETTING];
+            settings.push(columns);
+            return json({ success: true });
+          }
+          if (init.method !== 'PATCH') return undefined;
+          const body = JSON.parse(String(init.body));
+          writes.push(body);
+          item = rated(body.metadata_patch.set.rating, item.metadata_revision + 1);
+          return json({ schema: 'x-science.literature-receipt.v1', operation_id: body.operation_id, item });
+        },
+      });
+      await mount(language, '/library');
+      expect(settings).toEqual([]);
+      const label = t('conversation.libraryRating.forPaper', { title: 'Paper A' });
+      expect(screen.queryByRole('group', { name: label })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: t('conversation.libraryTable.customize') }));
+      const menu = await screen.findByRole('dialog', { name: t('conversation.libraryTable.customize') });
+      const show = await within(menu).findByRole('button', {
+        name: t('conversation.libraryTable.showColumn', { column: language === 'en-US' ? 'Rating' : '评分' }),
+      });
+      await waitFor(() => expect(show).toBeEnabled());
+      await userEvent.setup().click(show);
+      await waitFor(() => expect(settings).toHaveLength(1));
+      expect(columns).toEqual({
+        version: 3,
+        order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
+        visible: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'rating'],
+      });
+      fireEvent.click(within(menu).getByRole('button', { name: t('conversation.libraryTable.close') }));
+      const stars = () => within(screen.getByRole('group', { name: label }));
+      const five = language === 'en-US' ? '5 stars' : '5 星';
+      await userEvent.setup().click(await stars().findByRole('button', { name: five }));
+      await waitFor(() => expect(stars().getByRole('button', { name: five })).toBeEnabled());
+      expect(writes).toHaveLength(1);
+      expect(writes[0]).toEqual({
+        operation_id: expect.any(String),
+        expected_revision: 1,
+        metadata_patch: { set: { rating: 5 } },
+      });
+      expect(screen.queryByRole('dialog', { name: 'Paper A' })).toBeNull();
+      cleanup();
+      await mount(language, '/library');
+      await waitFor(() => expect(stars().getByRole('button', { name: five })).toHaveAttribute('aria-pressed', 'true'));
+      expect(settings).toHaveLength(1);
+      await userEvent.setup().click(stars().getByRole('button', { name: five }));
+      await waitFor(() => expect(stars().getByRole('button', { name: five })).toBeEnabled());
+      expect(writes).toHaveLength(2);
+      expect(writes[1]).toEqual({
+        operation_id: expect.any(String),
+        expected_revision: 2,
+        metadata_patch: { set: { rating: 0 } },
+      });
+      expect(writes[1].operation_id).not.toBe(writes[0].operation_id);
+      expect(item.metadata.opaque).toBe('Keep this value');
+    }
+  );
 
   it.each(['en-US', 'zh-CN'] as const)(
     'writes and clears real stars with a single field patch in %s',
@@ -156,6 +232,61 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
     await act(async () => readback.resolve(json(saved)));
     await waitFor(() => expect(within(group).getByRole('button', { name: '4 stars' })).toBeEnabled());
     expect(within(group).getByRole('button', { name: '4 stars' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('retries an uncertain inline write with the original operation and waits for the canonical list readback', async () => {
+    let item = rated(1);
+    let holdList = false;
+    const readback = deferred<Response>();
+    const listRequested = deferred<void>();
+    const writes: string[] = [];
+    releases.push(() => readback.resolve(json({ schema: 'x-science.literature-page.v1', items: [item] })));
+    installCollectionHTTP({
+      collections: () => [],
+      items: () => [item],
+      detail: () => item,
+      intercept: (url, init) => {
+        if (url.pathname === '/api/settings/client')
+          return json({
+            [LIBRARY_COLUMN_PREFERENCES_SETTING]: {
+              version: 3,
+              order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
+              visible: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'rating'],
+            },
+          });
+        if (url.pathname === '/api/literature/items' && holdList) {
+          listRequested.resolve();
+          return readback.promise;
+        }
+        if (init.method !== 'PATCH') return undefined;
+        writes.push(String(init.body));
+        if (writes.length === 1) return json({ code: 'LITERATURE_INTERNAL' }, 503);
+        const body = JSON.parse(String(init.body));
+        item = rated(body.metadata_patch.set.rating, 2);
+        holdList = true;
+        return json({ schema: 'x-science.literature-receipt.v1', operation_id: body.operation_id, item });
+      },
+    });
+    await mount('en-US', '/library');
+    const stars = () => within(screen.getByRole('group', { name: 'Rating for Paper A' }));
+    const four = await stars().findByRole('button', { name: '4 stars' });
+    await waitFor(() => expect(four).toBeEnabled());
+    await userEvent.setup().click(four);
+    await screen.findByText('Could not confirm the rating. Check the operation above before retrying.');
+    const controller = getLiteratureMutationController(getRendererAccountOwnerId());
+    expect(controller.getSnapshot().pending?.operation_id).toBe(JSON.parse(writes[0]).operation_id);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await act(async () => {
+      await listRequested.promise;
+    });
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toBe(writes[0]);
+    expect(stars().getByRole('button', { name: '4 stars' })).toBeDisabled();
+    await act(async () => readback.resolve(json({ schema: 'x-science.literature-page.v1', items: [item] })));
+    await waitFor(() => expect(stars().getByRole('button', { name: '4 stars' })).toBeEnabled());
+    expect(stars().getByRole('button', { name: '4 stars' })).toHaveAttribute('aria-pressed', 'true');
+    expect(writes).toHaveLength(2);
+    expect(screen.queryByRole('dialog', { name: 'Paper A' })).toBeNull();
   });
 
   it('keeps account changes fenced from a late original rating ACK and rejects malformed read-only views', async () => {

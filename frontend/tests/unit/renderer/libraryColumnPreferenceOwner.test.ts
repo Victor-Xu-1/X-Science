@@ -22,8 +22,51 @@ const withNotes = {
   order: ['readingStatus', 'notes', 'doi', 'year', 'authors', 'attachments'],
   visible: ['readingStatus', 'notes', 'year'],
 } as const;
+const withRating = {
+  version: 3,
+  order: ['readingStatus', 'rating', 'notes', 'doi', 'year', 'authors', 'attachments'],
+  visible: ['rating', 'notes', 'year'],
+} as const;
 
 describe('Library column preference view owner', () => {
+  it('preserves a received V3 Rating layout while a Notes-capable view changes or resets its subset', async () => {
+    const save = vi.fn(async (_value: unknown, _signal: AbortSignal) => {});
+    const owner = new LibraryColumnPreferenceOwner({ load: async () => withRating, save }, () => true, true);
+    owner.start();
+    await tick();
+    expect(owner.getSnapshot().status).toBe('ready');
+    expect(save).not.toHaveBeenCalled();
+    const notes = owner.getSnapshot().notesPreferences!;
+    expect(notes.version).toBe(2);
+    expect(notes.order).not.toContain('rating');
+    owner.change({ ...notes, visible: ['readingStatus', 'year'] });
+    await tick();
+    expect(save.mock.calls[0][0]).toEqual({ ...withRating, visible: ['readingStatus', 'rating', 'year'] });
+    owner.reset();
+    await tick();
+    expect(save.mock.calls[1][0]).toEqual({
+      version: 3,
+      order: ['readingStatus', 'rating', 'year', 'authors', 'doi', 'attachments', 'notes'],
+      visible: ['readingStatus', 'rating', 'year', 'authors', 'attachments'],
+    });
+    owner.dispose();
+  });
+
+  it('does not persist an upgrade on read and promotes a legacy layout only after an explicit Rating change', async () => {
+    const save = vi.fn(async (_value: unknown, _signal: AbortSignal) => {});
+    const owner = new LibraryColumnPreferenceOwner({ load: async () => withNotes, save }, () => true, true, true);
+    owner.start();
+    await tick();
+    const projected = owner.getSnapshot().ratingPreferences!;
+    expect(projected).toEqual({ ...withNotes, version: 3, order: [...withNotes.order, 'rating'] });
+    expect(save).not.toHaveBeenCalled();
+    owner.change({ ...projected, visible: [...projected.visible, 'rating'] });
+    await tick();
+    expect(save.mock.calls[0][0]).toEqual({ ...projected, visible: ['readingStatus', 'notes', 'year', 'rating'] });
+    expect(save).toHaveBeenCalledTimes(1);
+    owner.dispose();
+  });
+
   it('V2 reader preserves the complete Notes layout through five-column changes and reset', async () => {
     const save = vi.fn(async (_value: unknown, _signal: AbortSignal) => {});
     const owner = new LibraryColumnPreferenceOwner({ load: async () => withNotes, save }, () => true);
