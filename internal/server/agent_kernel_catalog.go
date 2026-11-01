@@ -11,13 +11,10 @@ import (
 )
 
 func (s *Server) agentKernelToolSchemas(identity *agentKernelContext, allowed map[string]struct{}) []agentruntime.ToolSchema {
-	schemas := []agentruntime.ToolSchema{}
-	if s != nil && s.workspaceStore != nil && s.transcriptStore != nil && agentKernelToolAllowed(listPDFAnnotationsToolName, allowed) {
-		schemas = append(schemas, agentPDFAnnotationListToolSchema())
-	}
 	if identity == nil {
-		return schemas
+		return nil
 	}
+	schemas := []agentruntime.ToolSchema{}
 	if s.kernelManager != nil && s.kernelManager.ManagedEnvironmentSupervisorReady() {
 		for _, schema := range agentEnvironmentManagementToolSchemas() {
 			if agentKernelToolAllowed(schema.Name, allowed) {

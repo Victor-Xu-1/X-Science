@@ -19,20 +19,17 @@ import (
 )
 
 func TestAgentPDFAnnotationListHasReadOnlyGovernedExposure(t *testing.T) {
-	f := newAgentSaveArtifactsFixture(t)
+	f, _, gateway := pdfAnnotationGatewayForTest(t)
 	const name = "list_pdf_annotations"
-	schemas := f.server.agentKernelToolSchemas(f.identity, map[string]struct{}{name: {}})
+	ctx := withTranscriptRunnerChatRun(t.Context(), gateway.taskRun)
+	schemas := f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{name}, true, f.stream.FrameID)
 	if !agentToolSchemasContain(schemas, name) {
 		t.Fatal("admitted PDF annotation reader is absent from the native catalog")
 	}
-	if !agentToolSchemasContain(f.server.agentKernelToolSchemas(nil, map[string]struct{}{name: {}}), name) {
-		t.Fatal("read-only PDF metadata tool depends on a language kernel")
+	if f.server.kernelManager != nil || agentToolSchemasContain(f.server.agentKernelToolSchemas(nil, map[string]struct{}{name: {}}), name) {
+		t.Fatal("read-only admission became dependent on, or leaked from, the language kernel catalog")
 	}
-	production := f.server.agentRuntimeToolSchemasWithContextOptions(t.Context(), []string{name}, true, f.stream.FrameID)
-	if !agentToolSchemasContain(partitionAgentRuntimeToolSchemasForModel(production), name) {
-		t.Fatal("production runtime/model schema construction dropped the no-kernel reader")
-	}
-	if agentToolSchemasContain(f.server.agentKernelToolSchemas(f.identity, map[string]struct{}{"read_file": {}}), name) {
+	if agentToolSchemasContain(f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{"read_file"}, true, f.stream.FrameID), name) {
 		t.Fatal("PDF annotation reader escaped the original allowed-tools intersection")
 	}
 	if !harnesscontract.ModelToolAllowed(name) || agentRuntimeToolNeedsApproval(name) ||
@@ -48,6 +45,37 @@ func TestAgentPDFAnnotationListHasReadOnlyGovernedExposure(t *testing.T) {
 		if schema.Name == name && !agentRuntimeToolSchemaHasCapability(schema, "read-only") {
 			t.Fatal("PDF metadata reader lacks trusted read-only capability")
 		}
+	}
+}
+
+func TestAgentPDFAnnotationListFactoryRequiresActualAdmittedReading(t *testing.T) {
+	f, reading, _ := newPDFReadingFixture(t)
+	gateway := admitPDFAnnotationGatewayForTest(t, f, nil)
+	ctx := withTranscriptRunnerChatRun(t.Context(), gateway.taskRun)
+	const name = "list_pdf_annotations"
+	visible := func(ctx context.Context) bool {
+		return agentToolSchemasContain(partitionAgentRuntimeToolSchemasForModel(
+			f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{name}, true, f.stream.FrameID)), name)
+	}
+	if visible(t.Context()) || visible(ctx) {
+		t.Fatal("live UI bindings or missing run context advertised an unadmitted PDF capability")
+	}
+	response := p3JSONRequest(t, f.server, http.MethodPost, "/api/conversations/"+f.stream.FrameID+"/messages", webConversationSendInput{
+		Content: "Read this explicitly selected synthetic PDF on the next input.", LoadingID: uuid.NewString(), ReadingContext: readingSelectionForTest(reading),
+	}, f.stream.OwnerID)
+	if response.Code != http.StatusAccepted || mapValue(p3DecodeObject(t, response)["input_receipt"])["state"] != "queued" {
+		t.Fatalf("real Reading queue HTTP%d %s", response.Code, response.Body.String())
+	}
+	if visible(ctx) {
+		t.Fatal("a newer queued Reading selection changed the active task's available tools")
+	}
+	finishSkillControlInput(t, f)
+	if delivered, err := f.server.recoverCompatibilityQueuedMessages(); err != nil || delivered != 1 {
+		t.Fatalf("deliver accepted Reading input=%d err=%v", delivered, err)
+	}
+	next := claimSkillControlInput(t, f)
+	if !visible(withTranscriptRunnerChatRun(t.Context(), next)) {
+		t.Fatal("the same Reading input stayed hidden after actual admission")
 	}
 }
 
@@ -197,6 +225,10 @@ func TestAgentPDFAnnotationListRequiresDocumentForMultipleBindings(t *testing.T)
 		t.Fatalf("second binding HTTP%d %s", response.Code, response.Body.String())
 	}
 	gateway := admitPDFAnnotationGatewayForTest(t, f, readingSelectionForTest(reading))
+	ctx := withTranscriptRunnerChatRun(t.Context(), gateway.taskRun)
+	if !agentToolSchemasContain(f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{"list_pdf_annotations"}, true, f.stream.FrameID), "list_pdf_annotations") {
+		t.Fatal("multiple admitted artifact PDFs hid their supported reader")
+	}
 	_, err = gateway.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "ambiguous"}, "list_pdf_annotations", map[string]any{})
 	assertPDFAnnotationErrorForTest(t, err, "invalid_arguments")
 	value, err := gateway.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "explicit-binding"}, "list_pdf_annotations", map[string]any{"documentId": reading.Bindings[0].BindingID})
@@ -219,8 +251,24 @@ func TestAgentPDFAnnotationListLibrarySourceIsTypedUnsupported(t *testing.T) {
 		t.Fatalf("Library Reading binding HTTP%d %s", response.Code, response.Body.String())
 	}
 	gateway := admitPDFAnnotationGatewayForTest(t, f, readingSelectionForTest(reading))
+	ctx := withTranscriptRunnerChatRun(t.Context(), gateway.taskRun)
+	if agentToolSchemasContain(f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{"list_pdf_annotations"}, true, f.stream.FrameID), "list_pdf_annotations") {
+		t.Fatal("an unsupported-only source was advertised as an available annotation reader")
+	}
 	_, err := gateway.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "unsupported-library-source"}, "list_pdf_annotations", map[string]any{})
 	assertPDFAnnotationErrorForTest(t, err, "unsupported_source")
+	finishSkillControlInput(t, f)
+	response = p3JSONRequest(t, f.server, http.MethodPost, readingPathForTest(f)+"/link", pdfReadingMutationBody{Schema: "x-science.pdf-reading-link.v1", OperationID: uuid.NewString(), PDFReadingExpected: readingExpectedForTest(reading), Sources: []transcriptstore.PDFReadingSource{{ArtifactID: bound.ArtifactID, VersionID: bound.VersionID}}}, f.stream.OwnerID)
+	if response.Code != http.StatusOK || json.Unmarshal(response.Body.Bytes(), &reading) != nil {
+		t.Fatalf("mixed Reading binding HTTP%d %s", response.Code, response.Body.String())
+	}
+	mixed := admitPDFAnnotationGatewayForTest(t, f, readingSelectionForTest(reading))
+	ctx = withTranscriptRunnerChatRun(t.Context(), mixed.taskRun)
+	if !agentToolSchemasContain(f.server.agentRuntimeToolSchemasWithContextOptions(ctx, []string{"list_pdf_annotations"}, true, f.stream.FrameID), "list_pdf_annotations") {
+		t.Fatal("an unsupported first binding hid another admitted artifact PDF")
+	}
+	_, err = mixed.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "mixed-source-ambiguous"}, "list_pdf_annotations", map[string]any{})
+	assertPDFAnnotationErrorForTest(t, err, "invalid_arguments")
 }
 
 func TestAgentPDFAnnotationListRejectsLateReadAfterClaimRetirementOrCancel(t *testing.T) {

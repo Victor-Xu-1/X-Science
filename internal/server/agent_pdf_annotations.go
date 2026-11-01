@@ -25,6 +25,12 @@ type pdfAnnotationAuthority struct {
 	scope   string
 }
 
+type pdfAnnotationInputAuthority struct {
+	access   workspace.KernelFrameAccess
+	input    *transcriptstore.ClaimedInputContext
+	snapshot *transcriptstore.PDFReadingSnapshot
+}
+
 type pdfAnnotationCursor struct {
 	Version int    `json:"v"`
 	Scope   string `json:"scope"`
@@ -38,6 +44,29 @@ func agentPDFAnnotationListToolSchema() agentruntime.ToolSchema {
 			"documentId": map[string]any{"type": "string", "minLength": 1, "maxLength": 512, "description": "An exact binding ID from this task's admitted PDF Reading snapshot."},
 			"cursor":     map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "The opaque nextCursor returned for this same task input and document."},
 		}}}
+}
+
+// A backend store is not an available PDF capability by itself. Advertise this
+// reader only for a live task whose actual admitted input has a supported PDF.
+func (s *Server) agentPDFAnnotationToolSchemas(ctx context.Context, allowed map[string]struct{}) []agentruntime.ToolSchema {
+	if ctx == nil || !agentKernelToolAllowed(listPDFAnnotationsToolName, allowed) {
+		return nil
+	}
+	run, ok := transcriptRunnerChatRunFromContext(ctx)
+	if !ok {
+		return nil
+	}
+	gateway := serverAgentRuntimeToolGateway{server: s, taskRun: run}
+	admitted, err := gateway.pdfAnnotationInput(ctx)
+	if err != nil {
+		return nil
+	}
+	for _, binding := range admitted.snapshot.Bindings {
+		if binding.SourceKind == "artifact-version" {
+			return []agentruntime.ToolSchema{agentPDFAnnotationListToolSchema()}
+		}
+	}
+	return nil
 }
 
 func parsePDFAnnotationListInput(input map[string]any) (string, string, error) {
@@ -65,8 +94,8 @@ func parsePDFAnnotationListInput(input map[string]any) (string, string, error) {
 	return document, cursor, nil
 }
 
-func (g serverAgentRuntimeToolGateway) pdfAnnotationAuthority(ctx context.Context, document string) (pdfAnnotationAuthority, error) {
-	var authority pdfAnnotationAuthority
+func (g serverAgentRuntimeToolGateway) pdfAnnotationInput(ctx context.Context) (pdfAnnotationInputAuthority, error) {
+	var authority pdfAnnotationInputAuthority
 	if ctx == nil || g.server == nil || g.server.workspaceStore == nil || g.server.transcriptStore == nil || g.taskRun == nil || g.taskRun.Transcript == nil {
 		return authority, kernelruntime.NewHostCallError("reading_context_unavailable", "A live task with an admitted PDF Reading input is required")
 	}
@@ -110,6 +139,17 @@ func (g serverAgentRuntimeToolGateway) pdfAnnotationAuthority(ctx context.Contex
 	if snapshot == nil || snapshot.Scope != expected {
 		return authority, kernelruntime.NewHostCallError("permission_denied", "Admitted PDF Reading scope changed")
 	}
+	return pdfAnnotationInputAuthority{access: access, input: input, snapshot: snapshot}, nil
+}
+
+func (g serverAgentRuntimeToolGateway) pdfAnnotationAuthority(ctx context.Context, document string) (pdfAnnotationAuthority, error) {
+	var authority pdfAnnotationAuthority
+	admitted, err := g.pdfAnnotationInput(ctx)
+	if err != nil {
+		return authority, err
+	}
+	access, input, snapshot := admitted.access, admitted.input, admitted.snapshot
+	stream, claim := g.taskRun.Transcript.Stream, g.taskRun.Transcript.Claim
 	if document == "" {
 		if len(snapshot.Bindings) != 1 {
 			return authority, kernelruntime.NewHostCallError("invalid_arguments", "Choose documentId when more than one PDF Reading binding was admitted")
@@ -132,7 +172,7 @@ func (g serverAgentRuntimeToolGateway) pdfAnnotationAuthority(ctx context.Contex
 	authority.source = workspace.ArtifactAnnotationSource{OwnerID: access.UserID, ProjectID: access.Frame.ProjectID,
 		ArtifactID: sourceBinding.ArtifactID, VersionID: sourceBinding.VersionID, Checksum: sourceBinding.Checksum, SizeBytes: sourceBinding.SizeBytes}
 	// This is a cursor consistency fingerprint, never a capability or claim token.
-	raw, err := json.Marshal([]any{stream.UID, stream.OwnerID, stream.SessionID, stream.Epoch, expected, claim.RunnerID,
+	raw, err := json.Marshal([]any{stream.UID, stream.OwnerID, stream.SessionID, stream.Epoch, snapshot.Scope, claim.RunnerID,
 		claim.Attempt, claim.ClaimedInputRevision, input.EventID, input.PublicationSeq, input.Association, snapshot, sourceBinding.BindingID})
 	if err != nil {
 		return authority, err
