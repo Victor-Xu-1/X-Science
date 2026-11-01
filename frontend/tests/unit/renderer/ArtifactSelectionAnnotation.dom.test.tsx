@@ -390,3 +390,36 @@ describe('Artifact selection annotation', () => {
     );
   });
 });
+
+describe('canonical annotation note boundary', () => {
+  it.each(['en-US', 'zh-CN'] as const)(
+    'retains an over-limit draft and saves the exact 4000 UTF16-unit note in %s',
+    async (language) => {
+      createAnnotation.mockResolvedValue({ id: 'boundary-note', text: 'recorded' });
+      const view = await renderWithI18n(
+        <ArtifactSelectionAnnotationModal
+          artifactId='artifact-1'
+          versionId='version-1'
+          selection={selection}
+          onCancel={vi.fn()}
+          onCreated={vi.fn()}
+        />,
+        language
+      );
+      const field = screen.getByRole('textbox', {
+        name: view.i18n.t('preview.selectionAnnotation.content'),
+      }) as HTMLTextAreaElement;
+      const note = (language === 'en-US' ? 'A' : '界').repeat(3998) + '🧪';
+      fireEvent.change(field, { target: { value: note + 'x' } });
+      expect(field.value.length).toBe(4001);
+      expect(field.value.endsWith('x')).toBe(true);
+      expect(screen.getByRole('button', { name: view.i18n.t('preview.artifactAnnotations.add') })).toBeDisabled();
+      expect(createAnnotation).not.toHaveBeenCalled();
+      fireEvent.change(field, { target: { value: note } });
+      expect(field.value.length).toBe(4000);
+      fireEvent.click(screen.getByRole('button', { name: view.i18n.t('preview.artifactAnnotations.add') }));
+      await waitFor(() => expect(createAnnotation).toHaveBeenCalledTimes(1));
+      expect(createAnnotation.mock.calls[0][2].text).toBe(note);
+    }
+  );
+});

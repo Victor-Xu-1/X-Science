@@ -1,5 +1,5 @@
 import { ConfigProvider } from '@arco-design/web-react';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -512,4 +512,38 @@ describe('Artifact annotation and verification panels', () => {
     expect(screen.getByRole('button', { name: 'Refine annotation ①' })).toBeInTheDocument();
     expect(screen.queryByText('版本批注')).not.toBeInTheDocument();
   });
+  it.each([
+    { language: 'en-US' as const, editing: false },
+    { language: 'zh-CN' as const, editing: true },
+  ])(
+    'preserves an over-limit note and submits the exact boundary through the $language canonical editor',
+    async ({ language, editing }) => {
+      const view = await render(<ArtifactAnnotationsPanel artifactId='artifact-1' versionId='version-1' />, language);
+      await screen.findByText(annotation.text);
+      mocks.updateAnnotation.mockResolvedValue(annotation);
+      if (editing)
+        fireEvent.click(
+          screen.getByRole('button', { name: view.i18n.t('preview.artifactAnnotations.editNamed', { label: '①' }) })
+        );
+      else fireEvent.click(screen.getByRole('button', { name: view.i18n.t('preview.artifactAnnotations.add') }));
+      const dialog = screen.getByRole('dialog');
+      const field = within(dialog).getByRole('textbox', {
+        name: view.i18n.t('preview.artifactAnnotations.fields.content'),
+      }) as HTMLTextAreaElement;
+      const text = (editing ? '界' : 'A').repeat(3998) + '🧪';
+      fireEvent.change(field, { target: { value: text + 'x' } });
+      expect(field.value.length).toBe(4001);
+      const save = within(dialog).getByRole('button', {
+        name: view.i18n.t(editing ? 'common.save' : 'preview.artifactAnnotations.add'),
+      });
+      expect(save).toBeDisabled();
+      expect(mocks.createAnnotation).not.toHaveBeenCalled();
+      expect(mocks.updateAnnotation).not.toHaveBeenCalled();
+      fireEvent.change(field, { target: { value: text } });
+      fireEvent.click(save);
+      await waitFor(() => expect(editing ? mocks.updateAnnotation : mocks.createAnnotation).toHaveBeenCalledTimes(1));
+      if (editing) expect(mocks.updateAnnotation).toHaveBeenCalledWith(annotation.id, { text });
+      else expect(mocks.createAnnotation.mock.calls[0][2].text).toBe(text);
+    }
+  );
 });

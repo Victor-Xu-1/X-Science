@@ -1,3 +1,5 @@
+import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/common/config/annotationLimits';
+import { Input } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type XSciencePdfArtifactViewer from '../artifact/XSciencePdfArtifactViewer';
@@ -28,7 +30,8 @@ export function LibraryPdfAnnotations({
   const [reveal, setReveal] = useState<{ page: number; id: string }>();
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selection || !note.trim() || store.busy || store.loading || store.failed || !store.checksum) return;
+    if (!selection || !isAnnotationNoteSaveable(note) || store.busy || store.loading || store.failed || !store.checksum)
+      return;
     setFailed(false);
     try {
       if (await store.create(annotationInputFromCanvasSelection(selection, note.trim()))) {
@@ -83,20 +86,23 @@ export function LibraryPdfAnnotations({
             </blockquote>
             <label>
               {t('preview.selectionAnnotation.content')}
-              <textarea
+              <Input.TextArea
                 aria-label={t('preview.selectionAnnotation.content')}
                 value={note}
-                maxLength={1000}
+                maxLength={{ length: ANNOTATION_NOTE_MAX_UTF16_UNITS, errorOnly: true }}
+                showWordLimit
                 rows={2}
                 disabled={store.busy}
-                className='w-full rounded-8px border border-base bg-transparent p-8px text-12px'
-                onChange={(event) => setNote(event.target.value)}
+                className='w-full text-12px'
+                onChange={setNote}
               />
             </label>
             <div className='flex gap-8px'>
               <button
                 type='submit'
-                disabled={store.loading || store.busy || store.failed || !store.checksum || !note.trim()}
+                disabled={
+                  store.loading || store.busy || store.failed || !store.checksum || !isAnnotationNoteSaveable(note)
+                }
               >
                 {t('preview.artifactAnnotations.add')}
               </button>
