@@ -45,6 +45,10 @@ func (s *Server) handleLiterature(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	parts := strings.Split(strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/literature"), "/"), "/")
+	if len(parts) == 1 && parts[0] == "metadata-lookup" {
+		s.handleLiteratureMetadataLookup(w, r)
+		return
+	}
 	if len(parts) == 1 && parts[0] == "related" && r.Method == http.MethodPost {
 		s.handleLiteratureRelated(w, r, owner)
 		return

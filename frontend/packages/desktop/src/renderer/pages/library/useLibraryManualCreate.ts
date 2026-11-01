@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { LiteratureCommand, LiteratureReceipt } from '@/common/adapter/literatureLibrary';
+import type { LiteratureMetadataDraft } from '@/common/adapter/literatureMetadataLookup';
 import { projectLibraryScalars } from '@/renderer/components/chat/SendBox/reading/libraryBibliographicDraft';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { LiteratureMutationView } from '@/renderer/services/runtime/LiteratureMutationController';
 import { isLibraryReadFresh, type LibraryReadPhase } from './useLibraryWorkbench';
 
 export type LibraryManualCreateProps = {
+  initialDraft?: LiteratureMetadataDraft;
   account: string;
   projectId: string;
   collection?: { id: string; revision: number };
@@ -22,6 +24,7 @@ export type LibraryManualCreateProps = {
 
 /** Local draft/feedback only. The Page's account controller owns every write and retry. */
 export function useLibraryManualCreate({
+  initialDraft,
   account,
   projectId,
   collection,
@@ -33,8 +36,17 @@ export function useLibraryManualCreate({
   close,
   created,
 }: LibraryManualCreateProps) {
-  const [basic, setBasic] = useState({ title: '', authors: '', year: '', doi: '' });
-  const [scalars, setScalars] = useState(() => projectLibraryScalars({}));
+  const [initial] = useState(() => ({
+    basic: {
+      title: initialDraft?.title ?? '',
+      authors: initialDraft ? [...initialDraft.metadata.authors] : '',
+      year: initialDraft?.metadata.year ?? '',
+      doi: initialDraft?.doi ?? '',
+    },
+    scalars: projectLibraryScalars(initialDraft?.metadata ?? {}),
+  }));
+  const [basic, setBasic] = useState(initial.basic);
+  const [scalars, setScalars] = useState(initial.scalars);
   const [failure, setFailure] = useState<'trash' | 'rejected' | undefined>();
   const [discard, setDiscard] = useState(false);
   const destination = useRef({ projectId, collectionId: collection?.id }).current;
@@ -55,7 +67,13 @@ export function useLibraryManualCreate({
     (!collectionRead || !isLibraryReadFresh(collectionRead) || collection?.id !== destination.collectionId)
   );
   const locked = Boolean(view.mutating || view.pending || view.error === 'storage' || destinationUnavailable);
-  const dirty = Object.values(basic).some(Boolean) || Object.values(scalars).some(Boolean);
+  const dirty =
+    Object.entries(basic).some(([key, value]) => {
+      const before = initial.basic[key as keyof typeof basic];
+      return Array.isArray(value) && Array.isArray(before)
+        ? value.length !== before.length || value.some((name, index) => name !== before[index])
+        : value !== before;
+    }) || Object.entries(scalars).some(([key, value]) => value !== initial.scalars[key as keyof typeof scalars]);
   const requestClose = () => {
     if (!current() || view.mutating) return;
     // Closing an uncertain view never discards the original durable operation.
@@ -105,7 +123,10 @@ export function useLibraryManualCreate({
             .filter(([, value]) => value.trim())
             .map(([key, value]) => [key, value.trim()])
         );
-        if (basic.authors.trim())
+        // Seeded creators remain separate values throughout editing. A literal
+        // semicolon in one name is never interpreted as another creator.
+        if (Array.isArray(basic.authors)) metadata.authors = basic.authors.filter((name) => name.trim());
+        else if (basic.authors.trim())
           metadata.authors = basic.authors
             .split(';')
             .map((name) => name.trim())
