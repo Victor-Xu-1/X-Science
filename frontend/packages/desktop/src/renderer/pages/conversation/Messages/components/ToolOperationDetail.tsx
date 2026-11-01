@@ -13,7 +13,6 @@ import MessageToolPublicDetail from './MessageToolPublicDetail';
 import MessageWebResearchSources from './MessageWebResearchSources';
 import ToolOperationDiffs from './ToolOperationDiffs';
 import ToolStatusIcon from './ToolStatusIcon';
-import TranscriptActivity from './TranscriptActivity';
 import type { TranscriptActivityState } from '../transcriptActivityModel';
 import { toolExecutionDisposition } from './toolExecutionDisposition';
 import { buildToolStepPublicPresentation, toolSourceUnavailable } from './toolStepSummaryModel';
@@ -102,11 +101,7 @@ const ToolOperationDetail: React.FC<{
         onClick={hasDetail ? disclosure.toggle : undefined}
       >
         <span className='tool-step-row__status' aria-hidden='true'>
-          {activity?.spinning ? (
-            <TranscriptActivity activity={activity} />
-          ) : (
-            <ToolStatusIcon status={presentationStatus} disposition={toolExecutionDisposition(item)} />
-          )}
+          <ToolStatusIcon status={presentationStatus} disposition={executionDisposition} />
         </span>
         <span
           className={`tool-step-row__label${expanded ? ' break-all' : ''}${
