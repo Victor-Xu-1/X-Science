@@ -322,7 +322,7 @@ func openRegularFile(path string) (*os.File, error) {
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return nil, errors.New("path is not a regular file")
 	}
-	return os.Open(path)
+	return openRegularFileReader(path, info)
 }
 
 type contextReader struct {
