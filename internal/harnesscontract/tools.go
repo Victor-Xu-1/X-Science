@@ -19,7 +19,7 @@ const (
 var rootModelTools = []string{
 	"ask_about_compute", "ask_user", "compute_details", "compute_provider",
 	"delete_host_files", "edit_file", "fetch_article_fulltext", "generate_plan",
-	"list_compute", "list_host_grants", "manage_environments", "manage_packages", "download_public_scientific_file",
+	"list_compute", "list_host_grants", "list_pdf_annotations", "manage_environments", "manage_packages", "download_public_scientific_file",
 	"python", "r", "read_file", "read_memory", "repl", "request_host_access",
 	"request_network_access", "save_artifacts", "search_memory", "search_skills",
 	"skill", "update_step_status", "wait_for_notification", "web_fetch", "web_search", "write_memory",
