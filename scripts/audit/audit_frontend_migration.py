@@ -131,6 +131,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureMetadataLookup.ts": "Validate the closed read-only DOI metadata draft and exact requested reference identity before the existing Library review/editor handoff, without adding a provider, persistence, execution or write authority.",
     "packages/desktop/src/common/adapter/literatureRating.ts": "Decode only the canonical read-only rating projection before opaque metadata can be rounded in JavaScript; retain original metadata field patches and immutable legacy receipt omission.",
     "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority.",
     "tests/unit/renderer/conversation/literatureMetadataCapacity.test.ts": "Verify future-size command and durable pending replay with bounded Unicode metadata, original identity, and unchanged invalid field-action rejection using synthetic input.",
@@ -734,9 +735,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "346f247941bfff8f1004745086f3a1eb3bbe8dc5d83d7ac0daf4330cb47833f5"
+APPROVED_ADAPTATION_FINGERPRINT = "f6c11dd967b347d5c89a30c0463fd3d58f2cde408fa5e39bf7f62f4e252f5f2b"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "173fbe6a9164afc46e9e49e73e53a49d29bca0f732035f0db33def26010041bc"
+APPROVED_ADDITION_FINGERPRINT = "4898d939a7a22df178d8acaa9d390a2f727837016f5e2919569f82835e4ba1d2"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

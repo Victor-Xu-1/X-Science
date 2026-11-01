@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "346f247941bfff8f1004745086f3a1eb3bbe8dc5d83d7ac0daf4330cb47833f5",
+  "adaptationFingerprintSHA256": "f6c11dd967b347d5c89a30c0463fd3d58f2cde408fa5e39bf7f62f4e252f5f2b",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "173fbe6a9164afc46e9e49e73e53a49d29bca0f732035f0db33def26010041bc",
+  "additionFingerprintSHA256": "4898d939a7a22df178d8acaa9d390a2f727837016f5e2919569f82835e4ba1d2",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1428
+    "addedFiles": 1432
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "fa6fbe4a75e073063d4c36c213ac167039866d7e149990c797909b65b6b7f551",
+      "targetSHA256": "bffc33e4e6cff627ecdc1540132515e5bbb2f48ae6ef8f2c46f0ecbc608d011a",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "c0dbcdcc0cea1fbe56d3431021d29e928f6fa90b8047107c04ea6779534d2aff",
+      "targetSHA256": "c328f22cee18e96a2a7fe66d4f77cac13a6f51a7bde4229d606a430c3046c716",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "d29e438cea5cdf8553b2e4fc095420332a6af07f133c08a8cbe9383b6b34eae5",
-      "bytes": 135420,
+      "targetSHA256": "10956dcee724c5bdda247cb14bca587049d6756f5f520592ee3c3e939b6e123d",
+      "bytes": 136401,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "f0b2eb08a6569865d3d3b2dbce28739a2c54ee01855474d529e2fea51c2e11cd",
-      "bytes": 128082,
+      "targetSHA256": "2259caa57f67920f4113e99026fa9e0408d0707bf731c06f49f8ceb644c4fe49",
+      "bytes": 129005,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "d3e62e2806316908d17770728a237e4012ca83ea6c90ff89cc0d2cabb1b8af91",
+      "sha256": "64a589370d183573f80849addd172581acd5adfc47a2216ca1beb7a42b556034",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7708,6 +7708,12 @@
       "sha256": "acb67689c269b6bbad6a9df6ebcef5cf36497d35a963c194cd095b83af6c208e",
       "bytes": 542,
       "reason": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority."
+    },
+    {
+      "path": "packages/desktop/src/common/adapter/literatureMetadataLookup.ts",
+      "sha256": "465e78d4c931b0698dd4b5ce06a6f187cc6a4c41e923856b56be53dd8b572a7c",
+      "bytes": 2348,
+      "reason": "Validate the closed read-only DOI metadata draft and exact requested reference identity before the existing Library review/editor handoff, without adding a provider, persistence, execution or write authority."
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureMetadataPatch.ts",
@@ -9973,8 +9979,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryAddMenu.tsx",
-      "sha256": "8624e600985ec3df1171d7a0a1b324a4179658c42efc1ebdb7fff98fbb0dcb6c",
-      "bytes": 2409,
+      "sha256": "b9191358d529ac51db08db2e0072d685fdddbb51601186a95b5497f1fe4ac59a",
+      "bytes": 2719,
       "reason": "Expose only connected manual reference creation and the original PDF chooser through the shared Library-local Arco menu dismissal and keyboard owner."
     },
     {
@@ -10050,6 +10056,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryDoiLookup.tsx",
+      "sha256": "8eea9b79e113f8bd1a1e76c25f73cca1d79713969af411000146daf31f07906a",
+      "bytes": 5027,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx",
       "sha256": "e6decc092c67eb319cefa9886ea2a638b149cc38ee1e4bd30ed6129ebf12afbb",
       "bytes": 10872,
@@ -10063,8 +10075,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryManualCreate.tsx",
-      "sha256": "36e4119fdae2b868cc5e9a7f84776639cbedd374dea143bdc7685320b1d19143",
-      "bytes": 5520,
+      "sha256": "838b81b313490466cf0ebe8776f44f739fef30003568e1b56c6df824a4833ae2",
+      "bytes": 11313,
       "reason": "Present one explicit manual reference form using the existing bibliographic fields, canonical reading tokens and WorkbenchModal, with truthful pending feedback and no attachment or external-provider substitution."
     },
     {
@@ -10087,8 +10099,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "ebc6ac6b48ff645973936f5edb0cc66bcf52cf190ddb8083c6cd4f554a144f9e",
-      "bytes": 43146,
+      "sha256": "dd5113c357f9c5f60b2285bb2189334d81e67fb2488769645e7816ace37d1b0e",
+      "bytes": 44144,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10369,8 +10381,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/useLibraryManualCreate.ts",
-      "sha256": "86c084362721d7b7ff2842aa8e024e24f93457c6cbb2a50c504fe2050a3cf069",
-      "bytes": 5843,
+      "sha256": "36a7a2a6d1b34bd59384f7cb6653150204a73c06e7652033c39df96e6fc172f3",
+      "bytes": 6868,
       "reason": "Own only the manual form draft and scoped receipt feedback; route one immutable creation and uncertain retry through the original account-wide Library mutation outbox without discarding an unknown write."
     },
     {
@@ -11487,6 +11499,12 @@
       "path": "packages/desktop/src/renderer/services/runtime/literatureLibrary.ts",
       "sha256": "64738868cf449d74a7ea1bb264656533bddb1ad6bf314a3c1d591038125defd0",
       "bytes": 8832,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/literatureMetadataLookup.ts",
+      "sha256": "1c72c31adafe49cfd4e4e274800e28ed53c46b45897ce9230d95879d9b234616",
+      "bytes": 754,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14268,6 +14286,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/library/LibraryDoiImport.dom.test.tsx",
+      "sha256": "fbe1c714815d7395368650258241167d03463b6a91bb3b9f1ec61e04b116b9b4",
+      "bytes": 18146,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/library/LibraryInbox.dom.test.tsx",
       "sha256": "ce414d1f93fb63658fd22d1c88b7cd054e4050ebe05f70a5a095aa045c240364",
       "bytes": 18422,
@@ -14293,8 +14317,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryManualCreate.dom.test.tsx",
-      "sha256": "1eb429221cb0c770f9bcc8f0827126eff2a42b209a2733fbabecb33eb7164c06",
-      "bytes": 14329,
+      "sha256": "3346eb20183ecd24e5c87280bdcd1aea2ea2ca466bd6bb069169ba8b8efe4c40",
+      "bytes": 15418,
       "reason": "Verify one-step manual creation, original-operation retry and refresh, project/collection placement, late-account fences, Trash conflict and real Add menu keyboard and PDF chooser behavior with synthetic owned inputs."
     },
     {
@@ -14383,8 +14407,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryReferenceExportScopes.dom.test.tsx",
-      "sha256": "92d35e08bf55dd31403910a2fbd30e697d94f6a451238362ec74e562caf7b957",
-      "bytes": 20021,
+      "sha256": "00925b62de3b5ab6ea33e52d92386af3c822c1ade8d1eabbbceb301765e6276d",
+      "bytes": 20042,
       "reason": "Verify all-matching exclusions, independent whole-scope reads, canonical title order, More Actions and stale scope availability/ABA fences in the actual Library Page without provider or research execution."
     },
     {

@@ -1,4 +1,23 @@
 {
+  "libraryDoi": {
+    "add": "从 DOI 添加",
+    "description": "查询文献信息，复核后再保存。全文 PDF 可稍后添加。",
+    "input": "DOI 或 doi.org 链接",
+    "find": "查询文献",
+    "searching": "正在查询…",
+    "invalid": "请输入 DOI 或 doi.org 链接。",
+    "notFound": "未找到此 DOI 对应的文献，请核对或手动添加。",
+    "rateLimited": "来源服务暂时限制查询，请稍后重试。",
+    "failed": "无法获取文献信息，请重试或手动添加。",
+    "review": "复核 DOI 文献",
+    "reviewDescription": "信息来自 Crossref。请复核后保存；此次不添加 PDF。",
+    "edit": "编辑信息",
+    "back": "返回复核",
+    "save": "保存文献",
+    "addAuthor": "添加作者",
+    "removeAuthor": "移除作者 {{index}}",
+    "fields": { "authors": "作者", "year": "年份", "doi": "DOI", "publication": "出版物" }
+  },
   "libraryInbox": {
     "description": "审阅发现的文献，再将其加入文献库。",
     "foundVia": "来源：{{provider}}",

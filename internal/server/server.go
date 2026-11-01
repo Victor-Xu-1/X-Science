@@ -266,6 +266,7 @@ type Server struct {
 	literatureRelatedOnce                 sync.Once
 	literatureRelated                     *literaturediscovery.Finder
 	publicationChecker                    *literaturediscovery.PublicationChecker
+	doiMetadataLookup                     *literaturediscovery.DOIMetadataLookup
 	speechClientForURL                    func(context.Context, string, *http.Client) (*http.Client, error)
 	localSpeechRuntime                    *localSpeechRuntime
 	webImageClientForURL                  func(context.Context, string, *http.Client) (*http.Client, error)
@@ -685,6 +686,9 @@ func New(options Options) *Server {
 	server.publicationChecker = literaturediscovery.NewPublicationChecker(func(ctx context.Context, rawURL string) (*http.Client, error) {
 		return server.publicSourceHTTPClient(ctx, rawURL, server.httpClient)
 	}, server.workspaceStore)
+	server.doiMetadataLookup = literaturediscovery.NewDOIMetadataLookup(func(ctx context.Context, rawURL string) (*http.Client, error) {
+		return server.publicSourceHTTPClient(ctx, rawURL, server.httpClient)
+	})
 	server.speechClientForURL = server.publicSourceHTTPClient
 	server.webImageClientForURL = server.publicSourceHTTPClient
 	server.bindIMRecoveryNoticeValidator()

@@ -81,6 +81,31 @@ it('creates once from the real Add menu and reads canonical detail with one proj
   expect(http.requests.some((request) => request.path.includes('/candidates'))).toBe(false);
 });
 
+it('retains the manual semicolon-separated author entry convention', async () => {
+  let acknowledged = false;
+  const http = installCollectionHTTP({
+    collections: () => [],
+    items: () => (acknowledged ? [saved] : []),
+    detail: () => saved,
+    intercept: (url, init) => {
+      if (url.pathname === '/api/literature/items' && init.method === 'POST') {
+        acknowledged = true;
+        return json(receipt(JSON.parse(String(init.body)).operation_id));
+      }
+    },
+  });
+  await mountCollections();
+  const dialog = await openForm();
+  fireEvent.change(within(dialog).getByRole('textbox', { name: 'Authors' }), {
+    target: { value: ' Ada Researcher ; Grace Scientist; ' },
+  });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Create reference' }));
+  await screen.findByRole('heading', { name: saved.title });
+  const writes = http.requests.filter((r) => r.path === '/api/literature/items' && r.method === 'POST');
+  expect(writes).toHaveLength(1);
+  expect(JSON.parse(writes[0].body!).metadata.authors).toEqual(['Ada Researcher', 'Grace Scientist']);
+});
+
 it('restores an uncertain immutable create through the original outbox after remount', async () => {
   let calls = 0;
   let committed = false;

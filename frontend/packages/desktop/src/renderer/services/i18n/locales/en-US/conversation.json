@@ -1,4 +1,23 @@
 {
+  "libraryDoi": {
+    "add": "Add from DOI",
+    "description": "Find reference details to review before saving. Full-text PDFs can be added later.",
+    "input": "DOI or doi.org link",
+    "find": "Find reference",
+    "searching": "Searching…",
+    "invalid": "Enter a DOI or a doi.org link.",
+    "notFound": "No reference was found for this DOI. Check it or add the reference manually.",
+    "rateLimited": "The provider limited this lookup. Try again later.",
+    "failed": "Reference details could not be retrieved. Try again or add the reference manually.",
+    "review": "Review DOI reference",
+    "reviewDescription": "Reference details from Crossref. Review them before saving; no PDF is added.",
+    "edit": "Edit details",
+    "back": "Back to review",
+    "save": "Save reference",
+    "addAuthor": "Add author",
+    "removeAuthor": "Remove author {{index}}",
+    "fields": { "authors": "Creators", "year": "Year", "doi": "DOI", "publication": "Publication" }
+  },
   "libraryInbox": {
     "description": "Review discovered references before they enter your library.",
     "foundVia": "Found via {{provider}}",
