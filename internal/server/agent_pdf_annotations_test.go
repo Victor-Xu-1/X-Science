@@ -161,11 +161,11 @@ func TestAgentPDFAnnotationListRejectsUnadmittedAndStaleAuthority(t *testing.T) 
 	if _, err := stale.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "stale-host"}, "list_pdf_annotations", map[string]any{}); err == nil {
 		t.Fatal("retired host returned annotations")
 	}
-	badRun, badAuthority := *gateway.taskRun, *gateway.taskRun.Transcript
+	badAuthority := *gateway.taskRun.Transcript
 	badAuthority.Stream.OwnerID = "another-account"
-	badRun.Transcript = &badAuthority
+	badRun := &sessionRunnerChatRun{SessionID: gateway.taskRun.SessionID, Attempt: gateway.taskRun.Attempt, Transcript: &badAuthority}
 	stale = gateway
-	stale.taskRun = &badRun
+	stale.taskRun = badRun
 	if _, err := stale.executeAgentToolResponseUncached(t.Context(), agentruntime.ToolCall{ID: "foreign-account"}, "list_pdf_annotations", map[string]any{}); err == nil {
 		t.Fatal("foreign account returned annotations")
 	}
