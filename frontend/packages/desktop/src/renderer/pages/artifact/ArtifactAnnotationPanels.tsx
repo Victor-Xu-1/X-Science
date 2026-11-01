@@ -1,4 +1,4 @@
-import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/common/config/annotationLimits';
+import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import {
   loadXScienceArtifactVerification,
   requestXScienceFrameAudit,

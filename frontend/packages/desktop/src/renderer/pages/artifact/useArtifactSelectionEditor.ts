@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isAnnotationNoteSaveable } from '@/common/config/annotationLimits';
+import { isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   createXScienceArtifactAnnotation,
