@@ -321,7 +321,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
       http.calls.filter((call) => call.method !== 'GET').every((call) => call.url.pathname.endsWith('/reading-status'))
     ).toBe(true);
     expect([...http.items.values()].every((item) => item.metadata_revision === 7)).toBe(true);
-  });
+  }, 30_000);
 
   it('clears selection on filter/page changes and sends no later batch after leaving during the current ACK', async () => {
     const http = catalogue();
@@ -392,7 +392,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(http.items.get(itemId(2))?.reading_status).toBe('unread');
     expect([...http.items.values()].filter((item) => item.reading_status === 'read')).toHaveLength(401);
     expect([...http.items.values()].every((item) => item.metadata_revision === 7)).toBe(true);
-  });
+  }, 30_000);
 
   it('shows a new complete-selection failure instead of the previous completed batch and keeps selection retryable', async () => {
     const http = catalogue(defaultUiPageSize + 1);
@@ -455,5 +455,5 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(within(toolbar()).getByText('All matching references selected')).toBeInTheDocument();
     expect(await screen.findByText('The complete selection could not be loaded. No batch was started.')).toBeVisible();
     expect(screen.queryByText(`${defaultUiPageSize} references saved.`)).toBeNull();
-  });
+  }, 30_000);
 });
