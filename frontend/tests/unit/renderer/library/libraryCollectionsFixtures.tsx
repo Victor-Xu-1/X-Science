@@ -82,6 +82,14 @@ export function installCollectionHTTP(options: ReadOptions) {
     if (intercepted) return intercepted;
     if (method !== 'GET') throw new Error('Unexpected collection fixture mutation');
     if (url.pathname === '/api/settings/client') return json({});
+    if (url.pathname === '/api/tags')
+      return json({
+        schema: 'x-science.resource-tags.v1',
+        revision: 0,
+        resource_types: ['literature.item'],
+        tags: [{ id: 'tag-favorite', system_key: 'favorite', created_at: 0, updated_at: 0 }],
+        assignments: [],
+      });
     if (url.pathname === '/api/projects') return json({ projects: [] });
     if (url.pathname === '/api/literature/collections')
       return json({ schema: 'x-science.literature-collections.v1', collections: options.collections() });
