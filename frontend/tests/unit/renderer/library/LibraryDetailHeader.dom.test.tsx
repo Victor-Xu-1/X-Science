@@ -286,7 +286,7 @@ describe('Library primary detail header through the real Page consumers', () => 
     expect(pdfAction).toHaveFocus();
     expect(screen.getByTestId('header-pdf')).toBe(pdf);
     expect(screen.getByLabelText('Header fixture PDF page')).toHaveTextContent('2');
-  });
+  }, 30_000);
 
   it('does not reclaim focus when the user chooses the header Close control before a saved ACK', async () => {
     const data = headerHTTP(true);

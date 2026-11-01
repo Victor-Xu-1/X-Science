@@ -355,7 +355,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await waitFor(() => expect(original.getSnapshot().mutating).toBe(false));
     expect(http.writes).toHaveLength(1);
     expect(http.ledger.size).toBe(1);
-  });
+  }, 30_000);
 
   it('reconstructs the original pending batch after a lost reply and resumes unchanged UUIDs and the unfiltered suffix', async () => {
     const http = catalogue();

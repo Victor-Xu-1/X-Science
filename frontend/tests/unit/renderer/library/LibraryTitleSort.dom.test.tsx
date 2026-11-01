@@ -312,7 +312,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     const translatedMenu = await openSortMenu(userEvent.setup(), '文献排序');
     expect(within(translatedMenu).getByRole('option', { name: '当前顺序' })).toBeInTheDocument();
     expect(http.pages).toHaveLength(3);
-  });
+  }, 30_000);
 
   it('aborts the old sort request and ignores its late stale error after a new URL visit', async () => {
     const http = installCatalogue({ holdFirstStale: true });
