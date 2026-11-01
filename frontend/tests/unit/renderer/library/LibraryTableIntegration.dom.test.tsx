@@ -114,11 +114,11 @@ describe('Library table through the real Page and account setting transport', ()
       expect(settings.writes).toHaveLength(2);
       expect(panel).toHaveAttribute('aria-busy', 'false');
     });
-    expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files']);
+    expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files', 'Rating']);
     expect(settings.saved.get(ownerA)).toEqual({
       version: 3,
       order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes', 'rating'],
-      visible: ['year', 'readingStatus', 'attachments'],
+      visible: ['year', 'readingStatus', 'attachments', 'rating'],
     });
     expect(settings.writes.every((write) => write.owner === ownerA)).toBe(true);
     expect(screen.getByRole('heading', { name: 'Edit details' })).toBe(heading);

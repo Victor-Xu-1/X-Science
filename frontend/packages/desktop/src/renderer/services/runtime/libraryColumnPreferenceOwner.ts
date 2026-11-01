@@ -84,6 +84,15 @@ export class LibraryColumnPreferenceOwner {
         ? projectLibraryNotesColumns(base)
         : projectLibraryColumnPreferences(base);
   }
+  /** Unsaved layouts and explicit Reset use current defaults; stored wires stay authoritative. */
+  private defaultPreferences(): LibraryColumnPreferencesWire {
+    if (!this.ratingEnabled) return DEFAULT_LIBRARY_COLUMN_PREFERENCES;
+    const defaults = projectLibraryRatingColumns(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
+    return Object.freeze({
+      ...defaults,
+      visible: Object.freeze(defaults.order.filter((id) => id === 'rating' || defaults.visible.includes(id))),
+    });
+  }
   private supportedIds(): readonly LibraryColumnWireId[] {
     return this.ratingEnabled ? LIBRARY_COLUMN_V3_IDS : this.notesEnabled ? LIBRARY_COLUMN_V2_IDS : LIBRARY_COLUMN_IDS;
   }
@@ -103,7 +112,7 @@ export class LibraryColumnPreferenceOwner {
     return this.order !== undefined || this.visibility.size > 0;
   }
   private receive(value: unknown): boolean {
-    const remote = value === undefined ? DEFAULT_LIBRARY_COLUMN_PREFERENCES : parseLibraryColumnPreferencesWire(value);
+    const remote = value === undefined ? this.defaultPreferences() : parseLibraryColumnPreferencesWire(value);
     if (!remote) return false;
     this.confirmed = remote;
     this.loaded = true;
@@ -182,7 +191,7 @@ export class LibraryColumnPreferenceOwner {
   reset = (): void => {
     if (!this.current() || this.request) return;
     const revision = ++this.revision;
-    const defaults = this.project(DEFAULT_LIBRARY_COLUMN_PREFERENCES);
+    const defaults = this.project(this.defaultPreferences());
     const visible = defaults.visible as readonly LibraryColumnWireId[];
     this.order = { value: defaults.order, revision };
     for (const id of this.supportedIds()) this.visibility.set(id, { value: visible.includes(id), revision });

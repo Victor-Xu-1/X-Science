@@ -111,11 +111,17 @@ describe('Collection editors use canonical receipts and retained original reques
     let lost = true,
       applied = 0;
     const flight = deferred<void>();
+    const readback = deferred<Response>();
+    let readbackStarted = false;
     const writes: string[] = [];
     const receipts = new Map<string, unknown>();
-    installCollectionHTTP({
+    const http = installCollectionHTTP({
       collections: () => collections,
       intercept: async (url, init) => {
+        if (url.pathname === '/api/literature/collections' && (init.method ?? 'GET') === 'GET' && writes.length === 2) {
+          readbackStarted = true;
+          return readback.promise;
+        }
         if (url.pathname !== '/api/literature/collections' || init.method !== 'POST') return undefined;
         const raw = String(init.body);
         writes.push(raw);
@@ -168,7 +174,26 @@ describe('Collection editors use canonical receipts and retained original reques
     expect(localStorage.getItem(key)).toBe(pending);
     expect(screen.getByRole('button', { name: 'New collection' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('button', { name: 'Recoverable collection' })).toBeInTheDocument();
+    expect(await screen.findByText('Collection updated · Recoverable collection')).toBeInTheDocument();
+    await waitFor(() => expect(readbackStarted).toBe(true));
+    const navigation = within(screen.getByRole('navigation', { name: 'Collections' }));
+    const create = navigation.getByRole('button', { name: 'New collection' });
+    // The canonical ACK is retained, but it is not yet a fresh directory.
+    expect(create).toBeDisabled();
+    expect(navigation.queryByRole('button', { name: 'Recoverable collection' })).toBeNull();
+    expect(writes).toHaveLength(2);
+    expect(JSON.parse(writes[1]).operation_id).toBe(original.operation_id);
+    await act(async () => {
+      readback.resolve(json({ schema: 'x-science.literature-collections.v1', collections }));
+      await readback.promise;
+    });
+    await waitFor(() => expect(create).toBeEnabled());
+    const recovered = navigation.getByRole('button', { name: 'Recoverable collection' });
+    expect(recovered).toBeInTheDocument();
+    expect(recovered).toBeVisible();
+    expect(
+      http.requests.filter((request) => request.method === 'GET' && request.path === '/api/literature/collections')
+    ).toHaveLength(2);
     expect(screen.getByLabelText('Library location').textContent).toBe('');
     expect(writes).toHaveLength(2);
     expect(writes[0]).toBe(writes[1]);

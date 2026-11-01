@@ -52,12 +52,23 @@ async function chooseSort(user: ReturnType<typeof userEvent.setup>, label: strin
   await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
 }
 
+// Keep role, accessible-name and visibility coverage without naming every star in the catalogue.
+async function findVisibleButton(name: string) {
+  const text = await screen.findByText(name);
+  const button = text.closest('button');
+  expect(button).toHaveRole('button');
+  expect(button).toHaveAccessibleName(name);
+  expect(button).toBeVisible();
+  return button!;
+}
+
 const json = (value: unknown, status = 200) =>
   new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 const items = Array.from({ length: 60 }, (_, index): LiteratureItem => ({
   id: `paper-${String(index + 1).padStart(2, '0')}`,
   title: `Sort reference ${String(index + 1).padStart(2, '0')}`,
   metadata_revision: 1,
+  rating_view: { known: true, value: 0 },
   metadata: {},
   reading_status: 'read',
   deleted: false,
@@ -174,7 +185,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     const http = installCatalogue();
     const user = userEvent.setup();
     let rendered = await mount();
-    await screen.findByRole('button', { name: 'Sort reference 60' });
+    await findVisibleButton('Sort reference 60');
     expect(http.pages[0].searchParams.has('sort')).toBe(false);
     const sort = screen.getByRole('combobox', { name: 'Sort references' });
     const menu = await openSortMenu(user);
@@ -190,6 +201,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
       'Title: Z–A',
       'Year: newest first',
       'Year: oldest first',
+      'Highest rated',
       'Current order',
     ]);
     expect(within(menu).getByRole('option', { name: 'Current order' })).toHaveAttribute('aria-selected', 'true');
@@ -210,28 +222,28 @@ describe('Library title order through the original URL and HTTP owners', () => {
       expect(sort).toHaveFocus();
     }
     await openSortMenu(user);
-    const outside = screen.getByRole('button', { name: 'Outside sort' });
+    const outside = await findVisibleButton('Outside sort');
     await user.click(outside);
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
     expect(outside).toHaveFocus();
     expect(http.pages).toHaveLength(1);
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    await screen.findByRole('button', { name: 'Sort reference 59' });
+    fireEvent.click(await findVisibleButton('Next page'));
+    await findVisibleButton('Sort reference 59');
     await chooseSort(user, 'Current order');
     expect(http.pages).toHaveLength(2);
     expect(location().get('cursor')).toBe('after-50');
     await chooseSort(user, 'Title: A–Z');
-    await screen.findByRole('button', { name: 'Sort reference 01' });
+    await findVisibleButton('Sort reference 01');
     expect(http.pages.at(-1)?.searchParams.get('sort')).toBe('title-asc');
     expect(http.pages.at(-1)?.searchParams.has('cursor')).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    await screen.findByRole('button', { name: 'Sort reference 60' });
+    fireEvent.click(await findVisibleButton('Next page'));
+    await findVisibleButton('Sort reference 60');
     sort.focus();
     pressSortKey(' ', 32);
     await screen.findByRole('listbox');
     pressSortKey('ArrowDown', 40);
     pressSortKey(' ', 32);
-    await screen.findByRole('button', { name: 'Sort reference 11' });
+    await findVisibleButton('Sort reference 11');
     expect(location().get('q')).toBe('Sort');
     expect(location().get('page_size')).toBe('50');
     expect(location().get('sort')).toBe('title-desc');
@@ -239,7 +251,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
     const search = screen.getByLabelText('Library location').textContent ?? '';
     rendered.unmount();
     rendered = await mount(`/library${search}`);
-    await screen.findByRole('button', { name: 'Sort reference 11' });
+    await findVisibleButton('Sort reference 11');
     expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveTextContent(/^Title: Z–A$/);
   }, 30_000);
 

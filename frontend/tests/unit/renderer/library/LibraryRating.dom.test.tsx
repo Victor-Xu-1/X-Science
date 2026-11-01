@@ -57,6 +57,45 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
     vi.restoreAllMocks();
   });
 
+  it('shows Rating for a new Library without saving preferences just by reading or reloading', async () => {
+    const item = rated(2);
+    const http = installCollectionHTTP({ collections: () => [], items: () => [item], detail: () => item });
+    await mount('en-US', '/library');
+    const group = await screen.findByRole('group', { name: 'Rating for Paper A' });
+    await waitFor(() => expect(within(group).getByRole('button', { name: '5 stars' })).toBeEnabled());
+    expect(screen.getByRole('columnheader', { name: 'Rating' })).toBeInTheDocument();
+    expect(http.requests.filter((request) => request.method !== 'GET')).toEqual([]);
+    cleanup();
+    await mount('en-US', '/library');
+    expect(await screen.findByRole('group', { name: 'Rating for Paper A' })).toBeInTheDocument();
+    expect(http.requests.filter((request) => request.method !== 'GET')).toEqual([]);
+  });
+
+  it('uses the reference152px Rating column while preserving its14px stars for an explicit saved layout', async () => {
+    const item = rated(2);
+    installCollectionHTTP({
+      collections: () => [],
+      items: () => [item],
+      intercept: (url) =>
+        url.pathname === '/api/settings/client'
+          ? json({
+              [LIBRARY_COLUMN_PREFERENCES_SETTING]: {
+                version: 3,
+                order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
+                visible: ['rating'],
+              },
+            })
+          : undefined,
+    });
+    await mount('en-US', '/library');
+    const heading = await screen.findByRole('columnheader', { name: 'Rating' });
+    const table = screen.getByRole('table', { name: 'Library papers' });
+    const headings = within(table).getAllByRole('columnheader');
+    expect(table.querySelectorAll('colgroup col')[headings.indexOf(heading)]).toHaveStyle({ width: '152px' });
+    const stars = screen.getByRole('group', { name: 'Rating for Paper A' });
+    expect(stars.querySelector('svg')).toHaveAttribute('width', '14');
+  });
+
   it.each(['en-US', 'zh-CN'] as const)(
     'enables, saves, reloads and clears inline Rating through the same owners in %s',
     async (language) => {

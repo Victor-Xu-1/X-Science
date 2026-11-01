@@ -33,6 +33,10 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 	if scope.validate() != nil || !options.Sort.valid() || limit < 1 || limit > 100 || len(cursor) > 4096 {
 		return page, ErrLiteratureInvalid
 	}
+	ratingExpression := options.Sort.ratingExpression()
+	if ratingExpression != "" && literatureRatingKeyRegistrationError != nil {
+		return page, literatureRatingKeyRegistrationError
+	}
 	yearExpression := options.Sort.yearExpression()
 	if yearExpression != "" && literatureYearKeyRegistrationError != nil {
 		return page, literatureYearKeyRegistrationError
@@ -45,6 +49,7 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 	var titleAnchor literatureTitleAnchor
 	var dateAnchor literatureDateAnchor
 	var yearAnchor literatureYearAnchor
+	var ratingAnchor literatureRatingAnchor
 	if cursor != "" {
 		if options.Sort == "" {
 			decoded, err := decodeLiteratureCursor(cursor, bound, filters.Lifecycle)
@@ -52,6 +57,12 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 				return page, err
 			}
 			bound = decoded
+		} else if ratingExpression != "" {
+			decoded, err := decodeLiteratureRatingCursor(cursor, scope, options.Sort)
+			if err != nil {
+				return page, err
+			}
+			ratingAnchor = decoded
 		} else if yearExpression != "" {
 			decoded, err := decodeLiteratureYearCursor(cursor, scope, options.Sort)
 			if err != nil {
@@ -87,7 +98,19 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 	from, args := scope.sql()
 	statement := `SELECT i.id,0,i.title` + from
 	orderBy := scope.orderBy()
-	if yearExpression != "" {
+	if ratingExpression != "" {
+		statement = `SELECT i.id,0,i.title,` + ratingExpression + from
+		orderBy = options.Sort.orderBy()
+		if cursor != "" {
+			key, title, err := readLiteratureRatingAnchor(ctx, tx, scope, options.Sort, ratingAnchor)
+			if err != nil {
+				return page, err
+			}
+			continuation, values := literatureRatingContinuation(ratingExpression, key, title, ratingAnchor.id)
+			statement += continuation
+			args = append(args, values...)
+		}
+	} else if yearExpression != "" {
 		statement = `SELECT i.id,0,i.title,` + yearExpression + from
 		orderBy = options.Sort.orderBy()
 		if cursor != "" {
@@ -151,16 +174,19 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 		return page, err
 	}
 	type position struct {
-		id      string
-		order   int64
-		title   string
-		dateKey sql.NullString
-		yearKey sql.NullInt64
+		id        string
+		order     int64
+		title     string
+		dateKey   sql.NullString
+		yearKey   sql.NullInt64
+		ratingKey sql.NullInt64
 	}
 	positions := []position{}
 	for rows.Next() {
 		var value position
-		if yearExpression != "" {
+		if ratingExpression != "" {
+			err = rows.Scan(&value.id, &value.order, &value.title, &value.ratingKey)
+		} else if yearExpression != "" {
 			err = rows.Scan(&value.id, &value.order, &value.title, &value.yearKey)
 		} else if dateExpression != "" {
 			err = rows.Scan(&value.id, &value.order, &value.title, &value.dateKey)
@@ -189,6 +215,8 @@ func (s *Store) ListLiteratureItemsInLifecycleWithReadOptions(ctx context.Contex
 		var encoded string
 		if options.Sort == "" {
 			encoded, err = encodeLiteratureCursor(bound, filters.Lifecycle)
+		} else if ratingExpression != "" {
+			encoded, err = encodeLiteratureRatingCursor(literatureRatingAnchor{id: last.id, keyHash: literatureRatingHash(last.ratingKey), titleHash: literatureTitleHash(last.title), known: last.ratingKey.Valid}, scope, options.Sort)
 		} else if yearExpression != "" {
 			encoded, err = encodeLiteratureYearCursor(literatureYearAnchor{id: last.id, keyHash: literatureYearHash(last.yearKey), titleHash: literatureTitleHash(last.title), known: last.yearKey.Valid}, scope, options.Sort)
 		} else if dateExpression != "" {

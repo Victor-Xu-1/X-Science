@@ -62,6 +62,7 @@ function catalogue(count = 402) {
           id,
           title: title(i + 1),
           metadata_revision: 7,
+          rating_view: { known: true, value: 0 },
           reading_status: 'unread',
           metadata: { doi: `10.1234/${id}`, authors: ['Ada'], year: 2024 },
           deleted: false,
@@ -234,7 +235,7 @@ async function selectAll() {
   const page = await screen.findByRole('checkbox', { name: 'Select this page' });
   await waitFor(() => expect(page).toBeEnabled());
   fireEvent.click(page);
-  const matching = await screen.findByRole('button', { name: 'Select all matching references' });
+  const matching = await within(toolbar()).findByRole('button', { name: 'Select all matching references' });
   await waitFor(() => expect(matching).toBeEnabled());
   fireEvent.click(matching);
 }
@@ -242,6 +243,7 @@ const start = () =>
   fireEvent.change(within(toolbar()).getByRole('combobox', { name: 'Reading status for selection' }), {
     target: { value: 'read' },
   });
+const progress = () => screen.findByRole('region', { name: 'Reading status for selection' });
 const detail = () =>
   within(screen.getByRole('dialog', { name: title(1) })).getAllByRole('region', {
     name: 'Literature details',
@@ -277,7 +279,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await screen.findByRole('heading', { name: title(1) });
     await screen.findByRole('checkbox', { name: `Select ${title(1)}` });
     fireEvent.click(screen.getByRole('checkbox', { name: `Select ${title(1)}` }));
-    expect(screen.queryByRole('button', { name: 'Select all matching references' })).toBeNull();
+    expect(within(toolbar()).queryByRole('button', { name: 'Select all matching references' })).toBeNull();
     fireEvent.click(within(detail()).getByRole('button', { name: /Preview PDF/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Advance bulk fixture PDF' }));
     const pdf = screen.getByTestId('bulk-pdf');
@@ -362,7 +364,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await selectAll();
     fireEvent.click(screen.getByRole('checkbox', { name: `Select ${title(2)}` }));
     start();
-    await screen.findByRole('button', { name: 'Resume batch' });
+    await within(await progress()).findByRole('button', { name: 'Resume batch' });
     expect(http.writes).toHaveLength(1);
     const first = http.writes[0];
     const original = getLiteratureMutationController(owner);
@@ -375,7 +377,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     });
     expect(getLiteratureMutationController(owner)).not.toBe(original);
     await mount('/library?reading_status=unread');
-    fireEvent.click(await screen.findByRole('button', { name: 'Resume batch' }));
+    fireEvent.click(await within(await progress()).findByRole('button', { name: 'Resume batch' }));
     await screen.findByText('401 references saved.');
     expect(http.completeReads()).toHaveLength(1);
     expect(http.writes.map((write) => write.item_ids.length)).toEqual([200, 200, 200, 1]);
