@@ -39,6 +39,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// Keep role, accessible-name and visibility coverage without naming every star in the catalogue.
+async function findVisibleButton(name: string) {
+  const text = await screen.findByText(name);
+  const button = text.closest('button');
+  expect(button).toHaveRole('button');
+  expect(button).toHaveAccessibleName(name);
+  expect(button).toBeVisible();
+  return button!;
+}
+
 const json = (value: unknown) =>
   new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
 const items = Array.from({ length: 30 }, (_, index): LiteratureItem => ({
@@ -145,15 +155,15 @@ it.each([
     );
   const user = userEvent.setup();
   let rendered = await mount('/library?q=Year&page_size=25&sort=year-asc');
-  await screen.findByRole('button', { name: 'Year reference 00' });
+  await findVisibleButton('Year reference 00');
   let control = screen.getByRole('combobox', { name: labels.label });
   await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
   expect(control).toHaveTextContent(labels.ascending);
   expect(control).toHaveAttribute('aria-description', labels.hint);
   expect(control.closest('.library-sort-control')).toHaveAttribute('title', labels.hint);
   expect(visibleTitles()).toEqual(orders['year-asc'].slice(0, 25).map((item) => item.title));
-  await user.click(screen.getByRole('button', { name: labels.nextPage }));
-  await screen.findByRole('button', { name: 'Year reference 29' });
+  await user.click(await findVisibleButton(labels.nextPage));
+  await findVisibleButton('Year reference 29');
   expect(currentLocation().get('cursor')).toBe('year-after-25');
   control = screen.getByRole('combobox', { name: labels.label });
   await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
@@ -180,7 +190,7 @@ it.each([
   const search = screen.getByLabelText('Year sort location').textContent ?? '';
   rendered.unmount();
   rendered = await mount(`/library${search}`);
-  await screen.findByRole('button', { name: 'Year reference 29' });
+  await findVisibleButton('Year reference 29');
   expect(screen.getByRole('combobox', { name: labels.label })).toHaveTextContent(labels.descending);
   expect(requests.at(-1)?.searchParams.get('sort')).toBe('year-desc');
   expect(visibleTitles()).toEqual(orders['year-desc'].slice(0, 25).map((item) => item.title));
