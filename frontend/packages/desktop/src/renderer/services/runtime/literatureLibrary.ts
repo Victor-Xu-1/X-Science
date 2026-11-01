@@ -36,6 +36,7 @@ export const literaturePageSorts = [
   'created-asc',
   'year-asc',
   'year-desc',
+  'rating-desc',
 ] as const;
 export type LiteraturePageSort = (typeof literaturePageSorts)[number];
 

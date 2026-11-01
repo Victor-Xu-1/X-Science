@@ -2222,6 +2222,8 @@
     "yearAscending": "Year: oldest first",
     "yearDescending": "Year: newest first",
     "unknownYearsLast": "Unrecognized years appear last.",
+    "highestRated": "Highest rated",
+    "unknownRatingsLast": "Unrecognized ratings appear last.",
     "updatedDescending": "Recently updated",
     "createdDescending": "Recently added",
     "createdAscending": "First added",

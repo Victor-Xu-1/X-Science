@@ -190,6 +190,7 @@ describe('Library title order through the original URL and HTTP owners', () => {
       'Title: Z–A',
       'Year: newest first',
       'Year: oldest first',
+      'Highest rated',
       'Current order',
     ]);
     expect(within(menu).getByRole('option', { name: 'Current order' })).toHaveAttribute('aria-selected', 'true');

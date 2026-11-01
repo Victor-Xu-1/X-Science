@@ -46,7 +46,7 @@ const widths: Record<LibraryColumnId, number> = {
   doi: 220,
   attachments: 88,
   notes: 280,
-  rating: 118,
+  rating: 152,
 };
 
 /** Pure catalogue projection. The caller retains every read, selection and mutation owner. */

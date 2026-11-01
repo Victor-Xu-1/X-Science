@@ -25,7 +25,9 @@ export function LibrarySortControl({
     ? t('conversation.librarySort.unknownYearsLast')
     : dateOrder
       ? t('conversation.librarySort.unknownDatesLast')
-      : undefined;
+      : value === 'rating-desc'
+        ? t('conversation.librarySort.unknownRatingsLast')
+        : undefined;
   const choices: Array<{ value: LiteraturePageSort | ''; label: string }> = [
     { value: 'updated-desc', label: t('conversation.librarySort.updatedDescending') },
     { value: 'created-desc', label: t('conversation.librarySort.createdDescending') },
@@ -34,6 +36,7 @@ export function LibrarySortControl({
     { value: 'title-desc', label: t('conversation.librarySort.titleDescending') },
     { value: 'year-desc', label: t('conversation.librarySort.yearDescending') },
     { value: 'year-asc', label: t('conversation.librarySort.yearAscending') },
+    { value: 'rating-desc', label: t('conversation.librarySort.highestRated') },
     { value: '', label: t('conversation.librarySort.current') },
   ];
   const selected = value ?? '';

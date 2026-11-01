@@ -145,6 +145,7 @@ it('connects all date options to the original URL reader, resets cursors and pre
     'Title: Z–A',
     'Year: newest first',
     'Year: oldest first',
+    'Highest rated',
     'Current order',
   ]);
   pressSortKey('Escape', 27);
@@ -189,6 +190,7 @@ it('connects all date options to the original URL reader, resets cursors and pre
     '标题：Z–A',
     '年份：从新到旧',
     '年份：从旧到新',
+    '评分从高到低',
     '当前顺序',
   ]);
   pressSortKey('Escape', 27);

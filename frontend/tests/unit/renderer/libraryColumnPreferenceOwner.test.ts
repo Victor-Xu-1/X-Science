@@ -29,6 +29,82 @@ const withRating = {
 } as const;
 
 describe('Library column preference view owner', () => {
+  it('shows the reference Rating default only for an absent setting and writes it only after an explicit edit or reset', async () => {
+    let remote: unknown;
+    const save = vi.fn(async (next: LibraryColumnPreferencesWire, _signal: AbortSignal) => {
+      remote = next;
+    });
+    const owner = new LibraryColumnPreferenceOwner({ load: async () => remote, save }, () => true, true, true);
+    owner.start();
+    await tick();
+    expect(owner.getSnapshot().status).toBe('ready');
+    const initial = owner.getSnapshot().ratingPreferences!;
+    expect(initial).toEqual({
+      version: 3,
+      order: [...defaults.order, 'notes', 'rating'],
+      visible: [...defaults.visible, 'rating'],
+    });
+    expect(save).not.toHaveBeenCalled();
+    owner.reload();
+    await tick();
+    expect(owner.getSnapshot().ratingPreferences).toEqual(initial);
+    expect(save).not.toHaveBeenCalled();
+    owner.change({ ...initial, visible: initial.visible.filter((id) => id !== 'rating') });
+    await tick();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(owner.getSnapshot().ratingPreferences?.visible).not.toContain('rating');
+    owner.reload();
+    await tick();
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(owner.getSnapshot().ratingPreferences?.visible).not.toContain('rating');
+    owner.reset();
+    await tick();
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(save.mock.calls[1][0]).toEqual(initial);
+    expect(owner.getSnapshot().ratingPreferences).toEqual(initial);
+    owner.dispose();
+  });
+
+  it.each([
+    { name: 'V1', stored: defaults, order: [...defaults.order, 'notes', 'rating'], visible: defaults.visible },
+    { name: 'V2', stored: withNotes, order: [...withNotes.order, 'rating'], visible: withNotes.visible },
+    {
+      name: 'V3',
+      stored: { ...withRating, visible: ['notes', 'year'] },
+      order: withRating.order,
+      visible: ['notes', 'year'],
+    },
+  ])(
+    'preserves an explicitly saved $name layout with Rating hidden without a read migration',
+    async ({ stored, order, visible }) => {
+      const save = vi.fn(async (_value: LibraryColumnPreferencesWire, _signal: AbortSignal) => {});
+      const owner = new LibraryColumnPreferenceOwner({ load: async () => stored, save }, () => true, true, true);
+      owner.start();
+      await tick();
+      expect(owner.getSnapshot().ratingPreferences).toEqual({ version: 3, order, visible });
+      owner.reload();
+      await tick();
+      expect(owner.getSnapshot().ratingPreferences).toEqual({ version: 3, order, visible });
+      expect(save).not.toHaveBeenCalled();
+      owner.dispose();
+    }
+  );
+
+  it('does not mistake null or a failed preference read for the absent-setting Rating default', async () => {
+    const load = vi.fn().mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('offline'));
+    const save = vi.fn(async (_value: LibraryColumnPreferencesWire, _signal: AbortSignal) => {});
+    const owner = new LibraryColumnPreferenceOwner({ load, save }, () => true, true, true);
+    owner.start();
+    await tick();
+    expect(owner.getSnapshot().status).toBe('invalid');
+    expect(save).not.toHaveBeenCalled();
+    owner.retry();
+    await tick();
+    expect(owner.getSnapshot().status).toBe('read-error');
+    expect(save).not.toHaveBeenCalled();
+    owner.dispose();
+  });
+
   it('preserves a received V3 Rating layout while a Notes-capable view changes or resets its subset', async () => {
     const save = vi.fn(async (_value: unknown, _signal: AbortSignal) => {});
     const owner = new LibraryColumnPreferenceOwner({ load: async () => withRating, save }, () => true, true);

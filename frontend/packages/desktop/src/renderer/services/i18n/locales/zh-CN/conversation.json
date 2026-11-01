@@ -2222,6 +2222,8 @@
     "yearAscending": "年份：从旧到新",
     "yearDescending": "年份：从新到旧",
     "unknownYearsLast": "无法识别的年份排在最后。",
+    "highestRated": "评分从高到低",
+    "unknownRatingsLast": "无法识别的评分排在最后。",
     "updatedDescending": "最近更新",
     "createdDescending": "最近添加",
     "createdAscending": "最早添加",

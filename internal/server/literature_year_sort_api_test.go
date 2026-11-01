@@ -54,7 +54,7 @@ func TestLiteratureYearSortHTTPAuthorityAndStale(t *testing.T) {
 		cursors[test.mode] = value.NextCursor
 	}
 	for _, query := range []url.Values{
-		{"sort": {"rating-desc"}},
+		{"sort": {"rating-asc"}},
 		{"sort": {"year-asc", "year-desc"}},
 		{"sort": {"year-asc"}, "all_item_ids": {"true"}},
 		{"sort": {"year-asc"}, "cursor": {cursors["year-desc"]}},
