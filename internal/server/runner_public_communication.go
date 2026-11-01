@@ -77,28 +77,7 @@ var (
 // frontend applies the same defensive filter for historical messages, but
 // new durable/public text must already be clean when it leaves the runner.
 func sessionRunnerStripPrivateThinkMarkers(content string) string {
-	var visible strings.Builder
-	depth, after := 0, 0
-	for _, location := range sessionRunnerPrivateThinkTagPattern.FindAllStringIndex(content, -1) {
-		if depth == 0 {
-			visible.WriteString(content[after:location[0]])
-		}
-		tag := strings.TrimSpace(content[location[0]+1 : location[1]-1])
-		if strings.HasPrefix(tag, "/") {
-			depth = max(0, depth-1)
-		} else {
-			depth++
-		}
-		after = location[1]
-	}
-	if depth == 0 {
-		visible.WriteString(content[after:])
-	}
-	text := visible.String()
-	if partial := sessionRunnerPartialThinkTagPattern.FindStringIndex(text); partial != nil {
-		text = text[:partial[0]]
-	}
-	return text
+	return sessionRunnerPrivateThinkProjection(content).text
 }
 
 // sessionRunnerPublicProgressNarration is the single publication boundary for

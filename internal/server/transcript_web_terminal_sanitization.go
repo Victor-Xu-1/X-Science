@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -76,7 +77,63 @@ func sanitizeTranscriptWebPublicMessagesWithCodes(
 		if messageType != "text" && messageType != "assistant" && messageType != "thinking" {
 			continue
 		}
+		sanitizeTranscriptWebPublicMessage(message, preservedCodes)
+	}
+}
+
+// Rebind optional presentation only from an already valid canonical preimage.
+// This response transaction never changes the stored body or source findings.
+func sanitizeTranscriptWebPublicMessage(message map[string]any, preservedCodes map[string]struct{}) {
+	content, object := message["content"].(map[string]any)
+	if !object {
 		sanitizeTranscriptWebPublicValue(message["content"], preservedCodes)
+		return
+	}
+	value, present := content["completionAdvisories"]
+	if !present {
+		sanitizeTranscriptWebPublicValue(content, preservedCodes)
+		return
+	}
+	original, text := content["content"].(string)
+	attempt, identified := transcriptWebArtifactRecoveryAttempt(webString(message["conversation_id"]), message)
+	var wire *completionAdvisoryEnvelope
+	if text && identified {
+		wire = sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": original, "completion_advisories": value}, attempt)
+	}
+	// Retain the original recursive privacy boundary even for invalid metadata.
+	// In particular an unknown object must not protect nested content/text keys.
+	sanitizeTranscriptWebPublicValue(content, preservedCodes)
+	delete(content, "completionAdvisories")
+	if wire == nil || wire.Spans == nil {
+		return
+	}
+	projection := sessionRunnerHistoricalPublicTextProjection(original, preservedCodes)
+	if projection.text != webString(content["content"]) {
+		return
+	}
+	spans, valid := projection.advisorySpans(original, wire.Spans)
+	if !valid {
+		return
+	}
+	// Normalize pointer and read-model JSON shapes through the same recursive
+	// policy. Normal Items/Findings/Sources remain byte-identical; no wholesale
+	// exemption is granted to a metadata subtree if that policy needs to clean it.
+	raw, err := json.Marshal(wire)
+	if err != nil {
+		return
+	}
+	var projected map[string]any
+	if json.Unmarshal(raw, &projected) != nil {
+		return
+	}
+	sanitizeTranscriptWebPublicValue(projected, preservedCodes)
+	projected["spans"] = spans
+	projected["text_length"] = sessionRunnerPublicTextUTF16Length(projection.text)
+	projected["text_sha256"] = completionAdvisorySHA(projection.text)
+	if validated := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{
+		"text": projection.text, "completion_advisories": projected,
+	}, attempt); validated != nil {
+		content["completionAdvisories"] = validated
 	}
 }
 
@@ -104,19 +161,7 @@ func sessionRunnerSanitizeHistoricalPublicTextWithCodes(
 	content string,
 	preservedCodes map[string]struct{},
 ) string {
-	content = sessionRunnerStripPrivateThinkMarkers(content)
-	if !sessionRunnerPublicTextExposesUntrustedInternals(content, preservedCodes) {
-		return content
-	}
-	lines := strings.Split(content, "\n")
-	kept := make([]string, 0, len(lines))
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" || sessionRunnerPublicTextExposesUntrustedInternals(line, preservedCodes) {
-			continue
-		}
-		kept = append(kept, line)
-	}
-	return strings.TrimSpace(strings.Join(kept, "\n"))
+	return sessionRunnerHistoricalPublicTextProjection(content, preservedCodes).text
 }
 
 func sessionRunnerPublicTextExposesUntrustedInternals(
