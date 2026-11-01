@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f536137eee1c06b1c2ad0941b582f1f8ae402344ba7760ba9fcd3597fd0e3267",
+  "adaptationFingerprintSHA256": "8c6add313a23d4357627f7881d3f1f1f2cef3a75b036c3c09ad4f5816e611e4a",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "270cf58673429289802c7ee76afb2f83cc5abcca0f1fd285d0346fa73b2152a1",
+  "additionFingerprintSHA256": "ca460d2c3176aea9a3a00b310cf7d1d6c2107f53e68dfcf71e8caabdbfc6772c",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1440
+    "addedFiles": 1448
   },
   "adaptations": [
     {
@@ -1153,8 +1153,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactAnnotationPanels.tsx",
       "sourceSHA256": "f2a0ed3c6fedf2c011d13650172e66ff5d8cffcc8e10a095a7bfe980ea49aef9",
-      "targetSHA256": "37ce24ddb5600855244d3789969467bfc830178565d84590780cff3b6d1b3a39",
-      "bytes": 26128,
+      "targetSHA256": "94e8bad655fedc301fbdbbb55a5634a348607b712727dfd970ef3e925b545c30",
+      "bytes": 27078,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1167,15 +1167,15 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactPreview.tsx",
       "sourceSHA256": "21d3998423856a474f4e13516869e446beaebf11fab0597fc9e7a3d732d624d1",
-      "targetSHA256": "b1d439080a6345e43ad683932d9a96a17ba96e8847e26c7dae492c4d984c43a8",
-      "bytes": 40966,
+      "targetSHA256": "b85e008453467da72917efe855c19e64e02e13258d6f54b8957f2cdcd60075f1",
+      "bytes": 44396,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactSelectionAnnotationModal.tsx",
       "sourceSHA256": "cc01a13b646f263e1e6c8638a5b03a32465f8db83a5394551f429bbc96881afb",
-      "targetSHA256": "263e8c287641865f56586b20ef086c0d7c1065efbe591ec214bde29e03ffe61a",
-      "bytes": 3542,
+      "targetSHA256": "24dfb562128996792d5e6447499b7e8822f80ecf9c73a44a1c8a0aed4b1845ad",
+      "bytes": 4224,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "385f8417d0a3ad4e7afa38ac29dd6eb35e80dfd43e792933404faa760b91ce1f",
-      "bytes": 300977,
+      "targetSHA256": "7a427bfa39a5eb3ac284c4cf31febd7f3ef406d48aa0820d7ae6dded86fbaa0a",
+      "bytes": 305182,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2945,8 +2945,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "6040251633e64861f939dddaccf7a870837b86651caf095d1442903a89efb047",
-      "bytes": 43221,
+      "targetSHA256": "0d46abfe4d7cdaf85af86d48a63b6c295921b1ea3c0499e99e73dea36bcf2c99",
+      "bytes": 44094,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3036,8 +3036,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "4adfee3e70a2c862294a70bb99b6d1c3bec12746dbe0b776c426d5d44c011702",
-      "bytes": 41746,
+      "targetSHA256": "a89f08dc4bf05d1e78c8003bd120ea603fa84d41750ba7d869ee1ef3261ef5e1",
+      "bytes": 42514,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3142,8 +3142,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceAnnotations.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedAnnotations.ts",
       "sourceSHA256": "861f6ccc291004426f0e4430a6d430224675d1152ae9ba5ca604c9e5a50f1664",
-      "targetSHA256": "f0364806284346ab642a31a0eca0ff92b9246396cfcd93007deb9584a2b22dbc",
-      "bytes": 24100,
+      "targetSHA256": "8a822d29522d2c7c0978d77072b46a272e07c32eb866d1afb6c9254a43aa78ec",
+      "bytes": 25409,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4359,8 +4359,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "712c3de5272d29a11f1a4440361732bbfea05812f67d87efc285d7eb728c9aa5",
-      "bytes": 24267,
+      "targetSHA256": "79f145f3f4615995d552b9724bc5c3c7402df4d116f84ec6b49d1732ff660ce6",
+      "bytes": 27081,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4373,15 +4373,15 @@
     {
       "path": "tests/unit/renderer/ArtifactPreview.dom.test.tsx",
       "sourceSHA256": "35fcf88c79cd262a41b65d79e70c4ec8a97ede955c9b4f8d3fefe3fc536d2bd9",
-      "targetSHA256": "dee89ca32fab03697efbfaec52eaeced8f5daf86357cd42bd32eec800e238a10",
-      "bytes": 29867,
+      "targetSHA256": "207c55495224d1d449943ff4aeb134ba0970b46b8031e74dfdb9dc23a1dc1524",
+      "bytes": 30354,
       "reason": "Isolate persisted client configuration while testing native artifact preview and cloud export behavior."
     },
     {
       "path": "tests/unit/renderer/ArtifactSelectionAnnotation.dom.test.tsx",
       "sourceSHA256": "cbec415a9ae36e4c50f3d4e594e0fee1450484dc70a9c92a3cc3db52b6ed5b98",
-      "targetSHA256": "ddda82155e4e5dcf1a4f05a3481c36bcae7a142cb4c8667392e10338a353edd6",
-      "bytes": 15665,
+      "targetSHA256": "28008a904f0fe93f20af03aef199a759693c4ccc0680c1bab26e61050dbc9211",
+      "bytes": 17959,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8646,6 +8646,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/hooks/useAnnotationCreateIntent.ts",
+      "sha256": "759c1dade4be508424faccdc5bd6386787fda30481e695a0db05879f70831f1f",
+      "bytes": 1434,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/hooks/useXScienceUserProfile.ts",
       "sha256": "f575ea08e4a4586acc640e2c5a746180f0844dd9a9194f7fc69a38610b8b7b6b",
       "bytes": 988,
@@ -8685,6 +8691,12 @@
       "path": "packages/desktop/src/renderer/hooks/xScience/useContextUsage.ts",
       "sha256": "7ab3e5c4c0e4c1a3facf0c27cc432c2af0c8ec2d66699e550c681f082451804c",
       "bytes": 7216,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/artifact/AnnotationCreateRecovery.tsx",
+      "sha256": "8ba72eed0f72b0efac6d323a0b6e63dfa22c8d61172dfaa14b31714725bb8a92",
+      "bytes": 4925,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8761,8 +8773,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactAnnotationStore.ts",
-      "sha256": "1a3259c5d3c466851cbd73105b1d7ad3f403c60d75a1c1e11109ec100bcd0d5e",
-      "bytes": 5491,
+      "sha256": "94413e5fd0cc6bcefa0d427c7700fb08e0395d05301369cc5db1a87d7ba4e44c",
+      "bytes": 7514,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8809,8 +8821,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactSelectionEditor.ts",
-      "sha256": "227dba4c9767fa6b1929f8bd341a8b6adeea7ef1f41dc9ca1ddaa92c835ec62f",
-      "bytes": 3304,
+      "sha256": "b5e77c0602cfa0638a131a8f3d51210be4814c1a15513b6d86b8deb643d6739e",
+      "bytes": 4993,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10105,8 +10117,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPdfAnnotations.tsx",
-      "sha256": "86bbbfa8428be14e009b76ba5979cbf61963b1863905ccc3d14c07c41c0d6c21",
-      "bytes": 5549,
+      "sha256": "9d768914c1e8ee0e868521830e8e0ece6dc9310fb3c03ad522e157e91c090c1f",
+      "bytes": 6165,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11328,6 +11340,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/services/runtime/AnnotationCreateIntentOwner.ts",
+      "sha256": "5d43af0c2e3eaa9387d3df07aa00cb0d173c9afb32f55c1c91ee5728d5fd7ed9",
+      "bytes": 10172,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/services/runtime/LiteratureMutationController.ts",
       "sha256": "885a9c194d398cae20e09c368b59b3718a708352530e24f5683ce849db50692d",
       "bytes": 26367,
@@ -11338,6 +11356,24 @@
       "sha256": "44b2db54b6077fb67b57a5f77abd31a2a4e618b982e86a67002777433b1203d5",
       "bytes": 13807,
       "reason": "Implement the browser-side single composer intent lifecycle over Go CAS endpoints, exact durable retry feedback, account fences and click-time selection preparation; not a second binding authority."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/annotationCreateIntent.ts",
+      "sha256": "475112c0260070c7a799d8fff475aec689e72f47019d43cc4c19ff099badb443",
+      "bytes": 6513,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/annotationCreateRegistry.ts",
+      "sha256": "2e972cb58e3a1ad9ab77df97575a9fbcdb996e1efa9dc253d90f708e05c7d7ab",
+      "bytes": 1065,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/services/runtime/annotationCreateRequest.ts",
+      "sha256": "cc773873b68c3aa5274ebdc1dc34a90f97fb3c4f8ab1f5b9f360a5e9e2bdc5d5",
+      "bytes": 1231,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asideFollowupSpecialist.ts",
@@ -13296,6 +13332,12 @@
       "reason": "Verify focus, keyboard dismissal, labels, and content bounds for the shared dialog."
     },
     {
+      "path": "tests/unit/renderer/AnnotationCreateRecovery.dom.test.tsx",
+      "sha256": "489c67d8c0053a1d90c448a7ccd2ea8b0168d8e37db8040aaf67188db1831917",
+      "bytes": 11806,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/AppLoader.dom.test.tsx",
       "sha256": "c1fcb9e6e815fb500c38db677c6800df35681eea565dd581eadf9c20bf9c4246",
       "bytes": 1219,
@@ -13663,8 +13705,8 @@
     },
     {
       "path": "tests/unit/renderer/annotationCreateTransport.test.ts",
-      "sha256": "683d6648b16b53f1c2622e301dc00c27d3500d79092b340a7b148c0c9b93c404",
-      "bytes": 2933,
+      "sha256": "80597aeb31b4e0eacecb8b5e567d68cde0243b7ea5dd60b50348639397e55971",
+      "bytes": 4563,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -13719,6 +13761,12 @@
       "path": "tests/unit/renderer/contextWindowHistory.test.ts",
       "sha256": "867ce98227a7aa15017a56317954f835fa191ee246c796f56fc2a67e61830aef",
       "bytes": 4713,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/AnnotationCreateIntentOwner.test.ts",
+      "sha256": "800939ed49bd5cf1383a1206440958d1e35162b21e07c5eba0b083779edb2106",
+      "bytes": 13678,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14383,8 +14431,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryPdfAnnotations.dom.test.tsx",
-      "sha256": "43e716fc6e7c47769fbc409927b671f7d8af4508d1e4afc8c43ba5eca41bbe7c",
-      "bytes": 9349,
+      "sha256": "0f5a4ca679a8dfc940af88347d3a17ecbbb773c93056dcb662cf0cbb4b89c5a6",
+      "bytes": 10008,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
