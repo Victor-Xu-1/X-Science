@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "b566065acaaa7d375a7e78c3b1db7b331da6ccbdc70f73d1151cbd83a396bd44",
+  "adaptationFingerprintSHA256": "55893f2f663c8048bad12580b1d7a1f40ee7ae474a3cafc36bf09ec8155f1194",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ef17c945aea1a9aab03e6e37992b195871c33679949833d4ad735ade2dba0249",
+  "additionFingerprintSHA256": "a0ed22f589a2247b5a613e28b1dedc3ce9d3aa445cc912ee4d517da8ef7d3158",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -2938,8 +2938,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/messages.json",
       "sourceSHA256": "979d2f26c0896cfa1633a6123c5053deeb72741747136c25f461498dbe910986",
-      "targetSHA256": "c2ff713e83e7f01026bb2ecc018c42deb3ac2deaae5608acaba58a551f99ec18",
-      "bytes": 22501,
+      "targetSHA256": "08853cb40d4e13c99c5735a6bc8954c3714443d6b35e92adf8085d7bc6a44665",
+      "bytes": 22496,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3029,8 +3029,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/messages.json",
       "sourceSHA256": "899c3e67af597e892606fac249fcaabb066316bc3190ee4d6f16a3947222d4bf",
-      "targetSHA256": "cd2b2478cb9b31c236369e511f2232608badec01e276c93ca68333a301293157",
-      "bytes": 21990,
+      "targetSHA256": "05f0a8a5ddd0607eda5166d3dadac2625b9e5fdb665399af4794438894d31a93",
+      "bytes": 21978,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -12667,8 +12667,8 @@
     },
     {
       "path": "tests/unit/chat/detailProjection.test.ts",
-      "sha256": "6a4fd92c39e8ebdd4e067fd18aff5986566fb759777b4752c97ff3403ed8d4df",
-      "bytes": 45057,
+      "sha256": "907f1583b31c4597117b3ca7ab68159d37447009f53773d42cbfb970c31eff98",
+      "bytes": 47907,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
