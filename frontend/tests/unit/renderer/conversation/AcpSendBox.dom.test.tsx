@@ -640,12 +640,16 @@ vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', a
     }),
   };
 });
-vi.mock('@/renderer/services/xScienceConversationBranches', () => ({
-  getSelectedXScienceBranch: (...args: unknown[]) => getSelectedBranchMock(...args),
-  getXScienceBranchSelectionRevision: (...args: unknown[]) => getBranchRevisionMock(...args),
-  loadXScienceConversationBranches: (...args: unknown[]) => loadBranchStateMock(...args),
-  selectXScienceBranch: (...args: unknown[]) => selectBranchMock(...args),
-}));
+vi.mock('@/renderer/services/xScienceConversationBranches', async (original) => {
+  const actual = await original<typeof import('@/renderer/services/xScienceConversationBranches')>();
+  return {
+    ...actual,
+    getSelectedXScienceBranch: (...args: unknown[]) => getSelectedBranchMock(...args),
+    getXScienceBranchSelectionRevision: (...args: unknown[]) => getBranchRevisionMock(...args),
+    loadXScienceConversationBranches: (...args: unknown[]) => loadBranchStateMock(...args),
+    selectXScienceBranch: (...args: unknown[]) => selectBranchMock(...args),
+  };
+});
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', async (original) => {
   const actual = await original<typeof import('@/renderer/pages/conversation/runtime/useConversationRuntimeView')>();
   return {

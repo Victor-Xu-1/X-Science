@@ -14,6 +14,11 @@ import {
   type XScienceRuntimeInvalidation,
 } from '@/renderer/services/xScienceRuntimeOperations';
 import { isXScienceHttpError } from '@/renderer/services/xScienceHttp';
+import { getRendererAccountScopeToken, registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
+import {
+  getXScienceBranchSelectionRevision,
+  X_SCIENCE_BRANCH_SELECTION_EVENT,
+} from '@/renderer/services/xScienceConversationBranches';
 import { invalidateXScienceFrameReads } from '@/renderer/services/xScienceFrameReads';
 import { loadXScienceFrameVerification, type XScienceVerificationCheck } from '@/renderer/services/xScienceAnnotations';
 import type {
@@ -30,7 +35,7 @@ import {
 } from './runtimeOperationsModel';
 import type { XScienceAskUserResponse } from '@/renderer/services/xScienceRuntimeOperations';
 import { Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAddEventListener } from '@/renderer/utils/emitter';
 import { redactErrorText } from '@/renderer/pages/conversation/platforms/acp/errorDiagnostics';
@@ -49,6 +54,8 @@ import {
   projectAcceptedRuntimeStart,
   runtimeSummaryChanged,
 } from './runtimeOperationsControllerModel';
+
+const INITIAL_SNAPSHOT_MAX_RETRIES = 3;
 
 type XScienceRuntimeOperationsProps = {
   contextActivity?: ContextRequestActivity | null;
@@ -101,6 +108,23 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   modelInfo,
   onChooseModel,
 }) => {
+  const incarnationRef = useRef(contextFrameIncarnationId);
+  incarnationRef.current = contextFrameIncarnationId;
+  const captureSnapshotScope = useCallback(
+    (owner: string) =>
+      JSON.stringify([
+        getRendererAccountScopeToken(),
+        owner,
+        incarnationRef.current ?? '',
+        getXScienceBranchSelectionRevision(owner),
+      ]),
+    []
+  );
+  const snapshotScope = captureSnapshotScope(conversationId);
+  const recoveryResetKey = useId();
+  const loadedSnapshotScopeRef = useRef<string | null>(null);
+  const initialRecoveryRef = useRef({ scope: snapshotScope, retries: 0 });
+  const initialRecoveryWakeRef = useRef<(() => void) | null>(null);
   const runtimeState = runtimeView?.state ?? suppliedRuntimeState;
   const terminalProjectionPending = runtimeView?.terminalProjectionPending ?? suppliedTerminalProjectionPending;
   const localPreparing = runtimeView?.localPreparing === true;
@@ -127,6 +151,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const snapshotRequestRef = useRef<{
     owner: string;
     revision: number;
+    scope: string;
     controller: AbortController;
     promise: Promise<XScienceRuntimeSnapshot>;
   } | null>(null);
@@ -164,6 +189,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const [messageApi, messageContextHolder] = Message.useMessage();
   const snapshotReportsActiveRuntime = doesXScienceRuntimeSnapshotNeedActiveRefresh(snapshot);
   const shouldRefreshActiveRuntime = ACTIVE_RUNTIME_STATES.has(runtimeState) || snapshotReportsActiveRuntime;
+  const activeRefreshRef = useRef(shouldRefreshActiveRuntime);
+  activeRefreshRef.current = shouldRefreshActiveRuntime;
   const applySnapshot = useCallback((nextSnapshot: XScienceRuntimeSnapshot | null) => {
     snapshotRef.current = nextSnapshot;
     setSnapshot(nextSnapshot);
@@ -190,19 +217,31 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     }
   }, [pauseInFlight, snapshot]);
 
-  const requestSnapshot = useCallback((owner: string, revision: number): Promise<XScienceRuntimeSnapshot> => {
-    const current = snapshotRequestRef.current;
-    if (current?.owner === owner && current.revision === revision) return current.promise;
-    current?.controller.abort();
-    const controller = new AbortController();
-    const promise = Promise.resolve()
-      .then(() => loadXScienceRuntimeSnapshot(owner, { signal: controller.signal }))
-      .finally(() => {
-        if (snapshotRequestRef.current?.promise === promise) snapshotRequestRef.current = null;
-      });
-    snapshotRequestRef.current = { owner, revision, controller, promise };
-    return promise;
-  }, []);
+  const requestSnapshot = useCallback(
+    (owner: string, revision: number): Promise<XScienceRuntimeSnapshot> => {
+      const scope = captureSnapshotScope(owner);
+      const current = snapshotRequestRef.current;
+      if (current?.owner === owner && current.revision === revision && current.scope === scope) return current.promise;
+      current?.controller.abort();
+      const controller = new AbortController();
+      const promise = Promise.resolve()
+        .then(() => loadXScienceRuntimeSnapshot(owner, { signal: controller.signal }))
+        .then((next) => {
+          if (controller.signal.aborted || captureSnapshotScope(owner) !== scope)
+            throw new DOMException('runtime_snapshot_scope_retired', 'AbortError');
+          return next;
+        })
+        .finally(() => {
+          if (snapshotRequestRef.current?.promise === promise) {
+            snapshotRequestRef.current = null;
+            initialRecoveryWakeRef.current?.();
+          }
+        });
+      snapshotRequestRef.current = { owner, revision, scope, controller, promise };
+      return promise;
+    },
+    [captureSnapshotScope]
+  );
 
   const applyAuthoritativeSnapshot = useCallback(
     (nextSnapshot: XScienceRuntimeSnapshot, publishRuntime: boolean, source: 'initial' | 'refresh' = 'refresh') => {
@@ -259,10 +298,46 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
 
   useEffect(() => {
     let active = true;
-    const initialLoad = loadedConversationRef.current !== conversationId;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let recoveryNeeded = false;
+    const clearRetry = () => {
+      if (retryTimer !== null) clearTimeout(retryTimer);
+      retryTimer = null;
+    };
+    const readScope = snapshotScope;
+    const current = () => active && captureSnapshotScope(conversationId) === readScope;
+    const stop = () => {
+      active = false;
+      clearRetry();
+      if (snapshotRequestRef.current?.scope === readScope) snapshotRequestRef.current.controller.abort();
+    };
+    const releaseAccount = registerRendererAccountReset(`runtime-snapshot-recovery:${recoveryResetKey}`, () => {
+      if (!active) return;
+      stop();
+      loadedSnapshotScopeRef.current = null;
+      publishedRuntimeRef.current = null;
+      applySnapshot(null);
+      setSnapshotError(null);
+      setLoading(true);
+      // Also retire the visible scope when a standalone consumer outlives its
+      // account provider. Normal Auth/SWR remounts remain the outer boundary.
+      setSnapshotRevision((value) => value + 1);
+    });
+    const branchChanged = () => {
+      if (captureSnapshotScope(conversationId) === readScope) return;
+      stop();
+      setSnapshotRevision((value) => value + 1);
+    };
+    window.addEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, branchChanged);
+    if (initialRecoveryRef.current.scope !== readScope) initialRecoveryRef.current = { scope: readScope, retries: 0 };
+    const initialLoad =
+      loadedConversationRef.current !== conversationId || loadedSnapshotScopeRef.current !== readScope;
     if (initialLoad) {
       setOwnerTransitionLoading(loadedConversationRef.current !== null);
+      if (loadedSnapshotScopeRef.current !== null && loadedSnapshotScopeRef.current !== readScope)
+        invalidateXScienceFrameReads(conversationId);
       loadedConversationRef.current = conversationId;
+      loadedSnapshotScopeRef.current = readScope;
       publishedRuntimeRef.current = null;
       applySnapshot(null);
       setLoading(true);
@@ -281,40 +356,89 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       setPauseInFlight(false);
       setSnapshotError(null);
     }
-    void requestSnapshot(conversationId, snapshotRevision)
-      .then((nextSnapshot) => {
-        if (active) {
-          setSnapshotError(null);
-          // The task snapshot is the transcript-aware authority. Publish the
-          // first load too: the collection row can still carry a processing
-          // Frame after the runner has entered an explicit paused boundary.
-          applyAuthoritativeSnapshot(nextSnapshot, true, initialLoad ? 'initial' : 'refresh');
-        }
-      })
-      .catch((reason: unknown) => {
-        if (active) {
-          console.error(
-            `[${PRODUCT_NAME} RuntimeOperations] Failed to load runtime snapshot`,
-            redactErrorText(reason instanceof Error ? reason.message : String(reason))
-          );
-          setSnapshotError(snapshotRef.current ? 'refresh' : 'load');
-          if (snapshotRef.current === null) applySnapshot(null);
-        }
-      })
-      .finally(() => {
-        if (
-          active &&
-          conversationAuthorityRef.current === conversationId &&
-          loadedConversationRef.current === conversationId
-        ) {
-          setLoading(false);
-          setOwnerTransitionLoading(false);
-        }
-      });
-    return () => {
-      active = false;
+    const scheduleRecovery = () => {
+      if (!current()) return;
+      if (activeRefreshRef.current || snapshotRef.current !== null) {
+        clearRetry();
+        return;
+      }
+      const recovery = initialRecoveryRef.current;
+      if (
+        !recoveryNeeded ||
+        retryTimer !== null ||
+        snapshotRequestRef.current ||
+        recovery.retries >= INITIAL_SNAPSHOT_MAX_RETRIES
+      )
+        return;
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        if (!current() || activeRefreshRef.current || snapshotRef.current !== null) return;
+        recovery.retries += 1;
+        invalidateXScienceFrameReads(conversationId);
+        setLoading(true);
+        load();
+      }, offlineRecoveryDelay(recovery.retries));
     };
-  }, [applyAuthoritativeSnapshot, applySnapshot, conversationId, requestSnapshot, snapshotRevision]);
+    const load = () => {
+      if (!current()) return;
+      recoveryNeeded = false;
+      void requestSnapshot(conversationId, snapshotRevision)
+        .then((nextSnapshot) => {
+          if (current()) {
+            setSnapshotError(null);
+            // The task snapshot is the transcript-aware authority. Publish the
+            // first load too: the collection row can still carry a processing
+            // Frame after the runner has entered an explicit paused boundary.
+            applyAuthoritativeSnapshot(nextSnapshot, true, initialLoad ? 'initial' : 'refresh');
+          }
+        })
+        .catch((reason: unknown) => {
+          if (current()) {
+            console.error(
+              `[${PRODUCT_NAME} RuntimeOperations] Failed to load runtime snapshot`,
+              redactErrorText(reason instanceof Error ? reason.message : String(reason))
+            );
+            setSnapshotError(snapshotRef.current ? 'refresh' : 'load');
+            if (snapshotRef.current === null) applySnapshot(null);
+            recoveryNeeded = snapshotRef.current === null;
+            scheduleRecovery();
+          }
+        })
+        .finally(() => {
+          if (
+            current() &&
+            conversationAuthorityRef.current === conversationId &&
+            loadedConversationRef.current === conversationId
+          ) {
+            setLoading(false);
+            setOwnerTransitionLoading(false);
+          }
+        });
+    };
+    initialRecoveryWakeRef.current = scheduleRecovery;
+    load();
+    return () => {
+      if (initialRecoveryWakeRef.current === scheduleRecovery) initialRecoveryWakeRef.current = null;
+      stop();
+      releaseAccount();
+      window.removeEventListener(X_SCIENCE_BRANCH_SELECTION_EVENT, branchChanged);
+    };
+  }, [
+    applyAuthoritativeSnapshot,
+    applySnapshot,
+    conversationId,
+    requestSnapshot,
+    snapshotRevision,
+    snapshotScope,
+    captureSnapshotScope,
+    recoveryResetKey,
+  ]);
+
+  useEffect(() => {
+    // Initial read recovery and the active heartbeat hand off within the same
+    // owner. Prop changes do not replace its scope-bound retry budget.
+    initialRecoveryWakeRef.current?.();
+  }, [shouldRefreshActiveRuntime, snapshotError, snapshotScope]);
 
   useEffect(() => {
     if (!['offline', 'reconnecting', 'protocol-error'].includes(realtimeSnapshot.status)) return;
@@ -329,17 +453,18 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       }, offlineRecoveryDelay(consecutiveFailures));
     };
     const refresh = async () => {
+      if (!active || captureSnapshotScope(conversationId) !== snapshotScope) return;
       invalidateXScienceFrameReads(conversationId);
       void requestSnapshot(conversationId, snapshotRevision)
         .then((nextSnapshot) => {
-          if (active) {
+          if (active && captureSnapshotScope(conversationId) === snapshotScope) {
             consecutiveFailures = 0;
             setSnapshotError(null);
             applyAuthoritativeSnapshot(nextSnapshot, true);
           }
         })
         .catch((reason: unknown) => {
-          if (!active) return;
+          if (!active || captureSnapshotScope(conversationId) !== snapshotScope) return;
           consecutiveFailures = Math.min(consecutiveFailures + 1, 8);
           console.error(
             `[${PRODUCT_NAME} RuntimeOperations] Failed to refresh runtime snapshot`,
@@ -348,7 +473,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
           setSnapshotError('refresh');
         })
         .finally(() => {
-          if (active) schedule();
+          if (active && captureSnapshotScope(conversationId) === snapshotScope) schedule();
         });
     };
     schedule();
@@ -363,6 +488,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     requestSnapshot,
     shouldRefreshActiveRuntime,
     snapshotRevision,
+    snapshotScope,
+    captureSnapshotScope,
   ]);
 
   useEffect(() => {
@@ -375,16 +502,17 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     let active = true;
     let timer: number | null = null;
     const refresh = () => {
+      if (!active || captureSnapshotScope(conversationId) !== snapshotScope) return;
       invalidateXScienceFrameReads(conversationId);
       void requestSnapshot(conversationId, snapshotRevision)
         .then((nextSnapshot) => {
-          if (active) {
+          if (active && captureSnapshotScope(conversationId) === snapshotScope) {
             setSnapshotError(null);
             applyAuthoritativeSnapshot(nextSnapshot, true);
           }
         })
         .catch((reason: unknown) => {
-          if (!active) return;
+          if (!active || captureSnapshotScope(conversationId) !== snapshotScope) return;
           console.error(
             `[${PRODUCT_NAME} RuntimeOperations] Active runtime heartbeat failed`,
             redactErrorText(reason instanceof Error ? reason.message : String(reason))
@@ -392,7 +520,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
           setSnapshotError('refresh');
         })
         .finally(() => {
-          if (active) {
+          if (active && captureSnapshotScope(conversationId) === snapshotScope) {
             timer = window.setTimeout(refresh, ACTIVE_RUNTIME_SNAPSHOT_INTERVAL_MS);
           }
         });
@@ -409,6 +537,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     requestSnapshot,
     shouldRefreshActiveRuntime,
     snapshotRevision,
+    snapshotScope,
+    captureSnapshotScope,
   ]);
 
   useEffect(
@@ -502,6 +632,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   };
 
   const refreshRuntime = () => {
+    initialRecoveryRef.current = { scope: captureSnapshotScope(conversationId), retries: 0 };
     invalidateXScienceFrameReads(conversationId);
     setSnapshotError(null);
     if (snapshotRef.current === null) setLoading(true);
@@ -788,7 +919,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     }
   };
 
-  const ownsConversation = loadedConversationRef.current === conversationId;
+  const ownsConversation =
+    loadedConversationRef.current === conversationId && loadedSnapshotScopeRef.current === snapshotScope;
   const visibleSnapshot = ownsConversation ? snapshot : null;
   const visibleAttemptIdentity = visibleSnapshot
     ? JSON.stringify([visibleSnapshot.runtimeAttempt, visibleSnapshot.runtimeInputRevision])

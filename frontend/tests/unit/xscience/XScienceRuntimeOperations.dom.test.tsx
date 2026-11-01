@@ -1565,7 +1565,9 @@ describe('XScienceRuntimeOperations', () => {
     );
 
     await waitFor(() => expect(runtimeMocks.loadSnapshot).toHaveBeenCalledOnce());
-    expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'loading');
+    await waitFor(() =>
+      expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'loading')
+    );
     expect(screen.getByTestId('x-science-task-status-spinner')).toBeInTheDocument();
     expect(screen.getByTestId('x-science-task-status-indicator')).toHaveAttribute('role', 'status');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
