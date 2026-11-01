@@ -242,6 +242,18 @@ const createInitStyleText = (
     outline-offset: 2px;
     border-radius: 3px;
   }
+  .markdown-shadow-body .markdown-artifact-file-link[aria-disabled='true'] {
+    color: var(--text-secondary, var(--text-primary));
+    cursor: not-allowed;
+    text-decoration: underline dotted;
+    font-weight: 500;
+  }
+  .markdown-artifact-link-state {
+    margin-inline-start: 0.4em;
+    color: var(--text-secondary, var(--text-primary));
+    font-size: 0.82em;
+    font-weight: 400;
+  }
   blockquote {
     border-left: 3px solid var(--conversation-stream-accent, var(--bg-3));
     padding: 8px 14px;

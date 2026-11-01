@@ -1,4 +1,9 @@
 {
+  "artifactLink": {
+    "resolving": "正在解析文件…",
+    "unavailable": "文件引用不可用",
+    "unavailableHint": "无法解析此文件引用，已保留原始链接。"
+  },
   "roundSummary": {
     "branchReply": "从此回复分支到新会话",
     "branchBusy": "本轮结束后可创建分支",

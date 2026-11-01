@@ -84,10 +84,6 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
       []
     );
     const localFileOpenHandler = onLocalFileLink ? stableLocalFileLink : undefined;
-    const stableResolveLinkHref = useCallback(
-      (href: string) => resolveLinkHrefRef.current?.(href) ?? Promise.resolve(null),
-      []
-    );
     const stableResolveImageSrc = useCallback(
       (src: string) => resolveImageSrcRef.current?.(src) ?? Promise.resolve(null),
       []
@@ -142,8 +138,9 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
           const anchorProps = rest as React.AnchorHTMLAttributes<HTMLAnchorElement>;
           const rawHref = typeof anchorProps.href === 'string' ? anchorProps.href : '';
           const artifactLink = parseXScienceArtifactLink(rawHref);
+          const linkResolver = resolveLinkHrefRef.current;
           // Content API identities take precedence over local path heuristics.
-          if (artifactLink && (artifactLink.kind !== 'filename' || resolveLinkHrefRef.current)) {
+          if (artifactLink && (artifactLink.kind !== 'filename' || linkResolver)) {
             const fileLinkProps: React.AnchorHTMLAttributes<HTMLAnchorElement> = {
               ...anchorProps,
               className: classNames(anchorProps.className, 'markdown-artifact-file-link'),
@@ -154,8 +151,8 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
                 if (event.button === 1) void handleLinkClick(event);
               },
             };
-            return resolveLinkHrefRef.current ? (
-              <ResolvedArtifactLink {...fileLinkProps} originalHref={rawHref} resolve={stableResolveLinkHref} />
+            return linkResolver ? (
+              <ResolvedArtifactLink {...fileLinkProps} originalHref={rawHref} resolve={linkResolver} />
             ) : (
               <a {...fileLinkProps} href={rawHref} />
             );
@@ -215,14 +212,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
           return <NearViewportImage {...imgProps} alt={imgProps.alt || ''} />;
         },
       }),
-      [
-        codeStyle,
-        hiddenCodeCopyButton,
-        handleLinkClick,
-        localFileOpenHandler,
-        stableResolveImageSrc,
-        stableResolveLinkHref,
-      ]
+      [codeStyle, hiddenCodeCopyButton, handleLinkClick, localFileOpenHandler, stableResolveImageSrc]
     );
 
     const rehypePlugins = useMemo(() => (allowHtml ? [rehypeRaw, rehypeKatex] : [rehypeKatex]), [allowHtml]);
@@ -258,41 +248,65 @@ type ResolvedArtifactLinkProps = Omit<React.AnchorHTMLAttributes<HTMLAnchorEleme
 };
 
 const ResolvedArtifactLink: React.FC<ResolvedArtifactLinkProps> = ({ originalHref, resolve, ...anchorProps }) => {
-  const resolveRef = useRef(resolve);
-  resolveRef.current = resolve;
-  const [resolution, setResolution] = useState<{ key: string; value: string | null }>({
+  const { t } = useTranslation();
+  const statusId = React.useId();
+  const [resolution, setResolution] = useState<{
+    key: string;
+    resolver: ResolvedArtifactLinkProps['resolve'] | null;
+    value: string | null;
+  }>({
     key: '',
+    resolver: null,
     value: null,
   });
-  const resolvedHref = resolution.key === originalHref ? resolution.value : undefined;
+  const resolvedHref =
+    resolution.key === originalHref && resolution.resolver === resolve ? resolution.value : undefined;
+  const pending = resolvedHref === undefined;
+  const unavailable = resolvedHref === null;
+  const stateLabel = pending
+    ? t('messages.artifactLink.resolving')
+    : unavailable
+      ? t('messages.artifactLink.unavailable')
+      : undefined;
 
   useEffect(() => {
     let active = true;
-    void resolveRef
-      .current(originalHref)
+    void resolve(originalHref)
       .then((nextHref) => {
-        if (active) setResolution({ key: originalHref, value: nextHref });
+        if (active) setResolution({ key: originalHref, resolver: resolve, value: nextHref });
       })
       .catch((error) => {
         console.warn('[MarkdownView] Failed to resolve X-Science artifact link:', error);
-        if (active) setResolution({ key: originalHref, value: null });
+        if (active) setResolution({ key: originalHref, resolver: resolve, value: null });
       });
     return () => {
       active = false;
     };
-  }, [originalHref]);
+  }, [originalHref, resolve]);
 
   return (
-    <a
-      {...anchorProps}
-      className={classNames(anchorProps.className, 'x-science-artifact-link')}
-      href={resolvedHref ?? '#'}
-      data-original-href={originalHref}
-      data-x-science-artifact-link='true'
-      data-artifact-link-resolution={resolvedHref === undefined ? 'pending' : resolvedHref ? 'resolved' : 'unavailable'}
-      aria-busy={resolvedHref === undefined ? true : undefined}
-      rel='noreferrer'
-    />
+    <>
+      <a
+        {...anchorProps}
+        className={classNames(anchorProps.className, 'x-science-artifact-link')}
+        href={resolvedHref ?? '#'}
+        data-original-href={originalHref}
+        data-x-science-artifact-link='true'
+        data-artifact-link-resolution={pending ? 'pending' : unavailable ? 'unavailable' : 'resolved'}
+        aria-busy={pending ? true : undefined}
+        aria-disabled={unavailable ? true : undefined}
+        aria-describedby={
+          [anchorProps['aria-describedby'], stateLabel ? statusId : undefined].filter(Boolean).join(' ') || undefined
+        }
+        title={unavailable ? t('messages.artifactLink.unavailableHint') : pending ? stateLabel : anchorProps.title}
+        rel='noreferrer'
+      />
+      {stateLabel && (
+        <span id={statusId} role='status' className='markdown-artifact-link-state'>
+          {stateLabel}
+        </span>
+      )}
+    </>
   );
 };
 
