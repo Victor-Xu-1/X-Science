@@ -218,7 +218,7 @@
     "feasible": "可执行",
     "notFeasible": "当前条件不足",
     "available": "可直接获取",
-    "notAvailable": "未发现开放获取内容",
+    "notAvailable": "当前不可用",
     "selected": "已选中",
     "notSelected": "未选中",
     "created": "已创建",
