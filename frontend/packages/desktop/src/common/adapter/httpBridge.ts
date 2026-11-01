@@ -193,6 +193,22 @@ async function readBackendErrorText(response: Response): Promise<string> {
   }
 }
 
+/** Decode one failed response through the same bounded, redacted backend-error authority. */
+export async function readBackendHttpError(
+  method: string,
+  path: string,
+  response: Response
+): Promise<BackendHttpError> {
+  const rawText = await readBackendErrorText(response);
+  let body: unknown;
+  try {
+    body = JSON.parse(rawText);
+  } catch {
+    body = rawText;
+  }
+  return new BackendHttpError({ method, path, status: response.status, body });
+}
+
 export function isBackendHttpError(error: unknown): error is BackendHttpError {
   // Prefer instanceof — fast path in production/bundled contexts.
   if (error instanceof BackendHttpError) return true;
@@ -293,19 +309,7 @@ export async function httpRequest<T>(
 
   try {
     if (!response.ok) {
-      const rawText = await readBackendErrorText(response);
-      let errorBody: unknown;
-      try {
-        errorBody = JSON.parse(rawText);
-      } catch {
-        errorBody = rawText;
-      }
-      const error = new BackendHttpError({
-        method,
-        path,
-        status: response.status,
-        body: errorBody,
-      });
+      const error = await readBackendHttpError(method, path, response);
       const diagnosticCode = backendErrorCodeForDiagnostic(error.code);
       const diagnostic = `[httpBridge] ${method} ${diagnosticPath} → ${response.status}${
         diagnosticCode ? ` [${diagnosticCode}]` : ''

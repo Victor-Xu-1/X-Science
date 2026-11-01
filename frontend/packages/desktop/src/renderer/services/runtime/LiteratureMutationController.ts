@@ -13,6 +13,11 @@ import { runLiteratureCollectionCommand } from './literatureCollections';
 import { runLiteraturePublicationCommand } from './literaturePublicationCheck';
 import { runLiteratureReadingStatusCommand } from './literatureReadingStatus';
 import { withLiteratureMutationLock } from './literatureMutationLock';
+import {
+  createRendererMutationSlot,
+  RendererMutationSlotConflict,
+  type RendererMutationSlot,
+} from './rendererMutationSlot';
 import { createLiteratureReadingBulkOperations } from './literatureReadingBulkOperations';
 import { isLiteratureReadingBulk } from './literatureReadingBulkIntent';
 import type { LiteratureReadingStatus, LiteratureReadingStatusReceipt } from '@/common/adapter/literatureReadingStatus';
@@ -26,7 +31,6 @@ import {
   isCandidateCommand,
   isCollectionCommand,
   isUploadIntent,
-  matchingSettlement,
   OriginalPendingConflict,
   samePending,
   uploadOriginIdentity,
@@ -137,6 +141,7 @@ export class LiteratureMutationController {
   private listeners = new Set<() => void>();
   private readonly account = getRendererAccountScopeToken();
   private readonly key: string;
+  private readonly slot: RendererMutationSlot<LiteraturePending>;
   private readonly unregisterReset: () => void;
   private promise?: Promise<LiteratureMutationReceipt>;
   private flight?: Flight;
@@ -190,6 +195,13 @@ export class LiteratureMutationController {
     private options: Options = {}
   ) {
     this.key = `x-science.literature-mutation.v1:${encodeURIComponent(ownerId)}`;
+    this.slot = createRendererMutationSlot({
+      key: this.key,
+      storage: () => this.options.storage ?? localStorage,
+      decode: (value) => decodePendingRecord(value, this.ownerId),
+      encode: (value) => encodePendingRecord(this.ownerId, value),
+      same: samePending,
+    });
     this.unregisterReset = registerRendererAccountReset(`literature-mutation-instance:${++instanceSequence}`, () => {
       ++this.generation;
       this.flight?.abort.abort();
@@ -242,10 +254,7 @@ export class LiteratureMutationController {
     }
   }
   private read(): LiteraturePending | null {
-    return this.storageAction(() => {
-      const raw = (this.options.storage ?? localStorage).getItem(this.key);
-      return raw === null ? null : decodePendingRecord(JSON.parse(raw), this.ownerId);
-    });
+    return this.storageAction(() => this.slot.read());
   }
   private projection(pending: LiteraturePending | null): LiteratureUploadState {
     if (!pending || !isUploadIntent(pending)) return null;
@@ -276,18 +285,20 @@ export class LiteratureMutationController {
   private write(expected: LiteraturePending | null, next: LiteraturePending, flight?: Flight) {
     if (flight) this.requireActive(flight);
     else if (!this.current()) throw interrupted();
-    const actual = this.read();
-    if (actual ? !expected || !samePending(actual, expected) : Boolean(expected)) {
-      this.emit(
-        { pending: actual, action: actual ?? undefined, error: 'uncertain', uploadState: this.projection(actual) },
-        flight
-      );
-      throw new OriginalPendingConflict();
+    try {
+      this.slot.replace(expected, next);
+    } catch (error) {
+      if (error instanceof RendererMutationSlotConflict) {
+        const actual = error.actual as LiteraturePending | null;
+        this.emit(
+          { pending: actual, action: actual ?? undefined, error: 'uncertain', uploadState: this.projection(actual) },
+          flight
+        );
+        throw new OriginalPendingConflict();
+      }
+      this.emit({ error: 'storage' }, flight);
+      throw new PendingStorageError(error);
     }
-    this.storageAction(
-      () => (this.options.storage ?? localStorage).setItem(this.key, encodePendingRecord(this.ownerId, next)),
-      flight
-    );
     this.rejectedUpload = undefined;
     this.emit({ pending: next, action: next, error: null }, flight);
   }
@@ -299,8 +310,7 @@ export class LiteratureMutationController {
     flight?: Flight
   ) {
     if (flight) this.requireActive(flight);
-    const plan = matchingSettlement(this.read(), expected, clear);
-    if (plan.remove) this.storageAction(() => (this.options.storage ?? localStorage).removeItem(this.key), flight);
+    const plan = this.storageAction(() => this.slot.settle(expected, clear), flight);
     if (plan.remove) {
       this.rejectedUpload = undefined;
       if (isUploadIntent(expected)) this.selectedFile = undefined;
