@@ -134,7 +134,7 @@ func (s *Server) handleProjectAnnotations(w http.ResponseWriter, r *http.Request
 		writeAnnotationError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	artifact, _, err := resolveAnnotationTarget(store, userID, projectID, target)
+	artifact, version, err := resolveAnnotationTarget(store, userID, projectID, target)
 	if err != nil {
 		writeAnnotationStoreError(w, err)
 		return
@@ -153,6 +153,9 @@ func (s *Server) handleProjectAnnotations(w http.ResponseWriter, r *http.Request
 			s.writeAnnotationList(w, store, projectID, targetKey, currentChecksum)
 			return
 		}
+		if target.Kind == "artifact" && !validateArtifactAnnotationChecksum(w, input, version.ContentSHA256) {
+			return
+		}
 		checksum, _ := input["content_checksum"].(string)
 		delete(input, "target")
 		delete(input, "content_checksum")
@@ -162,7 +165,7 @@ func (s *Server) handleProjectAnnotations(w http.ResponseWriter, r *http.Request
 				checksum, _ = s.grantedFileChecksum(userID, target.AbsPath).(string)
 			}
 		}
-		s.createAnnotationFromMap(r.Context(), w, store, userID, projectID, target.Kind, targetKey, checksum, input)
+		s.createAnnotationFromMap(workspaceMutationContext(r), w, store, userID, projectID, target.Kind, targetKey, checksum, input)
 	default:
 		writeAnnotationError(w, http.StatusMethodNotAllowed, "method not allowed")
 	}
@@ -261,7 +264,29 @@ func (s *Server) createAnnotation(w http.ResponseWriter, r *http.Request, store 
 	if !ok {
 		return
 	}
-	s.createAnnotationFromMap(r.Context(), w, store, userID, projectID, kind, targetKey, checksum, input)
+	if !validateArtifactAnnotationChecksum(w, input, checksum) {
+		return
+	}
+	s.createAnnotationFromMap(workspaceMutationContext(r), w, store, userID, projectID, kind, targetKey, checksum, input)
+}
+
+// Both public artifact creation routes validate the selected immutable version.
+// Empty/omitted checksums retain their existing canonical-fill/legacy behavior.
+func validateArtifactAnnotationChecksum(w http.ResponseWriter, input map[string]any, canonical string) bool {
+	value, supplied := input["content_checksum"]
+	if !supplied {
+		return true
+	}
+	expected, valid := value.(string)
+	if !valid || expected != "" && !isSHA256Hex(expected) {
+		writeAnnotationError(w, http.StatusBadRequest, "content_checksum must be a 64-character SHA-256")
+		return false
+	}
+	if expected != "" && expected != canonical {
+		writeAnnotationError(w, http.StatusConflict, "Artifact version changed; refresh before saving the annotation")
+		return false
+	}
+	return true
 }
 
 func (s *Server) createAnnotationFromMap(ctx context.Context, w http.ResponseWriter, store *workspace.Store, ownerUserID, projectID, kind, targetKey, checksum string, input map[string]any) {
@@ -279,7 +304,7 @@ func (s *Server) createAnnotationFromMap(ctx context.Context, w http.ResponseWri
 		ContentChecksum: strings.ToLower(checksum), Body: body,
 	}, ownerUserID)
 	if err != nil {
-		writeAnnotationStoreError(w, err)
+		writeAnnotationCreateError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, annotation.Public())
@@ -837,7 +862,31 @@ func isSHA256Hex(value string) bool {
 	return err == nil
 }
 
+func writeAnnotationCreateFailure(w http.ResponseWriter, status int, code, detail string) {
+	writeJSON(w, status, map[string]any{"code": code, "detail": detail, "error": detail})
+}
+
+func writeAnnotationCreateError(w http.ResponseWriter, err error) {
+	if !errors.Is(err, workspace.ErrAnnotationCreateOutcomeUnknown) && errors.Is(err, workspace.ErrMutationIdempotencyConflict) {
+		// Reuse the generic conflict identity and detail; the stable code is
+		// scoped to annotation creation rather than changing unrelated writers.
+		writeAnnotationCreateFailure(w, http.StatusConflict, "ANNOTATION_CREATE_IDEMPOTENCY_CONFLICT", err.Error())
+		return
+	}
+	writeAnnotationStoreError(w, err)
+}
+
 func writeAnnotationStoreError(w http.ResponseWriter, err error) {
+	// Scoped creation outcomes precede nested database/source errors. Do not
+	// disclose private database details or mistake unknown commit for rejection.
+	if errors.Is(err, workspace.ErrAnnotationCreateOutcomeUnknown) {
+		writeAnnotationCreateFailure(w, http.StatusServiceUnavailable, "ANNOTATION_CREATE_OUTCOME_UNKNOWN", "The annotation save outcome could not be confirmed. Retry the same save.")
+		return
+	}
+	if errors.Is(err, workspace.ErrAnnotationCommittedResultMissing) {
+		writeAnnotationCreateFailure(w, http.StatusGone, "ANNOTATION_COMMITTED_RESULT_MISSING", "This save was committed, but the annotation is no longer available.")
+		return
+	}
 	message := err.Error()
 	status := http.StatusBadRequest
 	switch {
