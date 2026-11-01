@@ -116,8 +116,8 @@ describe('Library table through the real Page and account setting transport', ()
     });
     expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files']);
     expect(settings.saved.get(ownerA)).toEqual({
-      version: 2,
-      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes'],
+      version: 3,
+      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes', 'rating'],
       visible: ['year', 'readingStatus', 'attachments'],
     });
     expect(settings.writes.every((write) => write.owner === ownerA)).toBe(true);
