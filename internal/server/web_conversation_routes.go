@@ -153,7 +153,14 @@ func (s *Server) createWebConversation(w http.ResponseWriter, r *http.Request) {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "conversation created but realtime delivery failed"})
 		return
 	}
-	writeWorkspaceJSON(w, http.StatusCreated, webConversation(frame, project.Name))
+	// Creation hands identity and presentation CAS directly to the route and
+	// session-control owners without reading the full runtime snapshot.
+	conversation, err := webConversationPresentationSnapshot(frame, project.Name)
+	if err != nil {
+		writeWebConversationError(w, err)
+		return
+	}
+	writeWorkspaceJSON(w, http.StatusCreated, conversation)
 }
 
 func (s *Server) createWebConversationRecord(
