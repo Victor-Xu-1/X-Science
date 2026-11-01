@@ -10,6 +10,7 @@ import {
   ArtifactVerificationPanel,
 } from '@/renderer/pages/artifact/ArtifactAnnotationPanels';
 import { renderWithI18n } from '../i18nTestUtils';
+import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
 
 const render = async (ui: React.ReactElement, language: 'zh-CN' | 'en-US' = 'zh-CN') => {
   let view!: Awaited<ReturnType<typeof renderWithI18n>>;
@@ -79,7 +80,7 @@ vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => {
   };
 });
 
-const annotation = {
+const annotation: XScienceArtifactAnnotation = {
   id: 'annotation-1',
   artifactId: 'artifact-1',
   targetKey: 'av:version-1',
@@ -127,12 +128,12 @@ describe('Artifact annotation and verification panels', () => {
     'keeps the $language composite type picker outside native label activation',
     async ({ language, add, type, option }) => {
       await render(<ArtifactAnnotationsPanel artifactId='artifact-1' versionId='version-1' />, language);
-      fireEvent.click(screen.getByRole('button', { name: add, exact: true }));
+      fireEvent.click(screen.getByRole('button', { name: add }));
       const picker = screen.getByRole('combobox', { name: type });
       expect(picker.closest('label')).toBeNull();
       fireEvent.click(picker);
       expect(picker).toHaveAttribute('aria-expanded', 'true');
-      fireEvent.click(screen.getByRole('option', { name: option, exact: true }));
+      fireEvent.click(screen.getByRole('option', { name: option }));
       expect(picker).toHaveTextContent(option);
       expect(mocks.createAnnotation).not.toHaveBeenCalled();
     }

@@ -7,6 +7,9 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
+import type * as Gateway from '@/renderer/services/xScienceGateway';
+import type * as Artifacts from '@/renderer/services/xScienceArtifacts';
+import type * as WorkspaceSettings from '@/renderer/services/xScienceWorkspaceSettings';
 
 const render = (ui: React.ReactElement) => renderWithI18n(ui);
 
@@ -41,7 +44,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-const loadArtifactMock = vi.fn(async () => ({
+const loadArtifactMock = vi.fn(async (..._args: Parameters<typeof Gateway.loadXScienceArtifact>) => ({
   artifactId: 'artifact-1',
   versionId: 'version-1',
   versionNumber: 1,
@@ -63,7 +66,7 @@ const loadArtifactMock = vi.fn(async () => ({
   priority: 'normal',
 }));
 
-const loadVersionsMock = vi.fn(async () => [
+const loadVersionsMock = vi.fn(async (..._args: Parameters<typeof Artifacts.loadXScienceArtifactVersions>) => [
   {
     versionId: 'version-1',
     versionNumber: 1,
@@ -90,7 +93,7 @@ const loadAnnotationsMock = vi.fn(async (_artifactId: string, _versionId: string
 const defaultAnnotationLoader = loadAnnotationsMock.getMockImplementation()!;
 const createAnnotationMock = vi.fn();
 
-const loadLineageMock = vi.fn(async () => ({
+const loadLineageMock = vi.fn(async (..._args: Parameters<typeof Artifacts.loadXScienceArtifactLineage>) => ({
   artifactId: 'artifact-1',
   versionId: 'version-1',
   versionNumber: 1,
@@ -108,26 +111,35 @@ const loadLineageMock = vi.fn(async () => ({
   dependencyMappings: null,
 }));
 
-const copyArtifactMock = vi.fn(async () => ({
+const copyArtifactMock = vi.fn(async (..._args: Parameters<typeof Artifacts.copyXScienceArtifact>) => ({
   artifactId: 'artifact-copy',
   versionId: 'version-copy',
   filename: 'qc_metrics-copy.png',
 }));
 
-const moveArtifactMock = vi.fn(async () => ({ artifactId: 'artifact-1', folderId: 'folder-2' }));
-const exportArtifactMock = vi.fn(async () => ({ exported: true }));
-const loadCloudBucketsMock = vi.fn(async () => ['bucket-a']);
-const loadCloudCredentialsMock = vi.fn(async () => [
-  {
-    id: 'cloud-1',
-    provider: 's3',
-    name: 'Research',
-    credentialType: 'access_key',
-    connected: true,
-    defaultBucket: 'bucket-a',
-    region: 'us-east-1',
-  },
+const moveArtifactMock = vi.fn(async (..._args: Parameters<typeof Artifacts.moveXScienceArtifact>) => ({
+  artifactId: 'artifact-1',
+  folderId: 'folder-2',
+}));
+const exportArtifactMock = vi.fn(
+  async (..._args: Parameters<typeof WorkspaceSettings.exportXScienceArtifactToCloud>) => ({ exported: true })
+);
+const loadCloudBucketsMock = vi.fn(async (..._args: Parameters<typeof WorkspaceSettings.loadXScienceCloudBuckets>) => [
+  'bucket-a',
 ]);
+const loadCloudCredentialsMock = vi.fn(
+  async (..._args: Parameters<typeof WorkspaceSettings.loadXScienceCloudCredentials>) => [
+    {
+      id: 'cloud-1',
+      provider: 's3',
+      name: 'Research',
+      credentialType: 'access_key',
+      connected: true,
+      defaultBucket: 'bucket-a',
+      region: 'us-east-1',
+    },
+  ]
+);
 
 const navigateMock = vi.fn();
 
@@ -148,7 +160,7 @@ vi.mock('@/renderer/pages/conversation/Preview/components/editors/CodeEditor', (
 }));
 
 vi.mock('@/renderer/pages/artifact/XSciencePdfArtifactViewer', () => ({
-  default: () => null,
+  default: (): null => null,
 }));
 
 vi.mock('react-router', () => ({
@@ -159,11 +171,15 @@ vi.mock('react-router', () => ({
 
 vi.mock('@/renderer/services/xScienceGateway', () => ({
   loadXScienceProject: async (projectId: string) => ({ projectId, name: 'Fixture project' }),
-  loadXScienceLinkedTask: async (frameId: string) => ({ frameId, name: 'Fixture task', projectId: null }),
-  loadXScienceArtifact: (...args: unknown[]) => loadArtifactMock(...args),
-  loadXScienceProjectArtifacts: async () => [await loadArtifactMock()],
+  loadXScienceLinkedTask: async (frameId: string): Promise<Gateway.XScienceLinkedTask> => ({
+    frameId,
+    name: 'Fixture task',
+    projectId: null,
+  }),
+  loadXScienceArtifact: (...args: Parameters<typeof Gateway.loadXScienceArtifact>) => loadArtifactMock(...args),
+  loadXScienceProjectArtifacts: async () => [await loadArtifactMock('artifact-1')],
   getXScienceArtifactContentUrl: (artifactId: string) => `/api/artifacts/${artifactId}`,
-  loadXScienceProjectFolders: async () => [
+  loadXScienceProjectFolders: async (): Promise<Gateway.XScienceProjectFolder[]> => [
     {
       folderId: 'folder-1',
       projectId: 'proj_example',
@@ -190,17 +206,22 @@ vi.mock('@/renderer/services/xScienceGateway', () => ({
 }));
 
 vi.mock('@/renderer/services/xScienceArtifacts', () => ({
-  loadXScienceArtifactVersions: (...args: unknown[]) => loadVersionsMock(...args),
-  loadXScienceArtifactLineage: (...args: unknown[]) => loadLineageMock(...args),
-  copyXScienceArtifact: (...args: unknown[]) => copyArtifactMock(...args),
-  moveXScienceArtifact: (...args: unknown[]) => moveArtifactMock(...args),
+  loadXScienceArtifactVersions: (...args: Parameters<typeof Artifacts.loadXScienceArtifactVersions>) =>
+    loadVersionsMock(...args),
+  loadXScienceArtifactLineage: (...args: Parameters<typeof Artifacts.loadXScienceArtifactLineage>) =>
+    loadLineageMock(...args),
+  copyXScienceArtifact: (...args: Parameters<typeof Artifacts.copyXScienceArtifact>) => copyArtifactMock(...args),
+  moveXScienceArtifact: (...args: Parameters<typeof Artifacts.moveXScienceArtifact>) => moveArtifactMock(...args),
   getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifacts/versions/${versionId}`,
 }));
 
 vi.mock('@/renderer/services/xScienceWorkspaceSettings', () => ({
-  loadXScienceCloudCredentials: (...args: unknown[]) => loadCloudCredentialsMock(...args),
-  loadXScienceCloudBuckets: (...args: unknown[]) => loadCloudBucketsMock(...args),
-  exportXScienceArtifactToCloud: (...args: unknown[]) => exportArtifactMock(...args),
+  loadXScienceCloudCredentials: (...args: Parameters<typeof WorkspaceSettings.loadXScienceCloudCredentials>) =>
+    loadCloudCredentialsMock(...args),
+  loadXScienceCloudBuckets: (...args: Parameters<typeof WorkspaceSettings.loadXScienceCloudBuckets>) =>
+    loadCloudBucketsMock(...args),
+  exportXScienceArtifactToCloud: (...args: Parameters<typeof WorkspaceSettings.exportXScienceArtifactToCloud>) =>
+    exportArtifactMock(...args),
 }));
 
 vi.mock('@/renderer/services/xScienceAnnotations', async (importOriginal) => ({
@@ -235,8 +256,8 @@ vi.mock('@/renderer/pages/conversation/Preview/components/viewers/XScienceStruct
 
 describe('ArtifactPreview', () => {
   it('restores a historical URL version without showing latest while its membership is loading', async () => {
-    const original = await defaultArtifactLoader();
-    const [historical] = await defaultVersionLoader();
+    const original = await defaultArtifactLoader('artifact-1');
+    const [historical] = await defaultVersionLoader('artifact-1');
     const versions = deferredFixture<Awaited<ReturnType<typeof defaultVersionLoader>>>();
     artifactRoute.search = '?version=version-1';
     loadArtifactMock.mockResolvedValue({ ...original, versionId: 'version-2', versionNumber: 2 });
@@ -255,8 +276,8 @@ describe('ArtifactPreview', () => {
   it.each([
     { kind: 'absent', language: 'en-US', message: 'Version details unavailable' },
     { kind: 'foreign', language: 'zh-CN', message: '版本详情暂不可用' },
-  ])('does not replace a $kind URL version with latest in $language', async ({ kind, language, message }) => {
-    const [version] = await defaultVersionLoader();
+  ] as const)('does not replace a $kind URL version with latest in $language', async ({ kind, language, message }) => {
+    const [version] = await defaultVersionLoader('artifact-1');
     artifactRoute.search = '?version=unavailable-version';
     loadVersionsMock.mockResolvedValue(
       kind === 'foreign' ? [{ ...version, versionId: 'unavailable-version', artifactId: 'other-artifact' }] : []
@@ -269,7 +290,7 @@ describe('ArtifactPreview', () => {
   });
 
   it('retries a failed version read without substituting latest or refetching a healthy version list', async () => {
-    const original = await defaultArtifactLoader();
+    const original = await defaultArtifactLoader('artifact-1');
     artifactRoute.search = '?version=version-1';
     loadArtifactMock.mockResolvedValue({ ...original, versionId: 'version-2', versionNumber: 2 });
     loadVersionsMock.mockRejectedValueOnce(new Error('version list temporarily unavailable'));
@@ -305,8 +326,8 @@ describe('ArtifactPreview', () => {
   });
 
   it('does not let a previous artifact membership read overwrite a new URL selection', async () => {
-    const original = await defaultArtifactLoader();
-    const [version] = await defaultVersionLoader();
+    const original = await defaultArtifactLoader('artifact-1');
+    const [version] = await defaultVersionLoader('artifact-1');
     const oldVersions = deferredFixture<Awaited<ReturnType<typeof defaultVersionLoader>>>();
     artifactRoute.search = '?version=version-old';
     loadArtifactMock.mockImplementation(async (...args: unknown[]) =>
@@ -342,8 +363,8 @@ describe('ArtifactPreview', () => {
   });
 
   it('isolates annotations and open actions when a URL selects another version of the same artifact', async () => {
-    const original = await defaultArtifactLoader();
-    const [version] = await defaultVersionLoader();
+    const original = await defaultArtifactLoader('artifact-1');
+    const [version] = await defaultVersionLoader('artifact-1');
     const laterAnnotations = deferredFixture<Awaited<ReturnType<typeof defaultAnnotationLoader>>>();
     const annotation: XScienceArtifactAnnotation = {
       id: 'point-old',
@@ -412,7 +433,7 @@ describe('ArtifactPreview', () => {
   });
 
   it('displays a newly saved point through the version-owned annotation updater', async () => {
-    const original = await defaultArtifactLoader();
+    const original = await defaultArtifactLoader('artifact-1');
     const annotation: XScienceArtifactAnnotation = {
       id: 'saved-point',
       artifactId: original.artifactId,
@@ -462,10 +483,10 @@ describe('ArtifactPreview', () => {
     });
     fireEvent.load(image);
     fireEvent.click(image, { clientX: 100, clientY: 50 });
-    fireEvent.click(await screen.findByRole('button', { name: '批注', exact: true }));
+    fireEvent.click(await screen.findByRole('button', { name: '批注' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: annotation.text } });
-    fireEvent.click(within(dialog).getByRole('button', { name: '添加', exact: true }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '添加' }));
     expect(await screen.findByTitle(annotation.text)).toBeInTheDocument();
     expect(createAnnotationMock).toHaveBeenCalledWith(
       'artifact-1',
@@ -481,8 +502,8 @@ describe('ArtifactPreview', () => {
   });
 
   it('binds structure rendering and derived snapshots to the displayed immutable version', async () => {
-    const original = await loadArtifactMock();
-    const [olderVersion] = await loadVersionsMock();
+    const original = await loadArtifactMock('artifact-1');
+    const [olderVersion] = await loadVersionsMock('artifact-1');
     loadArtifactMock.mockResolvedValueOnce({
       ...original,
       filename: 'complex.pdb',
@@ -532,7 +553,7 @@ describe('ArtifactPreview', () => {
 
   it('opens an archive detail as a native archive preview, not the external-original fallback', async () => {
     loadArtifactMock.mockResolvedValueOnce({
-      ...(await loadArtifactMock()),
+      ...(await loadArtifactMock('artifact-1')),
       filename: 'bundle.zip',
       contentType: 'application/zip',
     });
@@ -579,7 +600,7 @@ describe('ArtifactPreview', () => {
   it('loads JSON into the structured preview and preserves the exact source view', async () => {
     const source = ' \r\n{"status":"completed","hits":3}\r\n ';
     loadArtifactMock.mockResolvedValueOnce({
-      ...(await loadArtifactMock()),
+      ...(await loadArtifactMock('artifact-1')),
       filename: 'analysis.json',
       contentType: 'application/json',
       sizeBytes: source.length,
@@ -658,7 +679,7 @@ describe('ArtifactPreview', () => {
     { filename: 'assay-video.mp4', contentType: 'video/mp4', tagName: 'VIDEO' },
   ])('renders $contentType with loading, playback and bounded error states', async (media) => {
     loadArtifactMock.mockResolvedValueOnce({
-      ...(await loadArtifactMock()),
+      ...(await loadArtifactMock('artifact-1')),
       filename: media.filename,
       contentType: media.contentType,
     });
