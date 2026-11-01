@@ -770,6 +770,50 @@ SMILES 是二维化学身份的权威，几何显示数据不能反向覆盖它�
 复制路径处理。取消弹窗不宣称已取消提交到服务端的保存，旧请求的完成或错误不能
 关闭、重置或标记为新弹窗的保存结果。模型 ID、服务地址及保存参数保持原有语义。
 
+## Resource tag catalog · 资源标签目录
+
+The authenticated `/api/tags` API owns an account-scoped catalog, independent of
+bibliographic keywords and item metadata. `GET` reads a consistent snapshot;
+`POST` creates a custom tag. `PATCH /api/tags/:id` requires the original
+`expected_updated_at` millisecond timestamp. `DELETE /api/tags/:id` removes that
+custom tag and its assignments. `PUT /api/tags/order` accepts every custom tag ID
+exactly once; the protected Favorites tag remains first.
+
+`PUT /api/tags/assignments` accepts `tag_id`, `resource_type`, `resource_id` and an
+explicit `assigned` boolean. The snapshot's `resource_types` advertises only
+implemented resource consumers, currently `literature.item`. Assigning requires
+an owned, active Library item; unassigning can remove an existing relationship
+after the item enters Trash. Trash and restore retain assignments. A canonical
+permanent item deletion removes only that owner's relationships in the same
+transaction. An unavailable catalog never implies a resource was deleted.
+
+All writes require `operation_id` and use the existing durable mutation ledger.
+The exact original request replays its original receipt before current catalog,
+CAS or resource checks; reusing the operation with different content conflicts.
+The mutation, durable catalog revision and receipt commit together. A replayed
+snapshot is historical evidence. After a lost response or restored pending
+operation, consumers must read the canonical current snapshot before applying
+its state; comparing with a fresh local revision-zero cache is insufficient.
+If that read fails, retain confirmed state and an explicit pending-readback
+state. Never create a replacement operation or invert the requested assignment.
+Within an already verified live baseline, revision comparison also prevents an
+older acknowledgement from replacing newer state.
+Reads do not initialize database rows; a new account sees a virtual Favorites tag
+at revision zero until its first accepted mutation initializes the same identity.
+
+Names use NFKC, collapsed ECMAScript whitespace and a case-insensitive uniqueness
+key, with a 64 UTF-16-unit limit. Custom tags use the supported eight icon and
+eight color keys. System tags cannot be renamed or deleted. The Web boundary
+retains the existing authentication, CSRF protection and strict JSON decoder;
+request bodies cannot nominate another account. This API foundation does not
+itself add a Library column or expose unsupported catalog resource types.
+
+资源标签通过同一工作区数据库和账号身份保存目录及关联，与书目关键词、文献元数据
+分别维护。每次写入都绑定原始操作编号、持久版本和回执；丢失响应后重放原请求，
+不会重复创建、切换相反选择或复活之后已删除的关系。回收站保留标签，永久删除文献
+才在同一事务中清理对应账号的关联。新账号的只读快照不写入数据库；当前仅开放
+真实接通的文献资源类型，其他资源入口需由后续消费者接线。
+
 ## Library request ownership · Library 原请求所有权
 
 Library mutations retain the existing owner-scoped v1 pending envelope and server

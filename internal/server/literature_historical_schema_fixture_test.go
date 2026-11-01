@@ -32,6 +32,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 	if err := restoreEmptyHistoricalAnnotationPredecessor(t, tx); err != nil {
 		t.Fatal(err)
 	}
+	dropEmptyReviewedResourceTagFixtureObjects(t, tx)
 	for _, statement := range []string{
 		// A v74/v76 predecessor cannot retain the prospective v82 column, even
 		// when its default value is unused. Other project metadata stays intact.
@@ -56,7 +57,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 89
+	const reviewedTarget = 90
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -70,6 +71,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// or data to remove from these empty private historical fixtures.
 	// Reviewed89 changes annotations; the empty table is restored to its original
 	// project-owned shape before callers reconstruct their v74/v76 receipts.
+	// Reviewed90 adds an owner catalog, tags and assignments plus a Library
+	// deletion trigger. Only these empty private fixture objects are removed.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -79,9 +82,14 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "library-annotation-owner" ||
-		current.Checksum != "8f8b89fb5c2808bc147541e3df3ce4828f0058c9117ebfa52b710c260a896ca9" {
-		t.Fatalf("historical reconstruction requires the reviewed annotation89 identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "resource-tags" ||
+		current.Checksum != "a12149409edbbebe92a3a8aa7e1c7440bb8a254b35aaedea4574bb9394019e80" {
+		t.Fatalf("historical reconstruction requires the reviewed resource tag90 identity: %+v", current)
+	}
+	original89 := expected.Migrations[88]
+	if original89.Version != 89 || original89.Name != "library-annotation-owner" ||
+		original89.Checksum != "8f8b89fb5c2808bc147541e3df3ce4828f0058c9117ebfa52b710c260a896ca9" {
+		t.Fatalf("historical reconstruction requires the reviewed annotation89 identity: %+v", original89)
 	}
 	original88 := expected.Migrations[87]
 	if original88.Version != 88 || original88.Name != "kernel-worker-startup-reader-floor" ||
@@ -264,7 +272,8 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_index_list('annotations')`).Scan(&indexes); err != nil || indexes != 3 {
 				t.Fatalf("historical annotations indexes=%d err=%v", indexes, err)
 			}
-			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version=89`); err != nil {
+			dropEmptyReviewedResourceTagFixtureObjects(t, tx)
+			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version>=89`); err != nil {
 				t.Fatal(err)
 			}
 			if err := tx.Commit(); err != nil {
@@ -279,7 +288,7 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			}
 			defer store.Close()
 			status, err := store.SchemaStatus(t.Context())
-			if err != nil || status.CurrentVersion != 89 || len(status.Migrations) != 89 {
+			if err != nil || status.CurrentVersion != 90 || len(status.Migrations) != 90 {
 				t.Fatalf("restored predecessor did not migrate back: status=%+v err=%v", status, err)
 			}
 		})
