@@ -1,5 +1,7 @@
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { conversation as webConversations } from '@/common/adapter/ipcConversationClient';
+import { readRecentConversationRouteDetail } from '@/renderer/pages/conversation/utils/conversationCache';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { useGuidSend, type GuidSendDeps } from '@/renderer/pages/guid/hooks/useGuidSend';
@@ -125,6 +127,39 @@ afterEach(() => {
   cleanup();
   setRendererAccountOwner(null);
   vi.restoreAllMocks();
+});
+it('raw create wire reaches the original specialist CAS and route handoff', async () => {
+  const raw = {
+    ...frame(),
+    extra: {
+      ...frame().extra,
+      backend: 'xscience',
+      workspace: 'x-science://synthetic-project',
+      presentation_revision: 0,
+      pinned: false,
+    },
+  };
+  const fetch = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(raw), {
+      status: 201,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+  vi.stubGlobal('fetch', fetch);
+  create.mockImplementation(webConversations.create.invoke);
+  try {
+    const { result } = renderHook(() => useGuidSend(deps()));
+    await act(async () => expect(await result.current.sendMessageHandler()).toBe(true));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(posts()).toHaveLength(1);
+    expect(posts()[0][2]).toMatchObject({ expected_revision: 0, desired_agent: 'AGENT_B', scope: snapshot().scope });
+    expect(navigate).toHaveBeenCalledWith('/conversation/draft-frame');
+    expect(readRecentConversationRouteDetail('owner', 'draft-frame')?.extra).toMatchObject(raw.extra);
+    const initial = JSON.parse(sessionStorage.getItem('acp_initial_message_draft-frame')!);
+    expect(initial.session_options.specialist_binding.scope.frame_incarnation_id).toBe('draft-frame-inc');
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });
 it('confirms explicit None before handing off one first message with the exact prepared reference', async () => {
   const pending = deferred(),

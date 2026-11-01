@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { conversation as webConversations } from '@/common/adapter/ipcConversationClient';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
@@ -290,6 +291,89 @@ describe('conversationCache', () => {
       expect(readConversationRouteSnapshot('owner-a', 'conv-1')).toBeUndefined();
       expect(readConversationRouteSnapshot('owner-a', 'conv-other')).toMatchObject({ id: 'conv-other' });
       expect(readConversationRouteSnapshot('owner-b', 'conv-1')).toBe(mockConversation);
+    });
+  });
+
+  describe('native create identity handoff', () => {
+    const complete = {
+      ...mockConversation,
+      extra: {
+        backend: 'xscience',
+        workspace: 'x-science://project-one',
+        frame_incarnation_id: 'inc-one',
+        root_frame_id: 'conv-1',
+        presentation_revision: 0,
+        pinned: false,
+      },
+    } as TChatConversation;
+    it('native create wire: preserves partial first paint but requires one shared detail read', async () => {
+      setRendererAccountOwner('owner-a');
+      // Raw legacy POST response: no adapter/mapping replacement fabricates identity.
+      const raw = {
+        ...complete,
+        extra: { backend: 'xscience', workspace: 'x-science://project-one', root_frame_id: 'conv-1' },
+      };
+      const fetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(raw), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      vi.stubGlobal('fetch', fetch);
+      try {
+        const created = await webConversations.create.invoke({ type: 'acp', name: 'Synthetic handoff', extra: {} });
+        rememberConversationRouteSnapshot('owner-a', created, 'detail');
+        expect(readConversationRouteSnapshot('owner-a', created.id)).toBe(created);
+        expect(readRecentConversationRouteDetail('owner-a', created.id)).toBeUndefined();
+        vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue(complete);
+        const route = getConversationOrNullShared(created.id);
+        const controls = getConversationOrNullShared(created.id);
+        await expect(route).resolves.toBe(complete);
+        await expect(controls).resolves.toBe(complete);
+        expect(ipcBridge.conversation.get.invoke).toHaveBeenCalledTimes(1);
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+    it('native create wire: complete server identity retains the zero detail-read fast path', async () => {
+      setRendererAccountOwner('owner-a');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(complete), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        )
+      );
+      try {
+        const created = await webConversations.create.invoke({ type: 'acp', name: 'Synthetic handoff', extra: {} });
+        rememberConversationRouteSnapshot('owner-a', created, 'detail');
+        expect(readRecentConversationRouteDetail('owner-a', created.id)).toBe(created);
+        expect(readRecentConversationRouteDetail('owner-b', created.id)).toBeUndefined();
+        expect(ipcBridge.conversation.get.invoke).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+    it('native create wire: rejects incomplete authority without requiring optional display fields', () => {
+      for (const patch of [
+        { frame_incarnation_id: '' },
+        { root_frame_id: '' },
+        { presentation_revision: undefined },
+        { presentation_revision: -1 },
+        { presentation_revision: 0.5 },
+        { presentation_unavailable: true },
+      ]) {
+        const partial = { ...complete, extra: { ...complete.extra, ...patch } } as TChatConversation;
+        rememberConversationRouteSnapshot('owner-a', partial, 'detail');
+        expect(readRecentConversationRouteDetail('owner-a', partial.id)).toBeUndefined();
+        expect(readConversationRouteSnapshot('owner-a', partial.id)).toBe(partial);
+      }
+      rememberConversationRouteSnapshot('owner-a', complete, 'detail');
+      expect(readRecentConversationRouteDetail('owner-a', complete.id)).toBe(complete);
     });
   });
 

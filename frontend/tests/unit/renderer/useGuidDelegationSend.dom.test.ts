@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { conversation as webConversations } from '@/common/adapter/ipcConversationClient';
+import { readRecentConversationRouteDetail } from '@/renderer/pages/conversation/utils/conversationCache';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 import { useGuidSend, type GuidSendDeps } from '@/renderer/pages/guid/hooks/useGuidSend';
@@ -119,6 +121,49 @@ describe('Guid durable delegation handoff', () => {
   afterEach(() => {
     setRendererAccountOwner(null);
   });
+  it.each([undefined, 'deny'] as const)(
+    'raw create wire reaches Guid and route policy handoff (%s)',
+    async (desired) => {
+      const raw = {
+        ...frame(),
+        extra: {
+          ...frame().extra,
+          backend: 'xscience',
+          workspace: 'x-science://synthetic-project',
+          presentation_revision: 0,
+          pinned: false,
+        },
+      };
+      const fetch = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(raw), {
+          status: 201,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      vi.stubGlobal('fetch', fetch);
+      create.mockImplementation(webConversations.create.invoke);
+      try {
+        const { result } = renderHook(() => useGuidSend({ ...deps(), delegationPolicyOverride: desired }));
+        await act(async () => expect(await result.current.sendMessageHandler()).toBe(true));
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+        expect(navigate).toHaveBeenCalledWith('/conversation/draft-frame');
+        const handoff = readRecentConversationRouteDetail('owner', 'draft-frame');
+        expect(handoff?.extra).toMatchObject(raw.extra);
+        if (desired === undefined) expect(request).not.toHaveBeenCalled();
+        else {
+          expect(posts()).toHaveLength(1);
+          expect(posts()[0][2]).toMatchObject({
+            expected_revision: 0,
+            desired_policy: 'deny',
+            scope: snapshot().scope,
+          });
+        }
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    }
+  );
   it('confirms explicit deny before initial-message handoff and never sends the scientific task itself', async () => {
     const pending = deferred<unknown>();
     request.mockImplementation((method: string) => (method === 'GET' ? Promise.resolve(snapshot()) : pending.promise));

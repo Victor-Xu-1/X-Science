@@ -7,6 +7,8 @@
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { conversationPresentationAuthority } from '@/renderer/services/runtime/conversationPresentation';
+import { sessionDelegationIdentity } from '@/renderer/services/runtime/sessionDelegationPolicy';
 import { createKeyedSnapshotStore } from '@/renderer/services/keyedSnapshotStore';
 import {
   getRendererAccountOwnerId,
@@ -102,7 +104,22 @@ export function readRecentConversationRouteDetail(
   )?.value;
   if (!snapshot?.detail || snapshot.detailRememberedAt === undefined) return undefined;
   if (Date.now() - snapshot.detailRememberedAt > maxAgeMs) return undefined;
-  return snapshot.detail;
+  const detail = snapshot.detail;
+  const extra = detail.extra as Record<string, unknown> | undefined;
+  const native =
+    (typeof extra?.backend === 'string' && extra.backend.trim().toLowerCase() === 'xscience') ||
+    (typeof extra?.workspace === 'string' && extra.workspace.startsWith('x-science://'));
+  if (native) {
+    // A partial create/legacy handoff still paints immediately through the
+    // general snapshot reader, but cannot suppress the existing shared GET.
+    if (!sessionDelegationIdentity(normalizedOwnerId, detail.id, extra)) return undefined;
+    try {
+      conversationPresentationAuthority(detail);
+    } catch {
+      return undefined;
+    }
+  }
+  return detail;
 }
 
 /**
