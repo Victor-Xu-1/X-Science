@@ -11,10 +11,44 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView from '@/renderer/components/Markdown';
+import { mergeArtifactReferences } from '@/common/chat/chatLib';
+import type { ArtifactReferenceWire } from '@/common/adapter/messageStreamProtocol';
+import { useXScienceArtifactResolver } from '@/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview';
 import { createTestI18n } from '../i18nTestUtils';
 
 const copyTextMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const openExternalUrlMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const artifactMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  window: vi.fn(),
+  preview: vi.fn(),
+  index: { byArtifactId: new Map(), byVersionId: new Map(), byFilename: new Map() },
+}));
+
+vi.mock('@/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common')>();
+  return {
+    ...actual,
+    ipcBridge: {
+      ...actual.ipcBridge,
+      conversation: {
+        ...actual.ipcBridge.conversation,
+        listArtifacts: { ...actual.ipcBridge.conversation.listArtifacts, invoke: artifactMocks.list },
+      },
+    },
+  };
+});
+vi.mock('@/renderer/pages/conversation/Messages/artifacts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/pages/conversation/Messages/artifacts')>();
+  return {
+    ...actual,
+    useConversationArtifactIndex: () => artifactMocks.index,
+    useResolveConversationArtifactWindow: () => artifactMocks.window,
+  };
+});
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({ openPreview: artifactMocks.preview }),
+}));
 
 vi.mock('@/renderer/components/Markdown/ShadowView', () => ({
   __esModule: true,
@@ -68,6 +102,48 @@ let testI18n: i18n;
 
 const renderWithProviders = (ui: React.ReactElement) => render(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>);
 
+const resolutionReference: ArtifactReferenceWire = {
+  artifact_id: 'artifact-report',
+  version_id: 'version-report',
+  relation: 'produced',
+  filename: 'report.json',
+  availability: 'available',
+};
+const resolvedCollections = () => [
+  {
+    kind: 'scientific_files',
+    payload: {
+      files: [
+        {
+          ...resolutionReference,
+          version_number: 1,
+          content_url: '/api/artifacts/artifact-report/versions/version-report',
+          content_type: 'application/json',
+          preview_kind: 'json',
+        },
+      ],
+    },
+  },
+];
+const StreamingArtifactLink = ({
+  references,
+  conversationId = 'frame-report',
+  workspace = 'x-science://project-report',
+}: {
+  references: ArtifactReferenceWire[];
+  conversationId?: string;
+  workspace?: string;
+}) => {
+  // The real stream producer deliberately returns fresh arrays and objects.
+  const artifactReferences = mergeArtifactReferences(undefined, references, 'replace');
+  const resolver = useXScienceArtifactResolver({ conversationId, workspace, artifactReferences });
+  return (
+    <MarkdownView onLink={resolver.handleLink} resolveLinkHref={resolver.resolveLinkHref}>
+      {'[Report](report.json)'}
+    </MarkdownView>
+  );
+};
+
 describe('MarkdownView local file links', () => {
   beforeAll(async () => {
     testI18n = await createTestI18n('en-US');
@@ -76,6 +152,11 @@ describe('MarkdownView local file links', () => {
   beforeEach(() => {
     copyTextMock.mockClear();
     openExternalUrlMock.mockClear();
+    artifactMocks.list.mockReset();
+    artifactMocks.list.mockResolvedValue([]);
+    artifactMocks.window.mockReset();
+    artifactMocks.window.mockResolvedValue(null);
+    artifactMocks.index = { byArtifactId: new Map(), byVersionId: new Map(), byFilename: new Map() };
   });
 
   afterEach(() => vi.unstubAllGlobals());
@@ -235,6 +316,162 @@ describe('MarkdownView local file links', () => {
     renderWithProviders(<MarkdownView>{'[Docs](https://example.test/report.pdf)'}</MarkdownView>);
     expect(screen.getByRole('link', { name: 'Docs' })).not.toHaveClass('markdown-artifact-file-link');
   });
+
+  it.each([
+    {
+      language: 'en-US' as const,
+      unavailable: 'File reference unavailable',
+      hint: 'Unable to resolve this file reference. The original link is preserved.',
+    },
+    {
+      language: 'zh-CN' as const,
+      unavailable: '文件引用不可用',
+      hint: '无法解析此文件引用，已保留原始链接。',
+    },
+  ])('makes an unavailable exact artifact reference persistently understandable in $language', async (labels) => {
+    const href = '/api/artifacts/artifact-unknown/versions/version-known';
+    const onLink = vi.fn().mockResolvedValue(true);
+    const i18n = await createTestI18n(labels.language);
+    render(
+      <I18nextProvider i18n={i18n}>
+        <MarkdownView onLink={onLink} resolveLinkHref={async () => null}>
+          {`[Saved report](${href})`}
+        </MarkdownView>
+      </I18nextProvider>
+    );
+    const link = screen.getByRole('link', { name: 'Saved report' });
+    await waitFor(() => expect(link).toHaveAttribute('data-artifact-link-resolution', 'unavailable'));
+    expect(link).toHaveAttribute('aria-disabled', 'true');
+    expect(link).toHaveAttribute('title', labels.hint);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent(labels.unavailable);
+    expect(link).toHaveAttribute('aria-describedby', status.id);
+    expect(status.textContent).not.toContain('artifact-unknown');
+    fireEvent.click(link);
+    await waitFor(() => expect(onLink).toHaveBeenCalledWith(href));
+    expect(link).toHaveAttribute('data-original-href', href);
+    expect(status).toHaveTextContent(labels.unavailable);
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps artifact resolution state scoped to the current resolver and retires late prior-scope responses', async () => {
+    const href = '/api/artifacts/artifact-report/versions/version-report';
+    const resolved = '/api/artifacts/artifact-report/versions/version-authorized';
+    let finishOld!: (value: string | null) => void;
+    let finishNext!: (value: string | null) => void;
+    const oldResolver = vi.fn(() => new Promise<string | null>((resolve) => (finishOld = resolve)));
+    const currentResolver = vi.fn(async () => resolved);
+    const nextResolver = vi.fn(() => new Promise<string | null>((resolve) => (finishNext = resolve)));
+    const onLink = vi.fn().mockResolvedValue(true);
+    const view = (resolve: (href: string) => Promise<string | null>) => (
+      <I18nextProvider i18n={testI18n}>
+        <MarkdownView onLink={onLink} resolveLinkHref={resolve}>
+          {`[Report](${href})`}
+        </MarkdownView>
+      </I18nextProvider>
+    );
+    const rendered = render(view(oldResolver));
+    const link = screen.getByRole('link', { name: 'Report' });
+    expect(link).toHaveAttribute('aria-busy', 'true');
+    rendered.rerender(view(currentResolver));
+    await waitFor(() => expect(link).toHaveAttribute('href', resolved));
+    await act(async () => finishOld(null));
+    expect(link).toHaveAttribute('href', resolved);
+    expect(link).not.toHaveAttribute('aria-disabled');
+    expect(screen.queryByRole('status')).toBeNull();
+    rendered.rerender(view(nextResolver));
+    expect(link).toHaveAttribute('data-artifact-link-resolution', 'pending');
+    expect(screen.getByRole('status')).toHaveTextContent('Resolving file…');
+    expect(link).not.toHaveAttribute('href', resolved);
+    await act(async () => finishNext(null));
+    await waitFor(() => expect(link).toHaveAttribute('aria-disabled', 'true'));
+    expect(screen.getByRole('status')).toHaveTextContent('File reference unavailable');
+  });
+
+  it('retires an old artifact href response while preserving the new exact click identity', async () => {
+    const oldHref = '/api/artifacts/old-artifact/versions/old-version';
+    const newHref = '/api/artifacts/new-artifact/versions/new-version';
+    let finishOld!: (value: string | null) => void;
+    const resolve = vi.fn((href: string) =>
+      href === oldHref ? new Promise<string | null>((finish) => (finishOld = finish)) : Promise.resolve(newHref)
+    );
+    const onLink = vi.fn().mockResolvedValue(true);
+    const view = (href: string) => (
+      <I18nextProvider i18n={testI18n}>
+        <MarkdownView onLink={onLink} resolveLinkHref={resolve}>
+          {`[Report](${href})`}
+        </MarkdownView>
+      </I18nextProvider>
+    );
+    const rendered = render(view(oldHref));
+    rendered.rerender(view(newHref));
+    const link = screen.getByRole('link', { name: 'Report' });
+    await waitFor(() => expect(link).toHaveAttribute('href', newHref));
+    await act(async () => finishOld(null));
+    expect(link).toHaveAttribute('href', newHref);
+    fireEvent.click(link);
+    await waitFor(() => expect(onLink).toHaveBeenCalledExactlyOnceWith(newHref));
+    expect(openExternalUrlMock).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])(
+    'keeps equivalent stream reference arrays stable without repeated resolution: available=%s',
+    async (available) => {
+      artifactMocks.list.mockResolvedValue(available ? resolvedCollections() : []);
+      const view = (references: ArtifactReferenceWire[]) => (
+        <I18nextProvider i18n={testI18n}>
+          <StreamingArtifactLink references={references} />
+        </I18nextProvider>
+      );
+      const rendered = render(view([resolutionReference]));
+      const link = screen.getByRole('link', { name: 'Report' });
+      const state = available ? 'resolved' : 'unavailable';
+      await waitFor(() => expect(link).toHaveAttribute('data-artifact-link-resolution', state));
+      for (let chunk = 1; chunk <= 3; chunk++) {
+        rendered.rerender(view([{ ...resolutionReference, attempt: chunk, checksum: `diagnostic-${chunk}` }]));
+        expect(link).toHaveAttribute('data-artifact-link-resolution', state);
+        await act(async () => undefined);
+      }
+      expect(artifactMocks.list).toHaveBeenCalledTimes(1);
+      expect(openExternalUrlMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['conversation', 'workspace', 'account-index', 'references'] as const)(
+    'keeps real artifact resolution scope changes isolated from late prior metadata: %s',
+    async (change) => {
+      let finishOld!: (value: ReturnType<typeof resolvedCollections>) => void;
+      artifactMocks.list.mockReturnValueOnce(new Promise((resolve) => (finishOld = resolve)));
+      artifactMocks.list.mockResolvedValue([]);
+      const view = (next = false) => (
+        <I18nextProvider i18n={testI18n}>
+          <StreamingArtifactLink
+            references={[
+              next && change === 'references'
+                ? { ...resolutionReference, version_id: 'version-new' }
+                : { ...resolutionReference },
+            ]}
+            conversationId={next && change === 'conversation' ? 'frame-new' : 'frame-report'}
+            workspace={next && change === 'workspace' ? 'x-science://project-new' : 'x-science://project-report'}
+          />
+        </I18nextProvider>
+      );
+      const rendered = render(view());
+      const link = screen.getByRole('link', { name: 'Report' });
+      await waitFor(() => expect(artifactMocks.list).toHaveBeenCalledTimes(1));
+      if (change === 'account-index') {
+        // The real provider clears its window and index in useLayoutEffect
+        // when owner/conversation baseSnapshotKey changes.
+        artifactMocks.index = { byArtifactId: new Map(), byVersionId: new Map(), byFilename: new Map() };
+      }
+      rendered.rerender(view(true));
+      await waitFor(() => expect(link).toHaveAttribute('data-artifact-link-resolution', 'unavailable'));
+      await act(async () => finishOld(resolvedCollections()));
+      expect(link).toHaveAttribute('data-artifact-link-resolution', 'unavailable');
+      expect(link).not.toHaveAttribute('href', '/api/artifacts/artifact-report/versions/version-report');
+      expect(artifactMocks.list).toHaveBeenCalledTimes(2);
+    }
+  );
 
   it('preserves generic relative webpage navigation outside an artifact-aware conversation', async () => {
     const onLink = vi.fn().mockResolvedValue(false);

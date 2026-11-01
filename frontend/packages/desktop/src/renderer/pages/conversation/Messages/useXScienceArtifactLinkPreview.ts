@@ -38,6 +38,11 @@ type UseXScienceArtifactLinkPreviewOptions = {
   artifactReferences?: readonly ArtifactReferenceWire[];
 };
 
+type ArtifactResolutionReference = Pick<
+  ArtifactReferenceWire,
+  'artifact_id' | 'version_id' | 'filename' | 'availability'
+>;
+
 type ArtifactPreviewMetadata = PreviewMetadata & {
   artifactId: string;
   versionId: string;
@@ -58,7 +63,7 @@ export {
 } from '@/renderer/services/xScienceArtifactReferences';
 
 function availableArtifactReferences(
-  references: readonly ArtifactReferenceWire[] | undefined
+  references: readonly ArtifactResolutionReference[] | undefined
 ): Array<{ artifact_id: string; version_id: string }> {
   const result: Array<{ artifact_id: string; version_id: string }> = [];
   const seen = new Set<string>();
@@ -79,7 +84,7 @@ export function resolveXScienceArtifactFile(
   index: ConversationArtifactIndex,
   rawReferenceId: string | null,
   rawFilename: string | null,
-  references: readonly ArtifactReferenceWire[] | undefined,
+  references: readonly ArtifactResolutionReference[] | undefined,
   contentReference?: XScienceArtifactContentReference,
   referencesResolved = false
 ): IXScienceScientificFile | null {
@@ -137,7 +142,22 @@ export function useXScienceArtifactResolver({
   const { t } = useTranslation();
   const artifactIndex = useConversationArtifactIndex();
   const resolveWindowReferences = useResolveConversationArtifactWindow();
-  const exactReferences = useMemo(() => availableArtifactReferences(artifactReferences), [artifactReferences]);
+  // Streaming merges replace the wire array even when file selection is
+  // unchanged. Retain only its selection inputs here; preserve raw values,
+  // order and duplicate entries rather than changing ambiguity semantics.
+  const resolutionReferenceKey = JSON.stringify(
+    (artifactReferences ?? []).map(({ artifact_id, version_id, filename, availability }) => ({
+      artifact_id,
+      version_id,
+      filename,
+      availability,
+    }))
+  );
+  const resolutionReferences = useMemo(
+    () => JSON.parse(resolutionReferenceKey) as readonly ArtifactResolutionReference[],
+    [resolutionReferenceKey]
+  );
+  const exactReferences = useMemo(() => availableArtifactReferences(resolutionReferences), [resolutionReferences]);
   const companionArtifactUrls = useMemo(
     () => createXScienceCompanionArtifactUrls([...artifactIndex.byVersionId.values()]),
     [artifactIndex]
@@ -155,7 +175,7 @@ export function useXScienceArtifactResolver({
         artifactIndex,
         referenceId,
         filename,
-        artifactReferences,
+        resolutionReferences,
         contentReference
       );
       const exactReferenceIsAlreadyIncluded = exactReferences.some(
@@ -175,12 +195,12 @@ export function useXScienceArtifactResolver({
         createConversationArtifactIndex(resolvedCollections),
         referenceId,
         filename,
-        artifactReferences,
+        resolutionReferences,
         contentReference,
         true
       );
     },
-    [artifactIndex, artifactReferences, conversationId, exactReferences, resolveWindowReferences]
+    [artifactIndex, resolutionReferences, conversationId, exactReferences, resolveWindowReferences]
   );
 
   const resolveImage = useCallback(

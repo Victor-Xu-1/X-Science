@@ -1,4 +1,9 @@
 {
+  "artifactLink": {
+    "resolving": "Resolving file…",
+    "unavailable": "File reference unavailable",
+    "unavailableHint": "Unable to resolve this file reference. The original link is preserved."
+  },
   "roundSummary": {
     "branchReply": "Branch in new conversation from this reply",
     "branchBusy": "Branching is available after this run finishes",
