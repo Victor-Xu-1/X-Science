@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   createXScienceArtifactAnnotation,
@@ -52,7 +53,7 @@ export function useArtifactSelectionEditor(
   };
 
   const save = async () => {
-    if (!note.trim() || created) return;
+    if (!isAnnotationNoteSaveable(note) || created) return;
     const token = scope.begin();
     if (token === null) return;
     setSaving(true);

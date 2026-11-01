@@ -1,3 +1,4 @@
+import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import {
   loadXScienceArtifactVerification,
   requestXScienceFrameAudit,
@@ -74,7 +75,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
 
   const save = async () => {
     const text = draft.text.trim();
-    if (!text || saving || loading) return;
+    if (!isAnnotationNoteSaveable(draft.text) || saving || loading) return;
     setSaveFailed(false);
     try {
       if (editing) {
@@ -182,7 +183,7 @@ export const ArtifactAnnotationsPanel: React.FC<{
         onCancel={() => setEditorVisible(false)}
         onOk={() => void save()}
         confirmLoading={saving}
-        okButtonProps={{ disabled: !draft.text.trim() || loading || saving }}
+        okButtonProps={{ disabled: !isAnnotationNoteSaveable(draft.text) || loading || saving }}
         okText={editing ? t('common.save') : t('preview.artifactAnnotations.add')}
         cancelText={t('common.cancel')}
         unmountOnExit
@@ -433,7 +434,7 @@ const AnnotationEditor: React.FC<{
           value={draft.text}
           disabled={disabled}
           autoSize={{ minRows: 3, maxRows: 7 }}
-          maxLength={4000}
+          maxLength={{ length: ANNOTATION_NOTE_MAX_UTF16_UNITS, errorOnly: true }}
           showWordLimit
           onChange={(text) => onChange({ ...draft, text })}
         />

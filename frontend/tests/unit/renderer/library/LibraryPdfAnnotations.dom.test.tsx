@@ -194,3 +194,38 @@ it('retains a draft when the same PDF source anchor is emitted at different scre
   fireEvent.click(screen.getByRole('button', { name: 'Select PDF text' }));
   expect(screen.getByRole('textbox')).toHaveValue('');
 });
+
+it.each(['en-US', 'zh-CN'] as const)(
+  'retains an over-limit Library draft and saves the complete UTF16 boundary in %s',
+  async (language) => {
+    const text = (language === 'zh-CN' ? '界' : 'A').repeat(3998) + '🧪';
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(page())
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ...row, text }), { status: 201 }));
+    vi.stubGlobal('fetch', fetch);
+    const view = await renderWithI18n(
+      <LibraryPdfAnnotations Viewer={Viewer} filename='paper.pdf' contentUrl='/content' versionId='litv_one' />,
+      language
+    );
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Select PDF text' }));
+    const field = screen.getByRole('textbox') as HTMLTextAreaElement;
+    const add = screen.getByRole('button', { name: view.i18n.t('preview.artifactAnnotations.add') });
+    fireEvent.change(field, { target: { value: text + 'x' } });
+    expect(field.value.length).toBe(4001);
+    expect(add).toBeDisabled();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(field).not.toHaveAttribute('maxlength');
+    expect(screen.getByTestId('library-pdf-annotations').textContent).toMatch(/4001\s*\/\s*4000/);
+    fireEvent.change(field, { target: { value: text } });
+    await waitFor(() => expect(add).toBeEnabled());
+    fireEvent.click(add);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    const [path, init] = fetch.mock.calls[1];
+    expect(path).toBe('/api/literature/attachment-versions/litv_one/annotations');
+    expect(JSON.parse(init.body)).toMatchObject({ text, content_checksum: checksum, page_number: 2 });
+    expect(await screen.findByRole('button', { name: '① · ' + text })).toBeInTheDocument();
+    expect(screen.getByTestId('visible-note-count')).toHaveTextContent('1');
+  }
+);

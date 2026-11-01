@@ -220,9 +220,9 @@ func (s *Server) handleAnnotationMutation(w http.ResponseWriter, r *http.Request
 			writeAnnotationError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		text, ok := input["text"].(string)
-		if !ok || len([]rune(text)) < 1 || len([]rune(text)) > 1000 {
-			writeAnnotationError(w, http.StatusBadRequest, "text is required (1-1000 chars)")
+		text, err := annotationNoteText(input["text"])
+		if err != nil {
+			writeAnnotationError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		if len(input) != 1 {
@@ -521,9 +521,9 @@ func normalizeAnnotationBody(input map[string]any) (map[string]any, error) {
 	if kind != "point" && kind != "text_selection" && kind != "screenshot" && kind != "html_element" {
 		return nil, errors.New("annotation type must be point, text_selection, screenshot, or html_element")
 	}
-	text, ok := input["text"].(string)
-	if !ok || len([]rune(text)) < 1 || len([]rune(text)) > 1000 {
-		return nil, errors.New("text is required (1-1000 chars)")
+	text, err := annotationNoteText(input["text"])
+	if err != nil {
+		return nil, err
 	}
 	body := map[string]any{"type": kind, "text": text}
 	for _, field := range []string{"x_percent", "y_percent", "start_line", "start_col", "end_line", "end_col", "page_number"} {

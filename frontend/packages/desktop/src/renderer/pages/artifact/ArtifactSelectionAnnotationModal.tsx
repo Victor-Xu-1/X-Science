@@ -1,3 +1,4 @@
+import { ANNOTATION_NOTE_MAX_UTF16_UNITS, isAnnotationNoteSaveable } from '@/renderer/utils/annotationNote';
 import type { XScienceArtifactAnnotation } from '@/renderer/services/xScienceAnnotations';
 import type { XScienceArtifactCanvasSelection } from './artifactCanvasSelection';
 import { Input } from '@arco-design/web-react';
@@ -41,7 +42,7 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
         else void (created ? retryDisplay() : save());
       }}
       confirmLoading={saving}
-      okButtonProps={{ disabled: !note.trim() || saving }}
+      okButtonProps={{ disabled: !isAnnotationNoteSaveable(note) || saving }}
       okText={created ? t(error === 'display' ? 'common.retry' : 'common.close') : t('preview.artifactAnnotations.add')}
       cancelText={t(created ? 'common.close' : 'common.cancel')}
       hideCancel={created !== null}
@@ -64,7 +65,7 @@ export const ArtifactSelectionAnnotationModal: React.FC<{
             disabled={saving || created !== null}
             autoFocus
             autoSize={{ minRows: 3, maxRows: 8 }}
-            maxLength={4000}
+            maxLength={{ length: ANNOTATION_NOTE_MAX_UTF16_UNITS, errorOnly: true }}
             showWordLimit
           />
         </label>

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "424b3a4a912f4b0f226bc1eea4dcd7ae6a26e611be95e14182ec0c0625cedebc",
+  "adaptationFingerprintSHA256": "30c574fff5e4614be8973b1ea6b06c4a572322005951b5ad7be42588a2128505",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "2252bc11a1997481580740b075f615e73849cbf33ad9dd5f787d24211b30b545",
+  "additionFingerprintSHA256": "74eaa6959efecf8905bbc06014b9027835aa0a85dfbba05151aaddc2467cfb36",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1436
+    "addedFiles": 1437
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "253de793212f01345c4a5ebbba50b31d82ac9a2de6b8d2f9689920b5d67855b4",
+      "targetSHA256": "f125c067cc07a8bc09bb03a80c4957b4b870d5a903b3f7acb06220f8103faf7f",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "79ad7856e8687ce62f03b0b50d9a1af639cd12e4d5678b9b38f0612cd7ce5aa1",
+      "targetSHA256": "7bb46140fde1533c653da3cda87ccb331dd41953447f8ff9184a32f14aa1c5f0",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1153,8 +1153,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactAnnotationPanels.tsx",
       "sourceSHA256": "f2a0ed3c6fedf2c011d13650172e66ff5d8cffcc8e10a095a7bfe980ea49aef9",
-      "targetSHA256": "29dff98621c70db246d181f60b1543de2a9ef130611195fee0e4fe2f2b196389",
-      "bytes": 25912,
+      "targetSHA256": "37ce24ddb5600855244d3789969467bfc830178565d84590780cff3b6d1b3a39",
+      "bytes": 26128,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -1174,8 +1174,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/artifact/ArtifactSelectionAnnotationModal.tsx",
       "sourceSHA256": "cc01a13b646f263e1e6c8638a5b03a32465f8db83a5394551f429bbc96881afb",
-      "targetSHA256": "09aaa6756ec058b83ffa965d24ce27753ff6516e9c4eb6261af4be371df719ca",
-      "bytes": 3358,
+      "targetSHA256": "263e8c287641865f56586b20ef086c0d7c1065efbe591ec214bde29e03ffe61a",
+      "bytes": 3542,
       "reason": "Connect immutable Go artifacts, annotations, refinement, and native viewers with bounded localized failure handling."
     },
     {
@@ -4359,8 +4359,8 @@
     {
       "path": "tests/unit/renderer/ArtifactAnnotationPanels.dom.test.tsx",
       "sourceSHA256": "a45b7fd9350d0f6a745b3a57113a6f6e93b5261372d19ade883a0c5c560e26fc",
-      "targetSHA256": "0af5f96d7aaa696404f0425bbfc4317efefcc9345f48feb9f8004c5160169139",
-      "bytes": 22385,
+      "targetSHA256": "712c3de5272d29a11f1a4440361732bbfea05812f67d87efc285d7eb728c9aa5",
+      "bytes": 24267,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4380,8 +4380,8 @@
     {
       "path": "tests/unit/renderer/ArtifactSelectionAnnotation.dom.test.tsx",
       "sourceSHA256": "cbec415a9ae36e4c50f3d4e594e0fee1450484dc70a9c92a3cc3db52b6ed5b98",
-      "targetSHA256": "0b3cfec1983b8565491ce32d2b11bfe63881f2a9e36326f00f7c5f39b52415a6",
-      "bytes": 14165,
+      "targetSHA256": "ddda82155e4e5dcf1a4f05a3481c36bcae7a142cb4c8667392e10338a353edd6",
+      "bytes": 15665,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "34a88505a3ef42f20add4bcf6e1465eb76e94820f288a6e0330c420e6ba96431",
+      "sha256": "e8a1fd9ea4686e8fffc77d42599d0254f1e6dd0e91ec733245640edc988ed33f",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -8809,8 +8809,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/artifact/useArtifactSelectionEditor.ts",
-      "sha256": "ec885ccb408f7c30b72366acbe7125acb005a7fc34df27ec94b2c05f632fb467",
-      "bytes": 3209,
+      "sha256": "227dba4c9767fa6b1929f8bd341a8b6adeea7ef1f41dc9ca1ddaa92c835ec62f",
+      "bytes": 3304,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10105,8 +10105,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPdfAnnotations.tsx",
-      "sha256": "555b252e4b808a9d7ba2fba68d1b0129272488e9825493204d1976b130750417",
-      "bytes": 5303,
+      "sha256": "86bbbfa8428be14e009b76ba5979cbf61963b1863905ccc3d14c07c41c0d6c21",
+      "bytes": 5549,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11770,6 +11770,12 @@
       "sha256": "f521803274d77be0cb174dfcdaa703611d08bbed30bca4bf74c1e903b43038d7",
       "bytes": 68336,
       "reason": "Provide the shared visual shell under a product-neutral filename and CSS custom-property namespace."
+    },
+    {
+      "path": "packages/desktop/src/renderer/utils/annotationNote.ts",
+      "sha256": "230d69b75fd8d073cc4988dedd56f3eeeef6e15214e28c945f52e74cee029fbf",
+      "bytes": 371,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/utils/focusScope.ts",
@@ -14359,8 +14365,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryPdfAnnotations.dom.test.tsx",
-      "sha256": "e6679fd680adf7d2e43c31187a52a78d2ad4983ac46401547a4507744305fd8a",
-      "bytes": 7489,
+      "sha256": "43e716fc6e7c47769fbc409927b671f7d8af4508d1e4afc8c43ba5eca41bbe7c",
+      "bytes": 9349,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
