@@ -1,4 +1,5 @@
 import React from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router';
@@ -115,6 +116,8 @@ function catalogue(initial = [paper()]) {
     const method = init?.method ?? 'GET';
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as Record<string, unknown>) : undefined;
     calls.push({ method, url, body });
+    const tags = readEmptyResourceTagCatalog(url, init);
+    if (tags) return tags;
     if (method === 'GET' && url.pathname === '/api/settings/client') return json({});
     if (method === 'GET' && url.pathname === '/api/projects')
       return json({ projects: [{ project_id: 'project', name: 'Owned project' }] });
@@ -509,7 +512,7 @@ describe('Reading status through the actual Library Page and mutation owner', ()
     const wrapper = dialog.closest('.arco-modal-wrapper')!;
     fireEvent.mouseDown(wrapper);
     fireEvent.click(wrapper);
-    const delayedCancel = [...timers.mock.calls].reverse().find((call) => call[1] === 100)?.[0];
+    const delayedCancel = timers.mock.calls.toReversed().find((call) => call[1] === 100)?.[0];
     expect(delayedCancel).toBeTypeOf('function');
     fireEvent.keyDown(input, { key: 'Escape' });
     await screen.findByRole('alertdialog', { name: 'Discard unsaved changes?' });

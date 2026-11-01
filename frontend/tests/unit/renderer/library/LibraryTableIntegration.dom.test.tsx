@@ -114,11 +114,11 @@ describe('Library table through the real Page and account setting transport', ()
       expect(settings.writes).toHaveLength(2);
       expect(panel).toHaveAttribute('aria-busy', 'false');
     });
-    expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files', 'Rating']);
+    expect(tableHeaders()).toEqual(['Title', 'Year', 'Status', 'Files', 'Rating', 'Tags']);
     expect(settings.saved.get(ownerA)).toEqual({
-      version: 3,
-      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes', 'rating'],
-      visible: ['year', 'readingStatus', 'attachments', 'rating'],
+      version: 4,
+      order: ['year', 'readingStatus', 'authors', 'doi', 'attachments', 'notes', 'rating', 'tags'],
+      visible: ['year', 'readingStatus', 'attachments', 'rating', 'tags'],
     });
     expect(settings.writes.every((write) => write.owner === ownerA)).toBe(true);
     expect(screen.getByRole('heading', { name: 'Edit details' })).toBe(heading);
@@ -214,9 +214,9 @@ describe('Library table through the real Page and account setting transport', ()
     await within(list).findByRole('button', { name: 'Paper A' });
     expect(Object.fromEntries(location())).toEqual({ project: 'alpha', collection: 'methods' });
     expect(screen.queryByRole('dialog', { name: 'Paper A' })).toBeNull();
-    const latest = http.requests
-      .filter((request) => new URL(request.path, 'http://localhost').pathname === '/api/literature/items')
-      .at(-1)!;
+    const latest = http.requests.findLast(
+      (request) => new URL(request.path, 'http://localhost').pathname === '/api/literature/items'
+    )!;
     const query = new URL(latest.path, 'http://localhost').searchParams;
     expect(query.get('project_id')).toBe('alpha');
     expect(query.get('collection_id')).toBe('methods');

@@ -64,6 +64,7 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
     const group = await screen.findByRole('group', { name: 'Rating for Paper A' });
     await waitFor(() => expect(within(group).getByRole('button', { name: '5 stars' })).toBeEnabled());
     expect(screen.getByRole('columnheader', { name: 'Rating' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Tags' })).toBeInTheDocument();
     expect(http.requests.filter((request) => request.method !== 'GET')).toEqual([]);
     cleanup();
     await mount('en-US', '/library');
@@ -73,7 +74,7 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
 
   it('uses the reference152px Rating column while preserving its14px stars for an explicit saved layout', async () => {
     const item = rated(2);
-    installCollectionHTTP({
+    const http = installCollectionHTTP({
       collections: () => [],
       items: () => [item],
       intercept: (url) =>
@@ -94,6 +95,8 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
     expect(table.querySelectorAll('colgroup col')[headings.indexOf(heading)]).toHaveStyle({ width: '152px' });
     const stars = screen.getByRole('group', { name: 'Rating for Paper A' });
     expect(stars.querySelector('svg')).toHaveAttribute('width', '14');
+    expect(screen.queryByRole('columnheader', { name: 'Tags' })).toBeNull();
+    expect(http.requests.filter((request) => request.method !== 'GET')).toEqual([]);
   });
 
   it.each(['en-US', 'zh-CN'] as const)(
@@ -132,11 +135,16 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
         name: t('conversation.libraryTable.showColumn', { column: language === 'en-US' ? 'Rating' : '评分' }),
       });
       await waitFor(() => expect(show).toBeEnabled());
+      expect(
+        within(menu).getByRole('button', {
+          name: t('conversation.libraryTable.showColumn', { column: t('conversation.libraryTable.columns.tags') }),
+        })
+      ).toHaveAttribute('aria-pressed', 'false');
       await userEvent.setup().click(show);
       await waitFor(() => expect(settings).toHaveLength(1));
       expect(columns).toEqual({
-        version: 3,
-        order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating'],
+        version: 4,
+        order: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.order, 'notes', 'rating', 'tags'],
         visible: [...DEFAULT_LIBRARY_COLUMN_PREFERENCES.visible, 'rating'],
       });
       fireEvent.click(within(menu).getByRole('button', { name: t('conversation.libraryTable.close') }));
@@ -155,6 +163,7 @@ describe('Library rating through the real Page/read/field-mutation owners', () =
       await mount(language, '/library');
       await waitFor(() => expect(stars().getByRole('button', { name: five })).toHaveAttribute('aria-pressed', 'true'));
       expect(settings).toHaveLength(1);
+      expect(screen.queryByRole('columnheader', { name: t('conversation.libraryTable.columns.tags') })).toBeNull();
       await userEvent.setup().click(stars().getByRole('button', { name: five }));
       await waitFor(() => expect(stars().getByRole('button', { name: five })).toBeEnabled());
       expect(writes).toHaveLength(2);

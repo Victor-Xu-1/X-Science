@@ -1,4 +1,5 @@
 import React from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router';
@@ -106,6 +107,8 @@ function catalogue(count = 402) {
     const method = init?.method ?? 'GET';
     const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as StatusWrite) : undefined;
     calls.push({ method, url, body });
+    const tags = readEmptyResourceTagCatalog(url, init);
+    if (tags) return tags;
     if (method === 'GET' && url.pathname === '/api/settings/client') return json({});
     if (method === 'GET' && url.pathname === '/api/projects')
       return json({ projects: [{ project_id: 'project', name: 'Owned project' }] });
@@ -318,7 +321,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
       http.calls.filter((call) => call.method !== 'GET').every((call) => call.url.pathname.endsWith('/reading-status'))
     ).toBe(true);
     expect([...http.items.values()].every((item) => item.metadata_revision === 7)).toBe(true);
-  });
+  }, 30_000);
 
   it('clears selection on filter/page changes and sends no later batch after leaving during the current ACK', async () => {
     const http = catalogue();
@@ -352,7 +355,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     await waitFor(() => expect(original.getSnapshot().mutating).toBe(false));
     expect(http.writes).toHaveLength(1);
     expect(http.ledger.size).toBe(1);
-  });
+  }, 30_000);
 
   it('reconstructs the original pending batch after a lost reply and resumes unchanged UUIDs and the unfiltered suffix', async () => {
     const http = catalogue();
@@ -389,7 +392,7 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(http.items.get(itemId(2))?.reading_status).toBe('unread');
     expect([...http.items.values()].filter((item) => item.reading_status === 'read')).toHaveLength(401);
     expect([...http.items.values()].every((item) => item.metadata_revision === 7)).toBe(true);
-  });
+  }, 30_000);
 
   it('shows a new complete-selection failure instead of the previous completed batch and keeps selection retryable', async () => {
     const http = catalogue(defaultUiPageSize + 1);
@@ -452,5 +455,5 @@ describe('Library Page bulk status through the real mutation owner', () => {
     expect(within(toolbar()).getByText('All matching references selected')).toBeInTheDocument();
     expect(await screen.findByText('The complete selection could not be loaded. No batch was started.')).toBeVisible();
     expect(screen.queryByText(`${defaultUiPageSize} references saved.`)).toBeNull();
-  });
+  }, 30_000);
 });

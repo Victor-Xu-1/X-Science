@@ -1,4 +1,5 @@
 import React, { useCallback, useState, useSyncExternalStore } from 'react';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -244,12 +245,14 @@ describe('Library PDF import UI', () => {
     installLiteratureLocks();
     vi.stubGlobal(
       'fetch',
-      vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
-        new URL(String(input), 'http://localhost').pathname === '/api/settings/client' &&
-        (init?.method ?? 'GET') === 'GET'
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input), 'http://localhost');
+        const tags = readEmptyResourceTagCatalog(url, init);
+        if (tags) return Promise.resolve(tags);
+        return url.pathname === '/api/settings/client' && (init?.method ?? 'GET') === 'GET'
           ? Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
-          : Promise.reject(new Error('Unexpected UI fixture HTTP'))
-      )
+          : Promise.reject(new Error('Unexpected UI fixture HTTP'));
+      })
     );
   });
   afterEach(() => {
@@ -616,28 +619,26 @@ describe('Library PDF import UI', () => {
     pageState.reads = reads;
     const user = userEvent.setup();
     const selectPdf = async (addLabel = 'Add', pdfLabel = 'Import PDF') => {
-      await user.click(screen.getByRole('button', { name: addLabel, exact: true }));
-      await screen.findByRole('menuitem', { name: pdfLabel, exact: true });
+      await user.click(screen.getByRole('button', { name: addLabel }));
+      await screen.findByRole('menuitem', { name: pdfLabel });
       // Arco initially mounts its measured popup with pointer-events:none.
       await waitFor(() =>
-        expect(getComputedStyle(screen.getByRole('menuitem', { name: pdfLabel, exact: true })).pointerEvents).not.toBe(
-          'none'
-        )
+        expect(getComputedStyle(screen.getByRole('menuitem', { name: pdfLabel })).pointerEvents).not.toBe('none')
       );
-      await user.click(screen.getByRole('menuitem', { name: pdfLabel, exact: true }));
+      await user.click(screen.getByRole('menuitem', { name: pdfLabel }));
     };
     const rendered = await renderWithI18n(<PageRoot />, 'en-US');
     await user.click(screen.getByRole('button', { name: 'New collection' }));
     const collectionDialog = screen.getByRole('dialog');
     expect(collectionDialog).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getByRole('button', { name: 'Add', exact: true })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
     await user.click(within(collectionDialog).getByRole('button', { name: 'Cancel' }));
     await selectPdf();
     const dialog = await choose(user);
     expect(dialog).toHaveAttribute('aria-modal', 'false');
     expect(screen.getByRole('button', { name: 'New collection' })).toBeDisabled();
     await user.click(within(dialog).getByRole('button', { name: 'Close' }));
-    expect(screen.getByRole('button', { name: 'Add', exact: true })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveFocus();
     const start = vi.spyOn(x.controller, 'importPdf');
     const legacy = deferred<LiteratureReceipt>();
     x.run.mockImplementationOnce(() => legacy.promise);

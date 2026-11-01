@@ -149,7 +149,11 @@ it('rail retention: keeps verified project and collection totals during refresh 
       return undefined;
     },
   });
-  await renderWithI18n(<Tree initial='/library' />, 'en-US');
+  await act(async () => {
+    await renderWithI18n(<Tree initial='/library' />, 'en-US');
+  });
+  expect(http.requests.some((request) => request.path === '/api/tags')).toBe(true);
+  expect(screen.queryAllByText('Could not load tags')).toHaveLength(0);
   const project = await screen.findByRole('button', { name: 'Alpha project' });
   const folder = await screen.findByRole('button', { name: 'Methods' });
   const projectGroup = screen.getByRole('button', { name: 'Projects' });

@@ -27,6 +27,7 @@ import { LibraryDetailHeader } from './LibraryDetailHeader';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
 import { LibraryReadingStatus } from './LibraryReadingStatus';
 import { LibraryRating } from './LibraryRating';
+import { LibraryItemTags } from './LibraryResourceTags';
 import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary';
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
@@ -221,6 +222,7 @@ export function LibraryItemDetails({
           submit={submit}
           reload={reload}
         />
+        <LibraryItemTags item={item} disabled={busy || stale || Boolean(editBase)} />
         <dl className='library-workbench__facts'>
           <div>
             <dt>{t('conversation.reading.libraryAuthors')}</dt>

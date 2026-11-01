@@ -23,6 +23,7 @@ import {
 } from '@/common/adapter/literatureReadingStatus';
 import { useLiteratureMutation } from '@/renderer/hooks/chat/useLiteratureMutation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { getResourceTagOwner } from '@/renderer/services/runtime/resourceTagOwner';
 import {
   literaturePageSizes,
   literaturePageSorts,
@@ -40,6 +41,7 @@ import { LibraryRating } from './LibraryRating';
 import { LibraryColumnMenu } from './LibraryColumnMenu';
 import { LibrarySortControl } from './LibrarySortControl';
 import { useLibraryColumnPreferences } from './useLibraryColumnPreferences';
+import { LibraryResourceTagsProvider, LibraryItemTags } from './LibraryResourceTags';
 import { useLibraryBulkReadingStatus } from './useLibraryBulkReadingStatus';
 import { useLibraryReferenceExport } from './useLibraryReferenceExport';
 import { LibraryReferenceExportMenu } from './LibraryReferenceExportMenu';
@@ -101,7 +103,7 @@ export default function LibraryPage() {
   const rail = layout?.libraryRail;
   const railOwner = useMemo(() => ({}), [reads.account]);
   useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
-  const libraryColumns = useLibraryColumnPreferences(reads.account, true, true);
+  const libraryColumns = useLibraryColumnPreferences(reads.account, true, true, true);
   const mutation = useLiteratureMutation();
   const lifecycleVisit = useLibraryLifecycleVisit(reads.account, params.toString());
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
@@ -538,7 +540,8 @@ export default function LibraryPage() {
     />
   );
   return (
-    <main
+    <LibraryResourceTagsProvider
+      account={reads.account}
       className={`library-workbench${rail ? ' library-workbench--rail-hosted' : ''}`}
       aria-labelledby='library-workbench-title'
     >
@@ -701,7 +704,17 @@ export default function LibraryPage() {
                     addDoi={() => setDoiEditor(editorBoundary.current)}
                   />
                 )}
-                <button type='button' className='library-workbench__button' onClick={reads.refresh}>
+                <button
+                  type='button'
+                  className='library-workbench__button'
+                  onClick={() => {
+                    reads.refresh();
+                    if (reads.account === getRendererAccountScopeToken())
+                      void getResourceTagOwner(reads.account)
+                        .reload()
+                        .catch((): void => undefined);
+                  }}
+                >
                   <RefreshCw size={14} aria-hidden='true' />
                   {t('common.refresh')}
                 </button>
@@ -837,6 +850,9 @@ export default function LibraryPage() {
                 </div>
               ) : (
                 <LibraryTable
+                  tagsCell={(item) => (
+                    <LibraryItemTags item={item} compact disabled={busy || !listReady || Boolean(visibleEditor)} />
+                  )}
                   rows={items}
                   readStatus={reads.list.status}
                   refreshing={reads.list.refreshing}
@@ -1068,6 +1084,6 @@ export default function LibraryPage() {
           }}
         />
       )}
-    </main>
+    </LibraryResourceTagsProvider>
   );
 }

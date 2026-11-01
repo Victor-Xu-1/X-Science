@@ -30,6 +30,7 @@ export type LibraryTableProps = {
   statusCell: (item: LiteratureItem) => React.ReactNode;
   noteCell?: (item: LiteratureItem) => React.ReactNode;
   ratingCell?: (item: LiteratureItem) => React.ReactNode;
+  tagsCell?: (item: LiteratureItem) => React.ReactNode;
   actionsCell?: (item: LiteratureItem) => React.ReactNode;
   open: (item: LiteratureItem) => void;
   registerTitleButton: (itemId: string, element: HTMLButtonElement | null) => void;
@@ -47,6 +48,7 @@ const widths: Record<LibraryColumnId, number> = {
   attachments: 88,
   notes: 280,
   rating: 152,
+  tags: 208,
 };
 
 /** Pure catalogue projection. The caller retains every read, selection and mutation owner. */
@@ -61,6 +63,7 @@ export function LibraryTable({
   statusCell,
   noteCell,
   ratingCell,
+  tagsCell,
   actionsCell,
   open,
   registerTitleButton,
@@ -77,6 +80,7 @@ export function LibraryTable({
     if (column === 'readingStatus') return statusCell(item);
     if (column === 'notes') return noteCell?.(item);
     if (column === 'rating') return ratingCell?.(item);
+    if (column === 'tags') return tagsCell?.(item);
     if (column === 'attachments') {
       const count = item.attachments.length;
       return count ? (

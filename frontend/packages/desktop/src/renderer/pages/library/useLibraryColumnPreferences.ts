@@ -3,6 +3,7 @@ import {
   DEFAULT_LIBRARY_COLUMN_PREFERENCES,
   projectLibraryNotesColumns,
   projectLibraryRatingColumns,
+  projectLibraryTagColumns,
 } from '@/common/adapter/libraryColumnPreferences';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import {
@@ -20,16 +21,22 @@ const LOADING_VIEW: LibraryColumnPreferenceView = {
 };
 
 /** Call once at the Library view; changing columns never reloads catalogue/detail data. */
-export function useLibraryColumnPreferences(account: string, notesEnabled = false, ratingEnabled = false) {
+export function useLibraryColumnPreferences(
+  account: string,
+  notesEnabled = false,
+  ratingEnabled = false,
+  tagsEnabled = false
+) {
   const owner = useMemo(
     () =>
       new LibraryColumnPreferenceOwner(
         { load: loadLibraryColumnPreferences, save: saveLibraryColumnPreferences },
         () => account === getRendererAccountScopeToken(),
         notesEnabled,
-        ratingEnabled
+        ratingEnabled,
+        tagsEnabled
       ),
-    [account, notesEnabled, ratingEnabled]
+    [account, notesEnabled, ratingEnabled, tagsEnabled]
   );
   const view = useSyncExternalStore(owner.subscribe, owner.getSnapshot, owner.getSnapshot);
   useEffect(() => {
@@ -48,11 +55,13 @@ export function useLibraryColumnPreferences(account: string, notesEnabled = fals
   const scoped = account === getRendererAccountScopeToken() ? view : LOADING_VIEW;
   return {
     ...scoped,
-    preferences: ratingEnabled
-      ? (scoped.ratingPreferences ?? projectLibraryRatingColumns(scoped.preferences))
-      : notesEnabled
-        ? (scoped.notesPreferences ?? projectLibraryNotesColumns(scoped.preferences))
-        : scoped.preferences,
+    preferences: tagsEnabled
+      ? (scoped.tagPreferences ?? projectLibraryTagColumns(scoped.preferences))
+      : ratingEnabled
+        ? (scoped.ratingPreferences ?? projectLibraryRatingColumns(scoped.preferences))
+        : notesEnabled
+          ? (scoped.notesPreferences ?? projectLibraryNotesColumns(scoped.preferences))
+          : scoped.preferences,
     changePreferences: owner.change,
     retry: owner.retry,
     reset: owner.reset,
