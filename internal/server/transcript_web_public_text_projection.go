@@ -164,7 +164,7 @@ func (projection sessionRunnerPublicTextProjection) withoutCompletionObservation
 // codec. Only a valid canonical envelope supplies Items/Sources, never quotes.
 func projectTranscriptWebCompletionObservationReferences(streamPayload, payload map[string]any, attempt int64) {
 	original := transcriptPayloadText(payload)
-	projection := sessionRunnerPublicTextIdentity(original).withoutCompletionObservationReferences()
+	projection := sessionRunnerCanonicalPublicTextProjection(original)
 	streamPayload["data"] = projection.text
 	wire := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt)
 	if wire == nil {
@@ -184,7 +184,7 @@ func projectTranscriptWebCompletionObservationReferences(streamPayload, payload 
 }
 
 func sessionRunnerHistoricalPublicTextProjection(content string, preservedCodes map[string]struct{}) sessionRunnerPublicTextProjection {
-	projection := sessionRunnerPrivateThinkProjection(content).withoutCompletionObservationReferences()
+	projection := sessionRunnerCanonicalPublicTextProjection(content)
 	if !sessionRunnerPublicTextExposesUntrustedInternals(projection.text, preservedCodes) {
 		return projection
 	}
