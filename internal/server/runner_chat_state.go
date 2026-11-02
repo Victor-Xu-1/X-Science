@@ -77,6 +77,7 @@ type sessionRunnerChatRun struct {
 	ResponseLanguage                   string
 	ToolSourceEventIDs                 map[string]int64
 	KernelOperationIDs                 map[string]string
+	kernelPrepareDiagnostics           kernelPrepareDiagnosticBuffer
 	ToolBatchIDs                       map[string]string
 	ToolBatchOrdinals                  map[string]int64
 	AssistantSegmentOrdinal            int64

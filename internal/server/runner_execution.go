@@ -115,6 +115,7 @@ func (s *Server) checkpointSessionRunnerPreparationStage(
 }
 
 func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunnerChatOptions, session sessionstore.Session, entries []eventjournal.Entry, run *sessionRunnerChatRun) (assistantMessage string, err error) {
+	defer closeKernelPrepareDiagnostics(run)
 	if err := ensureSessionRunnerExecutionPhaseMachine(run); err != nil {
 		return "", err
 	}
