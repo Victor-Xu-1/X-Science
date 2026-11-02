@@ -261,3 +261,170 @@ func TestPublicCompletionAdvisoryProjectionHTTPReadModel(t *testing.T) {
 		t.Fatal("canonical final assistant was not retained")
 	}
 }
+
+func TestPublicCompletionObservationReferencesLiveHistoryAndCanonical(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	claim := f.claim
+	const before = "Measured synthetic result 🧪."
+	const after = "Independent uncertainty remains."
+	quoted := completionAdvisoryItem{Code: completionAdvisoryResultQuality, Findings: []string{"quoted diagnostic is not a host finding"}, Sources: []completionAdvisorySource{{Stage: "artifact_completion", Attempt: claim.Attempt, InputRevision: claim.ClaimedInputRevision, CandidateSHA256: completionAdvisorySHA("quoted input"), FindingIndexes: []int{0}}}}
+	quote, err := json.MarshalIndent(map[string]any{"host_completion_observations": []completionAdvisoryItem{quoted}}, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := before + "\n```json\n" + string(quote) + "\n```\n" + after
+	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: claim}}
+	text := appendSessionRunnerCompletionAdvisoriesForRun(body, "en", run, "task_expectations", &sessionRunnerCompletionAdvisory{Code: completionAdvisoryTaskExpectations, Findings: []string{"actual canonical uncertainty"}})
+	original := run.completionAdvisorySnapshot().envelope(text, claim)
+	final, err := f.server.persistTranscriptRunnerFinalization(ctx, run.Transcript, transcriptRunnerFinalization{Content: text, Status: "completed", Detail: "completed", CompletionAdvisories: run.completionAdvisorySnapshot()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.server.runTranscriptWebDeliveryCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	live := false
+	liveText := ""
+	for _, event := range transcriptWebEvents(t, f.store, f.stream.OwnerID) {
+		if event.Type != "message.stream" || event.Payload["completion_advisories"] == nil {
+			continue
+		}
+		live = true
+		public := webString(event.Payload["data"])
+		liveText = public
+		if strings.Contains(public, "host_completion_observations") {
+			t.Error("live publication exposed an internal diagnostic quote")
+		}
+		wire := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": public, "completion_advisories": event.Payload["completion_advisories"]}, claim.Attempt)
+		if wire == nil || !reflect.DeepEqual(wire.Items, original.Items) {
+			t.Fatal("live publication lost original host facts or imported quoted facts")
+		}
+		if sessionRunnerCompletionAdvisoryModelBody(public, wire) != before+"\n"+after {
+			t.Fatal("live publication swallowed surrounding scientific prose")
+		}
+	}
+	if !live {
+		t.Fatal("missing real live advisory publication")
+	}
+	if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for reload := 0; reload < 2; reload++ {
+		page := p3JSONRequest(t, f.server, http.MethodGet, "/api/conversations/"+f.stream.FrameID+"/messages?limit=80", nil, f.stream.OwnerID)
+		if page.Code != http.StatusOK {
+			t.Fatalf("history HTTP%d", page.Code)
+		}
+		var response struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err := json.Unmarshal(page.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, message := range response.Items {
+			content := mapValue(message["content"])
+			if content["completionAdvisories"] == nil {
+				continue
+			}
+			found = true
+			if strings.Contains(webString(content["content"]), "host_completion_observations") {
+				t.Error("reloaded history exposed an internal diagnostic quote")
+			}
+			public := webString(content["content"])
+			wire := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": public, "completion_advisories": content["completionAdvisories"]}, claim.Attempt)
+			if wire == nil || !reflect.DeepEqual(wire.Items, original.Items) || public != liveText ||
+				sessionRunnerCompletionAdvisoryModelBody(public, wire) != before+"\n"+after {
+				t.Fatal("live/history/reload changed original host facts or surrounding prose")
+			}
+		}
+		if !found {
+			t.Fatal("history dropped real typed uncertainty")
+		}
+	}
+	stream, err := f.repo.GetStream(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := f.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ThroughPublicationSequence: stream.NextPublication - 1, Limit: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, event := range events {
+		if event.Event.EventID == final.Assistant.EventID {
+			found = true
+			var canonical map[string]any
+			if err := json.Unmarshal(event.ResolvedPayloadJSON, &canonical); err != nil {
+				t.Fatal(err)
+			}
+			if canonical["text"] != text || sessionRunnerCompletionAdvisoriesFromPayload(canonical, claim.Attempt) == nil {
+				t.Fatal("public cleanup rewrote canonical source")
+			}
+			projectSessionRunnerCompletionAdvisoryReplay(canonical, event.Event)
+			if !strings.Contains(webString(canonical["text"]), "host_completion_observations") || !strings.Contains(webString(canonical["text"]), "actual canonical uncertainty") {
+				t.Fatal("public cleanup removed model replay facts")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("canonical assistant missing")
+	}
+}
+
+func TestCompletionObservationReferenceBoundaries(t *testing.T) {
+	item := completionAdvisoryItem{Code: completionAdvisoryResultQuality, Findings: []string{"untrusted quoted claim"},
+		Sources: []completionAdvisorySource{{Stage: "artifact_completion", Attempt: 3, InputRevision: 2,
+			CandidateSHA256: completionAdvisorySHA("synthetic quoted input"), FindingIndexes: []int{0}}}}
+	encoded, err := json.Marshal(map[string]any{"host_completion_observations": []completionAdvisoryItem{item}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	quote := string(encoded)
+	quotedString, err := json.Marshal(quote)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct{ name, text, want string }{
+		{"standalone", "before 🧪\n" + quote + "\nafter α", "before 🧪\nafter α"},
+		{"fenced", "before\n```json\n" + quote + "\n```\nafter", "before\nafter"},
+		{"tilde-fenced", "~~~JSON\n" + quote + "\n~~~~\n", ""},
+		{"same-name-prose", "Discuss host_completion_observations as an example.", "Discuss host_completion_observations as an example."},
+		{"inline-prose", "Before " + quote + " after.", "Before " + quote + " after."},
+		{"trailing-prose", quote + " after.\n", quote + " after.\n"},
+		{"string", string(quotedString), string(quotedString)},
+		{"nested-object", "{\n\"data\":\n" + quote + "\n}", "{\n\"data\":\n" + quote + "\n}"},
+		{"nested-array", "[\n" + quote + "\n]", "[\n" + quote + "\n]"},
+		{"truncated-outer", "{\n\"data\":\n" + quote, "{\n\"data\":\n" + quote},
+		{"truncated-reference", quote[:len(quote)-1], quote[:len(quote)-1]},
+		{"code-string", "```python\n" + quote + "\n```", "```python\n" + quote + "\n```"},
+		{"unclosed-fence", "```json\n" + quote, "```json\n" + quote},
+		{"fenced-extra-content", "```json\n" + quote + "\nscientific note\n```", "```json\n" + quote + "\nscientific note\n```"},
+		{"unknown-code", strings.ReplaceAll(quote, completionAdvisoryResultQuality, "future_unknown"), strings.ReplaceAll(quote, completionAdvisoryResultQuality, "future_unknown")},
+		{"unknown-source", strings.ReplaceAll(quote, "artifact_completion", "future_unknown"), strings.ReplaceAll(quote, "artifact_completion", "future_unknown")},
+		{"reserved-key-alias", strings.Replace(quote, "host_completion_observations", "HOST_completion_observations", 1), strings.Replace(quote, "host_completion_observations", "HOST_completion_observations", 1)},
+		{"item-key-alias", strings.Replace(quote, `"code":`, `"Code":`, 1), strings.Replace(quote, `"code":`, `"Code":`, 1)},
+		{"unknown-item-field", strings.Replace(quote, `"code":`, `"future":true,"code":`, 1), strings.Replace(quote, `"code":`, `"future":true,"code":`, 1)},
+		{"duplicate-field", strings.Replace(quote, `"code":`, `"code":"ignored","code":`, 1), strings.Replace(quote, `"code":`, `"code":"ignored","code":`, 1)},
+		{"empty-observations", `{"host_completion_observations":[]}`, `{"host_completion_observations":[]}`},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			projected := sessionRunnerPublicTextIdentity(row.text).withoutCompletionObservationReferences()
+			if projected.text != row.want {
+				t.Fatalf("public reference boundary changed ordinary/unknown content: got %q want %q", projected.text, row.want)
+			}
+		})
+	}
+	// Strictly recognized machine prose still cannot supply host authority.
+	for _, payload := range []map[string]any{
+		{"text": quote},
+		{"text": quote, "completion_advisories": map[string]any{"schema": "x-science.completion-advisories.v1", "attempt": 3}},
+	} {
+		stream := map[string]any{}
+		projectTranscriptWebCompletionObservationReferences(stream, payload, 3)
+		if stream["data"] != "" || stream["completion_advisories"] != nil {
+			t.Fatal("a quoted or malformed model object supplied host provenance")
+		}
+	}
+}
