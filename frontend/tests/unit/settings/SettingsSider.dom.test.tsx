@@ -20,6 +20,7 @@ vi.mock('@/renderer/pages/settings/settingsRouteLoaders', () => ({
       'experts',
       'skills',
       'tools',
+      'tags',
       'models',
       'compute',
       'governance',
@@ -53,6 +54,7 @@ describe('SettingsSider navigation', () => {
     // Existing entries are retained, with a real archive-recovery destination.
     expect(screen.getAllByRole('link').map((link) => link.textContent?.trim())).toEqual([
       'Scientific Toolkit',
+      'Tags',
       'Models',
       'Compute',
       'Memory',
@@ -67,6 +69,7 @@ describe('SettingsSider navigation', () => {
     expect(toolkit).toHaveAttribute('href', '#/settings/experts');
     expect(toolkit).toHaveAttribute('aria-current', 'page');
     expect(routeLoaderMocks.preloadDuringIdle).toHaveBeenCalledWith('skills');
+    expect(screen.getByRole('link', { name: 'Tags' })).toHaveAttribute('href', '#/settings/tags');
   });
 
   it('uses native hash links and commits repeated settings route changes', async () => {
@@ -90,6 +93,14 @@ describe('SettingsSider navigation', () => {
     await waitFor(() => expect(window.location.hash).toBe('#/settings/models'));
     await waitFor(() => expect(models).toHaveAttribute('aria-current', 'page'));
     await waitFor(() => expect(routeLoaderMocks.preloadDuringIdle).toHaveBeenCalledWith('models'));
+
+    const tags = screen.getByRole('link', { name: 'Tags' });
+    fireEvent.pointerEnter(tags);
+    expect(routeLoaderMocks.preload).toHaveBeenCalledWith('tags');
+    fireEvent.click(tags);
+    await waitFor(() => expect(window.location.hash).toBe('#/settings/tags'));
+    await waitFor(() => expect(tags).toHaveAttribute('aria-current', 'page'));
+    await waitFor(() => expect(routeLoaderMocks.preloadDuringIdle).toHaveBeenCalledWith('tags'));
 
     fireEvent.click(toolkit);
     await waitFor(() => expect(window.location.hash).toBe('#/settings/experts'));
