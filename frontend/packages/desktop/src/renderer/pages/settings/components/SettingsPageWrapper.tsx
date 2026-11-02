@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import React from 'react';
-import { Archive } from 'lucide-react';
+import { Archive, Tags } from 'lucide-react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
   SettingsTabNavigateProvider,
@@ -48,6 +48,12 @@ export function getBuiltinSettingsNavItems(_isDesktop: boolean, t: TranslateFn):
       label: t('settings.scientificToolkit'),
       icon: <SettingsGeneratedNavIcon id='tools' />,
       path: 'experts',
+    },
+    tags: {
+      id: 'tags',
+      label: t('settings.resourceTags.title'),
+      icon: <Tags size={16} strokeWidth={1.8} />,
+      path: 'tags',
     },
     models: {
       id: 'models',

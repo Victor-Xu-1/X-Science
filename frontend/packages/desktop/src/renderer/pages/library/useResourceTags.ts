@@ -4,7 +4,7 @@ import { EMPTY_RESOURCE_TAG_VIEW, getResourceTagOwner } from '@/renderer/service
 
 const emptySubscribe = () => (): void => undefined;
 const emptySnapshot = () => EMPTY_RESOURCE_TAG_VIEW;
-const rejectStaleAccount = async (): Promise<void> => {
+const rejectStaleAccount = async <T = void>(): Promise<T> => {
   throw new Error('Resource tag account changed');
 };
 
@@ -29,5 +29,10 @@ export function useResourceTags(account = getRendererAccountScopeToken()) {
     retry: owner?.retry ?? rejectStaleAccount,
     assign: owner?.assign ?? rejectStaleAccount,
     createAndAssign: owner?.createAndAssign ?? rejectStaleAccount,
+    create: owner?.create ?? rejectStaleAccount<string>,
+    catalog: owner?.catalog ?? rejectStaleAccount<string | undefined>,
+    update: owner?.update ?? rejectStaleAccount,
+    delete: owner?.delete ?? rejectStaleAccount,
+    reorder: owner?.reorder ?? rejectStaleAccount,
   };
 }

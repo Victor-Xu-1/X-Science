@@ -14,7 +14,8 @@ describe('settings route warmup order', () => {
 
   it('warms one neighbor for an edge route', () => {
     const order = getSettingsWarmupOrder('experts');
-    expect(order).toEqual(['skills'] satisfies SettingsRouteId[]);
+    expect(order).toEqual(['tags'] satisfies SettingsRouteId[]);
+    expect(getSettingsWarmupOrder('tags')).toEqual(['experts', 'skills']);
   });
   it('keeps archive recovery as its own reachable settings route', () => {
     expect(getSettingsWarmupOrder('archived')).toEqual(['storage', 'general']);

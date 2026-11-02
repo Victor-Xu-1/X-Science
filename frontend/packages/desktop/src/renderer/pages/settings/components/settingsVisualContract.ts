@@ -14,6 +14,7 @@ export const SETTINGS_LAYOUT_REVISION = 'intrinsic-responsive-v1';
 /** The operational settings share a compact scale; catalogs keep their own
  * readable card density. This is presentation only, never a runtime limit. */
 export const COMPACT_SETTINGS_ROUTES: readonly SettingsRouteId[] = [
+  'tags',
   'models',
   'compute',
   'governance',
@@ -88,6 +89,14 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     grid: { desktopColumns: 4, mobileColumns: 1, cardMinHeight: 192 },
     interactionSelectors: ['.expert-card__main', '.expert-card [role="switch"]', '.expert-card [role="status"]'],
     dynamicStates: ['loading', 'empty', 'search-empty'],
+  }),
+  tags: contract({
+    route: 'tags',
+    reference: { desktop: null, mobile: null },
+    rootTestId: 'x-science-tags-settings',
+    primarySelectors: ['.tags-catalog', '.tag-editor'],
+    interactionSelectors: ['.tags-catalog__tag', '.tags-grip--movable', '.tag-editor input', '.tags-resources__list a'],
+    dynamicStates: ['loading', 'error', 'recovery', 'empty', 'saving', 'conflict', 'deleting', 'reordering'],
   }),
   skills: contract({
     route: 'skills',
