@@ -64,7 +64,7 @@ func (s *Server) executeAgentKernelToolInternal(
 	input map[string]any,
 	outputLimitBytes int64,
 	allowedToolSets ...[]string,
-) (map[string]any, error) {
+) (returnValue map[string]any, returnErr error) {
 	if identity == nil {
 		return nil, errors.New("kernel execution identity is unavailable")
 	}
@@ -78,6 +78,8 @@ func (s *Server) executeAgentKernelToolInternal(
 	if publicName == softwareRuntimeToolName && approvalCall == nil {
 		return nil, errors.New("software runtime requires a durable agent tool-call authority")
 	}
+	ctx, prepareTiming := s.withAgentKernelPrepareTiming(ctx, approvalCall)
+	defer func() { prepareTiming.finishReturn(returnErr) }()
 	access, err := s.validateKernelHostIdentity(ctx, identity.access)
 	if err != nil {
 		return nil, err
@@ -265,6 +267,7 @@ func (s *Server) executeAgentKernelToolInternal(
 	if publicName == "repl" {
 		kind, environment = "operon", "repl"
 	}
+	finishGeneration := prepareTiming.begin(kernelPrepareGeneration)
 	if boundary := s.managedExecutionEnvironmentBoundary(ctx, publicName, input, environment); boundary != nil {
 		return boundary, nil
 	}
@@ -322,6 +325,7 @@ func (s *Server) executeAgentKernelToolInternal(
 		}
 		runtimeGeneration = generation
 	}
+	finishGeneration()
 	if s.kernelHostGrantFenceActive(access.UserID) {
 		return nil, errKernelHostAccessFenced
 	}
@@ -343,11 +347,13 @@ func (s *Server) executeAgentKernelToolInternal(
 	if engine, found := s.canonicalManagedExecutionPack(publicName, input); found {
 		excludePackID = engine.ExecutionPack.ID
 	}
+	finishSpec := prepareTiming.begin(kernelPrepareSpec)
 	spec, err := s.agentKernelSessionSpec(ctx, access, identity.workspaceDir, agentKernelSessionRuntime{
 		PublicName: publicName, Kind: kind, Language: language,
 		Environment: environment, RuntimeGeneration: runtimeGeneration,
 		ExcludePackID: excludePackID,
 	})
+	finishSpec()
 	if err != nil {
 		return nil, err
 	}
@@ -378,13 +384,16 @@ func (s *Server) executeAgentKernelToolInternal(
 		// and no user code starts on a stale claim.
 		setupCtx, setupCancel := detachedKernelSetupContext(ctx, executionTimeout)
 		defer setupCancel()
+		finishSession := prepareTiming.begin(kernelPrepareSession)
 		backendSession, ensureErr := s.kernelExecutionBackend.EnsureSession(setupCtx, spec)
+		finishSession()
 		if ensureErr != nil {
 			if receipt, matched := kernelResourceAdmissionReceipt(ensureErr); matched {
 				return receipt, nil
 			}
 			return nil, ensureErr
 		}
+		prepareTiming.bindSession(backendSession.KernelGeneration, backendSession.BackendGeneration, nil)
 		if s.kernelHostGrantFenceActive(access.UserID) {
 			return nil, s.releaseUnstartedDetachedSession(
 				publicName, backendSession, errKernelHostAccessFenced, taskOwnedKernel,
@@ -427,6 +436,7 @@ func (s *Server) executeAgentKernelToolInternal(
 			}
 		}
 	}()
+	finishSession := prepareTiming.begin(kernelPrepareSession)
 	if fresh {
 		spec.KernelID = "kernel-fresh-" + uuid.NewString()
 		spec.Fresh = true
@@ -443,6 +453,7 @@ func (s *Server) executeAgentKernelToolInternal(
 		}
 		ownedKernel = taskOwnedKernel
 	}
+	finishSession()
 	if s.kernelHostGrantFenceActive(access.UserID) {
 		return nil, errKernelHostAccessFenced
 	}
@@ -450,6 +461,7 @@ func (s *Server) executeAgentKernelToolInternal(
 	if expectedGeneration == 0 {
 		return nil, errors.New("kernel generation is unavailable")
 	}
+	prepareTiming.bindSession(int64(expectedGeneration), 0, &session.Reused)
 	var hostCalls *kernelruntime.HostCallPolicy
 	inputArtifactCollector := newAgentKernelInputArtifactCollector()
 	if publicName == "repl" {
@@ -524,6 +536,7 @@ func (s *Server) executeAgentKernelToolInternal(
 		if run == nil || run.Transcript == nil {
 			return nil, reject(errors.New("kernel local operation runner authority is unavailable"))
 		}
+		finishPrepare := prepareTiming.begin(kernelPrepareDurable)
 		preparedOperation, err := s.workspaceStore.PrepareKernelLocalOperation(ctx,
 			workspace.PrepareKernelLocalOperationInput{
 				OwnerUserID: operation.OwnerUserID, OperationID: operation.OperationID,
@@ -531,9 +544,11 @@ func (s *Server) executeAgentKernelToolInternal(
 				BootID: s.kernelOperationBootID, KernelID: session.ID,
 				KernelGeneration: int64(expectedGeneration), ConfinementSHA256: confinementSHA,
 			})
+		finishPrepare()
 		if err != nil {
 			return nil, reject(err)
 		}
+		prepareTiming.finish("prepared")
 		var startedOperation workspace.KernelLocalOperation
 		err = s.withKernelHostGrantAdmission(access.UserID, func() error {
 			var admissionErr error

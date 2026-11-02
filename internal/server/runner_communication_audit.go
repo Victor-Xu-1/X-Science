@@ -14,6 +14,8 @@ func (s *Server) recordSessionRunnerCommunicationAudit(run *sessionRunnerChatRun
 	if s == nil || s.runtimeStore == nil || run == nil {
 		return
 	}
+	diagnostics, dropped := run.kernelPrepareDiagnostics.takeForAttempt(run.Attempt)
+	addKernelPrepareDiagnostics(record, diagnostics, dropped)
 	record["session_id"] = run.SessionID
 	record["attempt"] = sessionRunnerAttempt(run)
 	record["recorded_at"] = time.Now().UTC()

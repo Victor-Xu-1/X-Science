@@ -24,6 +24,7 @@ func agentExecutionPreparationPreflight(parent context.Context, publicName strin
 	if language != "bash" && language != "python" && language != "r" {
 		return nil
 	}
+	defer agentKernelPrepareTimingFromContext(parent).begin(kernelPrepareSource)()
 	request := executionprep.Request{Language: language, Source: stringValue(input["code"]), Environment: stringValue(input["environment"])}
 	if language == "bash" {
 		request.Source = stringValue(input["command"])

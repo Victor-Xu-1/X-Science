@@ -105,6 +105,8 @@ func (s *Server) executeDetachedAgentKernel(
 	if err != nil {
 		return nil, s.releaseUnstartedDetachedSession(publicName, backendSession, err, taskOwnedSession)
 	}
+	prepareTiming := agentKernelPrepareTimingFromContext(ctx)
+	finishPrepare := prepareTiming.begin(kernelPrepareDurable)
 	prepared, err := s.workspaceStore.PrepareKernelLocalOperation(ctx,
 		workspace.PrepareKernelLocalOperationInput{
 			OwnerUserID: operation.OwnerUserID, OperationID: operation.OperationID,
@@ -112,9 +114,11 @@ func (s *Server) executeDetachedAgentKernel(
 			BootID: s.kernelOperationBootID, KernelID: backendSession.KernelID,
 			KernelGeneration: backendSession.KernelGeneration, ConfinementSHA256: confinementSHA,
 		})
+	finishPrepare()
 	if err != nil {
 		return nil, s.releaseUnstartedDetachedSession(publicName, backendSession, err, taskOwnedSession)
 	}
+	prepareTiming.finish("prepared")
 	releasePrepared := func(cause error) (map[string]any, error) {
 		releaseCtx, cancelRelease := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancelRelease()
