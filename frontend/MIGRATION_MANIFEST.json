@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "80b6011649287f61427b9007b9142bfa5d7eb54a32d1ccd994cd717422f709d2",
+  "adaptationFingerprintSHA256": "ffe9d4491a12bae339669a99b79142abeda431d786d86deceff5c8f404346330",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "1f1bfe1d03b1377149840e7b36b7299d119917442d29c0412c2dcbfcc51522ef",
   "summary": {
@@ -5159,8 +5159,8 @@
     {
       "path": "tests/unit/settings/SettingsSider.dom.test.tsx",
       "sourceSHA256": "65eb68d0ab06f5cfc1be64f7073e446f63e4809eaeff132ef49bb2d5f6d50f16",
-      "targetSHA256": "5ea3547456c3bfebe2946d2f89f86af1049e9117e2cdb2f49a900bb056671c84",
-      "bytes": 3735,
+      "targetSHA256": "319cbd3f615f844958cb0ef16982faa7e2d7666363f915319b0409eed5b75ca5",
+      "bytes": 4308,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
