@@ -19,7 +19,7 @@ else:
 SOURCE_INPUTS = (
     "go.mod", "go.sum", "assets/optional/mcp-servers/bio-tools/requirements-test.txt",
     ".github/workflows/quality-pr.yml", ".github/workflows/quality-main.yml",
-    "scripts/quality/pr_fast_scope.py", "scripts/quality/pr_go_reuse.py",
+    "scripts/quality/pr_fast_scope.py", "scripts/quality/pr_platform_scope.py", "scripts/quality/pr_go_reuse.py",
     "scripts/quality/pr_reuse_github.py", "scripts/quality/pr_reuse_inputs.py",
     "scripts/quality/pr_test_partition.py", "scripts/quality/pr_test_costs.json",
     "scripts/quality/runtime_test_inventory.py", "scripts/quality/runtime_test_shards.py",
