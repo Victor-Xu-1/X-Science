@@ -343,28 +343,13 @@ func (s *Server) executeAgentKernelToolInternal(
 	if fresh && publicName != "repl" {
 		return nil, errors.New("fresh is available only for repl")
 	}
-	excludePackID := ""
-	if engine, found := s.canonicalManagedExecutionPack(publicName, input); found {
-		excludePackID = engine.ExecutionPack.ID
-	}
-	finishSpec := prepareTiming.begin(kernelPrepareSpec)
-	spec, err := s.agentKernelSessionSpec(ctx, access, identity.workspaceDir, agentKernelSessionRuntime{
-		PublicName: publicName, Kind: kind, Language: language,
-		Environment: environment, RuntimeGeneration: runtimeGeneration,
-		ExcludePackID: excludePackID,
+	spec, err := s.prepareAgentKernelExecutionSessionSpec(ctx, access, identity.workspaceDir, agentKernelExecutionSessionSpecInput{
+		Runtime: agentKernelSessionRuntime{
+			PublicName: publicName, Kind: kind, Language: language,
+			Environment: environment, RuntimeGeneration: runtimeGeneration,
+		},
+		Input: input, TaskOwned: taskOwnedKernel, Operation: preauthorizedOperation,
 	})
-	finishSpec()
-	if err != nil {
-		return nil, err
-	}
-	if taskOwnedKernel {
-		// Application execution packs own their typed resource contract.
-		if preauthorizedOperation == nil {
-			return nil, errors.New("task-owned runtime durable operation authority is unavailable")
-		}
-		spec.KernelID = softwareRuntimeKernelID(preauthorizedOperation.OperationID)
-	}
-	spec.ResourceMemoryBytes, err = kernelcontract.MemoryBudgetBytes(input)
 	if err != nil {
 		return nil, err
 	}
