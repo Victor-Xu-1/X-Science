@@ -14,34 +14,51 @@ import (
 )
 
 func TestSemanticTaskWordingDoesNotBlockFinalAnswer(t *testing.T) {
-	for _, task := range []string{
-		"Explain web_search; do not execute it.",
-		"Do not use search_skills. Explain the available concept only.",
-		"Describe manage_packages without installing anything.",
-		"Explain how to use a skill; do not invoke one.",
-		"Explain an actual MCP method without calling it.",
-		"Explain the phrase rerun analysis; no operation should execute.",
-		"Report the first failure code if a failure was observed.",
-		"Use web_search to inspect the question.",
+	check := func(t *testing.T, task, content string, wantAdvisory bool) {
+		t.Helper()
+		model := &artifactReferenceRepairModel{content: content, testing: t}
+		result, err := semanticCompletionFixture(t, context.Background(), task, model)
+		if err != nil {
+			t.Fatalf("text-derived condition blocked the answer: %v", err)
+		}
+		if model.calls != 1 {
+			t.Fatalf("task wording replayed the model: calls=%d", model.calls)
+		}
+		if !strings.HasPrefix(result.FinalMessage.Content, model.content) {
+			t.Fatal("model explanation was not retained in the final answer")
+		}
+		if got := strings.Contains(result.FinalMessage.Content, "Execution details are unverified"); got != wantAdvisory {
+			t.Fatalf("heuristic advisory=%t, want=%t", got, wantAdvisory)
+		}
+		if !wantAdvisory && result.FinalMessage.Content != model.content {
+			t.Fatal("unrelated wording added content to the model answer")
+		}
+		if len(result.Messages) == 0 {
+			t.Fatal("authoritative final message is missing")
+		}
+		if result.Messages[len(result.Messages)-1].Content != result.FinalMessage.Content {
+			t.Fatal("authoritative final diverges from the returned final answer")
+		}
+	}
+	for _, test := range []struct {
+		task         string
+		wantAdvisory bool
+	}{
+		{"Explain web_search; do not execute it.", true},
+		{"Do not use search_skills. Explain the available concept only.", true},
+		{"Describe manage_packages without installing anything.", true},
+		{"Explain how to use a skill; do not invoke one.", false},
+		{"Explain an actual MCP method without calling it.", true},
+		{"Explain the phrase rerun analysis; no operation should execute.", true},
+		{"Report the first failure code if a failure was observed.", true},
+		{"Use web_search to inspect the question.", true},
 	} {
-		t.Run(task, func(t *testing.T) {
-			model := &artifactReferenceRepairModel{content: "This is an explanation. No new operation was executed.", testing: t}
-			result, err := semanticCompletionFixture(t, context.Background(), task, model)
-			if err != nil || model.calls != 1 || !strings.HasPrefix(result.FinalMessage.Content, model.content) {
-				t.Fatalf("text-derived condition blocked or replayed the answer: calls=%d final=%q error=%v", model.calls, result.FinalMessage.Content, err)
-			}
-			if !strings.Contains(result.FinalMessage.Content, "Execution details are unverified") ||
-				len(result.Messages) == 0 || result.Messages[len(result.Messages)-1].Content != result.FinalMessage.Content {
-				t.Fatal("missing honest limitation or divergent authoritative final")
-			}
+		t.Run(test.task, func(t *testing.T) {
+			check(t, test.task, "This is an explanation. No new operation was executed.", test.wantAdvisory)
 		})
 	}
 	t.Run("ordinary wording", func(t *testing.T) {
-		model := &artifactReferenceRepairModel{content: "The arithmetic result is four.", testing: t}
-		result, err := semanticCompletionFixture(t, context.Background(), "Explain two plus two.", model)
-		if err != nil || model.calls != 1 || result.FinalMessage.Content != model.content {
-			t.Fatalf("unrelated explanation changed: calls=%d final=%q error=%v", model.calls, result.FinalMessage.Content, err)
-		}
+		check(t, "Explain two plus two.", "The arithmetic result is four.", false)
 	})
 }
 
