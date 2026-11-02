@@ -375,14 +375,16 @@ type MemoryMutationReceipt struct {
 }
 
 type MemoryMutationInvocation struct {
-	Stream          Stream
-	SourceEventID   int64
-	SourceAttempt   int64
-	ToolCallID      string
-	ToolInputJSON   []byte
-	InputSHA256     string
-	ClientMessageID string
-	Receipt         *MemoryMutationReceipt
+	Stream              Stream
+	SourceEventID       int64
+	SourceAttempt       int64
+	ToolCallID          string
+	OriginalInputSHA256 string
+	HasAdmittedInput    bool
+	ToolInputJSON       []byte
+	InputSHA256         string
+	ClientMessageID     string
+	Receipt             *MemoryMutationReceipt
 }
 
 type FinishRunnerInput struct {
