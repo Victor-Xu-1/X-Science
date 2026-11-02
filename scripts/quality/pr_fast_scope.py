@@ -4,8 +4,9 @@
 The selector uses the real Go package dependency graph. A production change and
 every in-repository package that imports it are tested. Test-only source changes
 run their owning package without changing its importable production artifact.
-Dependency updates
-select the changed modules' real production and test consumers. Full runtime and race
+Filename-inactive platform sources may be excluded only with a same-toolchain
+two-commit proof; embeds and declared runtime consumers remain covered.
+Dependency updates select the changed modules' real production and test consumers. Full runtime and race
 coverage remains in the full quality workflow. An all-zero push base selects
 every tracked path so a newly created integration branch fails conservatively.
 """
@@ -21,7 +22,7 @@ import subprocess
 import sys
 
 if __package__:
-    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, pr_go_reuse, runtime_input_scope, verification_scope
+    from . import pr_build_scope, pr_dependency_scope, pr_frontend_scope, pr_metadata_scope, pr_namespace_scope, pr_test_partition, pr_go_reuse, pr_platform_scope, runtime_input_scope, verification_scope
     from .runtime_test_inventory import discover, execution_plan
     from .runtime_test_shards import execute
     from .runtime_phase_evidence import RuntimePhaseEvidence
@@ -33,6 +34,7 @@ else:
     import pr_namespace_scope
     import pr_test_partition
     import pr_go_reuse
+    import pr_platform_scope
     import runtime_input_scope
     import verification_scope
     from runtime_test_inventory import discover, execution_plan
@@ -100,7 +102,8 @@ def documentation_only(path: str) -> bool:
 
 
 def select_packages(repo: Path, paths: list[str], entries: list[dict],
-                    dependency_owners: set[str] | None = None) -> tuple[list[str], str]:
+                    dependency_owners: set[str] | None = None, *,
+                    filename_exclusions: set[str] | None = None) -> tuple[list[str], str]:
     verification_groups = verification_scope.load(repo)
     verification_paths = {path for group in verification_groups for path in group["paths"]}
     verification_owners = verification_scope.package_owners(verification_groups)
@@ -110,6 +113,7 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
     directories = {entry["ImportPath"]: Path(entry["Dir"]).relative_to(repo).as_posix() for entry in local}
     changed: set[str] = set()
     test_only: set[str] = set()
+    excluded: set[str] = set()
     for path in paths:
         if Path(path).is_absolute() or ".." in Path(path).parts:
             raise ValueError("changed path is outside source")
@@ -143,6 +147,9 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             if (path.endswith(".go") and Path(path).parent.as_posix() == directory
                     or path in embedded or path.startswith(testdata)):
                 owners.add(name)
+        if path in (filename_exclusions or set()) and owners and not production_input:
+            excluded.add(path)
+            continue
         if not owners:
             if path in verification_paths:
                 continue
@@ -164,7 +171,10 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             break
     # Go test files do not become part of the artifact imported by another
     # package. Add their owners only after walking production dependency roots.
-    return sorted(selected | test_only), "Changed packages, dependency modules and production/test import consumers"
+    reason = "Changed packages, dependency modules and production/test import consumers"
+    if excluded:
+        reason = "Current Go build-context filename exclusion: " + ", ".join(sorted(excluded)) + "; " + reason
+    return sorted(selected | test_only), reason
 
 
 def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], str]:
@@ -173,7 +183,9 @@ def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tupl
         modules = pr_dependency_scope.changed_modules(repo, base, head)
         if modules is not None:
             owners = pr_dependency_scope.consumers(packages(repo, dependencies=True), modules) if modules else set()
-    return select_packages(repo, paths, packages(repo), owners)
+    entries = packages(repo)
+    excluded = pr_platform_scope.filename_exclusions(repo, base, head, paths, entries)
+    return select_packages(repo, paths, entries, owners, filename_exclusions=excluded)
 
 
 def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list[str]]:
