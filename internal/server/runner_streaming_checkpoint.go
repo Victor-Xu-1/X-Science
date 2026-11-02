@@ -514,6 +514,13 @@ func (s *Server) checkpointChatToolWithObservers(options SessionRunnerChatOption
 	var admittedOperation workspace.KernelLocalOperation
 	if phase == "start" {
 		var err error
+		admittedInput, err := s.prepareClaimedMemoryStartInput(run, payload)
+		if err != nil {
+			return err
+		}
+		if len(admittedInput) > 0 {
+			payload["executedToolInput"] = admittedInput
+		}
 		kernelAdmission, err = s.prepareKernelBatchStartAdmission(context.Background(), options, run, toolCallID, details)
 		if err != nil {
 			return err

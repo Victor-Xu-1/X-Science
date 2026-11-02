@@ -31,10 +31,11 @@ type memoryMutationReceiptPayload struct {
 }
 
 type memoryMutationSourcePayload struct {
-	ToolCallID string          `json:"toolCallId"`
-	ToolName   string          `json:"toolName"`
-	ToolPhase  string          `json:"toolPhase"`
-	ToolInput  json.RawMessage `json:"toolInput"`
+	ToolCallID        string          `json:"toolCallId"`
+	ToolName          string          `json:"toolName"`
+	ToolPhase         string          `json:"toolPhase"`
+	ToolInput         json.RawMessage `json:"toolInput"`
+	ExecutedToolInput json.RawMessage `json:"executedToolInput"`
 }
 
 func MemoryMutationClientMessageID(streamUID string, sourceEventID int64) string {
@@ -173,30 +174,47 @@ func resolveMemoryMutationSource(ctx context.Context, conn *sql.Conn, stream Str
 		strings.TrimSpace(source.ToolName) != "write_memory" || strings.TrimSpace(source.ToolPhase) != "start" {
 		return MemoryMutationInvocation{}, ErrMemoryMutationReceiptConflict
 	}
-	decoder := json.NewDecoder(bytes.NewReader(source.ToolInput))
-	decoder.UseNumber()
-	var decodedInput any
-	if len(source.ToolInput) == 0 || decoder.Decode(&decodedInput) != nil {
-		return MemoryMutationInvocation{}, ErrMemoryMutationReceiptConflict
-	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return MemoryMutationInvocation{}, ErrMemoryMutationReceiptConflict
-	}
-	toolInput, ok := decodedInput.(map[string]any)
-	if !ok || toolInput == nil {
-		return MemoryMutationInvocation{}, ErrMemoryMutationReceiptConflict
-	}
-	canonicalInput, err := json.Marshal(toolInput)
+	originalInput, err := canonicalMemoryMutationInput(source.ToolInput)
 	if err != nil {
-		return MemoryMutationInvocation{}, ErrMemoryMutationReceiptConflict
+		return MemoryMutationInvocation{}, err
+	}
+	originalDigest := sha256.Sum256(originalInput)
+	canonicalInput := originalInput
+	if len(source.ExecutedToolInput) > 0 {
+		canonicalInput, err = canonicalMemoryMutationInput(source.ExecutedToolInput)
+		if err != nil {
+			return MemoryMutationInvocation{}, err
+		}
 	}
 	digest := sha256.Sum256(canonicalInput)
 	return MemoryMutationInvocation{
 		Stream: stream, SourceEventID: eventID, SourceAttempt: runnerAttempt.Int64,
 		ToolCallID: strings.TrimSpace(source.ToolCallID), ToolInputJSON: canonicalInput,
+		OriginalInputSHA256: hex.EncodeToString(originalDigest[:]), HasAdmittedInput: len(source.ExecutedToolInput) > 0,
 		InputSHA256:     hex.EncodeToString(digest[:]),
 		ClientMessageID: MemoryMutationClientMessageID(stream.UID, eventID),
 	}, nil
+}
+
+func canonicalMemoryMutationInput(raw json.RawMessage) ([]byte, error) {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var decodedInput any
+	if len(raw) == 0 || decoder.Decode(&decodedInput) != nil {
+		return nil, ErrMemoryMutationReceiptConflict
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return nil, ErrMemoryMutationReceiptConflict
+	}
+	toolInput, ok := decodedInput.(map[string]any)
+	if !ok || toolInput == nil {
+		return nil, ErrMemoryMutationReceiptConflict
+	}
+	canonicalInput, err := json.Marshal(toolInput)
+	if err != nil {
+		return nil, ErrMemoryMutationReceiptConflict
+	}
+	return canonicalInput, nil
 }
 
 func normalizeMemoryMutationDigest(value string) string {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 	"strings"
 
+	"x-science/internal/agentruntime"
+	"x-science/internal/kernelcontract"
 	"x-science/internal/memorytools"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -59,7 +63,7 @@ func (s *Server) executeWorkspaceMemoryTool(ctx context.Context, sessionID, name
 			},
 		})
 		if err != nil {
-			return map[string]any{"error": claimedMemoryToolError(err)}, true, nil
+			return claimedMemoryToolFailure(err), true, nil
 		}
 		return map[string]any{
 			"output": result.Output, "appended": result.Appended, "replaced": result.Replaced, "removed": result.Removed,
@@ -103,6 +107,107 @@ func (s *Server) executeWorkspaceMemoryTool(ctx context.Context, sessionID, name
 		}
 		return map[string]any{"output": result.Output, "results_returned": result.ResultsReturned}, true, nil
 	}
+}
+
+// A claimed mutation freezes admission at its host-owned start checkpoint.
+// The original proposal remains toolInput; only the sibling executedToolInput
+// may become execution authority. Registry capabilities select this contract,
+// without inspecting task text or maintaining a second normalizer.
+func (s *Server) claimedMemoryMutationSchema(name string) (agentruntime.ToolSchema, bool) {
+	if s == nil || s.tools == nil {
+		return agentruntime.ToolSchema{}, false
+	}
+	tool, found := s.registeredTool(name)
+	if !found || !tool.Executable {
+		return agentruntime.ToolSchema{}, false
+	}
+	for _, required := range []string{"memory", "durable-state", "write", "trusted-session-required"} {
+		if !slices.Contains(tool.Capabilities, required) {
+			return agentruntime.ToolSchema{}, false
+		}
+	}
+	return agentruntime.ToolSchema{Name: tool.Name, Parameters: chatToolParameters(tool)}, true
+}
+
+func (s *Server) prepareClaimedMemoryStartInput(run *sessionRunnerChatRun, payload map[string]any) (json.RawMessage, error) {
+	if run == nil || run.Transcript == nil {
+		return nil, nil
+	}
+	schema, found := s.claimedMemoryMutationSchema(stringValue(payload["toolName"]))
+	if !found {
+		return nil, nil
+	}
+	input, ok := payload["toolInput"].(map[string]any)
+	if !ok || input == nil {
+		return nil, nil // Invalid proposals retain ordinary gateway rejection.
+	}
+	// Use only the registered in-memory schema and the original pure gateway
+	// normalization. Do not resolve a kernel, hydrate an environment or run hooks.
+	gateway := serverAgentRuntimeToolGateway{server: s, taskRun: run, sessionID: run.SessionID,
+		toolSchemas: []agentruntime.ToolSchema{schema}, toolValidators: agentRuntimeToolValidators([]agentruntime.ToolSchema{schema})}
+	return json.Marshal(gateway.normalizeAdmittedToolArguments(schema.Name, input))
+}
+
+func (g serverAgentRuntimeToolGateway) admittedClaimedMemoryInput(ctx context.Context, call agentruntime.ToolCall) (map[string]any, bool, error) {
+	if _, found := g.server.claimedMemoryMutationSchema(call.Name); !found {
+		return nil, false, nil
+	}
+	run, found := transcriptArtifactRunFromContext(ctx)
+	if !found || g.server.workspaceStore == nil {
+		return nil, false, nil
+	}
+	invocation, err := g.server.workspaceStore.ResolveClaimedAgentMemoryMutation(ctx, run.Authority.Claim, run.SourceEventID)
+	if err != nil {
+		return nil, true, err
+	}
+	if err := kernelcontract.ValidateJSON(call.Arguments); err != nil {
+		return nil, true, transcriptstore.ErrMemoryMutationReceiptConflict
+	}
+	decoder := json.NewDecoder(bytes.NewReader(call.Arguments))
+	decoder.UseNumber()
+	var original map[string]any
+	if decoder.Decode(&original) != nil || original == nil {
+		return nil, true, transcriptstore.ErrMemoryMutationReceiptConflict
+	}
+	encoded, err := json.Marshal(original)
+	if err != nil {
+		return nil, true, transcriptstore.ErrMemoryMutationReceiptConflict
+	}
+	digest := sha256.Sum256(encoded)
+	if invocation.ToolCallID != call.ID || invocation.OriginalInputSHA256 != hex.EncodeToString(digest[:]) {
+		return nil, true, transcriptstore.ErrMemoryMutationReceiptConflict
+	}
+	if !invocation.HasAdmittedInput {
+		return nil, false, nil // Legacy sources retain their original strict check.
+	}
+	decoder = json.NewDecoder(bytes.NewReader(invocation.ToolInputJSON))
+	decoder.UseNumber()
+	var admitted map[string]any
+	if decoder.Decode(&admitted) != nil || admitted == nil {
+		return nil, true, transcriptstore.ErrMemoryMutationReceiptConflict
+	}
+	return admitted, true, nil
+}
+
+func claimedMemoryToolFailure(err error) map[string]any {
+	message, code := claimedMemoryToolError(err), "memory_write_failed_unknown"
+	switch {
+	case errors.Is(err, transcriptstore.ErrMemoryMutationReceiptConflict):
+		message, code = "Memory write input does not match its admitted invocation.", "memory_invocation_conflict"
+	case errors.Is(err, transcriptstore.ErrClaimStale), errors.Is(err, transcriptstore.ErrOwnerMismatch):
+		message, code = "Memory write authority is no longer current.", "memory_authority_stale"
+	case errors.Is(err, context.Canceled):
+		message, code = "Memory write was cancelled.", "memory_cancelled"
+	case errors.Is(err, context.DeadlineExceeded):
+		message, code = "Memory write exceeded its operation deadline.", "memory_deadline_exceeded"
+	case errors.Is(err, memorytools.ErrMemoryClassifierUnavailable):
+		code = "memory_classifier_unavailable"
+	case errors.Is(err, memorytools.ErrMemoryWriteRejected):
+		code = "memory_write_rejected"
+	case errors.Is(err, errWorkspaceMemoryDisabled), errors.Is(err, memorytools.ErrMemoryUnavailable):
+		code = "memory_unavailable"
+	}
+	return map[string]any{"error": message, "code": code}
 }
 
 func boundedMemoryScopeError(toolName string, err error) string {

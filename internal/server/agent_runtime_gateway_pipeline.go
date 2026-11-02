@@ -273,6 +273,13 @@ func serverAgentRuntimeGatewayAdmit(invocation *toolgateway.Invocation) {
 		invocation.CompleteForAudit(nil, "failed", admissionErr.Error(), admissionErr)
 		return
 	}
+	if !admitted {
+		admittedInput, admitted, admissionErr = gateway.admittedClaimedMemoryInput(invocation.Context, execution.call)
+		if admissionErr != nil {
+			invocation.CompleteForAudit(claimedMemoryToolFailure(admissionErr), "failed", "", nil)
+			return
+		}
+	}
 	if admitted {
 		invocation.Input = admittedInput
 	} else {
