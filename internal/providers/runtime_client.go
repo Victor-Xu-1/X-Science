@@ -47,6 +47,7 @@ type AuditRecord struct {
 	FinishedAt              time.Time                       `json:"finishedAt"`
 	DurationMs              int64                           `json:"durationMs"`
 	Error                   string                          `json:"error,omitempty"`
+	ResponseDiagnostics     *ProviderResponseDiagnostics    `json:"responseDiagnostics,omitempty"`
 }
 
 type runtimeModelClient struct {
@@ -150,7 +151,11 @@ func (c *runtimeModelClient) completeOpenAICompatible(ctx context.Context, reque
 	if err != nil {
 		return agentruntime.ModelResponse{}, false, err
 	}
-	return c.completeJSON(ctx, attempt, c.profile.Provider.Endpoint, payload, request, c.openAIResponseDecoder)
+	observation := &providerResponseObservation{}
+	decode := func(body []byte, headers http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error) {
+		return c.observedOpenAIResponseDecoder(body, headers, observation)
+	}
+	return c.completeJSON(ctx, attempt, c.profile.Provider.Endpoint, payload, request, decode, observation)
 }
 
 func (c *runtimeModelClient) completeGemini(ctx context.Context, request agentruntime.ModelRequest, attempt int) (agentruntime.ModelResponse, bool, error) {
@@ -302,7 +307,11 @@ func usesArkThinkingChatContract(profile ModelProfile) bool {
 	return strings.Contains(providerType, "volcengine-ark") || strings.Contains(providerType, "volcengine_ark")
 }
 
-func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endpoint string, payload []byte, request agentruntime.ModelRequest, decode func([]byte, http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error)) (agentruntime.ModelResponse, bool, error) {
+func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endpoint string, payload []byte, request agentruntime.ModelRequest, decode func([]byte, http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error), observations ...*providerResponseObservation) (agentruntime.ModelResponse, bool, error) {
+	var observation *providerResponseObservation
+	if len(observations) > 0 {
+		observation = observations[0]
+	}
 	startedAt := time.Now().UTC()
 	requestCtx := ctx
 	cancel := func() {}
@@ -327,7 +336,7 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(err.Error())
 		record.RequestID = outboundRequestID
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, err))
 		return agentruntime.ModelResponse{}, requestCtx.Err() == nil, err
 	}
 	defer response.Body.Close()
@@ -339,7 +348,7 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		record.FinishedAt = time.Now().UTC()
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(readErr.Error())
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, readErr))
 		statusRetryable := providerHTTPStatusRetryable(response.StatusCode, nil)
 		retryable := !errors.Is(readErr, errProviderResponseTooLarge) && requestCtx.Err() == nil &&
 			(statusRetryable ||
@@ -360,7 +369,7 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 		if maximum, ok := ProviderOutputTokenMaximum(responseErr); ok {
 			record.ProviderMaxOutputTokens = maximum
 		}
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, responseErr))
 		retryable := providerHTTPStatusRetryable(response.StatusCode, body)
 		if retryable {
 			responseErr = withProviderRetryAfter(responseErr, response.Header, time.Now())
@@ -384,10 +393,10 @@ func (c *runtimeModelClient) completeJSON(ctx context.Context, attempt int, endp
 	if err != nil {
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = err.Error()
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, err))
 		return agentruntime.ModelResponse{}, false, err
 	}
-	c.emitAudit(record)
+	c.emitAudit(observation.audit(record, nil))
 	return c.responseWithUsage(decoded, record, usage), false, nil
 }
 
@@ -450,47 +459,7 @@ func (c *runtimeModelClient) emitAudit(record AuditRecord) {
 }
 
 func (c *runtimeModelClient) openAIResponseDecoder(body []byte, headers http.Header) (agentruntime.ModelResponse, string, providerTokenUsage, error) {
-	var decoded openAIChatResponse
-	if err := json.Unmarshal(body, &decoded); err != nil {
-		return agentruntime.ModelResponse{}, "", providerTokenUsage{}, err
-	}
-	usage := decoded.Usage.tokenUsage()
-	usage.deriveTotal(false)
-	if len(decoded.Choices) == 0 {
-		return agentruntime.ModelResponse{}, decoded.ID, usage, errors.New("OpenAI-compatible response has no choices")
-	}
-	if len(decoded.Choices[0].Message.ToolCalls) > 0 {
-		if limited := responseOutputLimit(decoded.Choices[0].FinishReason, true); limited != nil {
-			return agentruntime.ModelResponse{}, decoded.ID, usage, limited
-		}
-	}
-	message, err := runtimeMessageFromOpenAI(decoded.Choices[0].Message)
-	if err != nil {
-		return agentruntime.ModelResponse{}, decoded.ID, usage, err
-	}
-	refused := strings.TrimSpace(decoded.Choices[0].Message.Refusal) != ""
-	if isTokenLimitFinishReason(decoded.Choices[0].FinishReason) {
-		if len(message.ToolCalls) != 0 {
-			return agentruntime.ModelResponse{}, decoded.ID, usage,
-				fmt.Errorf("%w: finish reason %s", errProviderResponseTruncated, decoded.Choices[0].FinishReason)
-		}
-		// Some OpenAI-compatible endpoints ignore stream=true and return one
-		// JSON response. Preserve its content-only prefix so the streaming
-		// caller can durably checkpoint it before continuing. An empty prefix
-		// is still typed as continuation-safe and is bounded by the runner's
-		// no-progress budget; a partial tool call remains terminal above.
-		return agentruntime.ModelResponse{
-				Message: message, Model: decoded.Model,
-				StopReason: decoded.Choices[0].FinishReason,
-				Refused:    refused,
-			}, firstNonEmpty(decoded.ID, decoded.RequestID), usage,
-			newProviderContentResponseTruncation(decoded.Choices[0].FinishReason)
-	}
-	return agentruntime.ModelResponse{
-		Message: message, Model: decoded.Model,
-		StopReason: decoded.Choices[0].FinishReason,
-		Refused:    refused,
-	}, firstNonEmpty(decoded.ID, decoded.RequestID), usage, nil
+	return c.observedOpenAIResponseDecoder(body, headers, nil)
 }
 
 func isTokenLimitFinishReason(value string) bool {
@@ -665,9 +634,10 @@ type openAIToolCallFunction struct {
 }
 
 type openAIChatResponse struct {
-	ID        string `json:"id,omitempty"`
-	RequestID string `json:"request_id,omitempty"`
-	Model     string `json:"model,omitempty"`
+	Error     json.RawMessage `json:"error,omitempty"`
+	ID        string          `json:"id,omitempty"`
+	RequestID string          `json:"request_id,omitempty"`
+	Model     string          `json:"model,omitempty"`
 	Choices   []struct {
 		Message      openAIMessage `json:"message"`
 		FinishReason string        `json:"finish_reason,omitempty"`
