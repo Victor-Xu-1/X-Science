@@ -74,8 +74,9 @@ func (g serverAgentRuntimeToolGateway) durableSemanticFailureBoundary(
 	// Execution receipts are not provider messages: the current admitted batch
 	// is necessarily open here. Stream the fenced event projection so that model
 	// compaction and replay seed limits cannot erase older failures or repairs.
+	// This reducer consumes no artifact associations.
 	reducer := newDurableSemanticFailureReducer(toolName, arguments)
-	err = g.server.scanTranscriptProjection(ctx, snapshot, stream.OwnerID, snapshot.ThroughPublicationSequence,
+	err = g.server.scanTranscriptPayloadProjection(ctx, snapshot, stream.OwnerID, snapshot.ThroughPublicationSequence,
 		func(projected transcriptstore.ProjectedEvent) error {
 			reducer.observe(projected.Event, projected.ResolvedPayloadJSON)
 			return nil
