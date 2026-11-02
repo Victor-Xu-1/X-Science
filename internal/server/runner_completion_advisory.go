@@ -6,9 +6,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"reflect"
 	"strings"
 	"unicode/utf16"
 
+	"x-science/internal/kernelcontract"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
@@ -228,48 +230,86 @@ func sessionRunnerCompletionAdvisoriesFromPayload(payload map[string]any, attemp
 	if wire.TextSHA256 != completionAdvisorySHA(text) || wire.TextLength != len(units) {
 		return nil
 	}
+	if !sessionRunnerCompletionAdvisoryItemsValid(wire.Items, wire.Attempt, wire.InputRevision) {
+		return nil
+	}
+	if !sessionRunnerCompletionAdvisorySpansValid(units, wire.Spans) {
+		return nil
+	}
+	return &wire
+}
+
+// References reuse this item codec without gaining host provenance. Zero
+// bounds validate only shape; quoted sources remain untrusted claims.
+func sessionRunnerCompletionAdvisoryItemsValid(items []completionAdvisoryItem, attempt, inputRevision int64) bool {
 	codes := map[string]bool{}
-	for _, item := range wire.Items {
+	for _, item := range items {
 		english, _ := sessionRunnerCompletionAdvisoryText(item.Code)
 		if english == "" || codes[item.Code] || item.Findings == nil || len(item.Findings) > 4096 || len(item.Sources) == 0 || len(item.Sources) > 64 {
-			return nil
+			return false
 		}
 		codes[item.Code] = true
 		covered := map[int]bool{}
 		for _, finding := range item.Findings {
 			if len(finding) > 65536 {
-				return nil
+				return false
 			}
 		}
 		for _, source := range item.Sources {
 			if source.Stage != "artifact_completion" && source.Stage != "task_expectations" && source.Stage != "completion_recovery" {
-				return nil
+				return false
 			}
 			digest, err := hex.DecodeString(source.CandidateSHA256)
 			if err != nil || len(digest) != sha256.Size || hex.EncodeToString(digest) != source.CandidateSHA256 ||
-				source.Attempt <= 0 || source.Attempt > wire.Attempt || source.InputRevision <= 0 || source.InputRevision > wire.InputRevision {
-				return nil
+				source.Attempt <= 0 || (attempt > 0 && source.Attempt > attempt) || source.InputRevision <= 0 || (inputRevision > 0 && source.InputRevision > inputRevision) {
+				return false
 			}
 			if source.FindingIndexes == nil || len(source.FindingIndexes) > len(item.Findings) {
-				return nil
+				return false
 			}
 			seen := map[int]bool{}
 			for _, index := range source.FindingIndexes {
 				if index < 0 || index >= len(item.Findings) || seen[index] {
-					return nil
+					return false
 				}
 				seen[index] = true
 				covered[index] = true
 			}
 		}
 		if len(covered) != len(item.Findings) {
-			return nil
+			return false
 		}
 	}
-	if !sessionRunnerCompletionAdvisorySpansValid(units, wire.Spans) {
-		return nil
+	return true
+}
+
+// Decode one complete JSON value so public projection skips nested objects and
+// strings as a unit. Only the closed machine-reference shape may be omitted;
+// its contents never become a host finding or completion authority.
+func sessionRunnerCompletionObservationReference(content string) (int, bool) {
+	decoder := json.NewDecoder(strings.NewReader(content))
+	var raw json.RawMessage
+	if decoder.Decode(&raw) != nil {
+		return 0, false
 	}
-	return &wire
+	consumed := int(decoder.InputOffset())
+	var reference struct {
+		Items []completionAdvisoryItem `json:"host_completion_observations"`
+	}
+	typed := json.NewDecoder(bytes.NewReader(raw))
+	typed.DisallowUnknownFields()
+	if typed.Decode(&reference) != nil || len(reference.Items) == 0 || len(reference.Items) > 5 ||
+		kernelcontract.ValidateJSON(raw) != nil || !sessionRunnerCompletionAdvisoryItemsValid(reference.Items, 0, 0) {
+		return consumed, false
+	}
+	// encoding/json permits case-insensitive struct aliases. A reference must
+	// have exactly the existing codec's keys, not a future or ambiguous shape.
+	canonical, err := json.Marshal(reference)
+	var actual, expected any
+	if err != nil || json.Unmarshal(raw, &actual) != nil || json.Unmarshal(canonical, &expected) != nil || !reflect.DeepEqual(actual, expected) {
+		return consumed, false
+	}
+	return consumed, true
 }
 
 func sessionRunnerCompletionAdvisorySpansValid(units []uint16, spans []completionAdvisorySpan) bool {

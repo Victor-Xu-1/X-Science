@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 
 	"x-science/internal/agentruntime"
@@ -25,11 +24,8 @@ type sessionRunnerExplicitToolContract struct {
 	RequireMCP             bool
 }
 
-var sessionRunnerExplicitSkillTokenPattern = regexp.MustCompile(`(?i)(?:^|[^a-z0-9_])skills?(?:$|[^a-z0-9_])`)
-
 func buildSessionRunnerExplicitToolContract(taskIntent string) sessionRunnerExplicitToolContract {
 	normalized := strings.ToLower(strings.TrimSpace(taskIntent))
-	compact := strings.Join(strings.Fields(normalized), "")
 	if normalized == "" {
 		return sessionRunnerExplicitToolContract{}
 	}
@@ -55,15 +51,8 @@ func buildSessionRunnerExplicitToolContract(taskIntent string) sessionRunnerExpl
 	if strings.Contains(normalized, "manage_packages") {
 		add("manage_packages", 1)
 	}
-	if sessionRunnerExplicitSkillTokenPattern.MatchString(normalized) && containsAny(normalized, []string{
-		"使用", "调用", "加载", "use", "using", "invoke", "load",
-	}) {
-		minimum := 1
-		if strings.Contains(compact, "至少两个") || strings.Contains(normalized, "at least two") {
-			minimum = 2
-		}
-		add("skill", minimum)
-	}
+	// Skill use/reuse in prose is not a new load or publication intent.
+	// Typed Save as Skill and actual tool receipts keep their existing owners.
 	contract.RequireMCP = strings.Contains(normalized, "mcp") &&
 		(strings.Contains(normalized, "真实") || strings.Contains(normalized, "actual") || strings.Contains(normalized, "method") || strings.Contains(normalized, "方法"))
 	contract.PostWriteReads = sessionRunnerExplicitPostWriteReadTargets(taskIntent)

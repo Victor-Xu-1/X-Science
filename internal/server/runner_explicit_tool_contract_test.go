@@ -18,7 +18,7 @@ func sessionRunnerExplicitToolContractGaps(taskIntent string, messages []agentru
 
 func TestSessionRunnerExplicitToolObservationsCompareNamedCompletedActions(t *testing.T) {
 	task := "使用 search_skills 并实际加载至少两个 Skill；使用 web_search，并通过 MCP 的真实方法查询至少两个不同数据域，至少包含 PubMed；通过 manage_packages 安装依赖。"
-	if gaps := sessionRunnerExplicitToolContractGaps(task, nil); len(gaps) != 5 {
+	if gaps := sessionRunnerExplicitToolContractGaps(task, nil); len(gaps) != 4 {
 		t.Fatalf("missing explicit tool gaps=%#v", gaps)
 	}
 	messages := []agentruntime.Message{
@@ -454,4 +454,27 @@ func toolRoundWithInput(id, name, input string) agentruntime.Message {
 	return agentruntime.Message{Role: "assistant", ToolCalls: []agentruntime.ToolCall{{
 		ID: id, Name: name, Arguments: json.RawMessage(input),
 	}}}
+}
+
+func TestSessionRunnerSkillMentionsDoNotInventNewToolReceipt(t *testing.T) {
+	for _, intent := range []string{
+		"Reuse the already published Skill; do not modify or republish it.",
+		"继续使用现有已发布 Skill，明确不修改、不另存或重新发布。",
+		"Use the procedure already available in the Skill library.",
+		"不要调用或重新加载 Skill，只总结现有结果。",
+		"Use Skill to load the existing instructions.",
+		"Publish a new Skill from this conversation.",
+	} {
+		t.Run(intent, func(t *testing.T) {
+			contract := buildSessionRunnerExplicitToolContract(intent)
+			for _, requirement := range contract.Requirements {
+				if requirement.Name == "skill" {
+					t.Fatal("free prose manufactured a new Skill tool obligation")
+				}
+			}
+			if gaps := contract.gaps(nil); len(gaps) != 0 {
+				t.Fatalf("prose was treated as absent receipts: %v", gaps)
+			}
+		})
+	}
 }

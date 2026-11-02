@@ -83,8 +83,108 @@ func sessionRunnerPrivateThinkProjection(content string) sessionRunnerPublicText
 	return projection
 }
 
+// Diagnostic references remain immutable in the canonical answer and model
+// replay. Consume only complete standalone values through the existing codec;
+// skip unknown/business JSON as a unit instead of searching inside it.
+func (projection sessionRunnerPublicTextProjection) withoutCompletionObservationReferences() sessionRunnerPublicTextProjection {
+	content := projection.text
+	kept := []sessionRunnerPublicTextInterval{}
+	after, cursor := 0, 0
+	lineEnd := func(start int) int {
+		if n := strings.IndexByte(content[start:], '\n'); n >= 0 {
+			return start + n + 1
+		}
+		return len(content)
+	}
+	remove := func(start, end int) {
+		if after < start {
+			kept = append(kept, sessionRunnerPublicTextInterval{after, start})
+		}
+		after = end
+	}
+	for cursor < len(content) {
+		end := lineEnd(cursor)
+		line := strings.TrimSpace(content[cursor:end])
+		if strings.HasPrefix(line, "```") || strings.HasPrefix(line, "~~~") {
+			marker, count := line[0], 0
+			for count < len(line) && line[count] == marker {
+				count++
+			}
+			info := strings.TrimSpace(line[count:])
+			closeStart, closeEnd := end, end
+			for closeStart < len(content) {
+				closeEnd = lineEnd(closeStart)
+				closing := strings.TrimSpace(content[closeStart:closeEnd])
+				if len(closing) >= count && strings.Trim(closing, string(marker)) == "" {
+					break
+				}
+				closeStart = closeEnd
+			}
+			if closeStart == len(content) {
+				break
+			}
+			if info == "" || strings.EqualFold(info, "json") {
+				body := content[end:closeStart]
+				n, known := sessionRunnerCompletionObservationReference(body)
+				if known && strings.TrimSpace(body[n:]) == "" {
+					remove(cursor, closeEnd)
+				}
+			}
+			cursor = closeEnd
+			continue
+		}
+		if strings.HasPrefix(line, "{") || strings.HasPrefix(line, "[") || strings.HasPrefix(line, "\"") {
+			start := cursor + len(content[cursor:end]) - len(strings.TrimLeftFunc(content[cursor:end], unicode.IsSpace))
+			n, known := sessionRunnerCompletionObservationReference(content[start:])
+			// A truncated outer value must not expose an inner object as a
+			// standalone reference. Retain its unparsed remainder unchanged.
+			if n == 0 {
+				break
+			}
+			valueEnd := start + n
+			next := lineEnd(valueEnd)
+			if known && strings.TrimSpace(content[valueEnd:next]) == "" {
+				remove(cursor, next)
+			}
+			cursor = next
+			continue
+		}
+		cursor = end
+	}
+	if after == 0 {
+		return projection
+	}
+	if after < len(content) {
+		kept = append(kept, sessionRunnerPublicTextInterval{after, len(content)})
+	}
+	return projection.retain(kept)
+}
+
+// Live and historical presentation share deletion coordinates and the host
+// codec. Only a valid canonical envelope supplies Items/Sources, never quotes.
+func projectTranscriptWebCompletionObservationReferences(streamPayload, payload map[string]any, attempt int64) {
+	original := transcriptPayloadText(payload)
+	projection := sessionRunnerPublicTextIdentity(original).withoutCompletionObservationReferences()
+	streamPayload["data"] = projection.text
+	wire := sessionRunnerCompletionAdvisoriesFromPayload(payload, attempt)
+	if wire == nil {
+		return
+	}
+	spans, valid := projection.advisorySpans(original, wire.Spans)
+	if !valid {
+		return
+	}
+	projected := *wire
+	projected.Spans = spans
+	projected.TextSHA256 = completionAdvisorySHA(projection.text)
+	projected.TextLength = sessionRunnerPublicTextUTF16Length(projection.text)
+	if verified := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": projection.text, "completion_advisories": projected}, attempt); verified != nil {
+		streamPayload["completion_advisories"] = verified
+	}
+}
+
 func sessionRunnerHistoricalPublicTextProjection(content string, preservedCodes map[string]struct{}) sessionRunnerPublicTextProjection {
-	projection := sessionRunnerPrivateThinkProjection(content)
+	projection := sessionRunnerPrivateThinkProjection(content).withoutCompletionObservationReferences()
 	if !sessionRunnerPublicTextExposesUntrustedInternals(projection.text, preservedCodes) {
 		return projection
 	}
