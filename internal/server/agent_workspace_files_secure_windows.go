@@ -313,21 +313,34 @@ func secureEnsureAgentWorkspaceDirectory(path string, mode os.FileMode) (string,
 	if err != nil {
 		return "", err
 	}
-	if relative == "." {
-		return canonicalHostDirectory(root)
+	var parts []string
+	if relative != "." {
+		parts, err = secureAgentWorkspacePathParts(relative)
+		if err != nil {
+			return "", err
+		}
 	}
-	parts, err := secureAgentWorkspacePathParts(relative)
-	if err != nil {
-		return "", err
+	traverseAccess := uint32(windows.FILE_TRAVERSE | windows.FILE_READ_ATTRIBUTES | windows.SYNCHRONIZE)
+	targetAccess := uint32(windows.FILE_GENERIC_READ | windows.FILE_GENERIC_WRITE | windows.DELETE | windows.SYNCHRONIZE)
+	rootAccess := traverseAccess
+	if len(parts) == 0 {
+		rootAccess = targetAccess
 	}
-	access := uint32(windows.FILE_GENERIC_READ | windows.FILE_GENERIC_WRITE | windows.DELETE | windows.SYNCHRONIZE)
-	current, err := openAgentWorkspaceWindowsRoot(root, access)
+	current, err := openAgentWorkspaceWindowsRoot(root, rootAccess)
 	if err != nil {
 		return "", err
 	}
 	defer func() { _ = windows.CloseHandle(current) }()
-	for _, part := range parts {
-		next, openErr := openAgentWorkspaceWindowsObject(current, part, access, windows.FILE_OPEN_IF, windows.FILE_DIRECTORY_FILE|windows.FILE_SYNCHRONOUS_IO_NONALERT)
+	for ordinal, part := range parts {
+		access := traverseAccess
+		if ordinal == len(parts)-1 {
+			access = targetAccess
+		}
+		next, openErr := openAgentWorkspaceWindowsObject(current, part, access, windows.FILE_OPEN, windows.FILE_DIRECTORY_FILE|windows.FILE_SYNCHRONOUS_IO_NONALERT)
+		if errors.Is(openErr, windows.ERROR_FILE_NOT_FOUND) || errors.Is(openErr, windows.ERROR_PATH_NOT_FOUND) ||
+			errors.Is(openErr, windows.STATUS_OBJECT_NAME_NOT_FOUND) || errors.Is(openErr, windows.STATUS_OBJECT_PATH_NOT_FOUND) {
+			next, openErr = openAgentWorkspaceWindowsObject(current, part, access, windows.FILE_OPEN_IF, windows.FILE_DIRECTORY_FILE|windows.FILE_SYNCHRONOUS_IO_NONALERT)
+		}
 		if openErr != nil {
 			return "", openErr
 		}
