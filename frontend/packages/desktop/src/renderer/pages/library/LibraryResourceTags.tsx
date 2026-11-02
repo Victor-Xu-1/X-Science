@@ -101,6 +101,7 @@ export function LibraryItemTags({
       disabled={blocked}
       limit={compact ? 2 : Infinity}
       onRemove={compact ? undefined : (tagId) => state.assign(target, tagId, false)}
+      tagHref={(tagId) => `#/settings/tags?tag=${encodeURIComponent(tagId)}`}
     />
   );
   const uncertainForTarget =
@@ -114,6 +115,7 @@ export function LibraryItemTags({
     );
   return (
     <div className={compact ? 'library-resource-tags library-resource-tags--compact' : 'library-resource-tags'}>
+      {compact && badges}
       <ResourceTagMenu
         targetKey={targetKey}
         tags={tags}
@@ -122,7 +124,6 @@ export function LibraryItemTags({
         creating={projection.creating}
         disabled={blocked}
         error={uncertainForTarget ? t('conversation.resourceTags.updateFailed') : undefined}
-        trigger={compact ? badges : undefined}
         onAssign={(tagId, desired) => state.assign(target, tagId, desired)}
         onCreate={(name) => state.createAndAssign(target, name)}
       />

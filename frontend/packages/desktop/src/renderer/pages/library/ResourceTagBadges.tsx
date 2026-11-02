@@ -36,6 +36,7 @@ export type ResourceTagBadgesProps = {
   pendingTagIds?: readonly string[];
   disabled?: boolean;
   onRemove?: (tagId: string) => Promise<void>;
+  tagHref?: (tagId: string) => string;
 };
 
 function Badges({
@@ -45,6 +46,7 @@ function Badges({
   pendingTagIds = [],
   disabled = false,
   onRemove,
+  tagHref,
 }: ResourceTagBadgesProps) {
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
@@ -76,7 +78,18 @@ function Badges({
     <span className='resource-tag-badges'>
       {shown.map((tag) => (
         <span className='resource-tag-badges__item' key={tag.id}>
-          <ResourceTagVisual tag={tag} favorite={favorite} />
+          {tagHref ? (
+            <a
+              className='resource-tag-badges__open'
+              href={tagHref(tag.id)}
+              aria-label={t('settings.resourceTags.openTag', { name: resourceTagLabel(tag, favorite) })}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <ResourceTagVisual tag={tag} favorite={favorite} />
+            </a>
+          ) : (
+            <ResourceTagVisual tag={tag} favorite={favorite} />
+          )}
           {onRemove && (
             <button
               type='button'

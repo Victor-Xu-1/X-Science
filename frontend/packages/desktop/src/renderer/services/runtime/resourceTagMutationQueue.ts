@@ -12,7 +12,7 @@ import {
   type RendererMutationStorage,
 } from './rendererMutationSlot';
 
-type TagWrite = Extract<ResourceTagCommand, { kind: 'create' | 'assignment' }>;
+type TagWrite = ResourceTagCommand;
 export type ResourceTagRejection = Readonly<{ status: number; code: string }>;
 export type ResourceTagQueueEntry = Readonly<{
   group_id: string;
@@ -57,7 +57,6 @@ export function decodeResourceTagQueueEntry(value: unknown): ResourceTagQueueEnt
   keys(value, ['group_id', 'command', 'continuation', 'phase', 'minimum_revision', 'rejection']);
   const group_id = operation(value.group_id),
     command = decodeResourceTagCommand(value.command);
-  if (command.kind !== 'create' && command.kind !== 'assignment') return reject();
   if (value.phase !== 'ready' && value.phase !== 'unknown' && value.phase !== 'readback') return reject();
   const minimum_revision = value.minimum_revision;
   if (typeof minimum_revision !== 'number' || !Number.isSafeInteger(minimum_revision) || minimum_revision < 0)
@@ -77,9 +76,10 @@ export function decodeResourceTagQueueEntry(value: unknown): ResourceTagQueueEnt
     continuation = Object.freeze({ target, operation_id });
   }
   if (command.kind === 'create') {
-    if (!continuation || group_id !== command.operation_id) return reject();
+    if (group_id !== command.operation_id) return reject();
   } else if (continuation) {
     if (
+      command.kind !== 'assignment' ||
       command.operation_id !== continuation.operation_id ||
       command.resource_type !== continuation.target.resource_type ||
       command.resource_id !== continuation.target.resource_id ||
@@ -234,6 +234,19 @@ export function resourceTagCreationEntry(target: ResourceTagRef, name: string, c
     group_id: createId,
     command: { kind: 'create', operation_id: createId, name, icon_key: 'tag', color_key: 'blue' },
     continuation: { target: decodeResourceTagRef(target), operation_id: assignmentId },
+    phase: 'ready',
+    minimum_revision: 0,
+    rejection: null,
+  });
+}
+
+/** Catalog and per-resource writes share the same versioned durable queue. */
+export function resourceTagCatalogEntry(command: ResourceTagCommand) {
+  if (command.kind === 'assignment') return reject();
+  return decodeResourceTagQueueEntry({
+    group_id: command.operation_id,
+    command,
+    continuation: null,
     phase: 'ready',
     minimum_revision: 0,
     rejection: null,

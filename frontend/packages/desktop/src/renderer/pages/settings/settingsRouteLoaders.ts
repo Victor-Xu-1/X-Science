@@ -19,6 +19,7 @@ export const settingsRouteLoaders = {
   account: cachedLoader(() => import('./AccountSettings')),
   'plans-usage': cachedLoader(() => import('./PlansUsageSettings')),
   experts: cachedLoader(() => import('./LibrarySettingsPage')),
+  tags: cachedLoader(() => import('./TagsSettings')),
   skills: cachedLoader(() => import('./LibrarySettingsPage')),
   tools: cachedLoader(() => import('./LibrarySettingsPage')),
   models: cachedLoader(() => import('./XScienceModelsSettings')),
@@ -36,6 +37,7 @@ export type SettingsRouteId = keyof typeof settingsRouteLoaders;
 
 const settingsNavigationOrder: SettingsRouteId[] = [
   'experts',
+  'tags',
   'skills',
   'tools',
   'models',

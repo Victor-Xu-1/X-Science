@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
-import { Archive } from 'lucide-react';
+import { Archive, Tags } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import {
@@ -29,6 +29,7 @@ import { SettingsGeneratedNavIcon } from './SettingsGeneratedAsset';
  */
 export const BUILTIN_TAB_IDS = [
   'experts',
+  'tags',
   'models',
   'compute',
   'governance',
@@ -73,6 +74,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.scientificToolkit'),
         icon: <SettingsGeneratedNavIcon id='tools' />,
         path: 'experts',
+      },
+      tags: {
+        id: 'tags',
+        label: t('settings.resourceTags.title'),
+        icon: <Tags size={16} strokeWidth={1.8} />,
+        path: 'tags',
       },
       models: {
         id: 'models',

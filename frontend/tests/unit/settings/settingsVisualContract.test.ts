@@ -32,6 +32,7 @@ const manifest = css('settings');
 describe('intrinsic settings presentation contract', () => {
   it('uses one compact scale for operational pages and archive recovery without shrinking other surfaces', () => {
     expect(COMPACT_SETTINGS_ROUTES).toEqual([
+      'tags',
       'models',
       'compute',
       'governance',
@@ -76,11 +77,11 @@ describe('intrinsic settings presentation contract', () => {
     ])
       expect(read(relative)).not.toMatch(/<main\b/);
   });
-  it('covers all fourteen shipped settings routes with honest reference and state coverage', () => {
+  it('covers all shipped settings routes with honest reference and state coverage', () => {
     expect(SETTINGS_VISUAL_SYSTEM_ID).toBe('scientific-connectors-v3');
     expect(SETTINGS_LAYOUT_REVISION).toBe('intrinsic-responsive-v1');
-    expect(SETTINGS_VISUAL_ROUTE_IDS).toHaveLength(14);
-    expect(new Set(SETTINGS_VISUAL_ROUTE_IDS).size).toBe(14);
+    expect(SETTINGS_VISUAL_ROUTE_IDS).toHaveLength(15);
+    expect(new Set(SETTINGS_VISUAL_ROUTE_IDS).size).toBe(15);
     for (const route of SETTINGS_VISUAL_ROUTE_IDS) {
       const entry = SETTINGS_VISUAL_CONTRACTS[route];
       expect(entry.route).toBe(route);

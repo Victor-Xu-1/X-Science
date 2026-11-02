@@ -56,25 +56,41 @@ const receipt = (input: ResourceTagCommand): ResourceTagReceipt => {
           ...state,
           tags: [favorite, { ...tag, name: input.name.trim(), icon_key: input.icon_key, color_key: input.color_key }],
         }
-      : input.kind === 'assignment' && input.assigned
+      : input.kind === 'update'
         ? {
             ...state,
-            assignments: [
+            tags: [
+              favorite,
               {
-                tag_id: input.tag_id,
-                resource_type: input.resource_type,
-                resource_id: input.resource_id,
-                created_at: 2,
+                ...tag,
+                name: input.name,
+                icon_key: input.icon_key,
+                color_key: input.color_key,
+                updated_at: input.expected_updated_at + 1,
               },
             ],
           }
-        : state;
+        : input.kind === 'delete'
+          ? { ...state, tags: [favorite] }
+          : input.kind === 'assignment' && input.assigned
+            ? {
+                ...state,
+                assignments: [
+                  {
+                    tag_id: input.tag_id,
+                    resource_type: input.resource_type,
+                    resource_id: input.resource_id,
+                    created_at: 2,
+                  },
+                ],
+              }
+            : state;
   return decodeResourceTagReceipt(
     {
       schema: 'x-science.resource-tag-receipt.v1',
       operation_id: input.operation_id,
       action: input.kind,
-      tag_id: input.kind === 'create' ? tag.id : 'tag_id' in input ? input.tag_id : undefined,
+      ...(input.kind === 'reorder' ? {} : { tag_id: input.kind === 'create' ? tag.id : input.tag_id }),
       snapshot: changed,
     },
     input
@@ -200,6 +216,189 @@ describe('resource tag stable account queue', () => {
     expect(
       projectResourceTagTarget(snapshot(), [entry(1)], { ...target, resource_id: 'other' }, true).pendingTagIds
     ).toEqual([]);
+  });
+});
+
+describe('resource tag catalog operations use the original durable owner', () => {
+  it('accepts standalone catalog intents while restoring original v1 create-assignment entries', async () => {
+    const create = {
+      kind: 'create',
+      operation_id: op(11),
+      name: 'Review',
+      icon_key: 'book-open',
+      color_key: 'green',
+    } as const;
+    const plain = decodeResourceTagQueueEntry({ ...entry(11), command: create });
+    expect(plain.continuation).toBeNull();
+    const original = decodeResourceTagQueueEntry({
+      ...plain,
+      continuation: { target, operation_id: op(12) },
+    });
+    const queue = createResourceTagMutationQueue({ ownerId: 'owner-a', current: () => true, storage });
+    await queue.append(original);
+    expect(queue.read()?.entries[0]).toEqual(original);
+    for (const command of [
+      {
+        kind: 'update',
+        operation_id: op(13),
+        tag_id: tag.id,
+        expected_updated_at: 2,
+        name: 'Changed',
+        icon_key: 'star',
+        color_key: 'red',
+      },
+      { kind: 'delete', operation_id: op(14), tag_id: tag.id },
+      { kind: 'reorder', operation_id: op(15), tag_ids: [tag.id] },
+    ]) {
+      const decoded = decodeResourceTagQueueEntry({ ...entry(Number(command.operation_id.slice(-2))), command });
+      expect(decoded.command).toEqual(command);
+      expect(Object.isFrozen(decoded.command)).toBe(true);
+      expect(() =>
+        decodeResourceTagQueueEntry({ ...decoded, continuation: { target, operation_id: op(16) } })
+      ).toThrow();
+    }
+  });
+  it('returns the real standalone created ID only after current GET, with chosen presentation fields', async () => {
+    const reads = deferred<ResourceTagSnapshot>();
+    const run = vi.fn(async (input: ResourceTagCommand) => receipt(input));
+    const owner = make({ run, load: () => reads.promise });
+    let done = false;
+    const saved = owner.create({ name: 'Study', icon_key: 'book-open', color_key: 'green' }).then((id) => {
+      done = true;
+      return id;
+    });
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(1));
+    expect(done).toBe(false);
+    expect(run.mock.calls[0][0]).toEqual({
+      kind: 'create',
+      operation_id: op(1),
+      name: 'Study',
+      icon_key: 'book-open',
+      color_key: 'green',
+    });
+    reads.resolve(snapshot());
+    await expect(saved).resolves.toBe(tag.id);
+    expect(values.size).toBe(0);
+  });
+  it('preserves a lost update original CAS and body through explicit recovery, then settles via current GET', async () => {
+    const writes: ResourceTagCommand[] = [];
+    const owner = make({
+      run: async (input) => {
+        writes.push(input);
+        if (writes.length === 1) throw new Error('response lost');
+        return receipt(input);
+      },
+    });
+    await expect(owner.update({ ...tag, name: 'Edited' })).rejects.toThrow('response lost');
+    const frozen = JSON.stringify(writes[0]);
+    await owner.retry();
+    expect(writes).toHaveLength(2);
+    expect(JSON.stringify(writes[1])).toBe(frozen);
+    expect(writes[1]).toMatchObject({ kind: 'update', expected_updated_at: 2, name: 'Edited' });
+    expect(values.size).toBe(0);
+  });
+  it('returns the validated created ID when a caller joins an automatic replay after ACK but before canonical GET', async () => {
+    const original = {
+      kind: 'create',
+      operation_id: op(29),
+      name: 'Study',
+      icon_key: 'book-open',
+      color_key: 'green',
+    } as const;
+    const queue = createResourceTagMutationQueue({ ownerId: 'owner-a', current: () => true, storage });
+    await queue.append(decodeResourceTagQueueEntry({ ...entry(29), command: original }));
+    const reads = deferred<ResourceTagSnapshot>();
+    const run = vi.fn(async (input: ResourceTagCommand) => receipt(input));
+    const load = vi.fn(() => reads.promise);
+    const fresh = make({ run, load });
+    fresh.start();
+    await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+    expect(fresh.getSnapshot().pending[0].phase).toBe('readback');
+    const joined = fresh.catalog(original);
+    reads.resolve(snapshot());
+    await expect(joined).resolves.toBe(tag.id);
+    expect(run).toHaveBeenCalledExactlyOnceWith(original, expect.any(Object));
+    expect(fresh.getSnapshot().snapshot?.tags.some((item) => item.id === tag.id)).toBe(true);
+    expect(values.size).toBe(0);
+  });
+  it('retains the real created ID across a live ACK followed by failed canonical GET', async () => {
+    const original = {
+      kind: 'create',
+      operation_id: op(30),
+      name: 'Study',
+      icon_key: 'book-open',
+      color_key: 'green',
+    } as const;
+    let reads = 0;
+    const run = vi.fn(async (input: ResourceTagCommand) => receipt(input));
+    const owner = make({
+      run,
+      load: async () => {
+        if (++reads === 1) throw new Error('readback lost');
+        return snapshot();
+      },
+    });
+    await expect(owner.catalog(original)).rejects.toThrow('readback lost');
+    expect(owner.getSnapshot().pending[0].phase).toBe('readback');
+    await expect(owner.catalog(original)).resolves.toBe(tag.id);
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(values.size).toBe(0);
+  });
+  it('resumes the same frozen create after lost response and new owner without appending a duplicate group', async () => {
+    const original = {
+      kind: 'create',
+      operation_id: op(31),
+      name: 'Study',
+      icon_key: 'book-open',
+      color_key: 'green',
+    } as const;
+    const before = make({
+      run: async () => {
+        throw new Error('response lost');
+      },
+    });
+    await expect(before.catalog(original)).rejects.toThrow('response lost');
+    before.stop();
+    const run = vi.fn(async (input: ResourceTagCommand) => receipt(input));
+    const after = make({ run });
+    await expect(after.catalog(original)).resolves.toBe(tag.id);
+    expect(run).toHaveBeenCalledExactlyOnceWith(original, expect.any(Object));
+    expect(values.size).toBe(0);
+  });
+  it('rejects edited payload under an original accepted group instead of rebasing its CAS', async () => {
+    const original = {
+      kind: 'update',
+      operation_id: op(32),
+      tag_id: tag.id,
+      expected_updated_at: 2,
+      name: 'Old draft',
+      icon_key: 'tag',
+      color_key: 'blue',
+    } as const;
+    const run = vi.fn(async () => {
+      throw new Error('response lost');
+    });
+    const owner = make({ run });
+    await expect(owner.catalog(original)).rejects.toThrow('response lost');
+    const persisted = [...values.values()];
+    await expect(owner.catalog({ ...original, expected_updated_at: 9, name: 'Rebased' })).rejects.toThrow(
+      'original intent changed'
+    );
+    expect([...values.values()]).toEqual(persisted);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+  it('sends delete and complete custom order through one FIFO without synthesizing assignment work', async () => {
+    const writes: ResourceTagCommand[] = [];
+    const owner = make({
+      run: async (input) => {
+        writes.push(input);
+        return receipt(input);
+      },
+    });
+    await Promise.all([owner.reorder([tag.id]), owner.delete(tag.id)]);
+    expect(writes.map((input) => input.kind)).toEqual(['reorder', 'delete']);
+    expect(writes[0]).toMatchObject({ tag_ids: [tag.id] });
+    expect(values.size).toBe(0);
   });
 });
 

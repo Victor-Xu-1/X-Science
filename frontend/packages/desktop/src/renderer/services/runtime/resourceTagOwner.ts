@@ -3,6 +3,7 @@ import {
   decodeResourceTagCommand,
   decodeResourceTagReceipt,
   decodeResourceTagSnapshot,
+  type ResourceTag,
   type ResourceTagCommand,
   type ResourceTagReceipt,
   type ResourceTagRef,
@@ -21,9 +22,13 @@ import {
   resourceTagDefiniteRejection,
   resourceTagAssignmentEntry,
   resourceTagCreationEntry,
+  resourceTagCatalogEntry,
   type ResourceTagQueueEntry,
   type ResourceTagRejection,
 } from './resourceTagMutationQueue';
+
+export type CustomResourceTag = Extract<ResourceTag, { name: string }>;
+export type ResourceTagFields = Pick<CustomResourceTag, 'name' | 'icon_key' | 'color_key'>;
 
 export type ResourceTagView = Readonly<{
   snapshot: ResourceTagSnapshot | null;
@@ -72,6 +77,7 @@ export class ResourceTagOwner {
   private stopped = false;
   private waiting = new Set<string>();
   private outcomes = new Map<string, Error | null>();
+  private createdIds = new Map<string, string>();
   // Session-only evidence of an exact response; serialized queue phases are never server authority.
   private acknowledged = new Map<string, string>();
   constructor(
@@ -124,6 +130,9 @@ export class ResourceTagOwner {
     for (const [operation, proof] of this.acknowledged) {
       if (!pending.some((entry) => entry.command.operation_id === operation && JSON.stringify(entry) === proof))
         this.acknowledged.delete(operation);
+    }
+    for (const group of this.createdIds.keys()) {
+      if (!this.waiting.has(group) && !pending.some((entry) => entry.group_id === group)) this.createdIds.delete(group);
     }
     this.publish({ pending });
   }
@@ -210,6 +219,7 @@ export class ResourceTagOwner {
       this.sync();
       try {
         const receipt = await this.send(entry.command);
+        if (entry.command.kind === 'create') this.createdIds.set(entry.group_id, receipt.tag_id!);
         if (entry.command.kind === 'create' && entry.continuation) {
           const command = decodeResourceTagCommand({
             kind: 'assignment',
@@ -306,6 +316,7 @@ export class ResourceTagOwner {
   private async verifyElsewhere(entry: ResourceTagQueueEntry) {
     try {
       let receipt = await this.send(entry.command);
+      if (entry.command.kind === 'create') this.createdIds.set(entry.group_id, receipt.tag_id!);
       if (entry.command.kind === 'create' && entry.continuation) {
         receipt = await this.send(
           decodeResourceTagCommand({
@@ -323,14 +334,21 @@ export class ResourceTagOwner {
       throw error;
     }
   }
-  private async accept(entry: ResourceTagQueueEntry) {
+  private async accept(entry: ResourceTagQueueEntry, resume = false) {
     this.requireCurrent();
     this.waiting.add(entry.group_id);
     try {
-      await this.queue.append(entry); // No optimistic checkbox or HTTP before durable acceptance.
+      const accepted = resume ? this.queue.read()?.entries.find((item) => item.group_id === entry.group_id) : undefined;
+      if (accepted) {
+        if (
+          JSON.stringify(accepted.command) !== JSON.stringify(entry.command) ||
+          JSON.stringify(accepted.continuation) !== JSON.stringify(entry.continuation)
+        )
+          throw new Error('Resource tag original intent changed');
+      } else await this.queue.append(entry); // No optimistic checkbox or HTTP before durable acceptance.
       this.sync();
       this.publish({ error: null });
-      await this.drain(false);
+      await this.drain(resume);
       this.requireCurrent();
       if (this.outcomes.has(entry.group_id)) {
         const error = this.outcomes.get(entry.group_id);
@@ -338,21 +356,54 @@ export class ResourceTagOwner {
       } else if (this.queue.read()?.entries.some((item) => item.group_id === entry.group_id)) {
         throw this.view.error ?? new Error('Resource tag recovery is required');
       } else await this.verifyElsewhere(entry);
+      return this.createdIds.get(entry.group_id);
     } catch (error) {
       this.publish({ error: asError(error) });
       throw error;
     } finally {
       this.waiting.delete(entry.group_id);
       this.outcomes.delete(entry.group_id);
+      if (!this.view.pending.some((item) => item.group_id === entry.group_id)) this.createdIds.delete(entry.group_id);
     }
   }
-  assign = async (target: ResourceTagRef, tagId: string, assigned: boolean) =>
-    this.accept(
+  assign = async (target: ResourceTagRef, tagId: string, assigned: boolean) => {
+    await this.accept(
       resourceTagAssignmentEntry(target, tagId, assigned, (this.options.operationId ?? (() => crypto.randomUUID()))())
     );
+  };
+  /** The editor retains one frozen intent across uncertain responses; explicit retry keeps its key and CAS. */
+  catalog = async (command: ResourceTagCommand): Promise<string | undefined> =>
+    this.accept(resourceTagCatalogEntry(command), true);
+  private operationId() {
+    return (this.options.operationId ?? (() => crypto.randomUUID()))();
+  }
+  create = async (fields: ResourceTagFields): Promise<string> => {
+    const tagId = await this.catalog({ kind: 'create', operation_id: this.operationId(), ...fields });
+    if (!tagId) throw new Error('Created resource tag receipt is unavailable');
+    return tagId;
+  };
+  update = async (tag: CustomResourceTag): Promise<void> => {
+    await this.accept(
+      resourceTagCatalogEntry({
+        kind: 'update',
+        operation_id: this.operationId(),
+        tag_id: tag.id,
+        expected_updated_at: tag.updated_at,
+        name: tag.name,
+        icon_key: tag.icon_key,
+        color_key: tag.color_key,
+      })
+    );
+  };
+  delete = async (tagId: string): Promise<void> => {
+    await this.accept(resourceTagCatalogEntry({ kind: 'delete', operation_id: this.operationId(), tag_id: tagId }));
+  };
+  reorder = async (tagIds: readonly string[]): Promise<void> => {
+    await this.accept(resourceTagCatalogEntry({ kind: 'reorder', operation_id: this.operationId(), tag_ids: tagIds }));
+  };
   createAndAssign = async (target: ResourceTagRef, name: string) => {
     const id = this.options.operationId ?? (() => crypto.randomUUID());
-    return this.accept(resourceTagCreationEntry(target, name, id(), id()));
+    await this.accept(resourceTagCreationEntry(target, name, id(), id()));
   };
 }
 const owners = new Map<string, ResourceTagOwner>();
