@@ -4,14 +4,28 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
 
+// Every fixture owns its SQLite connections until its assertions finish.
+// Register after TempDir so Close runs before temporary-directory removal.
+func runtimeStoreFixture(t *testing.T, path string) *Store {
+	t.Helper()
+	store := New(path)
+	t.Cleanup(func() {
+		if err := store.Close(); err != nil {
+			t.Errorf("close runtime Store fixture: %v", err)
+		}
+	})
+	return store
+}
+
 func TestStorePersistsNamespaceEntriesAcrossReloads(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 
 	first, err := store.Set("agent", "last_goal", map[string]any{"status": "running", "step": float64(2)})
 	if err != nil {
@@ -28,7 +42,7 @@ func TestStorePersistsNamespaceEntriesAcrossReloads(t *testing.T) {
 		t.Fatalf("second version = %d", second.Version)
 	}
 
-	reloaded := New(path)
+	reloaded := runtimeStoreFixture(t, path)
 	got, ok, err := reloaded.Get("agent", "last_goal")
 	if err != nil {
 		t.Fatalf("Get() error = %v", err)
@@ -48,12 +62,12 @@ func TestStorePersistsNamespaceEntriesAcrossReloads(t *testing.T) {
 
 func TestStorePersistsOriginalGoalActiveKeys(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 	key := "session:taskrun:run-1:taskrun:run-1"
 	if _, err := store.Set("goal-runs-active", key, "run-1"); err != nil {
 		t.Fatalf("Set(goal active key) error = %v", err)
 	}
-	reloaded := New(path)
+	reloaded := runtimeStoreFixture(t, path)
 	got, ok, err := reloaded.Get("goal-runs-active", key)
 	if err != nil {
 		t.Fatalf("Get(goal active key) error = %v", err)
@@ -65,7 +79,7 @@ func TestStorePersistsOriginalGoalActiveKeys(t *testing.T) {
 
 func TestStoreListsAndDeletesEntriesDeterministically(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 	if _, err := store.Set("agent", "b", "second"); err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +129,7 @@ func TestStoreListsAndDeletesEntriesDeterministically(t *testing.T) {
 }
 
 func TestStoreListReadOnlyReturnsSortedNamespaceSnapshot(t *testing.T) {
-	store := New(filepath.Join(t.TempDir(), "runtime-state.sqlite"))
+	store := runtimeStoreFixture(t, filepath.Join(t.TempDir(), "runtime-state.sqlite"))
 	if _, err := store.Set("audit", "b", map[string]any{"sessionId": "frame-b"}); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +150,7 @@ func TestStoreListReadOnlyReturnsSortedNamespaceSnapshot(t *testing.T) {
 }
 
 func TestStoreRejectsUnsafeNamespaceAndKey(t *testing.T) {
-	store := New(filepath.Join(t.TempDir(), "runtime-state.sqlite"))
+	store := runtimeStoreFixture(t, filepath.Join(t.TempDir(), "runtime-state.sqlite"))
 	for _, testCase := range []struct {
 		namespace string
 		key       string
@@ -156,11 +170,11 @@ func TestStoreRejectsUnsafeNamespaceAndKey(t *testing.T) {
 
 func TestStoreReusesUnchangedFileWithoutReadingItAgain(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	writer := New(path)
+	writer := runtimeStoreFixture(t, path)
 	if _, err := writer.Set("agent", "state", map[string]any{"status": "ready"}); err != nil {
 		t.Fatal(err)
 	}
-	reader := New(path)
+	reader := runtimeStoreFixture(t, path)
 	if _, found, err := reader.Get("agent", "state"); err != nil || !found {
 		t.Fatalf("prime cache found=%t err=%v", found, err)
 	}
@@ -175,8 +189,8 @@ func TestStoreReusesUnchangedFileWithoutReadingItAgain(t *testing.T) {
 
 func TestStoreRefreshesCacheAfterExternalWrite(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	reader := New(path)
-	writer := New(path)
+	reader := runtimeStoreFixture(t, path)
+	writer := runtimeStoreFixture(t, path)
 	if _, err := writer.Set("agent", "state", "one"); err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +208,7 @@ func TestStoreRefreshesCacheAfterExternalWrite(t *testing.T) {
 
 func TestStoreEditNamespacePersistsOneAtomicRewrite(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 	if _, err := store.Set("audit", "large", strings.Repeat("x", 4096)); err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +220,7 @@ func TestStoreEditNamespacePersistsOneAtomicRewrite(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	reloaded := New(path)
+	reloaded := runtimeStoreFixture(t, path)
 	entry, found, err := reloaded.Get("audit", "large")
 	if err != nil || !found {
 		t.Fatalf("rewritten entry found=%t err=%v", found, err)
@@ -219,7 +233,7 @@ func TestStoreEditNamespacePersistsOneAtomicRewrite(t *testing.T) {
 
 func TestStoreEditNamespaceRollsBackNestedValueMutation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 	if _, err := store.Set("audit", "one", map[string]any{"nested": map[string]any{"value": "original"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +252,7 @@ func TestStoreEditNamespaceRollsBackNestedValueMutation(t *testing.T) {
 	if got := entry.Value.(map[string]any)["nested"].(map[string]any)["value"]; got != "original" {
 		t.Fatalf("cached nested value=%v", got)
 	}
-	reopened, found, err := New(path).Get("audit", "one")
+	reopened, found, err := runtimeStoreFixture(t, path).Get("audit", "one")
 	if err != nil || !found {
 		t.Fatalf("reopened entry found=%t err=%v", found, err)
 	}
@@ -249,7 +263,7 @@ func TestStoreEditNamespaceRollsBackNestedValueMutation(t *testing.T) {
 
 func TestStoreUsesSQLiteAndSweepsOnlyClassifiedOrScopedState(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
-	store := New(path)
+	store := runtimeStoreFixture(t, path)
 	old := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	recent := old.Add(10 * 24 * time.Hour)
 	store.now = func() time.Time { return old }
@@ -287,7 +301,12 @@ func TestStoreUsesSQLiteAndSweepsOnlyClassifiedOrScopedState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
-		t.Fatalf("runtime store mode=%v", info.Mode().Perm())
+	// Windows FileMode bits do not express owner ACL permissions. Keep this
+	// exact POSIX permission assertion on the platforms where it is meaningful;
+	// all SQLite/header/persistence/sweep assertions above still run on Windows.
+	if runtime.GOOS != "windows" {
+		if info.Mode().Perm() != 0o600 {
+			t.Fatalf("runtime store mode=%v", info.Mode().Perm())
+		}
 	}
 }

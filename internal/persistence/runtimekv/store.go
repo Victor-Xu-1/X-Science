@@ -42,6 +42,9 @@ func (s *Store) Set(namespace string, key string, value any) (Entry, error) {
 }
 
 func (s *Store) SetContext(ctx context.Context, namespace string, key string, value any) (Entry, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := validateNamespace(namespace); err != nil {
 		return Entry{}, err
 	}
@@ -52,6 +55,9 @@ func (s *Store) SetContext(ctx context.Context, namespace string, key string, va
 		return Entry{}, err
 	}
 	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return Entry{}, err
+	}
 	if err := s.ensureDatabase(); err != nil {
 		return Entry{}, err
 	}
@@ -61,8 +67,7 @@ func (s *Store) SetContext(ctx context.Context, namespace string, key string, va
 	}
 	scope := inferScope(namespace, key, cloned)
 	updatedAt := s.now().UTC()
-	var version int
-	if err := s.db.QueryRowContext(ctx, `
+	query := `
 		INSERT INTO runtime_state_entries(
 			namespace,entry_key,value_json,version,owner_user_id,project_id,root_frame_id,frame_id,updated_at
 		) VALUES(?,?,?,1,?,?,?,?,?)
@@ -74,9 +79,17 @@ func (s *Store) SetContext(ctx context.Context, namespace string, key string, va
 			root_frame_id=excluded.root_frame_id,
 			frame_id=excluded.frame_id,
 			updated_at=excluded.updated_at
-		RETURNING version`,
-		namespace, key, raw, scope.OwnerUserID, scope.ProjectID, scope.RootFrameID, scope.FrameID, updatedAt,
-	).Scan(&version); err != nil {
+		RETURNING version`
+	args := []any{namespace, key, raw, scope.OwnerUserID, scope.ProjectID, scope.RootFrameID, scope.FrameID, updatedAt}
+	var version int
+	if ctx.Done() == nil {
+		err = s.db.QueryRowContext(ctx, query, args...).Scan(&version)
+	} else {
+		err = s.withSQLiteWriterContext(ctx, func(conn *sql.Conn) error {
+			return conn.QueryRowContext(ctx, query, args...).Scan(&version)
+		})
+	}
+	if err != nil {
 		return Entry{}, fmt.Errorf("set runtime state: %w", err)
 	}
 	return Entry{Namespace: namespace, Key: key, Value: cloned, Version: version, UpdatedAt: updatedAt}, nil
@@ -87,6 +100,9 @@ func (s *Store) lockContext(ctx context.Context) error {
 		ctx = context.Background()
 	}
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if s.mu.TryLock() {
 			return nil
 		}
