@@ -336,6 +336,9 @@ func (s *Server) recordSessionRunnerModelAuditRole(sessionID string, attempt int
 	if !record.UsageWarnings.Empty() {
 		value["usageWarnings"] = record.UsageWarnings
 	}
+	if record.ResponseDiagnostics != nil {
+		value["responseDiagnostics"] = record.ResponseDiagnostics
+	}
 	_, _ = s.runtimeStore.Set(sessionRunnerModelAuditRuntimeNamespace, key, value)
 }
 

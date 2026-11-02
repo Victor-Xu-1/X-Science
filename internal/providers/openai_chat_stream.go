@@ -86,7 +86,8 @@ type openAIChatStreamOptions struct {
 }
 
 type openAIChatStreamChunk struct {
-	ID      string `json:"id,omitempty"`
+	Error   json.RawMessage `json:"error,omitempty"`
+	ID      string          `json:"id,omitempty"`
 	Choices []struct {
 		Index        *int   `json:"index,omitempty"`
 		FinishReason string `json:"finish_reason,omitempty"`
@@ -153,6 +154,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	}
 
 	startedAt := time.Now().UTC()
+	observation := &providerResponseObservation{}
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
 	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
 	defer cancelRequest(nil)
@@ -178,7 +180,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		record.FinishedAt = time.Now().UTC()
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		record.Error = c.redactSensitiveText(err.Error())
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, err))
 		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
 	planning.HeadersReceived()
@@ -194,7 +196,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		record.DurationMs = record.FinishedAt.Sub(record.StartedAt).Milliseconds()
 		if readErr != nil {
 			record.Error = c.redactSensitiveText(readErr.Error())
-			c.emitAudit(record)
+			c.emitAudit(observation.audit(record, readErr))
 			return agentruntime.ModelResponse{}, false, false, readErr
 		}
 		record.Error = c.redactSensitiveText(formatHTTPError(response.StatusCode, body))
@@ -202,7 +204,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		if maximum, ok := ProviderOutputTokenMaximum(responseErr); ok {
 			record.ProviderMaxOutputTokens = maximum
 		}
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, responseErr))
 		retryable := providerHTTPStatusRetryable(response.StatusCode, body)
 		if retryable {
 			responseErr = withProviderRetryAfter(responseErr, response.Header, time.Now())
@@ -217,18 +219,19 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		defer idleReader.Stop()
-		decoded, requestID, usage, emitted, err = readOpenAIChatStream(
-			idleReader, c.profile.Request.MaxResponseBytes, emit, request.Tools,
+		decoded, requestID, usage, emitted, err = readObservedOpenAIChatStream(
+			idleReader, c.profile.Request.MaxResponseBytes, emit, observation, request.Tools,
 		)
 	} else {
 		var body []byte
 		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		if err == nil {
-			decoded, requestID, usage, err = c.openAIResponseDecoder(body, response.Header)
+			decoded, requestID, usage, err = c.observedOpenAIResponseDecoder(body, response.Header, observation)
 			if IsContinuationSafeResponseTruncation(err) && strings.TrimSpace(decoded.Message.Content) != "" {
 				if emitErr := emit(agentruntime.ModelStreamEvent{
 					Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: decoded.Message.Content,
 				}); emitErr != nil {
+					observation.consumerFailure = true
 					err = emitErr
 				} else {
 					emitted = true
@@ -255,13 +258,13 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		}
 		err = enrichOutputLimitFailure(err, c.effectiveRequestMaxTokens(request), &record, usage)
 		record.Error = c.redactSensitiveText(err.Error())
-		c.emitAudit(record)
+		c.emitAudit(observation.audit(record, err))
 		retryable := !emitted && ctx.Err() == nil && !IsProviderEmptyResponse(err) &&
 			!errors.Is(err, errProviderResponseTooLarge) &&
 			(!errors.Is(err, errProviderResponseTruncated) || errors.Is(err, errProviderStreamIncomplete))
 		return agentruntime.ModelResponse{}, retryable, emitted, err
 	}
-	c.emitAudit(record)
+	c.emitAudit(observation.audit(record, nil))
 	return c.responseWithUsage(decoded, record, usage), false, emitted, nil
 }
 
@@ -362,15 +365,21 @@ func (reader *openAIChatStreamIdleReader) reset() {
 }
 
 func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, advertised ...[]agentruntime.ToolSchema) (agentruntime.ModelResponse, string, providerTokenUsage, bool, error) {
+	return readObservedOpenAIChatStream(reader, limit, emit, nil, advertised...)
+}
+
+func readObservedOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.ModelStreamEvent) error, observation *providerResponseObservation, advertised ...[]agentruntime.ToolSchema) (response agentruntime.ModelResponse, requestID string, usage providerTokenUsage, emitted bool, err error) {
 	if limit <= 0 {
 		limit = defaultMaxResponseBytes
 	}
 	if emit == nil {
 		emit = func(agentruntime.ModelStreamEvent) error { return nil }
 	}
+	emit = observation.emit(emit)
 	accumulator := openAIChatStreamAccumulator{
 		role: "assistant", toolCalls: map[int]*openAIChatStreamToolCall{}, semanticLimit: limit,
 	}
+	defer func() { observation.finishStream(&accumulator, response, err) }()
 	preambleTools := openAIChatPreambleToolNames(advertised)
 	eventLimit := limit
 	buffered := bufio.NewReader(reader)
@@ -388,15 +397,19 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 			return false, nil
 		}
 		if raw == "[DONE]" {
+			if observation != nil {
+				observation.terminal = true
+			}
 			return true, nil
 		}
 		var chunk openAIChatStreamChunk
 		if err := json.Unmarshal([]byte(raw), &chunk); err != nil {
 			return false, fmt.Errorf("decode OpenAI chat stream event: %w", err)
 		}
+		observation.observeEnvelope(chunk.Error)
 		if requestID := strings.TrimSpace(chunk.ID); requestID != "" {
 			if accumulator.requestID != "" && accumulator.requestID != requestID {
-				return false, errors.New("OpenAI chat stream changed its request identity")
+				return false, observation.protocolError(errors.New("OpenAI chat stream changed its request identity"))
 			}
 			accumulator.requestID = requestID
 		}
@@ -407,21 +420,22 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 			if choice.Index != nil {
 				choiceIndex = *choice.Index
 			} else if len(chunk.Choices) != 1 {
-				return false, errors.New("OpenAI chat stream choice is missing an index")
+				return false, observation.protocolError(errors.New("OpenAI chat stream choice is missing an index"))
 			}
 			if choiceIndex != 0 {
-				return false, errors.New("OpenAI chat stream returned an unexpected choice index")
+				return false, observation.protocolError(errors.New("OpenAI chat stream returned an unexpected choice index"))
 			}
 			if _, exists := choiceIndexes[choiceIndex]; exists {
-				return false, errors.New("OpenAI chat stream repeated a choice index in one event")
+				return false, observation.protocolError(errors.New("OpenAI chat stream repeated a choice index in one event"))
 			}
 			choiceIndexes[choiceIndex] = struct{}{}
 		}
 		for _, choice := range chunk.Choices {
+			observation.observeChoice(choice.FinishReason, len(choice.Delta.ToolCalls) > 0)
 			hasSemanticDelta := strings.TrimSpace(choice.Delta.Role) != "" || choice.Delta.Content != "" ||
 				choice.Delta.ReasoningContent != "" || len(choice.Delta.ToolCalls) != 0
 			if accumulator.finishReason != "" && hasSemanticDelta {
-				return false, errors.New("OpenAI chat stream emitted output after its terminal reason")
+				return false, observation.protocolError(errors.New("OpenAI chat stream emitted output after its terminal reason"))
 			}
 			semanticDeltaBytes := int64(len(choice.Delta.Content) + len(choice.Delta.ReasoningContent))
 			for _, delta := range choice.Delta.ToolCalls {
@@ -454,32 +468,32 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 			firstTerminal := accumulator.finishReason == "" && strings.TrimSpace(choice.FinishReason) != ""
 			if finishReason := strings.ToLower(strings.TrimSpace(choice.FinishReason)); finishReason != "" {
 				if accumulator.finishReason != "" && accumulator.finishReason != finishReason {
-					return false, errors.New("OpenAI chat stream changed its terminal reason")
+					return false, observation.protocolError(errors.New("OpenAI chat stream changed its terminal reason"))
 				}
 				switch finishReason {
 				case "stop", "tool_calls", "function_call", "length", "content_filter":
 					accumulator.finishReason = finishReason
 				default:
-					return false, errors.New("OpenAI chat stream returned an unsupported finish reason")
+					return false, observation.protocolError(errors.New("OpenAI chat stream returned an unsupported finish reason"))
 				}
 			}
 			if role := strings.TrimSpace(choice.Delta.Role); role != "" {
 				if accumulator.roleBound && accumulator.role != role {
-					return false, errors.New("OpenAI chat stream changed its response role")
+					return false, observation.protocolError(errors.New("OpenAI chat stream changed its response role"))
 				}
 				accumulator.role = role
 				accumulator.roleBound = true
 			}
 			for _, delta := range choice.Delta.ToolCalls {
 				if delta.Index == nil {
-					return false, errors.New("OpenAI chat stream function call is missing an index")
+					return false, observation.protocolError(errors.New("OpenAI chat stream function call is missing an index"))
 				}
 				callIndex := *delta.Index
 				if callIndex < 0 {
-					return false, errors.New("OpenAI chat stream function call has a negative index")
+					return false, observation.protocolError(errors.New("OpenAI chat stream function call has a negative index"))
 				}
 				if delta.Type != "" && !strings.EqualFold(strings.TrimSpace(delta.Type), "function") {
-					return false, fmt.Errorf("OpenAI chat stream function call %d has unsupported type", callIndex)
+					return false, observation.protocolError(fmt.Errorf("OpenAI chat stream function call %d has unsupported type", callIndex))
 				}
 				call := accumulator.toolCalls[callIndex]
 				if call == nil {
@@ -491,7 +505,7 @@ func readOpenAIChatStream(reader io.Reader, limit int64, emit func(agentruntime.
 				}
 				if id := strings.TrimSpace(delta.ID); id != "" {
 					if call.ID != "" && call.ID != id {
-						return false, fmt.Errorf("OpenAI chat stream function call %d changed id", callIndex)
+						return false, observation.protocolError(fmt.Errorf("OpenAI chat stream function call %d changed id", callIndex))
 					}
 					call.ID = id
 				}
