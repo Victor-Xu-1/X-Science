@@ -68,6 +68,66 @@ func (s *Server) sanitizeTranscriptWebPublicMessagesForTask(
 	)
 }
 
+// Page provenance is request-local and comes from immutable source events.
+// Message IDs, status labels and model-authored fields never supply this proof.
+func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream transcriptstore.Stream, snapshot transcriptstore.ProjectionSnapshot, records []transcriptstore.TranscriptWebMessageRecord, messages []map[string]any) {
+	preserved := s.transcriptWebExplicitFailureCodes(ctx, stream)
+	canonical := map[int]string{}
+	if len(records) == len(messages) && s.transcriptStore != nil {
+		ranges := make([]transcriptstore.ProjectedAssistantSourceRange, len(records))
+		for index, record := range records {
+			ranges[index] = transcriptstore.ProjectedAssistantSourceRange{FirstPublicationSequence: record.FirstPublicationSequence, LastPublicationSequence: record.LastPublicationSequence}
+		}
+		sources, err := s.transcriptStore.ListProjectedAssistantSources(ctx, stream.OwnerID, snapshot, ranges)
+		if err == nil {
+			for _, source := range sources {
+				index := source.RecordIndex
+				if index < 0 || index >= len(messages) || source.Assistant.RunnerAttempt == nil {
+					continue
+				}
+				message, record := messages[index], records[index]
+				content := mapValue(message["content"])
+				body, text := content["content"].(string)
+				payload, decodeErr := transcriptPayloadObject(source.Assistant.PayloadJSON)
+				identity, identityErr := transcriptAssistantMessageIDFromPayload(payload, stream.SessionID, *source.Assistant.RunnerAttempt)
+				if decodeErr != nil || identityErr != nil || identity == "" || !text || transcriptWebAssistantMessageType(payload) != "text" ||
+					message["type"] != "text" || message["position"] != "left" || message["terminal_status"] != "completed" || message["terminal_superseded"] == true ||
+					record.MessageID != identity || record.ClientMessageID != identity || message["id"] != identity || message["msg_id"] != identity ||
+					source.Assistant.StreamUID != stream.UID || source.Assistant.PublicationSeq < record.FirstPublicationSequence ||
+					source.Assistant.PublicationSeq > record.LastPublicationSequence || source.Terminal.PublicationSeq != record.LastPublicationSequence ||
+					completionAdvisorySHA(body) != completionAdvisorySHA(transcriptPayloadText(payload)) {
+					continue
+				}
+				if provided, present := content["completionAdvisories"]; present {
+					actual := sessionRunnerCompletionAdvisoriesFromPayload(payload, *source.Assistant.RunnerAttempt)
+					materialized := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": body, "completion_advisories": provided}, *source.Assistant.RunnerAttempt)
+					left, _ := json.Marshal(actual)
+					right, _ := json.Marshal(materialized)
+					if actual == nil || materialized == nil || string(left) != string(right) {
+						delete(content, "completionAdvisories")
+					}
+				}
+				canonical[index] = completionAdvisorySHA(body)
+			}
+		}
+	}
+	for index, message := range messages {
+		kind := strings.ToLower(strings.TrimSpace(webString(message["type"])))
+		if kind != "text" && kind != "assistant" && kind != "thinking" {
+			continue
+		}
+		digest, proved := canonical[index]
+		proved = proved && completionAdvisorySHA(webString(mapValue(message["content"])["content"])) == digest
+		sanitizeTranscriptWebPublicMessagePolicy(message, preserved, proved)
+	}
+}
+
+// The canonical body keeps ordinary JSON/Markdown bytes. Private/control
+// source selection remains separate from content and never certifies claims.
+func sessionRunnerCanonicalPublicTextProjection(content string) sessionRunnerPublicTextProjection {
+	return sessionRunnerPrivateThinkProjection(content).withoutCompletionObservationReferences()
+}
+
 func sanitizeTranscriptWebPublicMessagesWithCodes(
 	messages []map[string]any,
 	preservedCodes map[string]struct{},
@@ -84,13 +144,17 @@ func sanitizeTranscriptWebPublicMessagesWithCodes(
 // Rebind optional presentation only from an already valid canonical preimage.
 // This response transaction never changes the stored body or source findings.
 func sanitizeTranscriptWebPublicMessage(message map[string]any, preservedCodes map[string]struct{}) {
+	sanitizeTranscriptWebPublicMessagePolicy(message, preservedCodes, false)
+}
+
+func sanitizeTranscriptWebPublicMessagePolicy(message map[string]any, preservedCodes map[string]struct{}, canonical bool) {
 	content, object := message["content"].(map[string]any)
 	if !object {
 		sanitizeTranscriptWebPublicValue(message["content"], preservedCodes)
 		return
 	}
 	value, present := content["completionAdvisories"]
-	if !present {
+	if !present && !canonical {
 		sanitizeTranscriptWebPublicValue(content, preservedCodes)
 		return
 	}
@@ -100,14 +164,33 @@ func sanitizeTranscriptWebPublicMessage(message map[string]any, preservedCodes m
 	if text && identified {
 		wire = sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": original, "completion_advisories": value}, attempt)
 	}
+	var projection sessionRunnerPublicTextProjection
+	if canonical && text {
+		projection = sessionRunnerCanonicalPublicTextProjection(original)
+	} else {
+		projection = sessionRunnerHistoricalPublicTextProjection(original, preservedCodes)
+	}
 	// Retain the original recursive privacy boundary even for invalid metadata.
 	// In particular an unknown object must not protect nested content/text keys.
-	sanitizeTranscriptWebPublicValue(content, preservedCodes)
+	if canonical && text {
+		metadata := make(map[string]any, len(content)-1)
+		for key, item := range content {
+			if key != "content" {
+				metadata[key] = item
+			}
+		}
+		sanitizeTranscriptWebPublicValue(metadata, preservedCodes)
+		for key, item := range metadata {
+			content[key] = item
+		}
+		content["content"] = projection.text
+	} else {
+		sanitizeTranscriptWebPublicValue(content, preservedCodes)
+	}
 	delete(content, "completionAdvisories")
 	if wire == nil || wire.Spans == nil {
 		return
 	}
-	projection := sessionRunnerHistoricalPublicTextProjection(original, preservedCodes)
 	if projection.text != webString(content["content"]) {
 		return
 	}

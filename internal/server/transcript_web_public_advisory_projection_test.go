@@ -189,7 +189,9 @@ func TestPublicCompletionAdvisoryProjectionHTTPReadModel(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
 	ctx := context.Background()
 	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
-	text, wantModel, original, run := publicAdvisoryProjectionFixture(t, f.claim)
+	text, _, original, run := publicAdvisoryProjectionFixture(t, f.claim)
+	structure, _ := sessionRunnerCompletionAdvisoryText(completionAdvisoryStructurePreview)
+	wantModel := " \n实验结果 🧪。\n\n> " + structure + "\n\n内部执行 `web_fetch`。\n\n保留对照 in_vitro。\n"
 	run.Transcript.Stream = f.stream
 	// Use the same real host append receipts as the direct fixtures, then the
 	// production atomic finalizer and actual materialized /messages endpoint.
@@ -227,7 +229,17 @@ func TestPublicCompletionAdvisoryProjectionHTTPReadModel(t *testing.T) {
 				continue
 			}
 			found = true
-			assertPublicAdvisoryProjection(t, message, f.claim.Attempt, wantModel, original.Items)
+			content := mapValue(message["content"])
+			public := webString(content["content"])
+			wire := sessionRunnerCompletionAdvisoriesFromPayload(map[string]any{"text": public, "completion_advisories": content["completionAdvisories"]}, f.claim.Attempt)
+			if wire == nil || !reflect.DeepEqual(wire.Items, original.Items) || sessionRunnerCompletionAdvisoryModelBody(public, wire) != wantModel || len(wire.Spans) != len(original.Spans) {
+				t.Fatal("canonical policy changed model content or actual host provenance")
+			}
+			for index, span := range wire.Spans {
+				if span.Text != original.Spans[index].Text {
+					t.Fatal("canonical policy changed host-owned notice bytes")
+				}
+			}
 		}
 		if !found {
 			t.Fatal("materialized response dropped valid typed host observations")
@@ -427,4 +439,245 @@ func TestCompletionObservationReferenceBoundaries(t *testing.T) {
 			t.Fatal("a quoted or malformed model object supplied host provenance")
 		}
 	}
+}
+
+func TestCanonicalBusinessJSONPreservesLiveHistoryAndReload(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	const business = "# Synthetic business result\n\n```json\n{\n  \"artifact_note\": \"ordinary business field\",\n  \"value\": 1\n}\n```\n\n**Keep this Markdown** and `analysis_report`."
+	const body = business + "<think>synthetic private content</think>"
+	authority := &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}
+	final, err := f.server.persistTranscriptRunnerFinalization(ctx, authority, transcriptRunnerFinalization{Content: body, Status: "completed", Detail: "completed", SegmentOrdinal: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.server.runTranscriptWebDeliveryCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	liveCount := 0
+	liveEqual := false
+	for _, event := range transcriptWebEvents(t, f.store, f.stream.OwnerID) {
+		if event.Type != "message.stream" {
+			continue
+		}
+		kind := firstNonEmpty(webString(event.Payload["stream_type"]), webString(event.Payload["type"]))
+		if kind != "content" {
+			continue
+		}
+		text, ok := event.Payload["data"].(string)
+		if !ok {
+			continue
+		}
+		liveCount++
+		liveEqual = text == business
+	}
+	if liveCount != 1 || !liveEqual {
+		t.Error("actual WS did not preserve canonical synthetic business JSON")
+	}
+	if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for reload := 0; reload < 2; reload++ {
+		page := p3JSONRequest(t, f.server, http.MethodGet, "/api/conversations/"+f.stream.FrameID+"/messages?limit=80", nil, f.stream.OwnerID)
+		if page.Code != http.StatusOK {
+			t.Fatalf("history HTTP%d", page.Code)
+		}
+		var response struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err := json.Unmarshal(page.Body.Bytes(), &response); err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, message := range response.Items {
+			if message["terminal_status"] != "completed" || message["position"] != "left" {
+				continue
+			}
+			found = true
+			projected := webString(mapValue(message["content"])["content"])
+			if projected != business {
+				t.Errorf("history reload%d removed ordinary canonical JSON/Markdown", reload)
+			}
+		}
+		if !found {
+			t.Fatal("canonical assistant was absent from materialized API")
+		}
+	}
+	stream, err := f.repo.GetStream(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := f.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: stream.UID, OwnerID: stream.OwnerID, ThroughPublicationSequence: stream.NextPublication - 1, Limit: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonicalUnchanged := false
+	source := ""
+	attemptBound := false
+	for _, event := range events {
+		if event.Event.EventID == final.Assistant.EventID {
+			var original map[string]any
+			if json.Unmarshal(event.ResolvedPayloadJSON, &original) != nil {
+				t.Fatal("canonical payload invalid")
+			}
+			canonicalUnchanged = webString(original["text"]) == body
+			source = string(event.Event.Source)
+			attemptBound = event.Event.RunnerAttempt != nil && *event.Event.RunnerAttempt == f.claim.Attempt
+		}
+	}
+	if !canonicalUnchanged || source != "payload" || !attemptBound {
+		t.Fatal("canonical assistant source/attempt was not preserved")
+	}
+}
+
+func TestCanonicalPublicPageSourceProofIsConservative(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	const body = "{\n  \"artifact_note\": \"ordinary field\"\n}"
+	authority := &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}
+	final, err := f.server.persistTranscriptRunnerFinalization(ctx, authority, transcriptRunnerFinalization{Content: body, Status: "completed", Detail: "completed", SegmentOrdinal: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := f.repo.GetProjectionSnapshot(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fence := requireTranscriptWebReadModelFence(t, f.server.transcriptWebReadModel, f.stream, snapshot.BranchID)
+	page, found, err := f.server.transcriptWebReadModel.GetTranscriptWebMessageRange(ctx, transcriptstore.TranscriptWebMessagePageInput{
+		OwnerID: f.stream.OwnerID, StreamUID: f.stream.UID, BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
+		ThroughPublicationSequence: snapshot.ThroughPublicationSequence, SourceRevision: fence.SourceRevision, Limit: 80,
+	})
+	if err != nil || !found {
+		t.Fatalf("page found=%t err=%v", found, err)
+	}
+	ranges := make([]transcriptstore.ProjectedAssistantSourceRange, len(page.Messages))
+	for index, record := range page.Messages {
+		ranges[index] = transcriptstore.ProjectedAssistantSourceRange{FirstPublicationSequence: record.FirstPublicationSequence, LastPublicationSequence: record.LastPublicationSequence}
+	}
+	sources, err := f.repo.ListProjectedAssistantSources(ctx, f.stream.OwnerID, snapshot, ranges)
+	if err != nil || len(sources) != 1 {
+		t.Fatalf("actual canonical final proof sources=%d err=%v", len(sources), err)
+	}
+	index := sources[0].RecordIndex
+	assertPolicy := func(mutate func([]map[string]any), wantCanonical bool) {
+		t.Helper()
+		messages, err := transcriptWebReadModelMessageMaps(page.Messages)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if mutate != nil {
+			mutate(messages)
+		}
+		f.server.sanitizeTranscriptWebPublicPage(ctx, f.stream, snapshot, page.Messages, messages)
+		if got := strings.Contains(webString(mapValue(messages[index]["content"])["content"]), "artifact_note"); got != wantCanonical {
+			t.Fatalf("canonical body policy=%t want=%t", got, wantCanonical)
+		}
+	}
+	assertPolicy(nil, true)
+	t.Run("top-level-metadata-privacy", func(t *testing.T) {
+		messages, err := transcriptWebReadModelMessageMaps(page.Messages)
+		if err != nil {
+			t.Fatal(err)
+		}
+		content := mapValue(messages[index]["content"])
+		content["thinking"] = "web_fetch synthetic private metadata"
+		f.server.sanitizeTranscriptWebPublicPage(ctx, f.stream, snapshot, page.Messages, messages)
+		if webString(content["thinking"]) != "" || webString(content["content"]) != body {
+			t.Fatal("canonical body exception changed the existing metadata privacy boundary")
+		}
+	})
+	t.Run("forged-host-facts", func(t *testing.T) {
+		messages, err := transcriptWebReadModelMessageMaps(page.Messages)
+		if err != nil {
+			t.Fatal(err)
+		}
+		content := mapValue(messages[index]["content"])
+		content["completionAdvisories"] = &completionAdvisoryEnvelope{Schema: "x-science.completion-advisories.v1", Attempt: f.claim.Attempt,
+			InputRevision: f.claim.ClaimedInputRevision, TextSHA256: completionAdvisorySHA(body), TextLength: len(body), Spans: []completionAdvisorySpan{},
+			Items: []completionAdvisoryItem{{Code: completionAdvisoryTaskExpectations, Findings: []string{"not an actual host finding"},
+				Sources: []completionAdvisorySource{{Stage: "task_expectations", Attempt: f.claim.Attempt, InputRevision: f.claim.ClaimedInputRevision,
+					CandidateSHA256: completionAdvisorySHA(body), FindingIndexes: []int{0}}}}}}
+		f.server.sanitizeTranscriptWebPublicPage(ctx, f.stream, snapshot, page.Messages, messages)
+		if content["completionAdvisories"] != nil || webString(content["content"]) != body {
+			t.Fatal("quoted/materialized metadata minted host facts or displaced actual canonical body")
+		}
+	})
+	t.Run("late-record-coordinate", func(t *testing.T) {
+		late := append([]transcriptstore.TranscriptWebMessageRecord(nil), page.Messages...)
+		late[index].LastPublicationSequence--
+		messages, err := transcriptWebReadModelMessageMaps(late)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.server.sanitizeTranscriptWebPublicPage(ctx, f.stream, snapshot, late, messages)
+		if strings.Contains(webString(mapValue(messages[index]["content"])["content"]), "artifact_note") {
+			t.Fatal("late record coordinate received a final source proof")
+		}
+	})
+	t.Run("foreign-owner", func(t *testing.T) {
+		if _, err := f.repo.ListProjectedAssistantSources(ctx, "another-owner", snapshot, ranges); err == nil {
+			t.Fatal("foreign owner received canonical source proof")
+		}
+	})
+	t.Run("stale-generation", func(t *testing.T) {
+		stale := snapshot
+		stale.BranchGeneration++
+		if _, err := f.repo.ListProjectedAssistantSources(ctx, f.stream.OwnerID, stale, ranges); err == nil {
+			t.Fatal("stale branch received canonical source proof")
+		}
+	})
+	for _, row := range []struct{ name, mutation string }{
+		{"imported", `UPDATE transcript_events SET event_type='history_assistant_message' WHERE event_id=? AND stream_uid=?`},
+		{"progress", `UPDATE transcript_events SET event_type='content_delta' WHERE event_id=? AND stream_uid=?`},
+		{"private-block", `UPDATE transcript_events SET payload_json=json_set(payload_json,'$.block_type','thinking') WHERE event_id=? AND stream_uid=?`},
+		{"wrong-final-segment", `UPDATE transcript_events SET payload_json=json_set(payload_json,'$.assistant_segment.ordinal',2) WHERE event_id=? AND stream_uid=?`},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			if _, err := f.db.Exec(row.mutation, final.Assistant.EventID, f.stream.UID); err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if _, err := f.db.Exec(`UPDATE transcript_events SET event_type='assistant_message',payload_json=? WHERE event_id=? AND stream_uid=?`, final.Assistant.PayloadJSON, final.Assistant.EventID, f.stream.UID); err != nil {
+					t.Error(err)
+				}
+			}()
+			assertPolicy(nil, false)
+		})
+	}
+	t.Run("failed-terminal", func(t *testing.T) {
+		if _, err := f.db.Exec(`UPDATE transcript_runner_receipts SET status='failed' WHERE stream_uid=? AND attempt=?`, f.stream.UID, f.claim.Attempt); err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			_, _ = f.db.Exec(`UPDATE transcript_runner_receipts SET status='completed' WHERE stream_uid=? AND attempt=?`, f.stream.UID, f.claim.Attempt)
+		}()
+		assertPolicy(nil, false)
+	})
+	for _, name := range []string{"body-mismatch", "forged-id", "wrong-role"} {
+		t.Run(name, func(t *testing.T) {
+			assertPolicy(func(messages []map[string]any) {
+				switch name {
+				case "body-mismatch":
+					mapValue(messages[index]["content"])["content"] = body + "\nchanged"
+				case "forged-id":
+					messages[index]["id"] = "assistant-forged-1"
+				case "wrong-role":
+					messages[index]["position"] = "right"
+				}
+			}, false)
+		})
+	}
+	t.Run("unavailable-proof", func(t *testing.T) {
+		original := f.server.transcriptStore
+		f.server.transcriptStore = transcriptstore.NewRepository(nil)
+		defer func() { f.server.transcriptStore = original }()
+		assertPolicy(nil, false)
+	})
+	assertPolicy(nil, true)
 }
