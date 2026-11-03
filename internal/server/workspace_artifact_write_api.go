@@ -86,9 +86,10 @@ func (s *Server) handleArtifactTextVersionCompatibility(w http.ResponseWriter, r
 		ArtifactID: artifact.ID, ProjectID: artifact.ProjectID, Name: artifact.Name,
 		ContentType: resolvedType, Content: strings.NewReader(content),
 		MaxBytes: v11ArtifactTextLimit, ParentVersionID: parentID,
-		ExpectedHeadVersionID:         expectedHead,
-		FreshUserEditMappings:         true,
-		CarryAnnotationsFromTargetKey: "av:" + firstNonEmpty(parentID, current.ID),
+		ExpectedHeadVersionID:             expectedHead,
+		RequireExpectedHeadForNewMutation: true,
+		FreshUserEditMappings:             true,
+		CarryAnnotationsFromTargetKey:     "av:" + firstNonEmpty(parentID, current.ID),
 	}, userID)
 	if err != nil {
 		writeArtifactWriteStoreError(w, err)
@@ -341,6 +342,12 @@ func firstArtifactQueryValue(values []string) string {
 }
 
 func writeArtifactWriteStoreError(w http.ResponseWriter, err error) {
+	if errors.Is(err, workspace.ErrArtifactExpectedHeadRequired) {
+		writeJSON(w, http.StatusPreconditionRequired, map[string]any{
+			"code": "ARTIFACT_HEAD_REQUIRED", "detail": "Update the app before saving safely. The draft was not published.",
+		})
+		return
+	}
 	var conflict *workspace.ArtifactHeadConflictError
 	if errors.As(err, &conflict) {
 		writeJSON(w, http.StatusConflict, map[string]any{

@@ -22,32 +22,35 @@ import (
 // WriteArtifactVersionInput models the v1.1 user-edit path. Content is staged
 // before the SQLite transaction and removed unless the metadata commit succeeds.
 type WriteArtifactVersionInput struct {
-	ArtifactID                    string
-	ProjectID                     string
-	Name                          string
-	ContentType                   string
-	Content                       io.Reader
-	CreatedBy                     string
-	MaxBytes                      int64
-	ParentVersionID               string
-	ExpectedHeadVersionID         *string
-	ProvenanceSourceID            string
-	FreshUserEditMappings         bool
-	Interactions                  []map[string]any
-	CarryCellSources              bool
-	BranchSourceArtifactID        string
-	IsBranchMint                  bool
-	RootFrameID                   string
-	FrameID                       string
-	IsUserUpload                  bool
-	ReadSourceProjectID           string
-	CarryAnnotationsFromTargetKey string
-	TranscriptAssociation         *ArtifactTranscriptAssociation
-	Language                      string
-	Environment                   string
-	IsIntermediate                bool
-	IsCheckpoint                  bool
-	ExecutionLogIDs               []string
+	ArtifactID            string
+	ProjectID             string
+	Name                  string
+	ContentType           string
+	Content               io.Reader
+	CreatedBy             string
+	MaxBytes              int64
+	ParentVersionID       string
+	ExpectedHeadVersionID *string
+	// Server policy for a manual mutation, never a request/hash member. Legacy
+	// committed results must remain replayable before applying this policy.
+	RequireExpectedHeadForNewMutation bool
+	ProvenanceSourceID                string
+	FreshUserEditMappings             bool
+	Interactions                      []map[string]any
+	CarryCellSources                  bool
+	BranchSourceArtifactID            string
+	IsBranchMint                      bool
+	RootFrameID                       string
+	FrameID                           string
+	IsUserUpload                      bool
+	ReadSourceProjectID               string
+	CarryAnnotationsFromTargetKey     string
+	TranscriptAssociation             *ArtifactTranscriptAssociation
+	Language                          string
+	Environment                       string
+	IsIntermediate                    bool
+	IsCheckpoint                      bool
+	ExecutionLogIDs                   []string
 }
 
 // ArtifactContentTooLargeError reports a bounded artifact staging rejection.

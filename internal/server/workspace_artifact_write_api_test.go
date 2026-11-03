@@ -15,7 +15,7 @@ import (
 
 func TestArtifactTextVersionCompatibilityWritesCurrentVersionAndFreshProvenance(t *testing.T) {
 	fixture := newArtifactReadFixture(t)
-	body := strings.NewReader(`{"content":"third","content_type":"text/plain","parent_version_id":"` + fixture.firstVersionID + `"}`)
+	body := strings.NewReader(`{"content":"third","content_type":"text/plain","parent_version_id":"` + fixture.firstVersionID + `","expected_head_version_id":"` + fixture.secondVersionID + `"}`)
 	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+fixture.artifactID+"/versions", body)
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Science-User-Id", "owner-a")
@@ -83,7 +83,7 @@ func TestArtifactTextVersionCompatibilityCarriesRealSQLiteAnnotations(t *testing
 	mux := http.NewServeMux()
 	server.registerWorkspaceArtifactReadCompatibilityRoutes(mux)
 	request := newLoopbackTestRequest(http.MethodPost, "/api/artifacts/"+artifact.ID+"/versions",
-		strings.NewReader("{\"content\":\"second\",\"parent_version_id\":\""+first.ID+"\"}"))
+		strings.NewReader("{\"content\":\"second\",\"parent_version_id\":\""+first.ID+"\",\"expected_head_version_id\":\""+first.ID+"\"}"))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Science-User-Id", "owner-a")
 	response := httptest.NewRecorder()
@@ -208,7 +208,7 @@ func TestArtifactVersionCompatibilityUsesLocalDefaultAndV11ValidationOrder(t *te
 	if _, err := store.CreateProject(workspace.CreateProjectInput{ID: "local-project", UserID: "local", Name: "Local"}); err != nil {
 		t.Fatal(err)
 	}
-	artifact, _, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
+	artifact, first, err := store.SaveArtifactVersion(workspace.SaveArtifactVersionInput{
 		ArtifactID: "local-artifact", ProjectID: "local-project", Name: "notes.txt", Kind: "text/plain", Content: []byte("first"),
 	})
 	if err != nil {
@@ -217,7 +217,7 @@ func TestArtifactVersionCompatibilityUsesLocalDefaultAndV11ValidationOrder(t *te
 	app := New(Options{Workspace: store}).Handler()
 
 	request := httptest.NewRequest(http.MethodPost, "/api/artifacts/"+artifact.ID+"/versions",
-		strings.NewReader(`{"content":"second"}`))
+		strings.NewReader(`{"content":"second","expected_head_version_id":"`+first.ID+`"}`))
 	request.RemoteAddr = "127.0.0.1:12345"
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
