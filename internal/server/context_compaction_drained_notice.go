@@ -33,6 +33,11 @@ func (s *Server) publishContextCompactionDrainedRun(run *activeSessionRun) {
 		}
 		return
 	}
+	if receipt.State == "committed" {
+		// The uncancelled original cleanup can recover a committed result whose
+		// earlier response was uncertain. Hint before notification I/O.
+		s.signalContextCompactionArchiveRecovery(receipt)
+	}
 	_, err = s.publishCompatEventContext(ctx, workspace.RealtimeEventInput{
 		ID:     "context-compaction-drained:" + request.RequestID + ":" + strconv.FormatInt(receipt.TerminalEventID, 10),
 		UserID: claim.OwnerID, ProjectID: authority.Stream.ProjectID,

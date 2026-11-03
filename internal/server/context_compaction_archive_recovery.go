@@ -6,6 +6,7 @@ import (
 	"log"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -26,8 +27,23 @@ type contextCompactionArchiveRecovery struct {
 		stream string
 		event  int64
 	}
-	kind int
-	next time.Time
+	kind    int
+	next    time.Time
+	pending bool
+	hint    atomic.Uint64
+	seen    uint64
+}
+
+// A proved commit only dirties the existing coordinator. It never supplies
+// archive authority; every write still requires the canonical source proof.
+func (s *Server) signalContextCompactionArchiveRecovery(receipt transcriptstore.ContextCompactionReceipt) {
+	if s == nil {
+		return
+	}
+	if receipt.Accepted && receipt.State == "committed" && receipt.BoundaryEventID > 0 && receipt.TerminalEventID > 0 {
+		s.contextCompactionArchives.hint.Add(1)
+	}
+	s.signalTranscriptWebDelivery()
 }
 
 // One background slice runs after realtime delivery. A missing projection never
@@ -38,15 +54,21 @@ func (s *Server) repairContextCompactionArchivePass(parent context.Context, now 
 	}
 	state := &s.contextCompactionArchives
 	if !state.TryLock() {
-		return contextCompactionArchivePace
+		// The original slice owns its own follow-up. A competing observation
+		// cannot invent pending work or an otherwise idle coordinator timer.
+		return 0
 	}
 	defer state.Unlock()
 	if now.Before(state.next) {
-		return state.next.Sub(now)
+		if state.pending || state.hint.Load() != state.seen {
+			return state.next.Sub(now)
+		}
+		return 0
 	}
 	// An empty scan does not arm an idle timer. A subsequent real wake inside
 	// this cooldown returns its due delay above, so a new commit is not lost.
 	state.next = now.Add(contextCompactionArchivePace)
+	generation := state.hint.Load()
 	ctx, cancel := context.WithTimeout(parent, contextCompactionArchiveSlice)
 	defer cancel()
 	var work *transcriptstore.ContextCompactionArchiveWork
@@ -67,8 +89,15 @@ func (s *Server) repairContextCompactionArchivePass(parent context.Context, now 
 		}
 	}
 	if err == nil && work == nil {
+		state.pending, state.seen = false, generation
+		// A commit concurrent with this read must retain its newer dirty hint,
+		// even if the read's snapshot did not contain the new boundary yet.
+		if state.hint.Load() != generation {
+			return contextCompactionArchivePace
+		}
 		return 0
 	}
+	state.pending, state.seen = true, generation
 	if err == nil {
 		receipt, readErr := s.transcriptStore.ReadContextCompaction(ctx, work.OwnerID, work.FrameID, work.Request)
 		err = readErr

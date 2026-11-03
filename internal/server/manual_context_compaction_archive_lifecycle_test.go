@@ -62,9 +62,13 @@ func TestManualContextCompactionArchiveIdleWakeAndCancellation(t *testing.T) {
 	if delay := f.server.repairContextCompactionArchivePass(context.Background(), now); delay != 0 {
 		t.Fatalf("empty scan armed an idle timer: %v", delay)
 	}
+	if delay := f.server.repairContextCompactionArchivePass(context.Background(), now.Add(100*time.Millisecond)); delay != 0 {
+		t.Fatalf("unrelated wake inside idle cooldown invented pending work: %v", delay)
+	}
 	appendManualCompactionInputForTest(t, f)
 	claimSkillControlInput(t, f)
 	receipt := finishManualCompactionForTest(t, f)
+	f.server.signalContextCompactionArchiveRecovery(receipt)
 	if delay := f.server.repairContextCompactionArchivePass(context.Background(), now.Add(100*time.Millisecond)); delay != 900*time.Millisecond {
 		t.Fatalf("a commit wake inside idle cooldown was lost or spun: %v", delay)
 	}
