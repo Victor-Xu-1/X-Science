@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9a27bb10cc02d617f1b9ae5b34fb206bebf49b494d21f5d6ce833bd098fa9fab",
+  "adaptationFingerprintSHA256": "4fdee0ab637f3ef4337e57dd481cc6dd34edbdb2bb5e94b978d89e9d6390d367",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "76a99d587203a49bd94fb8200c4f1e461bb012141f63e649b5a99be575edbff5",
+  "additionFingerprintSHA256": "6e610a9bbe9566524b6bb0b1a035987d0592de9868c6daa50bb5964b7fb013cf",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "e97e135b186cb504a44be925ac8f4b69a5a45ee1395293574c52113ce4be50eb",
+      "targetSHA256": "6dedc3e3b06a506d6d5686be861afd1a31cdd922fa8433fd79fc7c7fa0325c55",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "b009b4b67ceb925aa6b02c4ceda8b717ebf84f3bdd47ded57c7dd023f051fb53",
+      "targetSHA256": "371962fb8adf409a60d2ac9f404effa1ff9a7c4443a9ef2d4d58d2dd45d8ada3",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1963,8 +1963,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/components/XScienceArtifactLibrary.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Workspace/components/SynonBiomedArtifactLibrary.tsx",
       "sourceSHA256": "a424a90101d4b397ddbc360ebd1949081bcbad053c522d98856fbbd264a8bff2",
-      "targetSHA256": "f59f32c2cf2e39b8c35e158fc9d635d140f4312291be3a38840e32f34c1df7dc",
-      "bytes": 17570,
+      "targetSHA256": "277b367c85e170b15d692f91379d61b4dd58d1b5ced49e65d5c60750e1293c53",
+      "bytes": 17535,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2033,8 +2033,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/workspace.css",
       "sourceSHA256": "ee3a3913dab05a0e036516cfcd3ff9a92f3c180ec29538380c97d9b70dd09350",
-      "targetSHA256": "a874a6cc1441ed4def4d6fdd2d65c950fa6ace86e68c9ec44ab7f9e3ba295427",
-      "bytes": 8182,
+      "targetSHA256": "0d2951652b12844dac93177ee13b9225c5adc8b6b690b8bcd5ba33f1454b4708",
+      "bytes": 7972,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "7bfd0dad59ce4b02056ba8531f89b4cb2dc537fb9d98385f84b7a93346ccdc41",
+      "sha256": "b8699d9a041fe9be52319fce8a80b0f6df98749d656e9098bdcceeb047a3efc3",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -15559,8 +15559,8 @@
     },
     {
       "path": "tests/unit/workspace/artifactLibraryVisualContract.test.ts",
-      "sha256": "568771587192fa25c4593b9690482672a5b143f42517c432111c5fc53ab67b5b",
-      "bytes": 1094,
+      "sha256": "4c5cbab4d3a8422048a634c1dcc6db251b04935c1a09ceb491a9e4fddf53c6d4",
+      "bytes": 776,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

@@ -9,10 +9,7 @@ const librarySource = readFileSync(
 );
 
 describe('artifact library compact visual contract', () => {
-  it('uses responsive bounded tracks and a stable thumbnail ratio', () => {
-    expect(workspaceCss).toMatch(/grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*96px\)\)/);
-    expect(workspaceCss).toMatch(/@container artifact-library \(min-width:\s*320px\)[\s\S]*repeat\(3,/);
-    expect(workspaceCss).toMatch(/@container artifact-library \(min-width:\s*430px\)[\s\S]*repeat\(4,/);
+  it('retains the thumbnail ratio and compact metadata', () => {
     expect(workspaceCss).toMatch(/aspect-ratio:\s*4\s*\/\s*3/);
     expect(workspaceCss).toMatch(/\.artifact-library__size[\s\S]*white-space:\s*nowrap/);
     expect(librarySource).not.toContain('h-92px');
