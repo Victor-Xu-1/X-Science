@@ -94,13 +94,11 @@ export function buildComposerPlusEntries({
           ? 'conversation.attachMenu.saveAsSkillTaskLabel'
           : 'conversation.attachMenu.saveAsSkill'
       ),
-      description: t(
-        actions.saveAsSkillInFlight
-          ? 'conversation.attachMenu.saveAsSkillTaskRunning'
-          : actions.saveAsSkillDisabled
-            ? 'conversation.attachMenu.saveAsSkillBusyDescription'
-            : 'conversation.attachMenu.saveAsSkillDescription'
-      ),
+      description: actions.saveAsSkillInFlight
+        ? t('conversation.attachMenu.saveAsSkillTaskRunning')
+        : actions.saveAsSkillDisabled
+          ? t('conversation.attachMenu.saveAsSkillBusyDescription')
+          : undefined,
       busy: actions.saveAsSkillInFlight,
       disabled: actions.saveAsSkillDisabled,
       keepDisabledFocusable: true,

@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "bf8ef8908ff945947a0710ec77b535aaef308cc4d16a2793c346c2233a0d075f",
+  "adaptationFingerprintSHA256": "5376bddba373dbce20d64138715fdfa37d9ce7d0c808637582a01773b6c4fa97",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "082800e3db73b2fc2671944803fbcf6f9dbfa61ff4989fb233615c1d34328106",
+  "additionFingerprintSHA256": "b14d3632dafce51e1f5f12adbdf908e4642d9c3ff6441b826d80c1a0eb9b0e33",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "627343f6bbb5dae9d08b79537f30efbbeb47da32be85ad66a8a263b189f392aa",
+      "targetSHA256": "fc3e8e5f00db7ce2e04a7e28517acaf9f162433e7d9e6d15b24a812036e6c675",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "4d45f906de51edfe279d49f496f961982e84d2aba3cdadfcd2cd792a031a4fdb",
+      "targetSHA256": "85673a392e0bbd68de8436161e3b9f9b2e33fe90d7f16adca8fb9d7ca02bb2d9",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "4a27eb00ef710b683b4ab3d039fadb8e793ceacb8ecc780127c6c03f719f39a4",
+      "sha256": "33283468e81bb5711b5bd27c61aa704254cd8b324a47a126f0defb00747d35fe",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7945,8 +7945,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/MobileActionSheet/composerPlusEntries.tsx",
-      "sha256": "fa1aac260279fff5fe8a1f3b938985347373d25fceafa95ba992ada71237a697",
-      "bytes": 4123,
+      "sha256": "f4844051892f8f956e443a0958df440bb5d8e1850d4ca1e9b760f9c1c37fa783",
+      "bytes": 4063,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
