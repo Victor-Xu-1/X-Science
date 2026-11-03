@@ -94,11 +94,66 @@ class PhaseObservationBoundaryTests(unittest.TestCase):
                  patch.object(scope, "behavior_scope", return_value=([], [], [])), \
                  patch.object(scope.verification_scope, "matched", return_value=[]), \
                  patch.object(scope, "resolve_packages", return_value=(["fixture/phase"], "fixture")), \
+                 patch.object(scope, "planning_inputs", return_value=({}, scope.pr_test_partition.CostProfile())) as planning, \
                  contextlib.redirect_stdout(output), contextlib.redirect_stderr(diagnostics):
                 self.assertEqual(scope.main(), 0)
+            planning.assert_called_once_with(root.resolve(), "a" * 40, "b" * 40)
             self.assertEqual(json.loads(output.getvalue()), scope.pr_test_partition.job_matrix(["fixture/phase"]))
             self.assertEqual(diagnostics.getvalue(), "")
             self.assertFalse((root / "logs").exists())
+
+    def test_matrix_reuses_one_metadata_snapshot_and_active_profile_without_discovery(self):
+        repo = Path(__file__).resolve().parents[2]
+        entry = {"ImportPath": "fixture/workload", "Dir": str(repo / "fixture/group"),
+                 "TestGoFiles": [f"case{i}_test.go" for i in range(257)],
+                 "XTestGoFiles": ["case0_test.go", "external_test.go"]}
+        active = scope.pr_test_partition.CostProfile(status="active")
+        output, diagnostics = io.StringIO(), io.StringIO()
+        argv = ["pr_fast_scope.py", "--repo", str(repo), "--base", "a" * 40,
+                "--head", "b" * 40, "--matrix"]
+        with patch.object(sys, "argv", argv), \
+             patch.object(scope, "changed_paths", return_value=["fixture/group/case0_test.go"]), \
+             patch.object(scope, "behavior_scope", return_value=(["fixture/group/case0_test.go"], [], [])), \
+             patch.object(scope.verification_scope, "matched", return_value=[]), \
+             patch.object(scope, "packages", return_value=[entry]) as metadata, \
+             patch.object(scope.pr_platform_scope, "filename_exclusions", return_value=set()), \
+             patch.object(scope, "planning_inputs", return_value=({}, active)) as planning, \
+             patch.object(scope.pr_test_partition, "job_matrix", wraps=scope.pr_test_partition.job_matrix) as matrix, \
+             patch.object(scope, "discover", side_effect=AssertionError("matrix must not discover tests")), \
+             patch.object(scope, "execute", side_effect=AssertionError("matrix must not execute tests")), \
+             patch.object(scope, "run", side_effect=AssertionError("matrix must not compile")), \
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(diagnostics):
+            self.assertEqual(scope.main(), 0)
+        metadata.assert_called_once_with(repo)
+        planning.assert_called_once_with(repo, "a" * 40, "b" * 40)
+        matrix.assert_called_once_with(["fixture/workload"], test_file_counts={"fixture/workload": 258},
+                                       profile=active)
+        self.assertEqual(json.loads(output.getvalue()),
+                         {"include": [{"index": index, "count": 4} for index in range(4)]})
+        self.assertEqual(diagnostics.getvalue(), "")
+
+    def test_matrix_empty_scope_needs_no_profile_and_invalid_profile_fails_closed(self):
+        repo = Path(__file__).resolve().parents[2]
+        argv = ["pr_fast_scope.py", "--repo", str(repo), "--base", "a" * 40,
+                "--head", "b" * 40, "--matrix"]
+        for selected in ([], ["fixture/workload"]):
+            output, diagnostics = io.StringIO(), io.StringIO()
+            with self.subTest(selected=selected), patch.object(sys, "argv", argv), \
+                 patch.object(scope, "changed_paths", return_value=[]), \
+                 patch.object(scope, "behavior_scope", return_value=([], [], [])), \
+                 patch.object(scope.verification_scope, "matched", return_value=[]), \
+                 patch.object(scope, "resolve_packages", return_value=(selected, "fixture")), \
+                 patch.object(scope, "planning_inputs", side_effect=ValueError("invalid cost profile")) as planning, \
+                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(diagnostics):
+                self.assertEqual(scope.main(), 1 if selected else 0)
+            if selected:
+                planning.assert_called_once()
+                self.assertEqual(output.getvalue(), "")
+                self.assertIn("invalid cost profile", diagnostics.getvalue())
+            else:
+                planning.assert_not_called()
+                self.assertEqual(json.loads(output.getvalue()), scope.pr_test_partition.job_matrix([]))
+                self.assertEqual(diagnostics.getvalue(), "")
 
 
 if __name__ == "__main__":

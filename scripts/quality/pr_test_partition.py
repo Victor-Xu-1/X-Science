@@ -39,8 +39,34 @@ def validate_partition(index: int, count: int) -> None:
         raise ValueError("invalid affected-test partition")
 
 
-def job_matrix(packages: list[str]) -> dict:
+def job_matrix(packages: list[str], *, test_file_counts: dict[str, int] | None = None,
+               profile: CostProfile | None = None) -> dict:
+    """Budget jobs from existing metadata; only discovery decides test coverage.
+
+    Test-file counts are workload hints, not a second test inventory.
+    Unknown metadata preserves the original package-count budget. Profile costs
+    may raise that budget only for selected packages with current test files.
+    """
     count = min(MAX_SHARDS, max(1, len(packages)))
+    if test_file_counts is not None:
+        active = profile if profile is not None and profile.status == "active" else CostProfile()
+        estimated_ms, units = 0, 0
+        for package in sorted(set(packages)):
+            current = test_file_counts.get(package)
+            if package not in test_file_counts:
+                continue
+            if type(current) is not int or current < 0:
+                raise ValueError("invalid current test-file count")
+            # Zero test files still need one compile-only assignment; stale
+            # historical test names must not turn that into parallel test jobs.
+            costs = [cost for (owner, _), cost in active.costs.items() if owner == package] if current else []
+            work = max(current, len(costs))
+            units += max(1, work)
+            estimated_ms += sum(costs) + (work - len(costs)) * active.default_test_ms
+            estimated_ms += max(1, (work + BATCH_SIZE - 1) // BATCH_SIZE) * active.default_batch_ms
+        target_ms = BATCH_SIZE * active.default_test_ms + active.default_batch_ms
+        budget = (estimated_ms + target_ms - 1) // target_ms
+        count = min(MAX_SHARDS, max(count, min(units, budget)))
     return {"include": [{"index": index, "count": count} for index in range(count)]}
 
 

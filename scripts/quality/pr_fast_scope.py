@@ -177,7 +177,8 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
     return sorted(selected | test_only), reason
 
 
-def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tuple[list[str], str]:
+def resolve_packages(repo: Path, base: str, head: str, paths: list[str], *,
+                     test_file_counts: dict[str, int] | None = None) -> tuple[list[str], str]:
     owners = None
     if {"go.mod", "go.sum"}.intersection(paths):
         modules = pr_dependency_scope.changed_modules(repo, base, head)
@@ -185,7 +186,14 @@ def resolve_packages(repo: Path, base: str, head: str, paths: list[str]) -> tupl
             owners = pr_dependency_scope.consumers(packages(repo, dependencies=True), modules) if modules else set()
     entries = packages(repo)
     excluded = pr_platform_scope.filename_exclusions(repo, base, head, paths, entries)
-    return select_packages(repo, paths, entries, owners, filename_exclusions=excluded)
+    selected, reason = select_packages(repo, paths, entries, owners, filename_exclusions=excluded)
+    if test_file_counts is not None:
+        # Reuse this exact Go-list snapshot; do not discover or compile tests
+        # just to choose how many original inventory workers to request.
+        test_file_counts.update({entry["ImportPath"]: len(set(entry.get("TestGoFiles", [])) |
+                                                        set(entry.get("XTestGoFiles", [])))
+                                 for entry in entries if entry["ImportPath"] in selected})
+    return selected, reason
 
 
 def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list[str]]:
@@ -363,10 +371,14 @@ def main() -> int:
                 if result.returncode:
                     return result.returncode
             return 0
+        test_file_counts = {}
         with phases.measure("package_scope"):
-            selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths)
+            matrix_inputs = {"test_file_counts": test_file_counts} if args.matrix else {}
+            selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths, **matrix_inputs)
         if args.matrix:
-            print(json.dumps(pr_test_partition.job_matrix(selected)))
+            _, profile = planning_inputs(repo, args.base, args.head) if selected else ({}, None)
+            print(json.dumps(pr_test_partition.job_matrix(selected, test_file_counts=test_file_counts,
+                                                         profile=profile)))
             return 0
         scope = {"base": args.base, "head": args.head, "changed_paths": paths, "packages": selected,
                  "behavior_paths": behavior_paths, "version_metadata_paths": metadata_paths,
