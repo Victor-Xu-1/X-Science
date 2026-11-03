@@ -407,11 +407,21 @@ export async function fetchContextUsage(
       signal,
     }
   );
-  if (!response.ok)
+  if (!response.ok) {
+    let snapshotConflict = false;
+    if (response.status === 409) {
+      try {
+        const detail: unknown = await response.json();
+        snapshotConflict = isObject(detail) && detail.code === 'context_snapshot_conflict';
+      } catch {
+        // Untyped/legacy conflicts remain conservative identity invalidations.
+      }
+    }
     throw new ContextUsageRequestError(
       `Context usage request failed: ${response.status}`,
-      response.status === 408 || response.status === 429 || response.status >= 500,
-      response.status === 409
+      snapshotConflict || response.status === 408 || response.status === 429 || response.status >= 500,
+      [401, 403, 404].includes(response.status) || (response.status === 409 && !snapshotConflict)
     );
+  }
   return parseContextUsage(await response.json(), conversationId);
 }

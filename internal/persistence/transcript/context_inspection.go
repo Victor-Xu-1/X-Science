@@ -100,6 +100,11 @@ func (r *Repository) ReadContextInspection(ctx context.Context, streamUID, owner
 	defer func() { _, _ = conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK") }()
 	stream, err := getStreamConn(ctx, conn, streamUID, ownerID)
 	if err != nil {
+		// This reader's active-stream/epoch fence is an identity change,
+		// unlike a later admission or receipt content conflict.
+		if errors.Is(err, ErrEventConflict) {
+			return result, ErrBranchStateStale
+		}
 		return result, schemaError(err)
 	}
 	result.Scope, err = contextInspectionScopeConn(ctx, conn, stream)
@@ -129,9 +134,9 @@ func (r *Repository) ReadContextInspection(ctx context.Context, streamUID, owner
 	return result, schemaError(err)
 }
 
-// ValidateContextInspection is the final fence after reading operational usage
-// from runtimekv. A branch, epoch, incarnation or publication change invalidates
-// that composite read; callers retry instead of mixing two histories.
+// ValidateContextInspection fences the identity of an already pinned as-of
+// projection. Ordinary publication progress cannot invalidate that read, but
+// identity changes or a regressed journal watermark must still reject it.
 func (r *Repository) ValidateContextInspection(ctx context.Context, ownerID string, expected ContextInspectionScope) error {
 	if r == nil || r.readDatabase() == nil {
 		return ErrSchemaUnavailable
@@ -147,11 +152,20 @@ func (r *Repository) ValidateContextInspection(ctx context.Context, ownerID stri
 	defer func() { _, _ = conn.ExecContext(context.WithoutCancel(ctx), "ROLLBACK") }()
 	stream, err := getStreamConn(ctx, conn, expected.StreamUID, ownerID)
 	if err != nil {
+		if errors.Is(err, ErrEventConflict) {
+			return ErrBranchStateStale
+		}
 		return err
 	}
 	current, err := contextInspectionScopeConn(ctx, conn, stream)
-	if err == nil && current != expected {
-		return ErrBranchStateStale
+	if err == nil {
+		through := current.ThroughPublicationSequence
+		// Compare every identity field, including future additions, while the
+		// expected read coordinate remains fixed for its original SQL/joins.
+		current.ThroughPublicationSequence = expected.ThroughPublicationSequence
+		if current != expected || expected.ThroughPublicationSequence < 0 || through < expected.ThroughPublicationSequence {
+			return ErrBranchStateStale
+		}
 	}
 	return schemaError(err)
 }

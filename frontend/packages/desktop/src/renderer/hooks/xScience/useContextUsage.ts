@@ -121,7 +121,6 @@ export function useContextUsage(conversationId: string, visible: boolean, active
           setState({
             conversationId,
             status: 'error',
-            refreshState: 'stale',
             inspectionRequest: inspect ? 'error' : undefined,
           });
           return;

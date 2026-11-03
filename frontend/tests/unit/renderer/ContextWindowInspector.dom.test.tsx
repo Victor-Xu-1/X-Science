@@ -104,7 +104,7 @@ const inspection = () => ({
   ],
 });
 
-function MenuHarness({ id = conversationId }: { id?: string }) {
+function MenuHarness({ id = conversationId, active = false }: { id?: string; active?: boolean }) {
   const [sequence, setSequence] = useState(0);
   const opener = useRef<HTMLButtonElement>(null);
   return (
@@ -114,6 +114,7 @@ function MenuHarness({ id = conversationId }: { id?: string }) {
       </button>
       <ContextUsagePanel
         conversationId={id}
+        active={active}
         openRequest={sequence}
         returnFocus={opener.current}
         triggerVisible={false}
@@ -527,6 +528,83 @@ describe('Transcript-bound context inspector', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Retry' })[0]);
     await screen.findAllByTestId('context-inspector-turn-point');
     expect(attempt).toBe(2);
+  });
+
+  it('retains verified Turns and Calls after a same-scope refresh conflict', async () => {
+    let inspectionReads = 0;
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (!String(url).includes('?inspect=1')) return new Response(JSON.stringify({ status: 'unavailable' }));
+      return ++inspectionReads === 1
+        ? new Response(JSON.stringify({ status: 'unavailable', inspection: inspection() }))
+        : new Response(JSON.stringify({ code: 'context_snapshot_conflict', message: 'retry the snapshot read' }), {
+            status: 409,
+          });
+    });
+    const view = await renderWithI18n(<MenuHarness />, 'en-US');
+    await openMenu();
+    expect(await screen.findAllByTestId('context-inspector-turn-point')).toHaveLength(2);
+    view.rerender(<MenuHarness active />);
+    await waitFor(() => expect(inspectionReads).toBe(2));
+    await screen.findAllByRole('button', { name: 'Retry' });
+    expect(screen.getAllByTestId('context-inspector-turn-point')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('tab', { name: 'Calls' }));
+    expect(screen.getAllByText('fixture-model').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Could not load context records')).not.toBeInTheDocument();
+  });
+
+  it('replaces the retained as-of view atomically when a snapshot retry succeeds', async () => {
+    let inspectionReads = 0;
+    const next = inspection();
+    next.scope.throughPublicationSequence++;
+    next.calls[0].id = 'call-next';
+    next.calls[0].model = 'next-model';
+    next.turns[0].callIds = ['call-next'];
+    next.turns[0].outcomes[0].callIds = ['call-next'];
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (!String(url).includes('?inspect=1')) return new Response(JSON.stringify({ status: 'unavailable' }));
+      inspectionReads++;
+      if (inspectionReads === 2)
+        return new Response(JSON.stringify({ code: 'context_snapshot_conflict' }), { status: 409 });
+      return new Response(
+        JSON.stringify({ status: 'unavailable', inspection: inspectionReads === 1 ? inspection() : next })
+      );
+    });
+    const view = await renderWithI18n(<MenuHarness />, 'en-US');
+    await openMenu();
+    expect(await screen.findAllByTestId('context-inspector-turn-point')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('tab', { name: 'Calls' }));
+    expect(screen.getAllByText('fixture-model').length).toBeGreaterThan(0);
+    view.rerender(<MenuHarness active />);
+    await waitFor(() => expect(inspectionReads).toBe(2));
+    expect(screen.getAllByText('fixture-model').length).toBeGreaterThan(0);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Retry' }))[0]);
+    await screen.findAllByText('next-model');
+    expect(screen.queryByText('fixture-model')).not.toBeInTheDocument();
+    expect(screen.queryByText('Retrying update · last record retained')).not.toBeInTheDocument();
+    expect(inspectionReads).toBe(3);
+  });
+
+  it.each([
+    ['typed scope', 409, { code: 'context_scope_changed' }],
+    ['legacy conflict', 409, {}],
+    ['access denial', 403, {}],
+  ])('clears verified evidence on %s invalidation without claiming it was retained', async (_name, status, detail) => {
+    let inspectionReads = 0;
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (!String(url).includes('?inspect=1')) return new Response(JSON.stringify({ status: 'unavailable' }));
+      return ++inspectionReads === 1
+        ? new Response(JSON.stringify({ status: 'unavailable', inspection: inspection() }))
+        : new Response(JSON.stringify(detail), { status: status as number });
+    });
+    const view = await renderWithI18n(<MenuHarness />, 'en-US');
+    await openMenu();
+    expect(await screen.findAllByTestId('context-inspector-turn-point')).toHaveLength(2);
+    view.rerender(<MenuHarness active />);
+    expect(await screen.findByText('Could not load context records')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-inspector-turn-point')).not.toBeInTheDocument();
+    expect(screen.queryByText('Updates paused · last record retained')).not.toBeInTheDocument();
+    expect(screen.queryByText('Retrying update · last record retained')).not.toBeInTheDocument();
+    expect(inspectionReads).toBe(2);
   });
 
   it('has explicit unavailable and empty states rather than converting old flat samples into turns', async () => {
