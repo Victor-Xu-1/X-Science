@@ -8,6 +8,7 @@ import (
 )
 
 var ErrInvalidArtifactExpectedHead = errors.New("expected artifact head version must be a non-empty identity")
+var ErrArtifactExpectedHeadRequired = errors.New("a confirmed artifact head is required for a new manual version")
 
 // ArtifactHeadConflictError reports a stale editor baseline, independently of
 // the selected historical parent used for the new version's lineage.
@@ -23,6 +24,9 @@ func (err *ArtifactHeadConflictError) Error() string {
 
 func requireArtifactExpectedHeadTx(ctx context.Context, tx *sql.Tx, input WriteArtifactVersionInput, currentVersion int) error {
 	if input.ExpectedHeadVersionID == nil {
+		if input.RequireExpectedHeadForNewMutation {
+			return ErrArtifactExpectedHeadRequired
+		}
 		return nil
 	}
 	expected := strings.TrimSpace(*input.ExpectedHeadVersionID)
