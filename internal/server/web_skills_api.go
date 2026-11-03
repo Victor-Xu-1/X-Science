@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -60,7 +61,7 @@ func (s *Server) handleWebSkills(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userID := compatAgentUserID(r)
-	if err := s.syncWebExternalSkills(userID); err != nil {
+	if err := s.syncWebExternalSkills(r.Context(), userID); err != nil {
 		writeV11Detail(w, http.StatusInternalServerError, "failed to load external skills")
 		return
 	}
@@ -151,7 +152,7 @@ func (s *Server) handleWebSkillInfo(w http.ResponseWriter, r *http.Request) {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid skill info request: "+err.Error())
 		return
 	}
-	items, _, err := s.loadGrantedWebSkills(compatAgentUserID(r), input.SkillPath)
+	items, _, err := s.loadGrantedWebSkills(r.Context(), compatAgentUserID(r), input.SkillPath)
 	if err != nil {
 		writeV11Detail(w, webSkillPathStatus(err), err.Error())
 		return
@@ -175,7 +176,7 @@ func (s *Server) handleWebSkillScan(w http.ResponseWriter, r *http.Request) {
 		writeV11Detail(w, http.StatusBadRequest, "Invalid skill scan request: "+err.Error())
 		return
 	}
-	items, _, err := s.loadGrantedWebSkills(compatAgentUserID(r), input.FolderPath)
+	items, _, err := s.loadGrantedWebSkills(r.Context(), compatAgentUserID(r), input.FolderPath)
 	if err != nil {
 		writeV11Detail(w, webSkillPathStatus(err), err.Error())
 		return
@@ -233,7 +234,7 @@ func (s *Server) handleWebSkillDetectExternal(w http.ResponseWriter, r *http.Req
 	}
 	result := make([]map[string]any, 0, len(paths))
 	for _, source := range paths {
-		items, canonical, loadErr := s.loadGrantedWebSkills(userID, source.Path)
+		items, canonical, loadErr := s.loadGrantedWebSkills(r.Context(), userID, source.Path)
 		if loadErr != nil {
 			continue
 		}
@@ -266,7 +267,7 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11Detail(w, http.StatusBadRequest, "external skill path name is required")
 			return
 		}
-		items, canonical, err := s.loadGrantedWebSkills(userID, input.Path)
+		items, canonical, err := s.loadGrantedWebSkills(r.Context(), userID, input.Path)
 		if err != nil {
 			writeV11Detail(w, webSkillPathStatus(err), err.Error())
 			return
@@ -414,7 +415,13 @@ func (s *Server) handleWebBuiltinRule(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, agent.EffectiveSystemPrompt())
 }
 
-func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill, string, error) {
+func (s *Server) loadGrantedWebSkills(ctx context.Context, userID, requested string) ([]skills.Skill, string, error) {
+	if ctx == nil {
+		return nil, "", skills.ErrNilLoadContext
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
 	if s == nil || s.settingsStore == nil {
 		return nil, "", errors.New("settings store is not configured")
 	}
@@ -496,7 +503,10 @@ func (s *Server) loadGrantedWebSkills(userID, requested string) ([]skills.Skill,
 	if err := verifyOpenedGrantedDirectory(directory, grants); err != nil {
 		return nil, "", errWebSkillPathForbidden
 	}
-	loaded := skills.LoadFromRoot(directory, root, runtimeSkillLoadOptions())
+	loaded, err := skills.LoadFromRootContext(ctx, directory, root, runtimeSkillLoadOptions())
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid skill source: %w", err)
+	}
 	if failures := loaded.LoadErrors(); len(failures) > 0 {
 		return nil, "", fmt.Errorf("invalid skill source: %s", failures[0].Err)
 	}
@@ -549,15 +559,40 @@ func webCommonSkillPaths() []webSkillExternalPath {
 	return result
 }
 
-func (s *Server) syncWebExternalSkills(userID string) error {
+func (s *Server) syncWebExternalSkills(ctx context.Context, userID string) error {
+	return s.syncWebExternalSkillsWithLoader(ctx, userID, s.loadGrantedWebSkills)
+}
+
+func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID string, load func(context.Context, string, string) ([]skills.Skill, string, error)) error {
+	if ctx == nil {
+		return skills.ErrNilLoadContext
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	paths, err := s.loadWebSkillExternalPaths(userID)
 	if err != nil {
 		return err
 	}
-	catalogChanged := false
+	loadedSources := make([][]skills.Skill, 0, len(paths))
 	for _, source := range paths {
-		items, _, loadErr := s.loadGrantedWebSkills(userID, source.Path)
-		if loadErr == nil && s.upsertExternalWebSkills(items) {
+		items, _, loadErr := load(ctx, userID, source.Path)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if loadErr != nil {
+			// Keep this source's last known projection; an independent complete
+			// source must not be blocked by another root's failure.
+			continue
+		}
+		loadedSources = append(loadedSources, items)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	catalogChanged := false
+	for _, items := range loadedSources {
+		if s.upsertExternalWebSkills(items) {
 			catalogChanged = true
 		}
 	}

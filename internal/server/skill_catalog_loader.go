@@ -61,6 +61,7 @@ func runtimeSkillLoadOptions() skills.LoadOptions {
 	return skills.LoadOptions{
 		MaxBodyBytes:       maxRuntimeSkillContractBytes,
 		RejectOversizeBody: true,
+		MaxManifestBytes:   maxSkillArchiveBytes,
 	}
 }
 

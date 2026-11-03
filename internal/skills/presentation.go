@@ -2,6 +2,7 @@ package skills
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,22 +33,26 @@ type presentationMetadata struct {
 }
 
 type presentationLoader struct {
+	ctx     context.Context
 	root    *os.Root
 	absRoot string
 	catalog *Catalog
 	byDir   map[string]*presentationCatalog
 }
 
-func newPresentationLoader(root *os.Root, absRoot string, catalog *Catalog) *presentationLoader {
-	return &presentationLoader{root: root, absRoot: absRoot, catalog: catalog, byDir: map[string]*presentationCatalog{}}
+func newPresentationLoader(ctx context.Context, root *os.Root, absRoot string, catalog *Catalog) *presentationLoader {
+	return &presentationLoader{ctx: ctx, root: root, absRoot: absRoot, catalog: catalog, byDir: map[string]*presentationCatalog{}}
 }
 
 func (p *presentationLoader) apply(skill *Skill, relative string) {
 	for dir := filepath.Dir(relative); ; dir = filepath.Dir(dir) {
+		if p.ctx.Err() != nil {
+			return
+		}
 		metadata, checked := p.byDir[dir]
 		if !checked {
 			var err error
-			metadata, err = readPresentationCatalog(p.root, dir)
+			metadata, err = readPresentationCatalog(p.ctx, p.root, dir)
 			if err != nil {
 				p.catalog.AddLoadError(filepath.Join(p.absRoot, dir, presentationFilename), err)
 				// A malformed nearest catalog must not inherit another catalog's
@@ -86,6 +91,9 @@ func (p *presentationLoader) apply(skill *Skill, relative string) {
 
 func (p *presentationLoader) finish() {
 	for _, metadata := range p.byDir {
+		if p.ctx.Err() != nil {
+			return
+		}
 		if metadata == nil {
 			continue
 		}
@@ -97,7 +105,10 @@ func (p *presentationLoader) finish() {
 	}
 }
 
-func readPresentationCatalog(root *os.Root, dir string) (*presentationCatalog, error) {
+func readPresentationCatalog(ctx context.Context, root *os.Root, dir string) (*presentationCatalog, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	path := filepath.Join(dir, presentationFilename)
 	info, err := root.Lstat(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -118,7 +129,10 @@ func readPresentationCatalog(root *os.Root, dir string) (*presentationCatalog, e
 	if err != nil || !os.SameFile(info, openedInfo) {
 		return nil, errors.New("presentation catalog changed while opening")
 	}
-	raw, err := io.ReadAll(io.LimitReader(file, maxPresentationBytes+1))
+	raw, err := io.ReadAll(io.LimitReader(skillContextReader{ctx: ctx, reader: file}, maxPresentationBytes+1))
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	if err != nil || len(raw) > maxPresentationBytes {
 		return nil, errors.New("presentation catalog could not be read within the metadata size limit")
 	}
@@ -175,7 +189,7 @@ func ValidatePresentationSidecar(root *os.Root, relative string) error {
 	if filepath.Base(relative) != presentationFilename {
 		return nil
 	}
-	_, err := readPresentationCatalog(root, filepath.Dir(relative))
+	_, err := readPresentationCatalog(context.Background(), root, filepath.Dir(relative))
 	return err
 }
 
