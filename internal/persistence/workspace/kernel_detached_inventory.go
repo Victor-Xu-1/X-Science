@@ -249,11 +249,11 @@ func (s *Store) ListActiveDetachedKernelInventory(
 		if !found || backend.OwnerUserID != ownerUserID {
 			continue
 		}
-		spec, err := DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON)
+		spec, err := DecodeKernelExecutionSessionDocument(backend.SessionSpecJSON)
 		if err != nil {
 			return nil, ErrKernelExecutionBackendConflict
 		}
-		entry := DetachedKernelInventoryEntry{Backend: backend, SessionSpec: spec}
+		entry := DetachedKernelInventoryEntry{Backend: backend, SessionSpec: spec.KernelExecutionSessionSpecV1}
 		if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM kernel_detached_executions
 			WHERE backend_id=? AND state!='evidence_lost'`, backendID).Scan(&entry.ExecutionCount); err != nil {
 			return nil, err
@@ -276,7 +276,7 @@ func (s *Store) ListActiveDetachedKernelInventory(
 		if !found || execution.BackendID != backendID || execution.BackendGeneration != backend.BackendGeneration {
 			return nil, ErrDetachedKernelExecutionConflict
 		}
-		request, err := DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
+		request, err := ReadDetachedExecutionDocument(execution)
 		if err != nil {
 			return nil, ErrDetachedKernelExecutionConflict
 		}
@@ -288,7 +288,7 @@ func (s *Store) ListActiveDetachedKernelInventory(
 			return nil, ErrDetachedKernelExecutionConflict
 		}
 		entry.Execution = &execution
-		entry.Request = &request
+		entry.Request = &request.KernelDetachedExecutionRequestV1
 		entry.Operation = &operation
 		entries = append(entries, entry)
 	}

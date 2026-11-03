@@ -18,6 +18,7 @@ import (
 	"x-science/internal/kernelcontract/bashsource"
 	"x-science/internal/networkpolicy"
 	"x-science/internal/networktls"
+	"x-science/internal/processsupervisor"
 )
 
 const (
@@ -202,6 +203,8 @@ type ExecutionOutcome struct {
 	// Set only by the host for a proof-bearing request rejected before the
 	// execution acknowledgement. A guest response alone cannot set this bit.
 	ObservationRefused bool
+	// HostResources is populated by a verified executor result, never guest Trace.
+	HostResources *processsupervisor.ExecutionMemoryEvidenceV1
 }
 
 type InterruptResult struct {

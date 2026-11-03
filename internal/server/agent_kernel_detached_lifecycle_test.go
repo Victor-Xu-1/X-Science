@@ -46,7 +46,7 @@ type detachedRecoveryFixture struct {
 	db        *sql.DB
 }
 
-func newDetachedRecoveryFixture(t *testing.T, live bool) detachedRecoveryFixture {
+func newDetachedRecoveryFixture(t *testing.T, live bool, documentVersion ...int) detachedRecoveryFixture {
 	t.Helper()
 	ctx := context.Background()
 	ticks, err := kernelruntime.CurrentProcessStartTicks()
@@ -94,7 +94,12 @@ func newDetachedRecoveryFixture(t *testing.T, live bool) detachedRecoveryFixture
 		t.Fatal(err)
 	}
 	spec := workspace.KernelExecutionSessionSpecV1{Version: 1, KernelID: op.KernelID, OwnerUserID: op.OwnerUserID, ProjectID: op.ProjectID, RootFrameID: op.RootFrameID, RootFrameIncarnationID: op.RootFrameIncarnationID, FrameID: op.FrameID, FrameIncarnationID: op.FrameIncarnationID, AgentName: "OPERON", KernelKind: "operon", Language: "python", Environment: "python", WorkspaceDir: t.TempDir(), Mounts: []workspace.KernelExecutionMountSpecV1{}, ProtectedPaths: []string{}}
-	backend, err := store.CreateKernelExecutionBackend(ctx, workspace.CreateKernelExecutionBackendInput{BackendID: "detached-backend", OwnerUserID: op.OwnerUserID, ProjectID: op.ProjectID, RootFrameID: op.RootFrameID, RootFrameIncarnationID: op.RootFrameIncarnationID, FrameID: op.FrameID, FrameIncarnationID: op.FrameIncarnationID, KernelID: op.KernelID, KernelGeneration: 1, ExecutorInstanceID: "detached-executor", MachineBootID: "test-machine", SocketPath: "/tmp/detached-recovery-test.sock", BackendGeneration: 1, SessionSpec: spec})
+	var backend workspace.KernelExecutionBackend
+	if len(documentVersion) > 0 && documentVersion[0] == 2 {
+		backend = insertV2BackendSnapshot(t, store, db, op, spec)
+	} else {
+		backend, err = store.CreateKernelExecutionBackend(ctx, workspace.CreateKernelExecutionBackendInput{BackendID: "detached-backend", OwnerUserID: op.OwnerUserID, ProjectID: op.ProjectID, RootFrameID: op.RootFrameID, RootFrameIncarnationID: op.RootFrameIncarnationID, FrameID: op.FrameID, FrameIncarnationID: op.FrameIncarnationID, KernelID: op.KernelID, KernelGeneration: 1, ExecutorInstanceID: "detached-executor", MachineBootID: "test-machine", SocketPath: "/tmp/detached-recovery-test.sock", BackendGeneration: 1, SessionSpec: spec})
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,7 +111,17 @@ func newDetachedRecoveryFixture(t *testing.T, live bool) detachedRecoveryFixture
 	if err != nil {
 		t.Fatal(err)
 	}
-	op, execution, err := store.StartDetachedKernelLocalOperation(ctx, workspace.StartDetachedKernelLocalOperationInput{Start: workspace.StartKernelLocalOperationInput{OwnerUserID: "local", OperationID: op.OperationID, ExpectedStateVersion: op.StateVersion, Claim: claimed.Claim, BootID: op.BootID, ExecutionID: "detached-execution"}, BackendID: backend.BackendID, BackendGeneration: 1, ControllerEpoch: lease.Epoch, ControllerToken: lease.Token, Request: workspace.KernelDetachedExecutionRequestV1{Version: 1, OperationID: op.OperationID, ExecutionID: "detached-execution", OwnerUserID: op.OwnerUserID, ProjectID: op.ProjectID, RootFrameID: op.RootFrameID, RootFrameIncarnationID: op.RootFrameIncarnationID, FrameID: op.FrameID, FrameIncarnationID: op.FrameIncarnationID, KernelID: op.KernelID, KernelGeneration: 1, ToolCallID: call.ID, ToolName: "python", Language: "python", KernelKind: "operon", Environment: "python", Code: "print('result')", Background: true, Origin: "agent", OutputLimitBytes: 1024, HostCallMethods: []string{}}})
+	var execution workspace.DetachedKernelExecution
+	start := workspace.StartKernelLocalOperationInput{OwnerUserID: "local", OperationID: op.OperationID, ExpectedStateVersion: op.StateVersion, Claim: claimed.Claim, BootID: op.BootID, ExecutionID: "detached-execution"}
+	if len(documentVersion) > 0 && documentVersion[0] == 2 {
+		op, err = store.StartKernelLocalOperation(ctx, start)
+		if err != nil {
+			t.Fatal(err)
+		}
+		execution = insertV2ExecutionSnapshot(t, store, db, op, backend)
+	} else {
+		op, execution, err = store.StartDetachedKernelLocalOperation(ctx, workspace.StartDetachedKernelLocalOperationInput{Start: start, BackendID: backend.BackendID, BackendGeneration: 1, ControllerEpoch: lease.Epoch, ControllerToken: lease.Token, Request: workspace.KernelDetachedExecutionRequestV1{Version: 1, OperationID: op.OperationID, ExecutionID: "detached-execution", OwnerUserID: op.OwnerUserID, ProjectID: op.ProjectID, RootFrameID: op.RootFrameID, RootFrameIncarnationID: op.RootFrameIncarnationID, FrameID: op.FrameID, FrameIncarnationID: op.FrameIncarnationID, KernelID: op.KernelID, KernelGeneration: 1, ToolCallID: call.ID, ToolName: "python", Language: "python", KernelKind: "operon", Environment: "python", Code: "print('result')", Background: true, Origin: "agent", OutputLimitBytes: 1024, HostCallMethods: []string{}}})
+	}
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -136,7 +136,7 @@ func (b *Backend) reserveExecutorResources(ctx context.Context, backend workspac
 	if !ok {
 		return 0, nil
 	}
-	spec, err := workspace.DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON)
+	spec, err := workspace.DecodeKernelExecutionSessionDocument(backend.SessionSpecJSON)
 	if err != nil {
 		return 0, err
 	}

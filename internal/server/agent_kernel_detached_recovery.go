@@ -125,11 +125,11 @@ func (s *Server) recoverDetachedKernelExecution(
 	if kernelNamespaceRecoveryHeld(execution) {
 		return nil // Explicit observation hold, not physical loss or redispatch.
 	}
-	persistedSpec, err := workspace.DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON)
+	persistedSpec, err := workspace.DecodeKernelExecutionSessionDocument(backend.SessionSpecJSON)
 	if err != nil {
 		return err
 	}
-	spec := recoveredKernelSessionSpec(persistedSpec)
+	spec := recoveredKernelSessionSpec(persistedSpec.KernelExecutionSessionSpecV1)
 	backendSession := kernelruntime.BackendSessionRef{
 		BackendID: backend.BackendID, BackendGeneration: backend.BackendGeneration,
 		KernelID: backend.KernelID, KernelGeneration: backend.KernelGeneration,
