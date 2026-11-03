@@ -32,6 +32,7 @@ func (s *Server) runContextCompaction(ctx context.Context, session sessionstore.
 		return true, receipt, err
 	}
 	if receipt.TerminalEventID > 0 {
+		s.signalContextCompactionArchiveRecovery(receipt)
 		return true, receipt, nil
 	}
 	active.settlement.Lock()
@@ -76,7 +77,7 @@ func (s *Server) runContextCompaction(ctx context.Context, session sessionstore.
 		active.settled = true
 	}
 	active.settlement.Unlock()
-	s.signalTranscriptWebDelivery()
+	s.signalContextCompactionArchiveRecovery(receipt)
 	if err != nil {
 		return true, receipt, err
 	}

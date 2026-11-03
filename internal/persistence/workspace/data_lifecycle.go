@@ -128,7 +128,8 @@ func (s *Store) SweepDataLifecycle(ctx context.Context, policy DataLifecyclePoli
 	}
 	if report.RealtimeEvents, err = lifecycleDelete(ctx, tx, `
 		DELETE FROM realtime_events
-		WHERE id NOT LIKE 'transcript-history-rebase:%' AND (
+		WHERE id NOT LIKE 'transcript-history-rebase:%'
+			AND NOT (`+canonicalCompactionArchiveNoticeRetainedSQL+`) AND (
 			(root_frame_id<>'' AND created_at<? AND (
 				NOT EXISTS (SELECT 1 FROM frames AS root WHERE root.id=realtime_events.root_frame_id)
 				OR EXISTS (SELECT 1 FROM frames AS root WHERE root.id=realtime_events.root_frame_id

@@ -219,6 +219,13 @@ func (s *Server) runTranscriptWebDeliveryPass(ctx context.Context) (transcriptWe
 	}
 	state.RetryAfter = earlierTranscriptWebDeliveryDelay(state.RetryAfter, imRetry)
 	state.HeartbeatAfter = heartbeat
+	// Derived compaction archives share this original startup/commit recovery
+	// owner. Their bounded slice follows both realtime drains and cannot gate
+	// input admission or turn a committed maintenance operation into failure.
+	if !state.Immediate {
+		archiveRetry := s.repairContextCompactionArchivePass(ctx, time.Now().UTC())
+		state.RetryAfter = earlierTranscriptWebDeliveryDelay(state.RetryAfter, archiveRetry)
+	}
 	return state, nil
 }
 

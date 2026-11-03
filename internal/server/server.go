@@ -236,6 +236,7 @@ type Server struct {
 	transcriptDeliveryStop                context.CancelFunc
 	transcriptDeliveryDone                chan struct{}
 	transcriptDeliveryWake                chan struct{}
+	contextCompactionArchives             contextCompactionArchiveRecovery
 	dataLifecycleStop                     context.CancelFunc
 	dataLifecycleDone                     chan struct{}
 	frameResumeDispatchWakeMu             sync.Mutex
