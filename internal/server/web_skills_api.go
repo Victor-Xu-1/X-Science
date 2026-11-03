@@ -16,6 +16,7 @@ import (
 
 	"github.com/google/uuid"
 
+	settingstore "x-science/internal/persistence/settings"
 	"x-science/internal/skills"
 )
 
@@ -266,39 +267,49 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11Detail(w, http.StatusBadRequest, "external skill path name is required")
 			return
 		}
-		snapshot := s.skillCatalog.Snapshot()
-		items, canonical, err := s.loadGrantedWebSkills(r.Context(), userID, input.Path)
+		source, err := s.captureWebSkillSourceSnapshot(r.Context(), userID)
+		if err != nil {
+			writeV11StoreError(w, err)
+			return
+		}
+		defer source.close()
+		if source.grantErr != nil {
+			writeV11Detail(w, http.StatusBadRequest, source.grantErr.Error())
+			return
+		}
+		items, canonical, err := loadWebSkillsWithGrants(r.Context(), input.Path, source.grants)
 		if err != nil {
 			writeV11Detail(w, webSkillPathStatus(err), err.Error())
 			return
 		}
 		input.Path = canonical
-		paths, err := s.loadWebSkillExternalPaths(userID)
+		registered, err := s.updateWebSkillSourceSnapshot(r.Context(), source, func(paths []webSkillExternalPath) ([]webSkillExternalPath, error) {
+			updated := false
+			for index := range paths {
+				if sameCleanPath(paths[index].Path, canonical) {
+					paths[index], updated = input, true
+					break
+				}
+			}
+			if !updated {
+				if len(paths) >= maxWebSkillExternalPaths {
+					return nil, fmt.Errorf("at most %d external skill paths are allowed", maxWebSkillExternalPaths)
+				}
+				paths = append(paths, input)
+			}
+			sort.Slice(paths, func(i, j int) bool { return strings.ToLower(paths[i].Name) < strings.ToLower(paths[j].Name) })
+			return paths, nil
+		})
 		if err != nil {
-			writeV11StoreError(w, err)
+			if errors.Is(err, settingstore.ErrSnapshotConflict) {
+				writeV11Detail(w, http.StatusConflict, "Skill source settings changed; review the current sources before registering again")
+			} else {
+				writeV11Detail(w, http.StatusBadRequest, err.Error())
+			}
 			return
 		}
-		updated := false
-		for index := range paths {
-			if sameCleanPath(paths[index].Path, canonical) {
-				paths[index] = input
-				updated = true
-				break
-			}
-		}
-		if !updated {
-			if len(paths) >= maxWebSkillExternalPaths {
-				writeV11Detail(w, http.StatusBadRequest, fmt.Sprintf("at most %d external skill paths are allowed", maxWebSkillExternalPaths))
-				return
-			}
-			paths = append(paths, input)
-		}
-		sort.Slice(paths, func(i, j int) bool { return strings.ToLower(paths[i].Name) < strings.ToLower(paths[j].Name) })
-		if err := s.saveWebSkillExternalPaths(userID, paths); err != nil {
-			writeV11StoreError(w, err)
-			return
-		}
-		changed, refreshErr := s.compareApplyExternalWebSkills(r.Context(), snapshot, [][]skills.Skill{items})
+		defer registered.close()
+		changed, refreshErr := s.compareApplyExternalWebSkills(r.Context(), source.catalog, [][]skills.Skill{items}, registered)
 		// Saving the source registration already succeeded. A stale or canceled
 		// content refresh cannot roll it back or imply that old bytes were accepted.
 		if refreshErr != nil {
@@ -327,26 +338,20 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11Detail(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		paths, err := s.loadWebSkillExternalPaths(userID)
+		removed, catalogChanged, err := s.deleteExternalWebSkillSource(r.Context(), userID, canonical)
 		if err != nil {
-			writeV11StoreError(w, err)
+			if errors.Is(err, errWebSkillSourceMutationBusy) {
+				writeV11Detail(w, http.StatusConflict, err.Error())
+			} else if errors.Is(err, settingstore.ErrSnapshotConflict) {
+				writeV11Detail(w, http.StatusConflict, "Skill source settings changed; review the current sources before removing again")
+			} else {
+				writeV11StoreError(w, err)
+			}
 			return
 		}
-		next := make([]webSkillExternalPath, 0, len(paths))
-		removed := false
-		for _, source := range paths {
-			if sameCleanPath(source.Path, canonical) {
-				removed = true
-				continue
-			}
-			next = append(next, source)
-		}
 		if removed {
-			if err := s.saveWebSkillExternalPaths(userID, next); err != nil {
-				writeV11StoreError(w, err)
-				return
-			}
-			if len(s.skillCatalog.RemoveSkillsUnder(canonical)) > 0 {
+			// The explicit publisher owner has released before durable hints.
+			if catalogChanged {
 				s.notifySkillCatalogChanged("")
 			} else {
 				s.notifySkillCatalogChanged(userID)
@@ -433,15 +438,25 @@ func (s *Server) loadGrantedWebSkills(ctx context.Context, userID, requested str
 	if s == nil || s.settingsStore == nil {
 		return nil, "", errors.New("settings store is not configured")
 	}
+	grants, err := s.loadHostGrants(userID)
+	if err != nil {
+		return nil, "", err
+	}
+	return loadWebSkillsWithGrants(ctx, requested, grants)
+}
+
+func loadWebSkillsWithGrants(ctx context.Context, requested string, grants []hostGrant) ([]skills.Skill, string, error) {
+	if ctx == nil {
+		return nil, "", skills.ErrNilLoadContext
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, "", err
+	}
 	requested = strings.TrimSpace(requested)
 	if requested == "" {
 		return nil, "", errors.New("skill path is required")
 	}
 	absolute, err := filepath.Abs(requested)
-	if err != nil {
-		return nil, "", err
-	}
-	grants, err := s.loadHostGrants(userID)
 	if err != nil {
 		return nil, "", err
 	}
@@ -568,7 +583,7 @@ func webCommonSkillPaths() []webSkillExternalPath {
 }
 
 func (s *Server) syncWebExternalSkills(ctx context.Context, userID string) error {
-	return s.syncWebExternalSkillsWithLoader(ctx, userID, s.loadGrantedWebSkills)
+	return s.syncWebExternalSkillsWithLoader(ctx, userID, nil)
 }
 
 func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID string, load func(context.Context, string, string) ([]skills.Skill, string, error)) error {
@@ -578,14 +593,24 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	snapshot := s.skillCatalog.Snapshot()
-	paths, err := s.loadWebSkillExternalPaths(userID)
+	source, err := s.captureWebSkillSourceSnapshot(ctx, userID)
 	if err != nil {
 		return err
 	}
-	loadedSources := make([][]skills.Skill, 0, len(paths))
-	for _, source := range paths {
-		items, _, loadErr := load(ctx, userID, source.Path)
+	defer source.close()
+	if source.grantErr != nil {
+		// As with the original per-root loader failure, unknown grant metadata
+		// cannot publish new content or hide the last known catalog behind a 500.
+		return nil
+	}
+	if load == nil {
+		load = func(readCtx context.Context, _ string, path string) ([]skills.Skill, string, error) {
+			return loadWebSkillsWithGrants(readCtx, path, source.grants)
+		}
+	}
+	loadedSources := make([][]skills.Skill, 0, len(source.paths))
+	for _, path := range source.paths {
+		items, _, loadErr := load(ctx, userID, path.Path)
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -599,7 +624,7 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	catalogChanged, err := s.compareApplyExternalWebSkills(ctx, snapshot, loadedSources)
+	catalogChanged, err := s.compareApplyExternalWebSkills(ctx, source.catalog, loadedSources, source)
 	if err != nil {
 		return err
 	}
@@ -607,31 +632,6 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 		s.notifySkillCatalogChanged("")
 	}
 	return nil
-}
-
-func (s *Server) compareApplyExternalWebSkills(ctx context.Context, snapshot skills.CatalogSnapshot, sources [][]skills.Skill) (bool, error) {
-	if ctx == nil {
-		return false, skills.ErrNilLoadContext
-	}
-	if err := ctx.Err(); err != nil {
-		return false, err
-	}
-	upserts := externalWebSkillUpserts(snapshot.Skills, sources)
-	// Match the publisher's lock order. No filesystem, settings or event IO is
-	// performed in this short content commit; all source reads are complete.
-	// A publisher can own the guard during file/DB work. Catalog reads must not
-	// wait for that work: keep the current projection and let a later read scan.
-	if !s.skillMutationMu.TryLock() {
-		return false, ctx.Err()
-	}
-	changed, err := s.skillCatalog.CompareApply(ctx, snapshot.Revision, upserts)
-	s.skillMutationMu.Unlock()
-	if errors.Is(err, skills.ErrCatalogRevisionConflict) {
-		// Another accepted mutation won. Serve the current catalog without
-		// turning a normal GET into an error or a self-triggered retry loop.
-		return false, nil
-	}
-	return changed, err
 }
 
 // Build the original first-visible-name/path plan on the owned snapshot, not
@@ -689,15 +689,7 @@ func (s *Server) loadWebSkillExternalPaths(userID string) ([]webSkillExternalPat
 	if err != nil || !found {
 		return []webSkillExternalPath{}, err
 	}
-	raw, err := json.Marshal(setting.Value)
-	if err != nil {
-		return nil, err
-	}
-	paths := []webSkillExternalPath{}
-	if err := json.Unmarshal(raw, &paths); err != nil {
-		return nil, err
-	}
-	return paths, nil
+	return decodeWebSkillExternalPaths(setting.Value)
 }
 
 func (s *Server) saveWebSkillExternalPaths(userID string, paths []webSkillExternalPath) error {

@@ -19,9 +19,11 @@ type Setting struct {
 }
 
 type Store struct {
-	mu   sync.Mutex
-	path string
-	now  func() time.Time
+	mu         sync.Mutex
+	path       string
+	now        func() time.Time
+	revisionMu sync.Mutex
+	revisions  map[string]*revisionSlot
 }
 
 type fileData struct {
@@ -40,10 +42,12 @@ func (s *Store) Set(key string, value any) (Setting, error) {
 	defer s.mu.Unlock()
 	data, err := s.loadLocked()
 	if err != nil {
+		s.invalidateRevisionsLocked(key)
 		return Setting{}, err
 	}
 	setting := Setting{Key: key, Value: value, UpdatedAt: s.now().UTC()}
 	data.Settings[key] = setting
+	s.invalidateRevisionsLocked(key)
 	if err := s.saveLocked(data); err != nil {
 		return Setting{}, err
 	}
@@ -61,6 +65,7 @@ func (s *Store) Update(key string, update func(current any, found bool) (any, er
 	defer s.mu.Unlock()
 	data, err := s.loadLocked()
 	if err != nil {
+		s.invalidateRevisionsLocked(key)
 		return Setting{}, err
 	}
 	current, found := data.Settings[key]
@@ -70,6 +75,7 @@ func (s *Store) Update(key string, update func(current any, found bool) (any, er
 	}
 	setting := Setting{Key: key, Value: value, UpdatedAt: s.now().UTC()}
 	data.Settings[key] = setting
+	s.invalidateRevisionsLocked(key)
 	if err := s.saveLocked(data); err != nil {
 		return Setting{}, err
 	}
@@ -98,6 +104,7 @@ func (s *Store) UpdateBatch(updates map[string]func(any, bool) (any, error)) err
 	defer s.mu.Unlock()
 	data, err := s.loadLocked()
 	if err != nil {
+		s.invalidateRevisionsLocked(keys...)
 		return err
 	}
 	now := s.now().UTC()
@@ -109,6 +116,7 @@ func (s *Store) UpdateBatch(updates map[string]func(any, bool) (any, error)) err
 		}
 		data.Settings[key] = Setting{Key: key, Value: value, UpdatedAt: now}
 	}
+	s.invalidateRevisionsLocked(keys...)
 	return s.saveLocked(data)
 }
 
@@ -134,11 +142,13 @@ func (s *Store) Delete(key string) (bool, error) {
 	defer s.mu.Unlock()
 	data, err := s.loadLocked()
 	if err != nil {
+		s.invalidateRevisionsLocked(key)
 		return false, err
 	}
 	_, existed := data.Settings[key]
 	if existed {
 		delete(data.Settings, key)
+		s.invalidateRevisionsLocked(key)
 		if err := s.saveLocked(data); err != nil {
 			return false, err
 		}

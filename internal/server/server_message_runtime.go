@@ -30,6 +30,9 @@ func (s *Server) executeSettingsTool(toolName string, input map[string]any) (any
 		if key == hostGrantsSettingKey || strings.HasPrefix(key, hostGrantsSettingKey+".") {
 			return nil, errors.New("host grants must be changed through the host access API")
 		}
+		if key == webSkillExternalPathsSetting || strings.HasPrefix(key, webSkillExternalPathsSetting+".") {
+			return nil, errors.New("external Skill sources must be changed through the owner-scoped Skill source API")
+		}
 		if key == memoryAutoExtractionSettingKey || strings.HasPrefix(key, memoryAutoExtractionSettingKey+".user.") {
 			return nil, errors.New("automatic memory must be changed through the owner-scoped memory preference API")
 		}

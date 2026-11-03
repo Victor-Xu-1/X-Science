@@ -274,6 +274,11 @@ func TestWebSkillOlderScanCannotReplaceNewerProjection(t *testing.T) {
 func TestWebSkillContentCASUsesPublicationBoundary(t *testing.T) {
 	server, owner, source := newWebSkillBoundedScanFixture(t)
 	snapshot := server.skillCatalog.Snapshot()
+	authority, err := server.captureWebSkillSourceSnapshot(context.Background(), owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer authority.close()
 	old, _, err := server.loadGrantedWebSkills(context.Background(), owner, source)
 	if err != nil {
 		t.Fatal(err)
@@ -285,7 +290,7 @@ func TestWebSkillContentCASUsesPublicationBoundary(t *testing.T) {
 	finished := make(chan error, 1)
 	go func() {
 		close(started)
-		changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{old})
+		changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{old}, authority)
 		if changed {
 			err = errors.New("old content crossed the publication boundary")
 		}
@@ -325,9 +330,14 @@ func TestWebSkillContentCASPathPolicyAndRegistration(t *testing.T) {
 		t.Fatalf("accepted source registration was not saved: %v", err)
 	}
 	snapshot := server.skillCatalog.Snapshot()
+	authority, err := server.captureWebSkillSourceSnapshot(context.Background(), owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer authority.close()
 	one := skills.Skill{Name: "first-visible", Path: filepath.Join(source, "one", "SKILL.md"), Body: "First source."}
 	two := skills.Skill{Name: "FIRST-VISIBLE", Path: filepath.Join(source, "two", "SKILL.md"), Body: "Conflicting source."}
-	changed, err := server.compareApplyExternalWebSkills(context.Background(), snapshot, [][]skills.Skill{{one}, {two}})
+	changed, err := server.compareApplyExternalWebSkills(context.Background(), snapshot, [][]skills.Skill{{one}, {two}}, authority)
 	if !changed || err != nil {
 		t.Fatalf("complete source plan = %v, %v", changed, err)
 	}
@@ -338,7 +348,7 @@ func TestWebSkillContentCASPathPolicyAndRegistration(t *testing.T) {
 	snapshot = server.skillCatalog.Snapshot()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{{two}}); changed || !errors.Is(err, context.Canceled) {
+	if changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{{two}}, authority); changed || !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled content commit = %v, %v", changed, err)
 	}
 	if _, err := server.skillCatalog.CompareApply(context.Background(), snapshot.Revision, nil); err != nil {
@@ -402,6 +412,11 @@ func TestWebSkillBusyPublisherDoesNotBlockProjection(t *testing.T) {
 			}
 			snapshot := server.skillCatalog.Snapshot()
 			before := server.skillCatalog.Skills()
+			authority, err := server.captureWebSkillSourceSnapshot(context.Background(), owner)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer authority.close()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			type outcome struct {
@@ -419,7 +434,7 @@ func TestWebSkillBusyPublisherDoesNotBlockProjection(t *testing.T) {
 			}()
 			go func() {
 				if operation == "commit" {
-					changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{items})
+					changed, err := server.compareApplyExternalWebSkills(ctx, snapshot, [][]skills.Skill{items}, authority)
 					finished <- outcome{changed: changed, err: err}
 					return
 				}
