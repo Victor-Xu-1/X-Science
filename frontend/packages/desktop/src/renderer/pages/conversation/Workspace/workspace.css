@@ -103,23 +103,12 @@
 
 .artifact-library__grid-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 96px));
+  /* Keep preview centers below the corner actions even in the narrow rail. */
+  grid-template-columns: repeat(auto-fill, 96px);
   justify-content: start;
   align-items: start;
   gap: var(--ui-space-4);
   padding: 0 10px 8px;
-}
-
-@container artifact-library (min-width: 320px) {
-  .artifact-library__grid-row {
-    grid-template-columns: repeat(3, minmax(0, 96px));
-  }
-}
-
-@container artifact-library (min-width: 430px) {
-  .artifact-library__grid-row {
-    grid-template-columns: repeat(4, minmax(0, 96px));
-  }
 }
 
 .artifact-library__card {

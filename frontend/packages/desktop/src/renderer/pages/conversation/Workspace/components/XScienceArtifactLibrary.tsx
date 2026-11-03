@@ -92,9 +92,9 @@ export const buildXScienceArtifactRows = (
 ): ArtifactLibraryRow[] => {
   const rows: ArtifactLibraryRow[] = [];
   // Keep virtualization independent from the rendered column count. CSS wraps
-  // each four-item chunk into two compact columns in a narrow rail and up to
-  // four columns in a wider workspace, so resize never needs a second JS width
-  // observer or a remounting layout branch.
+  // each four-item chunk into as many fixed-width cards as the rail can fit,
+  // so resize never needs a second JS width observer or a remounting layout
+  // branch.
   const artifactsPerRow = viewMode === 'grid' ? 4 : 1;
 
   for (const group of groups) {
