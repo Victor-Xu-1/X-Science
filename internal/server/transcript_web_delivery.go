@@ -148,6 +148,7 @@ func (s *Server) runTranscriptWebDeliveryCycle(ctx context.Context) error {
 
 func (s *Server) runTranscriptWebDeliveryPass(ctx context.Context) (transcriptWebDeliveryCycleState, error) {
 	var state transcriptWebDeliveryCycleState
+	realtimeBacklog := false
 	// Realtime delivery gets the first bounded slice of every coordinator
 	// pass. Previously a global batch of up to 100 unrelated read-model repairs
 	// ran first; one large historical conversation could therefore delay a new
@@ -164,6 +165,7 @@ func (s *Server) runTranscriptWebDeliveryPass(ctx context.Context) (transcriptWe
 		// A short slice that failed on a stale projection does not take this path;
 		// it must immediately give the projector a chance to self-repair.
 		state.Immediate = true
+		realtimeBacklog = true
 	} else {
 		beforeReadModel, err := s.transcriptWebReadModelProgress(ctx)
 		if err != nil {
@@ -203,6 +205,7 @@ func (s *Server) runTranscriptWebDeliveryPass(ctx context.Context) (transcriptWe
 	if remaining {
 		if recovered > 0 || drained > 0 {
 			state.Immediate = true
+			realtimeBacklog = true
 		} else {
 			state.RetryAfter = transcriptDeliveryRetry
 		}
@@ -222,7 +225,10 @@ func (s *Server) runTranscriptWebDeliveryPass(ctx context.Context) (transcriptWe
 	// Derived compaction archives share this original startup/commit recovery
 	// owner. Their bounded slice follows both realtime drains and cannot gate
 	// input admission or turn a committed maintenance operation into failure.
-	if !state.Immediate {
+	// Immediate also schedules advancing historical projections. That background
+	// work must not starve a committed archive after realtime delivery is caught
+	// up; only the live backlog above defers this existing maintenance slice.
+	if !realtimeBacklog {
 		archiveRetry := s.repairContextCompactionArchivePass(ctx, time.Now().UTC())
 		state.RetryAfter = earlierTranscriptWebDeliveryDelay(state.RetryAfter, archiveRetry)
 	}
