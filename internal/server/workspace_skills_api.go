@@ -17,7 +17,7 @@ import (
 
 const (
 	maxSkillArchiveFiles        = 512
-	maxSkillArchiveBytes        = 10 << 20
+	maxSkillArchiveBytes        = skills.DefaultMaxManifestBytes
 	runtimeSkillPreferenceOwner = "_runtime"
 )
 

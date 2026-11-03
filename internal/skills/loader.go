@@ -1,6 +1,7 @@
 package skills
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -17,6 +18,14 @@ import (
 	"x-science/internal/buildinfo"
 	"x-science/internal/discoveryquery"
 )
+
+// DefaultMaxManifestBytes is the shared finite ingress boundary for a Skill
+// manifest and the product's existing Skill archive/resource inputs. Body
+// budgets remain separate and are checked after the complete file is parsed.
+const DefaultMaxManifestBytes = 10 << 20
+
+var ErrInvalidLoadOptions = errors.New("invalid skill manifest load options")
+var ErrNilLoadContext = errors.New("skill load context is required")
 
 type Skill struct {
 	Name                        string            `json:"name"`
@@ -163,6 +172,9 @@ func (c *Catalog) LoadErrors() []LoadError {
 type LoadOptions struct {
 	MaxBodyBytes       int
 	RejectOversizeBody bool
+	// Zero uses DefaultMaxManifestBytes; negative values and values whose
+	// limit+1 would overflow are rejected rather than disabling the boundary.
+	MaxManifestBytes int64
 }
 
 func BuiltinRuntimeCatalog() *Catalog {
@@ -201,14 +213,29 @@ For capability discovery, call search_skills and then load the selected workflow
 }
 
 func Load(directories []string, options ...LoadOptions) *Catalog {
-	opts := LoadOptions{}
-	if len(options) > 0 {
-		opts = options[0]
-	}
+	catalog, _ := LoadContext(context.Background(), directories, options...)
+	return catalog
+}
+
+// LoadContext returns any valid entries together with an error when the source
+// was incomplete. Callers that publish a projection must reject that partial
+// result. The compatibility Load entry retains those entries and LoadErrors.
+func LoadContext(ctx context.Context, directories []string, options ...LoadOptions) (*Catalog, error) {
 	catalog := NewCatalog()
+	opts, err := skillLoadOptions(ctx, options)
+	if err != nil {
+		catalog.AddLoadError("", err)
+		return catalog, err
+	}
+	var failures []error
 	for _, dir := range uniqueStrings(directories) {
 		if strings.TrimSpace(dir) == "" {
 			continue
+		}
+		if err := ctx.Err(); err != nil {
+			catalog.AddLoadError(dir, err)
+			failures = append(failures, err)
+			break
 		}
 		absDir := dir
 		if strings.HasPrefix(dir, `\\`) || strings.HasPrefix(dir, "//") || (len(dir) >= 2 && dir[1] == ':') {
@@ -220,17 +247,21 @@ func Load(directories []string, options ...LoadOptions) *Catalog {
 		root, err := os.OpenRoot(absDir)
 		if err != nil {
 			catalog.AddLoadError(absDir, err)
+			failures = append(failures, err)
 			continue
 		}
-		loadOpenedDirectory(catalog, absDir, root, opts)
+		if err := loadOpenedDirectory(ctx, catalog, absDir, root, opts); err != nil {
+			failures = append(failures, err)
+		}
 		if err := root.Close(); err != nil {
 			catalog.AddLoadError(absDir, err)
+			failures = append(failures, err)
 		}
 	}
 	catalog.mu.Lock()
 	catalog.sortSkillsLocked()
 	catalog.mu.Unlock()
-	return catalog
+	return catalog, errors.Join(failures...)
 }
 
 func (c *Catalog) Search(query string, maxResults int) []Skill {

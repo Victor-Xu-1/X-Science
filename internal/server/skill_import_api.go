@@ -116,7 +116,7 @@ func (s *Server) handleWebSkillPathImport(w http.ResponseWriter, r *http.Request
 		return
 	}
 	requested := strings.TrimSpace(firstNonEmpty(input.SkillPath, input.LegacyPath))
-	items, canonical, err := s.loadGrantedWebSkills(compatAgentUserID(r), requested)
+	items, canonical, err := s.loadGrantedWebSkills(r.Context(), compatAgentUserID(r), requested)
 	if err != nil {
 		writeV11Detail(w, webSkillPathStatus(err), err.Error())
 		return
