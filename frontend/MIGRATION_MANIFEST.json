@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "9a27bb10cc02d617f1b9ae5b34fb206bebf49b494d21f5d6ce833bd098fa9fab",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "89c525e753a3b8e237c88ec65a67c967665fb74e36664bdccb6d1cf4a2a10f02",
+  "additionFingerprintSHA256": "27e57df5ea53ce8f0a0feffe3240ae57f0cd683f20bcd7b6972fcb2d9b3b5e01",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1486
+    "addedFiles": 1488
   },
   "adaptations": [
     {
@@ -14641,8 +14641,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryPublicationCheck.dom.test.tsx",
-      "sha256": "ed8f9630830fe348808eae3903501acd812d9451a1c5ee592603c368de65589b",
-      "bytes": 28445,
+      "sha256": "fe344f191929c7a4c762cb8ee040714df03cb89f3183bff7e39d948f9f191a46",
+      "bytes": 28727,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14809,8 +14809,8 @@
     },
     {
       "path": "tests/unit/renderer/library/libraryCollectionsFixtures.tsx",
-      "sha256": "4446955206e04f0885bc566a9e3e2febe9bdccf54df346f34253302c43722a6d",
-      "bytes": 4391,
+      "sha256": "0c41f1a9d7ff6972000f5b8fd577343b017f49879f437de628f58673bbf0a88c",
+      "bytes": 4606,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14835,6 +14835,18 @@
       "path": "tests/unit/renderer/library/librarySelectionState.test.ts",
       "sha256": "ec70bfda4815569907713f3b052d8eff759ed20eed9d36c2a3f7be19d29a3fc0",
       "bytes": 3950,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/libraryStudyReadFixtures.test.ts",
+      "sha256": "1da4f3617f4ae0ebbb79a14f308f6628d6cd394823c4084ef2941e8d3c305b0b",
+      "bytes": 2675,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/libraryStudyReadFixtures.ts",
+      "sha256": "57988fbd13759e286ef39e25758a279e9c8d5b359a3840b1ae7896a21b528b17",
+      "bytes": 1649,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
