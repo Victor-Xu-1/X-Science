@@ -1,0 +1,77 @@
+.library-study {
+  margin-block: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  background: var(--color-fill-1);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.library-study__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.library-study__heading h3 {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.library-study__heading button {
+  margin-inline-start: auto;
+}
+.library-study__coverage {
+  font-size: 11px;
+  color: var(--color-text-3);
+}
+.library-study dl {
+  margin-block: 10px;
+}
+.library-study dl > div {
+  display: grid;
+  grid-template-columns: minmax(90px, 24%) minmax(0, 1fr);
+  gap: 8px;
+  padding-block: 7px;
+  border-block-end: 1px solid var(--color-border-2);
+}
+.library-study dt {
+  font-weight: 500;
+}
+.library-study dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.library-study p {
+  margin-block: 7px 0;
+}
+.library-study__muted {
+  color: var(--color-text-3);
+  font-size: 11px;
+}
+.library-study__issue {
+  color: var(--color-warning-6);
+}
+.library-study__spinner {
+  animation: library-study-spin 1s linear infinite;
+}
+@keyframes library-study-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 480px) {
+  .library-study dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-study__spinner {
+    animation: none;
+  }
+}

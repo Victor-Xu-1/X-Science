@@ -202,6 +202,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == libraryAnnotationV89PreflightIdentity && identity.RuleSpec == libraryAnnotationV89RuleSpec
 	case resourceTagsV90CallbackID:
 		return identity.PreflightIdentity == resourceTagsV90PreflightIdentity && identity.RuleSpec == resourceTagsV90RuleSpec
+	case literatureStudyV91CallbackID:
+		return identity.PreflightIdentity == literatureStudyV91PreflightIdentity && identity.RuleSpec == literatureStudyV91RuleSpec
 	case kernelWorkerStartupV88CallbackID:
 		return identity.PreflightIdentity == kernelWorkerStartupV88PreflightIdentity && identity.RuleSpec == kernelWorkerStartupV88RuleSpec
 	default:
@@ -354,6 +356,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightLibraryAnnotationV89(ctx, executor)
 	case resourceTagsV90PreflightIdentity:
 		return preflightResourceTagsV90(ctx, executor)
+	case literatureStudyV91PreflightIdentity:
+		return preflightLiteratureStudyV91(ctx, executor)
 	case kernelWorkerStartupV88PreflightIdentity:
 		return nil
 	default:
@@ -483,6 +487,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 	case libraryAnnotationV89CallbackID:
 		return nil
 	case resourceTagsV90CallbackID:
+		return nil
+	case literatureStudyV91CallbackID:
 		return nil
 	case kernelWorkerStartupV88CallbackID:
 		return nil

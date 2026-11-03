@@ -131,6 +131,7 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/common/adapter/literatureStudySnapshot.ts": "Define the closed source-bound Study overview request/result decoder for the existing owner-authorized Library API, without creating another transport, inference, or persistence authority.",
     "packages/desktop/src/common/adapter/literatureMetadataLookup.ts": "Validate the closed read-only DOI metadata draft and exact requested reference identity before the existing Library review/editor handoff, without adding a provider, persistence, execution or write authority.",
     "packages/desktop/src/common/adapter/literatureRating.ts": "Decode only the canonical read-only rating projection before opaque metadata can be rounded in JavaScript; retain original metadata field patches and immutable legacy receipt omission.",
     "packages/desktop/src/common/adapter/literatureMetadataCapacity.ts": "Share finite UTF-8 and canonical JSON-escape bounds between the original Literature command and pending-replay receivers, without adding a persistence or new-write authority.",

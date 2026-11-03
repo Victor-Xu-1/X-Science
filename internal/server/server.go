@@ -267,6 +267,7 @@ type Server struct {
 	literatureRelatedOnce                 sync.Once
 	literatureRelated                     *literaturediscovery.Finder
 	publicationChecker                    *literaturediscovery.PublicationChecker
+	literatureStudyPermits                literatureStudyPermitPool
 	doiMetadataLookup                     *literaturediscovery.DOIMetadataLookup
 	speechClientForURL                    func(context.Context, string, *http.Client) (*http.Client, error)
 	localSpeechRuntime                    *localSpeechRuntime
