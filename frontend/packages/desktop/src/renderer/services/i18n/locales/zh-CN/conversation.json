@@ -16,7 +16,12 @@
     "save": "保存文献",
     "addAuthor": "添加作者",
     "removeAuthor": "移除作者 {{index}}",
-    "fields": { "authors": "作者", "year": "年份", "doi": "DOI", "publication": "出版物" }
+    "fields": {
+      "authors": "作者",
+      "year": "年份",
+      "doi": "DOI",
+      "publication": "出版物"
+    }
   },
   "libraryInbox": {
     "description": "审阅发现的文献，再将其加入文献库。",
@@ -2545,5 +2550,36 @@
     "readFailed": "无法加载标签",
     "unavailable": "此文献的标签暂不可用",
     "resumeNeeded": "有待确认的标签更改，可重试恢复。"
+  },
+  "libraryStudy": {
+    "title": "研究概览",
+    "generate": "生成概览",
+    "regenerate": "重新生成",
+    "generating": "正在生成概览…",
+    "loading": "正在读取概览…",
+    "retry": "重试",
+    "progress": "正在读取可用来源并生成研究概览…",
+    "notGenerated": "可根据当前可用来源生成研究概览。",
+    "notReported": "可用来源未报告",
+    "sourceChanged": "此文献已变更或不可用，请重新打开详情。",
+    "sourceUnavailable": "请添加摘要或可读取的全文 PDF，再生成概览。",
+    "inputTooLarge": "可用来源超出研究概览的输入上限。",
+    "failed": "无法读取或生成概览，请重试。",
+    "regenerateFailed": "概览更新失败，仍保留上次结果，请重试。",
+    "model": "模型",
+    "warning": "内容由 AI 生成，请对照原文核实。",
+    "coverage": {
+      "abstract": "基于摘要",
+      "full-text": "基于全文",
+      "passages": "基于选定片段"
+    },
+    "fields": {
+      "question": "研究问题",
+      "population": "研究人群",
+      "methods": "研究方法",
+      "results": "主要发现",
+      "limitations": "研究局限"
+    },
+    "busy": "当前概览生成较多，请稍后重试。"
   }
 }

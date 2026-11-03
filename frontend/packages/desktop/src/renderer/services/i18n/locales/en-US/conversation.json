@@ -16,7 +16,12 @@
     "save": "Save reference",
     "addAuthor": "Add author",
     "removeAuthor": "Remove author {{index}}",
-    "fields": { "authors": "Creators", "year": "Year", "doi": "DOI", "publication": "Publication" }
+    "fields": {
+      "authors": "Creators",
+      "year": "Year",
+      "doi": "DOI",
+      "publication": "Publication"
+    }
   },
   "libraryInbox": {
     "description": "Review discovered references before they enter your library.",
@@ -2545,5 +2550,36 @@
     "readFailed": "Could not load tags",
     "unavailable": "Tags are unavailable for this reference",
     "resumeNeeded": "Pending tag changes need to be resumed."
+  },
+  "libraryStudy": {
+    "title": "Study overview",
+    "generate": "Generate overview",
+    "regenerate": "Regenerate",
+    "generating": "Generating overview…",
+    "loading": "Loading overview…",
+    "retry": "Retry",
+    "progress": "Reading the available source and generating an overview…",
+    "notGenerated": "Generate an overview from the available source.",
+    "notReported": "Not reported in the available source",
+    "sourceChanged": "This reference has changed or is no longer available. Reopen its details.",
+    "sourceUnavailable": "Add an abstract or readable full-text PDF to generate an overview.",
+    "inputTooLarge": "The available source exceeds the overview input limit.",
+    "failed": "Could not load or generate the overview. Please try again.",
+    "regenerateFailed": "Could not update the overview. The previous result is still shown. Please try again.",
+    "model": "Model",
+    "warning": "AI-generated. Verify against the original paper.",
+    "coverage": {
+      "abstract": "Based on abstract",
+      "full-text": "Based on full text",
+      "passages": "Based on selected passages"
+    },
+    "fields": {
+      "question": "Research question",
+      "population": "Study population",
+      "methods": "Research methods",
+      "results": "Main findings",
+      "limitations": "Study limitations"
+    },
+    "busy": "Too many overviews are being generated. Please try again shortly."
   }
 }

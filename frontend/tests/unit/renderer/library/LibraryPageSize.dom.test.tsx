@@ -142,7 +142,9 @@ describe('Library URL-owned page size through the original HTTP reader', () => {
     const search = screen.getByLabelText('Library location').textContent ?? '';
     expect(new URLSearchParams(search).get('page_size')).toBe('100');
     expect(size).toHaveValue('100');
-  });
+    // Four full list renders (25 + 50 + 50 + 100) include accessibility checks.
+    // Only this combined journey gets a larger budget; each query keeps its default deadline.
+  }, 20_000);
 
   it('restores the 100-item URL window after a fresh mount and remount', async () => {
     const { pages } = installCatalogue();

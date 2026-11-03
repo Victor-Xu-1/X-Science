@@ -22,6 +22,7 @@ import { LibraryCollectionMembershipPicker } from './LibraryCollectionMembership
 import { LibraryProjectMembership } from './LibraryProjectMembership';
 import { LibraryAttachmentBrowser } from './LibraryAttachmentBrowser';
 import { LibraryAbstract } from './LibraryAbstract';
+import { LibraryStudySnapshot } from './LibraryStudySnapshot';
 import { LibraryBibliographicDetails } from './LibraryBibliographicDetails';
 import { LibraryDetailHeader } from './LibraryDetailHeader';
 import { LibraryPublicationCheck } from './LibraryPublicationCheck';
@@ -239,6 +240,12 @@ export function LibraryItemDetails({
             </div>
           )}
         </dl>
+        <LibraryStudySnapshot
+          account={account}
+          item={item}
+          visible={visible && !editBase}
+          disabled={busy || stale || Boolean(editBase)}
+        />
         <LibraryAbstract value={item.metadata.abstract} />
         <LibraryBibliographicDetails metadata={item.metadata} />
         <LibraryProjectMembership

@@ -89,11 +89,23 @@ describe('Library project scope through the existing Web query owner', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'alpha second page' }));
     await screen.findByRole('heading', { name: 'Scoped detail' });
     fireEvent.click(screen.getByRole('button', { name: rendered.i18n.t('conversation.libraryWorkbench.edit') }));
-    fireEvent.change(
-      screen.getByRole('combobox', { name: rendered.i18n.t('conversation.libraryWorkbench.projectAction') }),
-      { target: { value: 'alpha' } }
+    const projectAction = screen.getByRole('combobox', {
+      name: rendered.i18n.t('conversation.libraryWorkbench.projectAction'),
+    });
+    // Detail content can appear before the independent project read is fresh.
+    await waitFor(() => expect(projectAction).toBeEnabled());
+    fireEvent.change(projectAction, { target: { value: 'alpha' } });
+    expect(projectAction).toHaveValue('alpha');
+    const unlink = screen.getByRole('button', { name: rendered.i18n.t('conversation.reading.libraryUnlinkProject') });
+    await waitFor(() => expect(unlink).toBeEnabled());
+    fireEvent.click(unlink);
+    await waitFor(() =>
+      expect(
+        http.requests.filter(
+          (request) => request.method === 'PUT' && request.path === '/api/literature/items/entry/projects/alpha'
+        )
+      ).toHaveLength(1)
     );
-    fireEvent.click(screen.getByRole('button', { name: rendered.i18n.t('conversation.reading.libraryUnlinkProject') }));
     await waitFor(() => expect(location().get('item')).toBeNull());
     expect(location().get('cursor')).toBeNull();
     expect(location().get('project')).toBe('alpha');

@@ -6,6 +6,7 @@ import type { LiteratureCollection } from '@/common/adapter/literatureCollection
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
 import { renderWithI18n } from '../../i18nTestUtils';
 import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
+import { readNotGeneratedLiteratureStudy } from './libraryStudyReadFixtures';
 
 export const paper = (id = 'a', title = 'Paper A'): LiteratureItem => ({
   id,
@@ -83,6 +84,8 @@ export function installCollectionHTTP(options: ReadOptions) {
     if (intercepted) return intercepted;
     const tags = readEmptyResourceTagCatalog(url, request);
     if (tags) return tags;
+    const study = readNotGeneratedLiteratureStudy(url, request, (id) => options.detail?.(id) ?? paper(id));
+    if (study) return study;
     if (method !== 'GET') throw new Error('Unexpected collection fixture mutation');
     if (url.pathname === '/api/settings/client') return json({});
     if (url.pathname === '/api/projects') return json({ projects: [] });
