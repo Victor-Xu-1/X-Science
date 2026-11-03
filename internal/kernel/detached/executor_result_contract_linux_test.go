@@ -23,7 +23,8 @@ func TestReaderFirstExecutorRequiresOriginalV2Owner(t *testing.T) {
 	}
 	for _, field := range []string{"backend", "generation", "instance", "session", "contract", "legacy_session"} {
 		t.Run(field, func(t *testing.T) {
-			changed := e
+			changed := Executor{BackendID: doc.Binding.BackendID, BackendGeneration: doc.Binding.BackendGeneration, ExecutorInstanceID: doc.Binding.ExecutorInstanceID,
+				sessionDocument: workspace.KernelExecutionSessionDocument{DocumentVersion: 2, ResultContract: contract}, sessionSpecSHA256: doc.Binding.SessionSpecSHA256}
 			switch field {
 			case "backend":
 				changed.BackendID = "another-backend"
