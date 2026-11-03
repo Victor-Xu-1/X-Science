@@ -252,6 +252,9 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponseUncached(ctx cont
 	if name == "save_artifacts" {
 		return g.server.executeAgentSaveArtifacts(ctx, g.kernel, call.ID, input)
 	}
+	if name == librarySaveToInboxToolName {
+		return g.server.executeAgentLibraryInbox(ctx, g.libraryAccess, call.ID, input)
+	}
 	if name == "download_public_scientific_file" {
 		return g.server.executeAgentPublicScientificFileDownload(ctx, g.kernel, call.ID, input)
 	}

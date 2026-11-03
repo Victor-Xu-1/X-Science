@@ -27,7 +27,7 @@ func (g serverAgentRuntimeToolGateway) AdmitsToolCall(call agentruntime.ToolCall
 		return false
 	}
 	input := map[string]any{}
-	if len(call.Arguments) > 0 && json.Unmarshal(call.Arguments, &input) != nil {
+	if len(call.Arguments) > 0 && decodeAgentRuntimeToolArguments(name, call.Arguments, &input) != nil {
 		return false
 	}
 	input = g.normalizeAdmittedToolArguments(name, input)
@@ -51,7 +51,7 @@ func (g serverAgentRuntimeToolGateway) ToolCallAdmissionDiagnostic(call agentrun
 	}
 	input := map[string]any{}
 	if len(call.Arguments) > 0 {
-		if err := json.Unmarshal(call.Arguments, &input); err != nil {
+		if err := decodeAgentRuntimeToolArguments(name, call.Arguments, &input); err != nil {
 			return "arguments are not valid JSON"
 		}
 	}
@@ -125,7 +125,7 @@ func (g serverAgentRuntimeToolGateway) toolCallPreflightDiagnostic(ctx context.C
 		return ""
 	}
 	input := map[string]any{}
-	if len(call.Arguments) > 0 && json.Unmarshal(call.Arguments, &input) != nil {
+	if len(call.Arguments) > 0 && decodeAgentRuntimeToolArguments(name, call.Arguments, &input) != nil {
 		return ""
 	}
 	input = g.normalizeAdmittedToolArguments(name, input)

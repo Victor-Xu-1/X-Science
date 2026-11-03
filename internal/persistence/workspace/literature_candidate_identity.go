@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 	"unicode"
 	"x-science/internal/literaturediscovery"
@@ -148,7 +147,7 @@ func legacyCandidateIdentityMatch(ids map[string]string, sets map[string]map[str
 
 // find matching stored items without trusting a single identifier when other
 // shared identifiers conflict; ambiguous existing matches never auto-merge.
-func findMatchingLibraryItem(ctx context.Context, tx *sql.Tx, owner string, ids map[string]string, sources ...literatureCandidateSource) (string, error) {
+func findMatchingLibraryItem(ctx context.Context, tx workspaceTransaction, owner string, ids map[string]string, sources ...literatureCandidateSource) (string, error) {
 	rows, err := tx.QueryContext(ctx, `SELECT id,metadata_json FROM literature_items WHERE owner_user_id=? AND deleted_at IS NULL`, owner)
 	if err != nil {
 		return "", err

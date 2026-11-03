@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"x-science/internal/agentruntime"
+	workspace "x-science/internal/persistence/workspace"
 	"x-science/internal/providers"
 	"x-science/internal/skills"
 	"x-science/internal/tools/mcpstdio"
@@ -89,6 +90,7 @@ func (s *Server) newAgentRuntimeEngineWithContext(
 			selectedSkillNames: append([]string(nil), options.SelectedSkillNames...),
 			skillPolicy:        runtimeSkillPolicyAuthorityFromOptions(options),
 			kernel:             s.resolveAgentKernelContext(ctx, options.SessionID),
+			libraryAccess:      s.captureLibraryTaskAccess(ctx, options.SessionID),
 			sessionID:          options.SessionID,
 			outputLimitBytes:   options.OutputLimitBytes,
 			fileReadLimitBytes: maxToolResultBytes,
@@ -166,6 +168,9 @@ func (s *Server) agentRuntimeToolSchemasWithContextOptions(
 		schemas = append(schemas, s.agentRuntimeMCPToolSchemas(ctx, allowed, kernelSessionID)...)
 	}
 	schemas = append(schemas, s.agentKernelToolSchemas(kernelIdentity, allowed)...)
+	if agentKernelToolAllowed(librarySaveToInboxToolName, allowed) && s.captureLibraryTaskAccess(ctx, kernelSessionID) != nil {
+		schemas = append(schemas, librarySaveToInboxSchema())
+	}
 	schemas = append(schemas, s.agentPDFAnnotationToolSchemas(ctx, allowed)...)
 	if kernelIdentity != nil {
 		schemas = preferCanonicalFrameFileToolSchemas(schemas)
@@ -443,6 +448,7 @@ type serverAgentRuntimeToolGateway struct {
 	skillPolicy           runtimeSkillPolicyAuthority
 	suppressHooks         bool
 	kernel                *agentKernelContext
+	libraryAccess         *workspace.KernelFrameAccess
 	sessionID             string
 	outputLimitBytes      int64
 	fileReadLimitBytes    int64

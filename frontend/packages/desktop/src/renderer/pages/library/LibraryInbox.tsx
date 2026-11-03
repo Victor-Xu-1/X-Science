@@ -9,6 +9,9 @@ import type {
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { loadLiteratureCandidates } from '@/renderer/services/runtime/literatureCandidates';
 import { libraryAuthors, libraryMetadataText } from './libraryBibliographicText';
+import type { XScienceProject } from '@/renderer/services/xScienceGateway';
+import type { LibraryReadView } from './useLibraryWorkbench';
+import { LibraryCandidateOrigin } from './LibraryCandidateOrigin';
 import './libraryInbox.css';
 
 type State = 'pending' | 'dismissed';
@@ -28,6 +31,7 @@ export function LibraryInbox({
   submit,
   close,
   openItem,
+  projects,
 }: {
   account: string;
   busy: boolean;
@@ -36,12 +40,14 @@ export function LibraryInbox({
   submit: (command: LiteratureCandidateCommand) => Promise<LiteratureCandidateReceipt>;
   close: () => void;
   openItem: (itemId: string) => void;
+  projects?: LibraryReadView<XScienceProject[]>;
 }) {
   const { t } = useTranslation();
   const [state, setState] = useState<State>('pending');
   const [revision, setRevision] = useState(0);
   const key = JSON.stringify([account, state, revision]);
   const [view, setView] = useState<View>({ key, status: 'loading', candidates: [] });
+  const reading = useRef(true);
   const moreAbort = useRef<AbortController | null>(null);
   const submitting = useRef(false);
   // Do not project a previous Inbox session's acknowledgement as a new action.
@@ -55,6 +61,7 @@ export function LibraryInbox({
   if (owner.current.key !== key) owner.current = { key };
   useEffect(() => {
     const token = owner.current;
+    reading.current = true;
     moreAbort.current?.abort();
     moreAbort.current = null;
     setMoreBusy(false);
@@ -63,12 +70,16 @@ export function LibraryInbox({
     setView({ key, status: 'loading', candidates: [] });
     void loadLiteratureCandidates(state, abort.signal).then(
       (page) => {
-        if (!abort.signal.aborted && owner.current === token && account === getRendererAccountScopeToken())
+        if (!abort.signal.aborted && owner.current === token && account === getRendererAccountScopeToken()) {
+          reading.current = false;
           setView({ key, status: 'ready', ...page });
+        }
       },
       () => {
-        if (!abort.signal.aborted && owner.current === token && account === getRendererAccountScopeToken())
+        if (!abort.signal.aborted && owner.current === token && account === getRendererAccountScopeToken()) {
+          reading.current = false;
           setView({ key, status: 'error', candidates: [] });
+        }
       }
     );
     return () => {
@@ -76,6 +87,29 @@ export function LibraryInbox({
       moreAbort.current?.abort();
     };
   }, [account, state, key]);
+  useEffect(() => {
+    const refreshVisible = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        account !== getRendererAccountScopeToken() ||
+        busy ||
+        pendingOperationId ||
+        submitting.current ||
+        reading.current ||
+        moreAbort.current
+      )
+        return;
+      // Coalesce focus and visibility events before React starts the same owner's next read.
+      reading.current = true;
+      setRevision((n) => n + 1);
+    };
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      window.removeEventListener('focus', refreshVisible);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
+  }, [account, busy, pendingOperationId]);
   useEffect(() => {
     if (receipt && account === getRendererAccountScopeToken()) setRevision((n) => n + 1);
   }, [account, receipt]);
@@ -209,6 +243,7 @@ export function LibraryInbox({
                 {libraryMetadataText(candidate.metadata.abstract) && (
                   <p className='library-inbox__abstract'>{libraryMetadataText(candidate.metadata.abstract)}</p>
                 )}
+                <LibraryCandidateOrigin origins={candidate.task_origins} state={state} projects={projects} />
               </div>
               <div className='library-inbox__decisions'>
                 {state === 'pending' && (

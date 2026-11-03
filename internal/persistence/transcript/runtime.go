@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -705,7 +706,11 @@ func validateRunnerCheckpointToolBatchReceipt(
 		}
 		call := calls[ordinal]
 		var arguments any
-		if err := json.Unmarshal(call.Arguments, &arguments); err != nil || arguments == nil {
+		// The batch writer canonicalizes JSON without narrowing number tokens.
+		// Validate those same bytes; a float projection changes the receipt hash.
+		decoder := json.NewDecoder(bytes.NewReader(call.Arguments))
+		decoder.UseNumber()
+		if err := decoder.Decode(&arguments); err != nil || arguments == nil || decoder.Decode(&struct{}{}) != io.EOF {
 			return errors.New("model tool-call batch arguments are invalid")
 		}
 		canonical, err := json.Marshal(arguments)

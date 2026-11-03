@@ -92,7 +92,7 @@ func (g serverAgentRuntimeToolGateway) ToolCallExecutionIdentity(
 		return agentruntime.ToolCall{}, false
 	}
 	input := map[string]any{}
-	if len(call.Arguments) > 0 && json.Unmarshal(call.Arguments, &input) != nil {
+	if len(call.Arguments) > 0 && decodeAgentRuntimeToolArguments(name, call.Arguments, &input) != nil {
 		return agentruntime.ToolCall{}, false
 	}
 	encoded, err := json.Marshal(g.normalizeAdmittedToolArguments(name, input))
@@ -194,6 +194,7 @@ func (s *Server) executeExactToolGateway(
 		allowedTools:          []string{allowedName},
 		suppressHooks:         options.SuppressHooks,
 		kernel:                kernel,
+		libraryAccess:         s.captureLibraryTaskAccess(ctx, sessionID),
 		sessionID:             strings.TrimSpace(sessionID),
 		outputLimitBytes:      defaultSessionRunnerOutputLimitBytes,
 		toolSchemas:           schemas,
@@ -260,7 +261,7 @@ func serverAgentRuntimeGatewayAdmit(invocation *toolgateway.Invocation) {
 	}
 	input := map[string]any{}
 	if len(invocation.Arguments) > 0 {
-		if err := json.Unmarshal(invocation.Arguments, &input); err != nil {
+		if err := decodeAgentRuntimeToolArguments(name, invocation.Arguments, &input); err != nil {
 			execution.badRequest = true
 			value := map[string]any{"ok": false, "error": fmt.Sprintf("decode tool arguments: %v", err)}
 			invocation.CompleteForAudit(value, "failed", stringValue(value["error"]), nil)

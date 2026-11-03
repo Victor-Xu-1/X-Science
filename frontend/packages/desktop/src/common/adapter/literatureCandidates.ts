@@ -1,5 +1,17 @@
 import { literatureValueIdentity } from './literatureLibrary';
 
+/** Server-derived discovery provenance; never an input to a candidate mutation. */
+export type LiteratureTaskOrigin = Readonly<{
+  kind: 'agent';
+  frame_id: string;
+  frame_incarnation_id: string;
+  root_frame_id: string;
+  root_frame_incarnation_id: string;
+  project_id?: string;
+  project_available?: boolean;
+  recorded_at: string;
+}>;
+
 export type LiteratureCandidate = {
   id: string;
   title: string;
@@ -8,6 +20,7 @@ export type LiteratureCandidate = {
   external_id: string;
   state: 'pending' | 'dismissed' | 'accepted';
   item_id?: string;
+  task_origins?: readonly LiteratureTaskOrigin[];
 };
 export type LiteratureCandidateCommand =
   | {
@@ -49,6 +62,38 @@ const metadata = (v: unknown): Record<string, unknown> => {
   if (new TextEncoder().encode(serverEncoded).length > 16384) return invalid();
   return JSON.parse(encoded) as Record<string, unknown>;
 };
+const utcTimestamp = (value: unknown): value is string => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value)) return false;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 19) === value.slice(0, 19);
+};
+function decodeTaskOrigin(value: unknown): LiteratureTaskOrigin {
+  if (
+    !record(value) ||
+    value.kind !== 'agent' ||
+    !text(value.frame_id, 512) ||
+    !text(value.frame_incarnation_id, 512) ||
+    !text(value.root_frame_id, 512) ||
+    !text(value.root_frame_incarnation_id, 512) ||
+    (value.project_id !== undefined && !text(value.project_id, 512)) ||
+    (value.project_id === undefined
+      ? value.project_available !== undefined
+      : typeof value.project_available !== 'boolean') ||
+    !utcTimestamp(value.recorded_at)
+  )
+    return invalid();
+  return {
+    kind: 'agent',
+    frame_id: value.frame_id,
+    frame_incarnation_id: value.frame_incarnation_id,
+    root_frame_id: value.root_frame_id,
+    root_frame_incarnation_id: value.root_frame_incarnation_id,
+    ...(value.project_id === undefined
+      ? {}
+      : { project_id: value.project_id as string, project_available: value.project_available as boolean }),
+    recorded_at: value.recorded_at,
+  };
+}
 export function decodeLiteratureCandidate(value: unknown): LiteratureCandidate {
   if (
     !record(value) ||
@@ -59,7 +104,8 @@ export function decodeLiteratureCandidate(value: unknown): LiteratureCandidate {
     !['pending', 'dismissed', 'accepted'].includes(String(value.state)) ||
     (value.item_id !== undefined && !text(value.item_id, 512)) ||
     (value.state === 'accepted' && !text(value.item_id, 512)) ||
-    (value.state !== 'accepted' && value.item_id !== undefined)
+    (value.state !== 'accepted' && value.item_id !== undefined) ||
+    (value.task_origins !== undefined && !Array.isArray(value.task_origins))
   )
     return invalid();
   return {
@@ -70,6 +116,9 @@ export function decodeLiteratureCandidate(value: unknown): LiteratureCandidate {
     external_id: value.external_id,
     state: value.state as LiteratureCandidate['state'],
     ...(value.item_id ? { item_id: value.item_id as string } : {}),
+    ...(value.task_origins === undefined
+      ? {}
+      : { task_origins: (value.task_origins as unknown[]).map(decodeTaskOrigin) }),
   };
 }
 export function decodeLiteratureCandidateCommand(value: unknown): LiteratureCandidateCommand {

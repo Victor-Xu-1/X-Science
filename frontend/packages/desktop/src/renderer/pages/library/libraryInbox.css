@@ -109,6 +109,27 @@
   display: grid;
   gap: 8px;
 }
+.library-inbox__origins {
+  margin-block-start: 12px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--workspace-border);
+  color: var(--workspace-text-secondary);
+  font-size: var(--ui-font-meta);
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+.library-inbox__origins h4,
+.library-inbox__origins p {
+  margin: 4px 0;
+}
+.library-inbox__origins h4 {
+  font: inherit;
+  font-weight: var(--ui-weight-semibold);
+}
+.library-inbox__origins ul {
+  margin: 4px 0;
+  padding-inline-start: 20px;
+}
 .library-inbox .library-workbench__button.library-inbox__accept,
 .library-inbox .library-workbench__button.library-inbox__accept:disabled {
   color: var(--workspace-canvas);

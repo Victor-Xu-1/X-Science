@@ -617,7 +617,7 @@ func isAgentFrameToolName(name string) bool {
 	}
 	switch strings.TrimSpace(name) {
 	case "read_memory", "write_memory", "search_memory",
-		"save_artifacts", "search_rcsb_structures", "download_rcsb_file", "download_public_scientific_file", "wait_for_notification", onboardingReadAttachmentToolName:
+		"save_artifacts", librarySaveToInboxToolName, "search_rcsb_structures", "download_rcsb_file", "download_public_scientific_file", "wait_for_notification", onboardingReadAttachmentToolName:
 		return true
 	default:
 		return isAgentEnvironmentManagementTool(name) || isAgentKernelToolName(name) || isAgentWorkspaceFileTool(name)

@@ -55,7 +55,7 @@ func mutationRequestHash(value any) (string, error) {
 	return hex.EncodeToString(digest[:]), nil
 }
 
-func readMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation string) (string, string, bool, error) {
+func readMutationResultTx(ctx context.Context, tx workspaceTransaction, ownerUserID, idempotencyKey, operation string) (string, string, bool, error) {
 	var storedHash, raw string
 	err := tx.QueryRowContext(ctx, `SELECT request_hash, result_json FROM mutation_result_ledger
 		WHERE owner_user_id = ? AND idempotency_key = ? AND operation = ?`, ownerUserID, idempotencyKey, operation).Scan(&storedHash, &raw)
@@ -75,7 +75,7 @@ func decodeMutationResult(raw string, output any) error {
 	return nil
 }
 
-func lookupMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation, requestHash string, output any) (bool, error) {
+func lookupMutationResultTx(ctx context.Context, tx workspaceTransaction, ownerUserID, idempotencyKey, operation, requestHash string, output any) (bool, error) {
 	storedHash, raw, found, err := readMutationResultTx(ctx, tx, ownerUserID, idempotencyKey, operation)
 	if err != nil || !found {
 		return false, err
@@ -105,7 +105,7 @@ func (s *Store) lookupMutationResult(ctx context.Context, ownerUserID, idempoten
 	return found, nil
 }
 
-func insertMutationResultTx(ctx context.Context, tx *sql.Tx, ownerUserID, idempotencyKey, operation, requestHash string, result any, now time.Time) error {
+func insertMutationResultTx(ctx context.Context, tx workspaceTransaction, ownerUserID, idempotencyKey, operation, requestHash string, result any, now time.Time) error {
 	for field, value := range map[string]string{"owner": ownerUserID, "idempotency key": idempotencyKey, "operation": operation, "request hash": requestHash} {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("mutation result %s is required", field)
