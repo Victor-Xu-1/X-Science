@@ -60,16 +60,18 @@ type Executor struct {
 	// workerGeneration is process-local Manager authority. It intentionally
 	// differs from the durable logical kernel generation after an executor or
 	// controller restart; the latter remains in SQLite request/fence records.
-	workerGeneration uint64
-	active           map[string]*activeExecution
-	lifetimeDone     <-chan struct{}
-	workspaceDir     string
-	shutdown         chan struct{}
-	fatalErr         chan error
-	lastActivity     time.Time
-	draining         bool
-	memoryDomain     *executorMemoryDomain
-	once             sync.Once
+	workerGeneration  uint64
+	active            map[string]*activeExecution
+	lifetimeDone      <-chan struct{}
+	workspaceDir      string
+	shutdown          chan struct{}
+	fatalErr          chan error
+	lastActivity      time.Time
+	draining          bool
+	memoryDomain      *executorMemoryDomain
+	sessionDocument   workspace.KernelExecutionSessionDocument
+	sessionSpecSHA256 string
+	once              sync.Once
 }
 
 type activeExecution struct {
@@ -121,10 +123,11 @@ func (e *Executor) Run(ctx context.Context) (runReturnErr error) {
 			runReturnErr = e.RecordStartupFailure(startupStage, runReturnErr)
 		}
 	}()
-	spec, err := workspace.DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON)
+	spec, err := workspace.DecodeKernelExecutionSessionDocument(backend.SessionSpecJSON)
 	if err != nil {
 		return err
 	}
+	e.sessionDocument, e.sessionSpecSHA256 = spec, backend.SessionSpecSHA256
 	startupStage = "resource_domain"
 	e.memoryDomain, err = prepareExecutorMemoryDomain(e.BackendID, e.BackendGeneration)
 	if err != nil {
@@ -137,7 +140,7 @@ func (e *Executor) Run(ctx context.Context) (runReturnErr error) {
 		}
 	}
 	startupStage = "worker_start"
-	session, err := e.Manager.EnsureSession(kernelSessionSpec(spec))
+	session, err := e.Manager.EnsureSession(kernelSessionSpec(spec.KernelExecutionSessionSpecV1))
 	if err != nil {
 		return fmt.Errorf("ensure detached kernel session: %w", err)
 	}
@@ -347,10 +350,11 @@ func (e *Executor) dispatch(ctx context.Context, request CommandRequest) Command
 	if execution.ReasonCode == workspace.KernelExecutionNamespaceRecoveryReasonCode && execution.TerminalReceiptID == "" {
 		return commandResponseError(request.RequestID, "recovery_required", "The original execution is preserved pending runtime identity verification; it was not dispatched again.")
 	}
-	durableRequest, err := workspace.DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
-	if err != nil || durableRequest.ExecutionID != request.ExecutionID || durableRequest.HostCallMethods != nil && len(durableRequest.HostCallMethods) > 0 {
+	document, err := workspace.ReadDetachedExecutionDocument(execution)
+	if err != nil || !e.acceptsExecutionDocument(document) || document.ExecutionID != request.ExecutionID || document.HostCallMethods != nil && len(document.HostCallMethods) > 0 {
 		return commandResponseError(request.RequestID, "request_invalid", "detached kernel execution request is unavailable")
 	}
+	durableRequest := document.KernelDetachedExecutionRequestV1
 	e.mu.Lock()
 	if _, exists := e.active[request.ExecutionID]; exists {
 		e.mu.Unlock()
@@ -705,6 +709,15 @@ func (e *Executor) commitOutcome(
 	if execution.TerminalReceiptID != "" {
 		return nil
 	}
+	document, err := workspace.ReadDetachedExecutionDocument(execution)
+	if err != nil || !e.acceptsExecutionDocument(document) {
+		return ErrExecutionResultContractConflict
+	}
+	requested, encodeErr := json.Marshal(request)
+	admitted, admittedErr := json.Marshal(document.KernelDetachedExecutionRequestV1)
+	if encodeErr != nil || admittedErr != nil || string(requested) != string(admitted) {
+		return ErrExecutionResultContractConflict
+	}
 	cancelledByAuthority, terminationSignal := detachedCancellationOutcome(execution)
 	if cancelledByAuthority {
 		// The durable request and executor acknowledgement are the terminal
@@ -724,7 +737,7 @@ func (e *Executor) commitOutcome(
 	if outcome.Err != nil && !cancelledByAuthority {
 		result.Error = detachedExecutionError(outcome.Err)
 	}
-	resultJSON, resultRef, err := e.materializeExecutorResult(result)
+	resultJSON, resultRef, err := e.materializeExecutorResult(executorResultPayload(result, document, execution.RequestSHA256, outcome.Err))
 	if err != nil {
 		return err
 	}
@@ -777,7 +790,7 @@ func detachedExecutionError(err error) string {
 	return generic + ": " + detail
 }
 
-func (e *Executor) materializeExecutorResult(result ExecutionResultV1) ([]byte, string, error) {
+func (e *Executor) materializeExecutorResult(result executorResultDocument) ([]byte, string, error) {
 	encoded, err := json.Marshal(result)
 	if err != nil {
 		return nil, "", errors.New("encode detached kernel result")
@@ -841,7 +854,7 @@ func (e *Executor) materializeExecutorResult(result ExecutionResultV1) ([]byte, 
 		Kind        string `json:"kind"`
 		SHA256      string `json:"sha256"`
 		Bytes       int    `json:"bytes"`
-	}{Version: 1, ExecutionID: result.ExecutionID, Kind: "kernel-spool-v1", SHA256: fullSHA, Bytes: len(encoded)})
+	}{Version: 1, ExecutionID: result.executionIdentity(), Kind: "kernel-spool-v1", SHA256: fullSHA, Bytes: len(encoded)})
 	if err != nil {
 		return nil, "", errors.New("encode detached kernel result pointer")
 	}
@@ -873,13 +886,6 @@ func (e *Executor) runIdleReconciler(ctx context.Context) error {
 			e.mu.Unlock()
 		}
 	}
-}
-
-func executorShouldReapIdle(lastActivity time.Time, activeCount int, now time.Time, timeout time.Duration) bool {
-	if activeCount != 0 || timeout <= 0 || lastActivity.IsZero() {
-		return false
-	}
-	return !now.Before(lastActivity) && now.Sub(lastActivity) >= timeout
 }
 
 func (e *Executor) beginDraining() {

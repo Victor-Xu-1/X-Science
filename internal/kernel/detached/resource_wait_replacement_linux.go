@@ -120,7 +120,7 @@ func (b *Backend) readUnlaunchedResourceWait(ctx context.Context, expected works
 	if reservation.ReservedBytes != 0 || (reservation.State != "waiting" && reservation.State != "released") {
 		return current, reservation, false, nil
 	}
-	spec, err := workspace.DecodeKernelExecutionSessionSpecV1(current.SessionSpecJSON)
+	spec, err := workspace.DecodeKernelExecutionSessionDocument(current.SessionSpecJSON)
 	if err != nil {
 		return current, reservation, false, err
 	}

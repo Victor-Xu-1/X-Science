@@ -734,7 +734,7 @@ func (s *Store) ListDetachedKernelExecutionRecoveryPage(
 		if execution.State == DetachedKernelExecutionStateStarted && execution.ReasonCode == KernelExecutionNamespaceRecoveryReasonCode && execution.TerminalReceiptID == "" {
 			continue
 		}
-		request, err := DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
+		request, err := ReadDetachedExecutionDocument(execution)
 		if err != nil {
 			return DetachedKernelExecutionRecoveryPage{}, err
 		}
@@ -1276,7 +1276,7 @@ func getKernelExecutionBackendQuery(
 	if backend.SessionSpecSHA256 != sha256HexString(backend.SessionSpecJSON) {
 		return KernelExecutionBackend{}, false, ErrKernelExecutionBackendConflict
 	}
-	if _, decodeErr := DecodeKernelExecutionSessionSpecV1(backend.SessionSpecJSON); decodeErr != nil {
+	if _, decodeErr := DecodeKernelExecutionSessionDocument(backend.SessionSpecJSON); decodeErr != nil {
 		return KernelExecutionBackend{}, false, ErrKernelExecutionBackendConflict
 	}
 	return backend, true, nil
@@ -1348,7 +1348,7 @@ func getDetachedKernelExecutionQuery(
 	if execution.RequestSHA256 != sha256HexString(execution.RequestJSON) {
 		return DetachedKernelExecution{}, false, ErrDetachedKernelExecutionConflict
 	}
-	if _, decodeErr := DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON); decodeErr != nil {
+	if _, decodeErr := ReadDetachedExecutionDocument(execution); decodeErr != nil {
 		return DetachedKernelExecution{}, false, ErrDetachedKernelExecutionConflict
 	}
 	return execution, true, nil

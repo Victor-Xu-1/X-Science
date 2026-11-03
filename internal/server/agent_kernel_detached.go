@@ -631,7 +631,7 @@ func (s *Server) settleDetachedAgentKernelExecution(
 		return nil, errors.New("detached kernel result receipt is unavailable")
 	}
 	result, cleanupPath, err := kerneldetached.LoadExecutionResult(
-		filepath.Join(s.fileRoot, "workspace", "kernel-result-spool"), receipt,
+		filepath.Join(s.fileRoot, "workspace", "kernel-result-spool"), receipt, execution,
 	)
 	if err != nil {
 		return nil, err
@@ -652,6 +652,7 @@ func (s *Server) settleDetachedAgentKernelExecution(
 		Response: result.Response, Err: outcomeErr, TimedOut: result.TimedOut,
 		FilesWritten: files, DroppedRoots: dropped, CellIndex: result.CellIndex,
 		StartedAt: result.StartedAt, FinishedAt: result.FinishedAt, Generation: result.Generation,
+		HostResources: &result.HostResources,
 	}
 	started.StartedAt = result.StartedAt
 	if operation != nil && strings.EqualFold(strings.TrimSpace(operation.Tool), softwareRuntimeToolName) {
@@ -743,10 +744,10 @@ func (s *Server) closeDetachedTaskOwnedSession(
 	return s.kernelExecutionBackend.CloseSession(cleanupCtx, backendSession, lease)
 }
 
-func detachedKernelRequestFromExecution(execution workspace.DetachedKernelExecution) (workspace.KernelDetachedExecutionRequestV1, error) {
-	request, err := workspace.DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
+func detachedKernelRequestFromExecution(execution workspace.DetachedKernelExecution) (workspace.KernelDetachedExecutionDocument, error) {
+	request, err := workspace.ReadDetachedExecutionDocument(execution)
 	if err != nil || strings.TrimSpace(request.ExecutionID) != execution.ExecutionID {
-		return workspace.KernelDetachedExecutionRequestV1{}, errors.New("detached kernel request conflicts with durable state")
+		return workspace.KernelDetachedExecutionDocument{}, errors.New("detached kernel request conflicts with durable state")
 	}
 	return request, nil
 }

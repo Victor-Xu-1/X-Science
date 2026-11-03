@@ -566,7 +566,10 @@ func prepareAgentKernelExecution(
 		result["timed_out"] = true
 		result["code"] = "kernel_execution_timeout"
 	}
-	if pressure := kernelResourcePressureReceipt(outcome.Response.Trace); pressure != nil && exitStatus == "error" {
+	if outcome.HostResources != nil && outcome.HostResources.Validate() == nil {
+		result["host_resources"] = outcome.HostResources
+	}
+	if pressure := kernelResourcePressureReceipt(outcome); pressure != nil && exitStatus == "error" {
 		result["code"] = "kernel_memory_pressure"
 		result["resource_pressure"] = pressure
 		result["recoverable"] = true

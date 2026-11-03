@@ -52,50 +52,50 @@ type spoolPointerV1 struct {
 func LoadExecutionResult(
 	spoolDir string,
 	receipt workspace.KernelExecutionResultReceipt,
-) (result ExecutionResultV1, cleanupPath string, err error) {
+	execution workspace.DetachedKernelExecution,
+) (result ExecutionResult, cleanupPath string, err error) {
 	if receipt.ResultJSON == "" || receipt.ResultSHA256 == "" {
-		return ExecutionResultV1{}, "", errors.New("detached kernel result receipt is incomplete")
+		return ExecutionResult{}, "", errors.New("detached kernel result receipt is incomplete")
 	}
 	receiptDigest := sha256.Sum256([]byte(receipt.ResultJSON))
 	if hex.EncodeToString(receiptDigest[:]) != receipt.ResultSHA256 {
-		return ExecutionResultV1{}, "", errors.New("detached kernel result receipt digest conflicts with content")
+		return ExecutionResult{}, "", errors.New("detached kernel result receipt digest conflicts with content")
 	}
 	raw := []byte(receipt.ResultJSON)
 	if receipt.ResultRef != "" {
 		const prefix = "kernel-spool-sha256:"
 		if !strings.HasPrefix(receipt.ResultRef, prefix) || len(receipt.ResultRef) != len(prefix)+64 {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result reference is unsupported")
+			return ExecutionResult{}, "", errors.New("detached kernel result reference is unsupported")
 		}
 		spoolSHA := strings.TrimPrefix(receipt.ResultRef, prefix)
 		var pointer spoolPointerV1
 		if err := decodeClosedResultJSON(raw, &pointer); err != nil || pointer.Version != 1 ||
 			pointer.ExecutionID != receipt.ExecutionID || pointer.Kind != "kernel-spool-v1" ||
 			pointer.SHA256 != spoolSHA || pointer.Bytes <= 1048576 {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result pointer is invalid")
+			return ExecutionResult{}, "", errors.New("detached kernel result pointer is invalid")
 		}
 		spoolDir = filepath.Clean(strings.TrimSpace(spoolDir))
 		if !filepath.IsAbs(spoolDir) {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result spool is unavailable")
+			return ExecutionResult{}, "", errors.New("detached kernel result spool is unavailable")
 		}
 		cleanupPath = filepath.Join(spoolDir, spoolSHA+".json")
 		if filepath.Dir(cleanupPath) != spoolDir {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result spool path is invalid")
+			return ExecutionResult{}, "", errors.New("detached kernel result spool path is invalid")
 		}
 		raw, err = os.ReadFile(cleanupPath)
 		if err != nil || len(raw) != pointer.Bytes {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result spool is unavailable")
+			return ExecutionResult{}, "", errors.New("detached kernel result spool is unavailable")
 		}
 		fullDigest := sha256.Sum256(raw)
 		expected, decodeErr := hex.DecodeString(spoolSHA)
 		if decodeErr != nil || len(expected) != len(fullDigest) ||
 			subtle.ConstantTimeCompare(fullDigest[:], expected) != 1 {
-			return ExecutionResultV1{}, "", errors.New("detached kernel result spool digest conflicts with content")
+			return ExecutionResult{}, "", errors.New("detached kernel result spool digest conflicts with content")
 		}
 	}
-	if err := decodeClosedResultJSON(raw, &result); err != nil || result.Version != 1 ||
-		result.ExecutionID != receipt.ExecutionID || result.KernelID == "" || result.ToolCallID == "" ||
-		result.StartedAt.IsZero() || result.FinishedAt.Before(result.StartedAt) {
-		return ExecutionResultV1{}, "", errors.New("detached kernel result payload is invalid")
+	result, err = decodeExecutionResult(raw, receipt, execution)
+	if err != nil {
+		return ExecutionResult{}, "", err
 	}
 	return result, cleanupPath, nil
 }

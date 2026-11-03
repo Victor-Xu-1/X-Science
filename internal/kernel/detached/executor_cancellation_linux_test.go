@@ -59,7 +59,8 @@ func TestCancellationDoesNotInventOutcomeForLostStartedObserver(t *testing.T) {
 	now := time.Now().UTC()
 	executor := &Executor{}
 	_, err = executor.applyDurableCancellation(context.Background(), workspace.DetachedKernelExecution{
-		ExecutionID: request.ExecutionID, RequestJSON: string(encoded), WorkerStartedAt: &now, CancelRequestID: "cancel",
+		ExecutionID: request.ExecutionID, OperationID: request.OperationID, BackendID: "backend", BackendGeneration: 1,
+		RequestJSON: string(encoded), RequestSHA256: resultSHAForTest(encoded), WorkerStartedAt: &now, CancelRequestID: "cancel",
 	})
 	if err == nil || !strings.Contains(err.Error(), "no owned outcome observer") {
 		t.Fatalf("lost observer was reported as a dequeued computation: %v", err)

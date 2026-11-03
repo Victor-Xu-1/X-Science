@@ -132,9 +132,12 @@ func (e *Executor) applyDurableCancellation(
 	ctx context.Context,
 	execution workspace.DetachedKernelExecution,
 ) (workspace.DetachedKernelExecution, error) {
-	durableRequest, err := workspace.DecodeKernelDetachedExecutionRequestV1(execution.RequestJSON)
+	durableRequest, err := workspace.ReadDetachedExecutionDocument(execution)
 	if err != nil {
 		return workspace.DetachedKernelExecution{}, err
+	}
+	if !e.acceptsExecutionDocument(durableRequest) {
+		return workspace.DetachedKernelExecution{}, workspace.ErrDetachedKernelExecutionConflict
 	}
 	e.mu.Lock()
 	activeEntry, active := e.active[execution.ExecutionID]
@@ -179,7 +182,7 @@ func (e *Executor) applyDurableCancellation(
 	// with this acknowledgement and retain their actual provider outcome.
 	if !active {
 		now := time.Now().UTC()
-		if err := e.commitOutcome(durableRequest, kernelruntime.ExecutionOutcome{
+		if err := e.commitOutcome(durableRequest.KernelDetachedExecutionRequestV1, kernelruntime.ExecutionOutcome{
 			Response: kernelruntime.Response{Interrupted: true}, StartedAt: now, FinishedAt: now,
 		}, now); err != nil {
 			return workspace.DetachedKernelExecution{}, err
