@@ -68,6 +68,7 @@ type Catalog struct {
 	mu         sync.RWMutex
 	skills     []Skill
 	loadErrors []LoadError
+	revision   *catalogRevision
 }
 
 func NewCatalog() *Catalog {
@@ -80,21 +81,16 @@ func NewCatalog() *Catalog {
 func (c *Catalog) AddSkill(skill Skill) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.skills = append(c.skills, skill)
+	c.skills = append(c.skills, cloneSkill(skill))
+	c.advanceRevisionLocked()
 }
 
 func (c *Catalog) UpsertSkill(skill Skill) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for index := range c.skills {
-		if strings.EqualFold(c.skills[index].Name, skill.Name) {
-			c.skills[index] = skill
-			c.sortSkillsLocked()
-			return
-		}
+	if c.upsertSkillLocked(skill) {
+		c.advanceRevisionLocked()
 	}
-	c.skills = append(c.skills, skill)
-	c.sortSkillsLocked()
 }
 
 func (c *Catalog) RemoveSkill(name string) bool {
@@ -109,6 +105,7 @@ func (c *Catalog) RemoveSkill(name string) bool {
 			continue
 		}
 		c.skills = append(c.skills[:index], c.skills[index+1:]...)
+		c.advanceRevisionLocked()
 		return true
 	}
 	return false
@@ -143,6 +140,9 @@ func (c *Catalog) RemoveSkillsUnder(root string) []string {
 		kept = append(kept, skill)
 	}
 	c.skills = kept
+	if len(removed) > 0 {
+		c.advanceRevisionLocked()
+	}
 	sort.Strings(removed)
 	return removed
 }
@@ -156,9 +156,7 @@ func (c *Catalog) AddLoadError(path string, err error) {
 func (c *Catalog) Skills() []Skill {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	out := make([]Skill, len(c.skills))
-	copy(out, c.skills)
-	return out
+	return cloneSkills(c.skills)
 }
 
 func (c *Catalog) LoadErrors() []LoadError {
@@ -381,7 +379,7 @@ func (c *Catalog) searchActivationRanked(query string, maxResults int) []SearchM
 	})
 	matches := make([]SearchMatch, 0, len(values))
 	for _, value := range values {
-		matches = append(matches, SearchMatch{Skill: value.skill, Score: value.score})
+		matches = append(matches, SearchMatch{Skill: cloneSkill(value.skill), Score: value.score})
 		if len(matches) == maxResults {
 			break
 		}
@@ -505,7 +503,7 @@ func (c *Catalog) searchRanked(query string, maxResults int, includeBody bool) [
 		return strings.ToLower(scoredMatches[i].skill.Name) < strings.ToLower(scoredMatches[j].skill.Name)
 	})
 	for _, match := range scoredMatches {
-		matches = append(matches, SearchMatch{Skill: match.skill, Score: match.score})
+		matches = append(matches, SearchMatch{Skill: cloneSkill(match.skill), Score: match.score})
 		if len(matches) >= maxResults {
 			break
 		}

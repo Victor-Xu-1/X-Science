@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -267,6 +266,7 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11Detail(w, http.StatusBadRequest, "external skill path name is required")
 			return
 		}
+		snapshot := s.skillCatalog.Snapshot()
 		items, canonical, err := s.loadGrantedWebSkills(r.Context(), userID, input.Path)
 		if err != nil {
 			writeV11Detail(w, webSkillPathStatus(err), err.Error())
@@ -298,7 +298,15 @@ func (s *Server) handleWebSkillExternalPaths(w http.ResponseWriter, r *http.Requ
 			writeV11StoreError(w, err)
 			return
 		}
-		if s.upsertExternalWebSkills(items) {
+		changed, refreshErr := s.compareApplyExternalWebSkills(r.Context(), snapshot, [][]skills.Skill{items})
+		// Saving the source registration already succeeded. A stale or canceled
+		// content refresh cannot roll it back or imply that old bytes were accepted.
+		if refreshErr != nil {
+			s.notifySkillCatalogChanged(userID)
+			writeJSON(w, http.StatusOK, nil)
+			return
+		}
+		if changed {
 			s.notifySkillCatalogChanged("")
 		} else {
 			s.notifySkillCatalogChanged(userID)
@@ -570,6 +578,7 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	snapshot := s.skillCatalog.Snapshot()
 	paths, err := s.loadWebSkillExternalPaths(userID)
 	if err != nil {
 		return err
@@ -590,11 +599,9 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	catalogChanged := false
-	for _, items := range loadedSources {
-		if s.upsertExternalWebSkills(items) {
-			catalogChanged = true
-		}
+	catalogChanged, err := s.compareApplyExternalWebSkills(ctx, snapshot, loadedSources)
+	if err != nil {
+		return err
 	}
 	if catalogChanged {
 		s.notifySkillCatalogChanged("")
@@ -602,21 +609,63 @@ func (s *Server) syncWebExternalSkillsWithLoader(ctx context.Context, userID str
 	return nil
 }
 
-func (s *Server) upsertExternalWebSkills(items []skills.Skill) bool {
-	changed := false
-	for _, skill := range items {
-		existing, found := findCatalogSkill(s.skillCatalog, skill.Name)
-		if found && !sameCleanPath(existing.Path, skill.Path) {
-			continue
-		}
-		// Reads also reconcile external directories. Only a real projection
-		// difference invalidates readers; equal GETs must not feed themselves.
-		if !found || !reflect.DeepEqual(existing, skill) {
-			changed = true
-		}
-		s.skillCatalog.UpsertSkill(skill)
+func (s *Server) compareApplyExternalWebSkills(ctx context.Context, snapshot skills.CatalogSnapshot, sources [][]skills.Skill) (bool, error) {
+	if ctx == nil {
+		return false, skills.ErrNilLoadContext
 	}
-	return changed
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	upserts := externalWebSkillUpserts(snapshot.Skills, sources)
+	// Match the publisher's lock order. No filesystem, settings or event IO is
+	// performed in this short content commit; all source reads are complete.
+	// A publisher can own the guard during file/DB work. Catalog reads must not
+	// wait for that work: keep the current projection and let a later read scan.
+	if !s.skillMutationMu.TryLock() {
+		return false, ctx.Err()
+	}
+	changed, err := s.skillCatalog.CompareApply(ctx, snapshot.Revision, upserts)
+	s.skillMutationMu.Unlock()
+	if errors.Is(err, skills.ErrCatalogRevisionConflict) {
+		// Another accepted mutation won. Serve the current catalog without
+		// turning a normal GET into an error or a self-triggered retry loop.
+		return false, nil
+	}
+	return changed, err
+}
+
+// Build the original first-visible-name/path plan on the owned snapshot, not
+// on live Catalog reads between individual writes. This is transient planning
+// data, and only CompareApply can publish it to the original Catalog.
+func externalWebSkillUpserts(projected []skills.Skill, sources [][]skills.Skill) []skills.Skill {
+	upserts := make([]skills.Skill, 0)
+	for _, items := range sources {
+		for _, skill := range items {
+			conflict := false
+			for _, existing := range projected {
+				if strings.EqualFold(strings.TrimSpace(existing.Name), strings.TrimSpace(skill.Name)) {
+					conflict = !sameCleanPath(existing.Path, skill.Path)
+					break
+				}
+			}
+			if conflict {
+				continue
+			}
+			upserts = append(upserts, skill)
+			replaced := false
+			for index := range projected {
+				if strings.EqualFold(projected[index].Name, skill.Name) {
+					projected[index], replaced = skill, true
+					break
+				}
+			}
+			if !replaced {
+				projected = append(projected, skill)
+			}
+			sort.Slice(projected, func(i, j int) bool { return strings.ToLower(projected[i].Name) < strings.ToLower(projected[j].Name) })
+		}
+	}
+	return upserts
 }
 
 func webSkillBridgeSource(s *Server, skill skills.Skill) string {
