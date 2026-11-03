@@ -298,5 +298,16 @@ func diagnosticJSON(t *testing.T, record AuditRecord) map[string]any {
 		t.Fatal(err)
 	}
 	diagnostic, _ := value["responseDiagnostics"].(map[string]any)
-	return diagnostic
+	if diagnostic == nil {
+		return nil
+	}
+	// These cases retain their exact legacy structure contract. The optional
+	// request transport object is pinned separately by actual HTTP stage tests.
+	legacy := map[string]any{}
+	for key, observed := range diagnostic {
+		if key != "transport" {
+			legacy[key] = observed
+		}
+	}
+	return legacy
 }

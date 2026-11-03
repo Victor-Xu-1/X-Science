@@ -153,10 +153,12 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		return agentruntime.ModelResponse{}, false, false, err
 	}
 
-	startedAt := time.Now().UTC()
+	started := time.Now()
+	startedAt := started.UTC()
 	observation := &providerResponseObservation{}
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
 	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
+	observation.transport = &providerTransportObservation{started: started, parent: ctx, request: requestCtx}
 	defer cancelRequest(nil)
 	defer planning.Stop()
 
@@ -184,6 +186,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
 	planning.HeadersReceived()
+	response.Body = observation.transport.observeHeaders(response.Body)
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -217,15 +220,18 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	var usage providerTokenUsage
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
+		observation.transport.beginDecode("sse")
 		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readObservedOpenAIChatStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit, observation, request.Tools,
 		)
 	} else {
+		observation.transport.observeFormat("json_fallback", false)
 		var body []byte
 		body, err = readProviderStreamResponseBody(response.Body, c.profile.Request.MaxResponseBytes, idleTimeout, cancelRequest, planning.ObserveGrowth)
 		if err == nil {
+			observation.transport.beginDecode("json_fallback")
 			decoded, requestID, usage, err = c.observedOpenAIResponseDecoder(body, response.Header, observation)
 			if IsContinuationSafeResponseTruncation(err) && strings.TrimSpace(decoded.Message.Content) != "" {
 				if emitErr := emit(agentruntime.ModelStreamEvent{
@@ -522,6 +528,9 @@ func readObservedOpenAIChatStream(reader io.Reader, limit int64, emit func(agent
 			}
 			if semanticDeltaBytes > 0 || firstTerminal {
 				recordProviderStreamProgress(reader, semanticDeltaBytes)
+				if observation != nil {
+					observation.transport.observeGrowth(semanticDeltaBytes, false)
+				}
 			}
 			if choice.Delta.Content != "" {
 				if !accumulator.roleBound || accumulator.role != "assistant" || accumulator.requestID == "" {

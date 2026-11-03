@@ -18,13 +18,14 @@ type ProviderResponseOutcome string
 // text, tool arguments or execution authority. Nil means unobserved; pointers
 // retain observed false/zero. Currently only native chat-completions is wired.
 type ProviderResponseDiagnostics struct {
-	TerminationReason    *ProviderTerminationReason `json:"terminationReason,omitempty"`
-	TerminalObserved     *bool                      `json:"terminalObserved,omitempty"`
-	RawToolCallsObserved *bool                      `json:"rawToolCallsObserved,omitempty"`
-	RawToolCallCount     *int                       `json:"rawToolCallCount,omitempty"`
-	DecodedToolCallCount *int                       `json:"decodedToolCallCount,omitempty"`
-	Outcome              *ProviderResponseOutcome   `json:"outcome,omitempty"`
-	Incomplete           *bool                      `json:"incomplete,omitempty"`
+	TerminationReason    *ProviderTerminationReason    `json:"terminationReason,omitempty"`
+	TerminalObserved     *bool                         `json:"terminalObserved,omitempty"`
+	RawToolCallsObserved *bool                         `json:"rawToolCallsObserved,omitempty"`
+	RawToolCallCount     *int                          `json:"rawToolCallCount,omitempty"`
+	DecodedToolCallCount *int                          `json:"decodedToolCallCount,omitempty"`
+	Outcome              *ProviderResponseOutcome      `json:"outcome,omitempty"`
+	Incomplete           *bool                         `json:"incomplete,omitempty"`
+	Transport            *ProviderTransportDiagnostics `json:"transport,omitempty"`
 }
 
 // Each actual HTTP attempt owns its observer. Never put it on the reused
@@ -34,6 +35,7 @@ type providerResponseObservation struct {
 	sawChoice, sawTool, terminal   bool
 	providerError, consumerFailure bool
 	protocolFailure                bool
+	transport                      *providerTransportObservation
 }
 
 func diagnosticPointer[T any](value T) *T { return &value }
@@ -118,6 +120,11 @@ func (o *providerResponseObservation) finishDecode(response agentruntime.ModelRe
 	if o == nil {
 		return
 	}
+	if response.Message.Content != "" || response.Message.ReasoningContent != "" || len(response.Message.ToolCalls) != 0 {
+		// JSON fallback has one completed decoder admission, not incremental
+		// transport growth. SSE was observed at its original progress branch.
+		o.transport.observeGrowth(1, true)
+	}
 	o.value.DecodedToolCallCount = diagnosticPointer(len(response.Message.ToolCalls))
 	if o.sawTool {
 		o.value.RawToolCallsObserved = diagnosticPointer(true)
@@ -200,6 +207,7 @@ func (o *providerResponseObservation) audit(record AuditRecord, err error) Audit
 		o.value.Outcome = diagnosticPointer(ProviderResponseOutcome("http_error"))
 	}
 	value := o.value // Later request-local changes cannot replace this snapshot.
+	value.Transport = o.transport.snapshot(err, value.TerminalObserved)
 	record.ResponseDiagnostics = &value
 	return record
 }
