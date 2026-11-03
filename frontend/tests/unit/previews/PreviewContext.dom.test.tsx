@@ -68,6 +68,59 @@ describe('PreviewContext', () => {
     expect(result.current.presentationMode).toBe('single');
   });
 
+  it('saves and closes the clean original artifact tab without closing the active different tab', async () => {
+    let writes = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>(async (input, init) => {
+        if (String(input).endsWith('/api/artifacts/artifact-a/metadata'))
+          return Response.json({ artifact_id: 'artifact-a', filename: 'a.md', version_id: 'version-a1' });
+        if (init?.method === 'POST') {
+          writes++;
+          return Response.json({ artifact_id: 'artifact-a', version_id: 'version-a2' }, { status: 201 });
+        }
+        return Response.json([]);
+      })
+    );
+    try {
+      const { result } = renderHook(() => usePreviewContext(), { wrapper });
+      act(() => {
+        result.current.openPreview('original', 'markdown', {
+          artifactId: 'artifact-a',
+          versionId: 'version-a1',
+          file_name: 'a.md',
+        });
+      });
+      const original = result.current.activeTabId!;
+      await act(async () => {
+        expect(await result.current.beginContentEdit(original)).toBe(true);
+      });
+      act(() => {
+        result.current.updateTabContent(original, 'saved draft');
+        result.current.openPreview('other', 'markdown', { file_name: 'b.md' });
+      });
+      const active = result.current.activeTabId!;
+      expect(active).not.toBe(original);
+      await act(async () => {
+        expect(await result.current.saveContent(original)).toBe(true);
+      });
+      expect(result.current.tabs.find((tab) => tab.id === original)).toMatchObject({
+        content: 'saved draft',
+        isDirty: false,
+        metadata: { versionId: 'version-a2' },
+      });
+      act(() => {
+        result.current.closeTab(original);
+      });
+      expect(result.current.activeTabId).toBe(active);
+      expect(result.current.tabs).toHaveLength(1);
+      expect(result.current.tabs[0]?.content).toBe('other');
+      expect(writes).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('uses browser-native preview channels without unavailable desktop IPC subscriptions', () => {
     renderHook(() => usePreviewContext(), { wrapper });
 

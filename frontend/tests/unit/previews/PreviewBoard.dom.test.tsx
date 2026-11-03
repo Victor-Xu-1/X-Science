@@ -10,10 +10,13 @@ import React, { useEffect, useRef } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestI18n } from '../i18nTestUtils';
+import { XScienceHttpError } from '@/renderer/services/xScienceHttp';
 
 const commonMocks = vi.hoisted(() => ({
   writeFileInvoke: vi.fn(),
   createArtifactVersion: vi.fn(),
+  loadArtifact: vi.fn(),
+  loadVersionText: vi.fn(),
 }));
 
 let PreviewBoardComponent: React.ComponentType;
@@ -44,6 +47,12 @@ vi.mock('@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwy
 vi.mock('@/renderer/services/xScienceArtifacts', () => ({
   createXScienceTextArtifactVersion: commonMocks.createArtifactVersion,
   getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifact-versions/${versionId}/content`,
+  loadXScienceArtifactVersionText: commonMocks.loadVersionText,
+}));
+// The board regression owns the metadata read boundary, not the unrelated
+// gateway module's runtime/dependency initialization.
+vi.mock('@/renderer/services/xScienceGateway', () => ({
+  loadXScienceArtifact: commonMocks.loadArtifact,
 }));
 
 vi.mock('@/renderer/utils/emitter', () => ({
@@ -140,7 +149,11 @@ describe('PreviewBoard', () => {
   beforeEach(async () => {
     localStorage.clear();
     commonMocks.writeFileInvoke.mockReset().mockResolvedValue(true);
-    commonMocks.createArtifactVersion.mockReset().mockResolvedValue({ versionId: 'version-2' });
+    commonMocks.createArtifactVersion
+      .mockReset()
+      .mockResolvedValue({ artifactId: 'artifact-1', versionId: 'version-2' });
+    commonMocks.loadArtifact.mockReset().mockResolvedValue({ artifactId: 'artifact-1', versionId: 'version-1' });
+    commonMocks.loadVersionText.mockReset().mockResolvedValue('# New publication');
     Element.prototype.scrollIntoView = vi.fn();
     vi.stubGlobal(
       'matchMedia',
@@ -351,9 +364,77 @@ describe('PreviewBoard', () => {
         content: '# Revised published note',
         contentType: 'text/markdown',
         parentVersionId: 'version-1',
+        expectedHeadVersionId: 'version-1',
+        operationId: expect.any(String),
       })
     );
     expect(commonMocks.writeFileInvoke).not.toHaveBeenCalled();
     expect(screen.queryByRole('textbox', { name: 'Board file editor' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the draft on conflict and opens the newer publication as a separate tile', async () => {
+    commonMocks.createArtifactVersion.mockRejectedValueOnce(
+      new XScienceHttpError({
+        path: '/api/artifacts/artifact-1/versions',
+        status: 409,
+        body: {
+          code: 'ARTIFACT_HEAD_CONFLICT',
+          details: { artifact_id: 'artifact-1', current_head_version_id: 'version-2' },
+        },
+      })
+    );
+    const i18n = await createTestI18n('en-US');
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PreviewProvider>
+          <RemoteEditableBoardHarness />
+        </PreviewProvider>
+      </I18nextProvider>
+    );
+    await waitFor(() => expect(screen.getByText('published.md')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit file' }));
+    const editor = await screen.findByRole('textbox', { name: 'Board file editor' });
+    fireEvent.change(editor, { target: { value: '# My unsaved draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await screen.findByText('A newer version is available. Your draft is kept and has not been published.');
+    expect(editor).toHaveValue('# My unsaved draft');
+    fireEvent.click(screen.getByRole('button', { name: 'Open newer version' }));
+    await waitFor(() => expect(screen.getAllByTestId('preview-board-tile')).toHaveLength(2));
+    expect(editor).toHaveValue('# My unsaved draft');
+    expect(commonMocks.createArtifactVersion).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves edits typed while a save acknowledgement is pending', async () => {
+    let resolve!: (value: { artifactId: string; versionId: string }) => void;
+    commonMocks.createArtifactVersion.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      })
+    );
+    const i18n = await createTestI18n('en-US');
+    render(
+      <I18nextProvider i18n={i18n}>
+        <PreviewProvider>
+          <RemoteEditableBoardHarness />
+        </PreviewProvider>
+      </I18nextProvider>
+    );
+    await waitFor(() => expect(screen.getByText('published.md')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit file' }));
+    const editor = await screen.findByRole('textbox', { name: 'Board file editor' });
+    fireEvent.change(editor, { target: { value: '# First draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(commonMocks.createArtifactVersion).toHaveBeenCalledTimes(1));
+    fireEvent.change(editor, { target: { value: '# Added later' } });
+    resolve({ artifactId: 'artifact-1', versionId: 'version-2' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).not.toBeDisabled());
+    expect(editor).toHaveValue('# Added later');
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(commonMocks.createArtifactVersion).toHaveBeenCalledTimes(2));
+    expect(commonMocks.createArtifactVersion.mock.calls[1]?.[0]).toMatchObject({
+      parentVersionId: 'version-2',
+      expectedHeadVersionId: 'version-2',
+      content: '# Added later',
+    });
   });
 });

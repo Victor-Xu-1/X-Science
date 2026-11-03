@@ -7,12 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '@/common/types/office/preview';
 import { Message } from '@arco-design/web-react';
+import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SNAPSHOT_DEBOUNCE_TIME } from '../constants';
-import { getPreviewVersionContentType, isPreviewContentStoredAsText } from '../previewContentPersistence';
+import { isPreviewContentStoredAsText } from '../previewContentPersistence';
 import {
-  createXScienceTextArtifactVersion,
   getXScienceArtifactVersionContentUrl,
   loadXScienceArtifactVersions,
   loadXScienceArtifactVersionText,
@@ -49,6 +49,7 @@ interface UsePreviewHistoryOptions {
    */
   updateContent: (content: string) => void;
   markContentSaved: (metadata?: { versionId?: string; contentUrl?: string }) => void;
+  saveContent: () => Promise<boolean>;
 }
 
 /**
@@ -131,6 +132,7 @@ export const usePreviewHistory = ({
   activeTab,
   updateContent,
   markContentSaved,
+  saveContent,
 }: UsePreviewHistoryOptions): UsePreviewHistoryReturn => {
   const { t } = useTranslation();
   const [historyVersions, setHistoryVersions] = useState<PreviewSnapshotInfo[]>([]);
@@ -138,6 +140,18 @@ export const usePreviewHistory = ({
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const [historyError, setHistoryError] = useState(false);
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const historyOwner = rendererAccountScopedKey(
+    JSON.stringify([
+      activeTab?.metadata?.artifactId,
+      activeTab?.metadata?.versionId,
+      activeTab?.metadata?.file_path,
+      activeTab?.content_type,
+    ])
+  );
+  const latestHistoryOwner = useRef(historyOwner);
+  latestHistoryOwner.current = historyOwner;
+  const readRevision = useRef(0);
+  const selectionRevision = useRef(0);
   const lastSnapshotTimeRef = useRef<number>(0); // 记录上次快照保存时间 / Track last snapshot save time
 
   // 构建历史目标对象 / Build history target object
@@ -156,10 +170,25 @@ export const usePreviewHistory = ({
       version_id: meta?.versionId,
       content_url: meta?.contentUrl,
     };
-  }, [activeTab]);
+  }, [
+    activeTab?.content_type,
+    activeTab?.title,
+    activeTab?.metadata?.file_path,
+    activeTab?.metadata?.workspace,
+    activeTab?.metadata?.file_name,
+    activeTab?.metadata?.title,
+    activeTab?.metadata?.language,
+    activeTab?.metadata?.artifactId,
+    activeTab?.metadata?.versionId,
+    activeTab?.metadata?.contentUrl,
+  ]);
 
   // 刷新历史列表 / Refresh history list
   const refreshHistory = useCallback(async () => {
+    if (historyOwner !== latestHistoryOwner.current) return;
+    const owner = historyOwner,
+      revision = ++readRevision.current;
+    const owns = () => owner === latestHistoryOwner.current && revision === readRevision.current;
     if (!historyTarget) {
       setHistoryVersions([]);
       return;
@@ -170,6 +199,7 @@ export const usePreviewHistory = ({
     try {
       if (historyTarget.artifact_id) {
         const versions = await loadXScienceArtifactVersions(historyTarget.artifact_id);
+        if (!owns()) return;
         setHistoryVersions(
           versions.map((version) => ({
             id: version.versionId,
@@ -185,15 +215,17 @@ export const usePreviewHistory = ({
         return;
       }
       const versions = await ipcBridge.previewHistory.list.invoke({ target: historyTarget });
+      if (!owns()) return;
       setHistoryVersions(versions || []);
       setHistoryError(false);
     } catch {
+      if (!owns()) return;
       setHistoryError(true);
       setHistoryVersions([]);
     } finally {
-      setHistoryLoading(false);
+      if (owns()) setHistoryLoading(false);
     }
-  }, [historyTarget, t]);
+  }, [historyTarget, historyOwner, t]);
 
   // 当 historyTarget 变化时自动刷新历史 / Auto refresh history when historyTarget changes
   useEffect(() => {
@@ -209,7 +241,7 @@ export const usePreviewHistory = ({
 
     // 防抖检查：如果距离上次保存快照时间小于1秒，则忽略 / Debounce check: Ignore if less than 1 second since last save
     const now = Date.now();
-    if (now - lastSnapshotTimeRef.current < SNAPSHOT_DEBOUNCE_TIME) {
+    if (!historyTarget.artifact_id && now - lastSnapshotTimeRef.current < SNAPSHOT_DEBOUNCE_TIME) {
       messageApi.info(t('preview.tooFrequent'));
       return false;
     }
@@ -218,17 +250,7 @@ export const usePreviewHistory = ({
       setSnapshotSaving(true);
       lastSnapshotTimeRef.current = now; // 更新最后保存时间 / Update last save time
       if (historyTarget.artifact_id) {
-        const created = await createXScienceTextArtifactVersion({
-          artifactId: historyTarget.artifact_id,
-          content: activeTab.content,
-          contentType: getPreviewVersionContentType(historyTarget.contentType, historyTarget.file_name),
-          parentVersionId: historyTarget.version_id,
-        });
-        if (!created.versionId) throw new Error('Artifact version response is missing version_id');
-        markContentSaved({
-          versionId: created.versionId,
-          contentUrl: getXScienceArtifactVersionContentUrl(created.versionId),
-        });
+        if (!(await saveContent())) return false;
       } else {
         await ipcBridge.previewHistory.save.invoke({
           target: historyTarget,
@@ -245,11 +267,24 @@ export const usePreviewHistory = ({
     } finally {
       setSnapshotSaving(false);
     }
-  }, [historyTarget, activeTab, snapshotSaving, messageApi, refreshHistory, markContentSaved, t]);
+  }, [
+    historyTarget,
+    historyOwner,
+    activeTab,
+    snapshotSaving,
+    messageApi,
+    refreshHistory,
+    markContentSaved,
+    saveContent,
+    t,
+  ]);
 
   // 选择历史快照 / Select history snapshot
   const handleSnapshotSelect = useCallback(
     async (snapshot: PreviewSnapshotInfo) => {
+      const owner = historyOwner,
+        revision = ++selectionRevision.current;
+      const owns = () => owner === latestHistoryOwner.current && revision === selectionRevision.current;
       if (!historyTarget) {
         return;
       }
@@ -258,6 +293,7 @@ export const usePreviewHistory = ({
           const remoteContent = isPreviewContentStoredAsText(historyTarget.contentType, historyTarget.file_name)
             ? await loadXScienceArtifactVersionText(snapshot.id)
             : getXScienceArtifactVersionContentUrl(snapshot.id);
+          if (!owns()) return;
           updateContent(remoteContent);
           markContentSaved({
             versionId: snapshot.id,
@@ -270,6 +306,7 @@ export const usePreviewHistory = ({
           target: historyTarget,
           snapshot_id: snapshot.id,
         });
+        if (!owns()) return;
         if (result?.content) {
           updateContent(result.content);
           markContentSaved();
@@ -279,10 +316,10 @@ export const usePreviewHistory = ({
           return;
         }
       } catch {
-        messageApi.error(t('preview.historyLoadFailed'));
+        if (owns()) messageApi.error(t('preview.historyLoadFailed'));
       }
     },
-    [historyTarget, messageApi, updateContent, markContentSaved, t]
+    [historyTarget, historyOwner, messageApi, updateContent, markContentSaved, t]
   );
 
   return {

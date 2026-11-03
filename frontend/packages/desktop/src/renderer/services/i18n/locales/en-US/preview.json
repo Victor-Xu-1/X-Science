@@ -2,6 +2,14 @@
   "historyVersions": "History Versions",
   "currentFile": "Current File",
   "loading": "Loading...",
+  "artifactEdit": {
+    "loading": "Checking the current version before editing…",
+    "historical": "You are editing a historical version. Saving restores it as a new version.",
+    "restore": "Restore as new version",
+    "conflict": "A newer version is available. Your draft is kept and has not been published.",
+    "openLatest": "Open newer version",
+    "failed": "The edit could not be confirmed. Your draft is kept; retrying the same save will not create a duplicate."
+  },
   "board": {
     "title": "File board",
     "fileCount": "{{count}} files open",

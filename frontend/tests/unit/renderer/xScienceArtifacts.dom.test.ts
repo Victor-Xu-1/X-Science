@@ -24,6 +24,37 @@ describe('X-Science artifact lifecycle service', () => {
     vi.unstubAllGlobals();
   });
 
+  it('preserves conditional-save operation identity and typed conflict details', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json(
+        {
+          code: 'ARTIFACT_HEAD_CONFLICT',
+          details: { artifact_id: 'artifact-1', current_head_version_id: 'version-3' },
+        },
+        { status: 409 }
+      )
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      createXScienceTextArtifactVersion({
+        artifactId: 'artifact-1',
+        content: 'draft',
+        contentType: 'text/plain',
+        parentVersionId: 'version-1',
+        expectedHeadVersionId: 'version-2',
+        operationId: 'stable-edit',
+      })
+    ).rejects.toMatchObject({
+      name: 'XScienceHttpError',
+      status: 409,
+      code: 'ARTIFACT_HEAD_CONFLICT',
+      details: { current_head_version_id: 'version-3' },
+    });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ 'Idempotency-Key': 'stable-edit' }),
+    });
+  });
+
   it('maps real version and lineage response shapes', async () => {
     const fetchMock = vi.fn(async (input: string | URL | Request) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
@@ -110,6 +141,8 @@ describe('X-Science artifact lifecycle service', () => {
       content: '# updated',
       contentType: 'text/markdown',
       parentVersionId: 'version-2',
+      expectedHeadVersionId: 'version-2',
+      operationId: 'save-operation',
     });
 
     expect(observed).toEqual([
@@ -126,7 +159,12 @@ describe('X-Science artifact lifecycle service', () => {
       {
         url: '/api/artifacts/artifact-1/versions',
         method: 'POST',
-        body: { content: '# updated', content_type: 'text/markdown', parent_version_id: 'version-2' },
+        body: {
+          content: '# updated',
+          content_type: 'text/markdown',
+          parent_version_id: 'version-2',
+          expected_head_version_id: 'version-2',
+        },
       },
     ]);
   });

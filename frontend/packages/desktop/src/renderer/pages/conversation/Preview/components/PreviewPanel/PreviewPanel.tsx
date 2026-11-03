@@ -9,7 +9,8 @@ import { toLocalFileHref } from '@/renderer/components/Markdown/markdownUtils';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { Link } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PreviewArtifactEditNotice } from '../PreviewArtifactEditNotice';
 import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import CodeEditor from '../editors/CodeEditor';
 import DelimitedTableEditor from '../editors/DelimitedTableEditor';
@@ -76,9 +77,21 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
     updateContent,
     markContentSaved,
     saveContent,
+    beginContentEdit,
+    cancelContentEdit,
+    artifactEditStates,
+    openLatestArtifactEdit,
     addDomSnippet,
     addToSendBox,
   } = usePreviewContext();
+  const editSurface = JSON.stringify([
+    activeTabId,
+    activeTab?.metadata?.artifactId,
+    activeTab?.metadata?.file_path,
+    activeTab?.content_type,
+  ]);
+  const latestEditSurface = useRef(editSurface);
+  latestEditSurface.current = editSurface;
   // 视图状态 / View states
   const [viewMode, setViewMode] = useState<'source' | 'preview'>('preview');
   const [isEditing, setIsEditing] = useState(false);
@@ -115,6 +128,7 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
     activeTab,
     updateContent,
     markContentSaved,
+    saveContent,
   });
 
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
@@ -170,15 +184,16 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
   // 保存并关闭tab / Save and close tab
   const handleSaveAndCloseTab = useCallback(async () => {
     if (!closeTabConfirm.tabId) return;
+    const targetTabId = closeTabConfirm.tabId;
 
     try {
-      const success = await saveContent(closeTabConfirm.tabId);
+      const success = await saveContent(targetTabId);
       if (!success) {
         messageApi.error(t('common.saveFailed'));
         return;
       }
-      closeTab(closeTabConfirm.tabId);
-      setCloseTabConfirm({ show: false, tabId: null });
+      closeTab(targetTabId);
+      setCloseTabConfirm((current) => (current.tabId === targetTabId ? { show: false, tabId: null } : current));
     } catch {
       messageApi.error(t('common.saveFailed'));
     }
@@ -249,23 +264,26 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
   const canEdit = editingMode !== null;
   const showOpenInSystemButton = Boolean(metadata?.file_path && !metadata?.contentUrl);
 
-  const handleStartEditing = () => {
+  const handleStartEditing = async () => {
     if (!canEdit) return;
-    setIsEditing(true);
+    const origin = editSurface;
+    if ((await beginContentEdit(activeTab.id)) && latestEditSurface.current === origin) setIsEditing(true);
   };
 
   const handleCancelEditing = () => {
+    cancelContentEdit(activeTab.id);
     updateContent(activeTab.originalContent ?? activeTab.content);
     setIsEditing(false);
     setViewMode('preview');
   };
 
   const handleSaveEditing = async () => {
-    if (!activeTab.isDirty || snapshotSaving || isSavingEdit) return;
+    if ((!activeTab.isDirty && !artifactEditStates[activeTab.id]?.restoring) || snapshotSaving || isSavingEdit) return;
+    const origin = editSurface;
     setIsSavingEdit(true);
     try {
       const saved = historyTarget?.artifact_id ? await handleSaveSnapshot() : await saveContent();
-      if (!saved) return;
+      if (!saved || latestEditSurface.current !== origin) return;
       setIsEditing(false);
       setViewMode('preview');
     } finally {
@@ -626,14 +644,15 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
             allowDownload={!isNotebookSessionNavigation(metadata?.notebookSession)}
             content_type={content_type}
             file_name={metadata?.file_name || activeTab.title}
-            canEdit={canEdit}
+            canEdit={canEdit && artifactEditStates[activeTab.id]?.status !== 'loading'}
             isEditing={isEditing}
-            isDirty={Boolean(activeTab.isDirty)}
+            isDirty={Boolean(activeTab.isDirty || artifactEditStates[activeTab.id]?.restoring)}
+            restoringHistory={artifactEditStates[activeTab.id]?.restoring}
             isSaving={snapshotSaving || isSavingEdit}
             isFullscreen={isFullscreen}
             showOpenInSystemButton={showOpenInSystemButton}
             historyTarget={historyTarget}
-            onEdit={handleStartEditing}
+            onEdit={() => void handleStartEditing()}
             onCancelEdit={handleCancelEditing}
             onSaveEdit={() => void handleSaveEditing()}
             onFullscreenToggle={() => setIsFullscreen((current) => !current)}
@@ -683,6 +702,10 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
             </div>
           )}
 
+          <PreviewArtifactEditNotice
+            state={artifactEditStates[activeTab.id]}
+            onOpenLatest={() => void openLatestArtifactEdit(activeTab.id)}
+          />
           {/* 预览内容 / Preview content */}
           <div
             className={`preview-panel__body preview-panel__body--${content_type}${
