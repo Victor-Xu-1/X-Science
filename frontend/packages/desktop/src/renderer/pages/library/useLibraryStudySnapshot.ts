@@ -124,5 +124,5 @@ export function useLibraryStudySnapshot(account: string, item: LiteratureItem, l
     [key, owner, resetID]
   );
   const retryRead = !state.view || state.failedRead;
-  return { ...state, read: () => void run(false), generate: () => void run(true), retryRead };
+  return { ...state, read: (): void => void run(false), generate: (): void => void run(true), retryRead };
 }
