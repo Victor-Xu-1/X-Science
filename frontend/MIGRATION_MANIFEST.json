@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "59882373b176966683df7c5cdbdd01647611f828e5fff3ffba46e0e561fe1b7c",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "cbf4b5d9d41a40fdfb533b10304335f57375c51d7cb37ef2b497bebf6aeba920",
+  "additionFingerprintSHA256": "2c45f0b7bd0320572de00672563efb1296e27f31a98ed3abaca16384dbf8e608",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -8701,8 +8701,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/xScience/useContextUsage.ts",
-      "sha256": "7ab3e5c4c0e4c1a3facf0c27cc432c2af0c8ec2d66699e550c681f082451804c",
-      "bytes": 7216,
+      "sha256": "de40ea967761ae59868738103e5b18a73832264a988bd335841b9b9a4aa834ef",
+      "bytes": 7181,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11281,8 +11281,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/contextUsage.ts",
-      "sha256": "bc9c7c60fb0e01ceb3c7957615e21182761e686aa3517f725afd0400dff8f1dc",
-      "bytes": 16709,
+      "sha256": "9b81bdb1f1928009a7943cd69a28fe54dd90856cd458947c8e56edefa95052a7",
+      "bytes": 17141,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13573,8 +13573,8 @@
     },
     {
       "path": "tests/unit/renderer/ContextWindowInspector.dom.test.tsx",
-      "sha256": "1fbed18fa5bed07b485529438bb4017eae013bacb8e90ba94ee441021d9e1f28",
-      "bytes": 32073,
+      "sha256": "18ec6467bd5128b0a484f83858ca229467dee671764c7676c8eb43a8ef84b1d6",
+      "bytes": 36378,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
