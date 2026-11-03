@@ -2,6 +2,12 @@ import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup } from '.
 import { getAcpImagePath } from './acpToolCallOutput';
 import { parseLargeToolResultReference } from './largeToolResultReference';
 import {
+  canonicalToolPublicationScopeMatches,
+  createCanonicalToolBranchResolver,
+  isNativeToolPublication,
+  nativeToolPresentationKey,
+} from './canonicalToolBranch';
+import {
   normalizeResourceAdmissionProgress,
   resourceAdmissionMatchesPhase,
   mergeToolObservationRecords,
@@ -26,6 +32,9 @@ export type NormalizedToolStatus =
 
 export interface NormalizedToolCall {
   key: string;
+  /** Renderer/disclosure scope only; `key` remains the protocol/hydration key. */
+  presentationKey?: string;
+  isolatedDisclosure?: boolean;
   name: string;
   status: NormalizedToolStatus;
   description?: string;
@@ -462,21 +471,81 @@ const mergeNormalizedToolCall = (existing: NormalizedToolCall, incoming: Normali
   );
 
 export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCall[] {
+  const resolveBranch = createCanonicalToolBranchResolver(messages);
+  const sources = new Map<NormalizedToolCall, IMessageToolCall>();
   const normalized = messages
     .flatMap((m) => {
       if (m.type === 'tool_group') return normalizeToolGroup(m);
       if (m.type === 'acp_tool_call') return normalizeAcpToolCall(m);
-      if (m.type === 'tool_call') return normalizeToolCall(m);
+      if (m.type === 'tool_call') {
+        const source = resolveBranch(m);
+        const tool = normalizeToolCall(source);
+        if (tool) sources.set(tool, source);
+        return tool;
+      }
       return undefined;
     })
     .filter((item): item is NormalizedToolCall => item !== undefined);
-  const byKey = new Map<string, NormalizedToolCall>();
+  const byKey = new Map<string, Array<{ tool: NormalizedToolCall; source?: IMessageToolCall }>>();
+  const ordered: Array<{ tool: NormalizedToolCall; source?: IMessageToolCall }> = [];
   for (const item of normalized) {
     const identity = toolObservationOwnerKey(item.conversationId, item.branchId, item.key);
-    const existing = byKey.get(identity);
-    byKey.set(identity, existing ? mergeNormalizedToolCall(existing, item) : item);
+    const source = sources.get(item);
+    const bucket = byKey.get(identity) ?? [];
+    const matches = bucket.filter((entry) => {
+      if (source && isNativeToolPublication(source))
+        return Boolean(entry.source && canonicalToolPublicationScopeMatches(entry.source, source));
+      if (entry.source && isNativeToolPublication(entry.source)) return false;
+      return true;
+    });
+    const existing = matches.every(
+      (entry) =>
+        entry === matches[0] ||
+        !entry.source ||
+        !source ||
+        !isNativeToolPublication(source) ||
+        (matches[0]?.source && canonicalToolPublicationScopeMatches(matches[0].source, entry.source))
+    )
+      ? matches[0]
+      : undefined;
+    if (existing) {
+      existing.tool = mergeNormalizedToolCall(existing.tool, item);
+      // Retain the bound input as the proof for later input-omitting progress.
+      if (
+        source &&
+        (existing.source?.content.input ?? existing.source?.content.args) == null &&
+        (source.content.input ?? source.content.args) != null
+      )
+        existing.source = source;
+    } else {
+      const entry = { tool: item, source };
+      bucket.push(entry);
+      byKey.set(identity, bucket);
+      ordered.push(entry);
+    }
   }
-  return [...byKey.values()];
+  const presentationCounts = new Map<string, number>();
+  for (const entry of ordered) {
+    if (!entry.source || !isNativeToolPublication(entry.source)) continue;
+    entry.tool = { ...entry.tool, presentationKey: nativeToolPresentationKey(entry.source) };
+    presentationCounts.set(entry.tool.presentationKey!, (presentationCounts.get(entry.tool.presentationKey!) ?? 0) + 1);
+  }
+  const occurrences = new Map<string, number>();
+  return ordered.map(({ tool }) => {
+    const key = tool.presentationKey;
+    const count = key ? presentationCounts.get(key)! : 0;
+    if (!key || count < 2) return tool;
+    const occurrence = (occurrences.get(key) ?? 0) + 1;
+    occurrences.set(key, occurrence);
+    // Indistinguishable unproven observations remain separate. The ordinal is
+    // presentational only; a changed family size remounts all of its rows, and
+    // each row isolates disclosure state instead of borrowing a durable owner.
+    // `tool` is a fresh local normalized value, never the caller's wire message.
+    return Object.assign(tool, {
+      presentationKey: `${key}:observations:${count}:${occurrence}`,
+      isolatedDisclosure: true,
+    });
+  });
 }
 
 export function hasRunningToolMessages(messages: ToolMessage[]): boolean {

@@ -8,6 +8,11 @@ import { ipcBridge } from '@/common';
 import { decodePdfReadingProjection } from '@/common/adapter/pdfReadingContext';
 import { decodeRoundSummary } from '@/common/chat/roundSummary';
 import {
+  createCanonicalToolBranchResolver,
+  canonicalToolPublicationScopeMatches,
+  isNativeToolPublication,
+} from '@/common/chat/canonicalToolBranch';
+import {
   mergeToolObservationRecords,
   toolObservationCallKey,
   toolObservationOwnerKey,
@@ -288,6 +293,28 @@ function getToolCallIdentity(message: Extract<TMessage, { type: 'tool_call' }>):
   return scope.identity ? toolObservationOwnerKey(scope.conversationId, scope.branchId, scope.identity) : undefined;
 }
 
+function exactToolOwnerIndex(
+  list: TMessage[],
+  message: Extract<TMessage, { type: 'tool_call' }>,
+  index: MessageIndex
+): number | undefined {
+  const identity = getToolCallIdentity(message);
+  const exact = identity ? index.call_idIndex.get(identity) : undefined;
+  if (!isNativeToolPublication(message) || exact === undefined) return exact;
+  const matches = list.flatMap((candidate, candidateIndex) =>
+    candidate.type === 'tool_call' &&
+    getToolCallIdentity(candidate) === identity &&
+    canonicalToolPublicationScopeMatches(candidate, message)
+      ? [{ message: candidate, index: candidateIndex }]
+      : []
+  );
+  const first = matches[0];
+  return first &&
+    matches.every((entry) => entry === first || canonicalToolPublicationScopeMatches(first.message, entry.message))
+    ? first.index
+    : undefined;
+}
+
 function isTerminalToolCallStatus(status: string | undefined): boolean {
   return isToolObservationTerminal(status);
 }
@@ -309,6 +336,9 @@ function findCompatibleActiveToolIndex(
   list: TMessage[],
   incoming: Extract<TMessage, { type: 'tool_call' }>
 ): number | undefined {
+  // Native durable rows need their exact owner. Compatibility recovery cannot
+  // turn an unresolved branch or another execution's ID into that authority.
+  if (isNativeToolPublication(incoming)) return undefined;
   const operationId = incoming.content.operation_id?.trim() || incoming.content.call_id?.trim();
   const name = incoming.content.name?.trim();
   if (!operationId || !name || !isTerminalToolCallStatus(incoming.content.status)) return undefined;
@@ -408,6 +438,9 @@ const withUniqueTextSegmentId = (message: TMessage, list: TMessage[]): TMessage 
 // Index-optimized message compose function
 function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
   if (!message) return list || [];
+  if (message.type === 'tool_call' && !toolObservationBranch(message.content.xScience?.branchId)) {
+    message = createCanonicalToolBranchResolver(list)(message);
+  }
 
   if (logDroppedToolCallWithoutCallId(message)) {
     return list || [];
@@ -419,6 +452,10 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     const msgIndexKey = getMessageIndexKey(firstMessage);
     if (msgIndexKey) {
       index.msgIdIndex.set(msgIndexKey, 0);
+    }
+    if (firstMessage.type === 'tool_call') {
+      const identity = getToolCallIdentity(firstMessage);
+      if (identity) index.call_idIndex.set(identity, 0);
     }
     return [firstMessage];
   }
@@ -447,7 +484,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
   if (message.type === 'tool_call' && message.content?.call_id) {
     const identity = getToolCallIdentity(message);
     if (!identity) return list;
-    const exactExistingIdx = index.call_idIndex.get(identity);
+    const exactExistingIdx = exactToolOwnerIndex(list, message, index);
     const existingIdx = exactExistingIdx ?? findCompatibleActiveToolIndex(list, message);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
@@ -763,15 +800,29 @@ export const useMergeLiveMessage = () => {
       let newList = list;
 
       for (const item of pending) {
-        const messageWasDropped = item.message ? logDroppedToolCallWithoutCallId(item.message) : false;
+        const message =
+          item.message?.type === 'tool_call' ? createCanonicalToolBranchResolver(newList)(item.message) : item.message;
+        const boundCanonicalTool = message !== item.message;
+        const sameNativePublication =
+          message?.type === 'tool_call' &&
+          isNativeToolPublication(message) &&
+          exactToolOwnerIndex(newList, message, index) !== undefined;
+        const messageWasDropped = message ? logDroppedToolCallWithoutCallId(message) : false;
         const publishedText =
-          item.message?.type === 'text' &&
-          Number.isSafeInteger(item.message.source_publication_sequence) &&
-          Number(item.message.source_publication_sequence) > 0;
-        if (item.message && !messageWasDropped && item.add && !publishedText) {
+          message?.type === 'text' &&
+          Number.isSafeInteger(message.source_publication_sequence) &&
+          Number(message.source_publication_sequence) > 0;
+        if (
+          message &&
+          !messageWasDropped &&
+          item.add &&
+          !publishedText &&
+          !boundCanonicalTool &&
+          !sameNativePublication
+        ) {
           // 新增消息，更新索引
           // New message, update index
-          const msg = sanitizeMessageForList(item.message);
+          const msg = sanitizeMessageForList(message);
           const newIdx = newList.length;
           const msgIndexKey = getMessageIndexKey(msg);
           if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
@@ -786,10 +837,10 @@ export const useMergeLiveMessage = () => {
             index.permission_call_idIndex.set(msg.content.call_id, newIdx);
           }
           newList = newList.concat(msg);
-        } else if (item.message && !messageWasDropped) {
+        } else if (message && !messageWasDropped) {
           // 使用索引优化的消息合并
           // Use index-optimized message compose
-          newList = composeMessageWithIndex(item.message, newList, index);
+          newList = composeMessageWithIndex(message, newList, index);
         }
         if (item.artifactUpdate) {
           newList = patchTextMessageArtifactReferences(
