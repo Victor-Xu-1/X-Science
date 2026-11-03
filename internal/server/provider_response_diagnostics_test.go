@@ -15,7 +15,7 @@ func TestProviderResponseDiagnosticsAuditRoundTrip(t *testing.T) {
 	store := runtimekv.New(path)
 	t.Cleanup(func() { _ = store.Close() })
 	s := &Server{runtimeStore: store}
-	const payload = `{"requestId":"observed","httpStatus":200,"promptTokens":12,"completionTokens":3,"totalTokens":15,"responseDiagnostics":{"terminalObserved":true,"rawToolCallsObserved":false,"rawToolCallCount":0,"decodedToolCallCount":0,"outcome":"decoded","incomplete":false}}`
+	const payload = `{"requestId":"observed","httpStatus":200,"promptTokens":12,"completionTokens":3,"totalTokens":15,"responseDiagnostics":{"terminalObserved":true,"rawToolCallsObserved":false,"rawToolCallCount":0,"decodedToolCallCount":0,"outcome":"decoded","incomplete":false,"transport":{"version":1,"headersReadyAfterUs":0,"firstBodyReadAfterUs":3,"responseBodyBytes":17,"decodedGrowthEvents":0,"countsSaturated":false,"format":"sse","stopCause":"terminal_completed"}}}`
 	var record providers.AuditRecord
 	if err := json.Unmarshal([]byte(payload), &record); err != nil {
 		t.Fatal(err)
