@@ -24,6 +24,7 @@ import {
 import { renderWithI18n } from '../../i18nTestUtils';
 import { installLiteratureLocks, literaturePendingStorage } from '../conversation/literatureMutationLockFixtures';
 import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
+import { readNotGeneratedLiteratureStudy } from './libraryStudyReadFixtures';
 
 const owner = vi.hoisted(() => ({ controller: undefined as unknown, reads: undefined as unknown }));
 vi.mock('@/renderer/hooks/chat/useLiteratureMutation', () => ({
@@ -106,11 +107,14 @@ function setup(options: Options = {}, storage = literaturePendingStorage()) {
   owner.controller = controller;
   return { controller, run, storage };
 }
-function savedRead(value: LiteraturePublicationCheck = result()) {
+function savedRead(value: LiteraturePublicationCheck = result(), studyItem?: LiteratureItem) {
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost');
     const tags = readEmptyResourceTagCatalog(url, init);
     if (tags) return tags;
+    const study =
+      studyItem && readNotGeneratedLiteratureStudy(url, init, (id) => (studyItem.id === id ? studyItem : undefined));
+    if (study) return study;
     return json(url.pathname === '/api/settings/client' && (init?.method ?? 'GET') === 'GET' ? {} : value);
   });
   vi.stubGlobal('fetch', fetch);
@@ -572,7 +576,7 @@ describe('Library publication-check detail and original mutation owner', () => {
       refresh,
       refreshData: vi.fn(),
     } satisfies ReturnType<typeof useLibraryWorkbench>;
-    savedRead(result({ snapshot: snapshot() }));
+    savedRead(result({ snapshot: snapshot() }), reference);
     run.mockImplementationOnce(async (command) => receipt(command.operation_id, result({ issue: 'rate-limited' })));
     await renderWithI18n(
       <MemoryRouter initialEntries={['/library?item=paper']}>

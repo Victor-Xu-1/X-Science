@@ -32,6 +32,9 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 	if err := restoreEmptyHistoricalAnnotationPredecessor(t, tx); err != nil {
 		t.Fatal(err)
 	}
+	if err := restoreEmptyHistoricalStudyPredecessor(t.Context(), tx); err != nil {
+		t.Fatal(err)
+	}
 	dropEmptyReviewedResourceTagFixtureObjects(t, tx)
 	for _, statement := range []string{
 		// A v74/v76 predecessor cannot retain the prospective v82 column, even
@@ -57,7 +60,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 90
+	const reviewedTarget = 91
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -73,6 +76,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// project-owned shape before callers reconstruct their v74/v76 receipts.
 	// Reviewed90 adds an owner catalog, tags and assignments plus a Library
 	// deletion trigger. Only these empty private fixture objects are removed.
+	// Reviewed91 adds the empty Study child. It must be removed before its
+	// Library parent or before replaying the original v91 forward migration.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -82,9 +87,14 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "resource-tags" ||
-		current.Checksum != "a12149409edbbebe92a3a8aa7e1c7440bb8a254b35aaedea4574bb9394019e80" {
-		t.Fatalf("historical reconstruction requires the reviewed resource tag90 identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "literature-study-snapshots" ||
+		current.Checksum != "7528d949f8fb27e35c9b28eb128e72ff4a847e360f5d04b7a30ae4560f07c6f8" {
+		t.Fatalf("historical reconstruction requires the reviewed study91 identity: %+v", current)
+	}
+	original90 := expected.Migrations[89]
+	if original90.Version != 90 || original90.Name != "resource-tags" ||
+		original90.Checksum != "a12149409edbbebe92a3a8aa7e1c7440bb8a254b35aaedea4574bb9394019e80" {
+		t.Fatalf("historical reconstruction requires the reviewed resource tag90 identity: %+v", original90)
 	}
 	original89 := expected.Migrations[88]
 	if original89.Version != 89 || original89.Name != "library-annotation-owner" ||
@@ -272,6 +282,9 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			if err := tx.QueryRow(`SELECT COUNT(*) FROM pragma_index_list('annotations')`).Scan(&indexes); err != nil || indexes != 3 {
 				t.Fatalf("historical annotations indexes=%d err=%v", indexes, err)
 			}
+			if err := restoreEmptyHistoricalStudyPredecessor(t.Context(), tx); err != nil {
+				t.Fatal(err)
+			}
 			dropEmptyReviewedResourceTagFixtureObjects(t, tx)
 			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version>=89`); err != nil {
 				t.Fatal(err)
@@ -287,8 +300,12 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 				t.Fatalf("original forward migration rejected the restored predecessor: %v", err)
 			}
 			defer store.Close()
+			expected, err := workspace.ExpectedSchemaStatus()
+			if err != nil {
+				t.Fatal(err)
+			}
 			status, err := store.SchemaStatus(t.Context())
-			if err != nil || status.CurrentVersion != 90 || len(status.Migrations) != 90 {
+			if err != nil || status.CurrentVersion != expected.TargetVersion || len(status.Migrations) != len(expected.Migrations) {
 				t.Fatalf("restored predecessor did not migrate back: status=%+v err=%v", status, err)
 			}
 		})
