@@ -17,6 +17,55 @@ class AffectedPartitionTests(unittest.TestCase):
         self.assertEqual(shard.job_matrix([]), {"include": [{"index": 0, "count": 1}]})
         self.assertEqual(len(shard.job_matrix([str(i) for i in range(200)])["include"]), 4)
 
+    def test_large_single_package_uses_workload_without_discovering_inventory(self):
+        matrix = shard.job_matrix(["fixture/large"], test_file_counts={"fixture/large": 257})
+        self.assertEqual(matrix, {"include": [{"index": index, "count": 4} for index in range(4)]})
+        inventory = {"fixture/large": [f"TestCase{i:04d}" for i in range(1001)], "fixture/empty": []}
+        count = shard.job_matrix(list(inventory), test_file_counts={"fixture/large": 257,
+                                                                   "fixture/empty": 0})["include"][0]["count"]
+        planned = shard.assignment(inventory, count)
+        shard.validate_assignment(inventory, planned["shards"], count)
+        self.assertEqual(sum("fixture/empty" in part for part in planned["shards"]), 1)
+
+    def test_workload_hints_preserve_small_empty_unknown_and_legacy_counts(self):
+        for packages, hints, expected in [([], {}, 1), (["fixture"], {}, 1),
+                                          (["fixture"], {"fixture": 0}, 1),
+                                          (["fixture"], {"fixture": 1}, 1),
+                                          (["fixture"], {"fixture": 64}, 1),
+                                          (["fixture"], {"fixture": 65}, 2),
+                                          (["a", "b", "c"], {"a": 1}, 3)]:
+            with self.subTest(packages=packages, hints=hints):
+                self.assertEqual(len(shard.job_matrix(packages, test_file_counts=hints)["include"]), expected)
+        self.assertEqual(len(shard.job_matrix(["fixture"])["include"]), 1)
+        self.assertEqual(len(shard.job_matrix(["fixture"], test_file_counts={"other": 1000})["include"]), 1)
+
+    def test_only_active_selected_profile_can_raise_budget_and_units_remain_bounded(self):
+        costs = {("fixture", "TestSlowA"): 120000, ("fixture", "TestSlowB"): 120000,
+                 ("foreign", "TestUnrelated"): 1800000}
+        active = shard.CostProfile(status="active", costs=costs)
+        self.assertEqual(len(shard.job_matrix(["fixture"], test_file_counts={"fixture": 1},
+                                              profile=active)["include"]), 2)
+        for status, reason in [("fallback", "expired profile"), ("fallback", "environment mismatch")]:
+            profile = replace(active, status=status, reason=reason)
+            self.assertEqual(len(shard.job_matrix(["fixture"], test_file_counts={"fixture": 1},
+                                                  profile=profile)["include"]), 1)
+        for hints in [{}, {"fixture": 0}]:
+            self.assertEqual(len(shard.job_matrix(["fixture"], test_file_counts=hints,
+                                                  profile=active)["include"]), 1)
+        single = replace(active, costs={("fixture", "TestOnly"): 1800000})
+        self.assertEqual(len(shard.job_matrix(["fixture"], test_file_counts={"fixture": 1},
+                                              profile=single)["include"]), 1)
+
+    def test_workload_matrix_is_deterministic_and_rejects_invalid_current_counts(self):
+        packages, hints = ["a", "b"], {"a": 257, "b": 1}
+        expected = shard.job_matrix(packages, test_file_counts=hints)
+        self.assertEqual(expected, shard.job_matrix(list(reversed(packages)),
+                                                   test_file_counts=dict(reversed(list(hints.items())))))
+        self.assertEqual(len(expected["include"]), shard.MAX_SHARDS)
+        for bad in [-1, True, 1.5, "10", None]:
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                shard.job_matrix(["a"], test_file_counts={"a": bad})
+
     def test_inventory_is_complete_disjoint_and_order_independent(self):
         inventory = {"product/heavy": [f"TestCase{i:04d}" for i in range(1001)],
                      "product/small": ["TestSmall"], "product/empty": []}
