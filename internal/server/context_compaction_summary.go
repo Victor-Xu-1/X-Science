@@ -43,7 +43,9 @@ func (s *Server) contextCompactionSource(ctx context.Context, request transcript
 	entries := []eventjournal.Entry{}
 	var after, bytes int64
 	for after < target.ThroughPublicationSeq {
-		page, err := s.transcriptStore.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: target.StreamUID, OwnerID: owner,
+		// Compaction consumes canonical event payloads. Expanding the separate
+		// artifact-reference projection per page adds work that entries never use.
+		page, err := s.transcriptStore.ListProjectedCoordinateEvents(ctx, transcriptstore.ListProjectedEventsInput{StreamUID: target.StreamUID, OwnerID: owner,
 			BranchID: target.BranchID, BranchGeneration: target.BranchGeneration, AfterPublicationSequence: after,
 			ThroughPublicationSequence: target.ThroughPublicationSeq, Limit: 1000})
 		if err != nil {
