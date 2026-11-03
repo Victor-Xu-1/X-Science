@@ -30,6 +30,7 @@ type WriteArtifactVersionInput struct {
 	CreatedBy                     string
 	MaxBytes                      int64
 	ParentVersionID               string
+	ExpectedHeadVersionID         *string
 	ProvenanceSourceID            string
 	FreshUserEditMappings         bool
 	Interactions                  []map[string]any
@@ -125,7 +126,7 @@ func (s *Store) writeArtifactVersion(ctx context.Context, input WriteArtifactVer
 	idempotencyKey := ""
 	operation := ""
 	if withRealtime {
-		requestHash, err = mutationRequestHash(map[string]any{
+		request := map[string]any{
 			"artifactId": input.ArtifactID, "projectId": input.ProjectID, "name": input.Name,
 			"contentType": input.ContentType, "contentSha256": digest, "sizeBytes": size,
 			"createdBy": input.CreatedBy, "parentVersionId": input.ParentVersionID,
@@ -141,7 +142,12 @@ func (s *Store) writeArtifactVersion(ctx context.Context, input WriteArtifactVer
 			"isIntermediate":                input.IsIntermediate,
 			"isCheckpoint":                  input.IsCheckpoint,
 			"executionLogIds":               input.ExecutionLogIDs,
-		})
+		}
+		// Preserve legacy request hashes when the conditional member is absent.
+		if input.ExpectedHeadVersionID != nil {
+			request["expectedHeadVersionId"] = *input.ExpectedHeadVersionID
+		}
+		requestHash, err = mutationRequestHash(request)
 		if err != nil {
 			return Artifact{}, ArtifactVersion{}, err
 		}
@@ -214,6 +220,9 @@ func (s *Store) writeArtifactVersion(ctx context.Context, input WriteArtifactVer
 				return Artifact{}, ArtifactVersion{}, err
 			}
 		}
+	}
+	if err := requireArtifactExpectedHeadTx(ctx, tx, input, currentVersion); err != nil {
+		return Artifact{}, ArtifactVersion{}, err
 	}
 	if input.TranscriptAssociation != nil && input.TranscriptAssociation.ReuseCurrentVersionIfUnchanged &&
 		currentVersion > 0 && strings.TrimSpace(input.ParentVersionID) == "" {

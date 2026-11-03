@@ -14,6 +14,8 @@ import { usePreviewFocusReturn } from './usePreviewFocusReturn';
 import type { NotebookSessionNavigation } from '@/renderer/services/notebook/manualNotebookTypes';
 import { sameNotebookPreview } from '@/renderer/services/notebook/notebookPreviewNavigation';
 import { registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
+import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import { usePreviewArtifactEdits, type PreviewArtifactEditState } from './usePreviewArtifactEdits';
 
 type PreviewDefaultTitleKey =
   | 'preview.defaultTitles.markdown'
@@ -124,6 +126,10 @@ export interface PreviewContextValue {
   markContentSaved: (metadata?: Partial<PreviewMetadata>) => void;
   commitTabContent: (tabId: string, content: string, metadata?: Partial<PreviewMetadata>) => void;
   saveContent: (tabId?: string, contentOverride?: string) => Promise<boolean>; // 保存内容 / Save content
+  beginContentEdit: (tabId: string) => Promise<boolean>;
+  cancelContentEdit: (tabId: string) => void;
+  artifactEditStates: Record<string, PreviewArtifactEditState>;
+  openLatestArtifactEdit: (tabId: string) => Promise<void>;
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
 
@@ -659,6 +665,31 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     [activeTabId]
   );
 
+  const commitArtifactEdit = useCallback(
+    (tabId: string, sourceVersionId: string, content: string, metadata: Partial<PreviewMetadata>, account: string) => {
+      setTabs((current) =>
+        current.map((tab) =>
+          tab.id === tabId && tab.metadata?.versionId === sourceVersionId && rendererAccountScopedKey('') === account
+            ? {
+                ...tab,
+                metadata: { ...tab.metadata, ...metadata },
+                originalContent: content,
+                isDirty: tab.content !== content,
+              }
+            : tab
+        )
+      );
+    },
+    []
+  );
+  const artifactEdits = usePreviewArtifactEdits({
+    tabs,
+    activeTabId,
+    commit: commitArtifactEdit,
+    open: openPreview,
+    presentation: presentationMode,
+  });
+
   const saveContent = useCallback(
     async (tabId?: string, contentOverride?: string) => {
       const targetTabId = tabId || activeTabId;
@@ -667,6 +698,11 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       const tab = tabs.find((candidate) => candidate.id === targetTabId);
       if (!tab) return false;
       const contentToSave = typeof contentOverride === 'string' ? contentOverride : tab.content;
+
+      if (tab.metadata?.artifactId) {
+        const outcome = await artifactEdits.save(targetTabId, contentToSave);
+        return outcome.kind === 'published' && outcome.originApplied && outcome.draftClean;
+      }
 
       // 如果有 file_path 和 workspace，写回工作空间文件 / If file_path and workspace exist, write back to workspace file
       if (tab.metadata?.file_path && tab.metadata?.workspace) {
@@ -704,7 +740,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       }
       return false;
     },
-    [activeTabId, tabs, commitTabContent]
+    [activeTabId, tabs, commitTabContent, artifactEdits.save]
   );
 
   const addToSendBox = useCallback((text: string) => {
@@ -866,6 +902,10 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       markContentSaved,
       commitTabContent,
       saveContent,
+      beginContentEdit: artifactEdits.begin,
+      cancelContentEdit: artifactEdits.cancel,
+      artifactEditStates: artifactEdits.states,
+      openLatestArtifactEdit: artifactEdits.openLatest,
       findPreviewTab,
       closePreviewByIdentity,
       addToSendBox,
@@ -893,6 +933,10 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     markContentSaved,
     commitTabContent,
     saveContent,
+    artifactEdits.begin,
+    artifactEdits.cancel,
+    artifactEdits.states,
+    artifactEdits.openLatest,
     findPreviewTab,
     closePreviewByIdentity,
     addToSendBox,

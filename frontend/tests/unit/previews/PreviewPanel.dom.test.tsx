@@ -22,6 +22,11 @@ vi.mock('@/renderer/pages/conversation/Preview/components/viewers/scientificPrev
     LazyMarkdownPreview: ({ content }: { content: string }) => <p>{content}</p>,
   };
 });
+vi.mock('@/renderer/pages/conversation/Preview/components/editors/DocumentWysiwygEditor', () => ({
+  default: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+    <textarea aria-label='Single preview editor' value={value} onChange={(event) => onChange(event.target.value)} />
+  ),
+}));
 
 beforeEach(() => {
   window.__backendPort = 13400;
@@ -65,6 +70,77 @@ vi.mock('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewAr
 }));
 
 describe('PreviewPanel', () => {
+  it(
+    'restores an unchanged historical artifact through the shared conditional-save owner',
+    async () => {
+      localStorage.clear();
+      const writes: { body: Record<string, unknown>; key: string | null }[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn<typeof fetch>(async (input, init) => {
+          const url = String(input);
+          if (url.endsWith('/api/artifacts/artifact-1/metadata'))
+            return Response.json({ artifact_id: 'artifact-1', filename: 'report.md', version_id: 'version-2' });
+          if (url.endsWith('/api/artifacts/artifact-1/versions') && init?.method === 'POST') {
+            writes.push({ body: JSON.parse(String(init.body)), key: new Headers(init.headers).get('Idempotency-Key') });
+            return Response.json({ artifact_id: 'artifact-1', version_id: 'version-3' }, { status: 201 });
+          }
+          if (url.endsWith('/api/artifacts/artifact-1/versions')) return Response.json([]);
+          return Response.json({ data: {} });
+        })
+      );
+      const { default: PreviewPanel } =
+        await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
+      const { PreviewProvider, usePreviewContext } =
+        await import('@/renderer/pages/conversation/Preview/context/PreviewContext');
+      const { ThemeProvider } = await import('@/renderer/hooks/context/ThemeContext');
+      const i18n = await createTestI18n('en-US');
+      function Controls() {
+        const { openPreview } = usePreviewContext();
+        return (
+          <>
+            <button
+              onClick={() =>
+                openPreview('historical text', 'markdown', {
+                  artifactId: 'artifact-1',
+                  versionId: 'version-1',
+                  file_name: 'report.md',
+                })
+              }
+            >
+              Open historical artifact
+            </button>
+            <PreviewPanel />
+          </>
+        );
+      }
+      render(
+        <I18nextProvider i18n={i18n}>
+          <ThemeProvider>
+            <PreviewProvider>
+              <Controls />
+            </PreviewProvider>
+          </ThemeProvider>
+        </I18nextProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Open historical artifact' }));
+      fireEvent.click(await screen.findByRole('button', { name: i18n.t('preview.edit') }));
+      expect(await screen.findByRole('textbox', { name: 'Single preview editor' })).toHaveValue('historical text');
+      const restore = screen.getByRole('button', { name: 'Restore as new version' });
+      expect(restore).not.toBeDisabled();
+      fireEvent.click(restore);
+      await waitFor(() => expect(writes).toHaveLength(1));
+      expect(writes[0]).toMatchObject({
+        key: expect.any(String),
+        body: { parent_version_id: 'version-1', expected_head_version_id: 'version-2', content: 'historical text' },
+      });
+      await waitFor(() =>
+        expect(screen.queryByRole('textbox', { name: 'Single preview editor' })).not.toBeInTheDocument()
+      );
+    },
+    IMPORT_TIMEOUT_MS
+  );
+
   it(
     'binds actions to the actual opening and selected resource even when browsing reuses a tab id',
     async () => {

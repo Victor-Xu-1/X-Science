@@ -3,8 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const listLocalHistoryMock = vi.fn();
 const saveLocalHistoryMock = vi.fn();
+const saveContentMock = vi.fn(async () => true);
 const getLocalHistoryContentMock = vi.fn();
-const loadArtifactVersionsMock = vi.fn(async () => [
+const loadArtifactVersionsMock = vi.fn(async (_artifactId: string) => [
   {
     versionId: 'version-2',
     versionNumber: 2,
@@ -19,14 +20,16 @@ const loadArtifactVersionsMock = vi.fn(async () => [
     parentVersionId: 'version-1',
   },
 ]);
-const loadVersionTextMock = vi.fn(async () => '# version 2');
-const createArtifactVersionMock = vi.fn(async () => ({
-  artifactId: 'artifact-1',
-  versionId: 'version-3',
-  filename: 'report.md',
-  folderId: null,
-  raw: {},
-}));
+const loadVersionTextMock = vi.fn(async (_versionId: string) => '# version 2');
+const createArtifactVersionMock = vi.fn(
+  async (_input: import('@/renderer/services/xScienceArtifacts').XScienceTextArtifactVersionInput) => ({
+    artifactId: 'artifact-1',
+    versionId: 'version-3',
+    filename: 'report.md',
+    folderId: null,
+    raw: {},
+  })
+);
 const messageMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 const translateMock = vi.hoisted(
   () => (key: string, options?: { version?: number }) =>
@@ -59,10 +62,12 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/services/xScienceArtifacts', () => ({
-  loadXScienceArtifactVersions: (...args: unknown[]) => loadArtifactVersionsMock(...args),
-  loadXScienceArtifactVersionText: (...args: unknown[]) => loadVersionTextMock(...args),
+  loadXScienceArtifactVersions: (...args: Parameters<typeof loadArtifactVersionsMock>) =>
+    loadArtifactVersionsMock(...args),
+  loadXScienceArtifactVersionText: (...args: Parameters<typeof loadVersionTextMock>) => loadVersionTextMock(...args),
   getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifacts/versions/${versionId}`,
-  createXScienceTextArtifactVersion: (...args: unknown[]) => createArtifactVersionMock(...args),
+  createXScienceTextArtifactVersion: (...args: Parameters<typeof createArtifactVersionMock>) =>
+    createArtifactVersionMock(...args),
 }));
 
 import { usePreviewHistory } from '@/renderer/pages/conversation/Preview/hooks/usePreviewHistory';
@@ -91,6 +96,7 @@ describe('X-Science preview history integration', () => {
         activeTab,
         updateContent,
         markContentSaved,
+        saveContent: saveContentMock,
       })
     );
 
@@ -116,7 +122,7 @@ describe('X-Science preview history integration', () => {
     expect(getLocalHistoryContentMock).not.toHaveBeenCalled();
   });
 
-  it('saves edited artifact text as a new version and advances the active version authority', async () => {
+  it('delegates remote saving to the shared PreviewContext owner without a competing write', async () => {
     const markContentSaved = vi.fn();
     const activeTab = {
       content_type: 'markdown',
@@ -134,6 +140,7 @@ describe('X-Science preview history integration', () => {
         activeTab,
         updateContent: vi.fn(),
         markContentSaved,
+        saveContent: saveContentMock,
       })
     );
 
@@ -144,15 +151,42 @@ describe('X-Science preview history integration', () => {
     });
 
     expect(saved).toBe(true);
-    expect(createArtifactVersionMock).toHaveBeenCalledWith({
-      artifactId: 'artifact-1',
-      content: '# edited report',
-      contentType: 'text/markdown',
-      parentVersionId: 'version-2',
+    expect(saveContentMock).toHaveBeenCalledTimes(1);
+    expect(createArtifactVersionMock).not.toHaveBeenCalled();
+    expect(markContentSaved).not.toHaveBeenCalled();
+  });
+
+  it('ignores a late history selection after the displayed artifact changes', async () => {
+    let resolve!: (value: string) => void;
+    loadVersionTextMock.mockReturnValueOnce(
+      new Promise((done) => {
+        resolve = done;
+      })
+    );
+    const updateContent = vi.fn(),
+      markContentSaved = vi.fn();
+    const activeTab = {
+      content_type: 'markdown',
+      content: 'first',
+      title: 'first.md',
+      metadata: { artifactId: 'artifact-1', versionId: 'version-1' },
+    };
+    const hook = renderHook(
+      ({ activeTab }) =>
+        usePreviewHistory({ activeTab, updateContent, markContentSaved, saveContent: saveContentMock }),
+      { initialProps: { activeTab } }
+    );
+    await waitFor(() => expect(hook.result.current.historyVersions).toHaveLength(1));
+    let pending!: Promise<void>;
+    act(() => {
+      pending = hook.result.current.handleSnapshotSelect(hook.result.current.historyVersions[0]!);
     });
-    expect(markContentSaved).toHaveBeenCalledWith({
-      versionId: 'version-3',
-      contentUrl: '/api/artifacts/versions/version-3',
+    hook.rerender({ activeTab: { ...activeTab, metadata: { artifactId: 'artifact-2', versionId: 'other-version' } } });
+    await act(async () => {
+      resolve('old history');
+      await pending;
     });
+    expect(updateContent).not.toHaveBeenCalled();
+    expect(markContentSaved).not.toHaveBeenCalled();
   });
 });

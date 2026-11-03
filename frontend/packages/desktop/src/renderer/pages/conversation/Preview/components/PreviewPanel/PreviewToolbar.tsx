@@ -18,6 +18,7 @@ interface PreviewToolbarProps {
   isEditing: boolean;
   isDirty: boolean;
   isSaving: boolean;
+  restoringHistory?: boolean;
   isFullscreen: boolean;
   showOpenInSystemButton: boolean;
   historyTarget: PreviewHistoryTarget | null;
@@ -82,6 +83,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isEditing,
   isDirty,
   isSaving,
+  restoringHistory,
   isFullscreen,
   showOpenInSystemButton,
   historyTarget,
@@ -104,7 +106,11 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
 }) => {
   const { t } = useTranslation();
   const showDownload = allowDownload && shouldShowDownload(content_type, showOpenInSystemButton);
-  const saveLabel = historyTarget?.artifact_id ? t('preview.saveAsNewVersion') : t('preview.saveChanges');
+  const saveLabel = restoringHistory
+    ? t('preview.artifactEdit.restore')
+    : historyTarget?.artifact_id
+      ? t('preview.saveAsNewVersion')
+      : t('preview.saveChanges');
   const showFileSwitcher = tabs.length > 1 && Boolean(onSwitchTab);
   const fileIdentity = (
     <span className='min-w-0 truncate text-13px font-600 text-t-primary' title={file_name}>

@@ -1,6 +1,7 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { clearSharedGatewayReads } from '@/renderer/services/xScienceGateway';
 import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import { requestXScienceJson } from './xScienceHttp';
 
 export type XScienceArtifactVersion = {
   versionId: string;
@@ -71,6 +72,8 @@ export type XScienceTextArtifactVersionInput = {
   content: string;
   contentType: string;
   parentVersionId?: string | null;
+  expectedHeadVersionId: string;
+  operationId: string;
 };
 
 type RecordValue = Record<string, unknown>;
@@ -138,20 +141,37 @@ export async function deleteXScienceArtifact(artifactId: string): Promise<XScien
 export async function createXScienceTextArtifactVersion(
   input: XScienceTextArtifactVersionInput
 ): Promise<XScienceArtifactMutationResult> {
-  return requestArtifactMutation(`/api/artifacts/${encodeURIComponent(input.artifactId)}/versions`, 'POST', {
-    content: input.content,
-    content_type: input.contentType,
-    ...(input.parentVersionId !== undefined ? { parent_version_id: input.parentVersionId } : {}),
-  });
+  if (
+    typeof input.expectedHeadVersionId !== 'string' ||
+    !input.expectedHeadVersionId.trim() ||
+    typeof input.operationId !== 'string' ||
+    !input.operationId.trim()
+  )
+    throw new TypeError('Conditional artifact saving requires a head version and operation identity');
+  return requestArtifactMutation(
+    `/api/artifacts/${encodeURIComponent(input.artifactId)}/versions`,
+    'POST',
+    {
+      content: input.content,
+      content_type: input.contentType,
+      ...(input.parentVersionId !== undefined ? { parent_version_id: input.parentVersionId } : {}),
+      expected_head_version_id: input.expectedHeadVersionId,
+    },
+    input.operationId
+  );
 }
 
 export function getXScienceArtifactVersionContentUrl(versionId: string): string {
   return `/api/artifacts/versions/${encodeURIComponent(versionId)}`;
 }
 
-export async function loadXScienceArtifactVersionText(versionId: string): Promise<string> {
+export async function loadXScienceArtifactVersionText(
+  versionId: string,
+  options: { signal?: AbortSignal } = {}
+): Promise<string> {
   const response = await fetch(getXScienceArtifactVersionContentUrl(versionId), {
     headers: { accept: 'text/plain, text/markdown, application/json, text/*;q=0.9, */*;q=0.1' },
+    signal: options.signal,
   });
   if (!response.ok) {
     throw new Error(`X-Science artifact version request failed: ${response.status}`);
@@ -162,18 +182,29 @@ export async function loadXScienceArtifactVersionText(versionId: string): Promis
 async function requestArtifactMutation(
   path: string,
   method: 'POST' | 'PATCH' | 'DELETE',
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  operationId?: string
 ): Promise<XScienceArtifactMutationResult> {
   const accountScope = rendererAccountScopedKey('');
-  const payload = await requestJson<unknown>(path, {
-    method,
-    credentials: 'include',
-    headers: {
-      accept: 'application/json',
-      ...(body ? { 'content-type': 'application/json' } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
+  const payload = await (operationId
+    ? requestXScienceJson<unknown>(
+        path,
+        {
+          method,
+          headers: { 'Content-Type': 'application/json', 'Idempotency-Key': operationId },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        },
+        { timeoutMs: 30_000 }
+      )
+    : requestJson<unknown>(path, {
+        method,
+        credentials: 'include',
+        headers: {
+          accept: 'application/json',
+          ...(body ? { 'content-type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      }));
   // Project artifact lists coalesce in-flight gateway reads. End that generation
   // before callers refresh project surfaces so a slower pre-mutation read cannot
   // satisfy a post-mutation reload with deleted or moved artifacts.

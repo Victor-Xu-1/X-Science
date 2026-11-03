@@ -7,10 +7,6 @@
 import { insertArtifactReferenceIntoActiveComposer } from '@/renderer/components/chat/SendBox/composerReferenceBridge';
 import PreviewLoadingState from '@/renderer/components/media/PreviewLoadingState';
 import { normalizeXScienceJsonLines } from '@/renderer/services/xScienceArtifactPreview';
-import {
-  createXScienceTextArtifactVersion,
-  getXScienceArtifactVersionContentUrl,
-} from '@/renderer/services/xScienceArtifacts';
 import { Message } from '@arco-design/web-react';
 import {
   Close as CloseGlyph,
@@ -29,7 +25,8 @@ import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import { useTranslation } from 'react-i18next';
 import { PreviewToolbarExtrasProvider } from '../../context/PreviewToolbarExtrasContext';
 import { type PreviewTab, usePreviewContext } from '../../context/PreviewContext';
-import { getPreviewVersionContentType } from '../../previewContentPersistence';
+import { PreviewArtifactEditNotice } from '../PreviewArtifactEditNotice';
+import type { PreviewArtifactEditState } from '../../context/usePreviewArtifactEdits';
 import CodeEditor from '../editors/CodeEditor';
 import DelimitedTableEditor from '../editors/DelimitedTableEditor';
 import { isPreviewTabEditable } from '../editors/previewEditingPolicy';
@@ -134,6 +131,8 @@ type PreviewBoardTileProps = {
   regionCommentMode: boolean;
   onActivate: () => void;
   onStartEdit: () => void;
+  editState?: PreviewArtifactEditState;
+  onOpenLatest: () => void;
   onCancelEdit: () => void;
   onSaveEdit: () => void;
   onContentChange: (content: string) => void;
@@ -154,6 +153,8 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
   regionCommentMode,
   onActivate,
   onStartEdit,
+  editState,
+  onOpenLatest,
   onCancelEdit,
   onSaveEdit,
   onContentChange,
@@ -215,8 +216,8 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
                     <CloseGlyph theme='outline' size={16} />
                   </BoardIconButton>
                   <BoardIconButton
-                    label={t('preview.board.saveFile')}
-                    disabled={saving || !tab.isDirty}
+                    label={t(editState?.restoring ? 'preview.artifactEdit.restore' : 'preview.board.saveFile')}
+                    disabled={saving || (!tab.isDirty && !editState?.restoring)}
                     onClick={onSaveEdit}
                   >
                     <SaveGlyph theme='outline' size={16} />
@@ -225,7 +226,11 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
               ) : (
                 <>
                   {canEdit ? (
-                    <BoardIconButton label={t('preview.board.editFile')} onClick={onStartEdit}>
+                    <BoardIconButton
+                      label={t('preview.board.editFile')}
+                      disabled={editState?.status === 'loading'}
+                      onClick={onStartEdit}
+                    >
                       <EditGlyph theme='outline' size={16} />
                     </BoardIconButton>
                   ) : null}
@@ -273,6 +278,7 @@ const PreviewBoardTile: React.FC<PreviewBoardTileProps> = ({
             </div>
           </header>
           {tab.metadata?.truncated ? <div className='preview-board__notice'>{t('preview.truncatedBanner')}</div> : null}
+          <PreviewArtifactEditNotice state={editState} onOpenLatest={onOpenLatest} />
           <div
             className={`preview-board__tile-body preview-panel__body preview-panel__body--${tab.content_type}${
               regionCommentMode ? ' preview-panel__body--region-commenting' : ''
@@ -595,8 +601,11 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
     closeTab,
     switchTab,
     updateTabContent,
-    commitTabContent,
     saveContent,
+    beginContentEdit,
+    cancelContentEdit,
+    artifactEditStates,
+    openLatestArtifactEdit,
   } = usePreviewContext();
   const [messageApi, messageContextHolder] = Message.useMessage();
   const [focusedTabId, setFocusedTabId] = useState<string | null>(null);
@@ -639,31 +648,18 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   };
 
   const cancelEdit = (tab: PreviewTab) => {
+    cancelContentEdit(tab.id);
     updateTabContent(tab.id, tab.originalContent ?? tab.content);
     setEditingTabId(null);
   };
 
   const saveEdit = async (tab: PreviewTab) => {
-    if (!tab.isDirty || savingTabId) return;
+    if ((!tab.isDirty && !artifactEditStates[tab.id]?.restoring) || savingTabId) return;
     setSavingTabId(tab.id);
     try {
-      if (tab.metadata?.artifactId) {
-        const created = await createXScienceTextArtifactVersion({
-          artifactId: tab.metadata.artifactId,
-          content: tab.content,
-          contentType: getPreviewVersionContentType(tab.content_type, tab.metadata?.file_name || tab.title),
-          parentVersionId: tab.metadata.versionId,
-        });
-        if (!created.versionId) throw new Error('Artifact version response did not include a version id');
-        commitTabContent(tab.id, tab.content, {
-          versionId: created.versionId,
-          contentUrl: getXScienceArtifactVersionContentUrl(created.versionId),
-        });
-      } else {
-        const saved = await saveContent(tab.id, tab.content);
-        if (!saved) throw new Error('Workspace file save returned false');
-      }
-      setEditingTabId(null);
+      const saved = await saveContent(tab.id, tab.content);
+      if (!saved) return;
+      setEditingTabId((current) => (current === tab.id ? null : current));
       setSaveAnnouncement(t('preview.board.saveSucceeded'));
     } catch {
       messageApi.error(t('preview.board.saveFailed'));
@@ -762,8 +758,12 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
                 onStartEdit={() => {
                   switchTab(tab.id);
                   setRegionCommentTabId(null);
-                  setEditingTabId(tab.id);
+                  void beginContentEdit(tab.id).then((ready) => {
+                    if (ready) setEditingTabId(tab.id);
+                  });
                 }}
+                editState={artifactEditStates[tab.id]}
+                onOpenLatest={() => void openLatestArtifactEdit(tab.id)}
                 onCancelEdit={() => cancelEdit(tab)}
                 onSaveEdit={() => void saveEdit(tab)}
                 onContentChange={(content) => updateTabContent(tab.id, content)}

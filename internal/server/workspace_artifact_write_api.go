@@ -43,6 +43,15 @@ func (s *Server) handleArtifactTextVersionCompatibility(w http.ResponseWriter, r
 	content, _ := input["content"].(string)
 	contentType, _ := input["content_type"].(string)
 	parentID, _ := input["parent_version_id"].(string)
+	var expectedHead *string
+	if value, present := input["expected_head_version_id"]; present {
+		identity, valid := value.(string)
+		if !valid || strings.TrimSpace(identity) == "" || len(identity) > v11ArtifactParentLimit {
+			writeV11Detail(w, http.StatusBadRequest, "expected_head_version_id must be a non-empty version identity")
+			return
+		}
+		expectedHead = &identity
+	}
 	if content == "" {
 		writeV11Detail(w, http.StatusBadRequest, "content is required")
 		return
@@ -77,6 +86,7 @@ func (s *Server) handleArtifactTextVersionCompatibility(w http.ResponseWriter, r
 		ArtifactID: artifact.ID, ProjectID: artifact.ProjectID, Name: artifact.Name,
 		ContentType: resolvedType, Content: strings.NewReader(content),
 		MaxBytes: v11ArtifactTextLimit, ParentVersionID: parentID,
+		ExpectedHeadVersionID:         expectedHead,
 		FreshUserEditMappings:         true,
 		CarryAnnotationsFromTargetKey: "av:" + firstNonEmpty(parentID, current.ID),
 	}, userID)
@@ -331,10 +341,20 @@ func firstArtifactQueryValue(values []string) string {
 }
 
 func writeArtifactWriteStoreError(w http.ResponseWriter, err error) {
+	var conflict *workspace.ArtifactHeadConflictError
+	if errors.As(err, &conflict) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"code": "ARTIFACT_HEAD_CONFLICT", "detail": "A newer version is available; the draft was not published.",
+			"details": map[string]any{"artifact_id": conflict.ArtifactID, "expected_head_version_id": conflict.ExpectedHeadVersionID, "current_head_version_id": conflict.CurrentHeadVersionID},
+		})
+		return
+	}
 	detail := err.Error()
 	status := http.StatusInternalServerError
 	switch {
 	case errors.Is(err, workspace.ErrInvalidMutationIdempotencyKey):
+		status = http.StatusBadRequest
+	case errors.Is(err, workspace.ErrInvalidArtifactExpectedHead):
 		status = http.StatusBadRequest
 	case errors.Is(err, workspace.ErrMutationIdempotencyConflict):
 		status = http.StatusConflict
