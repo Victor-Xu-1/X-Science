@@ -6,6 +6,7 @@ import { parseLargeToolResultReference } from '@/common/chat/largeToolResultRefe
 import { withTransientHistoryRetry } from '@/renderer/services/xScienceHistoryRetry';
 import { getSelectedXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
+import { useMessagePaginationState } from '../hooks';
 import { mergePublicToolOutputEvidence } from '../toolSummaryGroupingModel';
 
 const MAX_HYDRATED_TOOL_OUTPUT_BYTES = 8 * 1024 * 1024;
@@ -67,15 +68,25 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
   const [loadError, setLoadError] = useState(false);
   const generationRef = useRef(0);
   const requestRef = useRef<AbortController | null>(null);
-  const branchId = item.branchId ?? (item.conversationId ? getSelectedXScienceBranch(item.conversationId) : null);
+  const window = useMessagePaginationState();
+  // A loaded window scopes a history GET, but does not establish a canonical
+  // branch for the tool or its disclosure identity. Historical owners win.
+  const windowBranchId = window.conversationId === item.conversationId ? window.branchId : undefined;
+  const branchId =
+    item.branchId ?? windowBranchId ?? (item.conversationId ? getSelectedXScienceBranch(item.conversationId) : null);
   const scope = JSON.stringify([
     getRendererAccountScopeToken(),
+    window.conversationId,
+    window.branchId,
+    window.branchGeneration,
     branchId,
     item.conversationId,
     item.key,
     item.messageId,
     item.revision,
   ]);
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
   // Gate during render, before effects clear state after virtual-row reuse.
   const fullItem = hydrated?.scope === scope ? hydrated.item : null;
 
@@ -153,7 +164,8 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
       const supplementalItems = await Promise.all(
         (item.supplementalHistoryRefs ?? []).map(async (reference) => {
           try {
-            const supplementalBranchId = reference.branchId ?? branchId;
+            const supplementalBranchId =
+              reference.branchId ?? (reference.conversationId === item.conversationId ? branchId : undefined);
             const supplementalMessage = await withTransientHistoryRetry(() =>
               ipcBridge.database.getConversationMessage.invoke({
                 conversation_id: reference.conversationId,
@@ -185,7 +197,6 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
       assertAccountScope();
       const enriched: NormalizedToolCall = {
         ...next,
-        ...(branchId ? { branchId } : {}),
         ...(hydration.output ? { output: hydration.output, truncated: false } : {}),
         ...(hydration.remote
           ? {
@@ -206,17 +217,19 @@ export function useToolOperationDetail(item: NormalizedToolCall, shouldLoadFull:
       }
       if (
         generation === generationRef.current &&
-        (item.branchId ?? getSelectedXScienceBranch(item.conversationId)) === branchId
+        scopeRef.current === scope &&
+        (item.branchId ?? windowBranchId ?? getSelectedXScienceBranch(item.conversationId)) === branchId
       ) {
         setHydrated({ scope, item: enriched });
       }
     } catch {
-      if (!controller.signal.aborted && generation === generationRef.current) setLoadError(true);
+      if (!controller.signal.aborted && generation === generationRef.current && scopeRef.current === scope)
+        setLoadError(true);
     } finally {
-      if (generation === generationRef.current) setLoadingFull(false);
+      if (generation === generationRef.current && scopeRef.current === scope) setLoadingFull(false);
       if (requestRef.current === controller) requestRef.current = null;
     }
-  }, [branchId, fullItem, item, loadingFull, loadError, shouldLoadFull, scope]);
+  }, [branchId, fullItem, item, loadingFull, loadError, shouldLoadFull, scope, windowBranchId]);
 
   const retryFullItem = useCallback(() => setLoadError(false), []);
   return { displayItem, loadError, loadFullItem, loadingFull, retryFullItem };

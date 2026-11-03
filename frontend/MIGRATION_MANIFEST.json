@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "49187035c22dcabe86bca0026f8eae3fd08209b03e868228fc1db332e65331de",
+  "adaptationFingerprintSHA256": "11c18a977d393deaa0cafc45c37bbcde9820d02cba4d99f0a48c9900b43de4fb",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "d1c29d05923012ae78a8ca6fea47688dfecd7ffc1ef74741ffb1fe9ad74186d6",
+  "additionFingerprintSHA256": "b36f166186c1c626425a1821c041e05669ab2ff59be96384efa4da1599df7b5e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1478
+    "addedFiles": 1480
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "fc9077ebb639acba2b8a87b8d9e0d39c88c7577eb087406293f97f20a71657b7",
+      "targetSHA256": "f6104851a8a8928fcefad523fcd557327fe4f592ef0496459e55343106e15ea3",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "15ff9b3b37239b9edb9c15aaa801abe9f7720a5707755a3ccfedba7e868b3150",
+      "targetSHA256": "fdccf6be319e29580055aebcc95020b09f0d6972b8155f1d9cbdfd580959ee24",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -80,8 +80,8 @@
     {
       "path": "packages/desktop/src/common/chat/normalizeToolCall.ts",
       "sourceSHA256": "f29b817f1c1a91fdfca53d54fa6d00ce9e0e92d2fcafc0a5b34221e03eb5e41e",
-      "targetSHA256": "a1976b435453e00cb04fc6adfc9e888f0203b37165c219f6ae62775c812b3e6c",
-      "bytes": 17446,
+      "targetSHA256": "3486a7631240bd767c0183b0962cbc9d6182051e63c52d381f79247e01b9a431",
+      "bytes": 20423,
       "reason": "Normalize the canonical cancelled tool-call status without guessing terminal state."
     },
     {
@@ -1522,8 +1522,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolGroupSummary.tsx",
       "sourceSHA256": "5fe14b8d81f538b99b222c0d6a308754534cbacd51bfb9741325ed7cd9451b89",
-      "targetSHA256": "64a7e6ae66939770dc767a1df1dc82f1bbd1535b7f0c676fa640c67b496c1d2b",
-      "bytes": 6180,
+      "targetSHA256": "487068b5e28ffd74522d8f408ea378a2baa30d38d587e977cdc01d71edd54a1e",
+      "bytes": 5925,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1572,8 +1572,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/hooks.ts",
       "sourceSHA256": "75067dc9b38938e3dc2acbf3385ddaf8c444e4f68cc65d658f8e93da5a904fea",
-      "targetSHA256": "5cfeba17d82de407bc0a4ecdf594c5f2108bafa3bd641f78071c1c36393eed4a",
-      "bytes": 62954,
+      "targetSHA256": "f886634f0465deffa7e6f23bdf45b7ce9d247c00c18073f15ccd2b55a6f00900",
+      "bytes": 64979,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "9ffb0f7add22f537d7caaef40fda78540b2da37d567000d75514d9a737b9e155",
+      "sha256": "fe7017c6983ee554aecd8b6b2e525d1b63500581b02cf5cb3c9df63b01cb54de",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7810,6 +7810,12 @@
       "sha256": "d7468f6eff20b705d4e9498b80a86069090d24c32427f59ae6141e04666b8de3",
       "bytes": 2381,
       "reason": "Define the shared closed Specialist input-reference and frozen send-authority wire contract for IPC, queues and initial-message decoding; no execution or transport owner."
+    },
+    {
+      "path": "packages/desktop/src/common/chat/canonicalToolBranch.ts",
+      "sha256": "edb6e9ed160b7644e4222ab24bcdc472804b727e0660a2995b7bef7a502a52fd",
+      "bytes": 6583,
+      "reason": "Record the reviewed first-party helper that binds branchless tool publications only to a unique canonical durable owner, shares strict input and coordinate proof with the existing live and normalized consumers, and derives opaque presentation scope without adding branch, execution, request, scheduling, persistence, or retry authority."
     },
     {
       "path": "packages/desktop/src/common/chat/conversationSubmission.ts",
@@ -8941,8 +8947,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/ToolOperationDetail.tsx",
-      "sha256": "c508c4d119cec6b47ba935460bc7ed5ff7e6a350bf7ceb74ba66833f6a894040",
-      "bytes": 8967,
+      "sha256": "02e30c0a0d54f245b071da5b9e0b5ba9b99f7c0a088c5eccae2d3a39c2e87da2",
+      "bytes": 9173,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9043,8 +9049,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/useToolOperationDetail.ts",
-      "sha256": "bcfce211719bb0c86a2bec5ff588be72bf6e77389e95af07a98cf4c8e4d567a9",
-      "bytes": 9614,
+      "sha256": "ca607b786773ed2aea821f9f0a54b3b4ba085d07cda8f7c1a00d42203435c5e0",
+      "bytes": 10307,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -15000,9 +15006,15 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/toolMessageBranchIdentity.dom.test.tsx",
+      "sha256": "a187347a65179eb5389e2174c9172f28d763ed577b777e5d47d03e3d489ab4ca",
+      "bytes": 15805,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/toolOperationDetailHydration.dom.test.tsx",
-      "sha256": "b25d0f9a6d907f8dcd39cdf9fa84ff39bea8afda3fe3743d6e1eaa9e174d32ef",
-      "bytes": 13826,
+      "sha256": "58b1d36ac5aa4e9f8e37c6f017a47af230cfe3b7c57ef28f03ee85484616703e",
+      "bytes": 16619,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

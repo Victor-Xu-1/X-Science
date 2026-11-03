@@ -1,11 +1,12 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 import type { ToolMessage } from '@/common/chat/normalizeToolCall';
 import MessageToolGroupSummary from '@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary';
 import ToolOperationDetail from '@/renderer/pages/conversation/Messages/components/ToolOperationDetail';
+import { useToolOperationDetail } from '@/renderer/pages/conversation/Messages/components/useToolOperationDetail';
 import {
   MessagePaginationProvider,
   useUpdateMessagePaginationState,
@@ -21,11 +22,17 @@ vi.mock('@arco-design/web-react', () => ({
   Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
   Message: { useMessage: () => [{ success: vi.fn(), error: vi.fn() }, null] },
 }));
-vi.mock('@icon-park/react', () => ({ Download: () => null, CheckSmall: () => null, CloseSmall: () => null }));
-vi.mock('@/renderer/components/media/LocalImageView', () => ({ default: () => null }));
+vi.mock('@icon-park/react', () => ({
+  Download: (): null => null,
+  CheckSmall: (): null => null,
+  CloseSmall: (): null => null,
+}));
+vi.mock('@/renderer/components/media/LocalImageView', () => ({ default: (): null => null }));
 vi.mock('@/renderer/utils/file/download', () => ({ downloadFileFromPath: vi.fn() }));
-vi.mock('@/renderer/pages/conversation/Messages/components/ToolOperationDiffs', () => ({ default: () => null }));
-vi.mock('@/renderer/pages/conversation/Messages/components/MessageWebResearchSources', () => ({ default: () => null }));
+vi.mock('@/renderer/pages/conversation/Messages/components/ToolOperationDiffs', () => ({ default: (): null => null }));
+vi.mock('@/renderer/pages/conversation/Messages/components/MessageWebResearchSources', () => ({
+  default: (): null => null,
+}));
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolPublicDetail', () => ({
   default: ({ item, resultSummary }: { item: NormalizedToolCall; resultSummary: string | null }) => (
     <div>
@@ -75,6 +82,17 @@ function SwitchWindowBranch() {
   const update = useUpdateMessagePaginationState();
   return (
     <button onClick={() => update((current) => ({ ...current, branchId: 'br_aabbccdd' }))}>Switch window branch</button>
+  );
+}
+
+function HydrationOwnership() {
+  const { displayItem, loadFullItem } = useToolOperationDetail(item, true);
+  return (
+    <>
+      <button onClick={() => void loadFullItem()}>Load detail</button>
+      <output data-testid='canonical-branch'>{displayItem.branchId ?? 'unknown'}</output>
+      <output data-testid='hydrated-output'>{displayItem.output}</output>
+    </>
   );
 }
 
@@ -285,14 +303,9 @@ describe('tool operation hydrated result presentation', () => {
     });
   });
 
-  it('does not commit delayed live detail after the message-window branch changes', async () => {
-    const response = deferredMessage();
+  it('uses the window only as a read scope without assigning its branch to the hydrated tool', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
-    invoke.mockReturnValue(response.promise as never);
-    const compact = {
-      ...fullMessage(),
-      content: { ...fullMessage().content, output: '{"truncated":true}', _compact: { truncated: true } },
-    } as unknown as ToolMessage;
+    invoke.mockResolvedValue(fullMessage() as never);
     render(
       <MessagePaginationProvider
         value={{
@@ -305,24 +318,85 @@ describe('tool operation hydrated result presentation', () => {
           isLoadingAnchor: false,
         }}
       >
-        <SwitchWindowBranch />
-        <MessageToolGroupSummary messages={[compact]} />
+        <HydrationOwnership />
       </MessagePaginationProvider>
     );
-    fireEvent.click(screen.getByTestId('tool-chip'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load detail' }));
+    await waitFor(() => expect(screen.getByTestId('hydrated-output')).toHaveTextContent(resultOutput(2)));
     expect(invoke).toHaveBeenCalledExactlyOnceWith({
       conversation_id: 'frame',
       message_id: 'message',
       branch_id: 'br_deadbeef',
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Switch window branch' }));
-    await act(async () => {
-      const message = fullMessage();
-      response.resolve({ ...message, content: { ...message.content, xScience: { branchId: 'br_deadbeef' } } });
-    });
-    expect(screen.getByTestId('tool-chip').getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByTestId('detail-result-output')).toBeNull();
-    expect(screen.getByTestId('tool-chip').textContent).toContain('Search details pending');
-    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('canonical-branch')).toHaveTextContent('unknown');
   });
+
+  it.each(['live', 'history'] as const)(
+    'rejects late %s detail from the previous window and reads the new scope explicitly',
+    async (source) => {
+      const response = deferredMessage();
+      const currentResponse = deferredMessage();
+      const invoke = vi.mocked(ipcBridge.database.getConversationMessage.invoke);
+      invoke.mockReturnValueOnce(response.promise as never).mockReturnValueOnce(currentResponse.promise as never);
+      const historyBranch = source === 'history' ? 'br_11223344' : undefined;
+      const compact = {
+        ...fullMessage(),
+        content: {
+          ...fullMessage().content,
+          output: '{"truncated":true}',
+          _compact: { truncated: true },
+          ...(historyBranch ? { xScience: { branchId: historyBranch } } : {}),
+        },
+      } as unknown as ToolMessage;
+      render(
+        <MessagePaginationProvider
+          value={{
+            conversationId: 'frame',
+            branchId: 'br_deadbeef',
+            hasMoreBefore: false,
+            hasMoreAfter: false,
+            isLoadingBefore: false,
+            isLoadingAfter: false,
+            isLoadingAnchor: false,
+          }}
+        >
+          <SwitchWindowBranch />
+          <MessageToolGroupSummary messages={[compact]} />
+        </MessagePaginationProvider>
+      );
+      fireEvent.click(screen.getByTestId('tool-chip'));
+      expect(invoke).toHaveBeenCalledExactlyOnceWith({
+        conversation_id: 'frame',
+        message_id: 'message',
+        branch_id: historyBranch ?? 'br_deadbeef',
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Switch window branch' }));
+      expect(invoke).toHaveBeenNthCalledWith(2, {
+        conversation_id: 'frame',
+        message_id: 'message',
+        branch_id: historyBranch ?? 'br_aabbccdd',
+      });
+      await act(async () => {
+        const message = fullMessage();
+        response.resolve({
+          ...message,
+          content: { ...message.content, xScience: { branchId: historyBranch ?? 'br_deadbeef' } },
+        });
+      });
+      expect(screen.getByTestId('detail-result-output')).toHaveTextContent('{"truncated":true}');
+      expect(screen.getByTestId('tool-chip').textContent).toContain('Search details pending');
+      expect(screen.getByTestId('detail-result-output')).not.toHaveTextContent(resultOutput(2));
+      await act(async () => {
+        const message = fullMessage(1, 3);
+        currentResponse.resolve({
+          ...message,
+          content: { ...message.content, xScience: { branchId: historyBranch ?? 'br_aabbccdd' } },
+        });
+      });
+      expect(screen.getByTestId('detail-result-output')).toHaveTextContent(resultOutput(3));
+      expect(screen.getByTestId('tool-chip').textContent).toContain('3 results');
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(invoke).toHaveBeenCalledTimes(2);
+    }
+  );
 });

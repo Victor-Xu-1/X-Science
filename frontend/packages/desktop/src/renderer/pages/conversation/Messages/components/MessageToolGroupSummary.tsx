@@ -3,8 +3,8 @@ import React, { useContext, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { isActiveToolStatus, normalizeToolMessages } from '@/common/chat/normalizeToolCall';
+import { toolObservationOwnerKey } from '@/common/chat/toolProgressObservation';
 import { useConversationDisclosure } from '@/renderer/services/runtime/conversationDisclosureStore';
-import { useMessagePaginationState } from '../hooks';
 import { isPublicToolActivity } from '../toolActivityPresentationRegistry';
 import { collapseNestedConnectorDispatches } from '../toolSummaryGroupingModel';
 import './MessageToolGroupSummary.css';
@@ -30,20 +30,11 @@ const MessageToolGroupSummary: React.FC<{
   messages: ToolMessage[];
 }> = ({ messages }) => {
   const activity = useContext(TranscriptActivityContext);
-  const messageWindow = useMessagePaginationState();
   const { t, i18n } = useTranslation();
   const tools = useMemo(() => {
     const normalized = normalizeToolMessages(messages).filter((tool) => isPublicToolActivity(tool.name));
-    // Normalization creates fresh snapshots, not durable message mutations.
-    // Live increments use only their conversation's already loaded window;
-    // explicit historical tool branches remain authoritative.
-    for (const tool of normalized) {
-      if (!tool.branchId && tool.conversationId === messageWindow.conversationId && messageWindow.branchId) {
-        tool.branchId = messageWindow.branchId;
-      }
-    }
     return collapseNestedConnectorDispatches(normalized);
-  }, [messages, messageWindow.branchId, messageWindow.conversationId]);
+  }, [messages]);
   const groupStatus = useMemo(() => aggregateStatus(tools), [tools]);
   const presentationGroups = useMemo(() => groupRepeatedNonExecutingTools(tools), [tools]);
   const isActive = tools.some((tool) => isActiveToolStatus(tool.status));
@@ -73,7 +64,12 @@ const MessageToolGroupSummary: React.FC<{
   if (tools.length === 1) {
     return (
       <div className='tool-group-summary tool-group-summary--single'>
-        <ToolOperationDetail key={tools[0].key} item={tools[0]} nested activity={activity} />
+        <ToolOperationDetail
+          key={tools[0].presentationKey ?? tools[0].key}
+          item={tools[0]}
+          nested
+          activity={activity}
+        />
       </div>
     );
   }
@@ -117,7 +113,10 @@ const MessageToolGroupSummary: React.FC<{
           <div className='tool-group-summary__details-inner'>
             {presentationGroups.map(({ item, repeatCount }, index) => (
               <ToolOperationDetail
-                key={item.key}
+                key={JSON.stringify([
+                  toolObservationOwnerKey(item.conversationId, item.branchId, item.key),
+                  item.presentationKey ?? item.messageId,
+                ])}
                 item={item}
                 nested
                 repeatCount={repeatCount}

@@ -319,6 +319,7 @@ ALLOWED_ADDITIONS = {
     "packages/desktop/src/common/chat/roundSummary.ts": "Validate durable per-round completion timing and model usage shared by live and historical messages; unavailable telemetry never erases answer text.",
     "packages/desktop/src/common/chat/largeToolResultReference.ts": "Validate immutable same-origin large-result references once for transcript summaries and lazy detail loading; previews never replace source evidence.",
     "packages/desktop/src/common/chat/toolProgressObservation.ts": "Extract and adapt the existing migrated chatLib.ts/normalizeToolCall.ts progress model and history/live same-ID merge into one pure observation helper, retaining imported-source provenance while adding X-Science resource-admission validation and revision fencing without another cache, timer, transport, request, or lifecycle owner.",
+    "packages/desktop/src/common/chat/canonicalToolBranch.ts": "Record the reviewed first-party helper that binds branchless tool publications only to a unique canonical durable owner, shares strict input and coordinate proof with the existing live and normalized consumers, and derives opaque presentation scope without adding branch, execution, request, scheduling, persistence, or retry authority.",
     "README.md": "Document the browser-only source boundary, dependency authority, scoped checks, and isolated real-backend testing prerequisites.",
     "packages/desktop/src/renderer/styles/tokens.css": "Own the single canonical visual-primitive scale (space, radius, elevation, type, weight, stacking) that every renderer module references instead of restating literals.",
     "packages/desktop/src/renderer/pages/settings/skills/SkillLibraryCard.tsx": "Render installed and draft skills with complete readable copy, declared-category icons and isolated keyboard actions.",
@@ -736,9 +737,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "49187035c22dcabe86bca0026f8eae3fd08209b03e868228fc1db332e65331de"
+APPROVED_ADAPTATION_FINGERPRINT = "11c18a977d393deaa0cafc45c37bbcde9820d02cba4d99f0a48c9900b43de4fb"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "d1c29d05923012ae78a8ca6fea47688dfecd7ffc1ef74741ffb1fe9ad74186d6"
+APPROVED_ADDITION_FINGERPRINT = "b36f166186c1c626425a1821c041e05669ab2ff59be96384efa4da1599df7b5e"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

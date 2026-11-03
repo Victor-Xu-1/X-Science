@@ -1,6 +1,6 @@
 import { Button, Message, Tooltip } from '@arco-design/web-react';
 import { Download } from '@icon-park/react';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NormalizedToolCall } from '@/common/chat/normalizeToolCall';
 import { isActiveToolStatus } from '@/common/chat/normalizeToolCall';
@@ -26,8 +26,14 @@ const ToolOperationDetail: React.FC<{
   activity?: TranscriptActivityState;
 }> = ({ item, nested = false, repeatCount = 1, activity = null }) => {
   const { t, i18n } = useTranslation();
+  const mountId = useId();
+  const disclosureScope = item.presentationKey
+    ? item.isolatedDisclosure
+      ? `${item.presentationKey}:${mountId}`
+      : item.presentationKey
+    : item.key;
   const detailsRef = useRef<HTMLDivElement>(null);
-  const detailsId = useMemo(() => `tool-step-details-${item.key}`, [item.key]);
+  const detailsId = useMemo(() => `tool-step-details-${mountId}`, [mountId]);
   const language = i18n?.language ?? 'en-US';
   const timelinePresentation = useMemo(() => buildToolStepPublicPresentation(item, language), [item, language]);
   const { displayItem, loadingFull, loadError, loadFullItem, retryFullItem } = useToolOperationDetail(
@@ -54,7 +60,7 @@ const ToolOperationDetail: React.FC<{
   const disclosure = useConversationDisclosure({
     conversationId: item.conversationId ?? 'unknown-conversation',
     branchId: item.branchId,
-    operationId: item.key,
+    operationId: disclosureScope,
     path: 'operation',
   });
   const expanded = hasDetail && disclosure.expanded;
