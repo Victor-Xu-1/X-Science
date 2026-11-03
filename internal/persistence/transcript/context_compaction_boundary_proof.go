@@ -64,6 +64,11 @@ const manualCompactionBoundarySQL = `
 // constructing authority from untrusted event JSON.
 type ContextCompactionBoundaryProof struct{ eventID int64 }
 
+// CanonicalContextCompactionBoundarySQL shares the existing manual boundary
+// proof with atomic derived-data consumers. The caller must name its canonical
+// transcript_events row "event"; this predicate alone grants no write authority.
+func CanonicalContextCompactionBoundarySQL() string { return manualCompactionBoundarySQL }
+
 func (proof ContextCompactionBoundaryProof) Matches(eventID int64) bool {
 	return eventID > 0 && proof.eventID == eventID
 }
