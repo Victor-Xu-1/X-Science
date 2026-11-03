@@ -17,6 +17,7 @@ import (
 
 	transcriptstore "x-science/internal/persistence/transcript"
 	workspace "x-science/internal/persistence/workspace"
+	"x-science/internal/testsupport/workspacefixture"
 
 	_ "modernc.org/sqlite"
 )
@@ -2459,7 +2460,7 @@ func forceLegacyTranscriptFrameAuthority(t *testing.T, db *sql.DB, stream transc
 
 func newTranscriptWebFixture(t *testing.T) (*workspace.Store, *transcriptstore.Repository, *sql.DB) {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "workspace.db")
+	path := workspacefixture.DatabasePath(t)
 	store, err := workspace.Open(path)
 	if err != nil {
 		t.Fatal(err)
