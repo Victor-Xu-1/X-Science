@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9a27bb10cc02d617f1b9ae5b34fb206bebf49b494d21f5d6ce833bd098fa9fab",
+  "adaptationFingerprintSHA256": "69f14dc4051a436ddd7741f449cc0df31764ab134cf45a5f00b35ea4d4256d8f",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "76a99d587203a49bd94fb8200c4f1e461bb012141f63e649b5a99be575edbff5",
+  "additionFingerprintSHA256": "0b937b2de89e1387e32b1168bfd629814a1a1c20eb80454c612b17e674e063bb",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -1963,8 +1963,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/components/XScienceArtifactLibrary.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Workspace/components/SynonBiomedArtifactLibrary.tsx",
       "sourceSHA256": "a424a90101d4b397ddbc360ebd1949081bcbad053c522d98856fbbd264a8bff2",
-      "targetSHA256": "f59f32c2cf2e39b8c35e158fc9d635d140f4312291be3a38840e32f34c1df7dc",
-      "bytes": 17570,
+      "targetSHA256": "277b367c85e170b15d692f91379d61b4dd58d1b5ced49e65d5c60750e1293c53",
+      "bytes": 17535,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -2033,8 +2033,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/workspace.css",
       "sourceSHA256": "ee3a3913dab05a0e036516cfcd3ff9a92f3c180ec29538380c97d9b70dd09350",
-      "targetSHA256": "a874a6cc1441ed4def4d6fdd2d65c950fa6ace86e68c9ec44ab7f9e3ba295427",
-      "bytes": 8182,
+      "targetSHA256": "0d2951652b12844dac93177ee13b9225c5adc8b6b690b8bcd5ba33f1454b4708",
+      "bytes": 7972,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -15559,8 +15559,8 @@
     },
     {
       "path": "tests/unit/workspace/artifactLibraryVisualContract.test.ts",
-      "sha256": "568771587192fa25c4593b9690482672a5b143f42517c432111c5fc53ab67b5b",
-      "bytes": 1094,
+      "sha256": "4c5cbab4d3a8422048a634c1dcc6db251b04935c1a09ceb491a9e4fddf53c6d4",
+      "bytes": 776,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
