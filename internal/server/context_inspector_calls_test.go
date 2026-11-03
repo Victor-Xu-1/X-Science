@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -170,5 +173,101 @@ func TestContextInspectorRejectsForgedAssociationAndAnotherScope(t *testing.T) {
 	}
 	if err := f.repo.ValidateContextInspection(context.Background(), f.stream.OwnerID, authority.Scope); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestContextInspectorPinsRuntimeRequestSetBeforeJournalRead(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
+	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
+	sample := recorder.begin("fixture-model", agentruntime.ModelRequest{})
+	if sample == nil || sample.Association == nil {
+		t.Fatal("missing captured association")
+	}
+	history := runnerContextHistory{SessionID: f.stream.SessionID, TotalObserved: contextHistoryRetention, Coverage: "recorded"}
+	for index := 0; index < contextHistoryRetention; index++ {
+		value := *sample
+		value.RequestID, value.State = fmt.Sprintf("retained-request-%03d", index), "complete"
+		history.Samples = append(history.Samples, value)
+	}
+	if err := f.server.runtimeStore.EditNamespace(contextUsageNamespace(f.stream.SessionID), func(entries map[string]runtimekv.Entry) (bool, error) {
+		entries["history"] = runtimekv.Entry{Value: history}
+		entries["latest"] = runtimekv.Entry{Value: history.Samples[len(history.Samples)-1]}
+		return true, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var order []string
+	var later *runnerContextUsage
+	bundle, err := readContextUsageInspectionBundle(f.stream.SessionID, func() (runnerContextUsage, runnerContextHistory, bool, error) {
+		order = append(order, "runtime")
+		return readRunnerContextUsage(f.server.runtimeStore, f.stream.SessionID)
+	}, func() (*transcriptstore.ContextInspectionSnapshot, string, error) {
+		order = append(order, "journal")
+		// Real recorder retention advances between the two readers; it must
+		// never replace the owned request-ID set of this inspection response.
+		later = recorder.begin("next-request", agentruntime.ModelRequest{})
+		if _, _, _, err := f.repo.AppendRunnerCheckpoint(t.Context(), transcriptstore.AppendRunnerCheckpointInput{Claim: f.claim,
+			ClientMessageID: "inspection-between-readers", Phase: transcriptstore.RunnerPhaseExecuting, Resumable: true,
+			PayloadJSON: []byte(`{"status":"running"}`)}); err != nil {
+			return nil, "", err
+		}
+		value, err := f.repo.ReadContextInspection(t.Context(), f.stream.UID, f.stream.OwnerID)
+		return &value, f.stream.OwnerID, err
+	})
+	if err != nil || bundle.inspectionError != nil || bundle.authority == nil || later == nil || strings.Join(order, ",") != "runtime,journal" {
+		t.Fatalf("ordered read failed: order=%v err=%v authorityErr=%v", order, err, bundle.inspectionError)
+	}
+	latest, live, found, err := readRunnerContextUsage(f.server.runtimeStore, f.stream.SessionID)
+	if err != nil || !found || latest.RequestID != later.RequestID || live.TotalObserved != contextHistoryRetention+1 ||
+		live.Samples[0].RequestID != history.Samples[1].RequestID {
+		t.Fatalf("fixture did not roll over: found=%v err=%v", found, err)
+	}
+	if bundle.snapshot.RequestID != history.Samples[contextHistoryRetention-1].RequestID || bundle.history.TotalObserved != contextHistoryRetention ||
+		bundle.history.Samples[0].RequestID != history.Samples[0].RequestID {
+		t.Fatal("new sample leaked into fixed runtime read")
+	}
+	projection := projectContextInspection(*bundle.authority, bundle.history)
+	if len(projection.Calls) != contextHistoryRetention || projection.Coverage.UnassociatedCallCount != 0 {
+		t.Fatalf("fixed exact joins lost: %+v", projection.Coverage)
+	}
+	for _, call := range projection.Calls {
+		if call.ID == later.RequestID {
+			t.Fatal("later semantic request manufactured in as-of call list")
+		}
+	}
+	if err := f.repo.ValidateContextInspection(t.Context(), bundle.ownerID, bundle.authority.Scope); err != nil {
+		t.Fatal(err)
+	}
+	missing := projectContextInspection(*bundle.authority, runnerContextHistory{TotalObserved: contextHistoryRetention + 1})
+	if len(missing.Calls) != 0 || missing.Coverage.ObservedCallCount != nil || !missing.Coverage.Truncated {
+		t.Fatalf("trimmed usage invented calls or a known count: %+v", missing.Coverage)
+	}
+}
+
+func TestContextInspectorErrorCodesKeepIdentityAndSnapshotConflictsDistinct(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		err    error
+		status int
+		code   string
+	}{
+		{"scope", transcriptstore.ErrBranchStateStale, http.StatusConflict, "context_scope_changed"},
+		{"owner", transcriptstore.ErrOwnerMismatch, http.StatusConflict, "context_scope_changed"},
+		{"snapshot", transcriptstore.ErrEventConflict, http.StatusConflict, "context_snapshot_conflict"},
+		{"storage", errors.New("synthetic unavailable"), http.StatusServiceUnavailable, ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			writeContextInspectionError(response, c.err)
+			var body map[string]any
+			if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+				t.Fatal(err)
+			}
+			code, _ := body["code"].(string)
+			if response.Code != c.status || code != c.code {
+				t.Fatalf("wrong error contract: status=%d body=%v", response.Code, body)
+			}
+		})
 	}
 }
