@@ -278,7 +278,9 @@ func (s *Server) handleCloudDownload(w http.ResponseWriter, r *http.Request, cli
 	defer reader.Close()
 	writeCloudDownloadHeaders(w, r, key, info)
 	if _, err := io.Copy(w, reader); err != nil {
-		return
+		// A normal return would complete an unknown-length transfer even when
+		// the upstream body was truncated. Abort only this HTTP response.
+		panic(http.ErrAbortHandler)
 	}
 }
 

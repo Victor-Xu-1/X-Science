@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -11,9 +12,11 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"x-science/internal/cloudstore"
 	"x-science/internal/compute"
+	secretstore "x-science/internal/persistence/secrets"
 	workspace "x-science/internal/persistence/workspace"
 )
 
@@ -370,3 +373,133 @@ func (reader *zeroReader) Read(buffer []byte) (int, error) {
 	reader.remaining -= int64(len(buffer))
 	return len(buffer), nil
 }
+
+func TestCloudDownloadPropagatesInterruptedStreamThroughHTTP(t *testing.T) {
+	prefix := bytes.Repeat([]byte{0xA9}, 64<<10)
+	failure := errors.New("fixture upstream interrupted")
+	makeReader := func(data []byte, readErr, closeErr error) func() io.ReadCloser {
+		return func() io.ReadCloser {
+			var source io.Reader = bytes.NewReader(data)
+			if readErr != nil {
+				source = io.MultiReader(source, cloudDownloadErrorReader{readErr})
+			}
+			return cloudDownloadFixtureReader{Reader: source, closeErr: closeErr}
+		}
+	}
+	cloud := &recordingCloudClient{
+		objects: map[string][]byte{
+			"bucket/before-body": nil, "bucket/unknown": nil,
+			"bucket/known": nil, "bucket/complete": nil,
+		},
+		sizes: map[string]int64{
+			"bucket/before-body": -1, "bucket/unknown": -1,
+			"bucket/known": int64(len(prefix)) + 1, "bucket/complete": -1,
+		},
+		readers: map[string]func() io.ReadCloser{
+			"bucket/before-body": makeReader(nil, failure, nil),
+			"bucket/unknown":     makeReader(prefix, failure, nil),
+			"bucket/known":       makeReader(prefix, failure, nil),
+			"bucket/complete":    makeReader(prefix, nil, failure),
+		},
+	}
+	app := New(Options{FileRoot: t.TempDir(), CloudFactory: fixedCloudFactory{client: cloud},
+		XScienceLinkAuth: XScienceLinkAuthOptions{Username: "operator", Password: "test-secret-password", UserID: "user-1"},
+	})
+	t.Cleanup(func() { _ = app.Close(context.Background()) })
+	if _, err := app.secretStore.Create(secretstore.Secret{ID: "cloud-fixture", UserID: "user-1", Provider: "aws", Value: "{}"}); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(app.Handler())
+	t.Cleanup(server.Close)
+	client := server.Client()
+	client.Timeout = 5 * time.Second
+	login, err := client.Post(server.URL+"/login", "application/json",
+		strings.NewReader("{\"username\":\"operator\",\"password\":\"test-secret-password\"}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = io.Copy(io.Discard, login.Body)
+	login.Body.Close()
+	if err != nil || login.StatusCode != http.StatusOK {
+		t.Fatalf("login status=%d err=%v", login.StatusCode, err)
+	}
+	var session *http.Cookie
+	for _, cookie := range login.Cookies() {
+		if cookie.Name == webSessionCookieName {
+			session = cookie
+		}
+	}
+	if session == nil {
+		t.Fatal("login did not issue a browser session")
+	}
+	get := func(t *testing.T, path string) (*http.Response, error) {
+		t.Helper()
+		request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL+path, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.AddCookie(session)
+		return client.Do(request)
+	}
+	for _, tc := range []struct {
+		key                                       string
+		knownLength, failsBeforeBody, failsInBody bool
+	}{
+		{key: "before-body", failsBeforeBody: true},
+		{key: "unknown", failsInBody: true},
+		{key: "known", knownLength: true, failsInBody: true},
+		{key: "complete"},
+	} {
+		t.Run(tc.key, func(t *testing.T) {
+			response, err := get(t, "/api/cloud-credentials/cloud-fixture/download?bucket=bucket&key="+tc.key)
+			if tc.failsBeforeBody {
+				if err == nil {
+					response.Body.Close()
+					t.Fatalf("source failed before body but returned status %d", response.StatusCode)
+				}
+				if !errors.Is(err, io.EOF) {
+					t.Fatalf("source failure did not abort the response: %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != http.StatusOK {
+				t.Fatalf("download status=%d", response.StatusCode)
+			}
+			if !tc.knownLength && (response.ContentLength != -1 || len(response.TransferEncoding) != 1 || response.TransferEncoding[0] != "chunked") {
+				t.Fatalf("fixture did not exercise unknown-length chunked transfer: len=%d transfer=%v", response.ContentLength, response.TransferEncoding)
+			}
+			body, err := io.ReadAll(response.Body)
+			if tc.failsInBody {
+				if !errors.Is(err, io.ErrUnexpectedEOF) || len(body) == 0 || len(body) > len(prefix) || !bytes.Equal(body, prefix[:len(body)]) {
+					t.Fatalf("expected incomplete stream and only original payload bytes: bytes=%d err=%v", len(body), err)
+				}
+			} else if err != nil || !bytes.Equal(body, prefix) {
+				t.Fatalf("cleanup failure altered completed download: bytes=%d err=%v", len(body), err)
+			}
+		})
+	}
+	next, err := get(t, "/api/me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer next.Body.Close()
+	body, err := io.ReadAll(next.Body)
+	if err != nil || next.StatusCode != http.StatusOK || !bytes.Contains(body, []byte("\"user_id\":\"user-1\"")) {
+		t.Fatalf("next authenticated request status=%d body=%q err=%v", next.StatusCode, body, err)
+	}
+}
+
+type cloudDownloadErrorReader struct{ err error }
+
+func (r cloudDownloadErrorReader) Read([]byte) (int, error) { return 0, r.err }
+
+type cloudDownloadFixtureReader struct {
+	io.Reader
+	closeErr error
+}
+
+func (r cloudDownloadFixtureReader) Close() error { return r.closeErr }

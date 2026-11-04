@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { ClientRequest, ServerResponse } from 'node:http';
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
 import { resolve } from 'node:path';
 import type { Duplex } from 'node:stream';
 import react from '@vitejs/plugin-react';
@@ -72,6 +72,8 @@ export function productionPreviewCacheControl(pathname: string): string | undefi
 
 type ProxyRequestLifetime = Pick<ClientRequest, 'destroyed' | 'destroy' | 'once' | 'removeListener'>;
 type ProxyResponseLifetime = Pick<ServerResponse, 'writableEnded' | 'once' | 'removeListener'>;
+type ProxyIncomingLifetime = Pick<IncomingMessage, 'complete' | 'once' | 'removeListener'>;
+type ProxyOutgoingLifetime = Pick<ServerResponse, 'destroyed' | 'destroy' | 'writableEnded'>;
 type ProxySocketLifetime = Pick<Duplex, 'destroyed' | 'destroy' | 'once' | 'removeListener'>;
 
 /**
@@ -101,6 +103,18 @@ export function bindProxyRequestLifetime(
   downstreamResponse.once('finish', cleanup);
   proxyRequest.once('close', cleanup);
   return cleanup;
+}
+
+/** Propagate an incomplete upstream body instead of leaving a browser download open. */
+export function bindProxyResponseLifetime(upstream: ProxyIncomingLifetime, downstream: ProxyOutgoingLifetime): void {
+  const abortIncomplete = () => {
+    if (!upstream.complete && !downstream.writableEnded && !downstream.destroyed) downstream.destroy();
+  };
+  upstream.once('error', abortIncomplete);
+  upstream.once('close', () => {
+    upstream.removeListener('error', abortIncomplete);
+    abortIncomplete();
+  });
 }
 
 /** Close both halves of a proxied WebSocket when either peer disappears. */
@@ -137,6 +151,9 @@ function sourceBackendProxy(target: string, webSocket: boolean): ProxyOptions {
     configure(proxy) {
       proxy.on('proxyReq', (proxyRequest, _request, response) => {
         bindProxyRequestLifetime(proxyRequest, response);
+      });
+      proxy.on('proxyRes', (upstream, _request, response) => {
+        bindProxyResponseLifetime(upstream, response);
       });
       proxy.on('proxyReqWs', (proxyRequest, _request, downstreamSocket) => {
         const closePending = () => {
