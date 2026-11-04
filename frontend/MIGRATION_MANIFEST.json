@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "e492e139cc5d0a8d0540519298044adf4f20ba54da30992cea931f6f1c99070e",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "7a089f968b2fd45233a4268ea68cf7e8c98a7957f9b4b8e7104794a0348daabd",
+  "additionFingerprintSHA256": "719513841cc683eac84eca322cf45a67f359527299fa31e87a3e06e0264e845b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -15585,8 +15585,8 @@
     },
     {
       "path": "tests/unit/settings/settingsVisualContract.test.ts",
-      "sha256": "17c7d5f1e1cf9acecef6a5c8dce79ca267ac9ed3434b7aa23f893c61372e6f78",
-      "bytes": 15456,
+      "sha256": "7f2cec7c41afe18d187a3a05fa05a658c58cb4ffb91d3c72991bdacd28c4b4a0",
+      "bytes": 16877,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
