@@ -391,7 +391,7 @@ func (s *Server) scanSessionRunnerRecoveryEntries(
 		return err
 	}
 	var conditions transcriptstore.RunnerCorrectionAssembler
-	return s.scanTranscriptProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
+	return s.scanTranscriptPayloadProjection(ctx, snapshot, authority.Stream.OwnerID, snapshot.ThroughPublicationSequence, func(projected transcriptstore.ProjectedEvent) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
