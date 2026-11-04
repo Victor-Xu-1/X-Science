@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "99f7ed4ac311941e47883da12dd6a74da03069ac546a00e6bba2c2da3945be3a",
+  "adaptationFingerprintSHA256": "df89c564b5a9002b069f8c5477bdb67776e773c8dba4037140e9e0b8cbb9ba73",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ee2aba54c9a31390f7f43c9402121ce391b0c97c103a062d72327cd79d2b0d2f",
+  "additionFingerprintSHA256": "25f08bebbc389c0ccf305b2bff730812e418bc9c2ab9d04cfe9e790faf5b9c83",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "f6489b0ca7990b77d74fe9611f62afe1dffb3b7ae17fa0462d90889952379be3",
+      "targetSHA256": "9559659807ae493b7e8575aa748c3d36d749ec0f5b85b5c05c5c828e2bf465f6",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "d3a465c3e823da61a96107c9a7195ef430d3aa1dc32df5145cba4ad85949da53",
+      "targetSHA256": "7d346b6f3f82acca475156582b0a8695dfff6b0e3255e8fba2ef11410e91082d",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -4394,8 +4394,8 @@
     {
       "path": "tests/unit/renderer/ConversationIndex.dom.test.tsx",
       "sourceSHA256": "0399d6d03907db03ed3ff3816080ce44f54be57af48ba7e62df8ea19be956e3c",
-      "targetSHA256": "74d0c2da613b296f9ae5ee2a9c6b2f59519f9b7a362db9fa00f3bda5de0df036",
-      "bytes": 17216,
+      "targetSHA256": "9102fc2cecfe3296e42d50518059fedcd70ebc22b1959df4b92095a9b0e8938d",
+      "bytes": 19141,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7605,7 +7605,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "dea32169e67c511043064abd0641ee8c9381d505f7bd831d24a6334599135198",
+      "sha256": "5cb10775269e738ea5e436b5cbcc6691c3ffc7896dfa124afad2f532bc953492",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7797,8 +7797,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/realtimeClient.ts",
-      "sha256": "c4f59351c5e38d3bd463490408f5ba90f658549281c3852f9c56132b82e6da4c",
-      "bytes": 28334,
+      "sha256": "5eaa3968ff5dbeab8a68e48fdbdab5c4d3369561f98f46318f0a1333a454b091",
+      "bytes": 28374,
       "reason": "Own one identity-bound authenticated realtime connection with fenced socket, listener, cursor, and timer resources."
     },
     {
@@ -7815,8 +7815,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/realtimeRuntime.ts",
-      "sha256": "2459c05afa1fb4e4435ede6f8dfb38cd623eb60a80654f1de81fba74eebe495a",
-      "bytes": 7343,
+      "sha256": "e7471ea50f51cb060d33cf3af4fbf4fed129489e7c3b4d36a31f8629bc13ce10",
+      "bytes": 7387,
       "reason": "Route validated durable and direct events through identity-epoch subscriptions and a stable external-store snapshot."
     },
     {
@@ -13059,8 +13059,8 @@
     },
     {
       "path": "tests/unit/common-adapter/realtimeClient.test.ts",
-      "sha256": "0f9eba6d4014b5d5bc1198d35668256eca77558df7b2ffe4d74d9af10f5698ea",
-      "bytes": 52512,
+      "sha256": "63d7b780764182d02f87c914a391011b6cd33af640379241fbb756a6758e099c",
+      "bytes": 55054,
       "reason": "Verify identity, socket, timer, cursor, reconnect, cleanup, and durable delivery authority under reentry."
     },
     {
@@ -13077,8 +13077,8 @@
     },
     {
       "path": "tests/unit/common-adapter/realtimeRuntime.test.ts",
-      "sha256": "181be277f608ad35e9eb989a3934412c5373668996b896102cc4e26cd9e78eaa",
-      "bytes": 12780,
+      "sha256": "94fb3d0f441c5925f166a809ec9a0e3424615cd82bc78bfbcf3e65dddd113b97",
+      "bytes": 13659,
       "reason": "Verify identity epochs, composite subscriptions, listener isolation, and reconnected delivery."
     },
     {

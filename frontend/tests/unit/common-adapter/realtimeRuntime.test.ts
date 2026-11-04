@@ -284,6 +284,31 @@ describe('RealtimeRuntime', () => {
     expect(reconnected).toHaveBeenCalledTimes(2);
   });
 
+  it.each(['reconnecting', 'offline'] as const)(
+    'announces the first validated connection after %s only for the current owner',
+    async (failedStatus) => {
+      const { runtime, client } = setup();
+      const reconnected = vi.fn();
+      runtime.subscribeReconnected(reconnected);
+      await runtime.setIdentity('owner-a');
+
+      client().status('connecting');
+      client().status(failedStatus);
+      client().status('connected');
+      expect(reconnected).not.toHaveBeenCalled();
+      client().message(connected(1));
+      client().message(connected(1));
+      expect(reconnected).toHaveBeenCalledTimes(1);
+
+      client().status(failedStatus);
+      await runtime.setIdentity('owner-b');
+      client().status('connecting');
+      client().status('connected');
+      client().message(connected());
+      expect(reconnected).toHaveBeenCalledTimes(1);
+    }
+  );
+
   it('stops stale reconnected dispatch after an identity transition', async () => {
     const { runtime, client } = setup();
     const later = vi.fn();

@@ -3,6 +3,11 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../i18nTestUtils';
 import type { TChatConversation } from '@/common/config/storage';
+import {
+  createRealtimeRuntime,
+  type RealtimeRuntime,
+  type RealtimeRuntimeClientObservers,
+} from '@/common/adapter/realtimeRuntime';
 
 const swrMock = vi.fn();
 const navigateMock = vi.fn();
@@ -15,6 +20,7 @@ let listChangedListener:
   | ((event: { conversation_id: string; action: 'created' | 'updated' | 'deleted' }) => void)
   | undefined;
 let reconnectedListener: (() => void) | undefined;
+let actualRuntime: RealtimeRuntime | undefined;
 
 vi.mock('swr', () => ({
   default: (...args: unknown[]) => swrMock(...args),
@@ -55,7 +61,7 @@ vi.mock('@/renderer/hooks/context/AuthContext', () => ({
 
 vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
   useRealtime: () => ({
-    runtime: {
+    runtime: actualRuntime ?? {
       subscribeReconnected: (listener: () => void) => {
         reconnectedListener = listener;
         return () => {
@@ -89,6 +95,7 @@ describe('ChatConversationIndex unavailable states', () => {
     routeConversationId = 'frame-missing';
     listChangedListener = undefined;
     reconnectedListener = undefined;
+    actualRuntime = undefined;
   });
 
   afterEach(() => vi.restoreAllMocks());
@@ -145,6 +152,53 @@ describe('ChatConversationIndex unavailable states', () => {
 
     reconnectedListener?.();
     expect(mutateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('revalidates the mounted route after the first handshake succeeds following an initial socket failure', async () => {
+    let transport: RealtimeRuntimeClientObservers | undefined;
+    const runtime = createRealtimeRuntime({
+      createClient: (observers) => {
+        transport = observers;
+        return { setIdentity: async () => {}, dispose: () => {} };
+      },
+    });
+    actualRuntime = runtime;
+    await runtime.setIdentity('owner-test');
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    swrMock.mockReturnValue({
+      data: undefined,
+      error: new Error('initial backend read failed'),
+      isLoading: false,
+      mutate: mutateMock,
+    });
+    const view = await renderWithI18n(<ChatConversationIndex />);
+    try {
+      expect(screen.getByTestId('conversation-load-error')).toHaveAttribute('role', 'alert');
+      expect(swrMock).toHaveBeenCalledWith(
+        'conversation/owner-test/frame-missing',
+        expect.any(Function),
+        expect.any(Object)
+      );
+
+      act(() => {
+        transport?.onStatus('connecting');
+        transport?.onStatus('reconnecting');
+        transport?.onStatus('connected');
+      });
+      expect(mutateMock).not.toHaveBeenCalled();
+      act(() => {
+        const connected = { kind: 'connected', cursor: 1, payload: { type: 'connected', cursor: 1 } } as const;
+        transport?.onMessage(connected);
+        transport?.onMessage(connected);
+      });
+
+      expect(runtime.getSnapshot().status).toBe('connected');
+      expect(mutateMock).toHaveBeenCalledTimes(1);
+      expect(navigateMock).not.toHaveBeenCalled();
+    } finally {
+      view.unmount();
+      runtime.dispose();
+    }
   });
 
   it('keeps cached conversation content visible when background revalidation fails', async () => {
