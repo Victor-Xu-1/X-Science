@@ -15,11 +15,28 @@ import (
 )
 
 // Job owns a Windows Job Object containing one supervised command and every
-// descendant process it creates. Closing or terminating the job cannot leave
-// descendants running after their parent exits.
+// descendant process it creates. Its kill-on-close policy applies when the
+// private handle is successfully closed.
 type Job struct {
-	mu     sync.Mutex
-	handle windows.Handle
+	mu           sync.Mutex
+	handle       windows.Handle
+	cleanupError error
+}
+
+// ErrJobCleanupUnconfirmed means this owner cannot prove that the handle was
+// closed. The underlying Win32 error is retained for diagnosis.
+var ErrJobCleanupUnconfirmed = errors.New("Windows Job cleanup is unconfirmed")
+
+var getHandleInformation = windows.NewLazySystemDLL("kernel32.dll").NewProc("GetHandleInformation")
+
+func jobHandleProtectedFromClose(handle windows.Handle) (bool, error) {
+	const protectFromClose = 0x2 // Win32 HANDLE_FLAG_PROTECT_FROM_CLOSE.
+	var flags uint32
+	ok, _, err := getHandleInformation.Call(uintptr(handle), uintptr(unsafe.Pointer(&flags)))
+	if ok == 0 {
+		return false, err
+	}
+	return flags&protectFromClose != 0, nil
 }
 
 type windowsProcessAPI struct {
@@ -63,12 +80,79 @@ func Start(command *exec.Cmd) (*Job, error) {
 }
 
 func start(command *exec.Cmd, api windowsProcessAPI) (*Job, error) {
+	return startWithReservedStartupJob(command, api, nil)
+}
+
+// ReservedStartupJob belongs to the registered caller before process launch.
+// It retains failed startup cleanup until its owner can prove settlement.
+// The caller serializes startup and explicit recovery.
+type ReservedStartupJob struct {
+	job        *Job
+	cleanupErr error
+	exitErr    error
+	used       bool
+}
+
+var ErrStartupProcessExitUnconfirmed = errors.New("Windows startup process exit is unconfirmed")
+
+func (owner *ReservedStartupJob) CleanupPending() bool {
+	return owner != nil && (owner.cleanupErr != nil || owner.exitErr != nil)
+}
+
+// PhysicalExitConfirmed reports whether a failed launch left no unreaped child.
+func (owner *ReservedStartupJob) PhysicalExitConfirmed() bool {
+	return owner != nil && owner.exitErr == nil
+}
+
+// RetryCleanup attempts one close of the same proven private Job. A child
+// without verified exit or a Job without proven handle identity stays fenced.
+func (owner *ReservedStartupJob) RetryCleanup() error {
+	if owner == nil {
+		return nil
+	}
+	if owner.exitErr != nil {
+		return errors.Join(owner.exitErr, owner.cleanupErr)
+	}
+	if owner.job != nil {
+		return owner.close()
+	}
+	return owner.cleanupErr
+}
+
+func (owner *ReservedStartupJob) close() error {
+	owner.cleanupErr = owner.job.Close()
+	if owner.cleanupErr == nil || errors.Is(owner.cleanupErr, ErrJobCleanupUnconfirmed) {
+		owner.job = nil
+	}
+	return owner.cleanupErr
+}
+
+func StartWithReservedStartupJob(command *exec.Cmd, owner *ReservedStartupJob) (*Job, error) {
+	if owner == nil {
+		return nil, errors.New("reserved startup Job owner is required")
+	}
+	return startWithReservedStartupJob(command, systemWindowsProcessAPI, owner)
+}
+
+func startWithReservedStartupJob(command *exec.Cmd, api windowsProcessAPI, owner *ReservedStartupJob) (*Job, error) {
+	if owner != nil {
+		if owner.used {
+			return nil, errors.New("reserved startup Job owner was already used")
+		}
+		owner.used = true
+	}
 	if command == nil {
 		return nil, errors.New("supervised command is required")
 	}
 	jobHandle, err := api.createJobObject(nil, nil)
 	if err != nil {
 		return nil, err
+	}
+	job := &Job{handle: jobHandle}
+	closeJob := job.Close
+	if owner != nil {
+		owner.job = job
+		closeJob = owner.close
 	}
 	info := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	info.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
@@ -78,10 +162,14 @@ func start(command *exec.Cmd, api windowsProcessAPI) (*Job, error) {
 		uintptr(unsafe.Pointer(&info)),
 		uint32(unsafe.Sizeof(info)),
 	); err != nil {
-		windows.CloseHandle(jobHandle)
-		return nil, err
+		if owner == nil {
+			// Legacy callers have no startup owner. Keep their path unchanged
+			// until they can retain the exact result.
+			_ = windows.CloseHandle(jobHandle)
+			return nil, err
+		}
+		return nil, errors.Join(err, closeJob())
 	}
-	job := &Job{handle: jobHandle}
 	if originalCancel := command.Cancel; originalCancel != nil {
 		command.Cancel = func() error {
 			return errors.Join(job.Terminate(), normalizeProcessDone(originalCancel()))
@@ -112,13 +200,21 @@ func start(command *exec.Cmd, api windowsProcessAPI) (*Job, error) {
 	defer attempt.closeHandles()
 	if attempt.err != nil {
 		if command.Process == nil {
-			return nil, errors.Join(attempt.err, job.Close())
+			return nil, errors.Join(attempt.err, closeJob())
 		}
 		// The callback has published the attempt's resource ownership. A managed
 		// wait error keeps startupOwnerExited=false; publication alone never
 		// proves that the debugger backstop terminated an unassigned child.
 		// Only this caller runs synchronous Cmd.Wait/failed-start cleanup.
-		return nil, errors.Join(attempt.err, cleanupStartedCommand(command, job, attempt.process, attempt.assigned, api, startupOwnerExited))
+		cleanupErr, reaped := cleanupStartedCommand(command, job, closeJob, attempt.process, attempt.assigned, api, startupOwnerExited)
+		if owner != nil && !reaped {
+			owner.exitErr = ErrStartupProcessExitUnconfirmed
+			cleanupErr = errors.Join(cleanupErr, owner.exitErr)
+		}
+		return nil, errors.Join(attempt.err, cleanupErr)
+	}
+	if owner != nil {
+		owner.job = nil // The successful worker now owns the Job.
 	}
 	return job, nil
 }
@@ -215,7 +311,7 @@ func openSuspendedThread(processID uint32, api windowsProcessAPI) (windows.Handl
 	}
 }
 
-func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Handle, assigned bool, api windowsProcessAPI, startupOwnerExited bool) error {
+func cleanupStartedCommand(command *exec.Cmd, job *Job, closeJob func() error, processHandle windows.Handle, assigned bool, api windowsProcessAPI, startupOwnerExited bool) (error, bool) {
 	var terminationErr error
 	terminationRequested := false
 	if assigned {
@@ -239,7 +335,7 @@ func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Ha
 			terminationRequested = true
 		}
 	}
-	cleanupErr := job.Close()
+	cleanupErr := closeJob()
 	exited := false
 	if processHandle != 0 {
 		status, err := api.waitForSingleObject(processHandle, 5_000)
@@ -270,7 +366,7 @@ func cleanupStartedCommand(command *exec.Cmd, job *Job, processHandle windows.Ha
 	if !exited {
 		cleanupErr = errors.Join(cleanupErr, terminationErr)
 	}
-	return cleanupErr
+	return cleanupErr, exited && command != nil && command.ProcessState != nil
 }
 
 func normalizeProcessDone(err error) error {
@@ -288,7 +384,7 @@ func (job *Job) Terminate() error {
 	job.mu.Lock()
 	defer job.mu.Unlock()
 	if job.handle == 0 {
-		return nil
+		return job.cleanupError
 	}
 	return terminateJob(job.handle)
 }
@@ -303,15 +399,34 @@ func terminateJob(handle windows.Handle) error {
 // Close releases the Job Object. KILL_ON_JOB_CLOSE guarantees that any
 // descendant which outlived the command is terminated here.
 func (job *Job) Close() error {
+	return job.close(jobHandleProtectedFromClose, windows.CloseHandle)
+}
+
+func (job *Job) close(inspect func(windows.Handle) (bool, error), closeHandle func(windows.Handle) error) error {
 	if job == nil {
 		return nil
 	}
 	job.mu.Lock()
 	defer job.mu.Unlock()
 	if job.handle == 0 {
-		return nil
+		return job.cleanupError
 	}
-	err := windows.CloseHandle(job.handle)
+	protected, err := inspect(job.handle)
+	if err == nil {
+		err = closeHandle(job.handle)
+		if err == nil {
+			job.handle = 0
+			return nil
+		}
+		if protected {
+			// Protection was witnessed on the private handle before CloseHandle.
+			// The caller may explicitly close it after resolving the protection.
+			return err
+		}
+	}
+	// The numeric handle is no longer usable as authority. Preserve the
+	// uncertain outcome, including on a later Close or Terminate.
 	job.handle = 0
-	return err
+	job.cleanupError = fmt.Errorf("%w: %w", ErrJobCleanupUnconfirmed, err)
+	return job.cleanupError
 }

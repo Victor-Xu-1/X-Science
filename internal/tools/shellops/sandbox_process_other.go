@@ -22,4 +22,8 @@ func (process *sandboxProcess) kill() error {
 	return process.command.Process.Kill()
 }
 
-func (*sandboxProcess) close() {}
+func startReservedSandboxProcess(command *exec.Cmd) (*sandboxProcess, error) {
+	return startSandboxProcess(command)
+}
+
+func (*sandboxProcess) close() error { return nil }

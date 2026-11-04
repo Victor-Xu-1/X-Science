@@ -249,7 +249,11 @@ func (process *sandboxProcess) kill() error {
 	return killSandboxProcessTree(process.command)
 }
 
-func (process *sandboxProcess) close() {}
+func startReservedSandboxProcess(command *exec.Cmd) (*sandboxProcess, error) {
+	return startSandboxProcess(command)
+}
+
+func (*sandboxProcess) close() error { return nil }
 
 func killSandboxProcessTree(command *exec.Cmd) error {
 	if command == nil || command.Process == nil {

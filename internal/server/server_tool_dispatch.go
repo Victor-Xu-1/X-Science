@@ -351,7 +351,7 @@ func (s *Server) executeToolResult(ctx context.Context, toolName string, input m
 	case toolName == "TaskOutput":
 		return s.executeTaskOutputTool(ctx, toolName, input)
 	case toolName == "TaskStop":
-		return s.executeTaskStopTool(toolName, input)
+		return s.executeTaskStopTool(ctx, toolName, input)
 	case toolName == "Agent":
 		return s.executeAgentTool(ctx, toolName, input)
 	case toolName == "CronCreate" || toolName == "CronUpdate" || toolName == "CronList" || toolName == "CronDelete" || toolName == "cron_tick":

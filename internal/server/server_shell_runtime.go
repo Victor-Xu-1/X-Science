@@ -102,6 +102,7 @@ func (s *Server) startBackgroundShellCommand(ctx context.Context, toolName strin
 	}()
 	command := stringValue(input["command"])
 	description := firstNonEmpty(stringValue(input["description"]), command)
+	owner := s.currentBackgroundShellOwner(ctx)
 	task, err := s.taskStore.CreateWithOptions(taskstore.CreateOptions{
 		Subject:     description,
 		Description: command,
@@ -118,14 +119,20 @@ func (s *Server) startBackgroundShellCommand(ctx context.Context, toolName strin
 	if err != nil {
 		return nil, err
 	}
+	entry := s.reserveBackgroundShell(task.ID, owner)
+	settlementStarted = true
+	failStart := func(err error) (map[string]any, error) {
+		s.settleBackgroundShell(task.ID, entry, backgroundShellSettlement{runErr: err}, nil)
+		return nil, err
+	}
 	rules, err := s.loadStorageRules()
 	if err != nil {
-		return nil, err
+		return failStart(err)
 	}
 	outputRel := filepath.ToSlash(filepath.Join(rules.Logs, task.ID+".log"))
 	outputPath := filepath.Join(s.fileRoot, outputRel)
 	if err := ensurePathWithinRoot(s.fileRoot, outputPath, "background shell output"); err != nil {
-		return nil, err
+		return failStart(err)
 	}
 	metadata := cloneTaskMetadata(task.Metadata)
 	metadata["output_path"] = outputRel
@@ -133,23 +140,29 @@ func (s *Server) startBackgroundShellCommand(ctx context.Context, toolName strin
 		metadata["routeReason"] = routeReason
 	}
 	if _, _, _, err := s.taskStore.UpdateWithOptions(task.ID, taskstore.UpdateOptions{Metadata: metadata, MetadataSet: true}); err != nil {
-		return nil, err
+		return failStart(err)
 	}
-	owner := s.currentBackgroundShellOwner(ctx)
 	executionContext := context.Background()
 	if len(observations) > 0 {
 		executionContext = executionprep.WithObservation(executionContext, observations[0])
 	}
+	if s.backgroundShellStopRequested(entry) {
+		s.settleBackgroundShell(task.ID, entry, backgroundShellSettlement{}, nil)
+		return nil, fmt.Errorf("background Shell task %s was stopped before launch", task.ID)
+	}
 	running, err := shellops.StartShellCommand(executionContext, s.fileRoot, toolName, command, stringValue(input["workdir"]))
 	if err != nil {
-		failedStatus := "failed"
-		metadata["error"] = err.Error()
-		_, _, _, _ = s.taskStore.UpdateWithOptions(task.ID, taskstore.UpdateOptions{Status: &failedStatus, Metadata: metadata, MetadataSet: true})
-		return nil, err
+		if running == nil {
+			return failStart(err)
+		}
+		s.backgroundShellMu.Lock()
+		entry.RunningCommand = running
+		s.backgroundShellMu.Unlock()
+		s.settleBackgroundShell(task.ID, entry, backgroundShellSettlement{runErr: err}, err)
+		return nil, fmt.Errorf("background Shell task %s has unconfirmed startup cleanup: %w", task.ID, err)
 	}
-	s.storeBackgroundShell(task.ID, running, owner)
-	settlementStarted = true
-	go s.finishBackgroundShell(task.ID, outputPath, running)
+	s.attachBackgroundShell(task.ID, entry, running)
+	go s.finishBackgroundShell(task.ID, outputPath, entry)
 	result := map[string]any{
 		"backgroundTaskId":          task.ID,
 		"task_id":                   task.ID,
@@ -168,45 +181,21 @@ func (s *Server) startBackgroundShellCommand(ctx context.Context, toolName strin
 	return result, nil
 }
 
-func (s *Server) storeBackgroundShell(taskID string, running *shellops.RunningCommand, owners ...*backgroundShellOwner) {
-	s.backgroundShellMu.Lock()
-	defer s.backgroundShellMu.Unlock()
-	if s.backgroundShells == nil {
-		s.backgroundShells = map[string]*backgroundShellEntry{}
-	}
-	entry := &backgroundShellEntry{RunningCommand: running}
-	if len(owners) > 0 {
-		entry.owner = owners[0]
-	}
-	s.backgroundShells[taskID] = entry
-	// Shutdown may start while an already admitted launch prepares its process.
-	// It remains in the wait group and must be killed before registration returns.
-	if s.backgroundShellClosing && running != nil {
-		if err := running.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-			if s.backgroundShellErr == nil {
-				s.backgroundShellErr = err
-			}
-		}
-	}
+func (s *Server) finishBackgroundShell(taskID string, outputPath string, entry *backgroundShellEntry) {
+	result, runErr, cleanupErr := entry.RunningCommand.WaitForSettlement()
+	s.settleBackgroundShell(taskID, entry, backgroundShellSettlement{outputPath: outputPath, result: result, runErr: runErr}, cleanupErr)
 }
 
-func (s *Server) takeBackgroundShell(taskID string) *shellops.RunningCommand {
-	s.backgroundShellMu.Lock()
-	defer s.backgroundShellMu.Unlock()
-	running := s.backgroundShells[taskID]
-	delete(s.backgroundShells, taskID)
-	if running == nil {
-		return nil
-	}
-	return running.RunningCommand
-}
-
-func (s *Server) finishBackgroundShell(taskID string, outputPath string, running *shellops.RunningCommand) {
+func (s *Server) persistBackgroundShellSettlement(taskID string, entry *backgroundShellEntry, settlement backgroundShellSettlement) {
 	var settlementErr error
 	defer s.backgroundShellWG.Done()
 	defer func() {
 		s.backgroundShellMu.Lock()
-		delete(s.backgroundShells, taskID)
+		entry.settlementErr = settlementErr
+		if s.backgroundShells[taskID] == entry {
+			delete(s.backgroundShells, taskID)
+		}
+		close(entry.done)
 		if s.backgroundShellErr == nil {
 			s.backgroundShellErr = settlementErr
 		}
@@ -215,12 +204,15 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 			log.Printf("background shell settlement %s: %v", taskID, settlementErr)
 		}
 	}()
-	result, err := running.Wait()
+	result, err := settlement.result, settlement.runErr
+	outputPath := settlement.outputPath
 	content := backgroundShellOutputContent(result)
-	if writeErr := os.MkdirAll(filepath.Dir(outputPath), 0o700); writeErr != nil {
-		settlementErr = writeErr
-	} else if writeErr := os.WriteFile(outputPath, []byte(content), 0o600); writeErr != nil {
-		settlementErr = writeErr
+	if outputPath != "" {
+		if writeErr := os.MkdirAll(filepath.Dir(outputPath), 0o700); writeErr != nil {
+			settlementErr = writeErr
+		} else if writeErr := os.WriteFile(outputPath, []byte(content), 0o600); writeErr != nil {
+			settlementErr = writeErr
+		}
 	}
 	if s.taskStore == nil {
 		settlementErr = errors.Join(settlementErr, errors.New("background task store is unavailable"))
@@ -239,7 +231,7 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 	// already settled before this snapshot can complete normally; the wait
 	// group retains ownership until its terminal write actually finishes.
 	s.backgroundShellMu.Lock()
-	closing := s.backgroundShellClosing
+	stopBy := entry.stopBy
 	s.backgroundShellMu.Unlock()
 	status := "completed"
 	if err != nil || settlementErr != nil {
@@ -249,17 +241,19 @@ func (s *Server) finishBackgroundShell(taskID string, outputPath string, running
 		status = "stopped"
 	}
 	metadata := cloneTaskMetadata(current.Metadata)
-	if closing && current.Status != "stopped" {
+	if stopBy != "" && current.Status != "stopped" {
 		status = "stopped"
-		metadata["stoppedBy"] = "server_shutdown"
+		metadata["stoppedBy"] = stopBy
 		metadata["stoppedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
 	}
-	metadata["output"] = content
-	metadata["stdout"] = result.Stdout
-	metadata["stderr"] = result.Stderr
-	metadata["exitCode"] = result.ExitCode
-	metadata["stdoutBytes"] = result.StdoutBytes
-	metadata["stderrBytes"] = result.StderrBytes
+	if result.Command != "" {
+		metadata["output"] = content
+		metadata["stdout"] = result.Stdout
+		metadata["stderr"] = result.Stderr
+		metadata["exitCode"] = result.ExitCode
+		metadata["stdoutBytes"] = result.StdoutBytes
+		metadata["stderrBytes"] = result.StderrBytes
+	}
 	metadata["completedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
 	if resultErr := errors.Join(err, settlementErr); resultErr != nil {
 		metadata["error"] = resultErr.Error()

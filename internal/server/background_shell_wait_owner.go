@@ -11,12 +11,24 @@ import (
 // TaskUpdate metadata is model-writable and cannot confer execution ownership.
 type backgroundShellEntry struct {
 	*shellops.RunningCommand
-	owner *backgroundShellOwner
+	owner         *backgroundShellOwner
+	done          chan struct{}
+	stopBy        string
+	pending       *backgroundShellSettlement
+	cleanupErr    error
+	killRequested bool
+	recovering    bool
+	settling      bool
+	settlementErr error
 }
 
 type backgroundShellOwner struct {
 	UserID, ProjectID, FrameID, FrameIncarnationID string
 	RootFrameID, RootFrameIncarnationID, BranchID  string
+}
+
+func (owner *backgroundShellOwner) matches(actor *backgroundShellOwner) bool {
+	return owner != nil && actor != nil && *owner == *actor
 }
 
 type taskOutputWaitObservation struct{ confirmed bool }
@@ -78,5 +90,5 @@ func (s *Server) observeTaskOutputPendingWait(ctx context.Context, taskID string
 	s.backgroundShellMu.Lock()
 	defer s.backgroundShellMu.Unlock()
 	entry := s.backgroundShells[taskID]
-	observation.confirmed = entry != nil && entry.RunningCommand != nil && entry.owner != nil && *entry.owner == *owner
+	observation.confirmed = entry != nil && entry.RunningCommand != nil && entry.pending == nil && entry.owner.matches(owner)
 }
