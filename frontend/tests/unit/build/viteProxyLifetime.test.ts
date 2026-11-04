@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { bindProxyRequestLifetime, bindProxySocketLifetime } from '../../../vite.config';
+import { bindProxyRequestLifetime, bindProxyResponseLifetime, bindProxySocketLifetime } from '../../../vite.config';
 
 class FakeRequest extends EventEmitter {
   destroyed = false;
@@ -12,8 +12,18 @@ class FakeRequest extends EventEmitter {
   }
 }
 
-class FakeResponse extends EventEmitter {
+class FakeResponse extends FakeRequest {
   writableEnded = false;
+  destroyCount = 0;
+
+  override destroy(): this {
+    this.destroyCount++;
+    return super.destroy();
+  }
+}
+
+class FakeIncomingResponse extends EventEmitter {
+  complete = false;
 }
 
 class FakeSocket extends EventEmitter {
@@ -51,6 +61,50 @@ describe('source backend proxy resource lifetime', () => {
 
     expect(request.destroyed).toBe(false);
     expect(request.listenerCount('close')).toBe(0);
+  });
+
+  it.each(['error', 'close'])('aborts the browser response when the upstream body ends early (%s)', (event) => {
+    const upstream = new FakeIncomingResponse();
+    const response = new FakeResponse();
+
+    bindProxyResponseLifetime(upstream, response);
+    upstream.emit(event, new Error('incomplete upstream body'));
+
+    expect(response.destroyed).toBe(true);
+    if (event !== 'close') upstream.emit('close');
+    expect(response.destroyCount).toBe(1);
+    expect(upstream.listenerCount('error')).toBe(0);
+    expect(upstream.listenerCount('close')).toBe(0);
+  });
+
+  it.each(['finished', 'closed'])('leaves an already %s browser response alone during upstream abort', (state) => {
+    const upstream = new FakeIncomingResponse();
+    const response = new FakeResponse();
+
+    bindProxyResponseLifetime(upstream, response);
+    if (state === 'finished') response.writableEnded = true;
+    else response.destroy();
+    const priorCount = response.destroyCount;
+
+    upstream.emit('error', new Error('incomplete upstream body'));
+    upstream.emit('close');
+
+    expect(response.destroyCount).toBe(priorCount);
+    expect(upstream.listenerCount('error')).toBe(0);
+    expect(upstream.listenerCount('close')).toBe(0);
+  });
+
+  it('preserves the browser response when the upstream already completed', () => {
+    const upstream = new FakeIncomingResponse();
+    const response = new FakeResponse();
+
+    bindProxyResponseLifetime(upstream, response);
+    upstream.complete = true;
+    upstream.emit('error', new Error('late cleanup failed'));
+    upstream.emit('close');
+
+    expect(response.destroyed).toBe(false);
+    expect(upstream.listenerCount('error')).toBe(0);
   });
 
   it('destroys the other WebSocket half and removes listeners when either peer closes', () => {
