@@ -21,6 +21,7 @@ export type ClientBusinessSettingMap = {
   'xScience.session.effort': 'low' | 'medium' | 'high' | undefined;
   'xScience.sidebar.projectOrder': string[] | undefined;
   'xScience.library.columnPrefs': LibraryColumnPreferencesWire | undefined;
+  'system.notificationEnabled': boolean;
 };
 
 export type ClientBusinessSettingKey = keyof ClientBusinessSettingMap;

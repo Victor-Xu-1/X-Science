@@ -31,6 +31,7 @@ export const settingsRouteLoaders = {
   storage: cachedLoader(() => import('./StorageSettings')),
   archived: cachedLoader(() => import('./ArchivedSettings')),
   general: cachedLoader(() => import('./GeneralSettings')),
+  notifications: cachedLoader(() => import('./NotificationsSettings')),
 } as const;
 
 export type SettingsRouteId = keyof typeof settingsRouteLoaders;
@@ -49,6 +50,7 @@ const settingsNavigationOrder: SettingsRouteId[] = [
   'storage',
   'archived',
   'general',
+  'notifications',
 ];
 
 export function isSettingsRouteId(value: string | undefined | null): value is SettingsRouteId {

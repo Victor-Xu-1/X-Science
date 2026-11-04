@@ -10,6 +10,7 @@ import { bindRealtimeRuntime } from '@/common/adapter/httpBridge';
 import { createRendererRealtimeRuntime } from '@/common/adapter/realtimeRenderer';
 import type { RealtimeRuntime } from '@/common/adapter/realtimeRuntime';
 import { RealtimeProvider } from '@renderer/hooks/context/RealtimeContext';
+import { BrowserNotificationPreferenceProvider } from '@renderer/hooks/system/notification/BrowserNotificationPreference';
 import { ConversationHistoryProvider } from '@renderer/hooks/context/ConversationHistoryContext';
 import { PreviewProvider } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import Layout from '@renderer/components/layout/Layout';
@@ -88,7 +89,9 @@ const AuthenticatedWorkspace: React.FC = () => {
       <PreviewProvider>
         <ConversationHistoryProvider>
           <InitialConversationPrefetchAuthority />
-          <Layout sider={<Sider />} />
+          <BrowserNotificationPreferenceProvider>
+            <Layout sider={<Sider />} />
+          </BrowserNotificationPreferenceProvider>
         </ConversationHistoryProvider>
       </PreviewProvider>
     </RealtimeProvider>

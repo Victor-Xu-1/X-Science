@@ -102,3 +102,15 @@ describe('merged library sidebar entry', () => {
     expect(i18nKeys).toContain("'settings.scientificToolkit'");
   });
 });
+
+describe('browser notification settings entry', () => {
+  it('opens one registered notifications route from both navigation surfaces', () => {
+    expect(isSettingsRouteId('notifications')).toBe(true);
+    expect(resolveSiderEntryId('notifications' as SettingsRouteId)).toBe('notifications');
+    expect(siderSource).toContain("'notifications'");
+    const row =
+      /id: 'notifications',[\s\S]*?label: t\('settings\.notificationsPage\.title'\),[\s\S]*?path: 'notifications'/;
+    expect(siderSource).toMatch(row);
+    expect(wrapperSource).toMatch(row);
+  });
+});

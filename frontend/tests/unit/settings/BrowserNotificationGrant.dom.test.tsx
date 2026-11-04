@@ -5,7 +5,7 @@
  */
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
@@ -53,12 +53,36 @@ describe('BrowserNotificationGrant', () => {
     expect(screen.getByText('settings.browserNotification.insecureContext')).toBeInTheDocument();
   });
 
+  it('distinguishes an unsupported browser in a secure context', () => {
+    setNotification(null);
+    render(<BrowserNotificationGrant />);
+    expect(screen.getByText('settings.notificationsPage.unsupported')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('requests permission when the enable button is clicked', async () => {
     setNotification('default');
     const requestSpy = (globalThis as unknown as { Notification: { requestPermission: ReturnType<typeof vi.fn> } })
       .Notification.requestPermission;
     render(<BrowserNotificationGrant />);
+    expect(requestSpy).not.toHaveBeenCalled();
     await userEvent.click(screen.getByText('settings.browserNotification.enable'));
-    expect(requestSpy).toHaveBeenCalled();
+    expect(requestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a permission error and refreshes permission after browser focus', async () => {
+    setNotification('default');
+    const notification = (
+      globalThis as unknown as {
+        Notification: { permission: NotificationPermission; requestPermission: ReturnType<typeof vi.fn> };
+      }
+    ).Notification;
+    notification.requestPermission.mockRejectedValueOnce(new Error('permission failed'));
+    render(<BrowserNotificationGrant />);
+    await userEvent.click(screen.getByText('settings.browserNotification.enable'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('settings.notificationsPage.permissionFailed');
+    notification.permission = 'denied';
+    fireEvent.focus(window);
+    expect(screen.getByText('settings.browserNotification.denied')).toBeInTheDocument();
   });
 });

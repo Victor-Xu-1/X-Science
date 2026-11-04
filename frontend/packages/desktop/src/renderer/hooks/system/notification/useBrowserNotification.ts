@@ -8,7 +8,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
+import { useBrowserNotificationPreference } from './BrowserNotificationPreference';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { createBrowserNotificationController, type NotificationPermissionState } from './browserNotificationCore';
 import {
@@ -27,6 +27,7 @@ export const useBrowserNotification = (): void => {
   const { t } = useTranslation();
   const translate = useRef(t);
   translate.current = t;
+  const { canDeliver } = useBrowserNotificationPreference();
   const resetId = useId();
   const [owner, setOwner] = useState(getRendererAccountScopeToken);
   useEffect(() => {
@@ -51,7 +52,7 @@ export const useBrowserNotification = (): void => {
         hasNotificationApi: 'Notification' in window,
         isSecureContext: window.isSecureContext,
         permission: Notification.permission as NotificationPermissionState,
-        settingEnabled: owned() && configService.get('system.notificationEnabled') !== false,
+        settingEnabled: owned() && canDeliver(),
         documentHidden: document.hidden,
       }),
       bodyFor: (kind) =>
@@ -94,5 +95,5 @@ export const useBrowserNotification = (): void => {
       notifications.forEach((notification) => notification.close());
       notifications.clear();
     };
-  }, [navigate, owner]);
+  }, [canDeliver, navigate, owner]);
 };

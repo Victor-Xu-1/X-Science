@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "cf913ce4ebcb4b801978df89cfe9079e665e473adc8174ced02c031178f5e9a6",
+  "adaptationFingerprintSHA256": "6fd6c3161fe16588bfd9a8f41e9e912c74943258769e68b16263b349d93cff8d",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1a43f1b4eddfef4495226a5799e945a14559ccfa4839ad3dfd897c9aaabcbc14",
+  "additionFingerprintSHA256": "508e9cb2b2fc68f16f4cd82901faecb42f96028f243cbe91a673e1c61c23f0bc",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 266,
-    "adaptedSourceFiles": 793,
+    "unchangedSourceFiles": 264,
+    "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1495
+    "addedFiles": 1498
   },
   "adaptations": [
     {
@@ -101,8 +101,8 @@
     {
       "path": "packages/desktop/src/common/config/clientSettings.ts",
       "sourceSHA256": "fd2a6859d3fe7268eaa41efe86ed024c22c2f8835b479fccd7bbff7a452302a9",
-      "targetSHA256": "c5fd1c86a339a7ba621b16f28a40e03f7ab518660cbf4e99c08e07b89790a6ae",
-      "bytes": 1082,
+      "targetSHA256": "bf8098c49ce32cac7fec7292dc4617534c810fdf83d634b0122b48b8316a2407",
+      "bytes": 1123,
       "reason": "Align shared browser contracts, configuration, themes, and typed preview/provider models with the Go-owned X-Science runtime."
     },
     {
@@ -650,6 +650,13 @@
       "reason": "Adapt shared settings dialogs and language controls to the Go configuration and browser filesystem contracts."
     },
     {
+      "path": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/SystemModalContent/BrowserNotificationGrant.tsx",
+      "sourceSHA256": "914fd03530cf72dcd30f2172fe65dfb7ef6eec38ce6ee74d1f75e9be3b0b45f5",
+      "targetSHA256": "27b9b433d9c1ffcc09bb16f18d3ad4abe931dc35acebbbcae1596b63c6f1535d",
+      "bytes": 2625,
+      "reason": "Adapt shared settings dialogs and language controls to the Go configuration and browser filesystem contracts."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/SystemModalContent/DevSettings.tsx",
       "sourceSHA256": "1d3d7d9b99c2f29d802143b402f1e1b529df476182220ac869b5197bb08a1653",
       "targetSHA256": "fd8eec31ef235faa9fb31acd8900c4c1a04177854464e61207d63d5d8a204984",
@@ -687,8 +694,8 @@
     {
       "path": "packages/desktop/src/renderer/components/settings/SettingsModal/contents/SystemModalContent/index.tsx",
       "sourceSHA256": "f8e188ae7757d0d60651d0bb3f39f7d4d827220a305fbc11cc51d58e7dfa3d1b",
-      "targetSHA256": "796ee1f5695722b3822b4e09ac4ced98d1b3ba73d863ac3b54c568a7dd7ec3f7",
-      "bytes": 12726,
+      "targetSHA256": "dec82374d9446badd08ced5a9e8e25ff4442f9009bfe4332985a56d75d8a5f9c",
+      "bytes": 9624,
       "reason": "Adapt shared settings dialogs and language controls to the Go configuration and browser filesystem contracts."
     },
     {
@@ -1058,8 +1065,8 @@
     {
       "path": "packages/desktop/src/renderer/hooks/system/notification/useBrowserNotification.ts",
       "sourceSHA256": "4c2fc374e6ad8c9696d8ab0f6e8d4bb188b643aba15dcfa911d739ef7ab8cfd1",
-      "targetSHA256": "ef4e65c3c6d461003d4df26c6c17f9e84e0048109f88a6e1a18bb75d843e2664",
-      "bytes": 3952,
+      "targetSHA256": "7274db4f3c99d26f6aaaecff7e311f80bd97a17eacb41538794f97def3e3cab8",
+      "bytes": 4001,
       "reason": "Bootstrap authenticated Web runtime state and adapt assistant and MCP hooks without retaining Electron server authority."
     },
     {
@@ -2732,8 +2739,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsPageWrapper.tsx",
       "sourceSHA256": "9b5e4ab5cf39354a03baa5200b87b3666287654e5b015d7d5d41aef739692f09",
-      "targetSHA256": "62186b440a41da7ad575c8b2001feea88cc228b7fa4bd20256b56ef0dbc89ae0",
-      "bytes": 7391,
+      "targetSHA256": "1078e211401a6f76f65892d1a2c28bc22c97ab2b03bdc381f954ca0f87f26b66",
+      "bytes": 7583,
       "reason": "Provide route-aware responsive settings layout without nested page cards."
     },
     {
@@ -2746,8 +2753,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx",
       "sourceSHA256": "62edcc13c1bc2d7ef478cc698f73b55f2c9d07b76b694ea66acaa3cee586172c",
-      "targetSHA256": "a3c372b3a935c54c620a13ceac72311c167a652630e2a7b230ee9f34d9695188",
-      "bytes": 7200,
+      "targetSHA256": "6ae0f7d4adb749cb0be5fd728898e0e5f0e02887031225a2b912a2d1bab429a7",
+      "bytes": 7423,
       "reason": "Align settings navigation icon states with the shared visual tokens."
     },
     {
@@ -2811,8 +2818,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/settings/settingsRouteLoaders.ts",
       "sourceSHA256": "2ed520398de13480afe2a53d0c3595338073e98f7dcf2ce27b5ac7896bc778e8",
-      "targetSHA256": "0e23f50197e088e0a8d37a1054ef3b67bc183d4daae8631dda03d0178eed6f52",
-      "bytes": 3846,
+      "targetSHA256": "42764bb682030a03cd672c73c86ea5205c28e837ce88d294d6d96b9b05448b7e",
+      "bytes": 3937,
       "reason": "Expose Go-owned agents, skills, MCP, models, compute, memory, permissions, credentials, storage, and governance settings."
     },
     {
@@ -2868,8 +2875,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "a1c5064b71b385317f92cdf51cc2188935ac2709449a3dcb8c61c6a27fe8f6a5",
-      "bytes": 310158,
+      "targetSHA256": "baf26a832a4bffbe720bfdec6504fe8bcdde06643313ab2cb7183a181660cb2e",
+      "bytes": 310657,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2952,8 +2959,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json",
       "sourceSHA256": "d7c89e27673b4245d2efeb4216c9768e08420beabd9294779d4d099207ea5e7a",
-      "targetSHA256": "0fc214e31158e8f1f572d9bd9a97389056013e7a10631fb72d6f60503730bde8",
-      "bytes": 143553,
+      "targetSHA256": "22ef414d2f5e6477a04020da0ae27a59f90f897e357bca31b6791f126f8480ed",
+      "bytes": 144356,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3043,8 +3050,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/settings.json",
       "sourceSHA256": "3afd2c67b5d1a42960c03d5e70dbdb23c3b6b1a3981665ac37919e199dc814c0",
-      "targetSHA256": "7a49d4de9c3743bc0020c5c7fa40133d58b13b680c85484271de007ca919391c",
-      "bytes": 137701,
+      "targetSHA256": "ffc75ddd375bd5893c2b7e77bac27bd2865346942e83517c1c615e04f79f8660",
+      "bytes": 138377,
       "reason": "Explain required scientific runtimes, unified user-managed storage, and X-Science Go service guidance."
     },
     {
@@ -4898,8 +4905,8 @@
     {
       "path": "tests/unit/renderer/useBrowserNotification.dom.test.tsx",
       "sourceSHA256": "5d154ba39dcffb980cf644de4ae0bb333c9b993010384d221c6943faaec0be27",
-      "targetSHA256": "d2181762e1e9c827fb8a72822270ea3dfe3bbe3e9b655ffd85b21f2b97ef1d38",
-      "bytes": 7237,
+      "targetSHA256": "a3bae7232b39e07cf84a061fdc2b329ac8ad76852406fe83b4363f4a29ab3f07",
+      "bytes": 8356,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5115,6 +5122,13 @@
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
+      "path": "tests/unit/settings/BrowserNotificationGrant.dom.test.tsx",
+      "sourceSHA256": "86192fce5602eb88233ed3bf9c99975fe563ec67c96b7b5b654e84c58efcac91",
+      "targetSHA256": "7dc80be8d1a6186b4c3c89aedd74ece64c9724ad7bc29ed0ae47209d983b75c4",
+      "bytes": 3661,
+      "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
+    },
+    {
       "path": "tests/unit/settings/ComputeSettings.dom.test.tsx",
       "sourceSHA256": "514a9881f5abb94f7a2bb27878040b9af8929f5cd2b40a34df788ee5b8fdd515",
       "targetSHA256": "fa4573c570f517aa22a8ad222b6aacdf6756e132d7fe1caba3545fc766a32fc9",
@@ -5145,8 +5159,8 @@
     {
       "path": "tests/unit/settings/SettingsPageWrapper.dom.test.tsx",
       "sourceSHA256": "13564cc4e5e885c21f9cdd4bfa2a7287262dc74677bc13320a9c16f54ee897fb",
-      "targetSHA256": "e332a965745f962def3cddb85ad57fe8fe73f305fdd81d1c45f01732c885dbc2",
-      "bytes": 3752,
+      "targetSHA256": "5b99db904bb8b8198920a714d5732f32d1588ccf68e0856e98a001dcfa77bb1f",
+      "bytes": 3906,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5159,8 +5173,8 @@
     {
       "path": "tests/unit/settings/SettingsSider.dom.test.tsx",
       "sourceSHA256": "65eb68d0ab06f5cfc1be64f7073e446f63e4809eaeff132ef49bb2d5f6d50f16",
-      "targetSHA256": "319cbd3f615f844958cb0ef16982faa7e2d7666363f915319b0409eed5b75ca5",
-      "bytes": 4308,
+      "targetSHA256": "e3454afa3d671601e2244c1661f7a7cdee181528cdc82b4a54dfdf571b752d88",
+      "bytes": 4636,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -8155,8 +8169,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/layout/AuthenticatedWorkspace.tsx",
-      "sha256": "b06d988bfd5b02affb697b375344977a96948ef0e840c6a18bdaf78282fbfd92",
-      "bytes": 3341,
+      "sha256": "c1ae18e1a3b15889d6d9c2993f87ad9bb53b64dfdc6116248f688d62205b32e5",
+      "bytes": 3567,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8662,6 +8676,12 @@
       "sha256": "570c297528cbc89e3f7c0cdc157b20624ef51840a3043005a9282c4f20fe71cf",
       "bytes": 2349,
       "reason": "Bind authoritative authentication identity to the single renderer realtime runtime and stable status store."
+    },
+    {
+      "path": "packages/desktop/src/renderer/hooks/system/notification/BrowserNotificationPreference.tsx",
+      "sha256": "26bfa418a5c495da1f39198e62b51b99dbab34cdc72ad86c6b68d43f7fe71294",
+      "bytes": 6047,
+      "reason": "Keep authenticated browser task-notification preference reads, writes, and sender state under one account-scoped owner and invalidate other tabs without exposing the value."
     },
     {
       "path": "packages/desktop/src/renderer/hooks/ui/useNearViewport.ts",
@@ -10602,6 +10622,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/settings/NotificationsSettings.tsx",
+      "sha256": "d0fb25a6fc3b28bb24c520627121d788b11133c386584f5b24d1dcbe13363737",
+      "bytes": 2675,
+      "reason": "Expose the existing browser task-notification preference and explicit permission control through the canonical settings route."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/settings/PlansUsageSettings.tsx",
       "sha256": "b55813352e7dc071be1499baf5e46a9e3e94bb79407efbd2996c169f739683b9",
       "bytes": 9936,
@@ -10999,8 +11025,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/components/settingsVisualContract.ts",
-      "sha256": "6b4cb649e99a32f005264a996eba74eb33bc19104612a1796bc4566a2eb45c06",
-      "bytes": 9214,
+      "sha256": "04d0d834d5bacc7d508bcf3ad035a01397ef280b8e0b9849941a7fba1fd0111a",
+      "bytes": 9601,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -15384,6 +15410,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/settings/NotificationsSettings.dom.test.tsx",
+      "sha256": "756fe1d1a0f9ec9cbad5f565cd9bc7b14f7af995b13c94652175a045349855cf",
+      "bytes": 11437,
+      "reason": "Verify the routed notification setting and its default, persistence, read and write errors, stale-account fencing, and cross-tab invalidation races."
+    },
+    {
       "path": "tests/unit/settings/PlansUsageSettings.dom.test.tsx",
       "sha256": "e795c095ab92aaf004d1fa9de6ee8b54f22f08fd64bf9f835352d6297dff97ab",
       "bytes": 2184,
@@ -15547,8 +15579,8 @@
     },
     {
       "path": "tests/unit/settings/settingsSiderEntries.test.ts",
-      "sha256": "b909b2cab5dda4c5b35f7e54de20e75a72c90faff172280e4f16739b6f4c6b67",
-      "bytes": 4727,
+      "sha256": "6ed056448daef7c4e71099eefa771e99adba28d2603d54b1ae27daded4cb3f67",
+      "bytes": 5295,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

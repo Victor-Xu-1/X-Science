@@ -717,6 +717,19 @@
     "bodyTurnCompleted": "The agent has finished responding"
   },
   "notification": "Notifications",
+  "notificationsPage": {
+    "title": "Notifications",
+    "description": "Manage browser notifications for your tasks.",
+    "taskNotifications": "Task notifications",
+    "taskDescription": "Receive browser notifications when a task finishes or requests confirmation while this tab is in the background.",
+    "browserPermission": "Browser permission",
+    "loading": "Loading notification preferences…",
+    "readFailed": "Could not load notification preferences.",
+    "saving": "Saving notification preference…",
+    "saveFailed": "Could not confirm the save. The switch shows the last value read from the server.",
+    "unsupported": "This browser does not support desktop notifications.",
+    "permissionFailed": "Could not request notification permission. Check your browser settings."
+  },
   "cronNotificationEnabled": "Scheduled Task Completion",
   "promptTimeout": "LLM Prompt Timeout (s)",
   "groupAiCore": "AI Core",

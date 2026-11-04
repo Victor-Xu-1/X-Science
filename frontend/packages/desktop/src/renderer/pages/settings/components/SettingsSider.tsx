@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
-import { Archive, Tags } from 'lucide-react';
+import { Archive, Bell, Tags } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import {
@@ -38,6 +38,7 @@ export const BUILTIN_TAB_IDS = [
   'storage',
   'archived',
   'general',
+  'notifications',
 ] as const;
 
 const GROUP_HEADER_BEFORE: Record<string, string> = {};
@@ -122,6 +123,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.general'),
         icon: <SettingsGeneratedNavIcon id='general' />,
         path: 'general',
+      },
+      notifications: {
+        id: 'notifications',
+        label: t('settings.notificationsPage.title'),
+        icon: <Bell size={16} strokeWidth={1.8} />,
+        path: 'notifications',
       },
       archived: {
         id: 'archived',

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import React from 'react';
-import { Archive, Tags } from 'lucide-react';
+import { Archive, Bell, Tags } from 'lucide-react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import {
   SettingsTabNavigateProvider,
@@ -96,6 +96,12 @@ export function getBuiltinSettingsNavItems(_isDesktop: boolean, t: TranslateFn):
       label: t('settings.general'),
       icon: <SettingsGeneratedNavIcon id='general' />,
       path: 'general',
+    },
+    notifications: {
+      id: 'notifications',
+      label: t('settings.notificationsPage.title'),
+      icon: <Bell size={16} strokeWidth={1.8} />,
+      path: 'notifications',
     },
     archived: {
       id: 'archived',

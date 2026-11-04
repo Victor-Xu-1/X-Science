@@ -80,6 +80,10 @@ describe('SettingsPageWrapper mobile navigation', () => {
     expect(screen.getByRole('heading', { name: 'General preferences' })).toHaveFocus();
     expect(screen.getByRole('heading', { name: 'General preferences' })).toHaveAttribute('tabindex', '-1');
     expect(screen.getByRole('link', { name: 'settings.general' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'settings.notificationsPage.title' })).toHaveAttribute(
+      'href',
+      '#/settings/notifications'
+    );
   });
   it('preserves modified-click link behavior instead of changing the current mobile route', () => {
     renderWrapper();

@@ -131,6 +131,9 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "packages/desktop/src/renderer/hooks/system/notification/BrowserNotificationPreference.tsx": "Keep authenticated browser task-notification preference reads, writes, and sender state under one account-scoped owner and invalidate other tabs without exposing the value.",
+    "packages/desktop/src/renderer/pages/settings/NotificationsSettings.tsx": "Expose the existing browser task-notification preference and explicit permission control through the canonical settings route.",
+    "tests/unit/settings/NotificationsSettings.dom.test.tsx": "Verify the routed notification setting and its default, persistence, read and write errors, stale-account fencing, and cross-tab invalidation races.",
     "packages/desktop/src/common/adapter/literatureStudySnapshot.ts": "Define the closed source-bound Study overview request/result decoder for the existing owner-authorized Library API, without creating another transport, inference, or persistence authority.",
     "packages/desktop/src/common/adapter/literatureMetadataLookup.ts": "Validate the closed read-only DOI metadata draft and exact requested reference identity before the existing Library review/editor handoff, without adding a provider, persistence, execution or write authority.",
     "packages/desktop/src/common/adapter/literatureRating.ts": "Decode only the canonical read-only rating projection before opaque metadata can be rounded in JavaScript; retain original metadata field patches and immutable legacy receipt omission.",
@@ -738,9 +741,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "cf913ce4ebcb4b801978df89cfe9079e665e473adc8174ced02c031178f5e9a6"
+APPROVED_ADAPTATION_FINGERPRINT = "6fd6c3161fe16588bfd9a8f41e9e912c74943258769e68b16263b349d93cff8d"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "1a43f1b4eddfef4495226a5799e945a14559ccfa4839ad3dfd897c9aaabcbc14"
+APPROVED_ADDITION_FINGERPRINT = "508e9cb2b2fc68f16f4cd82901faecb42f96028f243cbe91a673e1c61c23f0bc"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

@@ -30,6 +30,7 @@ vi.mock('@/renderer/pages/settings/settingsRouteLoaders', () => ({
       'storage',
       'archived',
       'general',
+      'notifications',
     ].includes(value),
 }));
 
@@ -63,6 +64,7 @@ describe('SettingsSider navigation', () => {
       'Storage',
       'Archived',
       'General',
+      'Notifications',
     ]);
 
     // A deep link to any of the four legacy routes keeps that one entry lit.
@@ -70,6 +72,10 @@ describe('SettingsSider navigation', () => {
     expect(toolkit).toHaveAttribute('aria-current', 'page');
     expect(routeLoaderMocks.preloadDuringIdle).toHaveBeenCalledWith('skills');
     expect(screen.getByRole('link', { name: 'Tags' })).toHaveAttribute('href', '#/settings/tags');
+    const notifications = screen.getByRole('link', { name: 'Notifications' });
+    expect(notifications).toHaveAttribute('href', '#/settings/notifications');
+    fireEvent.click(notifications);
+    await waitFor(() => expect(notifications).toHaveAttribute('aria-current', 'page'));
   });
 
   it('uses native hash links and commits repeated settings route changes', async () => {
