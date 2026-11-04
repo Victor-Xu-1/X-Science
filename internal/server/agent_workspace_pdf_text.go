@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -125,7 +126,7 @@ func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pa
 			if err := command.Run(); err != nil {
 				failure = context.Cause(ctx)
 				if failure == nil {
-					failure = fmt.Errorf("PDF text extraction failed: %s", strings.TrimSpace(stderr.String()))
+					failure = agentWorkspacePDFTextFailure(err, stderr, path, converter)
 				}
 				return
 			}
@@ -135,4 +136,27 @@ func streamAgentWorkspacePDFText(ctx context.Context, converter, path string, pa
 		}
 	}()
 	return reader, finished, coverage
+}
+
+func agentWorkspacePDFTextFailure(waitErr error, stderr *agentWorkspaceBoundedCapture, path, converter string) error {
+	message := "PDF text extraction failed"
+	var exited *exec.ExitError
+	if errors.As(waitErr, &exited) {
+		// ProcessState contains the exit status or signal, without the command
+		// path carried by startup errors.
+		message += " (" + exited.ProcessState.String() + ")"
+	}
+	diagnostic := stderr.String()
+	if stderr.truncated {
+		// A cut record can end inside a path that the redactor cannot match.
+		diagnostic = diagnostic[:strings.LastIndexByte(diagnostic, '\n')+1]
+	}
+	if detail := strings.TrimSpace(diagnostic); detail != "" {
+		detail = strings.NewReplacer(
+			path, "[PDF source]", filepath.ToSlash(path), "[PDF source]",
+			converter, "[PDF extractor]", filepath.ToSlash(converter), "[PDF extractor]",
+		).Replace(detail)
+		message += ": " + truncateUTF8ByBytes(detail, 4<<10)
+	}
+	return errors.New(message)
 }
