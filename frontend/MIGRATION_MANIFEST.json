@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "fd156ab6546ecd628ac6128f2edc0c892e0ac8fdf57df249bbd6b759738f8ffb",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "d32b909c75b5882f33769ebeced13092dae4f4c8b5eaa3f6f747ed915173966b",
+  "additionFingerprintSHA256": "c604fc718349c9097bd6920adb43489c4d7c8e6ab1d106a7e51a89af2ea3dced",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
@@ -7891,8 +7891,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/Markdown/largeJsonSourcePresentation.ts",
-      "sha256": "d0eda2162f0e76252402e107372038db7d2ee9d72b186ad6fb480e9d829c2a80",
-      "bytes": 6511,
+      "sha256": "8afcfccda6233398e7629dac574bc501056bb22e4ff1b906cc1b6c6143ddf252",
+      "bytes": 6506,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {

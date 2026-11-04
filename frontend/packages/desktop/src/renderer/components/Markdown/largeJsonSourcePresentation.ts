@@ -6,7 +6,7 @@ export type ParsedJsonSources = { source: string; whole: boolean; ranges: JsonSo
 
 /** Grammar is only a presentation boundary. Parsed values never become displayed data or authority. */
 function isLargeJsonSource(raw: string): boolean {
-  if (raw.length < LARGE_JSON_SOURCE_MIN_LENGTH || !/^[\s]*[\[{]/.test(raw)) return false;
+  if (raw.length < LARGE_JSON_SOURCE_MIN_LENGTH || !/^\s*[[{]/.test(raw)) return false;
   try {
     const value: unknown = JSON.parse(raw);
     return value !== null && typeof value === 'object';
@@ -78,7 +78,7 @@ function blockSourceRanges(text: string): JsonSourceRange[] {
       afterBlank = false;
       continue;
     }
-    const opening = /^ {0,3}([\[{\"])/.exec(line);
+    const opening = /^ {0,3}([[{"])/.exec(line);
     if (afterBlank && opening) {
       const start = cursor + opening[0].length - 1;
       const end = valueEnd(text, start);
