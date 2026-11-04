@@ -41,6 +41,8 @@ const makeController = (): ReturnType<typeof useBtwCommand> => {
     draft: '',
     action: null,
     errorKey: null,
+    closingRecoveries: [],
+    acceptedConsumers: [],
     entries: [],
     snapshot: null,
     observationError: false,
@@ -51,7 +53,6 @@ const makeController = (): ReturnType<typeof useBtwCommand> => {
     error: null,
     persistenceError: false,
     closeRequested: false,
-    acceptedConsumer: null,
     pendingFollowupText: null,
     canRetryFollowup: false,
     canSend: false,
@@ -60,15 +61,18 @@ const makeController = (): ReturnType<typeof useBtwCommand> => {
     ask: vi.fn().mockResolvedValue(false),
     retry: vi.fn().mockResolvedValue(false),
     close: vi.fn().mockResolvedValue(undefined),
+    retryClose: vi.fn().mockResolvedValue(undefined),
+    reconnectClose: vi.fn().mockResolvedValue(undefined),
     cancel: vi.fn().mockResolvedValue(undefined),
     send: vi.fn().mockResolvedValue(false),
     setDraft: vi.fn(),
     reconnect: vi.fn().mockResolvedValue(undefined),
     resume: vi.fn().mockResolvedValue(undefined),
     getReceipt: () => controller.receipt,
-    getAcceptedConsumer: () => controller.acceptedConsumer,
-    acknowledgeConsumer: vi.fn(() => {
-      controller.acceptedConsumer = null;
+    getAcceptedConsumers: () => controller.acceptedConsumers,
+    getUnfrozenConsumer: () => null,
+    acknowledgeExactConsumer: vi.fn(() => {
+      controller.acceptedConsumers = [];
     }),
     acknowledgeBranch: vi.fn(),
   };
@@ -206,10 +210,16 @@ describe('SendBox right-side tools', () => {
     );
     fireEvent.click(screen.getByTestId('sendbox-send-btn'));
     expect(change).not.toHaveBeenCalled();
-    local.acceptedConsumer = { kind: 'draft', id: 'parent-1', content: '/btw Original question' };
+    local.acceptedConsumers = [
+      {
+        intentId: 'draft-intent',
+        consumer: { kind: 'draft', id: 'parent-1', content: '/btw Original question' },
+        ownsDraft: true,
+      },
+    ];
     view.rerender(<SendBox value='New draft typed during admission' onChange={change} onSend={send} enableBtw />);
     expect(change).not.toHaveBeenCalled();
-    expect(local.acknowledgeConsumer).toHaveBeenCalledOnce();
+    expect(local.acknowledgeExactConsumer).toHaveBeenCalledExactlyOnceWith('draft-intent');
     expect(screen.getByTestId('sendbox-input')).toHaveValue('New draft typed during admission');
     expect(send).not.toHaveBeenCalled();
   });

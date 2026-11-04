@@ -33,6 +33,9 @@ export type AsideConsumer = {
 };
 
 const MAX_HINT_BYTES = 256 * 1024;
+const MAX_CLOSING_HINTS = 4;
+const MAX_ENVELOPE_BYTES = (MAX_CLOSING_HINTS + 1) * MAX_HINT_BYTES + 256;
+type AsidePresentations = { current: AsidePresentation | null; closing: AsidePresentation[] };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const key = (parent: string, asSession: boolean) => {
   const owner = getRendererAccountOwnerId();
@@ -44,113 +47,181 @@ const record = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
 export function readAsidePresentation(parent: string, asSession: boolean): AsidePresentation | null {
+  return readAsidePresentations(parent, asSession).current;
+}
+
+export function readAsidePresentations(parent: string, asSession: boolean): AsidePresentations {
   const storageKey = key(parent, asSession);
-  if (!storageKey) return null;
   try {
-    const text = localStorage.getItem(storageKey);
-    if (!text || new TextEncoder().encode(text).length > MAX_HINT_BYTES) return null;
-    const value: unknown = JSON.parse(text);
-    if (
-      !record(value) ||
-      !isXScienceAsideIntent(value.intent) ||
-      value.intent.parentFrameId !== parent ||
-      value.intent.asSession !== asSession ||
-      typeof value.closeRequested !== 'boolean' ||
-      typeof value.draft !== 'string'
-    )
-      return null;
-    const sourceSpecialist = freezeAsideSpecialist(value.intent.sourceSpecialist, parent);
-    const intent = Object.freeze({ ...value.intent, ...(sourceSpecialist ? { sourceSpecialist } : {}) });
-    const receipt = normalizeReceipt(value.receipt, intent);
-    if (value.receipt !== null && !receipt) return null;
-    const pendingFollowup = normalizeFollowup(value.pendingFollowup, intent, receipt);
-    if (value.pendingFollowup !== null && !pendingFollowup) return null;
-    let pendingResume: XScienceContinueInput | null = null;
-    if (value.pendingResume !== null) {
-      if (
-        !record(value.pendingResume) ||
-        typeof value.pendingResume.client_command_id !== 'string' ||
-        !UUID.test(value.pendingResume.client_command_id)
-      )
-        return null;
-      const target = normalizeXScienceResumeTarget(value.pendingResume.resume_target);
-      if (!target || (value.pendingResume.model !== undefined && typeof value.pendingResume.model !== 'string'))
-        return null;
-      pendingResume = {
-        client_command_id: value.pendingResume.client_command_id,
-        resume_target: target,
-        ...(typeof value.pendingResume.model === 'string' && value.pendingResume.model
-          ? { model: value.pendingResume.model }
-          : {}),
-      };
-    }
-    if (value.inputMessageId !== null && (typeof value.inputMessageId !== 'string' || !value.inputMessageId))
-      return null;
-    let consumer: Record<string, unknown> | null = null;
-    if (value.consumer != null) {
-      if (!record(value.consumer)) return null;
-      consumer = value.consumer;
-    }
-    if (
-      consumer !== null &&
-      (!['draft', 'queue', 'branch'].includes(String(consumer.kind)) ||
-        typeof consumer.id !== 'string' ||
-        !consumer.id ||
-        consumer.id.length > 256 ||
-        typeof consumer.content !== 'string')
-    )
-      return null;
-    const consumerSource = consumer ? freezeAsideSpecialist(consumer.sourceSpecialist, parent) : undefined;
-    if (consumer && !sameAsideSpecialist(consumerSource, sourceSpecialist)) return null;
-    return {
-      intent,
-      receipt,
-      inputMessageId: value.inputMessageId as string | null,
-      pendingFollowup,
-      pendingResume,
-      closeRequested: value.closeRequested,
-      draft: value.draft,
-      consumer: consumer
-        ? {
-            kind: consumer.kind as AsideConsumer['kind'],
-            id: consumer.id as string,
-            content: consumer.content as string,
-            ...(consumerSource ? { sourceSpecialist: consumerSource } : {}),
-          }
-        : null,
-    };
+    if (storageKey) return readStoredPresentations(storageKey, parent, asSession);
   } catch {
-    return null;
+    // An unreadable hint cannot authorize a request or be overwritten by a new intent.
   }
+  return { current: null, closing: [] };
+}
+
+function readStoredPresentations(storageKey: string, parent: string, asSession: boolean): AsidePresentations {
+  const text = localStorage.getItem(storageKey);
+  if (text === null) return { current: null, closing: [] };
+  if (byteLength(text) > MAX_ENVELOPE_BYTES) throw new Error('aside_presentation_invalid');
+  const value: unknown = JSON.parse(text);
+  if (!record(value)) throw new Error('aside_presentation_invalid');
+  if (value.version !== 2) {
+    const current = normalizePresentation(value, parent, asSession);
+    if (!current || byteLength(text) > MAX_HINT_BYTES) throw new Error('aside_presentation_invalid');
+    return { current, closing: [] };
+  }
+  if (!Array.isArray(value.closing) || value.closing.length > MAX_CLOSING_HINTS || (asSession && value.closing.length))
+    throw new Error('aside_presentation_invalid');
+  const current = value.current === null ? null : normalizePresentation(value.current, parent, asSession);
+  if (value.current !== null && !current) throw new Error('aside_presentation_invalid');
+  const seen = new Set(current ? [current.intent.intentId] : []);
+  const closing = value.closing.map((entry: unknown) => {
+    const hint = normalizePresentation(entry, parent, asSession);
+    if (!hint?.closeRequested || seen.has(hint.intent.intentId)) throw new Error('aside_presentation_invalid');
+    seen.add(hint.intent.intentId);
+    return hint;
+  });
+  return { current, closing };
+}
+
+function normalizePresentation(value: unknown, parent: string, asSession: boolean): AsidePresentation | null {
+  if (
+    !record(value) ||
+    !isXScienceAsideIntent(value.intent) ||
+    value.intent.parentFrameId !== parent ||
+    value.intent.asSession !== asSession ||
+    typeof value.closeRequested !== 'boolean' ||
+    typeof value.draft !== 'string'
+  )
+    return null;
+  const sourceSpecialist = freezeAsideSpecialist(value.intent.sourceSpecialist, parent);
+  const intent = Object.freeze({ ...value.intent, ...(sourceSpecialist ? { sourceSpecialist } : {}) });
+  const receipt = normalizeReceipt(value.receipt, intent);
+  if (value.receipt !== null && !receipt) return null;
+  const pendingFollowup = normalizeFollowup(value.pendingFollowup, intent, receipt);
+  if (value.pendingFollowup !== null && !pendingFollowup) return null;
+  let pendingResume: XScienceContinueInput | null = null;
+  if (value.pendingResume !== null) {
+    if (
+      !record(value.pendingResume) ||
+      typeof value.pendingResume.client_command_id !== 'string' ||
+      !UUID.test(value.pendingResume.client_command_id)
+    )
+      return null;
+    const target = normalizeXScienceResumeTarget(value.pendingResume.resume_target);
+    if (!target || (value.pendingResume.model !== undefined && typeof value.pendingResume.model !== 'string'))
+      return null;
+    pendingResume = {
+      client_command_id: value.pendingResume.client_command_id,
+      resume_target: target,
+      ...(typeof value.pendingResume.model === 'string' && value.pendingResume.model
+        ? { model: value.pendingResume.model }
+        : {}),
+    };
+  }
+  if (value.inputMessageId !== null && (typeof value.inputMessageId !== 'string' || !value.inputMessageId)) return null;
+  let consumer: Record<string, unknown> | null = null;
+  if (value.consumer != null) {
+    if (!record(value.consumer)) return null;
+    consumer = value.consumer;
+  }
+  if (
+    consumer !== null &&
+    (!['draft', 'queue', 'branch'].includes(String(consumer.kind)) ||
+      typeof consumer.id !== 'string' ||
+      !consumer.id ||
+      consumer.id.length > 256 ||
+      typeof consumer.content !== 'string')
+  )
+    return null;
+  const consumerSource = consumer ? freezeAsideSpecialist(consumer.sourceSpecialist, parent) : undefined;
+  if (consumer && !sameAsideSpecialist(consumerSource, sourceSpecialist)) return null;
+  return {
+    intent,
+    receipt,
+    inputMessageId: value.inputMessageId as string | null,
+    pendingFollowup,
+    pendingResume,
+    closeRequested: value.closeRequested,
+    draft: value.draft,
+    consumer: consumer
+      ? {
+          kind: consumer.kind as AsideConsumer['kind'],
+          id: consumer.id as string,
+          content: consumer.content as string,
+          ...(consumerSource ? { sourceSpecialist: consumerSource } : {}),
+        }
+      : null,
+  };
+}
+
+const byteLength = (text: string) => new TextEncoder().encode(text).length;
+const sameIntent = (left: XScienceAsideIntent, right: XScienceAsideIntent) =>
+  left.intentId === right.intentId &&
+  left.parentFrameId === right.parentFrameId &&
+  left.asSession === right.asSession &&
+  left.request === right.request &&
+  left.model === right.model &&
+  left.sourceBranchId === right.sourceBranchId &&
+  left.expectedGeneration === right.expectedGeneration &&
+  sameAsideSpecialist(left.sourceSpecialist, right.sourceSpecialist);
+
+function writePresentations(storageKey: string, value: AsidePresentations) {
+  if (!value.current && !value.closing.length) {
+    localStorage.removeItem(storageKey);
+    return;
+  }
+  const text = JSON.stringify({ version: 2, ...value });
+  if (byteLength(text) > MAX_ENVELOPE_BYTES) throw new Error('aside_presentation_too_large');
+  localStorage.setItem(storageKey, text);
+}
+
+export function reserveAsidePresentation(value: AsidePresentation): void {
+  const { parentFrameId, asSession, intentId } = value.intent;
+  const storageKey = key(parentFrameId, asSession);
+  if (!storageKey) throw new Error('aside_presentation_owner_unavailable');
+  if (byteLength(JSON.stringify(value)) > MAX_HINT_BYTES) throw new Error('aside_presentation_too_large');
+  const previous = readStoredPresentations(storageKey, parentFrameId, asSession);
+  if (previous.closing.some((hint) => hint.intent.intentId === intentId))
+    throw new Error('aside_presentation_replaced');
+  if (
+    previous.current &&
+    (previous.current.intent.intentId === intentId || asSession || !previous.current.closeRequested)
+  )
+    throw new Error('aside_presentation_replaced');
+  if (previous.current && previous.closing.length >= MAX_CLOSING_HINTS)
+    throw new Error('aside_presentation_closing_limit');
+  writePresentations(storageKey, {
+    current: value,
+    closing: previous.current ? [...previous.closing, previous.current] : previous.closing,
+  });
 }
 
 export function saveAsidePresentation(value: AsidePresentation): void {
-  const storageKey = key(value.intent.parentFrameId, value.intent.asSession);
+  const { parentFrameId, asSession } = value.intent;
+  const storageKey = key(parentFrameId, asSession);
   if (!storageKey) throw new Error('aside_presentation_owner_unavailable');
-  const previous = readAsidePresentation(value.intent.parentFrameId, value.intent.asSession);
-  if (
-    previous &&
-    (previous.intent.intentId !== value.intent.intentId ||
-      !sameAsideSpecialist(previous.intent.sourceSpecialist, value.intent.sourceSpecialist))
-  )
-    throw new Error('aside_presentation_replaced');
-  const text = JSON.stringify(value);
-  if (new TextEncoder().encode(text).length > MAX_HINT_BYTES) throw new Error('aside_presentation_too_large');
-  localStorage.setItem(storageKey, text);
+  if (byteLength(JSON.stringify(value)) > MAX_HINT_BYTES) throw new Error('aside_presentation_too_large');
+  const previous = readStoredPresentations(storageKey, parentFrameId, asSession);
+  if (previous.current && sameIntent(previous.current.intent, value.intent)) {
+    writePresentations(storageKey, { ...previous, current: value });
+    return;
+  }
+  const index = previous.closing.findIndex((hint) => sameIntent(hint.intent, value.intent));
+  if (index === -1 || !value.closeRequested) throw new Error('aside_presentation_replaced');
+  previous.closing[index] = value;
+  writePresentations(storageKey, previous);
 }
 
 export function clearAsidePresentation(intent: XScienceAsideIntent): void {
   const storageKey = key(intent.parentFrameId, intent.asSession);
-  if (
-    storageKey &&
-    readAsidePresentation(intent.parentFrameId, intent.asSession)?.intent.intentId === intent.intentId &&
-    sameAsideSpecialist(
-      readAsidePresentation(intent.parentFrameId, intent.asSession)?.intent.sourceSpecialist,
-      intent.sourceSpecialist
-    )
-  ) {
-    localStorage.removeItem(storageKey);
-  }
+  if (!storageKey) return;
+  const previous = readStoredPresentations(storageKey, intent.parentFrameId, intent.asSession);
+  const current = previous.current && !sameIntent(previous.current.intent, intent) ? previous.current : null;
+  const closing = previous.closing.filter((hint) => !sameIntent(hint.intent, intent));
+  if (current !== previous.current || closing.length !== previous.closing.length)
+    writePresentations(storageKey, { current, closing });
 }
 
 function normalizeReceipt(value: unknown, intent: XScienceAsideIntent): XScienceAsideReceipt | null {

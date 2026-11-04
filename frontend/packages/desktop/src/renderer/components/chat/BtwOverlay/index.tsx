@@ -50,7 +50,7 @@ const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) 
   useLayoutEffect(() => {
     setHeight(undefined);
     followBottom.current = true;
-  }, [controller.generation]);
+  }, [controller.generation, controller.operation?.intent.intentId]);
   useLayoutEffect(() => {
     if (!controller.isOpen || !panel.current) return;
     const measure = () => {
@@ -96,7 +96,45 @@ const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) 
     return () => window.removeEventListener('keydown', onKey);
   }, [controller.close, controller.isOpen]);
 
-  if (!controller.isOpen) return null;
+  const recoveries = controller.closingRecoveries.map(({ intentId, question, waiting, errorKey }) => (
+    <div
+      className={styles.recovery}
+      data-testid='side-chat-close-recovery'
+      key={intentId}
+      aria-label={question}
+      role='group'
+    >
+      <p className={styles.note} role='status' title={question}>
+        {t(`conversation.sideQuestion.${errorKey ?? 'closePending'}`)}
+      </p>
+      <button
+        type='button'
+        className={styles.textButton}
+        disabled={waiting}
+        onClick={() => void controller.reconnectClose(intentId)}
+      >
+        {t('conversation.sideQuestion.reconnect')}
+      </button>
+      <button
+        type='button'
+        className={styles.textButton}
+        disabled={waiting}
+        onClick={() => void controller.retryClose(intentId)}
+      >
+        {t('conversation.sideQuestion.retryClose')}
+      </button>
+    </div>
+  ));
+  if (!controller.isOpen) {
+    if (controller.errorKey === 'persistenceFailed' && controller.error)
+      return [
+        ...recoveries,
+        <p className={styles.error} key='side-chat-persistence-error' role='alert'>
+          {controller.error}
+        </p>,
+      ];
+    return recoveries.length ? recoveries : null;
+  }
   const send = () => {
     if (controller.canSend && controller.draft.trim()) void controller.send(controller.draft);
   };
@@ -106,8 +144,10 @@ const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) 
       event.currentTarget.releasePointerCapture(event.pointerId);
     drag.current = null;
   };
-  return (
+  return [
+    ...recoveries,
     <section
+      key='side-chat-panel'
       ref={panel}
       className={styles.panel}
       style={height === undefined ? undefined : { height }}
@@ -256,16 +296,6 @@ const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) 
                   {t('conversation.sideQuestion.retryOriginal')}
                 </button>
               )}
-              {controller.closeRequested && (
-                <button
-                  type='button'
-                  className={styles.textButton}
-                  disabled={Boolean(controller.action)}
-                  onClick={() => void controller.close()}
-                >
-                  {t('conversation.sideQuestion.retryClose')}
-                </button>
-              )}
               {controller.canRetryFollowup && controller.pendingFollowupText && (
                 <button
                   type='button'
@@ -334,7 +364,7 @@ const BtwOverlay: React.FC<Props> = ({ controller, parentTaskRunning = false }) 
           </div>
         </footer>
       </div>
-    </section>
-  );
+    </section>,
+  ];
 };
 export default BtwOverlay;

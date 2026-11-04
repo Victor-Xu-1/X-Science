@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "e492e139cc5d0a8d0540519298044adf4f20ba54da30992cea931f6f1c99070e",
+  "adaptationFingerprintSHA256": "f39a2384a5e47fa95478309749a6f616e1332c5f4d780db65eba64e59cb462e1",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "8febe4158dceab16801fe7091f5d09f20f58548444e93d2623a7b7c0ea25a803",
+  "additionFingerprintSHA256": "5fdca062cbce5d6aada78b40872455880b38077cde38979ae57d3e3c231e5e47",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "563ffcf09f485f89ae3d403c5ba0e8c09fb6cd6acad7b1ec399c59dd3463441c",
+      "targetSHA256": "8245dc03da780fa68752738b2d1082af831c04930c52b9aa1c5bf97a94d97389",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "bf88a5ba2172698bc37ab6b5e9582345729b4b66402613e8e5f0a19a48c28058",
+      "targetSHA256": "e1b9f25c05e37ddf304a983c8af50e77ae95a3fd8ce657098d8e77a19bc7d87b",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -379,15 +379,15 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/index.tsx",
       "sourceSHA256": "ba8eae5ea7b82c1bb6c5ac5caffcbda35e5abc8a3dc11749f99dd5762eb0e612",
-      "targetSHA256": "76d8fba809a6c8a120f323858e5de1ceb626a114db9c9464a4a442ea7b524cfc",
-      "bytes": 13747,
+      "targetSHA256": "971e65d891dc06a46786573e277f333f12d6f9361e9c198e75213ae8980ffe26",
+      "bytes": 14645,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts",
       "sourceSHA256": "14baafa4d2ae619ea46eaacb6e42a9ad86eff14609de3610b8e46f7094170921",
-      "targetSHA256": "d7bb0522a9d5ddea2d52838bc05f74d62f0ff006d9e76adea7e7be96e0a9fecf",
-      "bytes": 16629,
+      "targetSHA256": "620d75e15de52f87ba70e151b4cf3dff1415255c9bded6afd54d959f70664b04",
+      "bytes": 23080,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -456,8 +456,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/index.tsx",
       "sourceSHA256": "90378dc6801ee6b020e16d29c3b7f6fef1a64e3dedc997e94398349ce6814234",
-      "targetSHA256": "658ddb6004ff8810f5ed28b5e3c48b1d8085532a6e22a295bcbdfd5ae6759c43",
-      "bytes": 45365,
+      "targetSHA256": "7d0581bb98d3332faacf36aab83a22d2d368fe41194196e01aa3b8c5a25c427a",
+      "bytes": 45409,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -3905,8 +3905,8 @@
     {
       "path": "tests/unit/chat/BtwOverlayEscape.dom.test.tsx",
       "sourceSHA256": "ad5edefef8542952ccf1d567d33d32a4849533ca296c773c1db2eaf855f46f0d",
-      "targetSHA256": "df7c77211ade6b89cf6453a07da5997d0836f34da22f6160255f931a60bdd9e4",
-      "bytes": 7085,
+      "targetSHA256": "16a1a21000a1e883bd3e0dbec3bf07407c32124f21aedd7863dcbaf87a3ce281",
+      "bytes": 7561,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -3998,8 +3998,8 @@
     {
       "path": "tests/unit/chat/useBtwCommand.dom.test.tsx",
       "sourceSHA256": "fdbc85af8c8850ee24c219569fcbab3ca3589d3f5d58373fbfd3f94d9caf5cbc",
-      "targetSHA256": "566a4fa1693e23311c3145c12f3e21696cb5222fe30c901b7f7f02a2706eee77",
-      "bytes": 23684,
+      "targetSHA256": "79c5a4ce9d08ef6434f4ace2646ba00bac657d01286a73fb11c21cac08ba261e",
+      "bytes": 46284,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4653,8 +4653,8 @@
     {
       "path": "tests/unit/renderer/conversation/AcpSendBox.dom.test.tsx",
       "sourceSHA256": "c2612ecad37fc58e61d4b91a863f1c8679ce73cd39b6f45a641273ea2f4ed035",
-      "targetSHA256": "e511a92d182d60f64775a53aa3838e0d4e46fa384572da4b8cbf742b4e86b2e3",
-      "bytes": 245326,
+      "targetSHA256": "51ab86884a75befe5a04947a16b4dc029c7d52cec196d1d4cf47eb6ff2558301",
+      "bytes": 245393,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7605,7 +7605,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "3eb259742703c86dd84da8d825c0f9121e43e380b121355165ae448142ab7993",
+      "sha256": "cfdeb57ee7af5dd4df5684e0ff7de2d05ef1e87904bf01c235db8dfa1f6cf72e",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9897,8 +9897,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/platforms/acp/useAcpAsideController.tsx",
-      "sha256": "04451c7dd716b86b528f4eed2874a668629c20d83611344be2d71e011f3b4b9a",
-      "bytes": 12226,
+      "sha256": "4faa83a8c3c691bfbaaf09e769f5b6bb69624e26c8a14ed78719e53ac257cafa",
+      "bytes": 12407,
       "reason": "Compose a single side-chat owner and consume only the exact accepted draft or queued item while preserving newer input."
     },
     {
@@ -11565,14 +11565,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asideOperation.ts",
-      "sha256": "1c286e2623375cc7e568e10526fb66dc8ada29b2a99a7a287d99210701fc6424",
-      "bytes": 16023,
+      "sha256": "78d687c1f2ede8098fa4fa216f7297b7762014944146c3dec06fded84c4d0f54",
+      "bytes": 16073,
       "reason": "Own one frozen UI operation and its verified creation, followup, cancellation and recovery receipts using existing runtime APIs."
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/asidePresentation.ts",
-      "sha256": "278a286e610da99b43deae1aa1ecb519372519dbd2f398d7e31678125a31122a",
-      "bytes": 9066,
+      "sha256": "31d837d107ab6dbd320e6c5c7df23299d5970c5c88917bf397cd86fa61b718b2",
+      "bytes": 13017,
       "reason": "Retain bounded owner-scoped presentation hints without treating stored values as execution or cancellation authority."
     },
     {
@@ -14127,8 +14127,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/SendBoxRightTools.dom.test.tsx",
-      "sha256": "013e7a4fd02d5bd2b1e1e979d1de3a2097c02f43e67e04cf67d002e2a8e91b89",
-      "bytes": 8752,
+      "sha256": "9bf9ac125f9470f1f931c86b7ab7435b809f0257b1e4403d3f2c7d5ab737bc44",
+      "bytes": 9067,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
