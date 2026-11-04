@@ -102,6 +102,53 @@ func TestKernelHostLibraryCapabilityIsDiscoverable(t *testing.T) {
 	}
 }
 
+func TestLibraryTaskToolAuthorityRespectsExplicitScope(t *testing.T) {
+	const frameID = "library-task-scope"
+	store, repo, _ := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, "local", "library-task-scope-project", frameID)
+	server := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { _ = server.Close(context.Background()) })
+	if _, _, err := server.submitFrameMessage(store, frameMessageSubmission{
+		FrameID: frameID, MessageUUID: "library-scope-message", ClientMessageID: "library-scope-input",
+		Text: "Check the current task's Library capability.",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stream, found, err := repo.GetFrameStreamBySession(t.Context(), "local", frameID)
+	if err != nil || !found {
+		t.Fatalf("frame stream found=%t err=%v", found, err)
+	}
+	session, err := server.loadTranscriptFrameSessionProjection(stream)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name    string
+		allowed []string
+		want    bool
+	}{
+		{name: "ordinary task", want: true},
+		{name: "explicit opt-in", allowed: []string{librarySaveToInboxToolName}, want: true},
+		{name: "unrelated explicit scope", allowed: []string{"runtime_get"}},
+		{name: "no tools", allowed: []string{noChatToolsAllowedSentinel}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			authority, err := server.bindSessionRunnerToolAuthority(t.Context(), session, SessionRunnerChatOptions{
+				AllowedTools: tc.allowed, DisableMCPDiscovery: true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			admitted := agentKernelToolAllowed(librarySaveToInboxToolName, chatRunnerAllowedToolSet(authority.Options.AllowedTools))
+			schemas := filterAgentRuntimeToolSchemas(authority.Schemas, authority.Options.AllowedTools)
+			advertised := agentRuntimeToolSchemaNamed(partitionAgentRuntimeToolSchemasForModel(schemas), librarySaveToInboxToolName)
+			if admitted != tc.want || advertised != tc.want {
+				t.Fatalf("Library authority admitted=%t advertised=%t, want %t; scope=%v", admitted, advertised, tc.want, authority.Options.AllowedTools)
+			}
+		})
+	}
+}
+
 func TestKernelHostLibraryHonorsTheSameExplicitToolFilter(t *testing.T) {
 	f := newKernelSkillDraftFixture(t)
 	startDelegateInitializationBatch(t, f.agentSaveArtifactsFixture, f.bound.transcriptExecution.outerToolUseID)
