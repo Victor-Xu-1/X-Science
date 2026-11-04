@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "99f7ed4ac311941e47883da12dd6a74da03069ac546a00e6bba2c2da3945be3a",
+  "adaptationFingerprintSHA256": "40fed00519cd23750c866b4756bdc0ad360aeb3001d54d787b73ea32ab6fef41",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ee2aba54c9a31390f7f43c9402121ce391b0c97c103a062d72327cd79d2b0d2f",
+  "additionFingerprintSHA256": "e9362b83ac09a99269636b1fe382b6d4d882c4e9e3a131d46606d2ffe0da8600",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -4394,8 +4394,8 @@
     {
       "path": "tests/unit/renderer/ConversationIndex.dom.test.tsx",
       "sourceSHA256": "0399d6d03907db03ed3ff3816080ce44f54be57af48ba7e62df8ea19be956e3c",
-      "targetSHA256": "74d0c2da613b296f9ae5ee2a9c6b2f59519f9b7a362db9fa00f3bda5de0df036",
-      "bytes": 17216,
+      "targetSHA256": "9102fc2cecfe3296e42d50518059fedcd70ebc22b1959df4b92095a9b0e8938d",
+      "bytes": 19141,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7815,8 +7815,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/realtimeRuntime.ts",
-      "sha256": "2459c05afa1fb4e4435ede6f8dfb38cd623eb60a80654f1de81fba74eebe495a",
-      "bytes": 7343,
+      "sha256": "e7471ea50f51cb060d33cf3af4fbf4fed129489e7c3b4d36a31f8629bc13ce10",
+      "bytes": 7387,
       "reason": "Route validated durable and direct events through identity-epoch subscriptions and a stable external-store snapshot."
     },
     {
@@ -13077,8 +13077,8 @@
     },
     {
       "path": "tests/unit/common-adapter/realtimeRuntime.test.ts",
-      "sha256": "181be277f608ad35e9eb989a3934412c5373668996b896102cc4e26cd9e78eaa",
-      "bytes": 12780,
+      "sha256": "94fb3d0f441c5925f166a809ec9a0e3424615cd82bc78bfbcf3e65dddd113b97",
+      "bytes": 13659,
       "reason": "Verify identity epochs, composite subscriptions, listener isolation, and reconnected delivery."
     },
     {

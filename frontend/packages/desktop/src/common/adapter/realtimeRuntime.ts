@@ -37,7 +37,7 @@ class Runtime implements RealtimeRuntime {
   private disposed = false;
   private dispatchEpoch = 0;
   private validatedConnected = false;
-  private leftConnected = false;
+  private recoveryPending = false;
   private readonly statusListeners = new Set<() => void>();
   private readonly eventListeners = new Map<
     RealtimeBusinessMessage['kind'],
@@ -127,7 +127,9 @@ class Runtime implements RealtimeRuntime {
 
   private readonly handleStatus = (status: RealtimeConnectionStatus): void => {
     if (this.disposed) return;
-    if (this.validatedConnected && status !== 'connected') this.leftConnected = true;
+    if (status === 'reconnecting' || status === 'offline' || (this.validatedConnected && status !== 'connected')) {
+      this.recoveryPending = true;
+    }
     this.updateSnapshot(this.snapshot.identity, status);
   };
 
@@ -135,9 +137,9 @@ class Runtime implements RealtimeRuntime {
     if (this.disposed) return;
     if (message.kind === 'connected') {
       if (this.snapshot.status !== 'connected') return;
-      if (!this.validatedConnected) this.validatedConnected = true;
-      else if (this.leftConnected) {
-        this.leftConnected = false;
+      this.validatedConnected = true;
+      if (this.recoveryPending) {
+        this.recoveryPending = false;
         this.notify(this.reconnectListeners, (listener) => listener());
       }
       return;
@@ -154,7 +156,7 @@ class Runtime implements RealtimeRuntime {
   }
 
   private resetConnectionHistory(): void {
-    this.validatedConnected = this.leftConnected = false;
+    this.validatedConnected = this.recoveryPending = false;
   }
 
   private addListener<T>(listeners: Set<T>, listener: T, afterRemove?: () => void): () => void {
