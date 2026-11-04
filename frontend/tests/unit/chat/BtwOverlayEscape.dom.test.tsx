@@ -21,6 +21,8 @@ const makeController = (overrides: Partial<Controller> = {}): Controller => ({
   draft: '',
   action: null,
   errorKey: null,
+  closingRecoveries: [],
+  acceptedConsumers: [],
   entries: [{ id: 'partial', kind: 'message', role: 'assistant', text: 'A concise answer' }],
   snapshot: null,
   observationError: false,
@@ -31,7 +33,6 @@ const makeController = (overrides: Partial<Controller> = {}): Controller => ({
   error: null,
   persistenceError: false,
   closeRequested: false,
-  acceptedConsumer: null,
   pendingFollowupText: null,
   canRetryFollowup: false,
   canSend: true,
@@ -40,14 +41,17 @@ const makeController = (overrides: Partial<Controller> = {}): Controller => ({
   ask: vi.fn().mockResolvedValue(true),
   retry: vi.fn().mockResolvedValue(true),
   close: vi.fn().mockResolvedValue(undefined),
+  retryClose: vi.fn().mockResolvedValue(undefined),
+  reconnectClose: vi.fn().mockResolvedValue(undefined),
   cancel: vi.fn().mockResolvedValue(undefined),
   send: vi.fn().mockResolvedValue(true),
   setDraft: vi.fn(),
   reconnect: vi.fn().mockResolvedValue(undefined),
   resume: vi.fn().mockResolvedValue(undefined),
   getReceipt: vi.fn().mockReturnValue(null),
-  getAcceptedConsumer: vi.fn().mockReturnValue(null),
-  acknowledgeConsumer: vi.fn(),
+  getAcceptedConsumers: vi.fn().mockReturnValue([]),
+  getUnfrozenConsumer: vi.fn().mockReturnValue(null),
+  acknowledgeExactConsumer: vi.fn(),
   acknowledgeBranch: vi.fn(),
   ...overrides,
 });
@@ -138,14 +142,22 @@ describe('integrated side chat panel', () => {
     expect(controller.close).toHaveBeenCalledOnce();
   });
 
-  it('keeps unknown Close and followup outcomes actionable without pretending they stopped', async () => {
-    const controller = makeController({ error: 'Close is not yet confirmed', closeRequested: true, canSend: false });
+  it('keeps an unconfirmed stop actionable outside the dismissed chat', async () => {
+    const controller = makeController({
+      isOpen: false,
+      closeRequested: true,
+      closingRecoveries: [
+        { intentId: 'closing-intent', question: 'Old side chat', waiting: false, errorKey: 'closePending' },
+      ],
+    });
     await renderWithI18n(<BtwOverlay controller={controller} />, 'en-US');
-    expect(screen.getByRole('alert')).toHaveTextContent('Close is not yet confirmed');
+    expect(screen.getByRole('status')).toHaveTextContent(/close|closing/i);
+    expect(screen.queryByTestId('side-chat-panel')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
     fireEvent.click(screen.getByRole('button', { name: 'Retry close' }));
-    expect(controller.reconnect).toHaveBeenCalledOnce();
-    expect(controller.close).toHaveBeenCalledOnce();
+    expect(controller.reconnectClose).toHaveBeenCalledExactlyOnceWith('closing-intent');
+    expect(controller.retryClose).toHaveBeenCalledExactlyOnceWith('closing-intent');
+    expect(controller.close).not.toHaveBeenCalled();
     expect(controller.send).not.toHaveBeenCalled();
   });
 });

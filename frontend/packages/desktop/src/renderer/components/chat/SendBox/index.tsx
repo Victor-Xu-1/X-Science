@@ -303,16 +303,16 @@ const SendBox: React.FC<{
   const btwCommand = btwController ?? localBtwCommand;
   useLayoutEffect(() => {
     if (btwController) return;
-    const consumer = btwCommand.getAcceptedConsumer();
-    if (!consumer || consumer.kind !== 'draft' || consumer.id !== conversationContext?.conversation_id) return;
-    if (latestInputRef.current === consumer.content) setInputRef.current('');
-    btwCommand.acknowledgeConsumer();
+    for (const { intentId, consumer, ownsDraft } of btwCommand.getAcceptedConsumers()) {
+      if (consumer.kind !== 'draft' || consumer.id !== conversationContext?.conversation_id) continue;
+      if (ownsDraft && latestInputRef.current === consumer.content) setInputRef.current('');
+      btwCommand.acknowledgeExactConsumer(intentId);
+    }
   }, [
     btwController,
-    btwCommand.acceptedConsumer,
-    btwCommand.receipt,
-    btwCommand.getAcceptedConsumer,
-    btwCommand.acknowledgeConsumer,
+    btwCommand.acceptedConsumers,
+    btwCommand.getAcceptedConsumers,
+    btwCommand.acknowledgeExactConsumer,
     conversationContext?.conversation_id,
   ]);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);

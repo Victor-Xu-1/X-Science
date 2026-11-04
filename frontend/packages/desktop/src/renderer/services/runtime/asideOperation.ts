@@ -15,6 +15,7 @@ import {
 import { getRendererAccountOwnerId, getRendererAccountScopeToken } from '../rendererAccountScope';
 import {
   clearAsidePresentation,
+  reserveAsidePresentation,
   saveAsidePresentation,
   type AsidePresentation,
   type AsideConsumer,
@@ -77,7 +78,7 @@ export class XScienceAsideOperation {
     };
     // Restored values are only presentation hints; never start/cancel from construction.
     this.dispatched = Boolean(recovered);
-    if (!recovered) this.persist();
+    if (!recovered) reserveAsidePresentation(this.value);
   }
 
   get receipt() {

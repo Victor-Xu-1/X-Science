@@ -1,7 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
-import { readAsidePresentation, type AsideConsumer } from '@/renderer/services/runtime/asidePresentation';
+import { readAsidePresentations, type AsideConsumer } from '@/renderer/services/runtime/asidePresentation';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import type { ConversationCommandQueueItem } from '../useConversationCommandQueue';
 import { decodeSpecialistSendAuthority, type SpecialistSendAuthority } from '@/common/adapter/specialistBinding';
@@ -25,6 +25,14 @@ type Props = {
   navigate: (path: string) => void;
 };
 type Scope = { key: string; active: boolean };
+const matchesQueueConsumer = (item: ConversationCommandQueueItem, consumer: AsideConsumer | null | undefined) =>
+  consumer?.kind === 'queue' &&
+  consumer.id === item.id &&
+  consumer.content === item.input &&
+  item.files.length === 0 &&
+  item.contextItems.length === 0 &&
+  !item.specialistAuthorityInvalid &&
+  asideSourceMatches(item.specialistAuthority, consumer.sourceSpecialist);
 
 /** ACP composition only; admission, execution and cancellation have one shared owner chain. */
 export function useAcpAsideController(props: Props) {
@@ -36,11 +44,9 @@ export function useAcpAsideController(props: Props) {
   const currentKey = useRef(key);
   currentKey.current = key;
   const scopeRef = useRef<Scope | null>(null);
-  const provisional = useRef<{ scope: Scope; consumer: AsideConsumer } | null>(null);
   useLayoutEffect(() => {
     const scope = { key, active: true };
     scopeRef.current = scope;
-    provisional.current = null;
     return () => {
       scope.active = false;
     };
@@ -62,35 +68,31 @@ export function useAcpAsideController(props: Props) {
   const consume = useCallback(
     (controller: ReturnType<typeof useBtwCommand>, scope: Scope) => {
       if (!isCurrent(scope)) return;
-      const consumer = controller.getAcceptedConsumer();
-      if (!consumer) return;
       const context = latest.current;
-      if (consumer.kind === 'queue') {
-        const item = context.queue.current?.getQueuedItem(consumer.id);
-        if (
-          item &&
-          item.input === consumer.content &&
-          item.files.length === 0 &&
-          item.contextItems.length === 0 &&
-          !item.readingContext &&
-          !item.readingContextInvalid &&
-          !item.specialistAuthorityInvalid &&
-          asideSourceMatches(item.specialistAuthority, consumer.sourceSpecialist)
-        ) {
-          if (context.queue.current?.remove(item.id) !== true) return;
-        }
-      } else if (consumer.id === context.conversationId) {
-        try {
+      for (const { intentId, consumer, ownsDraft } of controller.getAcceptedConsumers()) {
+        if (consumer.kind === 'queue') {
+          const item = context.queue.current?.getQueuedItem(consumer.id);
           if (
-            !context.draftSpecialistInvalid &&
-            asideSourceMatches(context.captureDraftSpecialist?.(), consumer.sourceSpecialist)
+            item &&
+            matchesQueueConsumer(item, consumer) &&
+            !item.readingContext &&
+            !item.readingContextInvalid &&
+            context.queue.current?.remove(item.id) !== true
           )
-            context.clearDraftIfUnchanged(consumer.content);
-        } catch {
-          /* An unconfirmed new selection cannot be consumed by the old receipt. */
+            continue;
+        } else if (ownsDraft && consumer.id === context.conversationId) {
+          try {
+            if (
+              !context.draftSpecialistInvalid &&
+              asideSourceMatches(context.captureDraftSpecialist?.(), consumer.sourceSpecialist)
+            )
+              context.clearDraftIfUnchanged(consumer.content);
+          } catch {
+            /* An unconfirmed new selection cannot be consumed by the old receipt. */
+          }
         }
+        controller.acknowledgeExactConsumer(intentId);
       }
-      controller.acknowledgeConsumer();
     },
     [isCurrent]
   );
@@ -101,7 +103,7 @@ export function useAcpAsideController(props: Props) {
       consume(sideQuestion, scope);
       consume(branch, scope);
     }
-  }, [branch.acceptedConsumer, branch.receipt, consume, sideQuestion.acceptedConsumer, sideQuestion.receipt]);
+  }, [branch.acceptedConsumers, consume, sideQuestion.acceptedConsumers]);
 
   const sideDraft = useCallback(
     async (text: string, authority?: SpecialistSendAuthority) => {
@@ -119,7 +121,7 @@ export function useAcpAsideController(props: Props) {
       if (accepted) consume(sideQuestion, scope);
       return accepted;
     },
-    [consume, isCurrent, sideQuestion.ask, sideQuestion.getAcceptedConsumer, sideQuestion.acknowledgeConsumer]
+    [consume, isCurrent, sideQuestion.ask, sideQuestion.getAcceptedConsumers, sideQuestion.acknowledgeExactConsumer]
   );
 
   const branchDraft = useCallback(
@@ -147,8 +149,8 @@ export function useAcpAsideController(props: Props) {
       branch.ask,
       branch.getReceipt,
       branch.acknowledgeBranch,
-      branch.getAcceptedConsumer,
-      branch.acknowledgeConsumer,
+      branch.getAcceptedConsumers,
+      branch.acknowledgeExactConsumer,
       consume,
       isCurrent,
     ]
@@ -169,7 +171,13 @@ export function useAcpAsideController(props: Props) {
         actual.readingContextInvalid ||
         actual.specialistAuthorityInvalid ||
         !asideSourceMatches(item.specialistAuthority, actual.specialistAuthority?.reference) ||
-        provisional.current
+        matchesQueueConsumer(actual, sideQuestion.getUnfrozenConsumer())
+      )
+        return false;
+      const hints = readAsidePresentations(latest.current.conversationId, false);
+      if (
+        hints.closing.some((hint) => matchesQueueConsumer(actual, hint.consumer)) ||
+        (hints.current?.closeRequested && matchesQueueConsumer(actual, hints.current.consumer))
       )
         return false;
       let authority: SpecialistSendAuthority;
@@ -184,48 +192,42 @@ export function useAcpAsideController(props: Props) {
         content: actual.input,
         ...(authority.reference ? { sourceSpecialist: authority.reference } : {}),
       };
-      const pending = { scope, consumer };
-      provisional.current = pending;
-      try {
-        const accepted = authority.reference
-          ? await sideQuestion.ask(actual.input, consumer, authority)
-          : await sideQuestion.ask(actual.input, consumer);
-        if (accepted) consume(sideQuestion, scope);
-        return accepted;
-      } finally {
-        if (provisional.current === pending) provisional.current = null;
-      }
+      const accepted = authority.reference
+        ? await sideQuestion.ask(actual.input, consumer, authority)
+        : await sideQuestion.ask(actual.input, consumer);
+      if (accepted) consume(sideQuestion, scope);
+      return accepted;
     },
-    [consume, isCurrent, sideQuestion.ask, sideQuestion.getAcceptedConsumer, sideQuestion.acknowledgeConsumer]
+    [
+      consume,
+      isCurrent,
+      sideQuestion.ask,
+      sideQuestion.getAcceptedConsumers,
+      sideQuestion.acknowledgeExactConsumer,
+      sideQuestion.getUnfrozenConsumer,
+    ]
   );
 
   const isQueueItemBlocked = useCallback(
     (item: ConversationCommandQueueItem) => {
       const context = latest.current;
-      const active = provisional.current;
-      const consumer =
-        active && isCurrent(active.scope) && !sideQuestion.operation?.closed
-          ? active.consumer
-          : readAsidePresentation(context.conversationId, false)?.consumer;
+      if (!context.enabled) return false;
+      if (matchesQueueConsumer(item, sideQuestion.getUnfrozenConsumer())) return true;
+      const { current, closing } = readAsidePresentations(context.conversationId, false);
       return Boolean(
-        context.enabled &&
-        consumer?.kind === 'queue' &&
-        consumer.id === item.id &&
-        consumer.content === item.input &&
-        item.files.length === 0 &&
-        item.contextItems.length === 0 &&
-        !item.specialistAuthorityInvalid &&
-        asideSourceMatches(item.specialistAuthority, consumer.sourceSpecialist)
+        matchesQueueConsumer(item, current?.consumer) ||
+        closing.some((hint) => matchesQueueConsumer(item, hint.consumer))
       );
     },
     [
-      isCurrent,
       sideQuestion.operation,
       sideQuestion.starting,
       sideQuestion.receipt,
       sideQuestion.closeRequested,
       sideQuestion.errorKey,
-      sideQuestion.acceptedConsumer,
+      sideQuestion.acceptedConsumers,
+      sideQuestion.closingRecoveries,
+      sideQuestion.getUnfrozenConsumer,
     ]
   );
 
@@ -239,8 +241,8 @@ export function useAcpAsideController(props: Props) {
   }, [
     branch.getReceipt,
     branch.acknowledgeBranch,
-    branch.getAcceptedConsumer,
-    branch.acknowledgeConsumer,
+    branch.getAcceptedConsumers,
+    branch.acknowledgeExactConsumer,
     consume,
     isCurrent,
   ]);
