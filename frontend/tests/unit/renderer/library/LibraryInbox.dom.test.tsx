@@ -57,6 +57,7 @@ it('shows candidate bibliography and abstract without exposing a raw provider re
         ...candidate,
         metadata: {
           authors: ['Ada Example', 'Bo Example'],
+          first_author: 'Fallback name',
           year: 2024,
           container_title: 'Synthetic Journal',
           abstract: '<script>untrusted()</script> A bibliographic fixture.',
@@ -77,6 +78,7 @@ it('shows candidate bibliography and abstract without exposing a raw provider re
   );
   expect(await screen.findByRole('heading', { name: candidate.title })).toBeInTheDocument();
   expect(screen.getByText('Ada Example; Bo Example')).toBeInTheDocument();
+  expect(screen.queryByText('First author: Fallback name')).not.toBeInTheDocument();
   expect(screen.getByText('2024 · Synthetic Journal')).toBeInTheDocument();
   expect(screen.getByText('Found via Semantic Scholar')).toBeInTheDocument();
   expect(screen.getByText('<script>untrusted()</script> A bibliographic fixture.')).toBeInTheDocument();
@@ -87,6 +89,23 @@ it('shows candidate bibliography and abstract without exposing a raw provider re
       expect.objectContaining({ kind: 'candidate-accept', candidate_id: candidate.id })
     )
   );
+});
+it('labels a retained first author in the current Inbox language', async () => {
+  mocks.http.mockResolvedValue({
+    schema: 'x-science.literature-candidates.v1',
+    candidates: [{ ...candidate, metadata: { first_author: '  Ada Example  ' } }],
+  });
+  await renderWithI18n(
+    <LibraryInbox
+      account={getRendererAccountScopeToken()}
+      busy={false}
+      submit={vi.fn()}
+      close={vi.fn()}
+      openItem={vi.fn()}
+    />,
+    'zh-CN'
+  );
+  expect(await screen.findByText('第一作者：Ada Example')).toBeInTheDocument();
 });
 it('sends one strict candidate action to its authenticated endpoint', async () => {
   mocks.http.mockResolvedValueOnce(accepted);

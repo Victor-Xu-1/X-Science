@@ -37,7 +37,6 @@ function ReaderProbe({ query = '', cursor = '', project = '', collection = '', r
         refreshError={reads.list.refreshError}
         selectedId=''
         preferences={DEFAULT_LIBRARY_COLUMN_PREFERENCES}
-        authors={() => ''}
         statusCell={(item) => (
           <input
             aria-label={`Draft ${item.id}`}

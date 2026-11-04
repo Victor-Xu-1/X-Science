@@ -44,7 +44,6 @@ const tableProps = (extra: Partial<LibraryTableProps> = {}): LibraryTableProps =
   readStatus: 'ready',
   selectedId: reference.id,
   preferences: DEFAULT_LIBRARY_COLUMN_PREFERENCES,
-  authors: (item) => String(item.metadata.authors),
   statusCell: () => <button type='button'>Independent state control</button>,
   open: vi.fn(),
   registerTitleButton: vi.fn(),

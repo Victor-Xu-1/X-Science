@@ -33,7 +33,6 @@ import { literatureItemReadingStatus } from '@/common/adapter/literatureLibrary'
 import type { LiteratureReadingStatus } from '@/common/adapter/literatureReadingStatus';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
 import { libraryAuthors } from './libraryBibliographicText';
-export { libraryAuthors } from './libraryBibliographicText';
 
 export function LibraryItemDetails({
   item,
@@ -182,7 +181,7 @@ export function LibraryItemDetails({
     },
     [current, scope]
   );
-  const authors = libraryAuthors(item);
+  const authors = libraryAuthors(item, t);
   const year =
     typeof item.metadata.year === 'string' || Number.isSafeInteger(item.metadata.year)
       ? String(item.metadata.year)

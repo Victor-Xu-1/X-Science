@@ -29,7 +29,6 @@ const tableProps = (): LibraryTableProps => ({
   readStatus: 'ready',
   selectedId: item.id,
   preferences: DEFAULT_LIBRARY_COLUMN_PREFERENCES,
-  authors: () => 'Ada',
   statusCell: () => <button type='button'>Independent status</button>,
   open: vi.fn(),
   registerTitleButton: vi.fn(),

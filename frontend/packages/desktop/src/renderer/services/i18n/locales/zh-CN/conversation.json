@@ -95,6 +95,7 @@
     "libraryDetails": "文献信息",
     "libraryTitle": "标题",
     "libraryAuthors": "作者",
+    "libraryFirstAuthor": "第一作者：{{name}}",
     "libraryYear": "年份",
     "libraryEditNamed": "编辑文献 {{name}}",
     "libraryImportNamed": "将 {{name}} 保存到文献库",

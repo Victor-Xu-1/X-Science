@@ -226,7 +226,9 @@ export function LibraryInbox({
             <li key={candidate.id} className='library-inbox__card'>
               <div className='library-inbox__bibliography'>
                 <h3>{candidate.title}</h3>
-                {libraryAuthors(candidate) && <p className='library-inbox__authors'>{libraryAuthors(candidate)}</p>}
+                {libraryAuthors(candidate, t) && (
+                  <p className='library-inbox__authors'>{libraryAuthors(candidate, t)}</p>
+                )}
                 <p className='library-inbox__source' title={candidate.external_id}>
                   {[
                     libraryMetadataText(candidate.metadata.year),
