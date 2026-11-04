@@ -745,6 +745,19 @@
     "bodyTurnCompleted": "agent 已完成本轮回复"
   },
   "notification": "通知",
+  "notificationsPage": {
+    "title": "通知",
+    "description": "管理任务的浏览器通知。",
+    "taskNotifications": "任务通知",
+    "taskDescription": "当此标签页处于后台时，任务完成或请求确认会发送浏览器通知。",
+    "browserPermission": "浏览器权限",
+    "loading": "正在加载通知偏好…",
+    "readFailed": "无法加载通知偏好。",
+    "saving": "正在保存通知偏好…",
+    "saveFailed": "无法确认保存。开关显示从服务器重新读取的值。",
+    "unsupported": "此浏览器不支持桌面通知。",
+    "permissionFailed": "无法请求通知权限，请检查浏览器设置。"
+  },
   "cronNotificationEnabled": "定时任务完成通知",
   "promptTimeout": "LLM 请求超时时间（秒）",
   "groupAiCore": "AI 核心",

@@ -12,12 +12,11 @@ import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { getClientBusinessSetting, setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Collapse, InputNumber, Message, Switch } from '@arco-design/web-react';
+import { InputNumber, Message, Switch } from '@arco-design/web-react';
 import Modal from '@/renderer/components/base/WorkbenchModal';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../../settingsViewContext';
-import BrowserNotificationGrant from './BrowserNotificationGrant';
 import DevSettings from './DevSettings';
 import PreferenceRow from './PreferenceRow';
 
@@ -42,8 +41,6 @@ const SystemModalContent: React.FC = () => {
   });
   const [closeToTray, setCloseToTray] = useState(false);
   const [gpuStatus, setGpuStatus] = useState<IGpuStatus | null>(null);
-  const [notificationEnabled, setNotificationEnabled] = useState(true);
-  const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
 
@@ -82,8 +79,6 @@ const SystemModalContent: React.FC = () => {
         })
         .catch(() => {});
     }
-    setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
-    setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
   }, [isDesktop]);
 
@@ -200,22 +195,6 @@ const SystemModalContent: React.FC = () => {
     [startOnBoot, t]
   );
 
-  const handleNotificationEnabledChange = useCallback((checked: boolean) => {
-    setNotificationEnabled(checked);
-    configService.set('system.notificationEnabled', checked).catch(() => {
-      setNotificationEnabled(!checked);
-      configService.setLocal('system.notificationEnabled', !checked);
-    });
-  }, []);
-
-  const handleCronNotificationEnabledChange = useCallback((checked: boolean) => {
-    setCronNotificationEnabled(checked);
-    configService.set('system.cronNotificationEnabled', checked).catch(() => {
-      setCronNotificationEnabled(!checked);
-      configService.setLocal('system.cronNotificationEnabled', !checked);
-    });
-  }, []);
-
   const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
     setPromptTimeout(val as number);
   }, []);
@@ -302,49 +281,6 @@ const SystemModalContent: React.FC = () => {
                 </PreferenceRow>
               ))}
             </div>
-            {/* Notification settings with collapsible sub-options */}
-            <Collapse
-              bordered={false}
-              activeKey={notificationEnabled ? ['notification'] : []}
-              onChange={(_, keys) => {
-                const shouldExpand = (keys as string[]).includes('notification');
-                if (shouldExpand && !notificationEnabled) {
-                  handleNotificationEnabledChange(true);
-                } else if (!shouldExpand && notificationEnabled) {
-                  handleNotificationEnabledChange(false);
-                }
-              }}
-              className='[&_.arco-collapse-item]:!border-none [&_.arco-collapse-item-header]:!px-0 [&_.arco-collapse-item-header-title]:!flex-1 [&_.arco-collapse-item-content-box]:!px-0 [&_.arco-collapse-item-content-box]:!pb-0'
-            >
-              <Collapse.Item
-                name='notification'
-                showExpandIcon={false}
-                header={
-                  <div className='flex flex-1 items-center justify-between w-full'>
-                    <span className='text-14px text-2 ml-12px'>{t('settings.notification')}</span>
-                    <Switch
-                      checked={notificationEnabled}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={handleNotificationEnabledChange}
-                    />
-                  </div>
-                }
-              >
-                {isDesktop ? (
-                  <div className='pl-12px'>
-                    <PreferenceRow label={t('settings.cronNotificationEnabled')}>
-                      <Switch
-                        checked={cronNotificationEnabled}
-                        disabled={!notificationEnabled}
-                        onChange={handleCronNotificationEnabledChange}
-                      />
-                    </PreferenceRow>
-                  </div>
-                ) : (
-                  <BrowserNotificationGrant />
-                )}
-              </Collapse.Item>
-            </Collapse>
           </div>
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}

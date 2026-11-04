@@ -39,7 +39,11 @@ vi.mock('@/common', () => ({
   },
 }));
 vi.mock('@/renderer/utils/platform', () => ({ isElectronDesktop: () => false }));
-vi.mock('@/common/config/configService', () => ({ configService: { get: () => true } }));
+const notificationPreference = vi.hoisted(() => ({ enabled: true, saving: false }));
+vi.mock('@/renderer/hooks/system/notification/BrowserNotificationPreference', () => {
+  const canDeliver = () => notificationPreference.enabled && !notificationPreference.saving;
+  return { useBrowserNotificationPreference: () => ({ canDeliver }) };
+});
 const navigate = vi.fn();
 vi.mock('react-router', () => ({ useNavigate: () => navigate }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
@@ -105,6 +109,8 @@ beforeEach(() => {
   setRendererAccountOwner('owner-1');
   FakeNotification.instances.length = 0;
   navigate.mockClear();
+  notificationPreference.enabled = true;
+  notificationPreference.saving = false;
   (globalThis as unknown as { Notification: unknown }).Notification = FakeNotification;
   // jsdom does not implement window.focus(); stub it so the click path is quiet.
   window.focus = vi.fn();
@@ -117,6 +123,25 @@ afterEach(() => {
 });
 
 describe('useBrowserNotification', () => {
+  it('uses the current shared preference without resubscribing to events', () => {
+    notificationPreference.enabled = false;
+    const { rerender } = renderHook(useBrowserNotification);
+    const subscribed = [...completedHandlers];
+    act(() => emitCompleted(completed('disabled', 1)));
+    expect(FakeNotification.instances).toHaveLength(0);
+
+    notificationPreference.enabled = true;
+    notificationPreference.saving = true;
+    rerender();
+    act(() => emitCompleted(completed('pending', 2)));
+    expect(FakeNotification.instances).toHaveLength(0);
+
+    notificationPreference.saving = false;
+    rerender();
+    expect(completedHandlers).toEqual(subscribed);
+    act(() => emitCompleted(completed('enabled', 3)));
+    expect(FakeNotification.instances).toHaveLength(1);
+  });
   it('shows a confirmation notification on an acp_permission stream message when hidden', () => {
     renderHook(() => useBrowserNotification());
     emitStream({ type: 'acp_permission', conversation_id: 'c1' });

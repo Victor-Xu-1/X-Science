@@ -23,6 +23,7 @@ export const COMPACT_SETTINGS_ROUTES: readonly SettingsRouteId[] = [
   'storage',
   'archived',
   'general',
+  'notifications',
 ];
 
 export const SETTINGS_DESKTOP_VIEWPORT = { width: 1536, height: 1024 } as const;
@@ -236,6 +237,15 @@ export const SETTINGS_VISUAL_CONTRACTS = {
     sectionCount: 5,
     interactionSelectors: ['.settings-section button', '.message-channel-card button', 'select'],
     dynamicStates: ['contact-loading', 'contact-empty', 'email-invalid', 'save-error'],
+  }),
+  notifications: contract({
+    route: 'notifications',
+    reference: { desktop: null, mobile: null },
+    rootTestId: 'x-science-notifications-settings',
+    primarySelectors: ['.settings-section'],
+    sectionCount: 2,
+    interactionSelectors: ['.settings-section button'],
+    dynamicStates: ['loading', 'read-error', 'saving', 'save-error', 'permission'],
   }),
   archived: contract({
     route: 'archived',

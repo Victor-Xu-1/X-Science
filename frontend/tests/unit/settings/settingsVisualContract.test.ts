@@ -17,6 +17,7 @@ import {
   SETTINGS_GENERATED_NAV_SRC,
   settingsGeneratedWebpSrc,
 } from '@/renderer/pages/settings/components/SettingsGeneratedAsset';
+import { settingsRouteLoaders } from '@/renderer/pages/settings/settingsRouteLoaders';
 
 // These are source/contract guards. Actual geometry, focus, contrast and visual
 // review also require the browser; regexes are never a visual acceptance score.
@@ -41,6 +42,7 @@ describe('intrinsic settings presentation contract', () => {
       'storage',
       'archived',
       'general',
+      'notifications',
     ]);
     expect(read('components/SettingsPageWrapper.tsx')).toContain(
       "data-settings-density={COMPACT_SETTINGS_ROUTES.includes(contentRoute) ? 'compact' : undefined}"
@@ -80,8 +82,26 @@ describe('intrinsic settings presentation contract', () => {
   it('covers all shipped settings routes with honest reference and state coverage', () => {
     expect(SETTINGS_VISUAL_SYSTEM_ID).toBe('scientific-connectors-v3');
     expect(SETTINGS_LAYOUT_REVISION).toBe('intrinsic-responsive-v1');
-    expect(SETTINGS_VISUAL_ROUTE_IDS).toHaveLength(15);
-    expect(new Set(SETTINGS_VISUAL_ROUTE_IDS).size).toBe(15);
+    const expectedRoutes = [
+      'account',
+      'archived',
+      'compute',
+      'credentials',
+      'environments',
+      'experts',
+      'general',
+      'governance',
+      'models',
+      'network',
+      'notifications',
+      'plans-usage',
+      'skills',
+      'storage',
+      'tags',
+      'tools',
+    ];
+    expect(Object.keys(settingsRouteLoaders).sort()).toEqual(expectedRoutes);
+    expect([...SETTINGS_VISUAL_ROUTE_IDS].sort()).toEqual(expectedRoutes);
     for (const route of SETTINGS_VISUAL_ROUTE_IDS) {
       const entry = SETTINGS_VISUAL_CONTRACTS[route];
       expect(entry.route).toBe(route);
@@ -93,6 +113,25 @@ describe('intrinsic settings presentation contract', () => {
     }
     expect(SETTINGS_DESKTOP_VIEWPORT).toEqual({ width: 1536, height: 1024 });
     expect(SETTINGS_MOBILE_VIEWPORT).toEqual({ width: 390, height: 844 });
+  });
+
+  it('keeps the notifications contract aligned with its two live settings groups', () => {
+    expect(SETTINGS_VISUAL_CONTRACTS.notifications).toEqual({
+      route: 'notifications',
+      reference: { desktop: null, mobile: null },
+      rootTestId: 'x-science-notifications-settings',
+      primarySelectors: ['.settings-section'],
+      sectionCount: 2,
+      interactionSelectors: ['.settings-section button'],
+      dynamicStates: ['loading', 'read-error', 'saving', 'save-error', 'permission'],
+    });
+    const page = read('NotificationsSettings.tsx');
+    expect(page).toContain("data-testid='x-science-notifications-settings'");
+    expect(page.match(/<SettingsSection\b/g)).toHaveLength(2);
+    expect(page).toContain('title={preferenceLabel}');
+    expect(page).toContain('<Switch');
+    expect(page).toContain("title={t('settings.notificationsPage.browserPermission')}");
+    expect(page).toContain('<BrowserNotificationGrant />');
   });
 
   it('loads each visual module once and retires competing screenshot geometry', () => {
