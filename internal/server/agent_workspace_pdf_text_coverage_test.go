@@ -3,13 +3,16 @@ package server
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"x-science/internal/agentruntime"
 )
@@ -176,4 +179,76 @@ func selectedPDFTextCoverageFixture(pageBodies ...string) []byte {
 	}
 	fmt.Fprintf(&pdf, "trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n", len(offsets), xref)
 	return pdf.Bytes()
+}
+
+func TestPDFTextExtractorPreservesNativeExitDiagnostics(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX extractor fixture")
+	}
+	for _, tc := range []struct {
+		name, script, status, detail string
+		cutPath                      bool
+	}{
+		{name: "silent_exit", script: "exit 37", status: "exit status 37"},
+		{name: "bounded_redacted_stderr", script: `printf 'cannot read %s via %s\n' "$9" "$0" >&2
+printf '%s' '` + strings.Repeat("x", 5000) + ` ' >&2
+exit 37`, status: "exit status 37", detail: "cannot read [PDF source] via [PDF extractor]"},
+		{name: "path_crosses_capture_limit", status: "exit status 37", detail: "safe diagnostic", cutPath: true},
+		{name: "signal", script: `kill -TERM "$$"`, status: "signal: terminated"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			converter := filepath.Join(t.TempDir(), "pdf-extractor")
+			path := filepath.Join(t.TempDir(), "staged.pdf")
+			script := tc.script
+			if tc.cutPath {
+				padding := (4 << 10) - len("safe diagnostic\n") - len(path) + 2
+				script = fmt.Sprintf("printf 'safe diagnostic\\n' >&2\nprintf '%%s%%s\\n' '%s' \"$9\" >&2\nexit 37", strings.Repeat("x", padding))
+			}
+			if err := os.WriteFile(converter, []byte("#!/bin/sh\n"+script+"\n"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			reader, finished, coverage := streamAgentWorkspacePDFText(ctx, converter, path, []int{1})
+			defer reader.Close()
+			body, err := io.ReadAll(reader)
+			<-finished
+			if err == nil || !strings.Contains(err.Error(), tc.status) || !strings.Contains(err.Error(), tc.detail) {
+				t.Fatalf("native exit diagnostic missing or incorrect: %v", err)
+			}
+			if strings.Contains(err.Error(), filepath.Dir(path)) || strings.Contains(err.Error(), converter) || len(err.Error()) > (4<<10)+128 {
+				t.Fatal("extractor diagnostic escaped its path or size boundary")
+			}
+			if len(body) != 0 || coverage.hasText || len(coverage.textPages) != 0 || len(coverage.noTextPages) != 0 {
+				t.Fatalf("native failure counted as successful extraction: bytes=%d coverage=%+v", len(body), coverage)
+			}
+		})
+	}
+}
+
+func TestPDFTextExtractorPreservesActiveCancellationCause(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX extractor fixture")
+	}
+	bounded, deadline := context.WithTimeout(t.Context(), 5*time.Second)
+	defer deadline()
+	ctx, cancel := context.WithCancelCause(bounded)
+	defer cancel(nil)
+	converter := filepath.Join(t.TempDir(), "pdf-extractor")
+	if err := os.WriteFile(converter, []byte("#!/bin/sh\nprintf 'started\\n'\nexec sleep 60\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	reader, finished, coverage := streamAgentWorkspacePDFText(ctx, converter, filepath.Join(t.TempDir(), "staged.pdf"), []int{1})
+	defer reader.Close()
+	prefix := make([]byte, len("started\n"))
+	if _, err := io.ReadFull(reader, prefix); err != nil || string(prefix) != "started\n" {
+		t.Fatalf("could not confirm extractor start: %q %v", prefix, err)
+	}
+	cause := errors.New("parent cancelled PDF read")
+	cancel(cause)
+	_, err := io.ReadAll(reader)
+	<-finished
+	if !errors.Is(err, cause) || coverage.hasText || len(coverage.textPages) != 0 || len(coverage.noTextPages) != 0 {
+		t.Fatalf("parent cancellation evidence or coverage changed: err=%v coverage=%+v", err, coverage)
+	}
 }
