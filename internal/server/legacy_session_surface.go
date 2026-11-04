@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) allowLegacySessionSurface(r *http.Request) bool {
-	return s != nil && s.xscienceLinkAuth != nil && !s.xscienceLinkAuth.enabled &&
+	return s != nil && s.xscienceLinkAuth != nil && !s.webAuthenticationEnabled() &&
 		isLoopbackRequest(r) && isTrustedLegacyLoopbackAuthority(r.Host)
 }
 
