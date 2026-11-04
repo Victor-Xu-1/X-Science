@@ -224,7 +224,8 @@ function removeDuplicateArtifactListItems(content: string): string {
     if (next >= kept.length || MARKDOWN_HEADING.test(kept[next])) continue;
     withoutOrphanHeadings.push(line);
   }
-  return withoutOrphanHeadings.join('\n');
+  // A no-op artifact projection must not normalize unrelated source line endings.
+  return withoutOrphanHeadings.length === lines.length ? content : withoutOrphanHeadings.join('\n');
 }
 
 /**
