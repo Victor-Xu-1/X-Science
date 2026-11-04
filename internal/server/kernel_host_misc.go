@@ -41,6 +41,7 @@ func (s *Server) handleKernelMiscHostCall(
 	method string,
 	args []any,
 	kwargs map[string]any,
+	execution ...kernelHostExecutionIdentity,
 ) (any, error) {
 	switch method {
 	case "host.capabilities":
@@ -50,6 +51,9 @@ func (s *Server) handleKernelMiscHostCall(
 		capabilities := map[string]any{}
 		for _, name := range kernelHostMethods {
 			capabilities[name] = true
+		}
+		if len(execution) == 1 {
+			capabilities["host.library.save_to_inbox"] = !execution[0].fresh && agentKernelToolAllowed(librarySaveToInboxToolName, execution[0].allowedTools)
 		}
 		return capabilities, nil
 	case "host.credentials.list":

@@ -37,7 +37,14 @@
     "dismiss": "Dismiss",
     "restore": "Restore",
     "openAccepted": "Open in Library",
-    "updated": "Inbox updated."
+    "updated": "Inbox updated.",
+    "awaitingApproval": "Waiting for you to add this reference to Library.",
+    "destinationLoading": "Loading project destination…",
+    "destinationUnavailable": "Project destination unavailable",
+    "libraryDestination": "After approval: Library, with no project destination.",
+    "projectDestinations": "Project destinations after approval",
+    "restoreForApproval": "Restore this reference to review it before adding it to Library.",
+    "taskOrigins": "From research task"
   },
   "reading": {
     "related": {

@@ -5,19 +5,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"strings"
-	"x-science/internal/literaturediscovery"
 )
 
 type LiteratureCandidate struct {
-	ID         string         `json:"id"`
-	Title      string         `json:"title"`
-	Metadata   map[string]any `json:"metadata"`
-	Provider   string         `json:"provider"`
-	ExternalID string         `json:"external_id"`
-	State      string         `json:"state"`
-	ItemID     string         `json:"item_id,omitempty"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Metadata    map[string]any         `json:"metadata"`
+	Provider    string                 `json:"provider"`
+	ExternalID  string                 `json:"external_id"`
+	State       string                 `json:"state"`
+	ItemID      string                 `json:"item_id,omitempty"`
+	TaskOrigins []LiteratureTaskOrigin `json:"task_origins,omitempty"`
 }
 
 // Preserve opaque metadata numbers in frozen mutation-ledger replays.
@@ -78,10 +77,13 @@ func readLiteratureCandidate(ctx context.Context, q literatureItemQuery, owner, 
 	}
 	c.ItemID = item.String
 	c.Metadata, err = decodeLiteratureMetadataObject(raw)
+	if err == nil {
+		c.TaskOrigins, err = readLiteratureTaskOrigins(ctx, q, owner, id)
+	}
 	return c, err
 }
 
-func requireCandidateAcceptedItem(ctx context.Context, tx *sql.Tx, owner string, c LiteratureCandidate) error {
+func requireCandidateAcceptedItem(ctx context.Context, tx workspaceTransaction, owner string, c LiteratureCandidate) error {
 	if c.State != "accepted" {
 		return nil
 	}
@@ -127,7 +129,19 @@ func (s *Store) ListLiteratureCandidates(ctx context.Context, owner, state, curs
 		}
 		page.Candidates = append(page.Candidates, c)
 	}
-	return page, rows.Err()
+	if err = rows.Err(); err != nil {
+		return page, err
+	}
+	if err = rows.Close(); err != nil {
+		return page, err
+	}
+	for i := range page.Candidates {
+		page.Candidates[i].TaskOrigins, err = readLiteratureTaskOrigins(ctx, s.readDatabase(), owner, page.Candidates[i].ID)
+		if err != nil {
+			return page, err
+		}
+	}
+	return page, nil
 }
 
 func (s *Store) candidateMutation(ctx context.Context, owner, operation, action string, request any, apply func(*sql.Tx) (LiteratureCandidate, error)) (LiteratureCandidateReceipt, error) {
@@ -167,7 +181,7 @@ func candidateSourceKey(provider, external string) string {
 	}
 	return external
 }
-func recordCandidateSource(ctx context.Context, tx *sql.Tx, owner, provider, external, candidateID string) error {
+func recordCandidateSource(ctx context.Context, tx workspaceTransaction, owner, provider, external, candidateID string) error {
 	var valid bool
 	if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM literature_candidates WHERE owner_user_id=? AND id=?)", owner, candidateID).Scan(&valid); err != nil {
 		return err
@@ -189,193 +203,6 @@ func recordCandidateSource(ctx context.Context, tx *sql.Tx, owner, provider, ext
 	return nil
 }
 
-func (s *Store) StageLiteratureCandidate(ctx context.Context, owner string, input LiteratureCandidateStage) (LiteratureCandidateReceipt, error) {
-	if input.Source != nil && (!validLiteratureID(input.Source.ItemID) || input.Source.MetadataRevision < 1 || (input.Source.Direction != "references" && input.Source.Direction != "citations")) {
-		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
-	}
-	if !candidateString(input.Provider, 64) || !candidateString(input.ExternalID, 512) || strings.TrimSpace(input.Title) == "" || len(input.Title) > 4096 {
-		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
-	}
-	raw, err := literatureMetadata(input.Metadata)
-	if err != nil {
-		return LiteratureCandidateReceipt{}, err
-	}
-	meta, err := decodeLiteratureMetadataObject(raw)
-	if err != nil {
-		return LiteratureCandidateReceipt{}, err
-	}
-	ids, err := candidateIdentities(meta)
-	if err != nil {
-		return LiteratureCandidateReceipt{}, err
-	}
-	input.Metadata = meta
-	return s.candidateMutation(ctx, owner, input.OperationID, "stage", input, func(tx *sql.Tx) (LiteratureCandidate, error) {
-		if input.Source != nil {
-			var revision int64
-			var deleted sql.NullString
-			err := tx.QueryRowContext(ctx, "SELECT metadata_revision,deleted_at FROM literature_items WHERE id=? AND owner_user_id=?", input.Source.ItemID, owner).Scan(&revision, &deleted)
-			if errors.Is(err, sql.ErrNoRows) || err == nil && deleted.Valid {
-				return LiteratureCandidate{}, ErrLiteratureUnavailable
-			}
-			if err != nil {
-				return LiteratureCandidate{}, err
-			}
-			if revision != input.Source.MetadataRevision {
-				return LiteratureCandidate{}, ErrLiteratureConflict
-			}
-		}
-		var alias sql.NullString
-		if err := tx.QueryRowContext(ctx, "SELECT candidate_id FROM literature_candidate_sources WHERE owner_user_id=? AND provider=? AND external_id=?", owner, input.Provider, candidateSourceKey(input.Provider, input.ExternalID)).Scan(&alias); err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return LiteratureCandidate{}, err
-		}
-		rows, e := tx.QueryContext(ctx, `SELECT id,provider,external_id,metadata_json FROM literature_candidates WHERE owner_user_id=?`, owner)
-		if e != nil {
-			return LiteratureCandidate{}, e
-		}
-		matching := alias.String
-		for rows.Next() {
-			var id, provider, external, raw string
-			if e = rows.Scan(&id, &provider, &external, &raw); e != nil {
-				break
-			}
-			meta, ee := decodeLiteratureMetadataObject(raw)
-			if ee != nil {
-				e = ee
-				break
-			}
-			other, ee := candidateIdentities(meta)
-			if ee != nil {
-				e = ee
-				break
-			}
-			same, ee := candidateIdentityMatch(ids, other)
-			if ee != nil {
-				e = ee
-				break
-			}
-			if provider == input.Provider && (external == input.ExternalID || provider == "semantic-scholar" && strings.EqualFold(external, input.ExternalID)) {
-				if candidateIdentityConflict(ids, other) {
-					e = ErrLiteratureConflict
-					break
-				}
-				same = true
-			}
-			if same {
-				if matching != "" && matching != id {
-					e = ErrLiteratureConflict
-					break
-				}
-				matching = id
-			}
-		}
-		if e == nil {
-			e = rows.Err()
-		}
-		rows.Close()
-		if e != nil {
-			return LiteratureCandidate{}, e
-		}
-		if matching != "" {
-			existing, err := readLiteratureCandidate(ctx, tx, owner, matching)
-			if err != nil {
-				return existing, err
-			}
-			if err = requireCandidateAcceptedItem(ctx, tx, owner, existing); err != nil {
-				return existing, err
-			}
-			known, err := candidateIdentities(existing.Metadata)
-			if err != nil {
-				return existing, err
-			}
-			if candidateIdentityConflict(ids, known) {
-				return existing, ErrLiteratureConflict
-			}
-			sources, err := readCandidateSources(ctx, tx, owner, existing)
-			if err != nil {
-				return existing, err
-			}
-			sources = append(sources, literatureCandidateSource{input.Provider, input.ExternalID})
-			changed := false
-			for scheme, value := range ids {
-				if known[scheme] != "" {
-					continue
-				}
-				if prior, present := existing.Metadata[scheme]; present && prior != "" {
-					return existing, ErrLiteratureConflict
-				}
-				existing.Metadata[scheme] = value
-				changed = true
-			}
-			if changed || existing.State == "pending" {
-				merged, err := candidateIdentities(existing.Metadata)
-				if err != nil {
-					return existing, err
-				}
-				item, err := findMatchingLibraryItem(ctx, tx, owner, merged, sources...)
-				if err != nil {
-					return existing, err
-				}
-				if changed && item != "" && item != existing.ItemID {
-					return existing, ErrLiteratureConflict
-				}
-				if !changed && existing.State == "pending" && item != "" {
-					if _, err = tx.ExecContext(ctx, "UPDATE literature_candidates SET state='accepted',item_id=?,updated_at=? WHERE owner_user_id=? AND id=?", item, s.now().UTC(), owner, matching); err != nil {
-						return existing, err
-					}
-					existing.State, existing.ItemID = "accepted", item
-				}
-			}
-			if changed || existing.State != "accepted" {
-				metadataMap, metadata, err := candidateLibraryMetadata(existing.Metadata, existing.Provider, existing.ExternalID)
-				if err != nil {
-					return existing, err
-				}
-				existing.Metadata = metadataMap
-				var doi any
-				if value, ok := existing.Metadata["doi"].(string); ok && value != "" {
-					doi, _ = literaturediscovery.NormalizeDOI(value)
-				}
-				if doi == nil && known["doi"] != "" {
-					doi = known["doi"]
-				}
-				if _, err = tx.ExecContext(ctx, "UPDATE literature_candidates SET metadata_json=?,doi_key=?,updated_at=? WHERE owner_user_id=? AND id=?", metadata, doi, s.now().UTC(), owner, matching); err != nil {
-					return existing, err
-				}
-			}
-			if err = recordCandidateSource(ctx, tx, owner, input.Provider, input.ExternalID, matching); err != nil {
-				return existing, err
-			}
-			return existing, nil
-		}
-		_, raw, e := candidateLibraryMetadata(meta, input.Provider, input.ExternalID)
-		if e != nil {
-			return LiteratureCandidate{}, e
-		}
-		item, e := findMatchingLibraryItem(ctx, tx, owner, ids, literatureCandidateSource{input.Provider, input.ExternalID})
-		if e != nil {
-			return LiteratureCandidate{}, e
-		}
-		state := "pending"
-		var itemValue any
-		if item != "" {
-			state = "accepted"
-			itemValue = item
-		}
-		var doi any
-		if ids["doi"] != "" {
-			doi = ids["doi"]
-		}
-		id, now := uuid.NewString(), s.now().UTC()
-		_, e = tx.ExecContext(ctx, `INSERT INTO literature_candidates(id,owner_user_id,provider,external_id,title,metadata_json,doi_key,state,item_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`, id, owner, input.Provider, input.ExternalID, strings.TrimSpace(input.Title), raw, doi, state, itemValue, now, now)
-		if e != nil {
-			return LiteratureCandidate{}, e
-		}
-		if e = recordCandidateSource(ctx, tx, owner, input.Provider, input.ExternalID, id); e != nil {
-			return LiteratureCandidate{}, e
-		}
-		return readLiteratureCandidate(ctx, tx, owner, id)
-	})
-}
 func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action string, input LiteratureCandidateAction) (LiteratureCandidateReceipt, error) {
 	if !validLiteratureID(id) || (action != "accept" && action != "dismiss" && action != "restore") {
 		return LiteratureCandidateReceipt{}, ErrLiteratureInvalid
@@ -432,6 +259,9 @@ func (s *Store) DecideLiteratureCandidate(ctx context.Context, owner, id, action
 			return raw, err
 		}, ids, sources...)
 		if e != nil {
+			return c, e
+		}
+		if e = s.linkLiteratureTaskDestinationsTx(ctx, tx, owner, id, item); e != nil {
 			return c, e
 		}
 		_, e = tx.ExecContext(ctx, `UPDATE literature_candidates SET state='accepted',item_id=?,updated_at=? WHERE id=? AND owner_user_id=?`, item, s.now().UTC(), id, owner)

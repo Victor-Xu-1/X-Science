@@ -37,7 +37,14 @@
     "dismiss": "忽略",
     "restore": "恢复",
     "openAccepted": "在文献库中打开",
-    "updated": "收件箱已更新。"
+    "updated": "收件箱已更新。",
+    "awaitingApproval": "等待你将这篇文献加入文献库。",
+    "destinationLoading": "正在加载目标项目…",
+    "destinationUnavailable": "目标项目不可用",
+    "libraryDestination": "确认收录后加入文献库，不关联项目。",
+    "projectDestinations": "确认收录后的目标项目",
+    "restoreForApproval": "恢复这篇文献后，可重新审阅并加入文献库。",
+    "taskOrigins": "来自研究任务"
   },
   "reading": {
     "related": {

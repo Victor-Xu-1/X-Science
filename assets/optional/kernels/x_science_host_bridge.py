@@ -2613,11 +2613,32 @@ def _host_view_image(source, crop=None, *, max_size=1568, out=None):
         "saved_to": saved,
     }
 
+class _LibraryAccessor:
+    def save_to_inbox(self, references, *, operation_id):
+        """Stage 1-10 metadata references for user review, without pausing the task.
+
+        Keep operation_id and the exact references for a lost-response retry.
+        Project/task origin is server-bound; no identity overrides are accepted.
+        This does not download PDFs or mark a new reference as accepted.
+        """
+        if not isinstance(references, (list, tuple)) or not 1 <= len(references) <= 10:
+            raise ValueError("host.library.save_to_inbox requires 1-10 references")
+        if not isinstance(operation_id, str) or not operation_id:
+            raise ValueError("host.library.save_to_inbox requires an operation UUID")
+        request = {"operation_id": operation_id, "references": list(references)}
+        return _host_rpc("host.library.save_to_inbox", [request], {})
+
+    def __repr__(self):
+        return "<host.library: save_to_inbox(references, operation_id=original_uuid)>"
+
+_library_accessor = _LibraryAccessor()
+
 def _install_host_module(fresh=False):
     module = _host_types.ModuleType("host")
     module.routine = _routine_accessor
     module.compute = _compute_accessor
     module.capabilities = _host_capabilities
+    module.library = _library_accessor
     module.credentials = _credentials_accessor
     module.query = _query_accessor
     module.model_endpoints = _model_endpoints_accessor
@@ -2662,7 +2683,7 @@ def _install_host_module(fresh=False):
     module.app = _host_app
     module.view_image = _host_view_image
     module.__all__ = (
-        "routine", "compute", "capabilities", "credentials", "query", "model_endpoints", "llm", "current_model", "reasoning_model", "list_models", "delegate",
+        "routine", "compute", "capabilities", "library", "credentials", "query", "model_endpoints", "llm", "current_model", "reasoning_model", "list_models", "delegate",
         "collect", "children", "delegation_stats", "stop_child", "send_message",
         "artifacts", "artifact_path", "artifact_marker", "lineage", "frames", "archive", "findings", "mcp", "mjson", "app", "view_image",
         "exec_peek", "exec_interrupt", "get_local_compute_stats", "get_user_email", "submit_output",

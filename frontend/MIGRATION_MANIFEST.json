@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4fdee0ab637f3ef4337e57dd481cc6dd34edbdb2bb5e94b978d89e9d6390d367",
+  "adaptationFingerprintSHA256": "44cf72b99a88cd953c70e6886cb9b69b7753fc30eb1a9674c7d5149e47732e72",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "6e610a9bbe9566524b6bb0b1a035987d0592de9868c6daa50bb5964b7fb013cf",
+  "additionFingerprintSHA256": "68008c511bf129fac28385c3b0f99ab9fe34666d13b533815ec3e2fa9de5c2e9",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 266,
     "adaptedSourceFiles": 793,
     "removedSourceFiles": 295,
-    "addedFiles": 1488
+    "addedFiles": 1491
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "6dedc3e3b06a506d6d5686be861afd1a31cdd922fa8433fd79fc7c7fa0325c55",
+      "targetSHA256": "5e5bb28a2666ae2bbda9e716b0eaf4b2edeb264399ef3ed27fc42c9f8467d19f",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "371962fb8adf409a60d2ac9f404effa1ff9a7c4443a9ef2d4d58d2dd45d8ada3",
+      "targetSHA256": "5726f7c87cab9135b1f049176a7ef45c6912f17c57e110db35db7f21651d2bbd",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2868,8 +2868,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "48539370885340f483bbafeff78d707506188795d02a090370af85e169972129",
-      "bytes": 308531,
+      "targetSHA256": "87b89a892dcc266b9513eced64d6d09bae15f4e5472c33e160ada5790481fc78",
+      "bytes": 309996,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2903,8 +2903,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "48f96ba2311ee0b0050d909c08bae7104e883cecfe410320c3911a48d0158c9d",
-      "bytes": 138385,
+      "targetSHA256": "52be53fd5199c59b4c424484fbf3aadeb3137a8f092ef31e3088cbccb8b37e52",
+      "bytes": 138871,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -2994,8 +2994,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "31c1a809774f8553324f709af167c446a0a802696f3614350d11218b2e511095",
-      "bytes": 130847,
+      "targetSHA256": "f410c220e8e46cc0454ea657025a556e7947a94ab6f7e1cc4d1619973b9e7d51",
+      "bytes": 131302,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7591,7 +7591,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "b8699d9a041fe9be52319fce8a80b0f6df98749d656e9098bdcceeb047a3efc3",
+      "sha256": "b7d1a21d44d57f8ef8584179f6ad5f48429ed32356f1d3d949125b053499c48a",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7681,8 +7681,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureCandidates.ts",
-      "sha256": "17592ab191e9f8a9b6eaeec657d9d141692bd0352ee190152ce274cc7b1ca1b3",
-      "bytes": 6505,
+      "sha256": "84e1438538b4daeb46a3c15e043439a74e0eb9d6b6976d557d224ac9ca990316",
+      "bytes": 8415,
       "reason": "Define typed persistent Library Inbox staging, decisions and frozen receipts through the existing authenticated Library mutation owner; adapted with reference to Open Science 40707aa4ae9b without a competing persistence path."
     },
     {
@@ -10056,6 +10056,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/library/LibraryCandidateOrigin.tsx",
+      "sha256": "b0ceef5c0c5a90f3f17c7ef6c8868842310efba680991b9f5021b18553924f6a",
+      "bytes": 2404,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/library/LibraryCollectionEditor.tsx",
       "sha256": "e818ea9d9aa1525314827dbd6c59fea6380c7232d4c1c49dd82d4971a7118f04",
       "bytes": 15775,
@@ -10105,8 +10111,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryInbox.tsx",
-      "sha256": "e6decc092c67eb319cefa9886ea2a638b149cc38ee1e4bd30ed6129ebf12afbb",
-      "bytes": 10872,
+      "sha256": "5989d501febba9136cd13897e249c1bda2f31170c3bdcbf46c63632fe5be190e",
+      "bytes": 12210,
       "reason": "Adapt the real Open Science b664635320b5 Inbox bibliography, actions and view states to the existing account-scoped Library mutation owner; preserve original operation recovery rather than introduce another persistence path."
     },
     {
@@ -10141,8 +10147,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryPage.tsx",
-      "sha256": "7ff705d713bd9937029315bc7a3b1b38c6ef4808d98dc2ff9037610dae7130c5",
-      "bytes": 44920,
+      "sha256": "34d9ad6994ef8a430b5326a9395e048d079ac16387fdbd2847533f840a85c339",
+      "bytes": 44958,
       "reason": "Connect the Library workbench list, search, detail and receipt readback to the existing authenticated route, catalogue and mutation controller; no competing import, task or persistence path is created."
     },
     {
@@ -10297,8 +10303,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryInbox.css",
-      "sha256": "feab62270445cb946c68f2b8347df019e1cf70f8aa245a406e9f3b610e5c78b8",
-      "bytes": 3784,
+      "sha256": "60a87adb99bd00fe6b6de804004f1e06f8763a88a4bd7764d35f59f3262a3ffb",
+      "bytes": 4293,
       "reason": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance."
     },
     {
@@ -14521,8 +14527,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryCollectionMembershipSearch.dom.test.tsx",
-      "sha256": "a4a2c4bb3978a5f12d045011ad2936169d1d9a1bd8ee6629ecd0eb25084d6f8f",
-      "bytes": 10378,
+      "sha256": "48327015c47f7d40e221514b6b8a18d850868c5da7362db0040a03826c9109ad",
+      "bytes": 10408,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14559,6 +14565,12 @@
       "path": "tests/unit/renderer/library/LibraryInbox.dom.test.tsx",
       "sha256": "ce414d1f93fb63658fd22d1c88b7cd054e4050ebe05f70a5a095aa045c240364",
       "bytes": 18422,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryInboxTaskOrigin.dom.test.tsx",
+      "sha256": "d9aa29731f2fd0dd471d6b5ee3d56603fe55ccf1a1650a910a50be505027d133",
+      "bytes": 14372,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
@@ -14805,6 +14817,12 @@
       "path": "tests/unit/renderer/library/libraryAttachmentTarget.test.ts",
       "sha256": "efe64c391ab9c0276e1b285e903357e9219db9454c328b580079859ddc09e357",
       "bytes": 2480,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/libraryCandidateTaskOrigin.test.ts",
+      "sha256": "e1cece087bdc60ddc4011ea7ee01b2af39e0adbe5bc2f5bec8c840c8785c8dfd",
+      "bytes": 3761,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

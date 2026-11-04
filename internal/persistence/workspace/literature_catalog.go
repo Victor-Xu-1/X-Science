@@ -179,19 +179,7 @@ func (s *Store) SetLiteratureProject(ctx context.Context, owner, id, project, op
 		if err != nil || found {
 			return err
 		}
-		var valid bool
-		if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM projects p,literature_items i WHERE p.id=? AND p.user_id=? AND i.id=? AND i.owner_user_id=? AND i.deleted_at IS NULL)`, project, owner, id, owner).Scan(&valid); err != nil {
-			return err
-		}
-		if !valid {
-			return ErrLiteratureUnavailable
-		}
-		if included {
-			_, err = tx.ExecContext(ctx, `INSERT INTO project_literature(project_id,item_id,added_at) VALUES(?,?,?) ON CONFLICT(project_id,item_id) DO NOTHING`, project, id, s.now().UTC())
-		} else {
-			_, err = tx.ExecContext(ctx, `DELETE FROM project_literature WHERE project_id=? AND item_id=?`, project, id)
-		}
-		if err != nil {
+		if err = s.setLiteratureProjectTx(ctx, tx, owner, id, project, included); err != nil {
 			return err
 		}
 		item, err := readLiteratureItem(ctx, tx, owner, id)
@@ -205,4 +193,22 @@ func (s *Store) SetLiteratureProject(ctx context.Context, owner, id, project, op
 		return receipt, err
 	}
 	return receipt, nil
+}
+
+// Shared membership write, retaining the original owner/active-item checks.
+func (s *Store) setLiteratureProjectTx(ctx context.Context, tx workspaceTransaction, owner, id, project string, included bool) error {
+	var valid bool
+	if err := tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM projects p,literature_items i WHERE p.id=? AND p.user_id=? AND i.id=? AND i.owner_user_id=? AND i.deleted_at IS NULL)`, project, owner, id, owner).Scan(&valid); err != nil {
+		return err
+	}
+	if !valid {
+		return ErrLiteratureUnavailable
+	}
+	var err error
+	if included {
+		_, err = tx.ExecContext(ctx, `INSERT INTO project_literature(project_id,item_id,added_at) VALUES(?,?,?) ON CONFLICT(project_id,item_id) DO NOTHING`, project, id, s.now().UTC())
+	} else {
+		_, err = tx.ExecContext(ctx, `DELETE FROM project_literature WHERE project_id=? AND item_id=?`, project, id)
+	}
+	return err
 }

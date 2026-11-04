@@ -88,6 +88,11 @@ func TestHistoricalStudyFixtureRestoresOnlyEmptyReviewedPredecessor(t *testing.T
 			}
 			defer tx.Rollback()
 			requireReviewedHistoricalFixtureMigrations(t, tx)
+			if !populated {
+				if err := restoreEmptyHistoricalTaskOriginPredecessor(t.Context(), tx); err != nil {
+					t.Fatal(err)
+				}
+			}
 			err = restoreEmptyHistoricalStudyPredecessor(t.Context(), tx)
 			if populated {
 				if err == nil || !strings.Contains(err.Error(), "empty private table") {
@@ -102,7 +107,7 @@ func TestHistoricalStudyFixtureRestoresOnlyEmptyReviewedPredecessor(t *testing.T
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version=91`); err != nil {
+			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version IN (91,92)`); err != nil {
 				t.Fatal(err)
 			}
 			if err := tx.Commit(); err != nil {

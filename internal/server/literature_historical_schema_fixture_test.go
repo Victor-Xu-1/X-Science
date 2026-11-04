@@ -21,7 +21,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 		(SELECT COUNT(*) FROM literature_items)+(SELECT COUNT(*) FROM memory_extraction_receipts)+
 		(SELECT COUNT(*) FROM literature_collections)+(SELECT COUNT(*) FROM literature_collection_items)+
 		(SELECT COUNT(*) FROM literature_publication_checks)+(SELECT COUNT(*) FROM literature_candidates)+
-		(SELECT COUNT(*) FROM literature_candidate_sources)`).Scan(&facts); err != nil || facts != 0 {
+		(SELECT COUNT(*) FROM literature_candidate_sources)+(SELECT COUNT(*) FROM literature_candidate_task_origins)`).Scan(&facts); err != nil || facts != 0 {
 		t.Fatalf("historical reconstruction requires empty private Memory/Library tables: facts=%d err=%v", facts, err)
 	}
 	var cadenceFacts int
@@ -33,6 +33,9 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 		t.Fatal(err)
 	}
 	if err := restoreEmptyHistoricalStudyPredecessor(t.Context(), tx); err != nil {
+		t.Fatal(err)
+	}
+	if err := restoreEmptyHistoricalTaskOriginPredecessor(t.Context(), tx); err != nil {
 		t.Fatal(err)
 	}
 	dropEmptyReviewedResourceTagFixtureObjects(t, tx)
@@ -60,7 +63,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 91
+	const reviewedTarget = 92
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -78,6 +81,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// deletion trigger. Only these empty private fixture objects are removed.
 	// Reviewed91 adds the empty Study child. It must be removed before its
 	// Library parent or before replaying the original v91 forward migration.
+	// Reviewed92 adds only the empty candidate task-origin child, which is
+	// removed before the candidate parent. Populated origins remain protected.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -87,9 +92,13 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "literature-study-snapshots" ||
-		current.Checksum != "7528d949f8fb27e35c9b28eb128e72ff4a847e360f5d04b7a30ae4560f07c6f8" {
-		t.Fatalf("historical reconstruction requires the reviewed study91 identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "literature-candidate-task-origins" ||
+		current.Checksum != "a9cc995096abb9d66b6c8fefa06a7dfda2b1655b7cd1bccc1be5641051169cc9" {
+		t.Fatalf("historical reconstruction requires the reviewed task-origin92 identity: %+v", current)
+	}
+	original91 := expected.Migrations[90]
+	if original91.Version != 91 || original91.Name != "literature-study-snapshots" || original91.Checksum != "7528d949f8fb27e35c9b28eb128e72ff4a847e360f5d04b7a30ae4560f07c6f8" {
+		t.Fatalf("historical reconstruction requires the original study91 identity: %+v", original91)
 	}
 	original90 := expected.Migrations[89]
 	if original90.Version != 90 || original90.Name != "resource-tags" ||
@@ -286,6 +295,9 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 				t.Fatal(err)
 			}
 			dropEmptyReviewedResourceTagFixtureObjects(t, tx)
+			if err := restoreEmptyHistoricalTaskOriginPredecessor(t.Context(), tx); err != nil {
+				t.Fatal(err)
+			}
 			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version>=89`); err != nil {
 				t.Fatal(err)
 			}

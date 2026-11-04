@@ -667,6 +667,11 @@ func TestCompatibilityApprovePlanPreservesCanonicalTaskIntent(t *testing.T) {
 	}
 	if _, err := store.SetFrameRuntimeMetadata("frame", workspace.FrameRuntimeMetadata{ContextData: map[string]any{
 		"_plan_artifact_id": "plan-artifact", "_plan_version_id": version.ID, "_plan_json": basePlan,
+		// Match the binding persisted by BindGeneratedPlanApprovalTransaction.
+		// An unbound plan must not borrow this task's progress-tool authority.
+		"_plan_task_intent_id":       intentBeforePause.ID,
+		"_plan_task_intent_revision": intentBeforePause.Revision,
+		"_plan_task_intent_sha256":   generatedPlanTaskIntentSHA(intentBeforePause.Text),
 	}}); err != nil {
 		t.Fatal(err)
 	}
@@ -684,6 +689,14 @@ func TestCompatibilityApprovePlanPreservesCanonicalTaskIntent(t *testing.T) {
 		messages, _ := json.Marshal(payload["messages"])
 		if !strings.Contains(string(messages), "Build the CRBN analysis") || !strings.Contains(string(messages), "approved the proposed plan") {
 			t.Fatalf("messages=%s", messages)
+		}
+		var advertised []string
+		for _, rawTool := range anySliceValue(payload["tools"]) {
+			advertised = append(advertised, stringValue(mapValue(mapValue(rawTool)["function"])["name"]))
+		}
+		t.Logf("approved plan provider tool schemas: %v", advertised)
+		if !containsAgentToolName(advertised, updateStepStatusToolName) {
+			t.Errorf("approved plan provider did not advertise %s: %v", updateStepStatusToolName, advertised)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		callNumber := providerCalls.Load()
@@ -739,6 +752,11 @@ func TestCompatibilityApprovePlanPreservesCanonicalTaskIntent(t *testing.T) {
 	approvedMetadata, found, err := store.GetFrameRuntimeMetadata("frame")
 	if err != nil || !found || stringValue(approvedMetadata.ContextData["_plan_version_id"]) == version.ID {
 		t.Fatalf("approved metadata=%#v found=%t err=%v", approvedMetadata, found, err)
+	}
+	if approvedMetadata.ContextData["_plan_task_intent_id"] != intentBeforePause.ID ||
+		numberValue(approvedMetadata.ContextData["_plan_task_intent_revision"]) != intentBeforePause.Revision ||
+		approvedMetadata.ContextData["_plan_task_intent_sha256"] != generatedPlanTaskIntentSHA(intentBeforePause.Text) {
+		t.Fatalf("approval changed the original plan task binding: %#v", approvedMetadata.ContextData)
 	}
 	_, planHistory, found, err := store.ListArtifactVersionHistory("plan-artifact")
 	if err != nil || !found || len(planHistory) != 2 {

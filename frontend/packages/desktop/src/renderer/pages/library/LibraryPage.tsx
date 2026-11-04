@@ -606,6 +606,7 @@ export default function LibraryPage() {
           <LibraryInbox
             key={reads.account}
             account={reads.account}
+            projects={reads.projects}
             busy={busy}
             receipt={
               mutation.view.receipt?.schema === 'x-science.literature-candidate-receipt.v1'

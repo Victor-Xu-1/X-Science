@@ -47,7 +47,7 @@ func (g serverAgentRuntimeToolGateway) correctionRoutePreflight(ctx context.Cont
 			continue
 		}
 		input := map[string]any{}
-		if len(call.Arguments) > 0 && json.Unmarshal(call.Arguments, &input) != nil {
+		if len(call.Arguments) > 0 && decodeAgentRuntimeToolArguments(name, call.Arguments, &input) != nil {
 			continue
 		}
 		normalized := g.normalizeAdmittedToolArguments(name, input)

@@ -66,6 +66,7 @@ var kernelHostMethods = []string{
 	"host.archive.search",
 	"host.archive.page",
 	"host.capabilities",
+	"host.library.save_to_inbox",
 	"host.credentials.list",
 	"host.credentials.get",
 	"host.credentials.request",
@@ -150,15 +151,17 @@ func (s *Server) agentKernelHostCallPolicy(
 	if sessionReviewerEvidenceScopeFromContext(ctx) != nil {
 		allowedMethods = []string{"host.archive.search", "host.archive.page", "host.artifact_path"}
 	}
-	if fresh {
-		filtered := allowedMethods[:0]
-		for _, method := range allowedMethods {
-			if method != "host.delegate" {
-				filtered = append(filtered, method)
-			}
+	filtered := allowedMethods[:0]
+	for _, method := range allowedMethods {
+		if fresh && method == "host.delegate" {
+			continue
 		}
-		allowedMethods = filtered
+		if method == "host.library.save_to_inbox" && (fresh || !agentKernelToolAllowed(librarySaveToInboxToolName, bound.allowedTools)) {
+			continue
+		}
+		filtered = append(filtered, method)
 	}
+	allowedMethods = filtered
 	return &kernelruntime.HostCallPolicy{
 		Handler:        handler,
 		AllowedMethods: allowedMethods,
@@ -205,7 +208,7 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 		if bound.specialistSource != nil {
 			ctx = context.WithValue(ctx, specialistExecutionSourceContextKey{}, *bound.specialistSource)
 		}
-		args, kwargs, err := normalizeKernelHostArguments(call.Args, call.Kwargs)
+		args, kwargs, err := normalizeKernelHostArgumentsForMethod(call.Method, call.Args, call.Kwargs)
 		if err != nil {
 			return nil, kernelruntime.NewHostCallError("invalid_arguments", err.Error())
 		}
@@ -215,6 +218,9 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 		}
 		if isKernelLLMHostMethod(call.Method) {
 			return s.handleKernelLLMHostCall(ctx, bound, current, call.Method, args, kwargs)
+		}
+		if call.Method == "host.library.save_to_inbox" {
+			return s.handleKernelLibraryInbox(ctx, bound, current, args, kwargs)
 		}
 		if isKernelSupervisionHostMethod(call.Method) {
 			return s.handleKernelSupervisionHostCall(ctx, bound, current, call.Method, args, kwargs, call.ID, messageBudgets)
@@ -241,7 +247,7 @@ func (s *Server) handleKernelHostCall(bound kernelHostExecutionIdentity, message
 			return s.handleKernelComputeHostCall(ctx, current, bound.workspaceDir, call.ID, call.Method, args, kwargs)
 		}
 		if isKernelMiscHostMethod(call.Method) {
-			return s.handleKernelMiscHostCall(ctx, current, call.Method, args, kwargs)
+			return s.handleKernelMiscHostCall(ctx, current, call.Method, args, kwargs, bound)
 		}
 		if isKernelAppHostMethod(call.Method) {
 			return s.handleKernelAppHostCall(ctx, bound, current, call.Method, args, kwargs, call.ID)
@@ -409,10 +415,17 @@ const (
 	maxKernelHostJSONCollection  = 1024
 )
 
-type kernelHostJSONBudget struct{ nodes int }
+type kernelHostJSONBudget struct {
+	nodes           int
+	preserveNumbers bool
+}
 
 func normalizeKernelHostArguments(args []any, kwargs map[string]any) ([]any, map[string]any, error) {
-	budget := &kernelHostJSONBudget{}
+	return normalizeKernelHostArgumentsForMethod("", args, kwargs)
+}
+
+func normalizeKernelHostArgumentsForMethod(method string, args []any, kwargs map[string]any) ([]any, map[string]any, error) {
+	budget := &kernelHostJSONBudget{preserveNumbers: toolArgumentsPreserveJSONNumbers(method)}
 	normalizedArgs := make([]any, len(args))
 	for index, value := range args {
 		normalized, err := normalizeKernelHostValue(value, 0, budget)
@@ -442,6 +455,12 @@ func normalizeKernelHostValue(value any, depth int, budget *kernelHostJSONBudget
 	}
 	switch typed := value.(type) {
 	case json.Number:
+		if budget.preserveNumbers {
+			if _, err := json.Marshal(typed); err != nil || typed == "" {
+				return nil, errors.New("numeric value is not valid JSON")
+			}
+			return typed, nil
+		}
 		if integer, err := strconv.ParseInt(typed.String(), 10, 64); err == nil {
 			if integer > math.MaxInt || integer < math.MinInt {
 				return nil, errors.New("integer is outside the platform range")

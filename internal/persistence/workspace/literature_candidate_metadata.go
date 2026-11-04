@@ -2,7 +2,6 @@ package workspace
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 )
 
@@ -14,7 +13,7 @@ type literatureCandidateSource struct {
 // The canonical source is retained for candidates created before aliases were
 // recorded. Every persisted alias is read inside the same owner-scoped write
 // transaction used for the identity decision and its frozen mutation receipt.
-func readCandidateSources(ctx context.Context, tx *sql.Tx, owner string, candidate LiteratureCandidate) ([]literatureCandidateSource, error) {
+func readCandidateSources(ctx context.Context, tx workspaceTransaction, owner string, candidate LiteratureCandidate) ([]literatureCandidateSource, error) {
 	sources := []literatureCandidateSource{{candidate.Provider, candidate.ExternalID}}
 	rows, err := tx.QueryContext(ctx, `SELECT provider,external_id FROM literature_candidate_sources WHERE owner_user_id=? AND candidate_id=?`, owner, candidate.ID)
 	if err != nil {
