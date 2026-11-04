@@ -415,6 +415,9 @@ func runSessionRunnerCommand(ctx context.Context, options SessionRunnerCommandOp
 	stderr := newBoundedCommandBuffer(options.OutputLimitBytes)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	if cause := context.Cause(runCtx); cause != nil {
+		return sessionRunnerCommandOutput{}, cause
+	}
 	process, err := startRunnerProcess(cmd)
 	if err != nil {
 		return sessionRunnerCommandOutput{}, fmt.Errorf("start runner command: %w", err)
