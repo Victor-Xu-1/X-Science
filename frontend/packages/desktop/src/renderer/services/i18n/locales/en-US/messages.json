@@ -1,4 +1,9 @@
 {
+  "largeJsonSource": {
+    "title": "Unverified JSON source",
+    "copy": "Copy JSON source",
+    "description": "Source from the assistant message; not verified host evidence."
+  },
   "completionAdvisories": {
     "summary": "Verification notes · {{count}}",
     "findings": "Recorded findings · {{count}}",

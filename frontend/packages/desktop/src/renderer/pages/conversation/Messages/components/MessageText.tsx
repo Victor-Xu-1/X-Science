@@ -21,6 +21,7 @@ import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
+import { parseLargeJsonSources } from '@renderer/components/Markdown/largeJsonSourcePresentation';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 import { useXScienceArtifactResolver } from '../useXScienceArtifactLinkPreview';
@@ -105,6 +106,9 @@ const completionAdvisorySourceKey = (stage: string) => {
 };
 
 const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true }) => {
+  const foldJsonSources =
+    message.position !== 'right' &&
+    (message.status === 'finish' || message.status === 'error' || Boolean(message.terminal_status));
   const completionAdvisories = useMemo(
     () =>
       message.position !== 'right' && message.terminal_status === 'completed' && !message.terminal_superseded
@@ -148,9 +152,14 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
     [message.position, text]
   );
   const { data, json } = useFormatContent(deliveryView.body);
+  const jsonSourcePresentation = useMemo(
+    () => (foldJsonSources ? parseLargeJsonSources(deliveryView.body) : undefined),
+    [deliveryView.body, foldJsonSources]
+  );
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  const rawJsonSource = jsonSourcePresentation?.whole === true;
   const roundSummary =
     !isUserMessage && message.terminal_status === 'completed' && !message.terminal_superseded
       ? decodeRoundSummary(message.round_summary)
@@ -189,7 +198,11 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
 
   const handleCopy = () => {
     const baseText =
-      shouldRenderPlainText || deliveryView.appendix ? text : json ? JSON.stringify(data, null, 2) : text;
+      shouldRenderPlainText || deliveryView.appendix || rawJsonSource
+        ? text
+        : json
+          ? JSON.stringify(data, null, 2)
+          : text;
     const fileList = files.length
       ? `Files:\n${files.map((path) => `- ${isHostGrantFileReference(path) ? (decodeHostGrantFileReference(path)?.name ?? t('conversation.hostFiles.invalidReference')) : path}`).join('\n')}\n\n`
       : '';
@@ -294,7 +307,7 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
             <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
               {text}
             </div>
-          ) : json ? (
+          ) : json && !rawJsonSource ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <div data-testid='message-text-content'>
                 <MarkdownView
@@ -309,13 +322,15 @@ const MessageText = React.memo<MessageTextProps>(({ message, showCopyRow = true 
           ) : (
             <div data-testid='message-text-content'>
               <MarkdownView
+                collapseLargeJsonSources={foldJsonSources}
+                jsonSourcePresentation={jsonSourcePresentation}
                 codeStyle={CODE_STYLE}
                 onLink={xScienceArtifactResolver.handleLink}
                 resolveLinkHref={isXScienceWorkspace ? xScienceArtifactResolver.resolveLinkHref : undefined}
                 resolveImageSrc={isXScienceWorkspace ? xScienceArtifactResolver.resolveImage : undefined}
                 onLocalFileLink={handleLocalFileLink}
               >
-                {data}
+                {rawJsonSource ? deliveryView.body : data}
               </MarkdownView>
             </div>
           )}

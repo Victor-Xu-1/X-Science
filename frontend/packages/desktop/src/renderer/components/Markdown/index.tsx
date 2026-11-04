@@ -32,6 +32,8 @@ import ShadowView from './ShadowView';
 import { isSafeInlineMarkdownImageUrl } from './markdownImageUrlPolicy';
 import { resolveLocalFileLinkPath, resolveLocalFileLinkReference } from './markdownUtils';
 import type { LocalFileLinkReference } from './markdownUtils';
+import LargeJsonSource from './LargeJsonSource';
+import { prepareLargeJsonSources, remarkLargeJsonSources, type ParsedJsonSources } from './largeJsonSourcePresentation';
 
 const REMARK_PLUGINS = [remarkGfm, remarkMath, remarkBreaks];
 
@@ -53,6 +55,8 @@ type MarkdownViewProps = {
   resolveImageSrc?: (src: string) => Promise<string | null>;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
+  collapseLargeJsonSources?: boolean;
+  jsonSourcePresentation?: ParsedJsonSources;
 };
 
 const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
@@ -66,6 +70,8 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
     resolveLinkHref,
     resolveImageSrc,
     allowHtml,
+    collapseLargeJsonSources = false,
+    jsonSourcePresentation,
     children: childrenProp,
   }) => {
     const { t } = useTranslation();
@@ -89,14 +95,31 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
       []
     );
 
-    const normalizedChildren = useMemo(() => {
-      if (typeof childrenProp === 'string') {
-        let text = childrenProp.replace(/file:\/\//g, '');
-        text = convertLatexDelimiters(text);
-        return text;
-      }
-      return childrenProp;
-    }, [childrenProp]);
+    const presentation = useMemo(() => {
+      const normalize = (text: string) => convertLatexDelimiters(text.replace(/file:\/\//g, ''));
+      return collapseLargeJsonSources && !allowHtml
+        ? prepareLargeJsonSources(
+            jsonSourcePresentation?.source === childrenProp ? jsonSourcePresentation : childrenProp,
+            normalize
+          )
+        : { content: normalize(childrenProp), ranges: [] };
+    }, [childrenProp, collapseLargeJsonSources, allowHtml, jsonSourcePresentation]);
+    const jsonSources = useRef(presentation.ranges);
+    jsonSources.current = presentation.ranges;
+    const remarkPlugins = useMemo(
+      () =>
+        presentation.ranges.length
+          ? [
+              ...REMARK_PLUGINS,
+              [remarkLargeJsonSources, presentation.content, presentation.ranges] as [
+                typeof remarkLargeJsonSources,
+                string,
+                typeof presentation.ranges,
+              ],
+            ]
+          : REMARK_PLUGINS,
+      [presentation]
+    );
 
     const handleLinkClick = useCallback(async (event: React.MouseEvent<HTMLAnchorElement>) => {
       event.preventDefault();
@@ -122,6 +145,11 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
     // unmounts/remounts all custom components → hooks & DOM state are lost.
     const components = useMemo(
       () => ({
+        'x-science-json-source': (props: Record<string, unknown>) => {
+          const index = Number(props['data-json-source-id']);
+          const source = Number.isSafeInteger(index) ? jsonSources.current[index] : undefined;
+          return source ? <LargeJsonSource raw={source.raw} /> : <>{props.children as React.ReactNode}</>;
+        },
         span: ({ node: _node, className: cn, children: ch, ...rest }: Record<string, unknown>) => (
           <span {...(rest as React.HTMLAttributes<HTMLSpanElement>)} className={cn as string}>
             {ch as React.ReactNode}
@@ -222,7 +250,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
         <ShadowView>
           <div ref={onRef} className='markdown-shadow-body'>
             <ReactMarkdown
-              remarkPlugins={REMARK_PLUGINS}
+              remarkPlugins={remarkPlugins}
               rehypePlugins={rehypePlugins}
               components={components}
               urlTransform={(url) =>
@@ -233,7 +261,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
                   : defaultUrlTransform(url)
               }
             >
-              {normalizedChildren}
+              {presentation.content}
             </ReactMarkdown>
           </div>
         </ShadowView>

@@ -15,6 +15,17 @@ const references: ArtifactReferenceWire[] = [
 ];
 
 describe('presentArtifactReferenceContent', () => {
+  it('preserves CRLF source bytes when artifact filtering and heading cleanup delete no lines', () => {
+    const content =
+      '# Business result\r\n\r\n{\r\n  "same":9007199254740993,\r\n  "same":-0, "escape":"\\u0061"\r\n}\r\n\r\nKeep this paragraph.';
+    expect(presentArtifactReferenceContent(content, [], index, true)).toBe(content);
+    const duplicates =
+      '### Files\r\n- [report]({{artifact:version-1}})\r\n\r\n### Duplicate\r\n- [report]({{artifact:version-1}})';
+    expect(presentArtifactReferenceContent(duplicates, references, index, true)).toBe(
+      '### Files\n- [report]({{artifact:version-1}})'
+    );
+  });
+
   it('removes bare internal artifact tokens from settled user-visible prose', () => {
     expect(presentArtifactReferenceContent('结果已保存。 {{artifact:version-1}}', references, index, true)).toBe(
       '结果已保存。'

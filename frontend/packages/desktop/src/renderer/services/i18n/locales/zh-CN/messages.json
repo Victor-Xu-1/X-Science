@@ -1,4 +1,9 @@
 {
+  "largeJsonSource": {
+    "title": "未验证的 JSON 原文",
+    "copy": "复制 JSON 原文",
+    "description": "来自助手消息的原文，不代表经过验证的主机证据。"
+  },
   "completionAdvisories": {
     "summary": "验证提示 · {{count}}",
     "findings": "记录的检查结果 · {{count}}",
