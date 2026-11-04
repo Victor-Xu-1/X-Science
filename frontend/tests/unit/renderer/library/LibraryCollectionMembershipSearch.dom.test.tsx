@@ -100,10 +100,9 @@ describe('Collection membership local name search through existing owners', () =
     fireEvent.change(search, { target: { value: 'alpha' } });
     expect(http.requests).toHaveLength(requestCount);
     fireEvent.click(membership().getByRole('checkbox', { name: 'Parent / Alpha child' }));
-    await waitFor(
-      () => expect(membership().getByRole('checkbox', { name: 'Parent / Alpha child' })).toBeChecked(),
-      { timeout: 5000 }
-    );
+    await waitFor(() => expect(membership().getByRole('checkbox', { name: 'Parent / Alpha child' })).toBeChecked(), {
+      timeout: 5000,
+    });
     expect(writes).toHaveLength(1);
     expect(writes[0]).toMatchObject({ path: '/api/literature/collections/target/items/a', body: { included: true } });
     expect(typeof writes[0].body.operation_id).toBe('string');
