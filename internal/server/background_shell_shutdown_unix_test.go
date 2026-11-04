@@ -185,8 +185,9 @@ func TestBackgroundShellLateRegistrationStopsAndSettles(t *testing.T) {
 		srv.backgroundShellWG.Done()
 		t.Fatal(err)
 	}
-	srv.storeBackgroundShell(task.ID, running)
-	go srv.finishBackgroundShell(task.ID, filepath.Join(root, "late.log"), running)
+	entry := srv.reserveBackgroundShell(task.ID, nil)
+	srv.attachBackgroundShell(task.ID, entry, running)
+	go srv.finishBackgroundShell(task.ID, filepath.Join(root, "late.log"), entry)
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()

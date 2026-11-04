@@ -66,14 +66,15 @@ type SafetyError struct {
 	Message string
 }
 type RunningCommand struct {
-	cmd     *exec.Cmd
-	process *sandboxProcess
-	stdout  *boundedOutput
-	stderr  *boundedOutput
-	command string
-	args    []string
-	workdir string
-	sandbox SandboxEvidence
+	cmd             *exec.Cmd
+	process         *sandboxProcess
+	stdout          *boundedOutput
+	stderr          *boundedOutput
+	command         string
+	args            []string
+	workdir         string
+	sandbox         SandboxEvidence
+	exitUnconfirmed error
 }
 
 func (r *RunningCommand) Kill() error {
@@ -84,21 +85,40 @@ func (r *RunningCommand) Kill() error {
 }
 
 func (r *RunningCommand) Wait() (Result, error) {
+	result, executionErr, cleanupErr := r.WaitForSettlement()
+	return result, errors.Join(executionErr, cleanupErr)
+}
+
+// WaitForSettlement reaps the command once and distinguishes its exit from
+// failed native cleanup, which still belongs to this exact command.
+func (r *RunningCommand) WaitForSettlement() (Result, error, error) {
 	if r == nil || r.cmd == nil {
-		return Result{}, errors.New("running shell command is not started")
+		return Result{}, errors.New("running shell command is not started"), nil
 	}
 	err := r.cmd.Wait()
+	var cleanupErr error
 	if r.process != nil {
-		r.process.close()
+		cleanupErr = r.process.close()
 	}
 	result := Result{Command: r.command, Args: append([]string(nil), r.args...), Workdir: r.workdir, Stdout: r.stdout.String(), Stderr: r.stderr.String(), StdoutBytes: r.stdout.Total(), StderrBytes: r.stderr.Total(), StdoutTruncated: r.stdout.Truncated(), StderrTruncated: r.stderr.Truncated(), Sandbox: r.sandbox, ExitCode: 0}
 	if r.cmd.ProcessState != nil {
 		result.ExitCode = r.cmd.ProcessState.ExitCode()
+	} else {
+		r.exitUnconfirmed = errors.New("shell process exit is unconfirmed")
+		cleanupErr = errors.Join(cleanupErr, r.exitUnconfirmed)
 	}
 	if err != nil {
-		return result, fmt.Errorf("shell command failed with exit code %d", result.ExitCode)
+		return result, fmt.Errorf("shell command failed with exit code %d", result.ExitCode), cleanupErr
 	}
-	return result, nil
+	return result, nil, cleanupErr
+}
+
+// RetryCleanup is used only after failed native startup cleanup or Wait.
+func (r *RunningCommand) RetryCleanup() error {
+	if r == nil || r.process == nil {
+		return nil
+	}
+	return errors.Join(r.process.close(), r.exitUnconfirmed)
 }
 
 func (e SafetyError) Error() string {
@@ -239,11 +259,11 @@ func StartShellCommandWithEnv(ctx context.Context, root string, shellName string
 	cmd.Env = commandEnv
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	process, err := startSandboxProcess(cmd)
-	if err != nil {
+	process, err := startReservedSandboxProcess(cmd)
+	if process == nil {
 		return nil, err
 	}
-	return &RunningCommand{cmd: cmd, process: process, stdout: &stdout, stderr: &stderr, command: executable, args: append([]string(nil), args...), workdir: filepath.ToSlash(relWorkdir), sandbox: sandbox}, nil
+	return &RunningCommand{cmd: cmd, process: process, stdout: &stdout, stderr: &stderr, command: executable, args: append([]string(nil), args...), workdir: filepath.ToSlash(relWorkdir), sandbox: sandbox}, err
 }
 
 func shellExecutor(shellName string, command string) (string, []string, error) {

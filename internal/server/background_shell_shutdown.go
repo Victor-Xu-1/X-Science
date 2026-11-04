@@ -3,9 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"os"
-
-	"x-science/internal/tools/shellops"
 )
 
 // Admission and shutdown share one lock, so Wait cannot race a new zero-to-one
@@ -38,21 +35,19 @@ func (s *Server) stopAllBackgroundShells(ctx context.Context) error {
 		}()
 	}
 	done := s.backgroundShellDone
-	running := make([]*shellops.RunningCommand, 0, len(s.backgroundShells))
-	for _, command := range s.backgroundShells {
-		if command != nil {
-			running = append(running, command.RunningCommand)
+	taskIDs := make([]string, 0, len(s.backgroundShells))
+	for id, entry := range s.backgroundShells {
+		if !entry.settling && entry.stopBy == "" {
+			entry.stopBy = "server_shutdown"
 		}
+		taskIDs = append(taskIDs, id)
 	}
 	s.backgroundShellMu.Unlock()
 
 	var closeErr error
-	for _, command := range running {
-		if command != nil {
-			if err := command.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
-				closeErr = errors.Join(closeErr, err)
-			}
-		}
+	for _, id := range taskIDs {
+		_, err := s.requestBackgroundShellStop(id, backgroundShellStopRequest{by: "server_shutdown", trusted: true})
+		closeErr = errors.Join(closeErr, err)
 	}
 	select {
 	case <-ctx.Done():
