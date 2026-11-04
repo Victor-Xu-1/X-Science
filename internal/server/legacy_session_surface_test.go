@@ -60,6 +60,11 @@ func newLegacySurfaceFixture(t *testing.T, authenticationEnabled bool) legacySur
 		}
 	}
 	app := New(options)
+	t.Cleanup(func() {
+		if err := app.Close(context.Background()); err != nil {
+			t.Errorf("close test server: %v", err)
+		}
+	})
 	now := time.Now().UTC()
 	if err := app.sessionStore.Upsert(sessionstore.Session{
 		ID: legacySurfaceSessionID, Title: "Legacy session", LastRole: "user", MessageCount: 1,
@@ -419,4 +424,27 @@ func TestLegacySessionSurfacesRemainAvailableForUnauthenticatedLoopback(t *testi
 		t.Fatalf("loopback websocket err=%v status=%d", err, status)
 	}
 	_ = conn.Close(websocket.StatusNormalClosure, "test complete")
+}
+
+func TestLegacySessionSurfaceAuthenticationModes(t *testing.T) {
+	tests := []struct {
+		name    string
+		webAuth WebAuthOptions
+		link    XScienceLinkAuthOptions
+		allowed bool
+	}{
+		{name: "local compatibility", allowed: true},
+		{name: "native login", link: XScienceLinkAuthOptions{Username: "operator", Password: "test-secret-password"}},
+		{name: "external login", webAuth: WebAuthOptions{Google: WebOIDCProviderOptions{ClientID: "synthetic-client"}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			app := New(Options{FileRoot: t.TempDir(), WebAuth: test.webAuth, XScienceLinkAuth: test.link})
+			t.Cleanup(func() { _ = app.Close(context.Background()) })
+			request := newLoopbackTestRequest(http.MethodGet, "/", nil)
+			if got := app.allowLegacySessionSurface(request); got != test.allowed {
+				t.Fatalf("compatibility admission=%t want=%t", got, test.allowed)
+			}
+		})
+	}
 }
