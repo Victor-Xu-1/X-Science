@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	eventjournal "x-science/internal/persistence/journal"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
@@ -91,4 +92,43 @@ func TestPayloadRecoveryProjectionKeepsPagedPayloadAndAuthorityFences(t *testing
 			t.Fatalf("fresh read reused an old/cancelled projection: events=%d err=%v", len(got), err)
 		}
 	})
+}
+
+func TestRunnerRecoveryPayloadDoesNotRequireArtifactAssociationRead(t *testing.T) {
+	fixture := newAgentSaveArtifactsFixture(t)
+	ctx := t.Context()
+	appendPayloadRecoveryCheckpoint(t, fixture, "recovery-payload-test", map[string]any{
+		"status": "running", "runnerAttempt": "untrusted historical payload tag", "text": "preserve exact payload",
+	})
+	authority := &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim}
+	collect := func() ([]eventjournal.Entry, error) {
+		var result []eventjournal.Entry
+		err := fixture.server.scanSessionRunnerRecoveryEntries(ctx, authority, func(entry eventjournal.Entry) error {
+			result = append(result, entry)
+			return nil
+		})
+		return result, err
+	}
+	before, err := collect()
+	if err != nil || len(before) == 0 {
+		t.Fatalf("initial recovery events=%d err=%v", len(before), err)
+	}
+	checkpoint := before[len(before)-1]
+	if checkpoint.Message["text"] != "preserve exact payload" || checkpoint.Message["runnerAttempt"] != fixture.claim.Attempt {
+		t.Fatalf("payload or canonical attempt changed: %+v", checkpoint.Message)
+	}
+	// Disable only the derived artifact association read in this isolated fixture.
+	// A direct full projection must still surface the unavailable relation.
+	if _, err := fixture.db.ExecContext(ctx, `ALTER TABLE transcript_artifact_refs RENAME TO disabled_artifact_refs`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.repo.ListProjectedEvents(ctx, transcriptstore.ListProjectedEventsInput{
+		StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID, Limit: 10,
+	}); err == nil {
+		t.Fatal("fixture did not disable full artifact projection")
+	}
+	after, err := collect()
+	if err != nil || !reflect.DeepEqual(after, before) {
+		t.Fatalf("recovery depended on unrelated artifact associations or changed payload: before=%d after=%d err=%v", len(before), len(after), err)
+	}
 }
