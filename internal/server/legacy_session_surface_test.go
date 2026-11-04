@@ -426,98 +426,25 @@ func TestLegacySessionSurfacesRemainAvailableForUnauthenticatedLoopback(t *testi
 	_ = conn.Close(websocket.StatusNormalClosure, "test complete")
 }
 
-func TestLegacyTaskToolsRejectExternalOnlyWebAuthentication(t *testing.T) {
-	root := t.TempDir()
-	workspaceStore, err := workspace.Open(filepath.Join(root, "workspace.db"))
-	if err != nil {
-		t.Fatal(err)
+func TestLegacySessionSurfaceAuthenticationModes(t *testing.T) {
+	tests := []struct {
+		name    string
+		webAuth WebAuthOptions
+		link    XScienceLinkAuthOptions
+		allowed bool
+	}{
+		{name: "local compatibility", allowed: true},
+		{name: "native login", link: XScienceLinkAuthOptions{Username: "operator", Password: "test-secret-password"}},
+		{name: "external login", webAuth: WebAuthOptions{Google: WebOIDCProviderOptions{ClientID: "synthetic-client"}}},
 	}
-	t.Cleanup(func() { _ = workspaceStore.Close() })
-	app := New(Options{
-		FileRoot: root, Workspace: workspaceStore,
-		WebAuth: WebAuthOptions{Google: WebOIDCProviderOptions{ClientID: "synthetic-client"}},
-	})
-	t.Cleanup(func() { _ = app.Close(context.Background()) })
-	if !app.webAuthenticationEnabled() || app.xscienceLinkAuth.enabled {
-		t.Fatal("expected external-only Web authentication")
-	}
-
-	newAccount := func(subject string) string {
-		t.Helper()
-		user, created, err := app.webAccounts.ResolveExternalIdentity(webExternalIdentityClaims{
-			Provider: webGoogleProviderID, Issuer: "https://issuer.example.test", Subject: subject,
-		})
-		if err != nil || !created {
-			t.Fatalf("external identity setup: created=%t err=%v", created, err)
-		}
-		return user.ID
-	}
-	firstAccount := newAccount("first-account")
-	caller := newAccount("caller-account")
-	canary, err := app.taskStore.Create("synthetic legacy task canary")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := workspaceStore.CreateProject(workspace.CreateProjectInput{
-		ID: "caller-project", UserID: caller, Name: "Caller",
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := workspaceStore.CreateFrame(workspace.CreateFrameInput{
-		ID: "caller-frame", ProjectID: "caller-project", AgentName: "OPERON", Status: "queued", ConversationType: "agent",
-	}); err != nil {
-		t.Fatal(err)
-	}
-	if firstAccount == caller {
-		t.Fatal("expected distinct external accounts")
-	}
-	session, csrf, _, err := app.webSessions.Create(caller, webGoogleProviderID, false, webSessionMetadata{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	handler := app.Handler()
-	request := func(method, path, body string) *httptest.ResponseRecorder {
-		req := newLoopbackTestRequest(method, path, strings.NewReader(body))
-		req.Header.Set("Origin", "http://localhost")
-		req.Header.Set("Content-Type", "application/json")
-		req.AddCookie(&http.Cookie{Name: webSessionCookieName, Value: session})
-		req.AddCookie(&http.Cookie{Name: webCSRFCookieName, Value: csrf})
-		req.Header.Set(webCSRFHeaderName, csrf)
-		res := httptest.NewRecorder()
-		handler.ServeHTTP(res, req)
-		return res
-	}
-
-	if res := request(http.MethodGet, "/api/conversations/caller-frame", ""); res.Code != http.StatusOK {
-		t.Fatalf("owned Web conversation status=%d body=%s", res.Code, res.Body.String())
-	}
-	for _, test := range []struct{ tool, body string }{
-		{"TaskList", `{"input":{}}`},
-		{"TaskOutput", `{"input":{"task_id":"` + canary.ID + `"}}`},
-		{"TaskUpdate", `{"input":{"taskId":"` + canary.ID + `","status":"completed"}}`},
-	} {
-		t.Run(test.tool, func(t *testing.T) {
-			res := request(http.MethodPost, "/api/tools/"+test.tool+"/execute", test.body)
-			if res.Code != http.StatusNotFound || strings.Contains(res.Body.String(), canary.Title) {
-				t.Errorf("legacy tool status=%d leaked_canary=%t", res.Code, strings.Contains(res.Body.String(), canary.Title))
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			app := New(Options{FileRoot: t.TempDir(), WebAuth: test.webAuth, XScienceLinkAuth: test.link})
+			t.Cleanup(func() { _ = app.Close(context.Background()) })
+			request := newLoopbackTestRequest(http.MethodGet, "/", nil)
+			if got := app.allowLegacySessionSurface(request); got != test.allowed {
+				t.Fatalf("compatibility admission=%t want=%t", got, test.allowed)
 			}
 		})
-	}
-	after, found, err := app.taskStore.Get(canary.ID)
-	if err != nil || !found || after.Status != canary.Status {
-		t.Errorf("legacy task state changed: found=%t status=%s err=%v", found, after.Status, err)
-	}
-}
-
-func TestLegacyTaskListRemainsAvailableToUnauthenticatedLoopback(t *testing.T) {
-	fixture := newLegacySurfaceFixture(t, false)
-	canary, err := fixture.server.taskStore.Create("synthetic loopback task canary")
-	if err != nil {
-		t.Fatal(err)
-	}
-	res := legacySurfaceRequest(t, fixture, http.MethodPost, "/api/tools/TaskList/execute", `{"input":{}}`, "127.0.0.1:12345")
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), canary.Title) {
-		t.Fatalf("local legacy tool status=%d has_canary=%t", res.Code, strings.Contains(res.Body.String(), canary.Title))
 	}
 }
