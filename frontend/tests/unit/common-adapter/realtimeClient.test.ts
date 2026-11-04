@@ -6,6 +6,7 @@ import {
   type RealtimeSocket,
 } from '@/common/adapter/realtimeClient';
 import { REALTIME_MAX_INBOUND_BYTES, type RealtimeProtocolMessage } from '@/common/adapter/realtimeProtocol';
+import { createRealtimeRuntime } from '@/common/adapter/realtimeRuntime';
 
 type Listener = (event: Event | MessageEvent) => void;
 
@@ -241,6 +242,68 @@ describe('RealtimeClient', () => {
     bound.client.dispose();
     expect(bound.windowTarget.count()).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([2, 3] as const)(
+    'announces first recovery when cached wake replaces a pre-handshake socket in readyState %i',
+    async (readyState) => {
+      const reconnected = vi.fn();
+      let transport!: ReturnType<typeof setup>;
+      const runtime = createRealtimeRuntime({
+        createClient: (observers) => {
+          transport = setup(observers);
+          return transport.client;
+        },
+      });
+      runtime.subscribeReconnected(reconnected);
+      try {
+        await runtime.setIdentity('owner-a');
+        const first = transport.sockets[0].socket;
+        first.open();
+        // The browser can expose a closing/closed socket before delivering
+        // its queued close event, including when restoring a cached page.
+        first.readyState = readyState;
+        transport.windowTarget.dispatch('pageshow', restoredPage());
+        expect(transport.sockets).toHaveLength(2);
+        expect(first.listenerCount()).toBe(0);
+        const replacement = transport.sockets[1].socket;
+        replacement.open();
+        expect(reconnected).not.toHaveBeenCalled();
+        replacement.message({ type: 'connected', cursor: 0 });
+        expect(reconnected).toHaveBeenCalledOnce();
+        expect(runtime.getSnapshot()).toEqual({ identity: 'authenticated', status: 'connected' });
+        transport.windowTarget.dispatch('pageshow', restoredPage());
+        expect(transport.sockets).toHaveLength(2);
+        expect(reconnected).toHaveBeenCalledOnce();
+      } finally {
+        runtime.dispose();
+      }
+    }
+  );
+
+  it('does not transfer an offline recovery hint when cached wake crosses owners', async () => {
+    const reconnected = vi.fn();
+    let transport!: ReturnType<typeof setup>;
+    const runtime = createRealtimeRuntime({
+      createClient: (observers) => {
+        transport = setup({ ...observers, online: false });
+        return transport.client;
+      },
+    });
+    runtime.subscribeReconnected(reconnected);
+    try {
+      await runtime.setIdentity('owner-a');
+      expect(runtime.getSnapshot().status).toBe('offline');
+      expect(transport.sockets).toHaveLength(0);
+      transport.online.value = true;
+      await runtime.setIdentity('owner-b');
+      transport.windowTarget.dispatch('pageshow', restoredPage());
+      expect(transport.sockets).toHaveLength(1);
+      connect(transport.sockets[0].socket, 0);
+      expect(reconnected).not.toHaveBeenCalled();
+    } finally {
+      runtime.dispose();
+    }
   });
 
   it('probes the same open socket only for persisted pageshow and keeps one heartbeat deadline', async () => {

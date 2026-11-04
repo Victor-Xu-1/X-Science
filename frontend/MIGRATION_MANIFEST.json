@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "df89c564b5a9002b069f8c5477bdb67776e773c8dba4037140e9e0b8cbb9ba73",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "588d5930791bfd5a517c0a7748b4886a504634c8c7a95fc9cf979a8b79886704",
+  "additionFingerprintSHA256": "25f08bebbc389c0ccf305b2bff730812e418bc9c2ab9d04cfe9e790faf5b9c83",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -7797,8 +7797,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/realtimeClient.ts",
-      "sha256": "c4f59351c5e38d3bd463490408f5ba90f658549281c3852f9c56132b82e6da4c",
-      "bytes": 28334,
+      "sha256": "5eaa3968ff5dbeab8a68e48fdbdab5c4d3369561f98f46318f0a1333a454b091",
+      "bytes": 28374,
       "reason": "Own one identity-bound authenticated realtime connection with fenced socket, listener, cursor, and timer resources."
     },
     {
@@ -13059,8 +13059,8 @@
     },
     {
       "path": "tests/unit/common-adapter/realtimeClient.test.ts",
-      "sha256": "0f9eba6d4014b5d5bc1198d35668256eca77558df7b2ffe4d74d9af10f5698ea",
-      "bytes": 52512,
+      "sha256": "63d7b780764182d02f87c914a391011b6cd33af640379241fbb756a6758e099c",
+      "bytes": 55054,
       "reason": "Verify identity, socket, timer, cursor, reconnect, cleanup, and durable delivery authority under reentry."
     },
     {

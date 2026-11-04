@@ -289,7 +289,7 @@ export class RealtimeClient {
     return attempt;
   }
 
-  private connect(binding: IdentityBinding): void {
+  private connect(binding: IdentityBinding, recovering = false): void {
     if (!this.isBindingCurrent(binding)) return;
     if (this.attempt && this.isAttemptCurrent(this.attempt)) {
       if (this.attempt.phase !== 'reconnect-wait') return;
@@ -305,7 +305,7 @@ export class RealtimeClient {
       if (retired && this.isBindingCurrent(binding) && !this.attempt) this.setStatus('offline');
       return;
     }
-    this.setStatus(binding.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
+    this.setStatus(recovering || binding.reconnectAttempt > 0 ? 'reconnecting' : 'connecting');
     if (!this.isAttemptCurrent(attempt)) return;
     const url = new URL(binding.endpoint.url);
     url.searchParams.set('after_sequence', binding.cursor === null ? 'latest' : String(binding.cursor));
@@ -766,7 +766,7 @@ export class RealtimeClient {
     // closing an already-closed socket cannot be relied on to emit another event.
     if (readyState === CLOSING || readyState === CLOSED) {
       const retired = this.retireAttempt(attempt);
-      if (retired && this.isBindingCurrent(binding) && !this.attempt) this.connect(binding);
+      if (retired && this.isBindingCurrent(binding) && !this.attempt) this.connect(binding, true);
       return;
     }
     if (attempt.phase === 'reconnect-wait') {
