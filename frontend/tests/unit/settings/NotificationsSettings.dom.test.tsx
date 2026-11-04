@@ -64,7 +64,10 @@ beforeEach(() => {
   stubs.put.mockReset();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe('browser notification settings', () => {
   it('renders the real lazy route directly from its settings URL', async () => {
@@ -209,6 +212,9 @@ describe('browser notification settings', () => {
 
   it('keeps delivery off while the value is unknown and retries the read only', async () => {
     stubs.get.mockRejectedValueOnce(new Error('read failed')).mockResolvedValueOnce(undefined);
+    const requestPermission = vi.fn().mockResolvedValue('granted');
+    vi.stubGlobal('isSecureContext', true);
+    vi.stubGlobal('Notification', { permission: 'default', requestPermission });
     render(fixture());
     expect(toggle()).toBeDisabled();
     expect(screen.getByTestId('delivery-enabled')).toHaveTextContent('false');
@@ -217,6 +223,13 @@ describe('browser notification settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
     await waitFor(() => expect(toggle()).toHaveAttribute('aria-checked', 'true'));
     expect(screen.getByTestId('delivery-enabled')).toHaveTextContent('true');
+    expect(screen.queryAllByRole('alert')).toHaveLength(0);
+    expect(stubs.put).not.toHaveBeenCalled();
+    expect(requestPermission).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'settings.browserNotification.enable' }));
+    expect(await screen.findByText('settings.browserNotification.granted')).toBeInTheDocument();
+    expect(requestPermission).toHaveBeenCalledTimes(1);
     expect(stubs.put).not.toHaveBeenCalled();
   });
 

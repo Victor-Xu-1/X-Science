@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "e492e139cc5d0a8d0540519298044adf4f20ba54da30992cea931f6f1c99070e",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "a831312d3dca84a3bba969bcfa21b8f9136edabac7dbf9306d0c20e96b64a852",
+  "additionFingerprintSHA256": "7a089f968b2fd45233a4268ea68cf7e8c98a7957f9b4b8e7104794a0348daabd",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -8679,8 +8679,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/hooks/system/notification/BrowserNotificationPreference.tsx",
-      "sha256": "26bfa418a5c495da1f39198e62b51b99dbab34cdc72ad86c6b68d43f7fe71294",
-      "bytes": 6047,
+      "sha256": "108292a91a30b8455d45494edd7b28f06baa804a3a2525a4895609ea4ac484d1",
+      "bytes": 6055,
       "reason": "Keep authenticated browser task-notification preference reads, writes, and sender state under one account-scoped owner and invalidate other tabs without exposing the value."
     },
     {
@@ -15411,8 +15411,8 @@
     },
     {
       "path": "tests/unit/settings/NotificationsSettings.dom.test.tsx",
-      "sha256": "756fe1d1a0f9ec9cbad5f565cd9bc7b14f7af995b13c94652175a045349855cf",
-      "bytes": 11437,
+      "sha256": "c45869f1325cf5e7899312ce4b3bdca77a51eb082626eb40a63dc7e449fa336e",
+      "bytes": 12082,
       "reason": "Verify the routed notification setting and its default, persistence, read and write errors, stale-account fencing, and cross-tab invalidation races."
     },
     {

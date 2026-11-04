@@ -151,7 +151,7 @@ function AccountPreference({ owner, scope, children }: React.PropsWithChildren<{
   }
 
   return (
-    <BrowserNotificationPreferenceContext.Provider value={{ state, canDeliver, retry: read, setEnabled }}>
+    <BrowserNotificationPreferenceContext.Provider value={{ state, canDeliver, retry: () => read(), setEnabled }}>
       {children}
     </BrowserNotificationPreferenceContext.Provider>
   );
