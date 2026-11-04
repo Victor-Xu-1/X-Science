@@ -8,7 +8,7 @@ import type {
 } from '@/common/adapter/libraryColumnPreferences';
 import './libraryTable.css';
 import './librarySelection.css';
-import { libraryMetadataText } from './libraryBibliographicText';
+import { libraryAuthors, libraryMetadataText } from './libraryBibliographicText';
 
 export type LibraryTableSelection = {
   selected: (id: string) => boolean;
@@ -26,7 +26,6 @@ export type LibraryTableProps = {
   refreshError?: boolean;
   selectedId: string;
   preferences: LibraryColumnPreferences;
-  authors: (item: LiteratureItem) => string;
   statusCell: (item: LiteratureItem) => React.ReactNode;
   noteCell?: (item: LiteratureItem) => React.ReactNode;
   ratingCell?: (item: LiteratureItem) => React.ReactNode;
@@ -59,7 +58,6 @@ export function LibraryTable({
   refreshError = false,
   selectedId,
   preferences,
-  authors,
   statusCell,
   noteCell,
   ratingCell,
@@ -92,7 +90,7 @@ export function LibraryTable({
         <span aria-label={t('conversation.libraryTable.noFiles')}>—</span>
       );
     }
-    const value = column === 'authors' ? authors(item) : libraryMetadataText(item.metadata[column]);
+    const value = column === 'authors' ? libraryAuthors(item, t) : libraryMetadataText(item.metadata[column]);
     return (
       <span className='library-table__text' title={value || undefined}>
         {value || '—'}

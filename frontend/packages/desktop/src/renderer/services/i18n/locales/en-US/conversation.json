@@ -95,6 +95,7 @@
     "libraryDetails": "Literature details",
     "libraryTitle": "Title",
     "libraryAuthors": "Authors",
+    "libraryFirstAuthor": "First author: {{name}}",
     "libraryYear": "Year",
     "libraryEditNamed": "Edit literature {{name}}",
     "libraryImportNamed": "Save {{name}} to Library",

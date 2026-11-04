@@ -1673,6 +1673,7 @@ export type I18nKey =
   | 'conversation.reading.libraryConfirmRemove'
   | 'conversation.reading.libraryDetails'
   | 'conversation.reading.libraryEditNamed'
+  | 'conversation.reading.libraryFirstAuthor'
   | 'conversation.reading.libraryImportNamed'
   | 'conversation.reading.libraryLinkProject'
   | 'conversation.reading.libraryMore'

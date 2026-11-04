@@ -29,7 +29,6 @@ import {
   literaturePageSorts,
   type LiteraturePageSort,
 } from '@/renderer/services/runtime/literatureLibrary';
-import { libraryAuthors } from './LibraryItemDetails';
 import { LibraryDetailsPane } from './LibraryDetailsPane';
 import { isLibraryReadFresh, useLibraryWorkbench } from './useLibraryWorkbench';
 import { LibraryProjectScope } from './LibraryProjectScope';
@@ -881,7 +880,6 @@ export default function LibraryPage() {
                       openItem={rowActions.open}
                     />
                   )}
-                  authors={libraryAuthors}
                   noteCell={(item) => (
                     <LibraryNoteControl
                       key={JSON.stringify([rowMetadataScope, item.id])}

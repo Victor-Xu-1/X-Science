@@ -111,6 +111,30 @@ describe('Library workbench entry and original HTTP owners', () => {
     expect(await screen.findByRole('button', { name: 'Paper A' })).toBeInTheDocument();
   });
 
+  it('shows a first author in the catalogue and details while leaving the unknown year empty', async () => {
+    const partial = { ...item(), metadata: { first_author: '  Ada Example  ' } };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input), 'http://localhost');
+        const collections = collectionReads(url, init);
+        if (collections) return collections;
+        if (url.pathname === '/api/projects') return projects();
+        if (url.pathname === '/api/literature/items') return json(page([partial]));
+        if (url.pathname === '/api/literature/items/a') return json(partial);
+        throw new Error('Unexpected fixture request');
+      })
+    );
+    await mount();
+    const title = await screen.findByRole('button', { name: 'Paper A' });
+    expect(within(title.closest('tr')!).getByText('First author: Ada Example')).toBeInTheDocument();
+    fireEvent.click(title);
+    const details = await screen.findByRole('region', { name: 'Literature details' });
+    expect(within(details).getByText('First author: Ada Example')).toBeInTheDocument();
+    const year = within(details).getByText('Year').parentElement!;
+    expect(within(year).getByText('—')).toBeInTheDocument();
+  });
+
   it('does not publish an older query or selected detail after route state changes', async () => {
     const oldQuery = deferred<Response>();
     const oldDetail = deferred<Response>();
