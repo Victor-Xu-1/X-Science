@@ -61,6 +61,7 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 	status := "completed"
 	message := "runner chat completed"
 	failureReason := ""
+	var failureStage sessionRunnerCompletionFailureStage
 	retainFinalResponse := false
 	if cause := context.Cause(ctx); errors.Is(cause, ErrGenerationStopped) {
 		status = "cancelled"
@@ -76,9 +77,14 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 		failureReason = sessionRunnerErrorReasonCode(chatErr)
 	}
 	if status == "failed" {
+		loggedErr := chatErr
+		var completionFailure *sessionRunnerCompletionFailure
+		if errors.As(chatErr, &completionFailure) {
+			failureStage, loggedErr = completionFailure.stage, completionFailure.err
+		}
 		log.Printf(
 			"session runner chat failed session=%q attempt=%d err_type=%T reason=%q",
-			session.ID, result.Attempt, chatErr, failureReason,
+			session.ID, result.Attempt, loggedErr, failureReason,
 		)
 	}
 	hookCtx := ctx
@@ -188,6 +194,7 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 		}
 		receipt, finishTranscriptErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{
 			Content: assistantMessage, Status: status, Detail: message, ReasonCode: failureReason,
+			FailureStage:         failureStage,
 			RetainFinalResponse:  retainFinalResponse && status == "failed",
 			CompletionAdvisories: chatRun.completionAdvisorySnapshot(),
 			AssistantIdentity:    "assistant-message", SegmentOrdinal: chatRun.assistantSegmentOrdinal(), PrepareMemory: true, ResponseLanguage: chatRun.ResponseLanguage,

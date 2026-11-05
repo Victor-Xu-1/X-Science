@@ -34,7 +34,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	}
 	artifactCommits, err := s.sessionRunnerArtifactCommitReferences(ctx, run)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	// Final round attachments are projected from durable generation receipts
 	// after terminal completion. Never append the cumulative project inventory
@@ -48,11 +48,11 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		ctx, run, artifactCommits, result.FinalMessage.Content,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	missingRequiredDeliverables, err := s.sessionRunnerMissingRequiredDeliverables(session, run, artifactCommits)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	malformedArtifactReferences := sessionRunnerArtifactReferenceSyntaxFailures(result.FinalMessage.Content)
 	if len(malformedArtifactReferences) > 0 {
@@ -69,30 +69,30 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		session, run, artifactCommits, result.FinalMessage.Content,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	unresolved := len(unresolvedReferences)
 	missingLocalArtifacts, err := s.sessionRunnerMissingLocalArtifactDependencies(
 		sessionRunnerProjectID(session), run, validationCommits, result.FinalMessage.Content,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	artifactCandidates, err := s.sessionRunnerCompletionArtifactCandidateReferences(
 		session, run, validationCommits, result.FinalMessage.Content,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	durableEvidence, err := s.sessionRunnerDurableEvidenceMessages(ctx, run)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	sourceQuality, err := s.sessionRunnerCompletionSourceQuality(
 		ctx, sessionRunnerProjectID(session), run, validationCommits, durableEvidence,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	evidencePrefix := sessionRunnerDurableEvidencePrefix(sourceQuality.Evidence, result.Messages)
 	evidenceMessages := make([]agentruntime.Message, 0, len(evidencePrefix)+len(result.Messages))
@@ -110,7 +110,7 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		ctx, sessionRunnerProjectID(session), validationCommits, result.FinalMessage.Content,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionArtifactEvidence, err: err}
 	}
 	crossArtifactFailures = append(
 		crossArtifactFailures,
@@ -119,22 +119,22 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 	crossArtifactFailures = append(crossArtifactFailures, sourceQuality.Findings...)
 	scientificValidation, err := s.validateSessionRunnerScientificArtifacts(ctx, sessionRunnerProjectID(session), validationCommits, result.FinalMessage.Content)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionScientificValidation, err: err}
 	}
 	scientificHistory, err := s.reconcileScientificArtifactHistory(ctx, run, &scientificValidation, nil)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionScientificValidation, err: err}
 	}
 	researchValidation, err := s.validateSessionRunnerResearchArtifactSelection(ctx, sessionRunnerProjectID(session), validationCommits)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionResearchValidation, err: err}
 	}
 	artifactCandidates, err = s.sessionRunnerCompletionArtifactCandidateReferencesWithSelection(
 		session, run, validationCommits, result.FinalMessage.Content,
 		researchValidation.SelectedVersions, researchValidation.ManifestFound,
 	)
 	if err != nil {
-		return result, err
+		return result, &sessionRunnerCompletionFailure{stage: completionResearchValidation, err: err}
 	}
 	fatalCrossArtifactFailures := sessionRunnerFatalCrossArtifactFailures(run, crossArtifactFailures)
 	if unresolved == 0 && len(malformedArtifactReferences) == 0 && len(artifactCandidates.contractFailures) == 0 &&
@@ -142,12 +142,12 @@ func (s *Server) runSessionAgentWithArtifactReferenceRepair(
 		len(researchValidation.Failures) == 0 && len(missingRequiredDeliverables) == 0 {
 		advisory, err := s.verifySessionRunnerVisualArtifactEvidence(session, validationCommits)
 		if err != nil {
-			return result, err
+			return result, &sessionRunnerCompletionFailure{stage: completionDeliveryValidation, err: err}
 		}
 		if err := s.publishSessionRunnerCompletionArtifacts(
 			ctx, session, run, validationCommits,
 		); err != nil {
-			return result, err
+			return result, &sessionRunnerCompletionFailure{stage: completionArtifactPublication, err: err}
 		}
 		language := ""
 		if run != nil {
