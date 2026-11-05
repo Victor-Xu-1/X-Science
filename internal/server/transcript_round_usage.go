@@ -199,7 +199,7 @@ func (s *Server) enrichTranscriptRoundSummaries(ctx context.Context, frameID, br
 	if len(attempts) == 0 {
 		return nil
 	}
-	frame, found, err := s.workspaceStore.GetFrame(frameID)
+	frame, found, err := s.workspaceStore.GetFrameWithContext(ctx, frameID)
 	if err != nil || !found {
 		return err
 	}

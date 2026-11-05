@@ -265,14 +265,14 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 	if s == nil || s.workspaceStore == nil {
 		return errors.New("workspace runtime is not configured")
 	}
-	frame, found, err := s.workspaceStore.GetFrame(frameID)
+	frame, found, err := s.workspaceStore.GetFrameWithContext(ctx, frameID)
 	if err != nil {
 		return err
 	}
 	if !found {
 		return errors.New("conversation frame not found")
 	}
-	snapshot, err := s.workspaceStore.GetFrameTraceSnapshot(frame.RootFrameID, nil)
+	snapshot, err := s.workspaceStore.GetFrameTraceSnapshotWithContext(ctx, frame.RootFrameID, nil)
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,9 @@ import (
 
 func TestRoundUsageHistoryLiveAndLaterRounds(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
+	if err := f.server.runtimeStore.Close(); err != nil {
+		t.Fatal(err)
+	}
 	f.server.runtimeStore = runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	record := func(protocol, model string, input, read, write, output, total int) {
 		now := time.Now().UTC()

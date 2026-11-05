@@ -40,6 +40,12 @@ type FrameTraceSnapshot struct {
 // changed after a durable global trace revision. FrameCount always reflects
 // the current complete tree so a client can detect deletion gaps and refetch.
 func (s *Store) GetFrameTraceSnapshot(rootFrameID string, afterRevision *int64) (FrameTraceSnapshot, error) {
+	return s.GetFrameTraceSnapshotWithContext(context.Background(), rootFrameID, afterRevision)
+}
+
+// GetFrameTraceSnapshotWithContext preserves the same atomic trace snapshot
+// while allowing an HTTP caller to cancel the writer-connection wait and reads.
+func (s *Store) GetFrameTraceSnapshotWithContext(ctx context.Context, rootFrameID string, afterRevision *int64) (snapshot FrameTraceSnapshot, err error) {
 	if s == nil || s.db == nil {
 		return FrameTraceSnapshot{}, errors.New("workspace store is closed")
 	}
@@ -50,8 +56,12 @@ func (s *Store) GetFrameTraceSnapshot(rootFrameID string, afterRevision *int64) 
 	if afterRevision != nil && *afterRevision < 0 {
 		return FrameTraceSnapshot{}, errors.New("trace cursor must be non-negative")
 	}
-	ctx := context.Background()
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	conn, release, err := workspaceContextReadConnection(ctx, s.db)
+	if err != nil {
+		return FrameTraceSnapshot{}, fmt.Errorf("begin trace read: %w", err)
+	}
+	defer func() { err = errors.Join(err, release()) }()
+	tx, err := conn.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return FrameTraceSnapshot{}, fmt.Errorf("begin trace snapshot: %w", err)
 	}
@@ -64,7 +74,6 @@ func (s *Store) GetFrameTraceSnapshot(rootFrameID string, afterRevision *int64) 
 	if !found || root.ID != root.RootFrameID {
 		return FrameTraceSnapshot{}, fmt.Errorf("root frame %q does not exist", rootFrameID)
 	}
-	var snapshot FrameTraceSnapshot
 	snapshot.Root = root
 	if err := tx.QueryRowContext(ctx, `
 		SELECT COALESCE(MAX(trace.revision), 0)

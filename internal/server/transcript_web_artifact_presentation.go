@@ -28,7 +28,7 @@ func (s *Server) enrichTranscriptWebArtifactPresentation(ctx context.Context, fr
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil {
 		return transcriptstore.ErrSchemaUnavailable
 	}
-	frame, found, err := s.workspaceStore.GetFrame(frameID)
+	frame, found, err := s.workspaceStore.GetFrameWithContext(ctx, frameID)
 	if err != nil || !found {
 		return err
 	}

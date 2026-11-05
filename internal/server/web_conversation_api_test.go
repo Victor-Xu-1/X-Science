@@ -413,6 +413,7 @@ func TestP3WebConversationProjectsTypedBootstrapToolHistoryFromTranscriptOnly(t 
 		t.Fatalf("report=%#v err=%v", report, err)
 	}
 	app = New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
+	t.Cleanup(func() { closeTestServer(t, app) })
 	if app.transcriptStore == nil || app.transcriptContractErr != nil {
 		t.Fatalf("transcript runtime store=%p err=%v", app.transcriptStore, app.transcriptContractErr)
 	}
