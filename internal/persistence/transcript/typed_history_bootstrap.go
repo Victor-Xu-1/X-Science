@@ -181,7 +181,7 @@ func (r *Repository) HasActiveTypedHistoryBootstrap(
 		return false, errors.New("typed history bootstrap identity is required")
 	}
 	var marker int
-	err := r.db.QueryRowContext(ctx, `SELECT 1
+	err := r.readDatabase().QueryRowContext(ctx, `SELECT 1
 		FROM transcript_typed_history_bootstrap_receipts receipt
 		JOIN transcript_frame_authority authority
 			ON authority.active_stream_uid=receipt.stream_uid AND authority.active_epoch=receipt.epoch
