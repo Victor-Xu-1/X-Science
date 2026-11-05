@@ -94,7 +94,7 @@ func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 		t.Fatal("late previous request overwrote next")
 	}
 	next.Progress = &runnerContextProgress{Phase: "thinking", ObservedAt: now, UsedTokens: next.UsedTokens}
-	recorder.frameExists = func(context.Context) (bool, error) { return false, nil }
+	recorder.frameExists = func(context.Context, bool) (bool, error) { return false, nil }
 	if err := recorder.persistProgress(t.Context(), *next); err != nil {
 		t.Fatal(err)
 	}
@@ -323,9 +323,9 @@ func TestContextProgressBacksOffAcrossPhaseChangesAfterBusyWrite(t *testing.T) {
 	now := snapshot.ObservedAt
 	tracker.now = func() time.Time { return now }
 	frameChecks := 0
-	recorder.frameExists = func(ctx context.Context) (bool, error) {
+	recorder.frameExists = func(ctx context.Context, liveSample bool) (bool, error) {
 		frameChecks++
-		if _, hasDeadline := ctx.Deadline(); !hasDeadline {
+		if _, hasDeadline := ctx.Deadline(); !liveSample || !hasDeadline {
 			t.Error("live frame read was not bounded")
 		}
 		if frameChecks == 1 {

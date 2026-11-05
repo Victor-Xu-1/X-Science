@@ -55,7 +55,7 @@ type sessionContextUsageRecorder struct {
 	attempt     int
 	limit       int
 	limitSource string
-	frameExists func(context.Context) (bool, error)
+	frameExists func(ctx context.Context, liveSample bool) (bool, error)
 	association *transcriptstore.ContextCallAssociation
 }
 
@@ -76,8 +76,11 @@ func newSessionContextUsageRecorder(s *Server, sessionID string, attempt int, op
 		limit: capacity.Tokens, limitSource: capacity.Source,
 	}
 	if s.workspaceStore != nil {
-		recorder.frameExists = func(ctx context.Context) (bool, error) {
-			_, found, err := s.workspaceStore.GetFrameWithContext(ctx, sessionID)
+		recorder.frameExists = func(ctx context.Context, liveSample bool) (bool, error) {
+			if liveSample {
+				return s.workspaceStore.ProbeFrameExists(ctx, sessionID)
+			}
+			_, found, err := s.workspaceStore.GetFrame(sessionID)
 			return found, err
 		}
 	}
@@ -155,7 +158,7 @@ func (recorder *sessionContextUsageRecorder) beginObservation(kind, model string
 	if recorder == nil {
 		return nil
 	}
-	if found, err := recorder.contextFrameExists(context.Background()); err != nil || !found {
+	if found, err := recorder.contextFrameExists(context.Background(), false); err != nil || !found {
 		if err != nil {
 			log.Printf("context_usage_frame_check_failed session=%s: %v", recorder.sessionID, err)
 		}
@@ -236,11 +239,11 @@ func runnerContextFailureKind(callErr error) string {
 	}
 }
 
-func (recorder *sessionContextUsageRecorder) contextFrameExists(ctx context.Context) (bool, error) {
+func (recorder *sessionContextUsageRecorder) contextFrameExists(ctx context.Context, liveSample bool) (bool, error) {
 	if recorder.frameExists == nil {
 		return true, nil
 	}
-	return recorder.frameExists(ctx)
+	return recorder.frameExists(ctx, liveSample)
 }
 
 func (recorder *sessionContextUsageRecorder) allowsContextUsageUpdate(entry runtimekv.Entry, snapshot runnerContextUsage, completing bool) (bool, error) {
@@ -267,7 +270,7 @@ func (recorder *sessionContextUsageRecorder) persistProgress(ctx context.Context
 	// Live progress updates only an existing request, leaving the durable
 	// history untouched. Deletion and settlement share this store's lock.
 	return recorder.store.EditExistingContext(ctx, contextUsageNamespace(recorder.sessionID), "latest", func(entry runtimekv.Entry) (any, bool, error) {
-		if found, err := recorder.contextFrameExists(ctx); err != nil || !found {
+		if found, err := recorder.contextFrameExists(ctx, true); err != nil || !found {
 			return nil, false, err
 		}
 		allowed, err := recorder.allowsContextUsageUpdate(entry, snapshot, true)
@@ -280,7 +283,7 @@ func (recorder *sessionContextUsageRecorder) persist(snapshot runnerContextUsage
 		// Task deletion commits the frame removal before taking this same
 		// runtime-store lock for scoped cleanup. Checking under the lock means
 		// a pending write either precedes cleanup or observes the removed frame.
-		if found, err := recorder.contextFrameExists(context.Background()); err != nil || !found {
+		if found, err := recorder.contextFrameExists(context.Background(), false); err != nil || !found {
 			return false, err
 		}
 		if entry, found := entries["latest"]; found {
