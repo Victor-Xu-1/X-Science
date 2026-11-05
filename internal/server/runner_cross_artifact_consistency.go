@@ -125,7 +125,15 @@ func (s *Server) validateSessionRunnerCrossArtifactConsistency(
 		if closeErr := reader.Close(); closeErr != nil {
 			return nil, fmt.Errorf("close runner cross-artifact %q: %w", name, closeErr)
 		}
-		inputs = append(inputs, s.runnerArtifactScanInput(name, commit.VersionID, projectID))
+		retention, _, retentionErr := s.workspaceStore.ArtifactRetentionMode(artifact.ID)
+		if retentionErr != nil {
+			return nil, retentionErr
+		}
+		input := s.runnerArtifactScanInput(name, commit.VersionID, projectID)
+		// This mode is read from the project-checked canonical artifact, never
+		// from content or a file-name heuristic. Other integrity checks remain.
+		input.skipReportSemantics = !agentSavedArtifactRequiresRenderedBytes(retention)
+		inputs = append(inputs, input)
 	}
 	if finalContent != "" {
 		inputs = append(inputs, runnerArtifactTextInput("final_response.md", finalContent))

@@ -8,6 +8,24 @@ import (
 	"strings"
 )
 
+// Working data retains source syntax and bytes. Only user-facing snapshots
+// require report-link normalization and fully materialized template fields.
+// Unknown or legacy retention modes keep the strict report policy.
+func agentSavedArtifactRequiresRenderedBytes(retention string) bool {
+	return retention != "working_data"
+}
+
+func (s *Server) prepareAgentSavedArtifactReportBytes(ctx context.Context, relativePath, projectID, retention string, snapshot *os.File) (bool, error) {
+	if !agentSavedArtifactRequiresRenderedBytes(retention) {
+		return false, nil
+	}
+	normalized, err := s.normalizeAgentSavedArtifactReferences(ctx, snapshot, relativePath, projectID)
+	if err != nil {
+		return false, err
+	}
+	return normalized, validateAgentSavedArtifactTemplates(ctx, relativePath, snapshot)
+}
+
 // validateAgentSavedArtifactTemplates enforces the final-bytes contract at the
 // publication boundary. Completion review keeps the same check as defense in
 // depth, but a model receives an actionable save_artifacts failure before any

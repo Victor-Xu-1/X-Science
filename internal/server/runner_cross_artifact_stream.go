@@ -102,18 +102,20 @@ func inspectRunnerArtifactInput(store *runnerArtifactScanStore, input runnerArti
 		return nil, nil, nil, err
 	}
 	defer func() { resultErr = errors.Join(resultErr, reader.Close()) }()
-	err = scanRunnerArtifactPattern(store.ctx, reader, runnerCrossArtifactPathPattern, false, func(indices []int64) error {
-		name, err := readRunnerArtifactRange(store.ctx, reader, indices[2], indices[3])
+	if !input.skipReportSemantics {
+		err = scanRunnerArtifactPattern(store.ctx, reader, runnerCrossArtifactPathPattern, false, func(indices []int64) error {
+			name, err := readRunnerArtifactRange(store.ctx, reader, indices[2], indices[3])
+			if err != nil {
+				return err
+			}
+			if _, found := produced[strings.ToLower(filepath.Base(name))]; !found {
+				failures = append(failures, "missing_artifact_reference:"+name+" in "+input.name)
+			}
+			return nil
+		})
 		if err != nil {
-			return err
+			return nil, nil, nil, err
 		}
-		if _, found := produced[strings.ToLower(filepath.Base(name))]; !found {
-			failures = append(failures, "missing_artifact_reference:"+name+" in "+input.name)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, nil, nil, err
 	}
 	if _, err := reader.Seek(0, io.SeekStart); err != nil {
 		return nil, nil, nil, err
@@ -123,11 +125,13 @@ func inspectRunnerArtifactInput(store *runnerArtifactScanStore, input runnerArti
 		return nil, nil, nil, err
 	}
 	failures = append(failures, validation...)
-	validation, err = scanRunnerTemplateFailures(store.ctx, reader, input.name)
-	if err != nil {
-		return nil, nil, nil, err
+	if !input.skipReportSemantics {
+		validation, err = scanRunnerTemplateFailures(store.ctx, reader, input.name)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		failures = append(failures, validation...)
 	}
-	failures = append(failures, validation...)
 	ext := strings.ToLower(filepath.Ext(input.name))
 	if ext == ".csv" || ext == ".tsv" {
 		if _, err := reader.Seek(0, io.SeekStart); err != nil {
