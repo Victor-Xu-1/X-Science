@@ -25,6 +25,10 @@ func transcriptWebProjectorV79ExternalSchema(ctx context.Context, executor schem
 	if err != nil {
 		return nil, err
 	}
+	return transcriptWebProjectorExternalSchema(ctx, executor, owned, transcriptstore.WebReadModelV79ProjectionStateStatement())
+}
+
+func transcriptWebProjectorExternalSchema(ctx context.Context, executor schemaMigrationQueryExecutor, owned map[string]string, targetState string) (map[transcriptWebProjectorV79ObjectKey]transcriptWebProjectorV79ExternalObject, error) {
 	rows, err := executor.QueryContext(ctx, `SELECT type,name,tbl_name,sql FROM sqlite_schema
 		WHERE sql IS NOT NULL ORDER BY type,name`)
 	if err != nil {
@@ -41,7 +45,7 @@ func transcriptWebProjectorV79ExternalSchema(ctx context.Context, executor schem
 		canonical, replaced := owned[key.name]
 		statement := strings.TrimSpace(object.statement)
 		if replaced && (statement == canonical ||
-			(key.name == "transcript_web_projection_state" && statement == strings.TrimSpace(transcriptstore.WebReadModelV79ProjectionStateStatement()))) {
+			(key.name == "transcript_web_projection_state" && statement == strings.TrimSpace(targetState))) {
 			continue
 		}
 		// Trigger names have their own namespace; a trigger may legitimately
@@ -59,6 +63,10 @@ func preserveTranscriptWebProjectorV79ExternalSchema(ctx context.Context, execut
 	if err != nil {
 		return err
 	}
+	return requireTranscriptWebProjectorExternalSchemaUnchanged(before, after)
+}
+
+func requireTranscriptWebProjectorExternalSchemaUnchanged(before, after map[transcriptWebProjectorV79ObjectKey]transcriptWebProjectorV79ExternalObject) error {
 	for key, object := range before {
 		if current, found := after[key]; !found || current != object {
 			return fmt.Errorf("transcript Web projector migration would modify external %s %q", key.kind, key.name)
