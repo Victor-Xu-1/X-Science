@@ -83,3 +83,39 @@ func TestSetContextSQLiteWriterDeadline(t *testing.T) {
 		t.Fatalf("SQLite writer busy wait ignored25ms context until fixture release: %s", result.elapsed)
 	}
 }
+
+func TestEditExistingContextHonorsSQLiteWriterDeadline(t *testing.T) {
+	store := New(filepath.Join(t.TempDir(), "runtime-state.sqlite"))
+	t.Cleanup(func() { _ = store.Close() })
+	original, err := store.Set("busy-test", "neighbor", "preserved")
+	if err != nil {
+		t.Fatal(err)
+	}
+	release := holdRuntimeSQLiteWriter(t, store)
+	ctx, cancel := context.WithTimeout(t.Context(), 25*time.Millisecond)
+	defer cancel()
+
+	started := time.Now()
+	err = store.EditExistingContext(ctx, "busy-test", "neighbor", func(Entry) (any, bool, error) {
+		t.Error("entry callback ran without acquiring the SQLite writer")
+		return "must not commit", true, nil
+	})
+	elapsed := time.Since(started)
+	release()
+	if !errors.Is(err, context.DeadlineExceeded) || elapsed > time.Second {
+		t.Fatalf("entry edit under SQLite writer contention = %v after %s", err, elapsed)
+	}
+	entry, found, err := store.Get("busy-test", "neighbor")
+	if err != nil || !found || entry.Value != original.Value || entry.Version != original.Version {
+		t.Fatalf("cancelled edit changed its entry: %+v found=%v err=%v", entry, found, err)
+	}
+	if err := store.EditExistingContext(t.Context(), "busy-test", "neighbor", func(Entry) (any, bool, error) {
+		return "updated", true, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	entry, found, err = store.Get("busy-test", "neighbor")
+	if err != nil || !found || entry.Value != "updated" || entry.Version != original.Version+1 {
+		t.Fatalf("entry edit did not recover after writer release: %+v found=%v err=%v", entry, found, err)
+	}
+}

@@ -360,7 +360,7 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 				if err := trackedEmit(event); err != nil {
 					return err
 				}
-				progress.observe(event)
+				progress.observe(ctx, event)
 				return nil
 			})
 		}

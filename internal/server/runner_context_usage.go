@@ -55,7 +55,7 @@ type sessionContextUsageRecorder struct {
 	attempt     int
 	limit       int
 	limitSource string
-	frameExists func() (bool, error)
+	frameExists func(context.Context) (bool, error)
 	association *transcriptstore.ContextCallAssociation
 }
 
@@ -76,8 +76,8 @@ func newSessionContextUsageRecorder(s *Server, sessionID string, attempt int, op
 		limit: capacity.Tokens, limitSource: capacity.Source,
 	}
 	if s.workspaceStore != nil {
-		recorder.frameExists = func() (bool, error) {
-			_, found, err := s.workspaceStore.GetFrame(sessionID)
+		recorder.frameExists = func(ctx context.Context) (bool, error) {
+			_, found, err := s.workspaceStore.GetFrameWithContext(ctx, sessionID)
 			return found, err
 		}
 	}
@@ -155,15 +155,11 @@ func (recorder *sessionContextUsageRecorder) beginObservation(kind, model string
 	if recorder == nil {
 		return nil
 	}
-	if recorder.frameExists != nil {
-		found, err := recorder.frameExists()
+	if found, err := recorder.contextFrameExists(context.Background()); err != nil || !found {
 		if err != nil {
 			log.Printf("context_usage_frame_check_failed session=%s: %v", recorder.sessionID, err)
-			return nil
 		}
-		if !found {
-			return nil
-		}
+		return nil
 	}
 	rows, hasMedia, err := estimateRunnerRequestUsage(request)
 	if err != nil {
@@ -240,33 +236,56 @@ func runnerContextFailureKind(callErr error) string {
 	}
 }
 
+func (recorder *sessionContextUsageRecorder) contextFrameExists(ctx context.Context) (bool, error) {
+	if recorder.frameExists == nil {
+		return true, nil
+	}
+	return recorder.frameExists(ctx)
+}
+
+func (recorder *sessionContextUsageRecorder) allowsContextUsageUpdate(entry runtimekv.Entry, snapshot runnerContextUsage, completing bool) (bool, error) {
+	previous, err := decodeRunnerContextUsage(entry)
+	if err != nil && !(errors.Is(err, errLegacyRunnerContextUsage) && !completing) {
+		return false, err
+	}
+	if previous.SessionID != recorder.sessionID {
+		return false, errors.New("context usage record belongs to another session")
+	}
+	// The runtime-store lock orders begins within an attempt. Wall clocks can
+	// move backwards. An update to a begun request must match its identity.
+	if previous.Attempt > snapshot.Attempt ||
+		(completing && (previous.Attempt != snapshot.Attempt || previous.RequestID != snapshot.RequestID)) {
+		return false, nil
+	}
+	if completing && snapshot.State == "request" && previous.State != "request" {
+		return false, nil // A late stream sample cannot reopen a settled request.
+	}
+	return true, nil
+}
+
+func (recorder *sessionContextUsageRecorder) persistProgress(ctx context.Context, snapshot runnerContextUsage) error {
+	// Live progress updates only an existing request, leaving the durable
+	// history untouched. Deletion and settlement share this store's lock.
+	return recorder.store.EditExistingContext(ctx, contextUsageNamespace(recorder.sessionID), "latest", func(entry runtimekv.Entry) (any, bool, error) {
+		if found, err := recorder.contextFrameExists(ctx); err != nil || !found {
+			return nil, false, err
+		}
+		allowed, err := recorder.allowsContextUsageUpdate(entry, snapshot, true)
+		return snapshot, allowed, err
+	})
+}
+
 func (recorder *sessionContextUsageRecorder) persist(snapshot runnerContextUsage, completing bool) error {
 	return recorder.store.EditNamespace(contextUsageNamespace(recorder.sessionID), func(entries map[string]runtimekv.Entry) (bool, error) {
 		// Task deletion commits the frame removal before taking this same
 		// runtime-store lock for scoped cleanup. Checking under the lock means
 		// a pending write either precedes cleanup or observes the removed frame.
-		if recorder.frameExists != nil {
-			found, err := recorder.frameExists()
-			if err != nil || !found {
-				return false, err
-			}
+		if found, err := recorder.contextFrameExists(context.Background()); err != nil || !found {
+			return false, err
 		}
 		if entry, found := entries["latest"]; found {
-			previous, err := decodeRunnerContextUsage(entry)
-			if err != nil && !(errors.Is(err, errLegacyRunnerContextUsage) && !completing) {
+			if allowed, err := recorder.allowsContextUsageUpdate(entry, snapshot, completing); err != nil || !allowed {
 				return false, err
-			}
-			if previous.SessionID != recorder.sessionID {
-				return false, errors.New("context usage record belongs to another session")
-			}
-			// The SQLite namespace lock orders begins within an attempt. Wall
-			// clocks can move backwards and must not fence a newer request.
-			// A completion can update only the exact request it began.
-			if previous.Attempt > snapshot.Attempt || (completing && previous.RequestID != snapshot.RequestID) {
-				return false, nil
-			}
-			if completing && snapshot.State == "request" && previous.State != "request" {
-				return false, nil // A late stream sample cannot reopen a settled request.
 			}
 		} else if completing {
 			return false, nil // Do not recreate a deleted task's operational state.
