@@ -67,7 +67,7 @@ func textToolBoundaryProviderForTest(t *testing.T, prefix, arguments string, nat
 	t.Cleanup(origin.Close)
 	client, err := NewRuntimeModelClient(ModelProfile{
 		Provider: ProviderProfile{ID: "boundary-fixture", Type: "openai", Protocol: ProtocolOpenAICompatible, Endpoint: origin.URL},
-		Model:    "synthetic-boundary-model", APIKey: "synthetic-boundary-key",
+		Model:    "synthetic-boundary-model", APIKey: "fixture-boundary-key",
 		Request: RequestProfile{Timeout: 3 * time.Second, MaxAttempts: 1, MaxResponseBytes: 64 << 10},
 	}, origin.Client(), nil)
 	if err != nil {
