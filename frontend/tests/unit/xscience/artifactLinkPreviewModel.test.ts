@@ -16,6 +16,30 @@ import {
 } from '@/renderer/services/xScienceArtifactReferences';
 
 describe('X-Science artifact link preview model', () => {
+  it.each(['#', '/#', 'http://localhost:8765/#', 'https://untrusted.test/#'])(
+    'preserves the product preview query version from %s without selecting current',
+    (prefix) => {
+      const link = parseXScienceArtifactLink(`${prefix}/artifacts/a%2F1?version=old%2Fv%2B1`);
+      expect(link).toEqual({ kind: 'content', artifactId: 'a/1', versionId: 'old/v+1' });
+      const current = { artifact_id: 'a/1', version_id: 'current' } as IXScienceScientificFile;
+      const index = {
+        byArtifactId: new Map([['a/1', current]]),
+        byVersionId: new Map([['current', current]]),
+        byFilename: new Map(),
+      };
+      expect(
+        resolveXScienceArtifactFile(index, null, null, [], link?.kind === 'content' ? link : undefined)
+      ).toBeNull();
+    }
+  );
+
+  it.each(['', 'old&version=new', 'v%GG', '%20', '%00', 'old#x?version=new'])(
+    'does not silently accept an ambiguous or invalid preview version: %s',
+    (version) => {
+      expect(parseXScienceArtifactLink(`/#/artifacts/a?version=${version}`)).toBeNull();
+    }
+  );
+
   it.each([
     '/api/artifacts/artifact-report/versions/version-report',
     'https://x-science.bio/api/artifacts/artifact-report/versions/version-report?download=1#page=2',

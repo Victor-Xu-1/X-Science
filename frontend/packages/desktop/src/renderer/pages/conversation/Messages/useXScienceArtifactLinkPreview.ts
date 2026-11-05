@@ -183,13 +183,14 @@ export function useXScienceArtifactResolver({
       );
       const versionIds = referenceId && !exactReferenceIsAlreadyIncluded ? [referenceId] : [];
       if (cached || !conversationId || (requestedReferences.length === 0 && versionIds.length === 0)) return cached;
-      const collections = await resolveWindowReferences(requestedReferences, versionIds);
+      const collections = await resolveWindowReferences(requestedReferences, versionIds, 'resolve_link');
       const resolvedCollections =
         collections ??
         (await ipcBridge.conversation.listArtifacts.invoke({
           conversation_id: conversationId,
           references: requestedReferences,
           version_ids: versionIds,
+          intent: 'resolve_link',
         }));
       return resolveXScienceArtifactFile(
         createConversationArtifactIndex(resolvedCollections),
@@ -270,6 +271,7 @@ export function useXScienceArtifactResolver({
         };
         openPreview(content, plan.type, metadata, { presentation: 'board' });
       } catch (error) {
+        if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') return true;
         console.error('[useXScienceArtifactLinkPreview] Failed to preview artifact link:', error);
         Message.error(t('conversation.scientificFiles.loadFailed'));
       }

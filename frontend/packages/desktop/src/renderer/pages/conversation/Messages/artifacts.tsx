@@ -33,7 +33,8 @@ type ConversationArtifactContextValue = {
   syncWindowReferences: (references: ConversationArtifactReference[]) => void;
   resolveWindowReferences: (
     references: ConversationArtifactReference[],
-    referenceIds?: string[]
+    referenceIds?: string[],
+    intent?: 'resolve_link'
   ) => Promise<IConversationArtifact[] | null>;
 };
 
@@ -195,6 +196,10 @@ function isAbortError(error: unknown): boolean {
   return Boolean(error && typeof error === 'object' && 'name' in error && error.name === 'AbortError');
 }
 
+function artifactLinkAbortError(): Error {
+  return Object.assign(new Error('artifact link request superseded'), { name: 'AbortError' });
+}
+
 const compareScientificFileVersions = (left: IXScienceScientificFile, right: IXScienceScientificFile): number => {
   if (left.version_number !== right.version_number) return left.version_number - right.version_number;
   if (left.updated_at !== right.updated_at) return left.updated_at - right.updated_at;
@@ -268,7 +273,8 @@ export const useSyncConversationArtifactWindow = (): ((references: ConversationA
 
 export const useResolveConversationArtifactWindow = (): ((
   references: ConversationArtifactReference[],
-  referenceIds?: string[]
+  referenceIds?: string[],
+  intent?: 'resolve_link'
 ) => Promise<IConversationArtifact[] | null>) => useContext(ConversationArtifactContext).resolveWindowReferences;
 
 export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ conversation_id: string }>> = ({
@@ -281,6 +287,7 @@ export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ co
   const [artifacts, setArtifacts] = useState<IConversationArtifact[]>([]);
   const loadGenerationRef = useRef(0);
   const activeWindowKeyRef = useRef('');
+  const linkScopeRef = useRef({ key: baseSnapshotKey, active: true, requests: new Set<string>() });
   const activeWindowLoadRef = useRef<{
     key: string;
     referenceKeys: Set<string>;
@@ -396,11 +403,33 @@ export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ co
   const resolveWindowReferences = useCallback(
     async (
       rawReferences: ConversationArtifactReference[],
-      rawReferenceIds: string[] = []
+      rawReferenceIds: string[] = [],
+      intent?: 'resolve_link'
     ): Promise<IConversationArtifact[] | null> => {
       const references = normalizeArtifactWindowReferences(rawReferences);
       const referenceIds = rawReferenceIds.map((value) => value.trim()).filter(Boolean);
       if (references.length === 0 && referenceIds.length === 0) return [];
+      if (intent === 'resolve_link') {
+        const scope = linkScopeRef.current;
+        if (!scope.active || scope.key !== baseSnapshotKey) throw artifactLinkAbortError();
+        if (!ownerId || !conversation_id) return null;
+        // Use the existing provider/store owner, with a distinct intent key.
+        // Source links never write working data into the delivery window.
+        const key = JSON.stringify([baseSnapshotKey, intent, references, referenceIds]);
+        scope.requests.add(key);
+        try {
+          const result = await artifactSnapshotStore.ensure(key, (signal) =>
+            ipcBridge.conversation.listArtifacts.invoke(
+              { conversation_id, references, version_ids: referenceIds, intent },
+              signal
+            )
+          );
+          if (!scope.active || linkScopeRef.current !== scope) throw artifactLinkAbortError();
+          return result;
+        } finally {
+          scope.requests.delete(key);
+        }
+      }
       const active = activeWindowLoadRef.current;
       if (!active) return null;
       const belongsToActiveWindow =
@@ -409,10 +438,16 @@ export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ co
         ) && referenceIds.every((value) => active.versionIds.has(value) || active.artifactIds.has(value));
       return belongsToActiveWindow ? active.promise : null;
     },
-    []
+    [baseSnapshotKey, conversation_id, ownerId]
   );
 
   useLayoutEffect(() => {
+    const previous = linkScopeRef.current;
+    if (!previous.active || previous.key !== baseSnapshotKey) {
+      previous.active = false;
+      for (const key of previous.requests) artifactSnapshotStore.cancel(key);
+      linkScopeRef.current = { key: baseSnapshotKey, active: true, requests: new Set() };
+    }
     loadGenerationRef.current += 1;
     activeWindowKeyRef.current = '';
     activeWindowLoadRef.current = null;
@@ -420,7 +455,10 @@ export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ co
   }, [baseSnapshotKey]);
 
   useEffect(() => {
+    const linkScope = linkScopeRef.current;
     return () => {
+      linkScope.active = false;
+      for (const key of linkScope.requests) artifactSnapshotStore.cancel(key);
       loadGenerationRef.current += 1;
       if (activeWindowKeyRef.current) artifactSnapshotStore.cancel(activeWindowKeyRef.current);
       activeWindowLoadRef.current = null;

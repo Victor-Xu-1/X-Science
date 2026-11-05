@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const previewMocks = vi.hoisted(() => ({ openPreview: vi.fn() }));
 const messageMocks = vi.hoisted(() => ({ error: vi.fn() }));
-const ipcMocks = vi.hoisted(() => ({ listArtifacts: vi.fn() }));
+const ipcMocks = vi.hoisted(() => ({ listArtifacts: vi.fn(), window: vi.fn() }));
 let mockConversationArtifacts: IConversationArtifact[] = [];
 
 vi.mock('@/common', async (importOriginal) => {
@@ -49,6 +49,7 @@ vi.mock('@/renderer/pages/conversation/Messages/artifacts', async (importOrigina
   return {
     ...actual,
     useConversationArtifactIndex: () => actual.createConversationArtifactIndex(mockConversationArtifacts),
+    useResolveConversationArtifactWindow: () => ipcMocks.window,
   };
 });
 
@@ -58,6 +59,7 @@ describe('useXScienceArtifactLinkPreview', () => {
     messageMocks.error.mockReset();
     ipcMocks.listArtifacts.mockReset();
     ipcMocks.listArtifacts.mockResolvedValue([]);
+    ipcMocks.window.mockReset().mockResolvedValue(null);
     mockConversationArtifacts = [];
   });
 
@@ -105,6 +107,7 @@ describe('useXScienceArtifactLinkPreview', () => {
       conversation_id: 'frame-report',
       references: [{ artifact_id: 'artifact-report', version_id: 'version-report' }],
       version_ids: [],
+      intent: 'resolve_link',
     });
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith('/api/artifacts/artifact-report/versions/version-report', {
       headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
@@ -202,6 +205,7 @@ describe('useXScienceArtifactLinkPreview', () => {
         conversation_id: 'frame-report',
         references: [reference],
         version_ids: [],
+        intent: 'resolve_link',
       });
       expect(fetchMock).toHaveBeenCalledExactlyOnceWith(contentUrl, {
         headers: { accept: X_SCIENCE_TEXT_ACCEPT_HEADER },
@@ -328,6 +332,7 @@ describe('useXScienceArtifactLinkPreview', () => {
       conversation_id: 'frame-report',
       references: [reference],
       version_ids: [],
+      intent: 'resolve_link',
     });
     expect(previewMocks.openPreview).toHaveBeenCalledWith(
       previous.content_url,
@@ -335,6 +340,35 @@ describe('useXScienceArtifactLinkPreview', () => {
       expect.objectContaining({ artifactId: 'artifact-report', versionId: 'version-old' }),
       { presentation: 'board' }
     );
+  });
+
+  it('resolves an exact source link independently of delivery hydration and never substitutes current', async () => {
+    const previous = scientificFile({ artifact_id: 'source', version_id: 'old', filename: 'source.txt' });
+    const current = scientificFile({ ...previous, version_id: 'current', version_number: 2 });
+    mockConversationArtifacts = [{ kind: 'scientific_files', payload: { files: [current] } } as IConversationArtifact];
+    ipcMocks.window.mockImplementation(async (_references, _versionIds, intent) =>
+      intent === 'resolve_link' ? null : []
+    );
+    ipcMocks.listArtifacts.mockResolvedValue([{ kind: 'scientific_files', payload: { files: [previous] } }]);
+    const { result } = renderHook(() =>
+      useXScienceArtifactResolver({ conversationId: 'frame-source', workspace: 'x-science://project-source' })
+    );
+    const href = '/#/artifacts/source?version=old';
+    await expect(result.current.resolveLinkHref(href)).resolves.toBe(previous.content_url);
+    expect(ipcMocks.listArtifacts).toHaveBeenCalledExactlyOnceWith({
+      conversation_id: 'frame-source',
+      references: [{ artifact_id: 'source', version_id: 'old' }],
+      version_ids: [],
+      intent: 'resolve_link',
+    });
+    expect(ipcMocks.window).toHaveBeenCalledExactlyOnceWith(
+      [{ artifact_id: 'source', version_id: 'old' }],
+      [],
+      'resolve_link'
+    );
+    ipcMocks.listArtifacts.mockResolvedValue([]);
+    await expect(result.current.resolveLinkHref(href)).resolves.toBeNull();
+    expect(previewMocks.openPreview).not.toHaveBeenCalled();
   });
 
   it('keeps artifact metadata request failures inside the preview workflow', async () => {
@@ -576,6 +610,7 @@ describe('useXScienceArtifactLinkPreview', () => {
       conversation_id: 'frame-history',
       references: [],
       version_ids: [versionId],
+      intent: 'resolve_link',
     });
     expect(previewMocks.openPreview).toHaveBeenCalledWith(
       '# Historical report',
@@ -628,6 +663,7 @@ describe('useXScienceArtifactLinkPreview', () => {
       conversation_id: 'frame-window',
       references: [reference],
       version_ids: [],
+      intent: 'resolve_link',
     });
   });
 

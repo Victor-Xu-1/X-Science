@@ -53,28 +53,51 @@ function decodeArtifactPathIdentity(segment: string): string | null {
   }
 }
 
+function artifactQueryVersion(query: string): string | null | undefined {
+  let version: string | undefined;
+  for (const parameter of query.split('&')) {
+    const equals = parameter.indexOf('=');
+    const key = equals < 0 ? parameter : parameter.slice(0, equals);
+    let name: string;
+    try {
+      name = decodeURIComponent(key.replace(/\+/g, ' '));
+    } catch {
+      return null;
+    }
+    if (name !== 'version') continue;
+    if (version !== undefined) return null;
+    const value = decodeArtifactPathIdentity((equals < 0 ? '' : parameter.slice(equals + 1)).replace(/\+/g, ' '));
+    if (value === null) return null;
+    version = value;
+  }
+  return version;
+}
+
 /** Model URLs supply identities, never a trusted origin or a fetch destination. */
 export function parseXScienceArtifactLink(rawHref: string): XScienceArtifactLink | null {
   const referenceId = getXScienceArtifactReferenceId(rawHref);
   if (referenceId) return { kind: 'reference', referenceId };
 
   const href = rawHref.trim();
-  let pathname: string | undefined;
+  let route: string | undefined;
   if (!href.includes('\\') && !Array.from(href).some((character) => character.charCodeAt(0) <= 0x20)) {
     if (href.startsWith('/api/')) {
-      pathname = href.split(/[?#]/, 1)[0];
+      route = href.split('#', 1)[0];
     } else if (href.startsWith('#/artifacts/') || href.startsWith('/#/artifacts/')) {
-      pathname = `/api${href.slice(href.indexOf('#') + 1).split(/[?#]/, 1)[0]}`;
+      route = `/api${href.slice(href.indexOf('#') + 1)}`;
+      if (route.includes('#')) return null;
     } else if (/^https?:\/\//i.test(href)) {
       try {
         const url = new URL(href);
         if (!url.username && !url.password) {
           // Inspect the original path: URL.pathname has already normalized dot segments.
-          pathname = /^https?:\/\/[^/?#]+([^?#]*)/i.exec(href)?.[1];
+          const pathname = /^https?:\/\/[^/?#]+([^?#]*)/i.exec(href)?.[1];
+          route = `${pathname ?? '/'}${url.search}`;
           if ((!pathname || pathname === '/') && url.hash.startsWith('#/artifacts/')) {
             // A workbench route supplies the same untrusted identity as an API
             // link. Never fetch its origin or turn it into external navigation.
-            pathname = `/api${url.hash.slice(1).split(/[?#]/, 1)[0]}`;
+            route = `/api${url.hash.slice(1)}`;
+            if (route.includes('#')) return null;
           }
         }
       } catch {
@@ -82,11 +105,16 @@ export function parseXScienceArtifactLink(rawHref: string): XScienceArtifactLink
       }
     }
   }
+  const question = route?.indexOf('?') ?? -1;
+  const pathname = question < 0 ? route : route?.slice(0, question);
   const content = /^\/api\/artifacts\/([^/]+)(?:\/versions\/([^/]+))?$/.exec(pathname ?? '');
   if (content) {
     const artifactId = decodeArtifactPathIdentity(content[1]);
-    const versionId = content[2] ? decodeArtifactPathIdentity(content[2]) : undefined;
-    if (artifactId === null || versionId === null) return null;
+    const pathVersion = content[2] ? decodeArtifactPathIdentity(content[2]) : undefined;
+    const queryVersion = artifactQueryVersion(question < 0 ? '' : (route?.slice(question + 1) ?? ''));
+    if (artifactId === null || pathVersion === null || queryVersion === null) return null;
+    if (pathVersion && queryVersion && pathVersion !== queryVersion) return null;
+    const versionId = pathVersion ?? queryVersion;
     return { kind: 'content', artifactId, ...(versionId ? { versionId } : {}) };
   }
 
