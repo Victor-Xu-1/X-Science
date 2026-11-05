@@ -18,6 +18,7 @@ import React, { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const bridgeMocks = vi.hoisted(() => ({ invoke: vi.fn() }));
+let mockOwnerId = 'owner-a';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -28,7 +29,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'owner-a', username: 'victor' } }),
+  useAuth: () => ({ user: { id: mockOwnerId, username: 'victor' } }),
 }));
 
 const ArtifactProbe = () => {
@@ -61,6 +62,14 @@ const WindowVersionResolverProbe: React.FC<{ versionId: string }> = ({ versionId
   return null;
 };
 
+const ResolverCapture: React.FC<{
+  capture: (resolve: ReturnType<typeof useResolveConversationArtifactWindow>) => void;
+}> = ({ capture }) => {
+  const resolve = useResolveConversationArtifactWindow();
+  useEffect(() => capture(resolve), [capture, resolve]);
+  return null;
+};
+
 const ArtifactIndexProbe: React.FC<{
   name: string;
   capture: (name: string, index: ConversationArtifactIndex) => void;
@@ -73,6 +82,7 @@ const ArtifactIndexProbe: React.FC<{
 describe('ConversationArtifactProvider', () => {
   beforeEach(() => {
     bridgeMocks.invoke.mockReset();
+    mockOwnerId = 'owner-a';
   });
 
   it('does not enumerate conversation artifacts and requests only exact visible message references', async () => {
@@ -213,6 +223,99 @@ describe('ConversationArtifactProvider', () => {
     await waitFor(() => expect(indexes.get('first')?.byVersionId.has('version-shared')).toBe(true));
     expect(indexes.get('first')).toBe(indexes.get('second'));
     expect(indexes.get('first')?.byVersionId.get('version-shared')?.filename).toBe('result.csv');
+  });
+
+  it('partitions link intent from delivery empty results and deduplicates in the existing store', async () => {
+    const pending = deferred<IConversationArtifact[]>();
+    bridgeMocks.invoke.mockImplementation((request) =>
+      request.intent === 'resolve_link' ? pending.promise : Promise.resolve([])
+    );
+    const references = [{ artifact_id: 'source-intent', version_id: 'source-old' }];
+    let resolve!: ReturnType<typeof useResolveConversationArtifactWindow>;
+    const capture = (value: typeof resolve) => {
+      resolve = value;
+    };
+    render(
+      <ConversationArtifactProvider conversation_id='conversation-link-intent'>
+        <WindowProbe references={references} />
+        <ResolverCapture capture={capture} />
+        <ArtifactProbe />
+      </ConversationArtifactProvider>
+    );
+    await waitFor(() => expect(bridgeMocks.invoke).toHaveBeenCalledTimes(1));
+    let first!: Promise<IConversationArtifact[] | null>;
+    let second!: Promise<IConversationArtifact[] | null>;
+    act(() => {
+      first = resolve(references, [], 'resolve_link');
+      second = resolve(references, [], 'resolve_link');
+    });
+    expect(bridgeMocks.invoke).toHaveBeenCalledTimes(2);
+    expect(bridgeMocks.invoke.mock.calls[1]?.[0]).toEqual({
+      conversation_id: 'conversation-link-intent',
+      references,
+      version_ids: [],
+      intent: 'resolve_link',
+    });
+    const sources = [scientificCollection('conversation-link-intent', 'source-old', 'source-intent')];
+    await act(async () => pending.resolve(sources));
+    await expect(first).resolves.toEqual(sources);
+    await expect(second).resolves.toEqual(sources);
+    await expect(resolve(references, [], 'resolve_link')).resolves.toEqual(sources);
+    await expect(resolve(references)).resolves.toEqual([]);
+    expect(bridgeMocks.invoke).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('artifact-versions')).toBeEmptyDOMElement();
+  });
+
+  it.each(['conversation', 'owner'])(
+    'aborts link requests and rejects late responses after %s changes',
+    async (change) => {
+      const pending = deferred<IConversationArtifact[]>();
+      bridgeMocks.invoke.mockReturnValueOnce(pending.promise).mockResolvedValue([]);
+      const references = [{ artifact_id: 'scope-source', version_id: 'scope-old' }];
+      let resolve!: ReturnType<typeof useResolveConversationArtifactWindow>;
+      const capture = (value: typeof resolve) => {
+        resolve = value;
+      };
+      const view = (conversation: string) => (
+        <ConversationArtifactProvider conversation_id={conversation}>
+          <ResolverCapture capture={capture} />
+          <ArtifactProbe />
+        </ConversationArtifactProvider>
+      );
+      const id = 'conversation-link-scope-' + change;
+      const rendered = render(view(id));
+      const old = resolve(references, [], 'resolve_link').then(
+        () => 'unexpected result',
+        (error) => error.name
+      );
+      const signal = bridgeMocks.invoke.mock.calls[0]?.[1] as AbortSignal;
+      if (change === 'owner') mockOwnerId = 'owner-b';
+      rendered.rerender(view(change === 'conversation' ? id + '-next' : id));
+      expect(signal.aborted).toBe(true);
+      await expect(resolve(references, [], 'resolve_link')).resolves.toEqual([]);
+      await act(async () => pending.resolve([scientificCollection(id, 'scope-old', 'scope-source')]));
+      await expect(old).resolves.toBe('AbortError');
+      expect(screen.getByTestId('artifact-versions')).toBeEmptyDOMElement();
+    }
+  );
+
+  it('keeps the link request owner live after a StrictMode effect replay', async () => {
+    bridgeMocks.invoke.mockResolvedValue([]);
+    let resolve!: ReturnType<typeof useResolveConversationArtifactWindow>;
+    const capture = (value: typeof resolve) => {
+      resolve = value;
+    };
+    render(
+      <React.StrictMode>
+        <ConversationArtifactProvider conversation_id='conversation-link-strict'>
+          <ResolverCapture capture={capture} />
+        </ConversationArtifactProvider>
+      </React.StrictMode>
+    );
+    await expect(
+      resolve([{ artifact_id: 'source-strict', version_id: 'version-strict' }], [], 'resolve_link')
+    ).resolves.toEqual([]);
+    expect(bridgeMocks.invoke).toHaveBeenCalledTimes(1);
   });
 });
 

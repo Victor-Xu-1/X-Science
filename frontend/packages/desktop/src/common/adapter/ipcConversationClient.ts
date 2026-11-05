@@ -171,13 +171,18 @@ export function requestConversationArtifacts(
     conversation_id: string;
     references: ConversationArtifactReference[];
     version_ids?: string[];
+    intent?: 'resolve_link';
   },
   signal?: AbortSignal
 ): Promise<IConversationArtifact[]> {
   return httpRequest(
     'POST',
     `/api/conversations/${encodeURIComponent(params.conversation_id)}/artifacts`,
-    { references: params.references, version_ids: params.version_ids },
+    {
+      references: params.references,
+      version_ids: params.version_ids,
+      ...(params.intent ? { intent: params.intent } : {}),
+    },
     { timeoutMs: 15_000, signal }
   );
 }

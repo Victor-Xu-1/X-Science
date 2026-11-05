@@ -125,7 +125,7 @@ func (s *Store) ListCompatibilityConversationArtifactVersionsByReferences(
 
 // ListAvailableCompatibilityConversationArtifactVersionsByReferences resolves
 // the owned subset of a batch. It is used by historical message rendering,
-// where a deleted or superseded reference must not prevent still-valid links
+// where a deleted or content-pruned reference must not prevent still-valid links
 // from loading. Scope checks remain in the SQL join, so foreign references are
 // indistinguishable from missing references and are never returned.
 func (s *Store) ListAvailableCompatibilityConversationArtifactVersionsByReferences(
@@ -186,6 +186,10 @@ func (s *Store) listCompatibilityConversationArtifactVersionsByReferences(
 		arguments = append(arguments, index, reference.ArtifactID, reference.VersionID)
 	}
 	arguments = append(arguments, ownerUserID, projectID, rootFrameID)
+	contentAvailable := ""
+	if !requireComplete {
+		contentAvailable = " AND v.content_available=1"
+	}
 	query := `WITH requested(ordinal, artifact_id, version_id) AS (VALUES ` + strings.Join(values, ",") + `),` + compatibilityInheritedArtifactCTE + `
 		SELECT a.id, v.id, v.version_number, a.project_id,
 			m.root_frame_id, COALESCE(NULLIF(m.frame_id, ''), p.frame_id),
@@ -211,7 +215,7 @@ func (s *Store) listCompatibilityConversationArtifactVersionsByReferences(
 		LEFT JOIN artifact_version_provenance p ON p.version_id = v.id
 		CROSS JOIN artifact_scope scope
 		WHERE project.user_id = scope.owner_id AND a.project_id = scope.project_id
-			AND (m.root_frame_id = scope.frame_id OR ` + compatibilityInheritedVersionMatch + `)
+			AND (m.root_frame_id = scope.frame_id OR ` + compatibilityInheritedVersionMatch + `)` + contentAvailable + `
 		ORDER BY requested.ordinal`
 	rows, err := s.db.QueryContext(ctx, query, arguments...)
 	if err != nil {

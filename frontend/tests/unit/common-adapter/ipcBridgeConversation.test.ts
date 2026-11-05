@@ -169,6 +169,18 @@ describe('ipcBridge conversation adapter', () => {
     );
   });
 
+  it('preserves explicit link-resolution intent on the existing bounded artifact request', async () => {
+    const { requestConversationArtifacts } = await import('@/common/adapter/ipcBridge');
+    const references = [{ artifact_id: 'source', version_id: 'old-source' }];
+    await requestConversationArtifacts({ conversation_id: 'frame-source', references, intent: 'resolve_link' });
+    expect(httpBridgeMocks.httpRequest).toHaveBeenCalledWith(
+      'POST',
+      '/api/conversations/frame-source/artifacts',
+      { references, intent: 'resolve_link' },
+      { timeoutMs: 15_000, signal: undefined }
+    );
+  });
+
   it('deletes conversations through the standard conversation endpoint', async () => {
     const { conversation } = await import('@/common/adapter/ipcBridge');
 

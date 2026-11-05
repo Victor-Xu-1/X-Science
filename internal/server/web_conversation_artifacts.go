@@ -32,9 +32,11 @@ func (s *Server) handleWebConversationArtifacts(
 	var input struct {
 		References []webConversationArtifactReference `json:"references"`
 		VersionIDs []string                           `json:"version_ids"`
+		Intent     string                             `json:"intent,omitempty"`
 	}
 	if err := decodeWebConversationJSON(w, r, &input); err != nil ||
-		len(input.References)+len(input.VersionIDs) > 400 {
+		len(input.References)+len(input.VersionIDs) > 400 ||
+		(input.Intent != "" && input.Intent != "resolve_link") {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid artifact reference batch"})
 		return
 	}
@@ -77,7 +79,10 @@ func (s *Server) handleWebConversationArtifacts(
 	}
 	files := make([]map[string]any, 0, len(artifacts))
 	for _, artifact := range artifacts {
-		if isRunnerLargeToolResultArtifactID(artifact.ID) || artifact.RetentionMode == "working_data" {
+		// Default hydration remains a delivery list. Explicit links may resolve
+		// available source data through the same scoped immutable-pair authority.
+		if isRunnerLargeToolResultArtifactID(artifact.ID) ||
+			(artifact.RetentionMode == "working_data" && input.Intent != "resolve_link") {
 			continue
 		}
 		files = append(files, webScientificFile(artifact))
