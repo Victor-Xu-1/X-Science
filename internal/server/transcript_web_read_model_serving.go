@@ -88,6 +88,7 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 			ctx, ownerID, stream.UID, snapshot.BranchID,
 		); catchupErr == nil || errors.Is(catchupErr, transcriptstore.ErrBranchStateStale) ||
 			errors.Is(catchupErr, transcriptstore.ErrTranscriptWebProjectionStale) {
+			noteTranscriptWebReadStage(ctx, webReadFence)
 			fence, err = s.transcriptWebReadModel.GetTranscriptWebProjectionFence(
 				ctx, ownerID, stream.UID, snapshot.BranchID,
 			)
