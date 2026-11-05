@@ -22,8 +22,7 @@ type failedToolCallGuard struct {
 	nonRetryablePartialEpoch  map[string]uint64
 	blockedSourceDestinations map[string]string
 	executionFailures         ExecutionFailureLedger
-	transientSourceAttempts   map[string]int
-	transientSourceEpoch      map[string]uint64
+	sourceFailures            transientSourceFailureBudget
 	toolCapabilities          map[string][]string
 	mutationEpoch             uint64
 }
@@ -32,7 +31,7 @@ const maxNonRetryablePartialAttempts = 2
 
 // A source connector may legitimately be unavailable for a short interval,
 // but changing the query does not repair an unavailable upstream. Bound the
-// connector-level retry budget so a scientific task records the evidence gap
+// source-level retry budget so a scientific task records the evidence gap
 // and continues with the successful subset instead of looping forever.
 const maxTransientSourceUnavailableAttempts = 3
 
@@ -104,8 +103,6 @@ func newFailedToolCallGuard(next ToolGateway, schemas ...ToolSchema) ToolGateway
 		nonRetryablePartialCalls:  make(map[string]int),
 		nonRetryablePartialEpoch:  make(map[string]uint64),
 		blockedSourceDestinations: make(map[string]string),
-		transientSourceAttempts:   make(map[string]int),
-		transientSourceEpoch:      make(map[string]uint64),
 		toolCapabilities:          make(map[string][]string),
 	}
 	guard.updateToolSchemas(schemas)
@@ -164,6 +161,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	executionTool := executionFailureTool(toolName, toolCapabilities)
 	fingerprint := failedToolCallFingerprint(executionCall)
 	sourceDestination := failedToolCallSourceDestination(executionCall, toolCapabilities)
+	submittedSource := transientSourceFailureIdentityFor(executionCall, toolCapabilities)
 	g.mu.Lock()
 	failedEpoch, repeated := g.failedCallMutationEpoch[fingerprint]
 	repeatedWithoutMutation := repeated && failedEpoch == g.mutationEpoch
@@ -175,11 +173,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	if partialTracked && partialEpoch == g.mutationEpoch {
 		nonRetryablePartialAttempts = g.nonRetryablePartialCalls[fingerprint]
 	}
-	transientSourceBucket := transientSourceFailureBucket(toolName, toolCapabilities)
-	transientSourceAttempts := 0
-	if transientSourceBucket != "" && g.transientSourceEpoch[transientSourceBucket] == g.mutationEpoch {
-		transientSourceAttempts = g.transientSourceAttempts[transientSourceBucket]
-	}
+	transientSourceAttempts := g.sourceFailures.attempts(submittedSource, g.mutationEpoch)
 	executionBoundary := g.executionFailures.Boundary(executionCall)
 	g.mu.Unlock()
 	if executionBoundary != nil {
@@ -225,7 +219,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	if transientSourceAttempts >= maxTransientSourceUnavailableAttempts {
 		return failedToolCallGuardBoundary(map[string]any{
 			"ok": false, "code": "source_unavailable_retry_exhausted", "tool": toolName,
-			"error":     "the same source connector remained unavailable after its bounded retry budget",
+			"error":     "the same source remained unavailable after its bounded retry budget",
 			"retryable": false, "attempts": transientSourceAttempts,
 			"max_attempts": maxTransientSourceUnavailableAttempts,
 			"recovery":     "record_the_source_gap_and_continue_with_successful_evidence_or_a_materially_different_authoritative_source",
@@ -240,6 +234,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		fingerprint = failedToolCallFingerprint(executionCall)
 		sourceDestination = failedToolCallSourceDestination(executionCall, toolCapabilities)
 	}
+	executedSource := transientSourceFailureIdentityFor(executionCall, toolCapabilities)
 	// A trusted Materialized result is an immutable durable protocol value.
 	// The guard may update its private retry budget from that value, but it must
 	// not append attempts/recovery fields to result.Value after the host has
@@ -286,14 +281,9 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 			value["retryable"] = true
 			value["recovery"] = "retry_the_same_call_after_the_runtime_or_upstream_recovers"
 		}
-		if transientSourceBucket != "" && isRetryableSourceUnavailable(result.Value) {
+		if executedSource.bucket != "" && !ToolResultDidNotExecute(result.Value) && isRetryableSourceUnavailable(result.Value) {
 			g.mu.Lock()
-			if g.transientSourceEpoch[transientSourceBucket] != g.mutationEpoch {
-				g.transientSourceAttempts[transientSourceBucket] = 0
-				g.transientSourceEpoch[transientSourceBucket] = g.mutationEpoch
-			}
-			g.transientSourceAttempts[transientSourceBucket]++
-			attempts := g.transientSourceAttempts[transientSourceBucket]
+			attempts := g.sourceFailures.failed(submittedSource, executedSource, g.mutationEpoch)
 			g.mu.Unlock()
 			if attempts >= maxTransientSourceUnavailableAttempts {
 				if value, ok := result.Value.(map[string]any); ok && mutableEnvelope {
@@ -350,9 +340,8 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		delete(g.nonRetryablePartialEpoch, fingerprint)
 		delete(g.failedCallMutationEpoch, fingerprint)
 		delete(g.nonProgressingCalls, fingerprint)
-		if transientSourceBucket != "" {
-			delete(g.transientSourceAttempts, transientSourceBucket)
-			delete(g.transientSourceEpoch, transientSourceBucket)
+		if !ToolResultDidNotExecute(result.Value) {
+			g.sourceFailures.succeeded(submittedSource, executedSource)
 		}
 	}
 	return result, nil
@@ -548,7 +537,7 @@ func isRetryableSourceUnavailable(value any) bool {
 	return false
 }
 
-func transientSourceFailureBucket(toolName string, capabilities []string) string {
+func transientSourceConnectorBucket(toolName string, capabilities []string) string {
 	normalized := strings.ToLower(strings.TrimSpace(toolName))
 	if strings.HasPrefix(normalized, "mcp__") {
 		parts := strings.Split(normalized, "__")
@@ -603,6 +592,21 @@ func ExecutionCallFingerprint(toolName string, arguments json.RawMessage) string
 }
 
 func failedToolCallSourceDestination(call ToolCall, capabilities []string) string {
+	rawURL := failedToolCallSourceURL(call, capabilities)
+	if rawURL == "" {
+		return ""
+	}
+	identity := rawURL
+	if parsed, parseErr := url.Parse(identity); parseErr == nil {
+		parsed.Fragment = ""
+		identity = parsed.String()
+	}
+	return strings.ToLower(strings.TrimSpace(call.Name)) + "\x00" + identity
+}
+
+// Only a locator execution's URL is a source identity. A search/research
+// argument may contain unrelated URLs without changing its connector authority.
+func failedToolCallSourceURL(call ToolCall, capabilities []string) string {
 	name := strings.ToLower(strings.TrimSpace(call.Name))
 	sourceDestinationTool := toolCapabilitySetContainsAny(capabilities, "source-locator-read", "source-download")
 	if len(capabilities) == 0 {
@@ -619,12 +623,7 @@ func failedToolCallSourceDestination(call ToolCall, capabilities []string) strin
 	if !ok || strings.TrimSpace(rawURL) == "" {
 		return ""
 	}
-	identity := strings.TrimSpace(rawURL)
-	if parsed, parseErr := url.Parse(identity); parseErr == nil {
-		parsed.Fragment = ""
-		identity = parsed.String()
-	}
-	return name + "\x00" + identity
+	return strings.TrimSpace(rawURL)
 }
 
 func toolCapabilitySetContainsAny(capabilities []string, wanted ...string) bool {
