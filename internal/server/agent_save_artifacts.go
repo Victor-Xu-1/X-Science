@@ -221,7 +221,27 @@ func (s *Server) executeAgentSaveArtifacts(
 			failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
 			continue
 		}
-		normalizedReferences, normalizationErr := s.normalizeAgentSavedArtifactReferences(ctx, snapshot, relativePath, stream.ProjectID)
+		artifactID := agentSavedArtifactID(stream.UID, relativePath)
+		currentArtifact, currentVersion, found, lookupErr := s.workspaceStore.GetCurrentArtifactVersionMetadata(artifactID)
+		if lookupErr != nil {
+			_ = snapshot.Close()
+			_ = os.Remove(snapshotPath)
+			return nil, errors.New("save_artifacts current publication could not be read")
+		}
+		retention := strings.TrimSpace(request.Destination[relativePath])
+		if retention == "" && found && currentArtifact.ProjectID == stream.ProjectID {
+			if storedMode, modeFound, modeErr := s.workspaceStore.ArtifactRetentionMode(currentArtifact.ID); modeErr != nil {
+				_ = snapshot.Close()
+				_ = os.Remove(snapshotPath)
+				return nil, modeErr
+			} else if modeFound {
+				retention = storedMode
+			}
+		}
+		if retention == "" {
+			retention = "snapshot"
+		}
+		normalizedReferences, normalizationErr := s.prepareAgentSavedArtifactReportBytes(ctx, relativePath, stream.ProjectID, retention, snapshot)
 		if normalizationErr != nil {
 			_ = snapshot.Close()
 			_ = os.Remove(snapshotPath)
@@ -236,12 +256,6 @@ func (s *Server) executeAgentSaveArtifacts(
 				failures = append(failures, agentSaveArtifactFailure(relativePath, normalizationErr))
 				continue
 			}
-		}
-		if validationErr := validateAgentSavedArtifactTemplates(ctx, relativePath, snapshot); validationErr != nil {
-			_ = snapshot.Close()
-			_ = os.Remove(snapshotPath)
-			failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
-			continue
 		}
 		if validationErr := validateAgentSavedArtifactJSON(ctx, relativePath, snapshot); validationErr != nil {
 			_ = snapshot.Close()
@@ -339,27 +353,6 @@ func (s *Server) executeAgentSaveArtifacts(
 				warnings = append(warnings, warning)
 			}
 		}
-		artifactID := agentSavedArtifactID(stream.UID, relativePath)
-		currentArtifact, currentVersion, found, lookupErr := s.workspaceStore.GetCurrentArtifactVersionMetadata(artifactID)
-		if lookupErr != nil {
-			_ = snapshot.Close()
-			_ = os.Remove(snapshotPath)
-			return nil, errors.New("save_artifacts current publication could not be read")
-		}
-		retention := strings.TrimSpace(request.Destination[relativePath])
-		if retention == "" && found && currentArtifact.ProjectID == stream.ProjectID {
-			if storedMode, modeFound, modeErr := s.workspaceStore.ArtifactRetentionMode(currentArtifact.ID); modeErr != nil {
-				_ = snapshot.Close()
-				_ = os.Remove(snapshotPath)
-				return nil, modeErr
-			} else if modeFound {
-				retention = storedMode
-			}
-		}
-		if retention == "" {
-			retention = "snapshot"
-		}
-
 		mutationDigest := sha256.Sum256([]byte(fmt.Sprintf(
 			"save-artifacts:%s:%d:%s:%d:%s", stream.UID, run.SourceEventID, toolCallID, index, relativePath,
 		)))

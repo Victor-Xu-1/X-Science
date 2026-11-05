@@ -17,8 +17,9 @@ import (
 )
 
 type runnerArtifactScanInput struct {
-	name string
-	open func() (workspace.ArtifactContentReader, error)
+	name                string
+	skipReportSemantics bool
+	open                func() (workspace.ArtifactContentReader, error)
 }
 
 func (s *Server) runnerArtifactScanInput(name, versionID, projectID string) runnerArtifactScanInput {
