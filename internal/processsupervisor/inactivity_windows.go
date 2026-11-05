@@ -43,7 +43,7 @@ func readWindowsProcessActivity(pid int) (processActivityIdentity, processActivi
 	if pid <= 0 {
 		return processActivityIdentity{}, processActivityCounters{}, false
 	}
-	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION|windows.SYNCHRONIZE, false, uint32(pid))
 	if err != nil {
 		return processActivityIdentity{}, processActivityCounters{}, false
 	}
@@ -62,6 +62,12 @@ func readWindowsProcessActivity(pid int) (processActivityIdentity, processActivi
 	if result != 0 {
 		ioTotal = ioCounters.readOperations + ioCounters.writeOperations + ioCounters.otherOperations +
 			ioCounters.readTransferred + ioCounters.writeTransferred + ioCounters.otherTransferred
+	}
+	// Process times and counters are still readable after exit while any
+	// handle is open. Only an unsignaled process object is a live sample.
+	status, err := windows.WaitForSingleObject(handle, 0)
+	if err != nil || status != uint32(windows.WAIT_TIMEOUT) {
+		return processActivityIdentity{}, processActivityCounters{}, false
 	}
 	return processActivityIdentity{PID: pid, StartTicks: createdTicks}, processActivityCounters{
 		CPU: windowsFiletimeTicks(kernel) + windowsFiletimeTicks(user),
