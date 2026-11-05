@@ -879,6 +879,9 @@ func (s *Server) publishTranscriptTerminal(
 	if projection.Purpose == transcriptstore.ContextCompactionPurpose {
 		return nil
 	}
+	if projection.RetainsFinalResponse {
+		messageID = transcriptWebRetainedResponseNoticeID(messageID, projection.EventID)
+	}
 	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(projection.ArtifactReferences))
 	if projection.TerminalStatus == "completed" && !projection.Superseded {
 		rounds, err := s.transcriptStore.CompletedRoundArtifactReferences(ctx, projection.StreamUID, projection.OwnerID, []int64{projection.Attempt})

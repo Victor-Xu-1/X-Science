@@ -216,10 +216,63 @@ func terminalProjectionHeader(
 		return TerminalProjection{}, err
 	}
 	var value map[string]any
-	if json.Unmarshal(payload, &value) == nil && IsContextCompactionTerminal(value) {
-		projection.Purpose = ContextCompactionPurpose
+	if json.Unmarshal(payload, &value) == nil {
+		if IsContextCompactionTerminal(value) {
+			projection.Purpose = ContextCompactionPurpose
+		}
+		if assistantID := RetainedFinalResponseID(value); assistantID != "" {
+			var assistantRaw []byte
+			err := queryer.QueryRowContext(ctx, `
+				SELECT assistant.payload_json
+				FROM transcript_events assistant
+				WHERE assistant.stream_uid=? AND assistant.runner_attempt=?
+				  AND assistant.client_message_id=? AND assistant.event_type='assistant_message'
+				  AND assistant.source='payload' AND assistant.publication_seq<?
+				  AND EXISTS (
+				    SELECT 1 FROM transcript_branch_events a JOIN transcript_branch_events t
+				      ON t.stream_uid=a.stream_uid AND t.branch_id=a.branch_id
+				    WHERE a.stream_uid=assistant.stream_uid AND a.event_id=assistant.event_id AND t.event_id=?
+				  )`, streamUID, projection.Attempt, assistantID, projection.PublicationSeq, eventID).Scan(&assistantRaw)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return TerminalProjection{}, ErrEventConflict
+				}
+				return TerminalProjection{}, err
+			}
+			if !matchesRetainedFinalResponse(value, assistantRaw) {
+				return TerminalProjection{}, ErrEventConflict
+			}
+			projection.RetainsFinalResponse = true
+		}
 	}
 	return projection, nil
+}
+
+const RunnerCleanupFailedReason = "runner_cleanup_failed"
+
+// RetainedFinalResponseID is the server-authored link to the exact accepted
+// assistant event. A cleanup reason by itself does not identify a retained reply.
+func RetainedFinalResponseID(payload map[string]any) string {
+	if payload["status"] != "failed" || payload["reason_code"] != RunnerCleanupFailedReason {
+		return ""
+	}
+	id, _ := payload["retained_final_response_id"].(string)
+	if strings.TrimSpace(id) != id {
+		return ""
+	}
+	return id
+}
+
+func matchesRetainedFinalResponse(terminal map[string]any, assistantRaw []byte) bool {
+	var assistant map[string]any
+	if json.Unmarshal(assistantRaw, &assistant) != nil {
+		return false
+	}
+	text, _ := assistant["text"].(string)
+	left, leftPresent, leftErr := ParseAssistantSegmentV1(assistant)
+	right, rightPresent, rightErr := ParseAssistantSegmentV1(terminal)
+	return strings.TrimSpace(text) != "" && leftErr == nil && rightErr == nil &&
+		leftPresent && rightPresent && left == right
 }
 
 // MapTerminalStatus is the single server-side mapping from durable runner

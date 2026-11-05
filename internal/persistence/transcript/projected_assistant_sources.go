@@ -14,13 +14,14 @@ type ProjectedAssistantSourceRange struct {
 
 // These are read-only source events, not a persisted rendering permission.
 type ProjectedAssistantSource struct {
-	RecordIndex int
-	Assistant   Event
-	Terminal    Event
+	RecordIndex                 int
+	Assistant                   Event
+	Terminal                    Event
+	RetainedAfterCleanupFailure bool
 }
 
 // ListProjectedAssistantSources reads only the requested page ranges. A real
-// completed receipt and the branch's last assistant segment must close each
+// completed or cleanup-retention receipt and the branch's last assistant segment must close each
 // range; arbitrary progress, imported bodies and ID-looking text cannot qualify.
 func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner string, expected ProjectionSnapshot, ranges []ProjectedAssistantSourceRange) ([]ProjectedAssistantSource, error) {
 	db := r.readDatabase()
@@ -65,15 +66,18 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 		JOIN transcript_events terminal ON terminal.stream_uid=a.stream_uid AND terminal.event_id=receipt.event_id AND terminal.runner_attempt=a.runner_attempt
 		JOIN transcript_branch_events tm ON tm.stream_uid=terminal.stream_uid AND tm.event_id=terminal.event_id AND tm.branch_id=?
 		WHERE a.event_type='assistant_message' AND a.source='payload' AND a.runner_attempt>0
-			AND terminal.event_type='runner_finished' AND terminal.source='payload' AND receipt.status='completed'
+			AND terminal.event_type='runner_finished' AND terminal.source='payload'
+			AND (receipt.status='completed' OR (receipt.status='failed'
+				AND json_extract(terminal.payload_json,'$.retained_final_response_id')=a.client_message_id
+				AND json_extract(terminal.payload_json,'$.reason_code')=?))
 			AND terminal.publication_seq=requested.last_seq AND a.publication_seq<terminal.publication_seq
-			AND NOT EXISTS(SELECT 1 FROM transcript_runner_attempts later WHERE later.stream_uid=a.stream_uid
-				AND later.attempt>a.runner_attempt AND later.claimed_input_revision=attempt.claimed_input_revision)
+			AND (receipt.status='failed' OR NOT EXISTS(SELECT 1 FROM transcript_runner_attempts later WHERE later.stream_uid=a.stream_uid
+				AND later.attempt>a.runner_attempt AND later.claimed_input_revision=attempt.claimed_input_revision))
 			AND NOT EXISTS(SELECT 1 FROM transcript_events later JOIN transcript_branch_events lm
 				ON lm.stream_uid=later.stream_uid AND lm.event_id=later.event_id AND lm.branch_id=am.branch_id
 				WHERE later.stream_uid=a.stream_uid AND later.runner_attempt=a.runner_attempt AND later.event_type='assistant_message'
 				AND later.publication_seq>a.publication_seq AND later.publication_seq<terminal.publication_seq)
-		ORDER BY requested.record_index,a.publication_seq`, args...)
+		ORDER BY requested.record_index,a.publication_seq`, append(args, RunnerCleanupFailedReason)...)
 	if err != nil {
 		return nil, schemaError(err)
 	}
@@ -96,6 +100,13 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 		if json.Unmarshal(source.Assistant.PayloadJSON, &assistant) != nil || json.Unmarshal(source.Terminal.PayloadJSON, &terminal) != nil {
 			_ = rows.Close()
 			return nil, ErrEventConflict
+		}
+		if status == "failed" {
+			source.RetainedAfterCleanupFailure = RetainedFinalResponseID(terminal) == source.Assistant.ClientMessageID &&
+				matchesRetainedFinalResponse(terminal, source.Assistant.PayloadJSON)
+			if !source.RetainedAfterCleanupFailure {
+				continue
+			}
 		}
 		left, leftPresent, leftErr := ParseAssistantSegmentV1(assistant)
 		right, rightPresent, rightErr := ParseAssistantSegmentV1(terminal)
