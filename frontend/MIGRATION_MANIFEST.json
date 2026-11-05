@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "bb37f00a376ac07780f0cc55b11269e4b05d3e4103e3ac1534b96466c356d6f6",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "778349301c234964f9b3f6927eab0061605eb5bc2da4c154e8ab38c1b73a6d11",
+  "additionFingerprintSHA256": "eccf30c8e59f9968e5a575014a08a63dcd9dd442e85771405186364561f5753d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -7725,8 +7725,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/literatureMetadataLookup.ts",
-      "sha256": "90b00574eb99df0611025266b67a7f4dc121775084c82677eebf21ad53ee7d63",
-      "bytes": 3164,
+      "sha256": "a150a389699195299b0fa7838c275d4cf5d05914c7480c917833fcd699568669",
+      "bytes": 3741,
       "reason": "Validate the closed read-only DOI metadata draft and exact requested reference identity before the existing Library review/editor handoff, without adding a provider, persistence, execution or write authority."
     },
     {
@@ -14607,8 +14607,8 @@
     },
     {
       "path": "tests/unit/renderer/library/LibraryDoiImport.dom.test.tsx",
-      "sha256": "770e10922e811d69465258ea040cdcf55ab696a5f3c44cc182eccb12526d1968",
-      "bytes": 20725,
+      "sha256": "5938acd443ce2c599d9934f5fd58b16731bc7a9bbdb1ea8b61644e6d421939bb",
+      "bytes": 21436,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
