@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "1f1d4b199460b3c8f6f66a4130a1d6c1efe90b3b72236a64e621b886f614c7fa",
+  "adaptationFingerprintSHA256": "5822c7ddb81d4e6cbbf5ed2394f0126005b1ec92a2b63ed92e1ce8d0ba438770",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "ec8bd610af06ad919c82191f6b3fd2c0d7ed910bf32d2d4b0902c70cc1065a4a",
+  "additionFingerprintSHA256": "28d889524b507821545e673559c1991f904ddba66b48d65b9475cf398bf7a0ef",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -1410,8 +1410,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/artifacts.tsx",
       "sourceSHA256": "efe1cba272475b669b956c7f621cf8fbb4995860213bc0084d03947c8d6059c9",
-      "targetSHA256": "d3ed9b6ec76ee5d89bd64467385122814f2f982ac463e8ea3780b5afae6bb382",
-      "bytes": 16568,
+      "targetSHA256": "32c6388d77e080c1d8f910163fa15ab5d0415b68b1f843977501de11964eb785",
+      "bytes": 18383,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -1594,8 +1594,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/useXScienceArtifactLinkPreview.ts",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Messages/useSynonBiomedArtifactLinkPreview.ts",
       "sourceSHA256": "f78c7fb3dc994f46eda1dfb08b5fb6d0b876ccc0aad921b6ae60993c8bee5bcf",
-      "targetSHA256": "42290ca81d3c42c2f14a7780aceb29545949d3fa1a48b248b8013920d9b3d981",
-      "bytes": 11680,
+      "targetSHA256": "2d0d1a6aef07d8fddbefb0542b951b8dab4aba3dd1f0b6964bdff152ee355dc1",
+      "bytes": 11841,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -4019,8 +4019,8 @@
     {
       "path": "tests/unit/common-adapter/ipcBridgeConversation.test.ts",
       "sourceSHA256": "0d82e8df82345ebbf8d2dbdfa0c28c8e265c5bddb6f362eafa43920732843121",
-      "targetSHA256": "1e35ccbc5f4841c7deca45cae023aac9a7afa00fd328caa667176a255888902d",
-      "bytes": 17801,
+      "targetSHA256": "e92ba5cc6c7da115222478711020f2eb5f55a7fb826e04b3dfee883d86123a1d",
+      "bytes": 18420,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -4976,8 +4976,8 @@
       "path": "tests/unit/renderer/useXScienceArtifactLinkPreview.dom.test.ts",
       "originalPath": "tests/unit/renderer/useSynonBiomedArtifactLinkPreview.dom.test.ts",
       "sourceSHA256": "38079d6cffb619e89c591d731c0349b74c1ea7a1efa0f7f70e03afb5ed9c4531",
-      "targetSHA256": "b7bce8f492f1dd26a6da9ac19595572217d42bdbb6363eb59a145b7e1c8a3e77",
-      "bytes": 28410,
+      "targetSHA256": "dd9b8e48a459421f5282fef452f4e6de1158a663734f0a2fd0d64ef12b01c342",
+      "bytes": 30269,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5412,8 +5412,8 @@
       "path": "tests/unit/xscience/artifactLinkPreviewModel.test.ts",
       "originalPath": "tests/unit/synonbiomed/artifactLinkPreviewModel.test.ts",
       "sourceSHA256": "2dd605356a709a7f460ba18e333daad18f120ec068514b01652fc4ab3f68e0a9",
-      "targetSHA256": "fd359685dff767d5a1290014cbba7d9ca2f5851e0922171a3be7773754e071b1",
-      "bytes": 10962,
+      "targetSHA256": "0a8e2ecd40144a4722ac945a09536726dd854784cab41af55c3cd2d62691b135",
+      "bytes": 12017,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7641,8 +7641,8 @@
     },
     {
       "path": "packages/desktop/src/common/adapter/ipcConversationClient.ts",
-      "sha256": "3cc109fad649739c2b1ba391bc6d174da143b0450f8cf0bda9a6f3d19d2b3065",
-      "bytes": 14362,
+      "sha256": "ee4262ac51838ff7553b18da6cfcea748dfdd7825fa4760f222efd76b6525a87",
+      "bytes": 14467,
       "reason": "Own conversation, transcript, realtime, and durable event IPC bindings as one domain client."
     },
     {
@@ -11943,8 +11943,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/xScienceArtifactReferences.ts",
-      "sha256": "6c7d4fc1ea4e884f033efa71e6e6f5307c03d56bf2d502898a11035dcecddb55",
-      "bytes": 5217,
+      "sha256": "7a932f67bd4e716405cb55964ae95ad9b13c3a0a315a5ac73e05c1b8b7f5e209",
+      "bytes": 6371,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14427,8 +14427,8 @@
     },
     {
       "path": "tests/unit/renderer/conversationArtifacts.dom.test.tsx",
-      "sha256": "de316fb4a8bad0475e07fad802fe6d0fa740ae86821d1eae5996dd9fcb8bb735",
-      "bytes": 10184,
+      "sha256": "d5ea284063d3b18c56188f449d59a4bc1236cae7f2d69e715ce9630f609683a8",
+      "bytes": 14763,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
