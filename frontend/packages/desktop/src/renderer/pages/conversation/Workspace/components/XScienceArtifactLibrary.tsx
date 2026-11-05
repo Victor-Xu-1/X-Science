@@ -255,12 +255,16 @@ const XScienceArtifactLibrary: React.FC<Props> = ({
       className='artifact-library size-full min-h-0 flex flex-col bg-1'
       aria-label={t('conversation.projectArtifacts.library')}
     >
-      <div className='h-42px shrink-0 flex items-center justify-between gap-8px px-12px border-b border-solid border-[var(--color-border-2)]'>
-        <div className='flex items-center gap-6px min-w-0'>
-          <span className='text-13px font-600 text-t-primary'>{t('conversation.projectArtifacts.title')}</span>
-          <span className='text-11px text-t-tertiary'>{count}</span>
+      <div className='min-h-42px shrink-0 flex flex-wrap items-center justify-between gap-x-8px gap-y-2px px-12px py-6px border-b border-solid border-[var(--color-border-2)]'>
+        <div className='flex items-center gap-6px min-w-0 max-w-full'>
+          <span className='shrink-0 whitespace-nowrap text-13px font-600 text-t-primary'>
+            {t('conversation.projectArtifacts.title')}
+          </span>
+          <span className='min-w-0 truncate text-11px text-t-tertiary' title={String(count)}>
+            {count}
+          </span>
         </div>
-        <div className='flex items-center gap-3px'>
+        <div className='ml-auto flex shrink-0 items-center gap-3px'>
           <IconButton
             label={t('conversation.projectArtifacts.refresh')}
             onClick={onRefresh}

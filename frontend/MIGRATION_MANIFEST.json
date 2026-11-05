@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6599e64f6600c189b88555993f996c152a5bfbddb8d13fe60489f30252f9ae93",
+  "adaptationFingerprintSHA256": "a4141ab9e3da428602d383deecd1a8ab269b8c91ea2abc85b04e3c23ecd6fb33",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "1e8061034cd84779f74b42b57a7a03029338bbde3b75a56d75032fe4eee2ed81",
   "summary": {
@@ -1970,8 +1970,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Workspace/components/XScienceArtifactLibrary.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Workspace/components/SynonBiomedArtifactLibrary.tsx",
       "sourceSHA256": "a424a90101d4b397ddbc360ebd1949081bcbad053c522d98856fbbd264a8bff2",
-      "targetSHA256": "277b367c85e170b15d692f91379d61b4dd58d1b5ced49e65d5c60750e1293c53",
-      "bytes": 17535,
+      "targetSHA256": "12158777ab94c6b65cdb35ae72fda751d480ec19dcc410d429ab876a911189e9",
+      "bytes": 17710,
       "reason": "Move genuine imported source to the current X-Science namespace. Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
