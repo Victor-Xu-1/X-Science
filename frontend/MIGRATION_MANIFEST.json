@@ -5,13 +5,13 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "b376f03309a542918c50ff3620ad79125fe624c16af176043e5214340baf2219",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "297396bc10c6f87b289d1c285408f86e79c3a80e5230869cf84343ccdc9f7159",
+  "additionFingerprintSHA256": "f148526b84a62a622bf308579f9c7e11c50550f1463a7e3cd6c36556d671447d",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1498
+    "addedFiles": 1499
   },
   "adaptations": [
     {
@@ -9573,8 +9573,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/molstarDockingLigandShape.ts",
-      "sha256": "62b796e3fc55cd8c54cbf3dd53e49bfd0850c3525aaa96f543da9b4438477f3f",
-      "bytes": 26279,
+      "sha256": "519030579dca9872fcb68f9e49d8a06ddaafec1f428df4833b92f6c888969c97",
+      "bytes": 27956,
       "reason": "Normalize docking ligand shape and alternate-conformer selection for the shared Molstar structure path."
     },
     {
@@ -13331,6 +13331,12 @@
       "path": "tests/unit/previews/ligandBondOrder.test.ts",
       "sha256": "f06859cefbb1cce81ed5c3dae3786f0baddbd54c8b1a8cf9cbbad877448aec19",
       "bytes": 4230,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/ligandMolfileFormat.test.ts",
+      "sha256": "8909366be971bb7d6d52393f08ef1219e4eacd11def3525fb1752b5a546399eb",
+      "bytes": 4724,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
