@@ -107,7 +107,13 @@ func TestHistoricalStudyFixtureRestoresOnlyEmptyReviewedPredecessor(t *testing.T
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version IN (91,92)`); err != nil {
+			if err := restoreEmptyHistoricalProjectionState(t.Context(), tx, 79); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version IN (91,92,93)`); err != nil {
+				t.Fatal(err)
+			}
+			if err := requireHistoricalFixturePrefix(t.Context(), tx, 90); err != nil {
 				t.Fatal(err)
 			}
 			if err := tx.Commit(); err != nil {

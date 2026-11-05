@@ -85,7 +85,13 @@ func TestHistoricalTaskOriginFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err = tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version=92`); err != nil {
+			if err := restoreEmptyHistoricalProjectionState(t.Context(), tx, 79); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version IN (92,93)`); err != nil {
+				t.Fatal(err)
+			}
+			if err := requireHistoricalFixturePrefix(t.Context(), tx, 91); err != nil {
 				t.Fatal(err)
 			}
 			if err = tx.Commit(); err != nil {
@@ -100,8 +106,9 @@ func TestHistoricalTaskOriginFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			}
 			defer reopened.Close()
 			status, err := reopened.SchemaStatus(t.Context())
-			if err != nil || status.CurrentVersion != 92 {
-				t.Fatalf("status=%#v err=%v", status, err)
+			expected, expectedErr := workspace.ExpectedSchemaStatus()
+			if err != nil || expectedErr != nil || status.CurrentVersion != expected.TargetVersion || len(status.Migrations) != len(expected.Migrations) {
+				t.Fatalf("status=%#v err=%v expectedErr=%v", status, err, expectedErr)
 			}
 		})
 	}

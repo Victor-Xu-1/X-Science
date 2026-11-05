@@ -63,7 +63,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 92
+	const reviewedTarget = 93
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -83,6 +83,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// Library parent or before replaying the original v91 forward migration.
 	// Reviewed92 adds only the empty candidate task-origin child, which is
 	// removed before the candidate parent. Populated origins remain protected.
+	// Reviewed93 widens the derived projection CHECK. Callers also restore the
+	// actual74/79 empty projection DDL before removing its migration receipt.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -92,9 +94,14 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
 	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "literature-candidate-task-origins" ||
-		current.Checksum != "a9cc995096abb9d66b6c8fefa06a7dfda2b1655b7cd1bccc1be5641051169cc9" {
-		t.Fatalf("historical reconstruction requires the reviewed task-origin92 identity: %+v", current)
+	if current.Version != reviewedTarget || current.Name != "transcript-web-projector-v15" ||
+		current.Checksum != "1b255447860d4db515f5e7aa651c6f3edca1bf3f425477a6a369ed626af92313" {
+		t.Fatalf("historical reconstruction requires the reviewed projector93 identity: %+v", current)
+	}
+	original92 := expected.Migrations[91]
+	if original92.Version != 92 || original92.Name != "literature-candidate-task-origins" ||
+		original92.Checksum != "a9cc995096abb9d66b6c8fefa06a7dfda2b1655b7cd1bccc1be5641051169cc9" {
+		t.Fatalf("historical reconstruction requires the original task-origin92 identity: %+v", original92)
 	}
 	original91 := expected.Migrations[90]
 	if original91.Version != 91 || original91.Name != "literature-study-snapshots" || original91.Checksum != "7528d949f8fb27e35c9b28eb128e72ff4a847e360f5d04b7a30ae4560f07c6f8" {
@@ -298,7 +305,13 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			if err := restoreEmptyHistoricalTaskOriginPredecessor(t.Context(), tx); err != nil {
 				t.Fatal(err)
 			}
+			if err := restoreEmptyHistoricalProjectionState(t.Context(), tx, 79); err != nil {
+				t.Fatal(err)
+			}
 			if _, err := tx.Exec(`DELETE FROM workspace_schema_migrations WHERE version>=89`); err != nil {
+				t.Fatal(err)
+			}
+			if err := requireHistoricalFixturePrefix(t.Context(), tx, 88); err != nil {
 				t.Fatal(err)
 			}
 			if err := tx.Commit(); err != nil {

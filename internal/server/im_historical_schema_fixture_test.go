@@ -8,10 +8,10 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-// Historical76 fixtures start from an empty reviewed86 database. Remove the
+// Historical76 fixtures start from an empty current database. Remove the
 // reading-state86/Library85/collections84/Memory82 cadence/Memory81/Library80 objects and restore the Web definition
-// changed by79 before removing newer migration receipts; otherwise the fixture
-// falsely claims76 while retaining newer objects or the14-only CHECK.
+// changed by79 and93 before removing newer migration receipts; otherwise the fixture
+// falsely claims76 while retaining newer objects or the current projector CHECK.
 // This helper is test-only and never touches an installed/user database.
 func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 	t.Helper()
@@ -23,21 +23,8 @@ func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 	}
 	var currentDDL string
 	if err := db.QueryRow(`SELECT sql FROM sqlite_schema WHERE type='table' AND name='transcript_web_projection_state'`).Scan(&currentDDL); err != nil ||
-		strings.TrimSpace(currentDDL) != strings.TrimSpace(transcriptstore.WebReadModelV79ProjectionStateStatement()) {
+		strings.TrimSpace(currentDDL) != strings.TrimSpace(transcriptstore.WebReadModelV93ProjectionStateStatement()) {
 		t.Fatalf("historical reconstruction found an unexpected current projection definition: err=%v", err)
-	}
-	names, statements := transcriptstore.WebReadModelV38ObjectNames(), transcriptstore.WebReadModelV38CanonicalStatements()
-	if len(names) != len(statements) {
-		t.Fatal("canonical Transcript Web schema is inconsistent")
-	}
-	var readyIndex string
-	for index, name := range names {
-		if name == "transcript_web_projection_ready" {
-			readyIndex = statements[index]
-		}
-	}
-	if readyIndex == "" {
-		t.Fatal("canonical Transcript Web ready index is missing")
 	}
 	tx, err := db.BeginTx(t.Context(), nil)
 	if err != nil {
@@ -45,12 +32,8 @@ func restoreHistoricalIMV76EmptyProjectionSchema(t *testing.T, db *sql.DB) {
 	}
 	defer tx.Rollback()
 	dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t, tx)
-	for _, statement := range []string{
-		`DROP TABLE transcript_web_projection_state`, transcriptstore.WebReadModelV74ProjectionStateStatement(), readyIndex,
-	} {
-		if _, err := tx.ExecContext(t.Context(), statement); err != nil {
-			t.Fatal(err)
-		}
+	if err := restoreEmptyHistoricalProjectionState(t.Context(), tx, 74); err != nil {
+		t.Fatal(err)
 	}
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)

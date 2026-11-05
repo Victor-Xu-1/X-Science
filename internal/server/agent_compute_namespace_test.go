@@ -38,6 +38,9 @@ func captureServerNamespaceFixture(t *testing.T, store *workspace.Store, db *sql
 	}
 	defer tx.Rollback()
 	dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t, tx)
+	if err := restoreEmptyHistoricalProjectionState(t.Context(), tx, 74); err != nil {
+		t.Fatal(err)
+	}
 	// Normal Open installs the reviewed current schema. This private historical fixture must remove
 	// only empty prospective owner evidence before reconstructing its74 shape.
 	var ownerActions, ownerInstances, ownerSpecs int
