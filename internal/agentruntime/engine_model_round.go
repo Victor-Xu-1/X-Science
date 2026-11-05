@@ -14,8 +14,19 @@ func (e Engine) completeModelRound(
 	request ModelRequest,
 	bufferUntilToolChoice bool,
 ) (ModelResponse, []ModelStreamEvent, error) {
+	return e.completeModelRoundWithKnownTools(ctx, request, bufferUntilToolChoice, request.Tools)
+}
+
+// knownTools is an internal presentation-recognition surface, not execution
+// authority. A closed request still sends no tools to the provider.
+func (e Engine) completeModelRoundWithKnownTools(
+	ctx context.Context,
+	request ModelRequest,
+	bufferUntilToolChoice bool,
+	knownTools []ToolSchema,
+) (ModelResponse, []ModelStreamEvent, error) {
 	buffered := bufferedModelStream{}
-	dispatch := func(event ModelStreamEvent) error {
+	publish := func(event ModelStreamEvent) error {
 		normalized, err := normalizeModelStreamEvent(event)
 		if err != nil {
 			return err
@@ -38,7 +49,27 @@ func (e Engine) completeModelRound(
 		}
 		return nil
 	}
+	probe := newModelTextToolEnvelopeProbe(knownTools, func(content string) error {
+		return publish(ModelStreamEvent{Kind: ModelStreamEventContentDelta, ContentDelta: content})
+	})
+	dispatch := func(event ModelStreamEvent) error {
+		if event.Kind == ModelStreamEventContentDelta {
+			return probe.write(event.ContentDelta)
+		}
+		if event.Kind == ModelStreamEventToolCallBoundary || event.Kind == ModelStreamEventNativePreambleBoundary {
+			if err := probe.finish(); err != nil {
+				return err
+			}
+		}
+		return publish(event)
+	}
 	normalizeResponse := func(response ModelResponse, decoder *publicProgressEnvelopeDecoder) (ModelResponse, error) {
+		if err := probe.finish(); err != nil {
+			return response, err
+		}
+		if textToolEnvelopePrefix(response.Message.Content, probe.names, true) < 0 {
+			return response, &TextToolEnvelopePresentationError{}
+		}
 		if decoder.envelopeCount() == 0 {
 			if strings.Contains(response.Message.Content, PublicProgressEnvelopeBegin) ||
 				strings.Contains(response.Message.Content, PublicProgressEnvelopeEnd) {
@@ -103,7 +134,7 @@ func (e Engine) completeModelRound(
 				return recovery.retain(err)
 			}
 		}
-		return dispatch(event)
+		return recovery.retain(dispatch(event))
 	})
 	if err != nil {
 		return recovery.finish(ctx, e, response, buffered.events(), err)

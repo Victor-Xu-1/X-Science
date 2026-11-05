@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"x-science/internal/agentruntime"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -208,8 +209,15 @@ func TestRunnerSettlementPersistsSafeFailureReasonThroughFrameAndHistory(t *test
 }
 
 func TestPresentationCorrectionRetainsCompletedReceiptAndBoundedRecovery(t *testing.T) {
-	for _, failure := range []sessionRunnerBoundedCorrection{sessionRunnerResponseLanguageMismatch{}, sessionRunnerFinalPresentationCorrection{}} {
-		t.Run(failure.runnerCorrection().ReasonCode, func(t *testing.T) {
+	for _, failure := range []struct {
+		name string
+		err  error
+	}{
+		{sessionRunnerResponseLanguageMismatchReasonCode, sessionRunnerResponseLanguageMismatch{}},
+		{sessionRunnerFinalPresentationReasonCode, sessionRunnerFinalPresentationCorrection{}},
+		{"text_tool_envelope", &agentruntime.TextToolEnvelopePresentationError{}},
+	} {
+		t.Run(failure.name, func(t *testing.T) {
 			fixture := newAgentSaveArtifactsFixture(t)
 			ctx := context.Background()
 			appendRunnerToolCheckpoint(t, fixture.repo, fixture.claim, "verified-download", map[string]any{
@@ -225,7 +233,7 @@ func TestPresentationCorrectionRetainsCompletedReceiptAndBoundedRecovery(t *test
 					t.Fatal(err)
 				}
 				result := &SessionRunnerCycleResult{SessionID: run.SessionID, Attempt: run.Attempt}
-				var callErr error = failure
+				callErr := failure.err
 				handled, err := fixture.server.handleSessionRunnerChatInterruption(ctx, SessionRunnerChatOptions{RunnerID: claim.RunnerID, SessionID: run.SessionID}, result, &activeSessionRun{}, sessionstore.RunnerMutationClaim{}, authority, run, entries, &callErr, nil)
 				if err != nil || !handled {
 					t.Fatalf("presentation became terminal: handled=%t err=%v", handled, err)

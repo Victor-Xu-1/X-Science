@@ -169,8 +169,8 @@ func latestRunnerCorrection(entries []eventjournal.Entry) (recoveredRunnerCorrec
 		if recoveredRunnerCorrectionSupersededByCurrentContract(correction) {
 			return recoveredRunnerCorrection{}, false
 		}
-		if correction.ReasonCode == sessionRunnerRequiredToolChoiceUnsatisfiedReasonCode {
-			// Provider protocol noncompliance is not a new task defect. Retain it
+		if runnerCorrectionIsProtocolFallback(correction.ReasonCode) {
+			// Protocol or presentation noncompliance is not a new task defect. Retain it
 			// only when no earlier substantive correction exists; otherwise the
 			// original evidence/artifact obligation remains authoritative.
 			if protocolFallback == nil {
@@ -185,6 +185,14 @@ func latestRunnerCorrection(entries []eventjournal.Entry) (recoveredRunnerCorrec
 		return *protocolFallback, true
 	}
 	return recoveredRunnerCorrection{}, false
+}
+
+// A rejected tool proposal or final presentation cannot discharge an older
+// artifact/tool obligation. Replay and its streaming projection share this
+// classification, while the existing repetition tracker still counts the
+// concrete typed presentation condition for its bounded no-progress wait.
+func runnerCorrectionIsProtocolFallback(reason string) bool {
+	return reason == sessionRunnerRequiredToolChoiceUnsatisfiedReasonCode || reason == sessionRunnerFinalPresentationReasonCode
 }
 
 func recoveredRunnerContractRevision(message eventjournal.Message) int64 {

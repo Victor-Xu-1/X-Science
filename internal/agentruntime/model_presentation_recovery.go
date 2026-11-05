@@ -23,7 +23,8 @@ func (recovery *modelPresentationRecovery) retain(err error) error {
 		return err
 	}
 	var presentation *PublicProgressPresentationError
-	if errors.As(err, &presentation) {
+	var textTool *TextToolEnvelopePresentationError
+	if errors.As(err, &presentation) || errors.As(err, &textTool) {
 		if recovery.failure == nil {
 			recovery.failure = err
 		}
