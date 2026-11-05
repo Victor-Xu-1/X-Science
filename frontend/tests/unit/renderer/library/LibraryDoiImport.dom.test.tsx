@@ -348,6 +348,27 @@ it('uses the current Chinese preference for DOI lookup and untouched review', as
   expect(http.requests.filter((r) => r.path === '/api/literature/items' && r.method === 'POST')).toHaveLength(0);
 });
 
+it.each([
+  '12345',
+  '  pMiD : 12345  ',
+  'https://pubmed.ncbi.nlm.nih.gov/12345/',
+  'PMID: http://www.PubMed.NCBI.nlm.nih.gov/12345?from=search#article',
+])('binds both returned PMID fields to the lookup reference %s', (reference) => {
+  const response = (pmid: string) => ({
+    schema: 'x-science.literature-pmid-draft.v1',
+    reference,
+    pmid,
+    doi: '',
+    title: 'Verified PMID record',
+    metadata: { pmid, authors: [] },
+  });
+
+  expect(decodeLiteratureMetadataDraft(response('12345'), reference, 'pmid')).toEqual(response('12345'));
+  expect(() => decodeLiteratureMetadataDraft(response('12346'), reference, 'pmid')).toThrow(
+    'Invalid Literature metadata draft'
+  );
+});
+
 it('preserves an exact PMID-only draft through existing review and manual save', async () => {
   const reference = 'https://pubmed.ncbi.nlm.nih.gov/12345/';
   const metadata = { pmid: '12345', authors: ['Ada Researcher'], url: reference, item_type: 'journalArticle' };
@@ -381,7 +402,7 @@ it('preserves an exact PMID-only draft through existing review and manual save',
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Add from PMID' }));
   const lookup = await screen.findByRole('dialog', { name: 'Add from PMID' });
   fireEvent.change(within(lookup).getByRole('textbox', { name: 'PMID or PubMed link' }), {
-    target: { value: reference },
+    target: { value: '  ' + reference + '  ' },
   });
   fireEvent.click(within(lookup).getByRole('button', { name: 'Find reference' }));
   const review = await screen.findByRole('dialog', { name: 'Review PMID reference' });

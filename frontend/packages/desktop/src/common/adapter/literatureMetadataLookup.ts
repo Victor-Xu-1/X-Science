@@ -43,6 +43,15 @@ const invalid = (): never => {
   throw new Error('Invalid Literature metadata draft');
 };
 
+/** Matches the PMID reference forms accepted by the Go lookup endpoint. */
+function normalizePMIDLookupReference(reference: string): string | undefined {
+  if (/\p{Cc}/u.test(reference)) return undefined;
+  const value = reference.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '').replace(/^PMID *: */i, '');
+  const pmid =
+    /^https?:\/\/(?:www\.)?pubmed\.ncbi\.nlm\.nih\.gov\/([0-9]+)\/?(?:[?#][\s\S]*)?$/iu.exec(value)?.[1] ?? value;
+  return /^[1-9][0-9]{0,8}$/.test(pmid) ? pmid : undefined;
+}
+
 /** A proposal is not a catalogue item, receipt, attachment or execution fact. */
 export function decodeLiteratureMetadataDraft(
   value: unknown,
@@ -65,11 +74,12 @@ export function decodeLiteratureMetadataDraft(
   )
     return invalid();
   const metadata = value.metadata;
+  const expectedPMID = pmidLookup ? normalizePMIDLookupReference(reference) : undefined;
   if (
     (pmidLookup
-      ? !bounded(value.pmid, 9) ||
-        !/^[1-9][0-9]{0,8}$/.test(value.pmid) ||
-        metadata.pmid !== value.pmid ||
+      ? !expectedPMID ||
+        value.pmid !== expectedPMID ||
+        metadata.pmid !== expectedPMID ||
         metadata.doi !== (value.doi || undefined)
       : metadata.doi !== value.doi) ||
     !Array.isArray(metadata.authors) ||
