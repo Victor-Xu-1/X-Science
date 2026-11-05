@@ -195,7 +195,8 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	records := make([]transcriptstore.TranscriptWebMessageRecord, 0, len(page))
 	references := make([]transcriptstore.TranscriptWebMessageArtifactReference, 0)
 	for _, projected := range page {
-		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) {
+		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) ||
+			transcriptWebIncrementalProviderBoundary(projected) {
 			continue
 		}
 		record, eventReferences, err := buildIncrementalTranscriptWebUserMessage(

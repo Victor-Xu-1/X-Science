@@ -54,6 +54,10 @@ func inspectTranscriptWebProjectorV79Source(ctx context.Context, executor schema
 	if err != nil {
 		return err
 	}
+	return inspectTranscriptWebProjectorSource(ctx, executor, expected)
+}
+
+func inspectTranscriptWebProjectorSource(ctx context.Context, executor schemaMigrationQueryExecutor, expected map[string]string) error {
 	rows, err := executor.QueryContext(ctx, `SELECT type,name,sql FROM sqlite_schema
 		WHERE tbl_name IN ('transcript_web_projection_state','transcript_web_messages',
 			'transcript_web_message_identities','transcript_web_message_artifact_refs')
