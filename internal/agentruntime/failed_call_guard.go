@@ -22,8 +22,7 @@ type failedToolCallGuard struct {
 	nonRetryablePartialEpoch  map[string]uint64
 	blockedSourceDestinations map[string]string
 	executionFailures         ExecutionFailureLedger
-	transientSourceAttempts   map[string]int
-	transientSourceEpoch      map[string]uint64
+	sourceFailures            transientSourceFailureBudget
 	toolCapabilities          map[string][]string
 	mutationEpoch             uint64
 }
@@ -104,8 +103,6 @@ func newFailedToolCallGuard(next ToolGateway, schemas ...ToolSchema) ToolGateway
 		nonRetryablePartialCalls:  make(map[string]int),
 		nonRetryablePartialEpoch:  make(map[string]uint64),
 		blockedSourceDestinations: make(map[string]string),
-		transientSourceAttempts:   make(map[string]int),
-		transientSourceEpoch:      make(map[string]uint64),
 		toolCapabilities:          make(map[string][]string),
 	}
 	guard.updateToolSchemas(schemas)
@@ -164,6 +161,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	executionTool := executionFailureTool(toolName, toolCapabilities)
 	fingerprint := failedToolCallFingerprint(executionCall)
 	sourceDestination := failedToolCallSourceDestination(executionCall, toolCapabilities)
+	submittedSource := transientSourceFailureIdentityFor(executionCall, toolCapabilities)
 	g.mu.Lock()
 	failedEpoch, repeated := g.failedCallMutationEpoch[fingerprint]
 	repeatedWithoutMutation := repeated && failedEpoch == g.mutationEpoch
@@ -175,12 +173,7 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 	if partialTracked && partialEpoch == g.mutationEpoch {
 		nonRetryablePartialAttempts = g.nonRetryablePartialCalls[fingerprint]
 	}
-	transientSourceBucket := transientSourceFailureBucket(executionCall, toolCapabilities)
-	submittedSourceBucket := transientSourceBucket
-	transientSourceAttempts := 0
-	if transientSourceBucket != "" && g.transientSourceEpoch[transientSourceBucket] == g.mutationEpoch {
-		transientSourceAttempts = g.transientSourceAttempts[transientSourceBucket]
-	}
+	transientSourceAttempts := g.sourceFailures.attempts(submittedSource, g.mutationEpoch)
 	executionBoundary := g.executionFailures.Boundary(executionCall)
 	g.mu.Unlock()
 	if executionBoundary != nil {
@@ -240,15 +233,8 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		executionCall.Arguments = append(json.RawMessage(nil), result.ExecutedArguments...)
 		fingerprint = failedToolCallFingerprint(executionCall)
 		sourceDestination = failedToolCallSourceDestination(executionCall, toolCapabilities)
-		transientSourceBucket = transientSourceFailureBucket(executionCall, toolCapabilities)
 	}
-	sourceBuckets := []string{transientSourceBucket}
-	if submittedSourceBucket != "" && submittedSourceBucket != transientSourceBucket {
-		// Older gateways may expose normalization only after execution. Keep
-		// their submitted source bounded too, or the same alias can execute
-		// forever while all failures are charged only to the canonical source.
-		sourceBuckets = append(sourceBuckets, submittedSourceBucket)
-	}
+	executedSource := transientSourceFailureIdentityFor(executionCall, toolCapabilities)
 	// A trusted Materialized result is an immutable durable protocol value.
 	// The guard may update its private retry budget from that value, but it must
 	// not append attempts/recovery fields to result.Value after the host has
@@ -295,19 +281,9 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 			value["retryable"] = true
 			value["recovery"] = "retry_the_same_call_after_the_runtime_or_upstream_recovers"
 		}
-		if transientSourceBucket != "" && isRetryableSourceUnavailable(result.Value) {
+		if executedSource.bucket != "" && !ToolResultDidNotExecute(result.Value) && isRetryableSourceUnavailable(result.Value) {
 			g.mu.Lock()
-			attempts := 0
-			for _, bucket := range sourceBuckets {
-				if g.transientSourceEpoch[bucket] != g.mutationEpoch {
-					g.transientSourceAttempts[bucket] = 0
-					g.transientSourceEpoch[bucket] = g.mutationEpoch
-				}
-				g.transientSourceAttempts[bucket]++
-				if count := g.transientSourceAttempts[bucket]; count > attempts {
-					attempts = count
-				}
-			}
+			attempts := g.sourceFailures.failed(submittedSource, executedSource, g.mutationEpoch)
 			g.mu.Unlock()
 			if attempts >= maxTransientSourceUnavailableAttempts {
 				if value, ok := result.Value.(map[string]any); ok && mutableEnvelope {
@@ -364,9 +340,8 @@ func (g *failedToolCallGuard) Execute(ctx context.Context, call ToolCall) (ToolR
 		delete(g.nonRetryablePartialEpoch, fingerprint)
 		delete(g.failedCallMutationEpoch, fingerprint)
 		delete(g.nonProgressingCalls, fingerprint)
-		for _, bucket := range sourceBuckets {
-			delete(g.transientSourceAttempts, bucket)
-			delete(g.transientSourceEpoch, bucket)
+		if !ToolResultDidNotExecute(result.Value) {
+			g.sourceFailures.succeeded(submittedSource, executedSource)
 		}
 	}
 	return result, nil

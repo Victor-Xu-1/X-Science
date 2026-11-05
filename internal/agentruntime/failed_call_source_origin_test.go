@@ -161,6 +161,42 @@ func TestFailedToolCallGuardSourcePreflightReplayDoesNotPoisonOrigin(t *testing.
 	}
 }
 
+func TestFailedToolCallGuardAliasSuccessDoesNotClearAnotherActualSource(t *testing.T) {
+	badExecutions := 0
+	guard := newFailedToolCallGuard(FuncToolGateway(func(_ context.Context, call ToolCall) (ToolResult, error) {
+		if strings.Contains(string(call.Arguments), "/good") {
+			return ToolResult{
+				Value:             map[string]any{"ok": true, "body": "verified source"},
+				ExecutedArguments: sourceOriginTestCall(call.Name, "https://healthy.example/record").Arguments,
+			}, nil
+		}
+		badExecutions++
+		result := sourceOriginUnavailable()
+		result.ExecutedArguments = sourceOriginTestCall(call.Name, "https://unavailable.example/record").Arguments
+		return result, nil
+	}))
+	bad := sourceOriginTestCall("web_fetch", "https://alias.example/bad")
+	good := sourceOriginTestCall("web_fetch", "https://alias.example/good")
+	for index := 0; index < maxTransientSourceUnavailableAttempts-1; index++ {
+		if _, err := guard.Execute(context.Background(), bad); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for index := 0; index < 2; index++ {
+		result, err := guard.Execute(context.Background(), good)
+		if err != nil || ClassifyToolResult(result.Value) != ToolResultSucceeded {
+			t.Fatalf("independent actual source was blocked: %#v err=%v", result.Value, err)
+		}
+		result, err = guard.Execute(context.Background(), bad)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if index == 1 && (!ToolResultDidNotExecute(result.Value) || badExecutions != maxTransientSourceUnavailableAttempts) {
+			t.Fatalf("healthy alias cleared another actual source failure: %#v bad executions=%d", result.Value, badExecutions)
+		}
+	}
+}
+
 func TestSourceOriginInvalidLocatorKeepsConnectorFallback(t *testing.T) {
 	for _, locator := range []string{"", "relative/path", "file:///tmp/source", "https://", "https://host.example:invalid/", "https://host.example:70000/", "https://user:password@host.example/"} {
 		if got := transientSourceFailureBucket(sourceOriginTestCall("web_fetch", locator), nil); got != "source:web_fetch" {
