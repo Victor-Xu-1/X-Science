@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/persistence/workspace"
@@ -192,8 +193,8 @@ func TestCompatibilityFrameSnapshotSurvivesCanonicalMessageProjectionLag(t *test
 	if err != nil {
 		t.Fatalf("frame snapshot must remain available while message projection lags: %v", err)
 	}
-	if count := projection["message_count"]; count != nil && servingJSONInt(count) != 2 {
-		t.Fatalf("canonical message_count=%#v, want omitted while lagging or current count 2 after bounded catch-up", count)
+	if count := projection["message_count"]; count != nil {
+		t.Fatalf("canonical message_count=%#v, want omitted while lagging", count)
 	}
 
 	if err := fixture.server.runTranscriptWebReadModelCycle(context.Background()); err != nil {
@@ -205,6 +206,94 @@ func TestCompatibilityFrameSnapshotSurvivesCanonicalMessageProjectionLag(t *test
 	}
 	if servingJSONInt(projection["message_count"]) != 2 {
 		t.Fatalf("projected message_count=%#v, want 2", projection["message_count"])
+	}
+}
+
+func TestCompatibilityFrameSnapshotDoesNotJoinHistoryCatchup(t *testing.T) {
+	for _, state := range []string{"stale", "missing"} {
+		for _, canceled := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/canceled=%t", state, canceled), func(t *testing.T) {
+				fixture := newTranscriptWebReadModelServingFixture(t, 1)
+				if _, _, created, err := fixture.repository.AppendFrameUserEvent(
+					t.Context(), transcriptstore.AppendFrameUserEventInput{
+						StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID,
+						ClientMessageID: "runtime-lag-client", FrameEventID: "runtime-lag-event",
+						MessageUUID: "runtime-lag-message", Text: "new task input",
+					},
+				); err != nil || !created {
+					t.Fatalf("append task input created=%t err=%v", created, err)
+				}
+				claim, err := fixture.repository.ClaimRunner(t.Context(), transcriptstore.ClaimRunnerInput{
+					StreamUID: fixture.stream.UID, OwnerID: fixture.stream.OwnerID,
+					RunnerID: "runtime-snapshot-runner", TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceFresh,
+				})
+				if err != nil || !claim.Claimed {
+					t.Fatalf("claim task claimed=%t err=%v", claim.Claimed, err)
+				}
+				before := readTranscriptWebProjectionClock(t, fixture.db, fixture.stream.UID, fixture.fence.BranchID)
+				if state == "missing" {
+					if _, err := fixture.db.Exec(`DELETE FROM transcript_web_projection_state
+						WHERE stream_uid=? AND branch_id=?`, fixture.stream.UID, fixture.fence.BranchID); err != nil {
+						t.Fatal(err)
+					}
+				}
+				key := transcriptWebCatchupKey{
+					ownerID: fixture.stream.OwnerID, streamUID: fixture.stream.UID, branchID: fixture.fence.BranchID,
+				}
+				flight := &transcriptWebCatchupFlight{done: make(chan struct{})}
+				fixture.server.transcriptWebCatchupMu.Lock()
+				fixture.server.transcriptWebCatchups = map[transcriptWebCatchupKey]*transcriptWebCatchupFlight{key: flight}
+				fixture.server.transcriptWebCatchupMu.Unlock()
+				var release sync.Once
+				releaseFlight := func() { release.Do(func() { close(flight.done) }) }
+				t.Cleanup(releaseFlight)
+
+				request := newLoopbackTestRequest(http.MethodGet, "/api/frames/"+transcriptWebServingFrameID, nil)
+				request.RemoteAddr = "127.0.0.1:12345"
+				ctx, cancel := context.WithCancel(request.Context())
+				defer cancel()
+				if canceled {
+					cancel()
+				}
+				request = request.WithContext(ctx)
+				done := make(chan *httptest.ResponseRecorder, 1)
+				go func() {
+					response := httptest.NewRecorder()
+					fixture.server.Handler().ServeHTTP(response, request)
+					done <- response
+				}()
+				var response *httptest.ResponseRecorder
+				select {
+				case response = <-done:
+				case <-time.After(time.Second):
+					releaseFlight()
+					select {
+					case <-done:
+					case <-time.After(time.Second):
+						t.Fatal("frame request did not settle after the test released history catch-up")
+					}
+					t.Fatal("runtime snapshot waited for unrelated history catch-up")
+				}
+				payload := p3DecodeObject(t, response)
+				if response.Code != http.StatusOK || payload["runtime_active"] != true ||
+					servingJSONInt(payload["runtime_attempt"]) != int(claim.Claim.Attempt) {
+					t.Fatalf("runtime snapshot status=%d payload=%#v", response.Code, payload)
+				}
+				if payload["message_count"] != nil {
+					t.Fatalf("unready optional message_count=%#v, want omitted", payload["message_count"])
+				}
+				if state == "missing" {
+					fence, err := fixture.readModel.GetTranscriptWebProjectionFence(
+						t.Context(), fixture.stream.OwnerID, fixture.stream.UID, fixture.fence.BranchID,
+					)
+					if err != nil || fence.StateFound {
+						t.Fatalf("runtime snapshot created missing projection found=%t err=%v", fence.StateFound, err)
+					}
+				} else if after := readTranscriptWebProjectionClock(t, fixture.db, fixture.stream.UID, fixture.fence.BranchID); after != before {
+					t.Fatalf("runtime snapshot rebuilt history before=%#v after=%#v", before, after)
+				}
+			})
+		}
 	}
 }
 

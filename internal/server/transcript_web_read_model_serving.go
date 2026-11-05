@@ -21,6 +21,16 @@ func (s *Server) activatedTranscriptWebReadModel(
 	ctx context.Context,
 	ownerID, sessionID, requestedBranchID string,
 ) (activatedTranscriptWebReadModel, bool, error) {
+	return s.activatedTranscriptWebReadModelWithCatchup(ctx, ownerID, sessionID, requestedBranchID, true)
+}
+
+// Metadata decorations may inspect the same authority and fence without
+// starting or joining the history rebuild required by message-serving callers.
+func (s *Server) activatedTranscriptWebReadModelWithCatchup(
+	ctx context.Context,
+	ownerID, sessionID, requestedBranchID string,
+	allowCatchup bool,
+) (activatedTranscriptWebReadModel, bool, error) {
 	if s == nil || s.transcriptStore == nil || s.transcriptWebReadModel == nil {
 		return activatedTranscriptWebReadModel{}, false, nil
 	}
@@ -72,7 +82,7 @@ func (s *Server) activatedTranscriptWebReadModel(
 	if err != nil {
 		return activatedTranscriptWebReadModel{}, true, transcriptWebStorageError(err)
 	}
-	if transcriptWebFenceCanCatchUp(fence) {
+	if allowCatchup && transcriptWebFenceCanCatchUp(fence) {
 		if catchupErr := s.catchUpTranscriptWebReadModel(
 			ctx, ownerID, stream.UID, snapshot.BranchID,
 		); catchupErr == nil || errors.Is(catchupErr, transcriptstore.ErrBranchStateStale) ||

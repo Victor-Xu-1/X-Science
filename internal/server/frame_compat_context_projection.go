@@ -20,15 +20,15 @@ func (s *Server) compatibilityFrameCanonicalMessageCount(
 		return 0, false, err
 	}
 	if s.transcriptWebReadModel != nil {
-		readModel, active, err := s.activatedTranscriptWebReadModel(
-			context.Background(), frameContext.UserID, frame.ID, "",
+		readModel, active, err := s.activatedTranscriptWebReadModelWithCatchup(
+			context.Background(), frameContext.UserID, frame.ID, "", false,
 		)
 		if err != nil && active && errors.Is(err, transcriptstore.ErrHistoryBackfillBlocked) {
 			// The frame is the runtime/control authority; the Transcript Web read
 			// model only supplies its optional message_count decoration. New
 			// events deliberately make that projection unavailable until the
-			// projector reaches the same fence. Do not turn this normal bounded
-			// lag into a 503 for the whole frame snapshot. Omitting the count keeps
+			// projector reaches the same fence. Do not rebuild or wait for history
+			// just to decorate a runtime snapshot. Omitting the count keeps
 			// the canonical history fail-closed without falling back to a stale
 			// legacy count.
 			return 0, true, nil
