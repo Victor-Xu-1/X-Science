@@ -7,6 +7,8 @@ import (
 	"x-science/internal/providers"
 )
 
+const sessionRunnerExecutionFailedReasonCode = "runner_execution_failed"
+
 // Choose a safe machine identity before redacting the public explanation.
 // Typed host errors are authoritative; compatibility text classification is
 // limited to the existing known reasons. Never publish an arbitrary error.
@@ -30,7 +32,7 @@ func sessionRunnerErrorReasonCode(err error) string {
 	if errors.As(err, &preparation) {
 		return preparation.reasonCode()
 	}
-	return "runner_execution_failed"
+	return sessionRunnerExecutionFailedReasonCode
 }
 
 func validRunnerFailureReason(reason string) bool {

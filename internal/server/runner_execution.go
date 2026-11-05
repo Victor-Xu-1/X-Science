@@ -1169,7 +1169,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 	}
 	if err := s.validateGeneratedPlanCompletion(intakeFrameID, run); err != nil {
-		return "", err
+		return "", &sessionRunnerCompletionFailure{stage: completionGeneratedPlan, err: err}
 	}
 	// The candidate has passed every structural, task-contract, and optional
 	// review gate; evidence-quality advisories remain attached to their durable

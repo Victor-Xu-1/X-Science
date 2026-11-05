@@ -2,11 +2,83 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"strings"
 	"testing"
 
+	"x-science/internal/agentruntime"
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
 )
+
+func TestRunnerCompletionPublicationFailurePersistsOnlySafeStage(t *testing.T) {
+	fixture := newAgentSaveArtifactsFixture(t)
+	const reportPath = "out/report.md"
+	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, reportPath, "# Decision report\n\nSupported conclusion.\n")
+	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "exec-report", 1, write)
+	input := map[string]any{
+		"files": []any{reportPath}, "language": "text",
+		"destination":       map[string]any{reportPath: "snapshot"},
+		"human_description": "Save the decision report",
+	}
+	saved, err := fixture.server.executeAgentSaveArtifacts(
+		fixture.toolContext(t, "save-report", input), fixture.identity, "save-report", input,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifacts := agentSaveArtifactResults(t, saved)
+	if len(artifacts) != 1 {
+		t.Fatalf("saved artifacts = %d, want 1", len(artifacts))
+	}
+	versionID := stringValue(artifacts[0]["version_id"])
+	const privateDetail = "private synthetic snapshot failure"
+	if _, err := fixture.db.ExecContext(t.Context(), `CREATE TRIGGER reject_completion_snapshot
+		BEFORE UPDATE OF is_intermediate ON artifact_version_provenance
+		WHEN OLD.is_intermediate = 1 AND NEW.is_intermediate = 0
+		BEGIN SELECT RAISE(ABORT, '`+privateDetail+`'); END`); err != nil {
+		t.Fatal(err)
+	}
+	authority := &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim}
+	run := &sessionRunnerChatRun{SessionID: fixture.stream.SessionID, Attempt: int(fixture.claim.Attempt), Transcript: authority}
+	if err := ensureSessionRunnerExecutionPhaseMachine(run); err != nil {
+		t.Fatal(err)
+	}
+	session := sessionstore.Session{ID: run.SessionID, Project: &sessionstore.Project{ID: fixture.stream.ProjectID}}
+	model := &artifactReferenceRepairModel{content: "The decision report is ready.", testing: t}
+	_, completionErr := fixture.server.runSessionAgentWithArtifactReferenceRepair(t.Context(), session, agentruntime.Engine{Model: model},
+		agentruntime.RunRequest{Messages: []agentruntime.Message{{Role: "user", Content: "Prepare a report."}}}, run, nil)
+	var sqliteFailure interface{ Code() int }
+	if !errors.As(completionErr, &sqliteFailure) || !strings.Contains(completionErr.Error(), privateDetail) || model.calls != 1 {
+		t.Fatalf("model calls=%d completion error=%v", model.calls, completionErr)
+	}
+	result := &SessionRunnerCycleResult{SessionID: run.SessionID, Attempt: run.Attempt}
+	if err := fixture.server.settleSessionRunnerChatOutcome(t.Context(), SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID},
+		result, &activeSessionRun{}, sessionstore.RunnerMutationClaim{}, authority, run, session, nil, "", completionErr, ""); err != nil {
+		t.Fatal(err)
+	}
+	terminal, found, err := fixture.repo.GetEventByClientMessageID(t.Context(), fixture.stream.UID, fixture.stream.OwnerID,
+		transcriptRunnerClientMessageID(fixture.claim, "runner-finished"))
+	if err != nil || !found || result.Status != "failed" || result.FinishEventID != terminal.EventID {
+		t.Fatalf("terminal found=%t result=%#v err=%v", found, result, err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(terminal.PayloadJSON, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(terminal.PayloadJSON), privateDetail) ||
+		payload["reason_code"] != "runner_execution_failed" || payload["failure_stage"] != "artifact_publication" {
+		t.Fatalf("terminal reason=%v stage=%v; expected the existing reason and a safe publication stage", payload["reason_code"], payload["failure_stage"])
+	}
+	if _, found, err := fixture.repo.GetEventByClientMessageID(t.Context(), fixture.stream.UID, fixture.stream.OwnerID,
+		transcriptRunnerClientMessageID(fixture.claim, "assistant-message")); err != nil || found {
+		t.Fatalf("unaccepted assistant found=%t err=%v", found, err)
+	}
+	if intermediate, found, err := fixture.store.ArtifactVersionIntermediate(versionID); err != nil || !found || !intermediate {
+		t.Fatalf("failed snapshot intermediate=%t found=%t err=%v", intermediate, found, err)
+	}
+}
 
 func TestArtifactDraftIsHiddenUntilValidatedCompletionPublishesSameVersion(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)

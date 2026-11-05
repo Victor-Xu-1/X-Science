@@ -17,6 +17,7 @@ const sessionRunnerFinalMemoryPreparationTimeout = 500 * time.Millisecond
 type transcriptRunnerFinalization struct {
 	CompletionAdvisories                *sessionRunnerCompletionAdvisoryPresentation
 	Content, Status, Detail, ReasonCode string
+	FailureStage                        sessionRunnerCompletionFailureStage
 	AssistantIdentity                   string
 	SegmentOrdinal                      int64
 	PrepareMemory                       bool
@@ -40,6 +41,9 @@ func (s *Server) persistTranscriptRunnerFinalization(parent context.Context, aut
 		"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(final.SegmentOrdinal, "")}
 	if final.ReasonCode != "" {
 		terminalPayload["reason_code"] = final.ReasonCode
+	}
+	if final.Status == "failed" && final.ReasonCode == sessionRunnerExecutionFailedReasonCode && final.FailureStage.valid() {
+		terminalPayload["failure_stage"] = final.FailureStage
 	}
 	if final.RetainFinalResponse {
 		terminalPayload["retained_final_response_id"] = transcriptRunnerClientMessageID(authority.Claim, final.AssistantIdentity)
