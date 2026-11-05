@@ -29,7 +29,7 @@ func TestKernelPrepareAuditUsesCapturedBindingAndExistingWriteOnly(t *testing.T)
 	if entries, err := store.List(sessionRunnerCommunicationAuditNamespace); err != nil || len(entries) != 0 {
 		t.Fatalf("sealing caused an extra database write: %v %v", entries, err)
 	}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "existing-model-boundary"})
+	srv.recordSessionRunnerCommunicationAudit(context.Background(), run, map[string]any{"decision": "existing-model-boundary"})
 	entries, err := store.List(sessionRunnerCommunicationAuditNamespace)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("original audit write count changed: %d %v", len(entries), err)
@@ -77,7 +77,7 @@ func TestKernelPrepareAuditClosingDoesNotWriteWhileStoreMutexBusy(t *testing.T) 
 	if _, err := store.Set("fixture", "existing", true); err != nil {
 		t.Fatal(err)
 	}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "existing-boundary"})
+	srv.recordSessionRunnerCommunicationAudit(context.Background(), run, map[string]any{"decision": "existing-boundary"})
 	locked, release, edited := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() {
 		edited <- store.EditNamespace("fixture", func(map[string]runtimekv.Entry) (bool, error) { close(locked); <-release; return false, nil })
@@ -124,7 +124,7 @@ func TestKernelPrepareAuditClosingDoesNotWriteWhileSQLiteWriterHeld(t *testing.T
 	t.Cleanup(func() { _ = store.Close() })
 	srv := &Server{runtimeStore: store}
 	run := &sessionRunnerChatRun{SessionID: "session", Attempt: 3}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "original-boundary"})
+	srv.recordSessionRunnerCommunicationAudit(context.Background(), run, map[string]any{"decision": "original-boundary"})
 	locker, err := sql.Open("sqlite", path)
 	if err != nil {
 		t.Fatal(err)

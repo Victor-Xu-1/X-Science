@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -26,28 +27,29 @@ func (schedule *sessionRunnerCommunicationSchedule) due() bool {
 	return schedule.LastPublished.IsZero() || schedule.CompletedSteps > 0 && schedule.now().Sub(schedule.LastPublished) >= 90*time.Second
 }
 
-func (schedule *sessionRunnerCommunicationSchedule) published() error {
+func (schedule *sessionRunnerCommunicationSchedule) published() {
 	schedule.mu.Lock()
 	defer schedule.mu.Unlock()
 	schedule.LastPublished = schedule.now().UTC()
 	schedule.CompletedSteps = 0
-	return schedule.save()
+	schedule.save()
 }
 
-func (schedule *sessionRunnerCommunicationSchedule) settled() error {
+func (schedule *sessionRunnerCommunicationSchedule) settled() {
 	schedule.mu.Lock()
 	defer schedule.mu.Unlock()
 	if schedule.CompletedSteps < 4 {
 		schedule.CompletedSteps++
 	}
-	return schedule.save()
+	schedule.save()
 }
 
-func (schedule *sessionRunnerCommunicationSchedule) save() error {
+func (schedule *sessionRunnerCommunicationSchedule) save() {
 	if schedule.persist != nil {
-		return schedule.persist(schedule)
+		if err := schedule.persist(schedule); err != nil {
+			log.Printf("communication cadence persistence skipped: %v", err)
+		}
 	}
-	return nil
 }
 
 func (s *Server) loadSessionRunnerCommunicationSchedule(ctx context.Context, run *sessionRunnerChatRun) (*sessionRunnerCommunicationSchedule, error) {
@@ -61,22 +63,28 @@ func (s *Server) loadSessionRunnerCommunicationSchedule(ctx context.Context, run
 		return nil, err
 	}
 	key := fmt.Sprintf("%s:%s:%d", stream.UID, branch.ActiveBranchID, run.Transcript.Claim.ClaimedInputRevision)
-	entry, found, err := s.runtimeStore.Get(runnerCommunicationScheduleNamespace, key)
+	schedule.persist = func(current *sessionRunnerCommunicationSchedule) error {
+		return s.persistSessionRunnerCommunicationMetadata(ctx, runnerCommunicationScheduleNamespace, key, current)
+	}
+	readCtx, cancel := sessionRunnerCommunicationMetadataContext(ctx)
+	entry, found, err := s.runtimeStore.GetContext(readCtx, runnerCommunicationScheduleNamespace, key)
+	cancel()
 	if err != nil {
-		return nil, err
+		log.Printf("communication cadence restore skipped: %v", err)
+		return schedule, nil
 	}
 	if found {
 		encoded, err := json.Marshal(entry.Value)
 		if err != nil {
-			return nil, err
+			log.Printf("communication cadence restore skipped: %v", err)
+			return schedule, nil
 		}
-		if err := json.Unmarshal(encoded, schedule); err != nil {
-			return nil, err
+		var restored sessionRunnerCommunicationSchedule
+		if err := json.Unmarshal(encoded, &restored); err != nil {
+			log.Printf("communication cadence restore skipped: %v", err)
+			return schedule, nil
 		}
-	}
-	schedule.persist = func(current *sessionRunnerCommunicationSchedule) error {
-		_, err := s.runtimeStore.Set(runnerCommunicationScheduleNamespace, key, current)
-		return err
+		schedule.LastPublished, schedule.CompletedSteps = restored.LastPublished, restored.CompletedSteps
 	}
 	return schedule, nil
 }

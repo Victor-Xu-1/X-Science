@@ -113,7 +113,7 @@ func TestCommunicationObserverCountersPersistWithoutResponseText(t *testing.T) {
 	record := map[string]any{"decision": "language_localized"}
 	addSessionRunnerNarrationCounters(record, "input_", text)
 	addSessionRunnerNarrationCounters(record, "output_", text)
-	server.recordSessionRunnerCommunicationAudit(&sessionRunnerChatRun{SessionID: "counter-session"}, record)
+	server.recordSessionRunnerCommunicationAudit(context.Background(), &sessionRunnerChatRun{SessionID: "counter-session"}, record)
 	if err := store.Close(); err != nil {
 		t.Fatal(err)
 	}

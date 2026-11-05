@@ -888,7 +888,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		// not the provider's first token or a browser paint timestamp.
 		communicationObserver.notePublication()
 		publicNarrationBytes += len(delta)
-		return communicationSchedule.published()
+		communicationSchedule.published()
+		return nil
 	}
 	publishProgressSegment := func() error {
 		privatePrefix = ""
@@ -954,7 +955,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		}
 		switch event.Type {
 		case agentruntime.EventPresentationDiagnostic:
-			s.recordSessionRunnerCommunicationAudit(run, map[string]any{
+			s.recordSessionRunnerCommunicationAudit(deltaContext, run, map[string]any{
 				"decision": "progress_presentation_discarded", "failure_code": event.Message,
 			})
 			return nil
@@ -1024,9 +1025,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 				}
 			}
 			if event.Type == agentruntime.EventToolCompleted || event.Type == agentruntime.EventToolFailed {
-				if err := communicationSchedule.settled(); err != nil {
-					return fmt.Errorf("persist communication cadence: %w", err)
-				}
+				communicationSchedule.settled()
 			}
 			progressOutcomeAuthority.observe(event)
 			return nil
@@ -1078,17 +1077,17 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	communicationObserver = &sessionRunnerCommunicationObserver{
 		delegate:         engine.Model,
 		publicationBytes: func() int { return publicNarrationBytes },
-		audit:            func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
+		audit:            func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(deltaContext, run, record) },
 	}
 	engine.Model = &sessionRunnerResponseLanguageModelClient{
 		language:          taskLanguage,
-		audit:             func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(run, record) },
+		audit:             func(record map[string]any) { s.recordSessionRunnerCommunicationAudit(deltaContext, run, record) },
 		presentationReady: communicationObserver.notePresentationReady,
 		delegate: &sessionRunnerResponseContractClient{
 			delegate: communicationObserver, progressDue: communicationSchedule.due,
 			progressReady: communicationObserver.noteProgressReady,
 			presentationDiagnostic: func() {
-				s.recordSessionRunnerCommunicationAudit(run, map[string]any{
+				s.recordSessionRunnerCommunicationAudit(deltaContext, run, map[string]any{
 					"decision": "progress_presentation_discarded", "failure_code": "invalid_public_progress",
 				})
 			},

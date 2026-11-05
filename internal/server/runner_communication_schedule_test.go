@@ -9,16 +9,12 @@ import (
 func TestCommunicationScheduleRequestsUpdateAfterOneLongOperation(t *testing.T) {
 	now := time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC)
 	schedule := &sessionRunnerCommunicationSchedule{now: func() time.Time { return now }}
-	if err := schedule.published(); err != nil {
-		t.Fatal(err)
-	}
+	schedule.published()
 	now = now.Add(5 * time.Minute)
 	if schedule.due() {
 		t.Fatal("elapsed time alone must not invent progress")
 	}
-	if err := schedule.settled(); err != nil {
-		t.Fatal(err)
-	}
+	schedule.settled()
 	if !schedule.due() {
 		t.Fatal("a completed long operation must not wait for three more tool calls")
 	}
@@ -30,13 +26,9 @@ func TestCommunicationScheduleSurvivesRestoreWithoutRepeatingIntroduction(t *tes
 	if !schedule.due() {
 		t.Fatal("initial explanation not due")
 	}
-	if err := schedule.published(); err != nil {
-		t.Fatal(err)
-	}
+	schedule.published()
 	for range 4 {
-		if err := schedule.settled(); err != nil {
-			t.Fatal(err)
-		}
+		schedule.settled()
 	}
 	encoded, err := json.Marshal(schedule)
 	if err != nil {
@@ -57,9 +49,7 @@ func TestCommunicationScheduleSurvivesRestoreWithoutRepeatingIntroduction(t *tes
 	if !restored.due() {
 		t.Fatal("progress update not due after evidence and time")
 	}
-	if err := restored.published(); err != nil {
-		t.Fatal(err)
-	}
+	restored.published()
 	now = now.Add(time.Hour)
 	if restored.due() {
 		t.Fatal("idle time without completed actions created progress")
