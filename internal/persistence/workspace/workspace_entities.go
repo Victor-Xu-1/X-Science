@@ -297,12 +297,21 @@ func (s *Store) CreateFrame(input CreateFrameInput) (Frame, error) {
 }
 
 func (s *Store) GetFrame(id string) (Frame, bool, error) {
+	return s.GetFrameWithContext(context.Background(), id)
+}
+
+// GetFrameWithContext lets request-owned reads cancel their connection wait.
+func (s *Store) GetFrameWithContext(ctx context.Context, id string) (frame Frame, found bool, err error) {
 	db := s.readDatabase()
 	if db == nil {
 		return Frame{}, false, errors.New("workspace store is closed")
 	}
-	var frame Frame
-	err := db.QueryRowContext(context.Background(), `
+	conn, release, err := workspaceContextReadConnection(ctx, db)
+	if err != nil {
+		return Frame{}, false, fmt.Errorf("begin frame read: %w", err)
+	}
+	defer func() { err = errors.Join(err, release()) }()
+	err = conn.QueryRowContext(ctx, `
 		SELECT frame.id, frame.project_id, COALESCE(frame.parent_frame_id, ''), frame.root_frame_id,
 			frame.root_sequence, frame.agent_name, frame.status, frame.conversation_type, frame.name,
 			frame.created_at, frame.updated_at,frame.incarnation_id
