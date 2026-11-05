@@ -238,8 +238,9 @@ func (s *Server) sessionRunnerArtifactReferencesFromSnapshot(refs []transcriptst
 // A new independent input revision
 // with neither signal has no artifact deliverable to validate: projecting the
 // full historical ledger there would make an unrelated prior report a mutable
-// obligation of the new turn. Explicit continuation tasks retain the full
-// logical-task ledger so correction and follow-up work still fail closed.
+// obligation of the new turn. A continuation with no identified delivery
+// retains its logical-task ledger. Earlier outputs are recovered only for
+// requirements that the identified delivery does not cover.
 func (s *Server) sessionRunnerActiveArtifactCommitReferences(
 	ctx context.Context,
 	run *sessionRunnerChatRun,
@@ -279,17 +280,9 @@ func (s *Server) sessionRunnerArtifactReferencesForRound(run *sessionRunnerChatR
 	}
 	continuesPriorWork := len(run.ContinuationArtifactReferences) > 0
 	if continuesPriorWork {
-		for _, commit := range commits {
-			if commit.Relation != transcriptstore.ArtifactRelationProduced || strings.TrimSpace(commit.VersionID) == "" {
-				continue
-			}
-			artifact, _, found, metadataErr := s.workspaceStore.GetArtifactVersionMetadata(commit.VersionID)
-			if metadataErr != nil {
-				return nil, metadataErr
-			}
-			if found && sessionRunnerArtifactNameSatisfiesRequiredDeliverable(run.TaskIntent, artifact.Name) {
-				explicitVersions[strings.TrimSpace(commit.VersionID)] = struct{}{}
-			}
+		hasDeliverySignal := hasCurrentProduced || len(explicitVersions) != 0
+		if err := s.retainSessionRunnerMissingDeliverables(run, commits, currentVersions, explicitVersions, hasDeliverySignal); err != nil {
+			return nil, err
 		}
 	}
 	selected := selectSessionRunnerActiveArtifactReferences(
