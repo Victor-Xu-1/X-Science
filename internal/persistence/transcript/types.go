@@ -422,6 +422,8 @@ type TerminalProjection struct {
 	ReasonCode         string
 	CreatedAt          time.Time
 	ArtifactReferences []ArtifactReference
+
+	RetainsFinalResponse bool
 }
 
 type CancelRunnerInput struct {

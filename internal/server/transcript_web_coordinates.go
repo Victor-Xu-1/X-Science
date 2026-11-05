@@ -410,6 +410,17 @@ func (r *transcriptWebCoordinateReducer) consume(projected transcriptstore.Proje
 		if err != nil {
 			return err
 		}
+		if transcriptstore.RetainedFinalResponseID(payload) != "" {
+			if created || durableIdentity == "" || index < 0 || index >= len(r.coordinates) ||
+				r.coordinates[index].id != durableIdentity {
+				return transcriptstore.ErrEventConflict
+			}
+			if err := r.touch(index, projected.Event.PublicationSeq, projected.Event.EventID); err != nil {
+				return err
+			}
+			noticeID := transcriptWebRetainedResponseNoticeID(durableIdentity, projected.Event.EventID)
+			return r.append(noticeID, noticeID, projected.Event.PublicationSeq, projected.Event.EventID)
+		}
 		if !created {
 			delete(r.superseded, index)
 			return r.touch(index, projected.Event.PublicationSeq, projected.Event.EventID)

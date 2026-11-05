@@ -76,6 +76,17 @@ func ValidateRunnerFinalizationInput(input RunnerFinalizationInput) error {
 			return err
 		}
 	}
+	var terminal map[string]any
+	if json.Unmarshal(input.Finish.PayloadJSON, &terminal) == nil {
+		if _, present := terminal["retained_final_response_id"]; present {
+			id := RetainedFinalResponseID(terminal)
+			if id == "" || input.Finish.Status != "failed" || input.Assistant == nil ||
+				input.Assistant.Source != EventSourcePayload || input.Assistant.ClientMessageID != id ||
+				!matchesRetainedFinalResponse(terminal, input.Assistant.PayloadJSON) {
+				return ErrEventConflict
+			}
+		}
+	}
 	return nil
 }
 

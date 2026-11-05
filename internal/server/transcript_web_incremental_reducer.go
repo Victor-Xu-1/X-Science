@@ -536,6 +536,9 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantTerminal(
 	if err != nil {
 		return err
 	}
+	if projection.RetainsFinalResponse {
+		return r.consumeRetainedResponseTerminal(attempt, projected, projection, durableIdentity)
+	}
 	status := "finish"
 	if projection.TerminalStatus == "failed" && !projection.Superseded {
 		status = "error"
@@ -627,4 +630,41 @@ func (r *transcriptWebIncrementalAssistantReducer) consumeAssistantTerminal(
 	}
 	attempt.CurrentMessage = cloneTranscriptWebIncrementalRecord(&record)
 	return nil
+}
+
+func (r *transcriptWebIncrementalAssistantReducer) consumeRetainedResponseTerminal(
+	attempt *transcriptWebIncrementalAssistantAttemptCheckpoint,
+	projected transcriptstore.ProjectedEvent,
+	projection transcriptstore.TerminalProjection,
+	assistantID string,
+) error {
+	prior := attempt.CurrentMessage
+	if prior == nil || prior.VisibleIndex == nil || attempt.CurrentIsSyntheticProgress || attempt.CurrentIdentity != assistantID {
+		return transcriptstore.ErrEventConflict
+	}
+	message, err := transcriptWebIncrementalMessageMap(*prior)
+	if err != nil {
+		return err
+	}
+	if err := settleTranscriptWebRetainedResponse(message, assistantID); err != nil {
+		return err
+	}
+	sequence, eventID := projected.Event.PublicationSeq, projected.Event.EventID
+	reply, err := transcriptWebIncrementalBuildRecord(message, transcriptWebStoredReferenceMaps(prior.ArtifactReferences),
+		prior.Ordinal, *prior.VisibleIndex, prior.FirstPublicationSequence, sequence, eventID, prior.UpdatedAt)
+	if err != nil {
+		return err
+	}
+	if err := r.updateRecord(*prior, reply); err != nil {
+		return err
+	}
+	notice := transcriptWebRetainedResponseNotice(projection, assistantID)
+	mapValue(notice["content"])["xScience"] = map[string]any{"messageIndex": r.visibleCount, "blockIndex": 0, "branchId": r.branchID}
+	refs := transcriptNonProducedArtifactReferences(transcriptArtifactReferences(projection.ArtifactReferences))
+	record, err := transcriptWebIncrementalBuildRecord(notice, refs, r.messageCount+1, r.visibleCount,
+		sequence, sequence, eventID, projected.Event.CreatedAt)
+	if err != nil {
+		return err
+	}
+	return r.appendRecord(record)
 }

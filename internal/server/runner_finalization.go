@@ -20,6 +20,7 @@ type transcriptRunnerFinalization struct {
 	AssistantIdentity                   string
 	SegmentOrdinal                      int64
 	PrepareMemory                       bool
+	RetainFinalResponse                 bool
 	ResponseLanguage                    string
 }
 
@@ -32,10 +33,16 @@ func (s *Server) persistTranscriptRunnerFinalization(parent context.Context, aut
 	}
 	final.SegmentOrdinal = max(final.SegmentOrdinal, 1)
 	final.Status, final.Detail, final.ReasonCode = strings.TrimSpace(final.Status), strings.TrimSpace(final.Detail), strings.TrimSpace(final.ReasonCode)
+	if final.AssistantIdentity == "" {
+		final.AssistantIdentity = "assistant-message"
+	}
 	terminalPayload := map[string]any{"status": final.Status, "detail": final.Detail,
 		"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(final.SegmentOrdinal, "")}
 	if final.ReasonCode != "" {
 		terminalPayload["reason_code"] = final.ReasonCode
+	}
+	if final.RetainFinalResponse {
+		terminalPayload["retained_final_response_id"] = transcriptRunnerClientMessageID(authority.Claim, final.AssistantIdentity)
 	}
 	raw, err := json.Marshal(terminalPayload)
 	if err != nil {
@@ -46,12 +53,9 @@ func (s *Server) persistTranscriptRunnerFinalization(parent context.Context, aut
 		Status: final.Status, PayloadJSON: raw, Destinations: transcriptRunnerDestinations(authority),
 	}}
 	if final.Content != "" {
-		if final.AssistantIdentity == "" {
-			final.AssistantIdentity = "assistant-message"
-		}
 		assistantPayload := map[string]any{"text": final.Content,
 			"assistant_segment": transcriptstore.AssistantSegmentPayloadV1(final.SegmentOrdinal, "")}
-		if final.Status == "completed" {
+		if final.Status == "completed" || final.RetainFinalResponse {
 			if advisory := final.CompletionAdvisories.envelope(final.Content, authority.Claim); advisory != nil {
 				assistantPayload["completion_advisories"] = advisory
 			}

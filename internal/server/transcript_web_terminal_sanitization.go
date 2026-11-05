@@ -90,8 +90,12 @@ func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream tra
 				body, text := content["content"].(string)
 				payload, decodeErr := transcriptPayloadObject(source.Assistant.PayloadJSON)
 				identity, identityErr := transcriptAssistantMessageIDFromPayload(payload, stream.SessionID, *source.Assistant.RunnerAttempt)
+				canonicalStatus := message["terminal_status"] == "completed"
+				if source.RetainedAfterCleanupFailure {
+					canonicalStatus = message["status"] == "finish" && message["terminal_status"] == nil
+				}
 				if decodeErr != nil || identityErr != nil || identity == "" || !text || transcriptWebAssistantMessageType(payload) != "text" ||
-					message["type"] != "text" || message["position"] != "left" || message["terminal_status"] != "completed" || message["terminal_superseded"] == true ||
+					message["type"] != "text" || message["position"] != "left" || !canonicalStatus || message["terminal_superseded"] == true ||
 					record.MessageID != identity || record.ClientMessageID != identity || message["id"] != identity || message["msg_id"] != identity ||
 					source.Assistant.StreamUID != stream.UID || source.Assistant.PublicationSeq < record.FirstPublicationSequence ||
 					source.Assistant.PublicationSeq > record.LastPublicationSequence || source.Terminal.PublicationSeq != record.LastPublicationSequence ||

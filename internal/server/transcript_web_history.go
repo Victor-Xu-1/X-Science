@@ -756,6 +756,18 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 		if err != nil {
 			return err
 		}
+		if projection.RetainsFinalResponse {
+			if created {
+				return transcriptstore.ErrEventConflict
+			}
+			if err := settleTranscriptWebRetainedResponse((*messages)[index], durableIdentity); err != nil {
+				return err
+			}
+			notice := transcriptWebRetainedResponseNotice(projection, durableIdentity)
+			index = len(*messages)
+			*messages = append(*messages, notice)
+			durableIdentity = ""
+		}
 		if created {
 			content := map[string]any{"content": projection.Detail}
 			if durableIdentity != "" {
@@ -800,7 +812,11 @@ func (s *Server) projectTranscriptWebProjectedEvent(
 		if projection.Superseded {
 			(*messages)[index]["terminal_superseded"] = true
 		}
-		(*messages)[index]["artifact_refs"] = transcriptArtifactReferences(projection.ArtifactReferences)
+		refs := transcriptArtifactReferences(projection.ArtifactReferences)
+		if projection.RetainsFinalResponse {
+			refs = transcriptNonProducedArtifactReferences(refs)
+		}
+		(*messages)[index]["artifact_refs"] = refs
 		for _, action := range toolHistory.settleAttempt(projection.Attempt, projection.TerminalStatus) {
 			if action.index < 0 || action.index >= len(*messages) {
 				return transcriptstore.ErrEventConflict

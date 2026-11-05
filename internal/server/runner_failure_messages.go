@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 )
 
@@ -18,7 +19,7 @@ func publicSessionRunnerFailureMessage(raw, language string, reasonCodes ...stri
 			return localizedSessionRunnerFailureMessage(language, "presentation")
 		case "runner_stop_hook_failed":
 			return localizedSessionRunnerFailureMessage(language, "finalization")
-		case "runner_cleanup_failed":
+		case transcriptstore.RunnerCleanupFailedReason:
 			return localizedSessionRunnerFailureMessage(language, "cleanup")
 		case "runner_response_persistence_failed":
 			return localizedSessionRunnerFailureMessage(language, "persistence")

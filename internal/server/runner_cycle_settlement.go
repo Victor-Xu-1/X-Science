@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 	eventjournal "x-science/internal/persistence/journal"
 	sessionstore "x-science/internal/persistence/sessions"
+	transcriptstore "x-science/internal/persistence/transcript"
 	"x-science/internal/providers"
 )
 
@@ -25,6 +27,27 @@ func (s *Server) settleSessionRunnerChatOutcome(
 	chatErr error,
 	claimToken string,
 ) error {
+	return s.settleSessionRunnerChatOutcomeWithCleanup(
+		ctx, options, result, activeRun, projectionClaim, transcriptAuthority, chatRun,
+		session, entries, assistantMessage, chatErr, claimToken, s.releaseSessionRunnerKernels,
+	)
+}
+
+func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
+	ctx context.Context,
+	options SessionRunnerChatOptions,
+	result *SessionRunnerCycleResult,
+	activeRun *activeSessionRun,
+	projectionClaim sessionstore.RunnerMutationClaim,
+	transcriptAuthority *transcriptRunnerAuthority,
+	chatRun *sessionRunnerChatRun,
+	session sessionstore.Session,
+	entries []eventjournal.Entry,
+	assistantMessage string,
+	chatErr error,
+	claimToken string,
+	cleanup func(context.Context, string, *transcriptRunnerAuthority) error,
+) error {
 	var err error
 	canonicalSettled := false
 	defer func() {
@@ -38,6 +61,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 	status := "completed"
 	message := "runner chat completed"
 	failureReason := ""
+	retainFinalResponse := false
 	if cause := context.Cause(ctx); errors.Is(cause, ErrGenerationStopped) {
 		status = "cancelled"
 		message = cause.Error()
@@ -91,11 +115,14 @@ func (s *Server) settleSessionRunnerChatOutcome(
 	}
 	if status == "completed" || status == "cancelled" ||
 		(status == "failed" && !runnerInterruptionMayContinueSameTask(failureReason)) {
-		if cleanupErr := s.releaseSessionRunnerKernels(ctx, session.ID, transcriptAuthority); cleanupErr != nil {
+		if cleanupErr := cleanup(ctx, session.ID, transcriptAuthority); cleanupErr != nil {
+			retainFinalResponse = transcriptAuthority != nil && status == "completed" && strings.TrimSpace(assistantMessage) != ""
 			status = "failed"
 			message = "task runtime cleanup failed: " + cleanupErr.Error()
-			failureReason = "runner_cleanup_failed"
-			assistantMessage = ""
+			failureReason = transcriptstore.RunnerCleanupFailedReason
+			if !retainFinalResponse {
+				assistantMessage = ""
+			}
 		}
 	}
 	activeRun.settlement.Lock()
@@ -161,6 +188,7 @@ func (s *Server) settleSessionRunnerChatOutcome(
 		}
 		receipt, finishTranscriptErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{
 			Content: assistantMessage, Status: status, Detail: message, ReasonCode: failureReason,
+			RetainFinalResponse:  retainFinalResponse && status == "failed",
 			CompletionAdvisories: chatRun.completionAdvisorySnapshot(),
 			AssistantIdentity:    "assistant-message", SegmentOrdinal: chatRun.assistantSegmentOrdinal(), PrepareMemory: true, ResponseLanguage: chatRun.ResponseLanguage,
 		})
