@@ -39,7 +39,17 @@ func transcriptWebFenceCanCatchUp(fence transcriptstore.TranscriptWebProjectionF
 	// and first realtime claim do not wait behind the global repair queue.
 	return !fence.StateFound || fence.StateStatus == "ready" && !transcriptWebFenceReady(fence) ||
 		fence.StateStatus == "quarantined" && fence.StateProjectorVersion >= 1 &&
-			fence.StateProjectorVersion < transcriptstore.TranscriptWebProjectorVersion
+			fence.StateProjectorVersion < transcriptstore.TranscriptWebProjectorVersion ||
+		transcriptWebBuildingFenceCanCatchUp(fence)
+}
+
+func transcriptWebBuildingFenceCanCatchUp(fence transcriptstore.TranscriptWebProjectionFence) bool {
+	return fence.StateFound && fence.StateStatus == "building" &&
+		fence.StateProjectorVersion == transcriptstore.TranscriptWebProjectorVersion &&
+		fence.StateBranchGeneration == fence.BranchGeneration &&
+		fence.StateSourceRevision == fence.SourceRevision &&
+		fence.StateThroughPublicationSequence > 0 &&
+		fence.StateThroughPublicationSequence < fence.ThroughPublicationSequence
 }
 
 // catchUpTranscriptWebReadModel collapses concurrent reads for one stale
@@ -89,6 +99,28 @@ func (s *Server) rebuildOneStaleTranscriptWebReadModel(
 		return err
 	}
 	upgrade := work.Reason == "projection_projector_version_stale"
+	if work.ProjectionStatus == "building" {
+		if upgrade {
+			return nil
+		}
+		stream, err := s.transcriptStore.GetStream(ctx, work.StreamUID, work.OwnerID)
+		if err != nil {
+			return err
+		}
+		if stream.SessionID != work.SessionID || stream.Kind != transcriptstore.StreamKindFrameRef {
+			return transcriptstore.ErrEventConflict
+		}
+		// A request may resume one verified partial append, never turn an
+		// invalid or unsupported building checkpoint into a full rebuild.
+		result, err := s.tryIncrementalTranscriptWebReadModel(ctx, stream, work)
+		if err != nil {
+			return err
+		}
+		if !result.applied() {
+			return transcriptstore.ErrTranscriptWebProjectionStale
+		}
+		return nil
+	}
 	eligible := work.Status == transcriptstore.TranscriptWebProjectionWorkMissing ||
 		work.ProjectionStatus == "quarantined" && upgrade ||
 		work.ProjectionStatus == "ready" &&
