@@ -22,6 +22,7 @@ func TestRecoveryControlTransitionDoesNotFreezeFurtherTools(t *testing.T) {
 		sessionRunnerCompletionReviewRecoveryReasonCode,
 		sessionRunnerResponseLanguageMismatchReasonCode,
 		sessionRunnerFinalPresentationReasonCode,
+		sessionRunnerModelProtocolErrorReasonCode,
 		"artifact_reference_correction_required",
 		"completion_review_correction_required",
 		sessionRunnerVisualArtifactValidationReasonCode,

@@ -319,7 +319,7 @@ func (accumulator *sessionRunnerRecoveryProjectionAccumulator) observe(entry eve
 		}
 		return
 	}
-	if correction.ReasonCode == sessionRunnerRequiredToolChoiceUnsatisfiedReasonCode {
+	if runnerCorrectionIsProtocolFallback(correction.ReasonCode) {
 		accumulator.protocolCorrection = correction
 		accumulator.hasProtocolFallback = true
 		return

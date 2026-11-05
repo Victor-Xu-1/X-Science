@@ -330,7 +330,10 @@ func (s *Server) handleSessionRunnerChatInterruption(
 	var boundedCorrection sessionRunnerBoundedCorrection
 	if !errors.As(chatErr, &boundedCorrection) {
 		var invalidPresentation *agentruntime.PublicProgressPresentationError
-		if errors.As(chatErr, &invalidPresentation) {
+		var textToolEnvelope *agentruntime.TextToolEnvelopePresentationError
+		if errors.As(chatErr, &textToolEnvelope) {
+			boundedCorrection = sessionRunnerTextToolEnvelopeCorrection{}
+		} else if errors.As(chatErr, &invalidPresentation) {
 			boundedCorrection = sessionRunnerFinalPresentationCorrection{}
 		}
 	}

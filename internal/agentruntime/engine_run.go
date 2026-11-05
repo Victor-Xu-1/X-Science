@@ -75,7 +75,7 @@ func (e Engine) Run(ctx context.Context, request RunRequest) (RunResult, error) 
 		modelRequest.ToolChoice = toolChoice
 		modelRequest.Tools = roundTools
 		enforceToolChoice := roundConstraint.required || roundConstraint.forbidden
-		response, bufferedDeltas, err := e.completeModelRound(ctx, modelRequest, enforceToolChoice)
+		response, bufferedDeltas, err := e.completeModelRoundWithKnownTools(ctx, modelRequest, enforceToolChoice, activeTools)
 		if err != nil {
 			return interruptedRun(messages, err)
 		}
