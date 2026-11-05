@@ -277,6 +277,7 @@ func TestContextUsageDynamicClientUsesRealProviderProtocol(t *testing.T) {
 				ID: "observed", UserID: "dynamic-user", Name: "Observed", Type: "openai-compatible",
 				BaseURL: provider.URL + "/v1", Model: "observed-model", Enabled: &enabled,
 			}})
+			t.Cleanup(func() { _ = srv.Close(context.Background()) })
 			client := newDynamicModelTestClient(srv, project, frame)
 			client.contextOptions = SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 500}}
 			client.contextUsage = newSessionContextUsageRecorder(srv, frame, 1, SessionRunnerChatOptions{RuntimeSessionConfig: map[string]any{"contextWindow": 500}})

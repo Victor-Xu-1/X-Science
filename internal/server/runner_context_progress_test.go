@@ -27,7 +27,7 @@ func TestContextProgressPublishesToolBoundaryPhaseInsideThrottle(t *testing.T) {
 	tracker := recorder.streamProgress(snapshot)
 	now := snapshot.ObservedAt
 	tracker.now = func() time.Time { return now }
-	tracker.observe(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true})
 	first := readContextUsageTest(t, store, "phase-transition")
 	if first.Progress == nil || first.Progress.Phase != "thinking" {
 		t.Fatalf("initial private activity did not publish thinking: %+v", first.Progress)
@@ -36,7 +36,7 @@ func TestContextProgressPublishesToolBoundaryPhaseInsideThrottle(t *testing.T) {
 	// Native providers send this boundary only once. The remaining argument
 	// fragments need not emit any other activity before the response finishes.
 	now = now.Add(50 * time.Millisecond)
-	tracker.observe(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary})
 	got := readContextUsageTest(t, store, "phase-transition")
 	if got.State != "request" || got.Progress == nil || got.Progress.Phase != "generating" {
 		t.Fatalf("tool boundary phase was throttled before provider finish: state=%s progress=%+v", got.State, got.Progress)
@@ -54,16 +54,16 @@ func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 	tracker := recorder.streamProgress(snapshot)
 	now := time.Now()
 	tracker.now = func() time.Time { return now }
-	tracker.observe(agentruntime.ModelStreamEvent{ContentDelta: "abcd"})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{ContentDelta: "abcd"})
 	first, _, _ := store.Get(contextUsageNamespace("fences"), "latest")
-	tracker.observe(agentruntime.ModelStreamEvent{ContentDelta: "甲乙"})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{ContentDelta: "甲乙"})
 	still, _, _ := store.Get(contextUsageNamespace("fences"), "latest")
 	if first.Version != still.Version {
 		t.Fatal("unthrottled write")
 	}
 	now = now.Add(time.Second)
-	tracker.observe(agentruntime.ModelStreamEvent{ReasoningActive: true})
-	tracker.observe(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true, ContentDelta: "not public text"})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{ReasoningActive: true})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true, ContentDelta: "not public text"})
 	got := readContextUsageTest(t, store, "fences")
 	if got.Progress == nil || got.Progress.OutputTokens != 3 || got.Progress.Phase != "thinking" {
 		t.Fatalf("numeric progress=%+v", got)
@@ -72,19 +72,44 @@ func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 	if strings.Contains(string(raw), "abcd") || strings.Contains(string(raw), "甲乙") {
 		t.Fatal("text stored in telemetry")
 	}
+	late := *snapshot
 	tracker.finish(agentruntime.ModelResponse{}, errors.New("interrupted"))
+	if err := recorder.persistProgress(t.Context(), late); err != nil {
+		t.Fatal(err)
+	}
 	got = readContextUsageTest(t, store, "fences")
 	if got.State != "failed" || got.Progress == nil || got.Progress.OutputTokens != 3 {
 		t.Fatalf("lost partial evidence: %+v", got)
 	}
-	tracker.observe(agentruntime.ModelStreamEvent{ContentDelta: "late text"})
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{ContentDelta: "late text"})
 	if readContextUsageTest(t, store, "fences").State != "failed" {
 		t.Fatal("late stream reopened request")
 	}
 	next := recorder.begin("next", agentruntime.ModelRequest{})
 	_ = recorder.persist(*snapshot, true)
+	if err := recorder.persistProgress(t.Context(), late); err != nil {
+		t.Fatal(err)
+	}
 	if readContextUsageTest(t, store, "fences").RequestID != next.RequestID {
 		t.Fatal("late previous request overwrote next")
+	}
+	next.Progress = &runnerContextProgress{Phase: "thinking", ObservedAt: now, UsedTokens: next.UsedTokens}
+	recorder.frameExists = func(context.Context, bool) (bool, error) { return false, nil }
+	if err := recorder.persistProgress(t.Context(), *next); err != nil {
+		t.Fatal(err)
+	}
+	if readContextUsageTest(t, store, "fences").Progress != nil {
+		t.Fatal("late progress wrote after frame deletion")
+	}
+	if _, err := store.Delete(contextUsageNamespace("fences"), "latest"); err != nil {
+		t.Fatal(err)
+	}
+	recorder.frameExists = nil
+	if err := recorder.persistProgress(t.Context(), *next); err != nil {
+		t.Fatal(err)
+	}
+	if _, found, err := store.Get(contextUsageNamespace("fences"), "latest"); err != nil || found {
+		t.Fatalf("live progress recreated absent request: found=%v err=%v", found, err)
 	}
 }
 
@@ -191,5 +216,133 @@ func TestContextUsagePublishesStreamBeforeProviderFinishes(t *testing.T) {
 	final := readContextUsageTest(t, store, "streaming")
 	if final.Source != "provider" || final.UsedTokens != 24 {
 		t.Fatalf("provider final lost: %+v", final)
+	}
+}
+
+func TestContextProgressDoesNotBlockStreamOrCancellationOnBusyRuntimeStore(t *testing.T) {
+	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
+	t.Cleanup(func() { _ = store.Close() })
+	recorder := &sessionContextUsageRecorder{store: store, sessionID: "busy-progress", attempt: 1, limit: 1000, limitSource: "configured"}
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	providerStarted := make(chan struct{})
+	allowFirstEvent := make(chan struct{})
+	providerReturned := make(chan struct{})
+	firstDelivered := make(chan struct{})
+	secondDelivered := make(chan struct{})
+	model := communicationTimingModel{run: func(ctx context.Context, emit func(agentruntime.ModelStreamEvent) error) (agentruntime.ModelResponse, error) {
+		defer close(providerReturned)
+		close(providerStarted) // Request observation has already been written.
+		select {
+		case <-allowFirstEvent:
+		case <-ctx.Done():
+			return agentruntime.ModelResponse{}, ctx.Err()
+		}
+		if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true}); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+		if err := ctx.Err(); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+		if err := emit(agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: "public text"}); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
+		<-ctx.Done()
+		return agentruntime.ModelResponse{}, ctx.Err()
+	}}
+	client := &sessionRunnerDynamicModelClient{
+		initialReady: true, initial: sessionRunnerResolvedModelClient{client: model, model: "busy-progress-model"},
+		contextUsage: recorder,
+	}
+	callDone := make(chan error, 1)
+	go func() {
+		_, err := client.CompleteStream(ctx, agentruntime.ModelRequest{}, func(event agentruntime.ModelStreamEvent) error {
+			switch event.Kind {
+			case agentruntime.ModelStreamEventPrivateReasoning:
+				close(firstDelivered)
+			case agentruntime.ModelStreamEventContentDelta:
+				close(secondDelivered)
+			}
+			return nil
+		})
+		callDone <- err
+	}()
+	defer func() {
+		cancel()
+		select {
+		case err := <-callDone:
+			if !errors.Is(err, context.Canceled) {
+				t.Errorf("stream error after releasing runtime KV writer = %v, want cancellation", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Error("stream did not exit after releasing runtime KV writer")
+		}
+	}()
+
+	select {
+	case <-providerStarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("provider did not start after request observation")
+	}
+
+	// Hold the real RuntimeKV store lock after the model request begins. The
+	// first activity callback reaches the downstream consumer before telemetry.
+	err := store.EditNamespace("busy-progress-fixture", func(map[string]runtimekv.Entry) (bool, error) {
+		close(allowFirstEvent)
+		select {
+		case <-firstDelivered:
+		case <-time.After(time.Second):
+			t.Error("first activity callback did not reach its downstream consumer")
+			return false, nil
+		}
+		select {
+		case <-secondDelivered:
+		case <-time.After(time.Second):
+			t.Error("optional context-progress persistence blocked the next provider event")
+		}
+		cancel()
+		select {
+		case <-providerReturned:
+		case <-time.After(time.Second):
+			t.Error("optional context-progress persistence blocked the provider's cancellation check")
+		}
+		return false, nil // Release before waiting for terminal telemetry or closing the store.
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestContextProgressBacksOffAcrossPhaseChangesAfterBusyWrite(t *testing.T) {
+	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
+	t.Cleanup(func() { _ = store.Close() })
+	recorder := &sessionContextUsageRecorder{store: store, sessionID: "backoff", attempt: 1, limit: 1000, limitSource: "configured"}
+	snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+	tracker := recorder.streamProgress(snapshot)
+	now := snapshot.ObservedAt
+	tracker.now = func() time.Time { return now }
+	frameChecks := 0
+	recorder.frameExists = func(ctx context.Context, liveSample bool) (bool, error) {
+		frameChecks++
+		if _, hasDeadline := ctx.Deadline(); !liveSample || !hasDeadline {
+			t.Error("live frame read was not bounded")
+		}
+		if frameChecks == 1 {
+			return false, context.DeadlineExceeded
+		}
+		return true, nil
+	}
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventPrivateReasoning, ReasoningActive: true})
+	now = now.Add(50 * time.Millisecond)
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventContentDelta, ContentDelta: "abcd"})
+	if frameChecks != 1 || readContextUsageTest(t, store, "backoff").Progress != nil {
+		t.Fatal("a phase change retried a busy optional write before its interval")
+	}
+	now = now.Add(contextProgressInterval)
+	tracker.observe(t.Context(), agentruntime.ModelStreamEvent{Kind: agentruntime.ModelStreamEventToolCallBoundary})
+	got := readContextUsageTest(t, store, "backoff")
+	if frameChecks != 2 || got.Progress == nil || got.Progress.OutputTokens != 1 {
+		t.Fatalf("optional progress did not recover or lost sampled activity: checks=%d progress=%+v", frameChecks, got.Progress)
 	}
 }

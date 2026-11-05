@@ -20,7 +20,10 @@ type runnerContextProgress struct {
 	OutputTokens int       `json:"outputTokens"`
 }
 
-const contextProgressInterval = time.Second
+const (
+	contextProgressInterval     = time.Second
+	contextProgressWriteTimeout = 25 * time.Millisecond
+)
 
 type contextStreamProgress struct {
 	mu                 sync.Mutex
@@ -28,7 +31,9 @@ type contextStreamProgress struct {
 	snapshot           *runnerContextUsage
 	ascii, nonASCII    int
 	lastWrite          time.Time
-	closed, writeError bool
+	closed             bool
+	writeBackpressured bool
+	writeError         bool
 	now                func() time.Time
 }
 
@@ -39,7 +44,7 @@ func (recorder *sessionContextUsageRecorder) streamProgress(snapshot *runnerCont
 	return &contextStreamProgress{recorder: recorder, snapshot: snapshot, now: time.Now}
 }
 
-func (progress *contextStreamProgress) observe(event agentruntime.ModelStreamEvent) {
+func (progress *contextStreamProgress) observe(ctx context.Context, event agentruntime.ModelStreamEvent) {
 	if progress == nil {
 		return
 	}
@@ -76,11 +81,21 @@ func (progress *contextStreamProgress) observe(event agentruntime.ModelStreamEve
 		UsedTokens: progress.snapshot.UsedTokens + output, OutputTokens: output}
 	// A one-off boundary may be followed only by private argument fragments.
 	// Publish its real phase now; throttle repeated samples within that phase.
-	if !phaseChanged && !progress.lastWrite.IsZero() && now.Sub(progress.lastWrite) < contextProgressInterval {
+	if (!phaseChanged || progress.writeBackpressured) && !progress.lastWrite.IsZero() &&
+		now.Sub(progress.lastWrite) < contextProgressInterval {
 		return
 	}
 	progress.lastWrite = now
-	if err := progress.recorder.persist(*progress.snapshot, true); err != nil && !progress.writeError {
+	// Optional sampling must yield to provider delivery and cancellation. After
+	// a failed write, even phase changes share the normal retry interval.
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	writeCtx, cancel := context.WithTimeout(ctx, contextProgressWriteTimeout)
+	defer cancel()
+	err := progress.recorder.persistProgress(writeCtx, *progress.snapshot)
+	progress.writeBackpressured = err != nil
+	if err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) && !progress.writeError {
 		progress.writeError = true
 		log.Printf("context_usage_progress_write_failed session=%s request=%s: %v", progress.snapshot.SessionID, progress.snapshot.RequestID, err)
 	}
