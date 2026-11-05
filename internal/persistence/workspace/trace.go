@@ -44,9 +44,10 @@ func (s *Store) GetFrameTraceSnapshot(rootFrameID string, afterRevision *int64) 
 }
 
 // GetFrameTraceSnapshotWithContext preserves the same atomic trace snapshot
-// while allowing an HTTP caller to cancel the writer-connection wait and reads.
+// on the read pool while allowing an HTTP caller to cancel connection waits and reads.
 func (s *Store) GetFrameTraceSnapshotWithContext(ctx context.Context, rootFrameID string, afterRevision *int64) (snapshot FrameTraceSnapshot, err error) {
-	if s == nil || s.db == nil {
+	db := s.readDatabase()
+	if db == nil {
 		return FrameTraceSnapshot{}, errors.New("workspace store is closed")
 	}
 	rootFrameID = strings.TrimSpace(rootFrameID)
@@ -56,7 +57,7 @@ func (s *Store) GetFrameTraceSnapshotWithContext(ctx context.Context, rootFrameI
 	if afterRevision != nil && *afterRevision < 0 {
 		return FrameTraceSnapshot{}, errors.New("trace cursor must be non-negative")
 	}
-	conn, release, err := workspaceContextReadConnection(ctx, s.db)
+	conn, release, err := workspaceContextReadConnection(ctx, db)
 	if err != nil {
 		return FrameTraceSnapshot{}, fmt.Errorf("begin trace read: %w", err)
 	}

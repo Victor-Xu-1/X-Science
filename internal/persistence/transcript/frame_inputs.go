@@ -165,6 +165,10 @@ func (tx *ImmediateTransaction) AppendFrameInputResponse(
 }
 
 func (r *Repository) GetActiveFrameTaskIntent(ctx context.Context, streamUID, ownerID string) (FrameTaskIntent, bool, error) {
+	db := r.readDatabase()
+	if db == nil {
+		return FrameTaskIntent{}, false, ErrSchemaUnavailable
+	}
 	stream, err := r.GetStream(ctx, streamUID, ownerID)
 	if err != nil {
 		return FrameTaskIntent{}, false, err
@@ -180,11 +184,11 @@ func (r *Repository) GetActiveFrameTaskIntent(ctx context.Context, streamUID, ow
 		if authority.ActiveStreamUID != stream.UID || authority.ActiveEpoch != stream.Epoch {
 			return FrameTaskIntent{}, false, ErrEventConflict
 		}
-		intent, found, err := latestPayloadFrameTaskIntent(ctx, r.db, stream)
+		intent, found, err := latestPayloadFrameTaskIntent(ctx, db, stream)
 		return intent, found, schemaError(err)
 	}
 	var intent FrameTaskIntent
-	err = r.db.QueryRowContext(ctx, `
+	err = db.QueryRowContext(ctx, `
 		SELECT intent.id,intent.frame_id,intent.revision,intent.source_event_id,intent.source_message_id,
 			intent.origin,intent.language,intent.text,intent.created_at
 		FROM frame_active_task_intents active

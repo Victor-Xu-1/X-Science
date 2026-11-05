@@ -345,7 +345,7 @@ func (s *Server) webConversationAccess(
 		writeWorkspaceJSON(w, http.StatusNotFound, map[string]any{"message": "conversation not found"})
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, false
 	}
-	project, owned, err := s.workspaceStore.GetCompatibilityProject(userID, frame.ProjectID)
+	project, owned, err := s.workspaceStore.GetCompatibilityProjectWithContext(r.Context(), userID, frame.ProjectID)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to authorize conversation"})
 		return workspace.CompatibilityFrame{}, workspace.CompatibilityProject{}, false

@@ -61,13 +61,6 @@ func TestFrameContextReadsDoNotWaitForSQLitePrepare(t *testing.T) {
 				t.Fatal(err)
 			}
 			pool := store.readDB
-			if trace {
-				pool = store.db
-				pool.SetMaxIdleConns(1)
-				if _, err := pool.ExecContext(t.Context(), "PRAGMA busy_timeout=5000"); err != nil {
-					t.Fatal(err)
-				}
-			}
 			ctx, cancel := context.WithTimeout(t.Context(), 25*time.Millisecond)
 			defer cancel()
 			done := make(chan error, 1)
