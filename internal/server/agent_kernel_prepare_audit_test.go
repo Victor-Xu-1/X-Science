@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestKernelPrepareAuditUsesCapturedBindingAndExistingWriteOnly(t *testing.T)
 	if entries, err := store.List(sessionRunnerCommunicationAuditNamespace); err != nil || len(entries) != 0 {
 		t.Fatalf("sealing caused an extra database write: %v %v", entries, err)
 	}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "existing-model-boundary"})
+	srv.recordSessionRunnerCommunicationAudit(context.Background(), run, map[string]any{"decision": "existing-model-boundary"})
 	entries, err := store.List(sessionRunnerCommunicationAuditNamespace)
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("original audit write count changed: %d %v", len(entries), err)
@@ -77,7 +78,7 @@ func TestKernelPrepareAuditClosingDoesNotWriteWhileStoreMutexBusy(t *testing.T) 
 	if _, err := store.Set("fixture", "existing", true); err != nil {
 		t.Fatal(err)
 	}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "existing-boundary"})
+	srv.recordSessionRunnerCommunicationAudit(context.Background(), run, map[string]any{"decision": "existing-boundary"})
 	locked, release, edited := make(chan struct{}), make(chan struct{}), make(chan error, 1)
 	go func() {
 		edited <- store.EditNamespace("fixture", func(map[string]runtimekv.Entry) (bool, error) { close(locked); <-release; return false, nil })
@@ -119,40 +120,63 @@ func TestKernelPrepareAuditLateAttemptIsDroppedRatherThanRelabelled(t *testing.T
 }
 
 func TestKernelPrepareAuditClosingDoesNotWriteWhileSQLiteWriterHeld(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "runtime.sqlite")
-	store := runtimekv.New(path)
-	t.Cleanup(func() { _ = store.Close() })
-	srv := &Server{runtimeStore: store}
-	run := &sessionRunnerChatRun{SessionID: "session", Attempt: 3}
-	srv.recordSessionRunnerCommunicationAudit(run, map[string]any{"decision": "original-boundary"})
-	locker, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer locker.Close()
-	tx, err := locker.BeginTx(context.Background(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer tx.Rollback()
-	if _, err := tx.Exec("UPDATE runtime_state_entries SET version=version WHERE namespace=?", sessionRunnerCommunicationAuditNamespace); err != nil {
-		t.Fatal(err)
-	}
-	run.kernelPrepareDiagnostics.append(kernelPrepareDiagnostic{Version: 1, OperationID: "operation", Attempt: 3})
-	done := make(chan struct{})
-	go func() { closeKernelPrepareDiagnostics(run); close(done) }()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("SQLite busy wait delayed diagnostic-only run closing")
-	}
-	if loss := run.kernelPrepareDiagnostics.close(); !loss.Unavailable || loss.Dropped != 1 {
-		t.Fatalf("pending diagnostic was silently treated as durable: %+v", loss)
-	}
-	// The writer transaction remains held until deferred rollback. WAL reads
-	// can still prove that closing did not add another audit row.
-	entries, err := store.List(sessionRunnerCommunicationAuditNamespace)
-	if err != nil || len(entries) != 1 {
-		t.Fatalf("closing added an audit write: %d err=%v", len(entries), err)
+	for _, test := range []struct {
+		name string
+		rows int
+	}{
+		{name: "without_prior_sample", rows: 0},
+		{name: "with_prior_sample", rows: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "runtime.sqlite")
+			store := runtimekv.New(path)
+			t.Cleanup(func() { _ = store.Close() })
+			if _, err := store.Set("fixture", "initialized", true); err != nil {
+				t.Fatal(err)
+			}
+			// An optional audit may be absent. Seed any prior sample through
+			// the store so this close-only test never depends on that budget.
+			if test.rows > 0 {
+				if _, err := store.Set(sessionRunnerCommunicationAuditNamespace, "original-boundary",
+					map[string]any{"decision": "original-boundary", "session_id": "session", "attempt": 3}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, err := store.List(sessionRunnerCommunicationAuditNamespace)
+			if err != nil || len(before) != test.rows {
+				t.Fatalf("audit fixture rows=%d err=%v", len(before), err)
+			}
+			locker, err := sql.Open("sqlite", path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer locker.Close()
+			tx, err := locker.BeginTx(context.Background(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Rollback()
+			if _, err := tx.Exec("UPDATE runtime_state_entries SET version=version WHERE namespace=?", sessionRunnerCommunicationAuditNamespace); err != nil {
+				t.Fatal(err)
+			}
+			run := &sessionRunnerChatRun{SessionID: "session", Attempt: 3}
+			run.kernelPrepareDiagnostics.append(kernelPrepareDiagnostic{Version: 1, OperationID: "operation", Attempt: 3})
+			done := make(chan struct{})
+			go func() { closeKernelPrepareDiagnostics(run); close(done) }()
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+				t.Fatal("SQLite busy wait delayed diagnostic-only run closing")
+			}
+			if loss := run.kernelPrepareDiagnostics.close(); !loss.Unavailable || loss.Dropped != 1 {
+				t.Fatalf("pending diagnostic was silently treated as durable: %+v", loss)
+			}
+			// Keep the writer transaction held through this comparison. WAL
+			// reads must show every prior value, version and timestamp intact.
+			after, err := store.List(sessionRunnerCommunicationAuditNamespace)
+			if err != nil || !reflect.DeepEqual(after, before) {
+				t.Fatalf("closing changed audit entries: before=%v after=%v err=%v", before, after, err)
+			}
+		})
 	}
 }

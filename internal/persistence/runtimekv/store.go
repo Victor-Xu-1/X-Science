@@ -183,26 +183,54 @@ func (s *Store) EditNamespace(namespace string, edit func(map[string]Entry) (boo
 }
 
 func (s *Store) Get(namespace string, key string) (Entry, bool, error) {
+	return s.GetContext(context.Background(), namespace, key)
+}
+
+func (s *Store) GetContext(ctx context.Context, namespace string, key string) (Entry, bool, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	if err := validateNamespace(namespace); err != nil {
 		return Entry{}, false, err
 	}
 	if err := validateKey(key); err != nil {
 		return Entry{}, false, err
 	}
-	s.mu.Lock()
+	if err := s.lockContext(ctx); err != nil {
+		return Entry{}, false, err
+	}
 	defer s.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return Entry{}, false, err
+	}
 	if err := s.ensureDatabase(); err != nil {
 		return Entry{}, false, err
 	}
-	entry, err := scanEntry(s.db.QueryRow(`SELECT namespace,entry_key,value_json,version,updated_at
-		FROM runtime_state_entries WHERE namespace=? AND entry_key=?`, namespace, key))
-	if errors.Is(err, sql.ErrNoRows) {
-		return Entry{}, false, nil
+	const query = `SELECT namespace,entry_key,value_json,version,updated_at
+		FROM runtime_state_entries WHERE namespace=? AND entry_key=?`
+	var entry Entry
+	var err error
+	found := true
+	if ctx.Done() == nil {
+		entry, err = scanEntry(s.db.QueryRowContext(ctx, query, namespace, key))
+		if errors.Is(err, sql.ErrNoRows) {
+			return Entry{}, false, nil
+		}
+	} else {
+		err = s.withSQLiteReaderContext(ctx, func(conn *sql.Conn) error {
+			var readErr error
+			entry, readErr = scanEntry(conn.QueryRowContext(ctx, query, namespace, key))
+			if errors.Is(readErr, sql.ErrNoRows) {
+				found = false
+				return nil
+			}
+			return readErr
+		})
 	}
 	if err != nil {
 		return Entry{}, false, err
 	}
-	return entry, true, nil
+	return entry, found, nil
 }
 
 func (s *Store) List(namespace string) ([]Entry, error) {

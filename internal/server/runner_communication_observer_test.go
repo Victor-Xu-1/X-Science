@@ -108,12 +108,18 @@ func TestNarrationCountersUseWhitespaceUnitsWithoutLanguageHeuristics(t *testing
 func TestCommunicationObserverCountersPersistWithoutResponseText(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime-state.sqlite")
 	store := runtimekv.New(path)
+	t.Cleanup(func() { _ = store.Close() })
+	// This test verifies a persisted sample on healthy storage. Initialize
+	// the lazy schema before entering the optional audit's finite budget.
+	if _, _, err := store.Get(sessionRunnerCommunicationAuditNamespace, "initial-fixture-read"); err != nil {
+		t.Fatal(err)
+	}
 	server := &Server{runtimeStore: store}
 	text := strings.Repeat("sensitive-response-unit ", 50)
 	record := map[string]any{"decision": "language_localized"}
 	addSessionRunnerNarrationCounters(record, "input_", text)
 	addSessionRunnerNarrationCounters(record, "output_", text)
-	server.recordSessionRunnerCommunicationAudit(&sessionRunnerChatRun{SessionID: "counter-session"}, record)
+	server.recordSessionRunnerCommunicationAudit(context.Background(), &sessionRunnerChatRun{SessionID: "counter-session"}, record)
 	if err := store.Close(); err != nil {
 		t.Fatal(err)
 	}
