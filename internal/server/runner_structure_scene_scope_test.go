@@ -3,10 +3,13 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	sessionstore "x-science/internal/persistence/sessions"
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -95,6 +98,53 @@ func TestStructureSceneSelectedManifestUsesOnlyPublishedRootContext(t *testing.T
 				t.Fatalf("validation published a candidate: intermediate=%t found=%t error=%v", intermediate, found, err)
 			}
 		})
+	}
+}
+
+func TestStructureSceneSelectedDependenciesDoNotRequireFullReviewerInventory(t *testing.T) {
+	f, manifest, _ := sceneScopeFixture(t)
+	ctx := t.Context()
+	tx, err := f.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	now := time.Now().UTC()
+	if _, err := tx.ExecContext(ctx, `
+		WITH RECURSIVE ordinal(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM ordinal WHERE i<1001)
+		INSERT INTO artifacts(id,project_id,name,kind,current_version_number,created_at,updated_at)
+		SELECT 'scene-noise-'||i,?,'unused-'||i||'.txt','text/plain',1,?,? FROM ordinal`,
+		f.stream.ProjectID, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO artifact_versions(id,artifact_id,version_number,content,content_sha256,created_at)
+		SELECT id||'-v1',id,1,X'78',?,? FROM artifacts WHERE project_id=? AND id GLOB 'scene-noise-*'`,
+		fmt.Sprintf("%x", sha256.Sum256([]byte("x"))), now, f.stream.ProjectID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO artifact_runtime_metadata(artifact_id,root_frame_id,frame_id,latest_version_id)
+		SELECT id,?,?,id||'-v1' FROM artifacts WHERE project_id=? AND id GLOB 'scene-noise-*'`,
+		f.stream.RootFrameID, f.stream.FrameID, f.stream.ProjectID); err != nil {
+		t.Fatal(err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatal(err)
+	}
+	session := sessionstore.Session{ID: f.stream.FrameID}
+	if _, err := f.server.sessionReviewerWorkspaceEvidence(session, f.stream.RootFrameID); err == nil ||
+		!strings.Contains(err.Error(), "artifact inventory is not provably complete") {
+		t.Fatalf("full reviewer inventory limit did not apply: %v", err)
+	}
+	selected := []transcriptstore.ArtifactReferenceInput{
+		{ArtifactID: "base", VersionID: manifest.MotherStructure.VersionID, Relation: transcriptstore.ArtifactRelationProduced},
+		{ArtifactID: "derived", VersionID: manifest.DerivedStructures[0].VersionID, Relation: transcriptstore.ArtifactRelationProduced},
+		{ArtifactID: "preview", VersionID: manifest.PreviewImage.VersionID, Relation: transcriptstore.ArtifactRelationProduced},
+		writeSceneScopeManifest(t, f, "current-manifest", manifest),
+	}
+	if advisory, err := f.server.verifySessionRunnerVisualArtifactEvidence(session, selected); err != nil || advisory != nil {
+		t.Fatalf("unrelated root history blocked fully selected scene: advisory=%#v err=%v", advisory, err)
 	}
 }
 

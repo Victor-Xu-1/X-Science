@@ -21,11 +21,9 @@ func (s *Server) sessionRunnerStructureSceneScope(session sessionstore.Session, 
 		artifacts:          append([]sessionReviewerArtifactEvidence(nil), delivery...),
 		producedStructures: make(map[string]struct{}),
 	}
-	selected := make(map[string]struct{}, len(delivery))
 	references := make(map[string]struct{})
 	hasManifest := false
 	for _, artifact := range delivery {
-		selected[artifact.VersionID] = struct{}{}
 		if structureArtifactName(artifact.Name) {
 			scope.producedStructures[artifact.VersionID] = struct{}{}
 		}
@@ -59,6 +57,11 @@ func (s *Server) sessionRunnerStructureSceneScope(session sessionstore.Session, 
 	if len(scope.producedStructures) < 2 && !hasManifest {
 		return nil, nil
 	}
+	// Selected versions already belong to this delivery. Only external
+	// dependencies need the published root-context lookup.
+	for _, artifact := range delivery {
+		delete(references, artifact.VersionID)
+	}
 	if len(references) == 0 {
 		return scope, nil
 	}
@@ -70,9 +73,6 @@ func (s *Server) sessionRunnerStructureSceneScope(session sessionstore.Session, 
 	}
 	for _, artifact := range inventory.Artifacts {
 		if _, needed := references[artifact.VersionID]; !needed {
-			continue
-		}
-		if _, produced := selected[artifact.VersionID]; produced {
 			continue
 		}
 		// References supply structures or image bytes, never another manifest
