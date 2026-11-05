@@ -540,11 +540,10 @@ func parseAgentPublicScientificFileRequest(input map[string]any) (agentPublicSci
 	if err != nil {
 		return agentPublicScientificFileRequest{}, err
 	}
-	// Query-bearing page URLs remain exact source identities. File download
-	// routes retain their existing query-free contract.
-	if parsed.RawQuery != "" && !agentPublicScientificHTMLFilename(request.Filename) {
-		return agentPublicScientificFileRequest{}, errAgentPublicScientificFileSource
-	}
+	// Native-file endpoints may select their bytes through a query, just as
+	// source pages do. Keep the complete query in both URL identities: durable
+	// source binding must authorize that exact URL before any network request.
+	// Filename, media, destination, redirect and checksum checks remain separate.
 	if request.ExpectedSHA256 != "" && !toolcontract.ValidLowerHexSHA256(request.ExpectedSHA256) {
 		return agentPublicScientificFileRequest{}, errors.New("public scientific file expected_sha256 must be lowercase SHA-256")
 	}
