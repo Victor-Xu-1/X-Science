@@ -1,14 +1,21 @@
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { decodeLiteratureMetadataDraft } from '@/common/adapter/literatureMetadataLookup';
+import {
+  decodeLiteratureMetadataDraft,
+  type LiteratureMetadataLookupScheme,
+} from '@/common/adapter/literatureMetadataLookup';
 import { getRendererAccountScopeToken } from '../rendererAccountScope';
 
-export async function lookupLiteratureDoi(reference: string, signal: AbortSignal) {
+export async function lookupLiteratureMetadata(
+  reference: string,
+  scheme: LiteratureMetadataLookupScheme,
+  signal: AbortSignal
+) {
   const account = getRendererAccountScopeToken();
   const input = reference.trim();
   const raw = await httpRequest<unknown>(
     'POST',
     '/api/literature/metadata-lookup',
-    { reference: input },
+    scheme === 'pmid' ? { reference: input, scheme } : { reference: input },
     {
       signal,
       timeoutMs: 20_000,
@@ -16,5 +23,5 @@ export async function lookupLiteratureDoi(reference: string, signal: AbortSignal
   );
   if (signal.aborted || account !== getRendererAccountScopeToken())
     throw new DOMException('Lookup scope changed', 'AbortError');
-  return decodeLiteratureMetadataDraft(raw, input);
+  return decodeLiteratureMetadataDraft(raw, input, scheme);
 }

@@ -16,12 +16,22 @@ func (s *Server) handleLiteratureMetadataLookup(w http.ResponseWriter, r *http.R
 	}
 	var input struct {
 		Reference string `json:"reference"`
+		Scheme    string `json:"scheme,omitempty"`
 	}
 	if r.URL.RawQuery != "" || decodeLiteratureMutationBody(w, r, &input) != nil {
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"code": "LITERATURE_LOOKUP_INVALID"})
 		return
 	}
-	draft, err := s.doiMetadataLookup.Lookup(r.Context(), input.Reference)
+	var draft any
+	var err error
+	switch input.Scheme {
+	case "":
+		draft, err = s.doiMetadataLookup.Lookup(r.Context(), input.Reference)
+	case "pmid":
+		draft, err = s.doiMetadataLookup.LookupPMID(r.Context(), input.Reference)
+	default:
+		err = literaturediscovery.ErrDOIMetadataInvalid
+	}
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
 			return

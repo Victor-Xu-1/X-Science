@@ -23,6 +23,15 @@
       "publication": "出版物"
     }
   },
+  "libraryPmid": {
+    "add": "通过 PMID 添加",
+    "input": "PMID 或 PubMed 链接",
+    "invalid": "请输入 PMID 或 PubMed 链接。",
+    "notFound": "未找到对应文献。请核对 PMID 或手动添加。",
+    "review": "复核 PMID 文献",
+    "reviewDescription": "文献信息来自 Europe PMC。请复核后保存，此操作不会添加 PDF。",
+    "identifier": "PMID"
+  },
   "libraryInbox": {
     "description": "审阅发现的文献，再将其加入文献库。",
     "foundVia": "来源：{{provider}}",

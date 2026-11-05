@@ -16,6 +16,15 @@ export function LibraryManualCreate(props: LibraryManualCreateProps) {
   const { t } = useTranslation();
   const { account, view, close, openTrash } = props;
   const [review, setReview] = useState(Boolean(props.initialDraft));
+  const pmid =
+    props.initialDraft?.schema === 'x-science.literature-pmid-draft.v1' ? props.initialDraft.pmid : undefined;
+  const title = t(
+    pmid
+      ? 'conversation.libraryPmid.review'
+      : props.initialDraft
+        ? 'conversation.libraryDoi.review'
+        : 'conversation.libraryManual.add'
+  );
   const editButton = useRef<HTMLButtonElement | null>(null);
   const { basic, setBasic, scalarProps, failure, discard, setDiscard, locked, pending, requestClose, run } =
     useLibraryManualCreate(props);
@@ -36,12 +45,12 @@ export function LibraryManualCreate(props: LibraryManualCreateProps) {
       onCancel={requestClose}
       maskStyle={{ backgroundColor: 'transparent' }}
       style={{ width: 640, maxWidth: 'calc(100vw - 32px)' }}
-      title={t(props.initialDraft ? 'conversation.libraryDoi.review' : 'conversation.libraryManual.add')}
+      title={title}
       className='library-manual-create'
       modalRender={(node) =>
         React.isValidElement<React.HTMLAttributes<HTMLDivElement>>(node)
           ? React.cloneElement(node, {
-              'aria-label': t(props.initialDraft ? 'conversation.libraryDoi.review' : 'conversation.libraryManual.add'),
+              'aria-label': title,
               'aria-busy': view.mutating,
               ...dialog.events,
             })
@@ -51,7 +60,11 @@ export function LibraryManualCreate(props: LibraryManualCreateProps) {
       <div ref={dialog.contentRef} className='library-manual-create__body'>
         <p className='library-manual-create__description'>
           {t(
-            props.initialDraft ? 'conversation.libraryDoi.reviewDescription' : 'conversation.libraryManual.description'
+            pmid
+              ? 'conversation.libraryPmid.reviewDescription'
+              : props.initialDraft
+                ? 'conversation.libraryDoi.reviewDescription'
+                : 'conversation.libraryManual.description'
           )}
         </p>
         {discard ? (
@@ -77,6 +90,12 @@ export function LibraryManualCreate(props: LibraryManualCreateProps) {
                 <>
                   <h3 className='text-15px font-semibold break-words'>{basic.title}</h3>
                   <dl className='grid gap-12px text-13px'>
+                    {pmid && (
+                      <div>
+                        <dt className='text-t-secondary'>{t('conversation.libraryPmid.identifier')}</dt>
+                        <dd className='break-words'>{pmid}</dd>
+                      </div>
+                    )}
                     {(
                       [
                         ['authors', Array.isArray(basic.authors) ? basic.authors.join('; ') : basic.authors],
