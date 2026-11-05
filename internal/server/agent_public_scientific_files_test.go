@@ -1535,8 +1535,8 @@ func TestAgentPublicScientificFileRequestValidationRejectsUnsafeURLsAndDeliverab
 	}{
 		{name: "private host", mutate: func(input map[string]any) { input["url"] = "https://127.0.0.1/matrix.tsv.gz" }},
 		{name: "ftp outside exact NCBI host", mutate: func(input map[string]any) { input["url"] = "ftp://example.org/matrix.tsv.gz" }},
-		{name: "URL query", mutate: func(input map[string]any) {
-			input["url"] = "https://ftp.ncbi.nlm.nih.gov/geo/matrix.tsv.gz?token=secret"
+		{name: "URL fragment", mutate: func(input map[string]any) {
+			input["url"] = "https://ftp.ncbi.nlm.nih.gov/geo/matrix.tsv.gz#download"
 		}},
 		{name: "path traversal filename", mutate: func(input map[string]any) { input["filename"] = "../matrix.tsv.gz" }},
 		{name: "HTML deliverable", mutate: func(input map[string]any) { input["filename"] = "result.html" }},
