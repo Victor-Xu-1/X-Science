@@ -198,6 +198,7 @@ func (s *Server) rebuildTranscriptWebReadModel(
 			return nil
 		}
 	}
+	noteTranscriptWebReadStage(ctx, webReadFull)
 	messages, snapshot, err := s.projectTranscriptWebHistory(
 		ctx, stream, work.OwnerID, work.SessionID, work.BranchID,
 	)
@@ -209,10 +210,12 @@ func (s *Server) rebuildTranscriptWebReadModel(
 		snapshot.ThroughPublicationSequence != work.ThroughPublicationSequence {
 		return transcriptstore.ErrBranchStateStale
 	}
+	noteTranscriptWebReadStage(ctx, webReadMetadata)
 	metadata, err := s.projectTranscriptWebSourceMetadata(ctx, stream, work.OwnerID, work.SessionID, snapshot)
 	if err != nil {
 		return fmt.Errorf("source metadata: %w", err)
 	}
+	noteTranscriptWebReadStage(ctx, webReadRecords)
 	records, references, err := buildTranscriptWebMessageRecords(messages, metadata)
 	if err != nil {
 		return fmt.Errorf("build records: %w", err)
@@ -268,6 +271,7 @@ func (s *Server) rebuildTranscriptWebReadModel(
 		ProjectorStateSHA256: transcriptstore.TranscriptWebSHA256(stateJSON),
 		SourceChainSHA256:    sourceChain, Status: "ready", UpdatedAt: time.Now().UTC(),
 	}
+	noteTranscriptWebReadStage(ctx, webReadCommit)
 	err = s.transcriptWebReadModel.ApplyTranscriptWebProjection(ctx, transcriptstore.ApplyTranscriptWebProjectionInput{
 		OwnerID: work.OwnerID, State: state,
 		ExpectedBranchGeneration:   fence.StateBranchGeneration,

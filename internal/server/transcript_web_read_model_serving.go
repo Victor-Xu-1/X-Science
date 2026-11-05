@@ -31,6 +31,7 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 	ownerID, sessionID, requestedBranchID string,
 	allowCatchup bool,
 ) (activatedTranscriptWebReadModel, bool, error) {
+	noteTranscriptWebReadStage(ctx, webReadFence)
 	if s == nil || s.transcriptStore == nil || s.transcriptWebReadModel == nil {
 		return activatedTranscriptWebReadModel{}, false, nil
 	}
@@ -95,6 +96,7 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 			}
 		}
 	}
+	noteTranscriptWebReadStage(ctx, webReadFence)
 	allowQuarantinedSnapshot := false
 	if !transcriptWebFenceReady(fence) {
 		if !transcriptWebVerifiedSnapshotEligible(fence) {
@@ -145,6 +147,7 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 	limit int,
 	ownerID string,
 ) {
+	noteTranscriptWebReadStage(r.Context(), webReadPage)
 	before := strings.TrimSpace(r.URL.Query().Get("before"))
 	after := strings.TrimSpace(r.URL.Query().Get("after"))
 	anchor := strings.TrimSpace(r.URL.Query().Get("anchor_message_id"))
@@ -211,6 +214,7 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 		writeWebConversationError(w, transcriptWebStorageError(err))
 		return
 	}
+	noteTranscriptWebReadStage(r.Context(), webReadSanitize)
 	s.sanitizeTranscriptWebTerminalMessages(r.Context(), active.stream, messages)
 	s.sanitizeTranscriptWebPublicPage(r.Context(), active.stream, active.snapshot, page.Messages, messages)
 	if err := s.enrichTranscriptWebConversationMessages(r.Context(), frameID, active.snapshot.BranchID, messages); err != nil {
@@ -230,6 +234,7 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 		"branch_id": active.snapshot.BranchID, "branch_generation": active.snapshot.BranchGeneration,
 		"through_publication_sequence": active.snapshot.ThroughPublicationSequence,
 	}
+	noteTranscriptWebReadStage(r.Context(), webReadResponse)
 	writePrivateRevalidatedWorkspaceJSON(w, r, ownerID, payload)
 }
 

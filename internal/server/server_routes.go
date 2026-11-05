@@ -296,5 +296,5 @@ func (s *Server) Handler() http.Handler {
 	if s.webUI != nil {
 		mux.Handle("/", s.webUI)
 	}
-	return s.httpMetrics.Wrap(withBrowserOriginPolicy(s.withWebSessionMigration(s.withWebIdentity(s.withAPIAuthentication(s.withBrowserCSRF(mux))))))
+	return s.httpMetrics.Wrap(withTranscriptWebReadDiagnostics(withBrowserOriginPolicy(s.withWebSessionMigration(s.withWebIdentity(s.withAPIAuthentication(s.withBrowserCSRF(mux)))))))
 }

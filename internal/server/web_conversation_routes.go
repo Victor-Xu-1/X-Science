@@ -335,6 +335,7 @@ func (s *Server) webConversationAccess(
 	r *http.Request,
 	conversationID string,
 ) (workspace.CompatibilityFrame, workspace.CompatibilityProject, bool) {
+	noteTranscriptWebReadStage(r.Context(), webReadAccess)
 	frame, found, err := s.workspaceStore.GetCompatibilityFrame(conversationID)
 	if err != nil {
 		writeWorkspaceJSON(w, http.StatusInternalServerError, map[string]any{"message": "unable to load conversation"})

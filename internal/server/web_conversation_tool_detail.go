@@ -63,6 +63,7 @@ func (s *Server) handleWebConversationToolDetail(
 		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": err.Error()})
 		return
 	}
+	noteTranscriptWebReadStage(r.Context(), webReadDetail)
 	reader, closer, err := s.openWebConversationToolDetailSource(
 		r, frame.ID, frame.RootFrameID, ownerID, detailRequest.Section, content,
 	)
@@ -117,6 +118,7 @@ func (s *Server) handleWebConversationToolDetail(
 			return
 		}
 	}
+	noteTranscriptWebReadStage(r.Context(), webReadResponse)
 	writeWorkspaceJSON(w, http.StatusOK, map[string]any{
 		"message_id": messageID, "branch_id": detailRequest.BranchID,
 		"section": detailRequest.Section, "path": detailRequest.Path,
@@ -139,6 +141,7 @@ func (s *Server) loadTranscriptToolDetailMessage(
 			return nil, "", false, err
 		}
 		if found {
+			noteTranscriptWebReadStage(r.Context(), webReadPage)
 			record, recordFound, err := s.transcriptWebReadModel.GetTranscriptWebMessageByID(
 				r.Context(), active.transcriptWebMessageIdentity(ownerID, messageID),
 			)
