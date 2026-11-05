@@ -282,7 +282,11 @@ func TestPublicCompletionObservationReferencesLiveHistoryAndCanonical(t *testing
 	const before = "Measured synthetic result 🧪."
 	const after = "Independent uncertainty remains."
 	quoted := completionAdvisoryItem{Code: completionAdvisoryResultQuality, Findings: []string{"quoted diagnostic is not a host finding"}, Sources: []completionAdvisorySource{{Stage: "artifact_completion", Attempt: claim.Attempt, InputRevision: claim.ClaimedInputRevision, CandidateSHA256: completionAdvisorySHA("quoted input"), FindingIndexes: []int{0}}}}
-	quote, err := json.MarshalIndent(map[string]any{"host_completion_observations": []completionAdvisoryItem{quoted}}, "", "  ")
+	other := quoted
+	other.Code = completionAdvisoryStructurePreview
+	repeated := quoted
+	repeated.Findings = []string{"another quoted diagnostic is not a host finding"}
+	quote, err := json.MarshalIndent(map[string]any{"host_completion_observations": []completionAdvisoryItem{quoted, other, repeated}}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -394,6 +398,15 @@ func TestCompletionObservationReferenceBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	quote := string(encoded)
+	duplicateItems := []completionAdvisoryItem{item, item}
+	duplicates, err := json.Marshal(map[string]any{"host_completion_observations": duplicateItems})
+	if err != nil {
+		t.Fatal(err)
+	}
+	duplicateQuote := string(duplicates)
+	if sessionRunnerCompletionAdvisoryItemsValid(duplicateItems, 3, 2) {
+		t.Fatal("duplicate model categories acquired authoritative host validity")
+	}
 	quotedString, err := json.Marshal(quote)
 	if err != nil {
 		t.Fatal(err)
@@ -401,6 +414,10 @@ func TestCompletionObservationReferenceBoundaries(t *testing.T) {
 	for _, row := range []struct{ name, text, want string }{
 		{"standalone", "before 🧪\n" + quote + "\nafter α", "before 🧪\nafter α"},
 		{"fenced", "before\n```json\n" + quote + "\n```\nafter", "before\nafter"},
+		{"duplicate-known-standalone", "before\n" + duplicateQuote + "\nafter", "before\nafter"},
+		{"duplicate-known-fenced", "before\n```json\n" + duplicateQuote + "\n```\nafter", "before\nafter"},
+		{"duplicate-known-inline", "Before " + duplicateQuote + " after.", "Before " + duplicateQuote + " after."},
+		{"duplicate-with-unknown-item", strings.Replace(duplicateQuote, completionAdvisoryResultQuality, "future_unknown", 1), strings.Replace(duplicateQuote, completionAdvisoryResultQuality, "future_unknown", 1)},
 		{"tilde-fenced", "~~~JSON\n" + quote + "\n~~~~\n", ""},
 		{"same-name-prose", "Discuss host_completion_observations as an example.", "Discuss host_completion_observations as an example."},
 		{"inline-prose", "Before " + quote + " after.", "Before " + quote + " after."},

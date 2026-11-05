@@ -299,8 +299,15 @@ func sessionRunnerCompletionObservationReference(content string) (int, bool) {
 	typed := json.NewDecoder(bytes.NewReader(raw))
 	typed.DisallowUnknownFields()
 	if typed.Decode(&reference) != nil || len(reference.Items) == 0 || len(reference.Items) > 5 ||
-		kernelcontract.ValidateJSON(raw) != nil || !sessionRunnerCompletionAdvisoryItemsValid(reference.Items, 0, 0) {
+		kernelcontract.ValidateJSON(raw) != nil {
 		return consumed, false
+	}
+	// Display-only quotes may repeat a known category. Validate each closed
+	// item without relaxing the host envelope's whole-array uniqueness rule.
+	for _, item := range reference.Items {
+		if !sessionRunnerCompletionAdvisoryItemsValid([]completionAdvisoryItem{item}, 0, 0) {
+			return consumed, false
+		}
 	}
 	// encoding/json permits case-insensitive struct aliases. A reference must
 	// have exactly the existing codec's keys, not a future or ambiguous shape.
