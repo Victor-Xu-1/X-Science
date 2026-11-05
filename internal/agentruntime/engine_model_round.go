@@ -134,7 +134,7 @@ func (e Engine) completeModelRoundWithKnownTools(
 				return recovery.retain(err)
 			}
 		}
-		return dispatch(event)
+		return recovery.retain(dispatch(event))
 	})
 	if err != nil {
 		return recovery.finish(ctx, e, response, buffered.events(), err)
