@@ -134,6 +134,7 @@ func (s *Server) webUser(r *http.Request) (xscienceLinkAuthUser, bool) {
 
 func (s *Server) withWebIdentity(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		noteTranscriptWebReadStage(r.Context(), webReadIdentity)
 		// Remote peers must not supply workspace identity out of band. Loopback
 		// bridges may still inject the header directly; authenticated sessions
 		// and bearer tokens are applied below.

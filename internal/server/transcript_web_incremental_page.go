@@ -111,6 +111,7 @@ func (s *Server) applyIncrementalTranscriptWebAssistantPage(
 		Status:                        status,
 		UpdatedAt:                     time.Now().UTC(),
 	}
+	noteTranscriptWebReadStage(ctx, webReadCommit)
 	if err := s.transcriptWebReadModel.ApplyTranscriptWebProjection(ctx, transcriptstore.ApplyTranscriptWebProjectionInput{
 		OwnerID: work.OwnerID, State: state,
 		ExpectedBranchGeneration:   fence.StateBranchGeneration,

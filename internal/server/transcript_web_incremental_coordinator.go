@@ -91,6 +91,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	stream transcriptstore.Stream,
 	work transcriptstore.TranscriptWebProjectionWork,
 ) (transcriptWebIncrementalResult, error) {
+	noteTranscriptWebReadStage(ctx, webReadIncremental)
 	fallback := func(disposition transcriptWebIncrementalDisposition) transcriptWebIncrementalResult {
 		return transcriptWebIncrementalResult{Disposition: disposition}
 	}
@@ -250,6 +251,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 		ProjectorStateSHA256:          transcriptstore.TranscriptWebSHA256(checkpointJSON),
 		SourceChainSHA256:             nextChain, Status: status, UpdatedAt: time.Now().UTC(),
 	}
+	noteTranscriptWebReadStage(ctx, webReadCommit)
 	if err := s.transcriptWebReadModel.ApplyTranscriptWebProjection(ctx, transcriptstore.ApplyTranscriptWebProjectionInput{
 		OwnerID: work.OwnerID, State: state,
 		ExpectedBranchGeneration:   fence.StateBranchGeneration,

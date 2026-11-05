@@ -374,6 +374,7 @@ func (s *Server) handleWebConversationMessageGet(w http.ResponseWriter, r *http.
 			return
 		}
 		if active {
+			noteTranscriptWebReadStage(r.Context(), webReadPage)
 			record, found, err := s.transcriptWebReadModel.GetTranscriptWebMessageByID(
 				r.Context(), readModel.transcriptWebMessageIdentity(compatAgentUserID(r), messageID),
 			)
@@ -394,6 +395,7 @@ func (s *Server) handleWebConversationMessageGet(w http.ResponseWriter, r *http.
 				writeWebConversationError(w, err)
 				return
 			}
+			noteTranscriptWebReadStage(r.Context(), webReadResponse)
 			writeWorkspaceJSON(w, http.StatusOK, messages[0])
 			return
 		}

@@ -219,6 +219,7 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 	frameID, branchID string,
 	messages []map[string]any,
 ) error {
+	noteTranscriptWebReadStage(ctx, webReadEnrich)
 	if err := s.enrichTranscriptWebArtifactPresentation(ctx, frameID, messages); err != nil {
 		return err
 	}

@@ -66,6 +66,7 @@ func (s *Server) catchUpTranscriptWebReadModel(
 	}
 	if flight := s.transcriptWebCatchups[key]; flight != nil {
 		s.transcriptWebCatchupMu.Unlock()
+		noteTranscriptWebReadStage(requestCtx, webReadCatchupWait)
 		select {
 		case <-flight.done:
 			return flight.err
@@ -77,6 +78,7 @@ func (s *Server) catchUpTranscriptWebReadModel(
 	s.transcriptWebCatchups[key] = flight
 	s.transcriptWebCatchupMu.Unlock()
 
+	noteTranscriptWebReadStage(requestCtx, webReadCatchupLeader)
 	catchupCtx, cancel := context.WithTimeout(context.WithoutCancel(requestCtx), transcriptWebRequestCatchupTimeout)
 	flight.err = s.rebuildOneStaleTranscriptWebReadModel(catchupCtx, key)
 	cancel()
