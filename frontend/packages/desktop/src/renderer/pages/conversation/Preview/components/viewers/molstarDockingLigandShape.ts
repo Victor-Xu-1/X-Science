@@ -54,8 +54,53 @@ export type DockingLigandBondDefinition = {
 
 const formatV2000Integer = (value: number, width: number): string => Math.trunc(value).toString().padStart(width, ' ');
 
-const formatV2000Coordinate = (value: number): string =>
-  (Number.isFinite(value) ? value : 0).toFixed(4).padStart(10, ' ');
+const formatMolCoordinate = (value: number): string => (Number.isFinite(value) ? value : 0).toFixed(4);
+
+const formatV2000Coordinate = (value: number): string => formatMolCoordinate(value).padStart(10, ' ');
+
+// Geometry-only aromatic inference must not become chemical bond semantics.
+const molBlockBondType = (bond: DockingLigandShapeBond, preserveAromaticBonds: boolean): number =>
+  preserveAromaticBonds && bond.chemicalAromatic ? 4 : Math.max(1, Math.min(3, Math.round(bond.order)));
+
+const molBlockFormalCharge = (atom: DockingLigandShapeAtom): number => {
+  const charge = Math.trunc(atom.formalCharge);
+  return charge >= -15 && charge <= 15 ? charge : 0;
+};
+
+function formatV3000MolBlock(
+  title: string,
+  atoms: readonly DockingLigandShapeAtom[],
+  bonds: readonly DockingLigandShapeBond[],
+  preserveAromaticBonds: boolean
+): string {
+  const lines = [
+    title,
+    '  X-Science',
+    '',
+    '  0  0  0  0  0  0            999 V3000',
+    'M  V30 BEGIN CTAB',
+    `M  V30 COUNTS ${atoms.length} ${bonds.length} 0 0 0`,
+    'M  V30 BEGIN ATOM',
+  ];
+  atoms.forEach((atom, index) => {
+    const symbol = atom.element.trim().slice(0, 3) || 'C';
+    const element = symbol[0].toUpperCase() + symbol.slice(1).toLowerCase();
+    const coordinates = atom.position.map(formatMolCoordinate).join(' ');
+    const charge = molBlockFormalCharge(atom);
+    lines.push(`M  V30 ${index + 1} ${element} ${coordinates} 0${charge ? ` CHG=${charge}` : ''}`);
+  });
+  lines.push('M  V30 END ATOM');
+  if (bonds.length) {
+    lines.push('M  V30 BEGIN BOND');
+    bonds.forEach((bond, index) => {
+      const bondType = molBlockBondType(bond, preserveAromaticBonds);
+      lines.push(`M  V30 ${index + 1} ${bondType} ${bond.atomA + 1} ${bond.atomB + 1}`);
+    });
+    lines.push('M  V30 END BOND');
+  }
+  lines.push('M  V30 END CTAB', 'M  END');
+  return `${lines.join('\n')}\n`;
+}
 
 /** Serializes the parsed primary ligand through one format-neutral RDKit boundary. */
 export const formatDockingLigandMolBlock = (
@@ -82,13 +127,17 @@ export const formatDockingLigandMolBlock = (
   });
 
   if (atoms.length === 0) throw new Error('MOLSTAR_LIGAND_EMPTY');
-  if (atoms.length > 999 || bonds.length > 999) throw new Error('MOLSTAR_LIGAND_V2000_LIMIT');
 
   const safeTitle =
     title
       .replace(/[\r\n]+/g, ' ')
       .trim()
       .slice(0, 80) || 'Ligand';
+  // V2000 has three-column counts. Count the atoms and bonds actually
+  // serialized, including the explicit hydrogens retained above.
+  if (atoms.length > 999 || bonds.length > 999) {
+    return formatV3000MolBlock(safeTitle, atoms, bonds, preserveAromaticBonds);
+  }
   const lines = [
     safeTitle,
     '  X-Science',
@@ -104,10 +153,7 @@ export const formatDockingLigandMolBlock = (
     );
   });
   bonds.forEach((bond) => {
-    // Geometry-only aromatic inference improves the 3D ring accent, but it is
-    // intentionally not promoted into chemical bond semantics for RDKit.
-    const bondType =
-      preserveAromaticBonds && bond.chemicalAromatic ? 4 : Math.max(1, Math.min(3, Math.round(bond.order)));
+    const bondType = molBlockBondType(bond, preserveAromaticBonds);
     lines.push(
       `${formatV2000Integer(bond.atomA + 1, 3)}${formatV2000Integer(
         bond.atomB + 1,
@@ -119,9 +165,9 @@ export const formatDockingLigandMolBlock = (
   const chargedAtoms = atoms
     .map((atom, index) => ({
       index: index + 1,
-      charge: Math.trunc(atom.formalCharge),
+      charge: molBlockFormalCharge(atom),
     }))
-    .filter(({ charge }) => charge !== 0 && charge >= -15 && charge <= 15);
+    .filter(({ charge }) => charge !== 0);
   for (let offset = 0; offset < chargedAtoms.length; offset += 8) {
     const group = chargedAtoms.slice(offset, offset + 8);
     lines.push(
