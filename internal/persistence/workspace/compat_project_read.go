@@ -10,7 +10,14 @@ import (
 )
 
 func (s *Store) GetCompatibilityProject(userID, projectID string) (CompatibilityProject, bool, error) {
-	if s == nil || s.db == nil {
+	return s.GetCompatibilityProjectWithContext(context.Background(), userID, projectID)
+}
+
+// GetCompatibilityProjectWithContext keeps authorization reads independent of
+// the writer connection while preserving the exact owner/project predicate.
+func (s *Store) GetCompatibilityProjectWithContext(ctx context.Context, userID, projectID string) (project CompatibilityProject, found bool, err error) {
+	db := s.readDatabase()
+	if db == nil {
 		return CompatibilityProject{}, false, errors.New("workspace store is closed")
 	}
 	userID = strings.TrimSpace(userID)
@@ -18,8 +25,13 @@ func (s *Store) GetCompatibilityProject(userID, projectID string) (Compatibility
 	if userID == "" || projectID == "" {
 		return CompatibilityProject{}, false, errors.New("project user id and project id are required")
 	}
-	project, err := scanCompatibilityProject(s.db.QueryRowContext(
-		context.Background(), compatibilityProjectSelect+" WHERE p.user_id = ? AND p.id = ?",
+	conn, release, err := workspaceContextReadConnection(ctx, db)
+	if err != nil {
+		return CompatibilityProject{}, false, fmt.Errorf("begin compatibility project read: %w", err)
+	}
+	defer func() { err = errors.Join(err, release()) }()
+	project, err = scanCompatibilityProject(conn.QueryRowContext(
+		ctx, compatibilityProjectSelect+" WHERE p.user_id = ? AND p.id = ?",
 		userID, projectID,
 	))
 	if errors.Is(err, sql.ErrNoRows) {
