@@ -65,47 +65,9 @@ func (lookup *DOIMetadataLookup) Lookup(caller context.Context, reference string
 	if !valid {
 		return empty, ErrDOIMetadataInvalid
 	}
-	if err := caller.Err(); err != nil {
+	raw, err := lookup.fetchPublicMetadata(caller, "https://api.crossref.org/works/"+url.PathEscape(doi))
+	if err != nil {
 		return empty, err
-	}
-	if lookup == nil || lookup.clientFor == nil {
-		return empty, ErrDOIMetadataUnavailable
-	}
-	ctx, cancel := context.WithTimeout(caller, 15*time.Second)
-	defer cancel()
-	rawURL := "https://api.crossref.org/works/" + url.PathEscape(doi)
-	base, err := lookup.clientFor(ctx, rawURL)
-	if err != nil || base == nil {
-		return empty, metadataLookupError(caller, ctx)
-	}
-	client := *base
-	client.Jar = nil
-	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
-	if err != nil {
-		return empty, ErrDOIMetadataInvalid
-	}
-	request.Header.Set("Accept", "application/json")
-	response, err := client.Do(request)
-	if err != nil {
-		return empty, metadataLookupError(caller, ctx)
-	}
-	defer response.Body.Close()
-	if response.StatusCode == http.StatusNotFound {
-		return empty, ErrDOIMetadataNotFound
-	}
-	if response.StatusCode == http.StatusTooManyRequests {
-		return empty, ErrDOIMetadataRateLimited
-	}
-	if response.StatusCode != http.StatusOK {
-		return empty, ErrDOIMetadataUnavailable
-	}
-	raw, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
-	if caller.Err() != nil || ctx.Err() != nil {
-		return empty, metadataLookupError(caller, ctx)
-	}
-	if err != nil || len(raw) > 1<<20 || !utf8.Valid(raw) {
-		return empty, ErrDOIMetadataUnavailable
 	}
 	draft, err := parseDOIMetadata(raw, doi)
 	if err != nil {
@@ -113,6 +75,53 @@ func (lookup *DOIMetadataLookup) Lookup(caller context.Context, reference string
 	}
 	draft.Reference = strings.TrimSpace(reference)
 	return draft, nil
+}
+
+// fetchPublicMetadata uses the host's pinned public transport. Manual metadata
+// providers never get a credential jar or follow redirects.
+func (lookup *DOIMetadataLookup) fetchPublicMetadata(caller context.Context, rawURL string) ([]byte, error) {
+	if err := caller.Err(); err != nil {
+		return nil, err
+	}
+	if lookup == nil || lookup.clientFor == nil {
+		return nil, ErrDOIMetadataUnavailable
+	}
+	ctx, cancel := context.WithTimeout(caller, 15*time.Second)
+	defer cancel()
+	base, err := lookup.clientFor(ctx, rawURL)
+	if err != nil || base == nil {
+		return nil, metadataLookupError(caller, ctx)
+	}
+	client := *base
+	client.Jar = nil
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, ErrDOIMetadataInvalid
+	}
+	request.Header.Set("Accept", "application/json")
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, metadataLookupError(caller, ctx)
+	}
+	defer response.Body.Close()
+	if response.StatusCode == http.StatusNotFound {
+		return nil, ErrDOIMetadataNotFound
+	}
+	if response.StatusCode == http.StatusTooManyRequests {
+		return nil, ErrDOIMetadataRateLimited
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, ErrDOIMetadataUnavailable
+	}
+	raw, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
+	if caller.Err() != nil || ctx.Err() != nil {
+		return nil, metadataLookupError(caller, ctx)
+	}
+	if err != nil || len(raw) > 1<<20 || !utf8.Valid(raw) {
+		return nil, ErrDOIMetadataUnavailable
+	}
+	return raw, nil
 }
 
 func metadataLookupError(caller, request context.Context) error {

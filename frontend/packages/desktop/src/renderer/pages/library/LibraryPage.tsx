@@ -50,8 +50,11 @@ import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureR
 import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryAddMenu } from './LibraryAddMenu';
 import { LibraryManualCreate } from './LibraryManualCreate';
-import { LibraryDoiLookup } from './LibraryDoiLookup';
-import type { LiteratureMetadataDraft } from '@/common/adapter/literatureMetadataLookup';
+import { LibraryMetadataLookup } from './LibraryDoiLookup';
+import type {
+  LiteratureMetadataDraft,
+  LiteratureMetadataLookupScheme,
+} from '@/common/adapter/literatureMetadataLookup';
 import { LibraryPdfImportPanel } from './LibraryPdfImportPanel';
 import { useLibraryPdfImport } from './useLibraryPdfImport';
 import { LibraryRowActions } from './LibraryRowActions';
@@ -132,8 +135,8 @@ export default function LibraryPage() {
   const visibleEditor = editor?.owner === editorBoundary.current ? editor : undefined;
   const [manualEditor, setManualEditor] = useState<{ owner: object; draft?: LiteratureMetadataDraft }>();
   const manualOpen = !inbox && !trash && manualEditor?.owner === editorBoundary.current;
-  const [doiEditor, setDoiEditor] = useState<object>();
-  const doiOpen = !inbox && !trash && doiEditor === editorBoundary.current;
+  const [lookupEditor, setLookupEditor] = useState<{ owner: object; scheme: LiteratureMetadataLookupScheme }>();
+  const lookupOpen = !inbox && !trash && lookupEditor?.owner === editorBoundary.current;
   const [pdfEditor, setPdfEditor] = useState({ account: reads.account, open: false });
   const pdfOpen = pdfEditor.account === reads.account && pdfEditor.open;
   const setPdfOpen = useCallback(
@@ -151,7 +154,7 @@ export default function LibraryPage() {
     projects: reads.projects,
     open: pdfOpen,
     setOpen: setPdfOpen,
-    blockedByEditor: Boolean(visibleEditor) || manualOpen || doiOpen,
+    blockedByEditor: Boolean(visibleEditor) || manualOpen || lookupOpen,
   });
   const items = reads.list.value?.items ?? [];
   const listReady = reads.list.status === 'ready' && !reads.list.refreshing && !reads.list.refreshError;
@@ -162,7 +165,7 @@ export default function LibraryPage() {
     mutation.view.error === 'storage' ||
     pdfOpen ||
     manualOpen ||
-    doiOpen;
+    lookupOpen;
   const bulk = useLibraryBulkReadingStatus({
     account: reads.account,
     scope: { query, collectionId, projectId, readingStatus, lifecycle },
@@ -530,7 +533,7 @@ export default function LibraryPage() {
   );
   const mutationNotice = (
     <LibraryMutationNotice
-      hidden={manualOpen || doiOpen || pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
+      hidden={manualOpen || lookupOpen || pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
       error={mutation.view.error}
       failed={actionFailed}
       mutating={mutation.view.mutating}
@@ -693,7 +696,7 @@ export default function LibraryPage() {
                   <LibraryAddMenu
                     key={reads.account}
                     pdf={pdfImport}
-                    disabled={Boolean(visibleEditor) || manualOpen || doiOpen}
+                    disabled={Boolean(visibleEditor) || manualOpen || lookupOpen}
                     manualDisabled={
                       busy ||
                       !listReady ||
@@ -701,7 +704,7 @@ export default function LibraryPage() {
                       (Boolean(collectionId) && (!isLibraryReadFresh(reads.collections) || !selectedCollection))
                     }
                     add={() => setManualEditor({ owner: editorBoundary.current })}
-                    addDoi={() => setDoiEditor(editorBoundary.current)}
+                    addReference={(scheme) => setLookupEditor({ owner: editorBoundary.current, scheme })}
                   />
                 )}
                 <button
@@ -756,14 +759,16 @@ export default function LibraryPage() {
             refreshProjects={reads.refresh}
             viewReference={viewImportedReference}
           />
-          {doiOpen && (
-            <LibraryDoiLookup
+          {lookupOpen && lookupEditor && (
+            <LibraryMetadataLookup
               key={formScope}
               account={reads.account}
-              close={() => setDoiEditor(undefined)}
+              scheme={lookupEditor.scheme}
+              close={() => setLookupEditor(undefined)}
               resolved={(draft) => {
-                if (doiEditor !== editorBoundary.current || reads.account !== getRendererAccountScopeToken()) return;
-                setDoiEditor(undefined);
+                if (lookupEditor.owner !== editorBoundary.current || reads.account !== getRendererAccountScopeToken())
+                  return;
+                setLookupEditor(undefined);
                 setManualEditor({ owner: editorBoundary.current, draft });
               }}
             />

@@ -347,3 +347,72 @@ it('uses the current Chinese preference for DOI lookup and untouched review', as
   await waitFor(() => expect(screen.queryByRole('dialog', { name: '复核 DOI 文献' })).toBeNull());
   expect(http.requests.filter((r) => r.path === '/api/literature/items' && r.method === 'POST')).toHaveLength(0);
 });
+
+it.each([
+  '12345',
+  '  pMiD : 12345  ',
+  'https://pubmed.ncbi.nlm.nih.gov/12345/',
+  'PMID: http://www.PubMed.NCBI.nlm.nih.gov/12345?from=search#article',
+])('binds both returned PMID fields to the lookup reference %s', (reference) => {
+  const response = (pmid: string) => ({
+    schema: 'x-science.literature-pmid-draft.v1',
+    reference,
+    pmid,
+    doi: '',
+    title: 'Verified PMID record',
+    metadata: { pmid, authors: [] },
+  });
+
+  expect(decodeLiteratureMetadataDraft(response('12345'), reference, 'pmid')).toEqual(response('12345'));
+  expect(() => decodeLiteratureMetadataDraft(response('12346'), reference, 'pmid')).toThrow(
+    'Invalid Literature metadata draft'
+  );
+});
+
+it('preserves an exact PMID-only draft through existing review and manual save', async () => {
+  const reference = 'https://pubmed.ncbi.nlm.nih.gov/12345/';
+  const metadata = { pmid: '12345', authors: ['Ada Researcher'], url: reference, item_type: 'journalArticle' };
+  const draft = {
+    schema: 'x-science.literature-pmid-draft.v1',
+    reference,
+    pmid: '12345',
+    doi: '',
+    title: 'PMID-only reference',
+    metadata,
+  };
+  expect(() => decodeLiteratureMetadataDraft({ ...draft, pmid: '12346' }, reference, 'pmid')).toThrow();
+  expect(() => decodeLiteratureMetadataDraft(draft, reference)).toThrow();
+  let acknowledged = false;
+  const item = { ...paper('pmid-created', draft.title), metadata };
+  const http = installCollectionHTTP({
+    collections: () => [],
+    items: () => (acknowledged ? [item] : []),
+    detail: () => item,
+    intercept: (url, init) => {
+      if (url.pathname === '/api/literature/metadata-lookup') return json(draft);
+      if (url.pathname === '/api/literature/items' && init.method === 'POST') {
+        acknowledged = true;
+        return json({ ...receipt(JSON.parse(String(init.body)).operation_id), item });
+      }
+    },
+  });
+  await mountCollections();
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  fireEvent.click(await screen.findByRole('menuitem', { name: 'Add from PMID' }));
+  const lookup = await screen.findByRole('dialog', { name: 'Add from PMID' });
+  fireEvent.change(within(lookup).getByRole('textbox', { name: 'PMID or PubMed link' }), {
+    target: { value: '  ' + reference + '  ' },
+  });
+  fireEvent.click(within(lookup).getByRole('button', { name: 'Find reference' }));
+  const review = await screen.findByRole('dialog', { name: 'Review PMID reference' });
+  expect(within(review).getByText('12345')).toBeInTheDocument();
+  expect(http.requests.filter((r) => r.path === '/api/literature/items' && r.method === 'POST')).toHaveLength(0);
+  fireEvent.click(within(review).getByRole('button', { name: 'Save reference' }));
+  await waitFor(() => expect(screen.getByLabelText('Library location')).toHaveTextContent('item=pmid-created'));
+  const request = http.requests.find((r) => r.path === '/api/literature/metadata-lookup');
+  expect(JSON.parse(request!.body!)).toEqual({ reference, scheme: 'pmid' });
+  const writes = http.requests.filter((r) => r.path === '/api/literature/items' && r.method === 'POST');
+  expect(writes).toHaveLength(1);
+  expect(JSON.parse(writes[0].body!).metadata).toEqual(metadata);
+});

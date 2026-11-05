@@ -1,24 +1,30 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import type { LiteratureMetadataDraft } from '@/common/adapter/literatureMetadataLookup';
+import type {
+  LiteratureMetadataDraft,
+  LiteratureMetadataLookupScheme,
+} from '@/common/adapter/literatureMetadataLookup';
 import WorkbenchModal from '@/renderer/components/base/WorkbenchModal';
 import { getRendererAccountScopeToken } from '@/renderer/services/rendererAccountScope';
-import { lookupLiteratureDoi } from '@/renderer/services/runtime/literatureMetadataLookup';
+import { lookupLiteratureMetadata } from '@/renderer/services/runtime/literatureMetadataLookup';
 import { useLibraryDetailDialog } from './useLibraryDetailDialog';
 import './libraryManualCreate.css';
 
 /** This component owns a read only; Save and durable retries belong to the original manual editor. */
-export function LibraryDoiLookup({
+export function LibraryMetadataLookup({
   account,
+  scheme,
   close,
   resolved,
 }: {
   account: string;
+  scheme: LiteratureMetadataLookupScheme;
   close: () => void;
   resolved: (draft: LiteratureMetadataDraft) => void;
 }) {
   const { t } = useTranslation();
+  const addTitle = t(scheme === 'pmid' ? 'conversation.libraryPmid.add' : 'conversation.libraryDoi.add');
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -46,7 +52,7 @@ export function LibraryDoiLookup({
     setBusy(true);
     setError(undefined);
     try {
-      const draft = await lookupLiteratureDoi(input, controller.signal);
+      const draft = await lookupLiteratureMetadata(input, scheme, controller.signal);
       if (!current() || request.current !== controller || controller.signal.aborted) return;
       phase.current = 'closed';
       resolved(draft);
@@ -81,12 +87,12 @@ export function LibraryDoiLookup({
       onCancel={cancel}
       maskStyle={{ backgroundColor: 'transparent' }}
       style={{ width: 640, maxWidth: 'calc(100vw - 32px)' }}
-      title={t('conversation.libraryDoi.add')}
+      title={addTitle}
       className='library-manual-create'
       modalRender={(node) =>
         React.isValidElement<React.HTMLAttributes<HTMLDivElement>>(node)
           ? React.cloneElement(node, {
-              'aria-label': t('conversation.libraryDoi.add'),
+              'aria-label': addTitle,
               'aria-busy': busy,
               ...dialog.events,
             })
@@ -103,7 +109,7 @@ export function LibraryDoiLookup({
         >
           <div className='library-manual-create__fields'>
             <label className='library-bibliographic__field'>
-              {t('conversation.libraryDoi.input')}
+              {t(scheme === 'pmid' ? 'conversation.libraryPmid.input' : 'conversation.libraryDoi.input')}
               <input
                 value={input}
                 maxLength={8192}
@@ -120,7 +126,15 @@ export function LibraryDoiLookup({
                 }}
               />
             </label>
-            {error && <p role='alert'>{t(`conversation.libraryDoi.${error}`)}</p>}
+            {error && (
+              <p role='alert'>
+                {t(
+                  scheme === 'pmid' && (error === 'invalid' || error === 'notFound')
+                    ? `conversation.libraryPmid.${error}`
+                    : `conversation.libraryDoi.${error}`
+                )}
+              </p>
+            )}
           </div>
           <footer className='library-manual-create__actions'>
             <button type='button' onClick={cancel}>

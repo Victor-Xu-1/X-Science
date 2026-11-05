@@ -133,6 +133,7 @@ export function useLibraryManualCreate({
             .filter(Boolean);
         if (basic.year) metadata.year = basic.year;
         if (basic.doi.trim()) metadata.doi = basic.doi.trim();
+        if (initialDraft?.schema === 'x-science.literature-pmid-draft.v1') metadata.pmid = initialDraft.pmid;
         accept(
           await submit({
             kind: 'manual-create',

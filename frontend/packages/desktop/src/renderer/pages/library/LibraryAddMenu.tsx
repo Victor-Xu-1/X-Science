@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
 import { Plus } from 'lucide-react';
+import type { LiteratureMetadataLookupScheme } from '@/common/adapter/literatureMetadataLookup';
 import { useTranslation } from 'react-i18next';
 import type { LibraryPdfImportModel } from './useLibraryPdfImport';
 import { activateLibraryPdfImport, LibraryPdfChooser } from './LibraryPdfImport';
@@ -11,13 +12,13 @@ export function LibraryAddMenu({
   disabled,
   manualDisabled,
   add,
-  addDoi,
+  addReference,
   pdf,
 }: {
   disabled: boolean;
   manualDisabled: boolean;
   add: () => void;
-  addDoi?: () => void;
+  addReference?: (scheme: LiteratureMetadataLookupScheme) => void;
   pdf: LibraryPdfImportModel;
 }) {
   const { t } = useTranslation();
@@ -42,7 +43,7 @@ export function LibraryAddMenu({
             onClickMenuItem={(key, event) =>
               menu.select(event, () => {
                 if (key === 'manual' && !manualDisabled) add();
-                if (key === 'doi' && !manualDisabled) addDoi?.();
+                if ((key === 'doi' || key === 'pmid') && !manualDisabled) addReference?.(key);
                 if (key === 'pdf') activateLibraryPdfImport(pdf);
               })
             }
@@ -50,9 +51,14 @@ export function LibraryAddMenu({
             <Menu.Item key='manual' disabled={manualDisabled} aria-disabled={manualDisabled}>
               {t('conversation.libraryManual.add')}
             </Menu.Item>
-            {addDoi && (
+            {addReference && (
               <Menu.Item key='doi' disabled={manualDisabled} aria-disabled={manualDisabled}>
                 {t('conversation.libraryDoi.add')}
+              </Menu.Item>
+            )}
+            {addReference && (
+              <Menu.Item key='pmid' disabled={manualDisabled} aria-disabled={manualDisabled}>
+                {t('conversation.libraryPmid.add')}
               </Menu.Item>
             )}
             <Menu.Item key='pdf' disabled={pdf.blockedByEditor} aria-disabled={pdf.blockedByEditor}>

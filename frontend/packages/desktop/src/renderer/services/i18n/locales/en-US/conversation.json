@@ -23,6 +23,15 @@
       "publication": "Publication"
     }
   },
+  "libraryPmid": {
+    "add": "Add from PMID",
+    "input": "PMID or PubMed link",
+    "invalid": "Enter a PMID or a PubMed link.",
+    "notFound": "No reference was found for this PMID. Check it or add the reference manually.",
+    "review": "Review PMID reference",
+    "reviewDescription": "Reference details from Europe PMC. Review them before saving. No PDF is added.",
+    "identifier": "PMID"
+  },
   "libraryInbox": {
     "description": "Review discovered references before they enter your library.",
     "foundVia": "Found via {{provider}}",
