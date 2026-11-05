@@ -29,29 +29,13 @@ var sessionRunnerDurableArtifactIntentPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?:保存|持久化|附加|保留|留存|整理|写入)[^。！？；\n]{0,80}(?:文件|产物|附件|报告|日志|表格|数据集|输出|项目)`),
 }
 
-func sessionRunnerArtifactNameSatisfiesRequiredDeliverable(taskIntent, name string) bool {
-	base := strings.ToLower(filepath.Base(strings.TrimSpace(name)))
-	if base == "" {
-		return false
-	}
-	for _, explicit := range sessionRunnerExplicitDeliverableNames(taskIntent) {
-		if base == strings.ToLower(explicit) {
-			return true
-		}
-	}
-	for _, format := range sessionRunnerExplicitDeliverableFormats(taskIntent) {
-		if sessionRunnerArtifactMatchesDeliverableFormat(base, format) {
-			return true
-		}
-	}
-	return sessionRunnerRequiresDurableArtifact(taskIntent)
-}
-
 func missingSessionRunnerRequiredDeliverables(taskIntent string, artifactNames []string) []string {
 	missing := make([]string, 0)
 	present := make(map[string]struct{}, len(artifactNames))
 	for _, name := range artifactNames {
-		present[strings.ToLower(filepath.Base(strings.TrimSpace(name)))] = struct{}{}
+		if base := sessionRunnerDeliverableBasename(name); base != "" {
+			present[base] = struct{}{}
+		}
 	}
 	for _, name := range sessionRunnerExplicitDeliverableNames(taskIntent) {
 		if _, exists := present[strings.ToLower(name)]; !exists {
@@ -76,6 +60,14 @@ func sessionRunnerPresentHasDeliverableFormat(present map[string]struct{}, forma
 		}
 	}
 	return false
+}
+
+func sessionRunnerDeliverableBasename(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return ""
+	}
+	return strings.ToLower(filepath.Base(name))
 }
 
 func sessionRunnerArtifactMatchesDeliverableFormat(name, format string) bool {
@@ -201,27 +193,10 @@ func (s *Server) sessionRunnerMissingRequiredDeliverables(
 	names := make([]string, 0, len(commits))
 	seen := make(map[string]struct{}, len(commits))
 	for _, commit := range commits {
-		if commit.Relation != transcriptstore.ArtifactRelationProduced || strings.TrimSpace(commit.VersionID) == "" {
-			continue
-		}
-		artifact, _, found, err := s.workspaceStore.GetArtifactVersionMetadata(commit.VersionID)
+		name, err := s.sessionRunnerSnapshotDeliverableName(projectID, commit)
 		if err != nil {
 			return nil, err
 		}
-		if !found || artifact.ProjectID != projectID {
-			continue
-		}
-		retention, retentionFound, retentionErr := s.workspaceStore.ArtifactRetentionMode(artifact.ID)
-		if retentionErr != nil {
-			return nil, retentionErr
-		}
-		// An explicitly requested output must be visible as a snapshot. Internal
-		// working data is durable for audit and resume, but cannot satisfy a
-		// user-facing deliverable that must appear with the final answer.
-		if !retentionFound || retention != "snapshot" {
-			continue
-		}
-		name := strings.TrimSpace(artifact.Name)
 		if name == "" {
 			continue
 		}
@@ -232,6 +207,28 @@ func (s *Server) sessionRunnerMissingRequiredDeliverables(
 		names = append(names, name)
 	}
 	return missingSessionRunnerRequiredDeliverables(run.TaskIntent, names), nil
+}
+
+// An explicitly requested output must be visible as a snapshot. Durable
+// working data remains usable for audit and resume, not for final delivery.
+func (s *Server) sessionRunnerSnapshotDeliverableName(projectID string, ref transcriptstore.ArtifactReferenceInput) (string, error) {
+	versionID := strings.TrimSpace(ref.VersionID)
+	if ref.Relation != transcriptstore.ArtifactRelationProduced || versionID == "" || projectID == "" {
+		return "", nil
+	}
+	artifact, version, found, err := s.workspaceStore.GetArtifactVersionMetadata(versionID)
+	if err != nil || !found {
+		return "", err
+	}
+	if artifact.ProjectID != projectID || artifact.ID != strings.TrimSpace(ref.ArtifactID) ||
+		version.ID != versionID || version.ArtifactID != artifact.ID {
+		return "", nil
+	}
+	retention, found, err := s.workspaceStore.ArtifactRetentionMode(artifact.ID)
+	if err != nil || !found || retention != "snapshot" {
+		return "", err
+	}
+	return sessionRunnerDeliverableBasename(artifact.Name), nil
 }
 
 func appendMissingRunnerDeliverable(values []string, value string) []string {

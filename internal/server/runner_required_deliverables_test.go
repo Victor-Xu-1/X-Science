@@ -133,10 +133,6 @@ func TestSessionRunnerRequiresEveryExplicitUnnamedDeliverableFormat(t *testing.T
 		}); len(missing) != 0 {
 			t.Fatalf("task %q rejected complete formats: %#v", task, missing)
 		}
-		if !sessionRunnerArtifactNameSatisfiesRequiredDeliverable(task, "designed_candidates.sdf") ||
-			!sessionRunnerArtifactNameSatisfiesRequiredDeliverable(task, "candidate_summary.csv") {
-			t.Fatalf("task %q did not recognize its requested formats", task)
-		}
 	}
 }
 
