@@ -174,7 +174,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 			assistantPage = true
 			continue
 		case "runner_checkpoint":
-			if transcriptWebIncrementalProviderBoundary(projected) {
+			if transcriptWebIncrementalMetadataCheckpoint(projected) {
 				continue
 			}
 		}
@@ -196,7 +196,7 @@ func (s *Server) tryIncrementalTranscriptWebReadModel(
 	references := make([]transcriptstore.TranscriptWebMessageArtifactReference, 0)
 	for _, projected := range page {
 		if transcriptstore.IsRunnerInternalFact(projected.Event, projected.ResolvedPayloadJSON) ||
-			transcriptWebIncrementalProviderBoundary(projected) {
+			transcriptWebIncrementalMetadataCheckpoint(projected) {
 			continue
 		}
 		record, eventReferences, err := buildIncrementalTranscriptWebUserMessage(

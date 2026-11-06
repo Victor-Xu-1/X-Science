@@ -52,7 +52,7 @@ func (s *Server) applyIncrementalTranscriptWebAssistantPage(
 				return transcriptWebIncrementalResult{}, err
 			}
 		case "runner_checkpoint":
-			if !transcriptWebIncrementalProviderBoundary(projected) {
+			if !transcriptWebIncrementalMetadataCheckpoint(projected) {
 				result.Disposition = transcriptWebIncrementalFallbackTool
 				return result, nil
 			}
