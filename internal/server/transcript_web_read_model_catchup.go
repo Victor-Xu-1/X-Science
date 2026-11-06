@@ -60,12 +60,8 @@ func (s *Server) catchUpTranscriptWebReadModel(
 	ownerID, streamUID, branchID string,
 ) error {
 	key := transcriptWebCatchupKey{ownerID: ownerID, streamUID: streamUID, branchID: branchID}
-	s.transcriptWebCatchupMu.Lock()
-	if s.transcriptWebCatchups == nil {
-		s.transcriptWebCatchups = make(map[transcriptWebCatchupKey]*transcriptWebCatchupFlight)
-	}
-	if flight := s.transcriptWebCatchups[key]; flight != nil {
-		s.transcriptWebCatchupMu.Unlock()
+	flight, leader := s.startTranscriptWebCatchupFlight(key)
+	if !leader {
 		noteTranscriptWebReadStage(requestCtx, webReadCatchupWait)
 		select {
 		case <-flight.done:
@@ -74,20 +70,37 @@ func (s *Server) catchUpTranscriptWebReadModel(
 			return requestCtx.Err()
 		}
 	}
-	flight := &transcriptWebCatchupFlight{done: make(chan struct{})}
-	s.transcriptWebCatchups[key] = flight
-	s.transcriptWebCatchupMu.Unlock()
 
 	noteTranscriptWebReadStage(requestCtx, webReadCatchupLeader)
 	catchupCtx, cancel := context.WithTimeout(context.WithoutCancel(requestCtx), transcriptWebRequestCatchupTimeout)
-	flight.err = s.rebuildOneStaleTranscriptWebReadModel(catchupCtx, key)
+	err := s.rebuildOneStaleTranscriptWebReadModel(catchupCtx, key)
 	cancel()
+	s.finishTranscriptWebCatchupFlight(key, flight, err)
+	return err
+}
 
+// Request repair and the existing background coordinator share one stream
+// owner. The raw projector never acquires a flight, avoiding reentrant waits.
+func (s *Server) startTranscriptWebCatchupFlight(key transcriptWebCatchupKey) (*transcriptWebCatchupFlight, bool) {
 	s.transcriptWebCatchupMu.Lock()
+	defer s.transcriptWebCatchupMu.Unlock()
+	if s.transcriptWebCatchups == nil {
+		s.transcriptWebCatchups = make(map[transcriptWebCatchupKey]*transcriptWebCatchupFlight)
+	}
+	if flight := s.transcriptWebCatchups[key]; flight != nil {
+		return flight, false
+	}
+	flight := &transcriptWebCatchupFlight{done: make(chan struct{})}
+	s.transcriptWebCatchups[key] = flight
+	return flight, true
+}
+
+func (s *Server) finishTranscriptWebCatchupFlight(key transcriptWebCatchupKey, flight *transcriptWebCatchupFlight, err error) {
+	s.transcriptWebCatchupMu.Lock()
+	defer s.transcriptWebCatchupMu.Unlock()
+	flight.err = err
 	delete(s.transcriptWebCatchups, key)
 	close(flight.done)
-	s.transcriptWebCatchupMu.Unlock()
-	return flight.err
 }
 
 func (s *Server) rebuildOneStaleTranscriptWebReadModel(

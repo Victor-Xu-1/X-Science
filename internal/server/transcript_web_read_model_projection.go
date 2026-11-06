@@ -90,17 +90,18 @@ func (s *Server) runTranscriptWebReadModelBatch(ctx context.Context, limit int) 
 				!s.transcriptWebProjectionRetryDue(ctx, item) {
 				continue
 			}
+			started, err := s.rebuildBackgroundTranscriptWebReadModel(ctx, item)
+			if !started {
+				// Another request or background pass already owns this stream.
+				// Do not occupy the global coordinator waiting for the same work.
+				continue
+			}
 			attempted++
-			if err := s.rebuildTranscriptWebReadModel(ctx, item); err != nil {
+			if err != nil {
 				if transcriptWebProjectionRepairInterrupted(err) {
 					continue
 				}
-				if quarantineErr := s.quarantineTranscriptWebReadModel(ctx, item, err); quarantineErr != nil &&
-					!errors.Is(quarantineErr, transcriptstore.ErrBranchStateStale) &&
-					!errors.Is(quarantineErr, transcriptstore.ErrTranscriptWebProjectionStale) {
-					return errors.Join(err, quarantineErr)
-				}
-				s.noteTranscriptWebProjectionRetry(item.StreamUID)
+				return err
 			}
 			if attempted >= limit {
 				return nil
@@ -108,6 +109,32 @@ func (s *Server) runTranscriptWebReadModelBatch(ctx context.Context, limit int) 
 		}
 	}
 	return nil
+}
+
+func (s *Server) rebuildBackgroundTranscriptWebReadModel(
+	ctx context.Context,
+	work transcriptstore.TranscriptWebProjectionWork,
+) (started bool, repairErr error) {
+	key := transcriptWebCatchupKey{ownerID: work.OwnerID, streamUID: work.StreamUID, branchID: work.BranchID}
+	flight, started := s.startTranscriptWebCatchupFlight(key)
+	if !started {
+		return false, nil
+	}
+	defer func() { s.finishTranscriptWebCatchupFlight(key, flight, repairErr) }()
+	if err := s.rebuildTranscriptWebReadModel(ctx, work); err != nil {
+		if transcriptWebProjectionRepairInterrupted(err) {
+			return true, err
+		}
+		if quarantineErr := s.quarantineTranscriptWebReadModel(ctx, work, err); quarantineErr != nil &&
+			!errors.Is(quarantineErr, transcriptstore.ErrBranchStateStale) &&
+			!errors.Is(quarantineErr, transcriptstore.ErrTranscriptWebProjectionStale) {
+			return true, errors.Join(err, quarantineErr)
+		}
+		s.noteTranscriptWebProjectionRetry(work.StreamUID)
+	}
+	// A successful quarantine is settled repair, not a fresh-history claim.
+	// Joined readers reload the original fence before choosing any response.
+	return true, nil
 }
 
 func transcriptWebProjectionRepairInterrupted(err error) bool {

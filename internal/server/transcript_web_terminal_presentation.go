@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"errors"
 
 	transcriptstore "x-science/internal/persistence/transcript"
 )
@@ -12,6 +11,9 @@ import (
 // same immutable source boundary is available in the Web message read model.
 // This keeps the final answer and its artifact references ordered before the
 // terminal status without introducing a second message source.
+// Status reads only observe the fence: the existing history/repair owner makes
+// it ready. Joining its catch-up would block the bounded runtime snapshot and
+// turn ordinary presentation lag into a failed status request.
 func (s *Server) transcriptWebTerminalPresentationReady(
 	ctx context.Context,
 	stream transcriptstore.Stream,
@@ -28,19 +30,6 @@ func (s *Server) transcriptWebTerminalPresentationReady(
 	)
 	if err != nil {
 		return false, err
-	}
-	if transcriptWebFenceCanCatchUp(fence) {
-		catchupErr := s.catchUpTranscriptWebReadModel(ctx, stream.OwnerID, stream.UID, snapshot.BranchID)
-		if catchupErr != nil && !errors.Is(catchupErr, transcriptstore.ErrBranchStateStale) &&
-			!errors.Is(catchupErr, transcriptstore.ErrTranscriptWebProjectionStale) {
-			return false, catchupErr
-		}
-		fence, err = s.transcriptWebReadModel.GetTranscriptWebProjectionFence(
-			ctx, stream.OwnerID, stream.UID, snapshot.BranchID,
-		)
-		if err != nil {
-			return false, err
-		}
 	}
 	return transcriptWebFenceReady(fence), nil
 }
