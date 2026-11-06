@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "4a9e4a69129ad364644507c86eb7836c5acc9e5689be10abfe8878dc8c2ae3f5",
+  "adaptationFingerprintSHA256": "c22dfdb566a2e600bc43fdb44d2e8be770d27399e85382c1b411c9eda4d5b354",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
   "additionFingerprintSHA256": "92f61103770fddde4da9dc4f61f72830d97069a26a03c2cf3ff09bad7c045c70",
   "summary": {
@@ -1812,8 +1812,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "98ed34260111fe90a85bb4da50c3f0db472c16c7542c629b95f69e3cb07a69be",
-      "bytes": 12812,
+      "targetSHA256": "e68b20e15d7d410e18a093c157b776cc42b39d9e480eacc652ade294053351dc",
+      "bytes": 12830,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2952,8 +2952,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "769b3a46ff6061d88fb5273eeae196e5655f87bd9e6abc6ce7a2d83d41d0d0e3",
-      "bytes": 44622,
+      "targetSHA256": "cb58df3466b09052e074acef2a4718ba06a872b01acf576cfba2e5d6b125e5b2",
+      "bytes": 44640,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3043,8 +3043,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "61002db5a756c5b7dbf361c591654668b6ede97073bbff032b222f2bd63c9f12",
-      "bytes": 42971,
+      "targetSHA256": "dc677919f52cc4303f2c10beaa73087173fc73c108602f6ae0d542f2404d2767",
+      "bytes": 42989,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
