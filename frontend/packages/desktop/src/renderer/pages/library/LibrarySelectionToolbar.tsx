@@ -12,6 +12,7 @@ export type LibrarySelectionToolbarProps = {
   disabled: boolean;
   busy?: boolean;
   exportControl?: React.ReactNode;
+  overviewControl?: React.ReactNode;
   resolving?: boolean;
   onSelectAllMatching: () => void;
   onClear: () => void;
@@ -26,6 +27,7 @@ export function LibrarySelectionToolbar({
   disabled,
   busy = false,
   exportControl,
+  overviewControl,
   resolving = false,
   onSelectAllMatching,
   onClear,
@@ -67,6 +69,7 @@ export function LibrarySelectionToolbar({
         </button>
       )}
       {exportControl}
+      {overviewControl}
       <label className='library-selection-toolbar__status'>
         <span className='sr-only'>{t('conversation.librarySelection.readingStatus')}</span>
         <select

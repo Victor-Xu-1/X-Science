@@ -208,6 +208,8 @@ func schemaMigrationIdentityHandlersKnown(identity schemaMigrationIdentityV2) bo
 		return identity.PreflightIdentity == literatureTaskOriginsV92PreflightIdentity && identity.RuleSpec == literatureTaskOriginsV92RuleSpec
 	case transcriptWebProjectorV93CallbackID:
 		return identity.PreflightIdentity == transcriptWebProjectorV93PreflightIdentity && identity.RuleSpec == transcriptWebProjectorV93RuleSpec
+	case literatureStudyBatchV94CallbackID:
+		return identity.PreflightIdentity == literatureStudyBatchV94PreflightIdentity && identity.RuleSpec == literatureStudyBatchV94RuleSpec
 	case kernelWorkerStartupV88CallbackID:
 		return identity.PreflightIdentity == kernelWorkerStartupV88PreflightIdentity && identity.RuleSpec == kernelWorkerStartupV88RuleSpec
 	default:
@@ -366,6 +368,8 @@ func runSchemaMigrationPreflight(ctx context.Context, executor schemaMigrationQu
 		return preflightLiteratureTaskOriginsV92(ctx, executor)
 	case transcriptWebProjectorV93PreflightIdentity:
 		return preflightTranscriptWebProjectorV93(ctx, executor)
+	case literatureStudyBatchV94PreflightIdentity:
+		return preflightLiteratureStudyBatchV94(ctx, executor)
 	case kernelWorkerStartupV88PreflightIdentity:
 		return nil
 	default:
@@ -502,6 +506,8 @@ func runSchemaMigrationCallback(ctx context.Context, tx *sql.Tx, migration versi
 		return nil
 	case transcriptWebProjectorV93CallbackID:
 		return migrateTranscriptWebProjectorV93(ctx, tx)
+	case literatureStudyBatchV94CallbackID:
+		return nil
 	case kernelWorkerStartupV88CallbackID:
 		return nil
 	default:

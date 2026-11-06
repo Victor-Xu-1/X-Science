@@ -57,11 +57,22 @@ func (s *Server) inferLiteratureStudy(ctx context.Context, owner, prompt string)
 // A request-local coordinator; no execution loop, job, cache or permission owner.
 func (s *Server) generateLiteratureStudy(ctx context.Context, owner, id string, input workspace.LiteratureStudyGenerate,
 	evidence func(context.Context, workspace.LiteratureStudySource) (literatureStudyEvidence, error), infer literatureStudyInfer) (workspace.LiteratureStudyView, error) {
+	return s.generateLiteratureStudyWithPublication(ctx, owner, id, input, evidence, infer, nil)
+}
+
+type literatureStudyPublication func(context.Context, workspace.LiteratureStudySnapshot) (workspace.LiteratureStudyView, error)
+
+// The batch adds a transaction fence at publication, not another model path.
+func (s *Server) generateLiteratureStudyWithPublication(ctx context.Context, owner, id string, input workspace.LiteratureStudyGenerate,
+	evidence func(context.Context, workspace.LiteratureStudySource) (literatureStudyEvidence, error), infer literatureStudyInfer, publish literatureStudyPublication) (workspace.LiteratureStudyView, error) {
 	if s == nil || s.workspaceStore == nil {
 		return workspace.LiteratureStudyView{}, errors.New("study store unavailable")
 	}
 	store := s.workspaceStore
 	if replay, found, err := store.ReplayLiteratureStudy(ctx, owner, id, input); err != nil || found {
+		if err == nil && found && publish != nil && replay.Snapshot != nil {
+			return publish(ctx, *replay.Snapshot)
+		}
 		return replay, err
 	}
 	source, view, err := store.ReadLiteratureStudy(ctx, owner, id, input.Language)
@@ -121,5 +132,9 @@ func (s *Server) generateLiteratureStudy(ctx context.Context, owner, id string, 
 	if err := ctx.Err(); err != nil {
 		return view, err
 	}
-	return store.PublishLiteratureStudy(ctx, owner, id, input, workspace.LiteratureStudySnapshot{SourceKey: source.Key, Coverage: selected.Coverage, AttachmentVersionID: selected.VersionID, Model: model, Sections: sections})
+	snapshot := workspace.LiteratureStudySnapshot{SourceKey: source.Key, Coverage: selected.Coverage, AttachmentVersionID: selected.VersionID, Model: model, Sections: sections}
+	if publish != nil {
+		return publish(ctx, snapshot)
+	}
+	return store.PublishLiteratureStudy(ctx, owner, id, input, snapshot)
 }
