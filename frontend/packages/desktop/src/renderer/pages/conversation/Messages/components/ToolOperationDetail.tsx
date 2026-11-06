@@ -168,7 +168,16 @@ const ToolOperationDetail: React.FC<{
                     output={displayItem.output}
                   />
                 ) : null}
-                <MessageToolPublicDetail item={displayItem} language={language} resultSummary={resultSummary} />
+                <MessageToolPublicDetail
+                  item={displayItem}
+                  disclosureScope={{
+                    conversationId: item.conversationId ?? 'unknown-conversation',
+                    branchId: item.branchId,
+                    operationId: item.key,
+                  }}
+                  language={language}
+                  resultSummary={resultSummary}
+                />
                 {displayItem.imagePath ? (
                   <div className='tool-image-inset group relative overflow-hidden'>
                     <LocalImageView

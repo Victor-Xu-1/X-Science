@@ -217,15 +217,12 @@ function safeStringPrefix(value: string, maximum: number): string {
 
 const MessageToolPublicDetail: React.FC<{
   item: NormalizedToolCall;
+  disclosureScope: DisclosureScope;
   language: string;
   resultSummary: string | null;
-}> = ({ item, language, resultSummary }) => {
+}> = ({ item, disclosureScope: scope, language, resultSummary }) => {
   const chinese = language.toLowerCase().startsWith('zh');
-  const scope = {
-    conversationId: item.conversationId ?? 'unknown-conversation',
-    branchId: item.branchId,
-    operationId: item.key,
-  };
+  // Full-detail content does not replace the original operation's UI owner.
   const resultDisclosure = useConversationDisclosure({ ...scope, path: 'result' });
   const presentation = useMemo(
     () => buildToolPublicDetailPresentation(item, language, resultSummary),

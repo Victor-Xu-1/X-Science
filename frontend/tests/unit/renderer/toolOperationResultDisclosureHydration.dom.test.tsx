@@ -35,9 +35,14 @@ describe('tool result disclosure during full-message hydration', () => {
   });
   afterEach(cleanup);
 
-  it.each(['pointer', 'keyboard'] as const)(
-    'preserves the user output expansion with %s when the full message omits its window branch',
-    async (activation) => {
+  it.each([
+    ['pointer', 'window'],
+    ['keyboard', 'window'],
+    ['pointer', 'canonical'],
+    ['keyboard', 'canonical'],
+  ] as const)(
+    'preserves the user output expansion with %s when full detail omits branch (original owner: %s)',
+    async (activation, originalOwner) => {
       const user = userEvent.setup();
       const activate = async (element: HTMLElement) => {
         if (activation === 'pointer') {
@@ -48,6 +53,7 @@ describe('tool result disclosure during full-message hydration', () => {
         }
       };
       const branchId = 'br_deadbeef';
+      const originalBranchId = originalOwner === 'canonical' ? 'br_aabbccdd' : undefined;
       const fullMessage = {
         id: 'message',
         conversation_id: 'frame',
@@ -72,6 +78,7 @@ describe('tool result disclosure during full-message hydration', () => {
         ...fullMessage,
         content: {
           ...fullMessage.content,
+          ...(originalBranchId ? { xScience: { branchId: originalBranchId, messageIndex: 0, blockIndex: 0 } } : {}),
           output: JSON.stringify({ stdout: 'compact fixture output', exit_code: 0 }),
           _compact: { truncated: true },
         },
@@ -98,7 +105,7 @@ describe('tool result disclosure during full-message hydration', () => {
       expect(invoke).toHaveBeenCalledExactlyOnceWith({
         conversation_id: 'frame',
         message_id: 'message',
-        branch_id: branchId,
+        branch_id: originalBranchId ?? branchId,
       });
       await act(async () => resolve(fullMessage));
 
@@ -107,6 +114,11 @@ describe('tool result disclosure during full-message hydration', () => {
       expect(screen.getByTestId('show-output-toggle')).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByTestId('tool-public-output')).toHaveTextContent('hydrated fixture output');
       if (activation === 'keyboard') expect(screen.getByTestId('show-output-toggle')).toHaveFocus();
+
+      await activate(screen.getByTestId('show-output-toggle'));
+      expect(screen.getByTestId('show-output-toggle')).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.queryByTestId('tool-public-output')).toBeNull();
+      expect(invoke).toHaveBeenCalledTimes(1);
     }
   );
 });
