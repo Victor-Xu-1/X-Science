@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "5ce624750bc2cd41703b3bf0fa741feaaaf0df4885a2f886f787c6f23967947c",
+  "adaptationFingerprintSHA256": "5afbe3ba17915cfa9e88df661489e9ea6fbb95eb8112638361cc90b4f713fab3",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "98770088e86d4dbe8c08edeed01f248a47c3b0c3f5375b289008a030db3e7ab6",
+  "additionFingerprintSHA256": "f49c62773b85527f5afb62ae6d307c80503d0d8255130e3858d1a31c9688f890",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1501
+    "addedFiles": 1502
   },
   "adaptations": [
     {
@@ -2190,8 +2190,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/hooks/useWorkspaceCollapse.ts",
       "sourceSHA256": "4b307e4325474eb6e8473f0ad68dc96e974aa983304ab7ca8722356bb47172eb",
-      "targetSHA256": "ce723c41cd883c78f0c999d1ca904630f3dba36c91d687bca61fcef831b3223d",
-      "bytes": 8494,
+      "targetSHA256": "d2ab49cbbeed6369fc5fe184b1c64907915e4e94e4b0dd5af11ed54e47ee1c26",
+      "bytes": 8354,
       "reason": "Connect conversation history, messages, workspace, delegation, commands, and realtime recovery to the Go runtime."
     },
     {
@@ -14429,6 +14429,12 @@
       "path": "tests/unit/renderer/conversation/useSendBoxReferenceSelection.dom.test.tsx",
       "sha256": "b21a2e9108311b7f01ee7912be5ce67a46c8d2081faaeaeb004a8f023561685e",
       "bytes": 3316,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/conversation/useWorkspaceCollapse.dom.test.ts",
+      "sha256": "a423e2962b2b7c389d0eb159793e7a2db984853d6ba800141e646e8c12cb8dca",
+      "bytes": 4588,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
