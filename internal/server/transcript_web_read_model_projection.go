@@ -116,11 +116,12 @@ func (s *Server) rebuildBackgroundTranscriptWebReadModel(
 	work transcriptstore.TranscriptWebProjectionWork,
 ) (started bool, repairErr error) {
 	key := transcriptWebCatchupKey{ownerID: work.OwnerID, streamUID: work.StreamUID, branchID: work.BranchID}
-	flight, started := s.startTranscriptWebCatchupFlight(key)
+	flight, started := s.startTranscriptWebCatchupFlight(key, transcriptWebCatchupBackground)
 	if !started {
 		return false, nil
 	}
 	defer func() { s.finishTranscriptWebCatchupFlight(key, flight, repairErr) }()
+	ctx = withTranscriptWebCatchupDiagnostic(ctx, flight.diagnostic)
 	if err := s.rebuildTranscriptWebReadModel(ctx, work); err != nil {
 		if transcriptWebProjectionRepairInterrupted(err) {
 			return true, err
