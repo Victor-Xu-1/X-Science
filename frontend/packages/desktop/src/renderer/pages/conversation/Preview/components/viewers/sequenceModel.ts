@@ -41,15 +41,16 @@ export async function parseSequenceDocument(input: string | ArrayBuffer, filenam
     assertSupportedGenBankLocations(parserInput);
   }
 
-  const { default: seqparse } = await import('seqparse');
+  const { default: seqparse, parseFile } = await import('seqparse');
   const parsed =
     input instanceof ArrayBuffer
       ? await seqparse(parserInput, { fileName: parserFilename, source: input })
       : await seqparse(parserInput, { fileName: parserFilename });
 
   if (!parsed?.seq) throw new ScientificPreviewError('empty-content');
+  const fastaName = firstSelectedFastaHeader(parserInput, parserFilename, parsed, parseFile);
   return {
-    name: parsed.name || parserFilename.replace(/\.[^/.]+$/, ''),
+    name: fastaName || parsed.name || parserFilename.replace(/\.[^/.]+$/, ''),
     seq: parsed.seq,
     type: parsed.type,
     annotations: parsed.annotations ?? [],
@@ -57,15 +58,53 @@ export async function parseSequenceDocument(input: string | ArrayBuffer, filenam
   };
 }
 
+function firstSelectedFastaHeader(
+  source: string,
+  filename: string,
+  selected: Seq,
+  parseFile: typeof import('seqparse').parseFile
+): string {
+  // parseFile exposes no source-record index. Recover only the first physical
+  // header when native parsing proves it is the same valid selected record.
+  // A skipped first record, different dispatch or uncertainty keeps native name.
+  if (!usesFastaParser(source, filename) || !source.trim().startsWith('>')) return '';
+  const start = source.indexOf('>');
+  const end = source.indexOf('>', start + 1);
+  const firstRecord = source.slice(start, end < 0 ? undefined : end);
+  if (!usesFastaParser(firstRecord, filename)) return '';
+  try {
+    const first = parseFile(firstRecord, { fileName: filename })[0];
+    if (
+      first?.name === selected.name &&
+      first.seq === selected.seq &&
+      first.type === selected.type &&
+      JSON.stringify(first.annotations) === JSON.stringify(selected.annotations)
+    ) {
+      return firstRecord.slice(1).split(/\r?\n/, 1)[0].trim();
+    }
+  } catch {
+    // Optional title enrichment must not invalidate a successful native parse.
+  }
+  return '';
+}
+
+function usesJbeiParser(source: string): boolean {
+  return source.substring(0, 200).includes(':seq="http://jbei.org/sequence"') || source.startsWith('<seq:seq');
+}
+
+function usesFastaParser(source: string, filename: string): boolean {
+  return (
+    !usesJbeiParser(source) &&
+    (source.startsWith('>') || source.startsWith(';') || hasExtension(filename, ['.seq', '.fa', '.fas', '.fasta']))
+  );
+}
+
 function usesGenBankParser(source: string, filename: string): boolean {
   // Mirror the locked seqparse dispatch predicates through its GenBank branch.
   // JBEI and FASTA take priority, even if their text contains a GenBank example
   // or their filename suggests GenBank. Keep filename checks case-sensitive,
   // as in seqparse; resolveSequenceFormat alone does not identify this branch.
-  if (source.substring(0, 200).includes(':seq="http://jbei.org/sequence"') || source.startsWith('<seq:seq')) {
-    return false;
-  }
-  if (source.startsWith('>') || source.startsWith(';') || hasExtension(filename, ['.seq', '.fa', '.fas', '.fasta'])) {
+  if (usesJbeiParser(source) || usesFastaParser(source, filename)) {
     return false;
   }
   return (

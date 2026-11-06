@@ -25,6 +25,8 @@ const LazySeqViz = React.lazy(async () => {
 });
 
 const VIEW_MODES: SequenceViewerMode[] = ['both', 'circular', 'linear'];
+const LINEAR_VIEW_MODES: SequenceViewerMode[] = ['linear'];
+const SEQUENCE_CAPTION_LIMIT = 60;
 
 const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filename, contentUrl, content }) => {
   const { i18n, t } = useTranslation();
@@ -33,6 +35,20 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
   const [zoom, setZoom] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ScientificPreviewError | null>(null);
+  // SeqViz's circular center labels every molecule in bp. Use its native
+  // linear view for RNA/proteins and neutral text for unclassified symbols.
+  // This presentation restriction never changes the parsed molecule metadata.
+  const hasDnaViews = document?.type === 'dna';
+  const viewModes = document && !hasDnaViews ? LINEAR_VIEW_MODES : VIEW_MODES;
+  const activeViewerMode = document && !hasDnaViews ? 'linear' : viewerMode;
+  const sequenceUnit =
+    document?.type === 'aa'
+      ? 'aa'
+      : document?.type === 'rna'
+        ? 'nt'
+        : hasDnaViews
+          ? 'bp'
+          : t('preview.scientific.sequence.unknownUnit');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -64,53 +80,64 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
   return (
     <section className='size-full min-h-500px flex flex-col bg-1' aria-label={t('preview.scientific.sequence.preview')}>
       <div className='min-h-46px px-12px py-7px flex flex-wrap items-center gap-10px border-b border-solid border-[var(--color-border-2)] bg-fill-1'>
+        {document ? (
+          <span className='min-w-0 max-w-240px truncate text-11px text-t-secondary' title={document.name}>
+            {document.name}
+          </span>
+        ) : null}
         <div
           role='radiogroup'
           aria-label={t('preview.scientific.sequence.viewMode')}
           className='h-28px flex overflow-hidden rounded-4px border border-solid border-[var(--color-border-2)] bg-1'
         >
-          {VIEW_MODES.map((mode) => (
+          {viewModes.map((mode) => (
             <button
               key={mode}
               type='button'
               role='radio'
-              aria-checked={viewerMode === mode}
+              aria-checked={activeViewerMode === mode}
               className={`h-full px-10px border-0 border-r last:border-r-0 border-solid border-[var(--color-border-2)] text-11px cursor-pointer ${
-                viewerMode === mode
+                activeViewerMode === mode
                   ? 'bg-fill-3 text-t-primary font-[600]'
                   : 'bg-transparent text-t-secondary hover:bg-fill-1'
               }`}
-              onClick={() => setViewerMode(mode)}
+              onClick={() => {
+                if (hasDnaViews) setViewerMode(mode);
+              }}
             >
               {t(`preview.scientific.sequence.modes.${mode}`)}
             </button>
           ))}
         </div>
-        <label className='min-w-180px flex items-center gap-8px text-11px text-t-secondary'>
-          {t('preview.scientific.zoom')}
-          <input
-            type='range'
-            min={1}
-            max={100}
-            value={zoom}
-            aria-label={t('preview.scientific.sequence.zoom')}
-            className='w-120px accent-[rgb(var(--primary-6))]'
-            onChange={(event) => setZoom(Number(event.target.value))}
-          />
-          <span className='w-30px tabular-nums text-right'>{zoom}%</span>
-        </label>
+        {document?.type !== 'unknown' ? (
+          <label className='min-w-180px flex items-center gap-8px text-11px text-t-secondary'>
+            {t('preview.scientific.zoom')}
+            <input
+              type='range'
+              min={1}
+              max={100}
+              value={zoom}
+              aria-label={t('preview.scientific.sequence.zoom')}
+              className='w-120px accent-[rgb(var(--primary-6))]'
+              onChange={(event) => setZoom(Number(event.target.value))}
+            />
+            <span className='w-30px tabular-nums text-right'>{zoom}%</span>
+          </label>
+        ) : null}
         {document ? (
           <span className='ml-auto text-11px text-t-tertiary'>
             {document.format === 'fastq' && document.qualityStats
               ? t('preview.scientific.sequence.fastqStats', {
                   reads: (document.recordCount ?? 0).toLocaleString(i18n.resolvedLanguage),
-                  bases: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  count: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  unit: sequenceUnit,
                   qualityMin: document.qualityStats.min,
                   qualityMax: document.qualityStats.max,
                   qualityMean: document.qualityStats.mean,
                 })
               : t('preview.scientific.sequence.stats', {
-                  bases: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  count: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  unit: sequenceUnit,
                   annotations: document.annotations.length.toLocaleString(i18n.resolvedLanguage),
                 })}
           </span>
@@ -120,22 +147,33 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
       <div className='relative min-h-500px flex-1 overflow-auto bg-white'>
         {document ? (
           <div data-testid='x-science-sequence-host' className='min-w-720px min-h-500px p-12px'>
-            <Suspense fallback={<LoadingOverlay label={t('preview.scientific.sequence.initializing')} />}>
-              <LazySeqViz
-                name={document.name}
-                seq={document.seq}
-                seqType={document.type === 'unknown' ? undefined : document.type}
-                annotations={document.annotations}
-                primers={[]}
-                viewer={viewerMode}
-                zoom={{ linear: zoom }}
-                showComplement
-                showIndex
-                rotateOnScroll
-                disableExternalFonts
-                style={{ width: '100%', height: 500 }}
-              />
-            </Suspense>
+            {document.type === 'unknown' ? (
+              // SeqViz re-guesses undefined kinds and cannot render its internal
+              // unknown kind safely. Keep unclassified symbols as neutral text.
+              <pre
+                data-testid='x-science-sequence-symbols'
+                className='m-0 whitespace-pre-wrap break-all font-mono text-12px leading-24px text-t-primary'
+              >
+                {document.seq}
+              </pre>
+            ) : (
+              <Suspense fallback={<LoadingOverlay label={t('preview.scientific.sequence.initializing')} />}>
+                <LazySeqViz
+                  name={sequenceCaption(document.name)}
+                  seq={document.seq}
+                  seqType={document.type}
+                  annotations={document.annotations}
+                  primers={[]}
+                  viewer={activeViewerMode}
+                  zoom={{ linear: zoom }}
+                  showComplement={hasDnaViews}
+                  showIndex
+                  rotateOnScroll={hasDnaViews}
+                  disableExternalFonts
+                  style={{ width: '100%', height: 500 }}
+                />
+              </Suspense>
+            )}
           </div>
         ) : null}
         {loading ? <LoadingOverlay label={t('preview.scientific.sequence.loading')} /> : null}
@@ -159,6 +197,19 @@ const LoadingOverlay: React.FC<{ label: string }> = ({ label }) => (
     <Spin tip={label} />
   </div>
 );
+
+function sequenceCaption(name: string): string {
+  // Bound the engine label, not its source data or tooltip. Iterating Unicode
+  // codepoints avoids a dangling surrogate at the display-only ellipsis.
+  let caption = '';
+  for (const character of name) {
+    const display = /[\s\p{Cc}\p{Cf}]/u.test(character) ? ' ' : character;
+    if (display === ' ' && (!caption || caption.endsWith(' '))) continue;
+    if (caption.length + display.length > SEQUENCE_CAPTION_LIMIT - 1) return `${caption.trimEnd()}…`;
+    caption += display;
+  }
+  return caption.trimEnd();
+}
 
 export async function loadSequenceContent({
   filename,
