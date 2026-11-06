@@ -639,9 +639,7 @@ func (s *Server) runSessionRunnerChatOnce(
 			s.hydrateSessionRunnerReadReuse(chatRun, entries)
 		}
 	}
-	if err := s.checkpointTranscriptRunner(ctx, transcriptAuthority, transcriptstore.RunnerPhasePlanning, "runner-started", map[string]any{
-		"status": "running", "detail": "runner chat started",
-	}, false); err != nil {
+	if err := s.checkpointRunnerStarted(ctx, transcriptAuthority); err != nil {
 		if handled, settleErr := settlePreChatError(err); handled {
 			return result, settleErr
 		}

@@ -29,8 +29,13 @@ func transcriptWebIncrementalMetadataCheckpoint(projected transcriptstore.Projec
 		return false
 	}
 	var payload map[string]any
-	if json.Unmarshal(projected.ResolvedPayloadJSON, &payload) != nil || len(payload) != 4 ||
-		!mapHasOnlyKeys(payload, "status", "stage", "detail", "lifecyclePhase") {
+	if json.Unmarshal(projected.ResolvedPayloadJSON, &payload) != nil {
+		return false
+	}
+	if isTypedRunnerStartedCheckpoint(payload) {
+		return true
+	}
+	if len(payload) != 4 || !mapHasOnlyKeys(payload, "status", "stage", "detail", "lifecyclePhase") {
 		return false
 	}
 	status, statusOK := payload["status"].(string)
