@@ -27,6 +27,18 @@ claim → recovery → context → snapshot → provider ⇄ tool → verify →
 及其他合法转换以 [machine.go](../../internal/sessionrunner/machine.go) 为准。
 不要把阶段名直接当成用户可见的任务终态。
 
+Directory discovery returns a content fingerprint of the same owner-scoped grant
+snapshot as its rows; it is not a monotonic authorization version. Each actual
+provider call can compare an earlier canonical discovery with current grants and
+the request's visible or retained result. A short path-free notice does not
+change file permissions, tool choice, or unrelated work. Never-observed directory
+discovery does not introduce a mandatory listing step.
+
+目录发现的内容指纹与返回条目来自同一所有者快照，不是单调授权版本。
+实际模型请求只为已有的原始发现核对当前授权及可见或保留结果，必要时补充有界、
+不枚举路径的提示。读取不可用保持未知；现有权限校验、工具选择和非本地任务继续有效，
+不会因尚未发现目录而强制列举、暂停或循环重试。
+
 工具处理的顺序由 `NewPipeline` 检查。权限拒绝等提前结束路径仍需进入审计，
 不能用新的 HTTP 路由或恢复回调绕开原有执行入口。详细不变量见
 [Harness conformance](../engineering/x-science-harness-conformance.md) 和

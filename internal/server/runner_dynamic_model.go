@@ -33,6 +33,7 @@ type sessionRunnerDynamicModelClient struct {
 	contextUsage     *sessionContextUsageRecorder
 	contextBudget    *sessionRunnerRequestContextBudget
 	contextOptions   SessionRunnerChatOptions
+	directoryContext *runnerDirectoryContext
 
 	mu                  sync.RWMutex
 	lastSuccessfulModel string
@@ -302,18 +303,22 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 		return agentruntime.ModelResponse{}, wrapResolvedSessionRunnerModelCallError(err, resolved)
 	}
 	for {
+		actual, err := client.directoryContext.prepare(ctx, request)
+		if err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
 		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
-		if err := client.contextBudget.beforeCall(ctx, request, resolved.compactionModel(capacity)); err != nil {
-			client.recordContextPressure(ctx, request, err, resolved)
+		if err := client.contextBudget.beforeCall(ctx, actual, resolved.compactionModel(capacity)); err != nil {
+			client.recordContextPressure(ctx, actual, err, resolved)
 			return agentruntime.ModelResponse{}, err
 		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, request, capacity)
-		response, callErr := resolved.client.Complete(ctx, request)
+		usage := recorder.begin(resolved.model, actual, capacity)
+		response, callErr := resolved.client.Complete(ctx, actual)
 		recorder.finish(usage, response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)
-			recordMemoryExtractionCallIdentity(ctx, resolved, request)
+			recordMemoryExtractionCallIdentity(ctx, resolved, actual)
 			if strings.TrimSpace(response.Model) == "" {
 				response.Model = resolved.model
 			}
@@ -354,9 +359,9 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 		}
 		return emit(event)
 	}
-	complete := func(target sessionRunnerResolvedModelClient, progress *contextStreamProgress) (agentruntime.ModelResponse, error) {
+	complete := func(target sessionRunnerResolvedModelClient, actual agentruntime.ModelRequest, progress *contextStreamProgress) (agentruntime.ModelResponse, error) {
 		if streaming, ok := target.client.(agentruntime.StreamingModelClient); ok {
-			return streaming.CompleteStream(ctx, request, func(event agentruntime.ModelStreamEvent) error {
+			return streaming.CompleteStream(ctx, actual, func(event agentruntime.ModelStreamEvent) error {
 				if err := trackedEmit(event); err != nil {
 					return err
 				}
@@ -364,22 +369,26 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 				return nil
 			})
 		}
-		return target.client.Complete(ctx, request)
+		return target.client.Complete(ctx, actual)
 	}
 	for {
+		actual, err := client.directoryContext.prepare(ctx, request)
+		if err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
 		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
-		if err := client.contextBudget.beforeCall(ctx, request, resolved.compactionModel(capacity)); err != nil {
-			client.recordContextPressure(ctx, request, err, resolved)
+		if err := client.contextBudget.beforeCall(ctx, actual, resolved.compactionModel(capacity)); err != nil {
+			client.recordContextPressure(ctx, actual, err, resolved)
 			return agentruntime.ModelResponse{}, err
 		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, request, capacity)
+		usage := recorder.begin(resolved.model, actual, capacity)
 		progress := recorder.streamProgress(usage)
-		response, callErr := complete(resolved, progress)
+		response, callErr := complete(resolved, actual, progress)
 		progress.finish(response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)
-			recordMemoryExtractionCallIdentity(ctx, resolved, request)
+			recordMemoryExtractionCallIdentity(ctx, resolved, actual)
 			if strings.TrimSpace(response.Model) == "" {
 				response.Model = resolved.model
 			}
