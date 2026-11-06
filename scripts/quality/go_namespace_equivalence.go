@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go/ast"
+	"go/doc"
 	"go/parser"
 	"go/token"
 	"io"
@@ -17,6 +18,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type request struct {
@@ -122,6 +125,59 @@ func equivalent(input request) bool {
 	return oldError == nil && newError == nil && bytes.Equal(before, after)
 }
 
+// proseOnly requires exact code, not namespace rewriting. Any potentially
+// executable/structured comment makes this additional proof unavailable.
+// The original namespace proof and its conservative cases remain unchanged.
+func proseOnly(source string) ([]byte, error) {
+	file, err := parser.ParseFile(token.NewFileSet(), "source.go", source, parser.ParseComments|parser.SkipObjectResolution)
+	if err != nil {
+		return nil, err
+	}
+	for _, imported := range file.Imports {
+		value, err := strconv.Unquote(imported.Path.Value)
+		if err != nil || value == "C" {
+			return nil, fmt.Errorf("cgo or invalid import is not prose-only")
+		}
+	}
+	// Examples use their last comment as an executable output assertion. Keep
+	// the whole file conservative, including added/removed/empty assertions.
+	if len(doc.Examples(file)) != 0 {
+		return nil, fmt.Errorf("example comments retain test semantics")
+	}
+	for _, group := range file.Comments {
+		for _, comment := range group.List {
+			text := strings.TrimSpace(strings.TrimPrefix(comment.Text, "//"))
+			words := strings.Fields(text)
+			if len(words) == 0 && strings.HasPrefix(comment.Text, "//") {
+				continue
+			}
+			if !strings.HasPrefix(comment.Text, "// ") || len(words) == 0 ||
+				strings.ContainsAny(words[0], ":@#+![]<>=") ||
+				strings.Contains(strings.ToLower(text), "code generated") ||
+				strings.Contains(strings.ToLower(text), "do not edit") {
+				return nil, fmt.Errorf("structured or unknown comment is not prose-only")
+			}
+			first, _ := utf8.DecodeRuneInString(words[0])
+			if !unicode.IsLetter(first) || words[0] == "export" || words[0] == "line" ||
+				words[0] == "nolint" || words[0] == "lint" || words[0] == "noqa" {
+				return nil, fmt.Errorf("directive-like comment is not prose-only")
+			}
+		}
+	}
+	var result bytes.Buffer
+	err = ast.Fprint(&result, token.NewFileSet(), file, func(field string, value reflect.Value) bool {
+		return value.Type() != reflect.TypeOf(token.Pos(0)) && field != "Scope" && field != "Obj" &&
+			field != "Unresolved" && field != "Doc" && field != "Comment" && field != "Comments"
+	})
+	return result.Bytes(), err
+}
+
+func proseEquivalent(input request) bool {
+	before, oldError := proseOnly(input.Before)
+	after, newError := proseOnly(input.After)
+	return oldError == nil && newError == nil && bytes.Equal(before, after)
+}
+
 func samePackage(input request) bool {
 	if directives(input.Before) != directives(input.After) {
 		return false
@@ -148,7 +204,8 @@ func main() {
 			fmt.Fprintln(os.Stderr, "multiple namespace proof values on one line")
 			os.Exit(1)
 		}
-		if err := encoder.Encode(map[string]bool{"equivalent": equivalent(input), "same_package": samePackage(input)}); err != nil {
+		namespace := equivalent(input)
+		if err := encoder.Encode(map[string]bool{"equivalent": namespace || proseEquivalent(input), "namespace_equivalent": namespace, "same_package": samePackage(input)}); err != nil {
 			os.Exit(1)
 		}
 	}
