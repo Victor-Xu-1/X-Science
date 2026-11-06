@@ -3291,11 +3291,11 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/xScienceRuntimeOperations.ts",
+      "originalPath": "packages/desktop/src/renderer/services/synonBiomedRuntimeOperations.ts",
       "sourceSHA256": "2451a63c5894e792333a8cf523c775277295902207c7a71011379370644acbb8",
       "targetSHA256": "a54f2507a5ab5f149b2ce97777407517e7201ede37dac70f6fa17c3cc457aafa",
       "bytes": 16883,
-      "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models.",
-      "originalPath": "packages/desktop/src/renderer/services/synonBiomedRuntimeOperations.ts"
+      "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
       "path": "packages/desktop/src/renderer/services/xScienceSessionActions.ts",
@@ -5386,11 +5386,11 @@
     },
     {
       "path": "tests/unit/xscience/XScienceRuntimeOperations.dom.test.tsx",
+      "originalPath": "tests/unit/synonbiomed/SynonBiomedRuntimeOperations.dom.test.tsx",
       "sourceSHA256": "2f02c055440a517abcab3e845394bb1f09db3efdf83576b4398019db9bffcc90",
       "targetSHA256": "92ad8ff93bea11c09224d278b06cabc314f9294b6e0e147b2f6aa5d54c2eedfb",
       "bytes": 91852,
-      "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation.",
-      "originalPath": "tests/unit/synonbiomed/SynonBiomedRuntimeOperations.dom.test.tsx"
+      "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
       "path": "tests/unit/xscience/annotationsCapabilities.test.ts",
@@ -5594,11 +5594,11 @@
     },
     {
       "path": "tests/unit/xscience/xScienceRuntimeOperationsService.test.ts",
+      "originalPath": "tests/unit/synonbiomed/synonBiomedRuntimeOperationsService.test.ts",
       "sourceSHA256": "451c787d7669035f0571be8108fa54c024577deee4b7469b16f293c7d9072a14",
       "targetSHA256": "51c62cb50aaad5e6ad1dbeb18eee22e8aadf56324d41f8b662c8381d215f6d76",
       "bytes": 8146,
-      "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation.",
-      "originalPath": "tests/unit/synonbiomed/synonBiomedRuntimeOperationsService.test.ts"
+      "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
       "path": "tests/unit/xscience/xScienceSessionActions.test.ts",
