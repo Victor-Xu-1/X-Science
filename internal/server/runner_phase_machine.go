@@ -53,19 +53,20 @@ func sessionRunnerLifecyclePhase(run *sessionRunnerChatRun) string {
 }
 
 func advanceSessionRunnerPreparationPhase(run *sessionRunnerChatRun, stage string) error {
-	stage = strings.TrimSpace(stage)
-	var phase runnermachine.Phase
-	switch stage {
+	return advanceSessionRunnerPhase(run, sessionRunnerPreparationPhase(stage))
+}
+
+func sessionRunnerPreparationPhase(stage string) runnermachine.Phase {
+	switch strings.TrimSpace(stage) {
 	case "resume_state", "completion_recovery", "agent_authority", "model_resolution", "kernel_recovery":
-		phase = runnermachine.PhaseRecovery
+		return runnermachine.PhaseRecovery
 	case "prompt_snapshot":
-		phase = runnermachine.PhaseSnapshot
+		return runnermachine.PhaseSnapshot
 	case "model_execution":
-		phase = runnermachine.PhaseProvider
+		return runnermachine.PhaseProvider
 	default:
-		phase = runnermachine.PhaseContext
+		return runnermachine.PhaseContext
 	}
-	return advanceSessionRunnerPhase(run, phase)
 }
 
 func advanceSessionRunnerEventPhase(run *sessionRunnerChatRun, event agentruntime.Event) error {
