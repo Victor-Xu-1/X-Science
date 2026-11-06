@@ -154,10 +154,10 @@ func (s *Server) rebuildOneStaleTranscriptWebReadModel(
 				return nil
 			}
 		}
-		if upgrade && !transcriptWebProjectionRepairInterrupted(err) {
-			// Persist a failed version-upgrade attempt through the same quarantine
-			// authority as background repair. Repeated history reads must not retry
-			// unchanged deterministic source failures indefinitely.
+		if !transcriptWebProjectionRepairInterrupted(err) {
+			// Settle deterministic failures through the background repair's same
+			// quarantine authority, including failures in the current projector.
+			// Repeated reads must not retry unchanged invalid source indefinitely.
 			if quarantineErr := s.quarantineTranscriptWebReadModel(ctx, work, err); quarantineErr != nil {
 				return errors.Join(err, quarantineErr)
 			}
