@@ -226,90 +226,7 @@ func (s *Server) rebuildTranscriptWebReadModel(
 			return nil
 		}
 	}
-	noteTranscriptWebReadStage(ctx, webReadFull)
-	messages, snapshot, err := s.projectTranscriptWebHistory(
-		ctx, stream, work.OwnerID, work.SessionID, work.BranchID,
-	)
-	if err != nil {
-		return fmt.Errorf("full history projection: %w", err)
-	}
-	if snapshot.StreamUID != work.StreamUID || snapshot.BranchID != work.BranchID ||
-		snapshot.BranchGeneration != work.BranchGeneration ||
-		snapshot.ThroughPublicationSequence != work.ThroughPublicationSequence {
-		return transcriptstore.ErrBranchStateStale
-	}
-	noteTranscriptWebReadStage(ctx, webReadMetadata)
-	metadata, err := s.projectTranscriptWebSourceMetadata(ctx, stream, work.OwnerID, work.SessionID, snapshot)
-	if err != nil {
-		return fmt.Errorf("source metadata: %w", err)
-	}
-	noteTranscriptWebReadStage(ctx, webReadRecords)
-	records, references, err := buildTranscriptWebMessageRecords(messages, metadata)
-	if err != nil {
-		return fmt.Errorf("build records: %w", err)
-	}
-	assistant, err := transcriptWebAttachIncrementalAssistantRecords(metadata.assistant, records)
-	if err != nil {
-		return err
-	}
-	var fence transcriptstore.TranscriptWebProjectionFence
-	if work.Reason == "projection_projector_version_stale" {
-		fence, err = s.transcriptWebReadModel.GetTranscriptWebProjectionUpgradeFence(
-			ctx, work.OwnerID, work.StreamUID, work.BranchID,
-		)
-	} else {
-		fence, err = s.transcriptWebReadModel.GetTranscriptWebProjectionFence(
-			ctx, work.OwnerID, work.StreamUID, work.BranchID,
-		)
-	}
-	if err != nil {
-		return err
-	}
-	if fence.SessionID != work.SessionID || fence.BranchGeneration != snapshot.BranchGeneration ||
-		fence.ThroughPublicationSequence != snapshot.ThroughPublicationSequence ||
-		fence.SourceRevision != work.SourceRevision {
-		return transcriptstore.ErrBranchStateStale
-	}
-	stateJSON, err := json.Marshal(transcriptWebProjectorCheckpointV1{
-		Version: transcriptWebIncrementalCheckpointVersion, Mode: "full_rebuild",
-		BranchGeneration:           snapshot.BranchGeneration,
-		ThroughPublicationSequence: snapshot.ThroughPublicationSequence,
-		SourceRevision:             fence.SourceRevision, MessageCount: len(records),
-		EventChainSHA256: metadata.eventChain,
-		Assistant:        assistant,
-	})
-	if err != nil {
-		return fmt.Errorf("encode Transcript Web projector checkpoint: %w", err)
-	}
-	sourceChain, err := transcriptWebProjectionSourceChain(metadata.eventChain, snapshot, fence.SourceRevision, records)
-	if err != nil {
-		return err
-	}
-	projectionRevision := int64(1)
-	if fence.StateFound {
-		projectionRevision = fence.StateProjectionRevision + 1
-	}
-	state := transcriptstore.TranscriptWebProjectionState{
-		StreamUID: work.StreamUID, BranchID: work.BranchID,
-		BranchGeneration: snapshot.BranchGeneration,
-		ProjectorVersion: transcriptstore.TranscriptWebProjectorVersion, ProjectionRevision: projectionRevision,
-		ThroughPublicationSequence: snapshot.ThroughPublicationSequence,
-		SourceRevision:             fence.SourceRevision, MessageCount: len(records), VisibleMessageCount: len(records),
-		MessageArtifactReferenceCount: len(references), ProjectorStateJSON: stateJSON,
-		ProjectorStateSHA256: transcriptstore.TranscriptWebSHA256(stateJSON),
-		SourceChainSHA256:    sourceChain, Status: "ready", UpdatedAt: time.Now().UTC(),
-	}
-	noteTranscriptWebReadStage(ctx, webReadCommit)
-	err = s.transcriptWebReadModel.ApplyTranscriptWebProjection(ctx, transcriptstore.ApplyTranscriptWebProjectionInput{
-		OwnerID: work.OwnerID, State: state,
-		ExpectedBranchGeneration:   fence.StateBranchGeneration,
-		ExpectedThroughPublication: fence.StateThroughPublicationSequence,
-		ExpectedProjectionRevision: fence.StateProjectionRevision,
-		ExpectedSourceRevision:     fence.StateSourceRevision,
-		ExpectedSourceChainSHA256:  fence.StateSourceChainSHA256,
-		ReplaceAll:                 true, Messages: records, ArtifactReferences: references,
-	})
-	return err
+	return s.rebuildTranscriptWebFullProjection(ctx, stream, work)
 }
 
 func (s *Server) quarantineTranscriptWebReadModel(
@@ -411,6 +328,8 @@ func transcriptWebProjectionErrorCode(err error) string {
 	}
 }
 
+// The full owner binds this fixed prefix to its captured canonical source and
+// projection CAS in Apply. New tail events do not change these source bytes.
 func (s *Server) projectTranscriptWebSourceMetadata(
 	ctx context.Context,
 	stream transcriptstore.Stream,
@@ -422,7 +341,7 @@ func (s *Server) projectTranscriptWebSourceMetadata(
 		return transcriptWebProjectionSourceMetadata{}, err
 	}
 	projectedEvents := make([]transcriptstore.ProjectedEvent, 0, 128)
-	if err := s.visitTranscriptWebProjectionSnapshotRaw(
+	if err := s.visitTranscriptWebProjectionPrefixRaw(
 		ctx, stream, ownerID, snapshot, true,
 		func(projected transcriptstore.ProjectedEvent) error {
 			projectedEvents = append(projectedEvents, projected)
