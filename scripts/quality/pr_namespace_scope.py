@@ -1,6 +1,7 @@
 """SHA-bound Go namespace proof; literals/directives are never text-normalized."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -69,8 +70,9 @@ def source_proofs(pairs: list[tuple[str, str]]) -> list[dict]:
         if result.returncode:
             raise RuntimeError("namespace AST proof did not complete")
         values = [json.loads(line) for line in result.stdout.splitlines()]
-        if len(values) != len(pairs) or any(set(item) != {"equivalent", "same_package"} or
-                any(type(value) is not bool for value in item.values()) for item in values):
+        if len(values) != len(pairs) or any(set(item) != {"equivalent", "namespace_equivalent", "same_package"} or
+                any(type(value) is not bool for value in item.values()) or
+                item["namespace_equivalent"] and not item["equivalent"] for item in values):
             raise RuntimeError("invalid namespace AST proof result")
         return values
 
@@ -142,7 +144,8 @@ def owned_input_counterparts(repo: Path, old_tree: dict, new_tree: dict) -> dict
     return result
 
 
-def filter_paths(repo: Path, base: str, head: str, paths: list[str]) -> list[str]:
+def filter_paths(repo: Path, base: str, head: str, paths: list[str], *,
+                 prose_candidates: dict[str, dict[str, str]] | None = None) -> list[str]:
     if not all(re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value) for value in (base, head)):
         raise ValueError("namespace proof requires immutable commit identities")
     if any(Path(path).is_absolute() or ".." in Path(path).parts for path in paths):
@@ -184,11 +187,39 @@ def filter_paths(repo: Path, base: str, head: str, paths: list[str]) -> list[str
         requests.append((before, after))
         candidates.append((path, original, target))
     proved, relocated = set(), {}
-    for (path, original, target), proof in zip(candidates, source_proofs(requests)):
-        if proof["equivalent"]:
+    for (path, original, target), (_, after), proof in zip(candidates, requests, source_proofs(requests)):
+        if proof["namespace_equivalent"]:
             proved.add(path)
+        elif proof["equivalent"] and original == target and prose_candidates is not None:
+            # Prose can be raw runtime/embed/testdata input. Keep it in this
+            # path list until the caller resolves its real Go-list owners.
+            prose_candidates[path] = {"head": head, "sha256": hashlib.sha256(after.encode()).hexdigest()}
         elif original != target and path not in new_tree and proof["same_package"]:
             # This is ownership routing, not behavior equivalence. Real changed
             # literals/logic stay tested under the exact current package path.
             relocated[path] = target
     return list(dict.fromkeys(relocated.get(path, path) for path in paths if path not in proved))
+
+
+def current_prose_paths(repo: Path, head: str, candidates: dict[str, dict[str, str]]) -> set[str]:
+    """Bind extra prose proofs to the actual checkout, without granting ownership."""
+    if not candidates:
+        return set()
+    try:
+        if git(repo, "rev-parse", "HEAD").decode().strip() != head:
+            return set()
+    except (OSError, RuntimeError):
+        return set()
+    result = set()
+    for path, proof in candidates.items():
+        if not isinstance(proof, dict):
+            continue
+        target = repo / path
+        try:
+            if (set(proof) == {"head", "sha256"} and proof["head"] == head and not target.is_symlink()
+                    and target.resolve().is_relative_to(repo.resolve()) and target.is_file()
+                    and hashlib.sha256(target.read_bytes()).hexdigest() == proof["sha256"]):
+                result.add(path)
+        except (OSError, ValueError):
+            continue
+    return result

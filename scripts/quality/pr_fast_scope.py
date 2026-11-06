@@ -103,7 +103,8 @@ def documentation_only(path: str) -> bool:
 
 def select_packages(repo: Path, paths: list[str], entries: list[dict],
                     dependency_owners: set[str] | None = None, *,
-                    filename_exclusions: set[str] | None = None) -> tuple[list[str], str]:
+                    filename_exclusions: set[str] | None = None,
+                    prose_exclusions: set[str] | None = None) -> tuple[list[str], str]:
     verification_groups = verification_scope.load(repo)
     verification_paths = {path for group in verification_groups for path in group["paths"]}
     verification_owners = verification_scope.package_owners(verification_groups)
@@ -114,6 +115,7 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
     changed: set[str] = set()
     test_only: set[str] = set()
     excluded: set[str] = set()
+    prose_excluded: set[str] = set()
     for path in paths:
         if Path(path).is_absolute() or ".." in Path(path).parts:
             raise ValueError("changed path is outside source")
@@ -128,7 +130,9 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
         owners = set(runtime_owners.get(path, set()))
         owners.update(verification_owners.get(path, set()))
         production_input = bool(owners)
+        raw_input = False
         test_source = False
+        source_owners = set()
         if not owners.issubset(all_packages):
             return all_packages, "Declared runtime consumer is unavailable"
         for entry in local:
@@ -144,9 +148,24 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
             elif path in embedded:
                 production_input = True
             testdata = (Path(directory) / "testdata").as_posix() + "/"
+            if path in embedded or path.startswith(testdata):
+                raw_input = True
+            # Default Go-list does not expand test embed patterns. Without a
+            # second discovery, retain the containing package conservatively.
+            if (path in (prose_exclusions or set())
+                    and (entry.get("TestEmbedPatterns") or entry.get("XTestEmbedPatterns"))
+                    and Path(path).is_relative_to(Path(directory))):
+                raw_input = True
+                owners.add(name)
             if (path.endswith(".go") and Path(path).parent.as_posix() == directory
                     or path in embedded or path.startswith(testdata)):
                 owners.add(name)
+            if path.endswith(".go") and Path(path).parent.as_posix() == directory:
+                source_owners.add(name)
+        if (path in (prose_exclusions or set()) and source_owners and owners == source_owners
+                and not production_input and not raw_input):
+            prose_excluded.add(path)
+            continue
         if path in (filename_exclusions or set()) and owners and not production_input:
             excluded.add(path)
             continue
@@ -174,11 +193,14 @@ def select_packages(repo: Path, paths: list[str], entries: list[dict],
     reason = "Changed packages, dependency modules and production/test import consumers"
     if excluded:
         reason = "Current Go build-context filename exclusion: " + ", ".join(sorted(excluded)) + "; " + reason
+    if prose_excluded:
+        reason = "SHA-bound prose-only source exclusion: " + ", ".join(sorted(prose_excluded)) + "; " + reason
     return sorted(selected | test_only), reason
 
 
 def resolve_packages(repo: Path, base: str, head: str, paths: list[str], *,
-                     test_file_counts: dict[str, int] | None = None) -> tuple[list[str], str]:
+                     test_file_counts: dict[str, int] | None = None,
+                     prose_candidates: dict[str, dict[str, str]] | None = None) -> tuple[list[str], str]:
     owners = None
     if {"go.mod", "go.sum"}.intersection(paths):
         modules = pr_dependency_scope.changed_modules(repo, base, head)
@@ -186,7 +208,9 @@ def resolve_packages(repo: Path, base: str, head: str, paths: list[str], *,
             owners = pr_dependency_scope.consumers(packages(repo, dependencies=True), modules) if modules else set()
     entries = packages(repo)
     excluded = pr_platform_scope.filename_exclusions(repo, base, head, paths, entries)
-    selected, reason = select_packages(repo, paths, entries, owners, filename_exclusions=excluded)
+    prose = pr_namespace_scope.current_prose_paths(repo, head, prose_candidates or {})
+    selected, reason = select_packages(repo, paths, entries, owners, filename_exclusions=excluded,
+                                      prose_exclusions=prose)
     if test_file_counts is not None:
         # Reuse this exact Go-list snapshot; do not discover or compile tests
         # just to choose how many original inventory workers to request.
@@ -198,15 +222,17 @@ def resolve_packages(repo: Path, base: str, head: str, paths: list[str], *,
 
 def selected_packages(repo: Path, base: str, head: str) -> tuple[list[str], list[str]]:
     paths = changed_paths(repo, base, head)
-    behavior, _, _ = behavior_scope(repo, base, head, paths)
-    selected, _ = resolve_packages(repo, base, head, behavior)
+    prose_candidates = {}
+    behavior, _, _ = behavior_scope(repo, base, head, paths, prose_candidates=prose_candidates)
+    selected, _ = resolve_packages(repo, base, head, behavior, prose_candidates=prose_candidates)
     return selected, paths
 
 
-def behavior_scope(repo: Path, base: str, head: str, paths: list[str]):
+def behavior_scope(repo: Path, base: str, head: str, paths: list[str], *,
+                   prose_candidates: dict[str, dict[str, str]] | None = None):
     behavior, metadata = pr_metadata_scope.filter_paths(repo, base, head, paths)
     if set(base) != {"0"}:
-        behavior = pr_namespace_scope.filter_paths(repo, base, head, behavior)
+        behavior = pr_namespace_scope.filter_paths(repo, base, head, behavior, prose_candidates=prose_candidates)
     build_defaults = []
     if "Makefile" in behavior and pr_build_scope.default_goal_only(repo, base, head):
         behavior.remove("Makefile")
@@ -307,7 +333,9 @@ def main() -> int:
             phases = RuntimePhaseEvidence(log_dir)
         with phases.measure("change_scope"):
             paths = changed_paths(repo, args.base, args.head)
-            behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths)
+            prose_candidates = {}
+            behavior_paths, metadata_paths, build_defaults = behavior_scope(repo, args.base, args.head, paths,
+                                                                         prose_candidates=prose_candidates)
             groups = verification_scope.matched(repo, behavior_paths)
         pr_test_partition.validate_partition(args.shard_index, args.shard_count)
         if not args.frontend and not args.vet and not args.matrix and args.shard_index == 0:
@@ -374,7 +402,8 @@ def main() -> int:
         test_file_counts = {}
         with phases.measure("package_scope"):
             matrix_inputs = {"test_file_counts": test_file_counts} if args.matrix else {}
-            selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths, **matrix_inputs)
+            selected, reason = resolve_packages(repo, args.base, args.head, behavior_paths,
+                                                 prose_candidates=prose_candidates, **matrix_inputs)
         if args.matrix:
             _, profile = planning_inputs(repo, args.base, args.head) if selected else ({}, None)
             print(json.dumps(pr_test_partition.job_matrix(selected, test_file_counts=test_file_counts,
