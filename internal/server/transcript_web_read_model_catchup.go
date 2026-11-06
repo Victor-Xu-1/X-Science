@@ -21,8 +21,9 @@ type transcriptWebCatchupKey struct {
 }
 
 type transcriptWebCatchupFlight struct {
-	done chan struct{}
-	err  error
+	done       chan struct{}
+	err        error
+	diagnostic *transcriptWebCatchupDiagnostic
 }
 
 func transcriptWebFenceReady(fence transcriptstore.TranscriptWebProjectionFence) bool {
@@ -60,19 +61,24 @@ func (s *Server) catchUpTranscriptWebReadModel(
 	ownerID, streamUID, branchID string,
 ) error {
 	key := transcriptWebCatchupKey{ownerID: ownerID, streamUID: streamUID, branchID: branchID}
-	flight, leader := s.startTranscriptWebCatchupFlight(key)
+	flight, leader := s.startTranscriptWebCatchupFlight(key, transcriptWebCatchupRequest)
 	if !leader {
 		noteTranscriptWebReadStage(requestCtx, webReadCatchupWait)
+		started := time.Now()
+		var err error
 		select {
 		case <-flight.done:
-			return flight.err
+			err = flight.err
 		case <-requestCtx.Done():
-			return requestCtx.Err()
+			err = requestCtx.Err()
 		}
+		noteTranscriptWebCatchupWait(requestCtx, flight.diagnostic, started, err)
+		return err
 	}
 
 	noteTranscriptWebReadStage(requestCtx, webReadCatchupLeader)
 	catchupCtx, cancel := context.WithTimeout(context.WithoutCancel(requestCtx), transcriptWebRequestCatchupTimeout)
+	catchupCtx = withTranscriptWebCatchupDiagnostic(catchupCtx, flight.diagnostic)
 	err := s.rebuildOneStaleTranscriptWebReadModel(catchupCtx, key)
 	cancel()
 	s.finishTranscriptWebCatchupFlight(key, flight, err)
@@ -81,7 +87,9 @@ func (s *Server) catchUpTranscriptWebReadModel(
 
 // Request repair and the existing background coordinator share one stream
 // owner. The raw projector never acquires a flight, avoiding reentrant waits.
-func (s *Server) startTranscriptWebCatchupFlight(key transcriptWebCatchupKey) (*transcriptWebCatchupFlight, bool) {
+func (s *Server) startTranscriptWebCatchupFlight(key transcriptWebCatchupKey, owner transcriptWebCatchupOwner) (*transcriptWebCatchupFlight, bool) {
+	// Entropy and diagnostic allocation stay outside the shared flight-map lock.
+	diagnostic := newTranscriptWebCatchupDiagnostic(owner)
 	s.transcriptWebCatchupMu.Lock()
 	defer s.transcriptWebCatchupMu.Unlock()
 	if s.transcriptWebCatchups == nil {
@@ -90,17 +98,18 @@ func (s *Server) startTranscriptWebCatchupFlight(key transcriptWebCatchupKey) (*
 	if flight := s.transcriptWebCatchups[key]; flight != nil {
 		return flight, false
 	}
-	flight := &transcriptWebCatchupFlight{done: make(chan struct{})}
+	flight := &transcriptWebCatchupFlight{done: make(chan struct{}), diagnostic: diagnostic}
 	s.transcriptWebCatchups[key] = flight
 	return flight, true
 }
 
 func (s *Server) finishTranscriptWebCatchupFlight(key transcriptWebCatchupKey, flight *transcriptWebCatchupFlight, err error) {
 	s.transcriptWebCatchupMu.Lock()
-	defer s.transcriptWebCatchupMu.Unlock()
 	flight.err = err
 	delete(s.transcriptWebCatchups, key)
 	close(flight.done)
+	s.transcriptWebCatchupMu.Unlock()
+	flight.diagnostic.finish(err)
 }
 
 func (s *Server) rebuildOneStaleTranscriptWebReadModel(

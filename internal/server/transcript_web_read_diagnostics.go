@@ -97,6 +97,7 @@ func noteTranscriptWebReadStage(ctx context.Context, stage transcriptWebReadStag
 	if ctx == nil {
 		return
 	}
+	noteTranscriptWebCatchupStage(ctx, stage)
 	if diagnostic, _ := ctx.Value(transcriptWebReadDiagnosticKey{}).(*transcriptWebReadDiagnostic); diagnostic != nil {
 		diagnostic.mu.Lock()
 		if diagnostic.ctx.Err() != nil {

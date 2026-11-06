@@ -206,7 +206,8 @@ func awaitTranscriptWebDiagnosticStack(t *testing.T, done <-chan struct{}, relea
 	for {
 		for _, goroutine := range strings.Split(string(stack[:runtime.Stack(stack, true)]), "\n\n") {
 			if strings.Contains(goroutine, "catchUpTranscriptWebReadModel") &&
-				strings.Contains(goroutine, "RunImmediateWithOutcome") == leader {
+				strings.Contains(goroutine, "RunImmediateWithOutcome") == leader &&
+				(leader || strings.Contains(goroutine, "[select]")) {
 				return
 			}
 		}
