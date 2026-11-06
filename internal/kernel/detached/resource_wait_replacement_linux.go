@@ -24,6 +24,13 @@ func (b *Backend) retireUnlaunchedResourceWait(ctx context.Context, expected wor
 	if err != nil || (found && exact.SessionSpecSHA256 == current.SessionSpecSHA256 && exact.SessionSpecJSON == current.SessionSpecJSON) {
 		return false, err
 	}
+	return b.finishUnlaunchedResourceWait(ctx, current, reservation)
+}
+
+// Both changed-spec replacement and superseded historical-spec recovery use
+// the same positive absence proof, cancellation CAS and original settlement.
+func (b *Backend) finishUnlaunchedResourceWait(ctx context.Context, current workspace.KernelExecutionBackend, reservation workspace.KernelResourceReservation) (bool, error) {
+	expected := current
 	state, err := b.Launcher.Observe(ctx, expected.BackendID, expected.BackendGeneration)
 	if err != nil || state != ExecutorLaunchExited {
 		return false, err
