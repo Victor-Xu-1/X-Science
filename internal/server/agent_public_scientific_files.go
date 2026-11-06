@@ -58,7 +58,10 @@ var (
 	errAgentPublicScientificFileAuthority = errors.New("public scientific file download authority is unavailable")
 	errAgentPublicScientificFileSource    = errors.New("public scientific file URL is not authorized by the cited source tool result")
 	errAgentPublicScientificFileConflict  = errors.New("public scientific file target conflicts with an existing workspace file")
-	errAgentPublicScientificFileChecksum  = errors.New("public scientific file checksum does not match expected_sha256")
+	errAgentPublicScientificFileChecksum  = errors.New("public scientific file checksum does not match expected_sha256: this check hashes complete staged-file bytes; the download requests identity encoding. " +
+		"web_fetch bodySha256 hashes resp.Body bytes before tool gzip/charset text projection; Go HTTP transport may already have decompressed them. " +
+		"Even a complete response digest is comparable only for the same file-byte representation; displayed text is not the checksum source. " +
+		"Verify completeness and representation against the authoritative expected checksum; never remove it merely to bypass a mismatch.")
 	errAgentPublicScientificFileSize      = errors.New("public scientific file size does not match the registered source")
 	errAgentPublicScientificFileDiskSpace = errors.New("public scientific file download has insufficient local disk space")
 	errAgentPublicScientificFileResume    = errors.New("public scientific file download resume response is invalid")
@@ -144,8 +147,12 @@ func agentPublicScientificFileToolSchema() agentruntime.ToolSchema {
 				"source_tool_call_id": map[string]any{"type": "string", "maxLength": 512, "description": "Optional prior source tool-call id. Omit when the exact URL uniquely identifies the latest durable source result."},
 				"url":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "Exact public HTTPS URL already returned by a completed source tool."},
 				"filename":            map[string]any{"type": "string", "minLength": 1, "maxLength": 200, "description": "Optional path-free filename with the same format extension as the source URL."},
-				"expected_sha256":     map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional authoritative lowercase SHA-256 of the complete file, for integrity and owner-scoped reuse. Omit if no complete-file checksum is known. Never use web_fetch bodySha256 from partial/ranged/preview response bytes as the full-file checksum; its bodyHashScope describes only the inspected bytes. Never remove a genuine authoritative checksum merely to bypass a mismatch."},
-				"human_description":   map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Short present-participle label for the download."},
+				"expected_sha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional authoritative lowercase SHA-256 of the complete staged-file bytes, for integrity and owner-scoped reuse. The download requests identity encoding. Omit if no authoritative complete-file checksum is known. " +
+					"web_fetch bodySha256 hashes bytes read from resp.Body before tool gzip/charset text projection; Go HTTP transport may already have decompressed them (uncompressed). " +
+					"bodyHashScope=returned_response_bytes identifies inspected bytes, not full-file equivalence. Never use a partial/ranged/truncated response digest as the full-file checksum. " +
+					"Even when complete=true, compare only if the exact file-byte representation matches; gzip or charset projection can make displayed text differ (textDecoding/rawBodyBase64). " +
+					"Never remove a genuine authoritative checksum merely to bypass a mismatch."},
+				"human_description": map[string]any{"type": "string", "minLength": 1, "maxLength": 256, "description": "Short present-participle label for the download."},
 			},
 			"required": []string{"url", "human_description"},
 		},
