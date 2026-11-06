@@ -107,7 +107,8 @@ describe('native protein sequence preview', () => {
   });
 
   it('bounds the native circular caption while preserving the complete long DNA header', async () => {
-    const header = `db|SYNTHETIC004🧬|Long\tDNA\u2028description ${'additional metadata '.repeat(80)}end`;
+    // SeqViz slices tspan rows at30 UTF-16 units: put this pair across29/30.
+    const header = `${'A'.repeat(29)}🧬|Long\tDNA\u2028description ${'additional metadata '.repeat(80)}end`;
     const view = await renderWithI18n(
       <XScienceSequenceViewer filename='long.fasta' content={`>${header}\n${'ACGT'.repeat(30)}`} />,
       'en-US'
@@ -119,8 +120,13 @@ describe('native protein sequence preview', () => {
     await waitFor(() => {
       const caption = view.container.querySelector('.la-vz-viewer-circular text[font-size="20"]');
       expect(caption).toBeInTheDocument();
-      expect(caption!.textContent!.length).toBeLessThanOrEqual(60);
-      expect(caption!.querySelectorAll('tspan').length).toBeLessThanOrEqual(2);
+      const spans = Array.from(caption!.querySelectorAll('tspan'));
+      for (const span of spans) {
+        expect(new TextDecoder().decode(new TextEncoder().encode(span.textContent!))).toBe(span.textContent);
+      }
+      expect(caption!.textContent!.length).toBeLessThanOrEqual(30);
+      expect(spans).toHaveLength(1);
+      expect(caption!.textContent).toContain('…');
       expect(caption!.textContent).not.toMatch(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u);
       expect(new TextDecoder().decode(new TextEncoder().encode(caption!.textContent!))).toBe(caption!.textContent);
     });

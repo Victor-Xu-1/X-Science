@@ -26,7 +26,7 @@ const LazySeqViz = React.lazy(async () => {
 
 const VIEW_MODES: SequenceViewerMode[] = ['both', 'circular', 'linear'];
 const LINEAR_VIEW_MODES: SequenceViewerMode[] = ['linear'];
-const SEQUENCE_CAPTION_LIMIT = 60;
+const SEQUENCE_CAPTION_LIMIT = 30;
 
 const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filename, contentUrl, content }) => {
   const { i18n, t } = useTranslation();
