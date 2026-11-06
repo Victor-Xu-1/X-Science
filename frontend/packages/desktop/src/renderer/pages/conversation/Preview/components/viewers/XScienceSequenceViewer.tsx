@@ -129,14 +129,14 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
             {document.format === 'fastq' && document.qualityStats
               ? t('preview.scientific.sequence.fastqStats', {
                   reads: (document.recordCount ?? 0).toLocaleString(i18n.resolvedLanguage),
-                  count: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  sequenceLength: document.seq.length.toLocaleString(i18n.resolvedLanguage),
                   unit: sequenceUnit,
                   qualityMin: document.qualityStats.min,
                   qualityMax: document.qualityStats.max,
                   qualityMean: document.qualityStats.mean,
                 })
               : t('preview.scientific.sequence.stats', {
-                  count: document.seq.length.toLocaleString(i18n.resolvedLanguage),
+                  sequenceLength: document.seq.length.toLocaleString(i18n.resolvedLanguage),
                   unit: sequenceUnit,
                   annotations: document.annotations.length.toLocaleString(i18n.resolvedLanguage),
                 })}

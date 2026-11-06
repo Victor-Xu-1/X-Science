@@ -748,8 +748,8 @@
         "linear": "线性"
       },
       "zoom": "序列缩放",
-      "stats": "{{count}} {{unit}} · {{annotations}} 个注释",
-      "fastqStats": "{{reads}} 条 reads · 首条 {{count}} {{unit}} · Q{{qualityMin}}–Q{{qualityMax}}（均值 {{qualityMean}}）",
+      "stats": "{{sequenceLength}} {{unit}} · {{annotations}} 个注释",
+      "fastqStats": "{{reads}} 条 reads · 首条 {{sequenceLength}} {{unit}} · Q{{qualityMin}}–Q{{qualityMax}}（均值 {{qualityMean}}）",
       "unknownUnit": "字符",
       "initializing": "正在初始化序列查看器",
       "loading": "正在加载序列文件"

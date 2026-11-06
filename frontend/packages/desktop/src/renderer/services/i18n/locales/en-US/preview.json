@@ -748,8 +748,8 @@
         "linear": "Linear"
       },
       "zoom": "Sequence zoom",
-      "stats": "{{count}} {{unit}} · {{annotations}} annotations",
-      "fastqStats": "{{reads}} reads · first {{count}} {{unit}} · Q{{qualityMin}}–Q{{qualityMax}} (mean {{qualityMean}})",
+      "stats": "{{sequenceLength}} {{unit}} · {{annotations}} annotations",
+      "fastqStats": "{{reads}} reads · first {{sequenceLength}} {{unit}} · Q{{qualityMin}}–Q{{qualityMax}} (mean {{qualityMean}})",
       "unknownUnit": "symbols",
       "initializing": "Initializing sequence viewer",
       "loading": "Loading sequence file"
