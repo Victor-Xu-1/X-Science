@@ -21,6 +21,9 @@ func (s *Server) publicTranscriptTerminalProjection(
 		s.transcriptWebTaskLanguage(ctx, stream, projection.Detail),
 		projection.ReasonCode,
 	)
+	if projection.RetainsFinalResponse && projection.UnvalidatedFinalResponse {
+		projection.Detail = publicSessionRunnerRetainedEvidenceFailureMessage(s.transcriptWebTaskLanguage(ctx, stream, projection.Detail), projection.ReasonCode)
+	}
 	return projection
 }
 
@@ -42,6 +45,9 @@ func (s *Server) sanitizeTranscriptWebTerminalMessages(
 			language = s.transcriptWebTaskLanguage(ctx, stream, webString(content["content"]))
 		}
 		content["content"] = publicSessionRunnerFailureMessage(webString(content["content"]), language, webString(message["terminal_reason_code"]))
+		if message["terminal_final_response_unvalidated"] == true {
+			content["content"] = publicSessionRunnerRetainedEvidenceFailureMessage(language, webString(message["terminal_reason_code"]))
+		}
 	}
 }
 
@@ -91,7 +97,7 @@ func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream tra
 				payload, decodeErr := transcriptPayloadObject(source.Assistant.PayloadJSON)
 				identity, identityErr := transcriptAssistantMessageIDFromPayload(payload, stream.SessionID, *source.Assistant.RunnerAttempt)
 				canonicalStatus := message["terminal_status"] == "completed"
-				if source.RetainedAfterCleanupFailure {
+				if source.RetainedAfterFailure {
 					canonicalStatus = message["status"] == "finish" && message["terminal_status"] == nil
 				}
 				if decodeErr != nil || identityErr != nil || identity == "" || !text || transcriptWebAssistantMessageType(payload) != "text" ||

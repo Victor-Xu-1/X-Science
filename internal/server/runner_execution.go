@@ -1113,6 +1113,12 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 			return resumeSessionRunnerProviderAfterCompletionGate(run)
 		},
 	)
+	// Evidence inspection cannot erase a completed provider response. Retention
+	// belongs only to the canonical finalizer and still records a failed run.
+	retainedCandidate := ""
+	if err != nil && run.Transcript != nil && candidateStream.isSealed() && sessionRunnerRetainsArtifactEvidenceCandidate(err) {
+		retainedCandidate = result.FinalMessage.Content
+	}
 	if err != nil && !candidateStream.isSealed() {
 		// A transport interruption does not prove a public progress boundary.
 		// Persist only new candidate bytes, preserving the exact private prefix
@@ -1159,7 +1165,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 		if errors.As(err, &toolBatchLimit) || errors.As(err, &toolBatchValidation) {
 			return "", errors.New(strings.NewReplacer("agent runtime", "runner chat").Replace(err.Error()))
 		}
-		return "", err
+		return retainedCandidate, err
 	}
 	finalContent := result.FinalMessage.Content
 	if strings.TrimSpace(finalContent) == "" {

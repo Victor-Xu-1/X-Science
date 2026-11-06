@@ -82,9 +82,12 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 		if errors.As(chatErr, &completionFailure) {
 			failureStage, loggedErr = completionFailure.stage, completionFailure.err
 		}
+		retainFinalResponse = transcriptAuthority != nil && strings.TrimSpace(assistantMessage) != "" &&
+			sessionRunnerRetainsArtifactEvidenceCandidate(chatErr)
+		filesystem := sessionRunnerFilesystemFailure(loggedErr)
 		log.Printf(
-			"session runner chat failed session=%q attempt=%d err_type=%T reason=%q",
-			session.ID, result.Attempt, loggedErr, failureReason,
+			"session runner chat failed session=%q attempt=%d err_type=%T reason=%q filesystem_op=%q filesystem_kind=%q filesystem_errno=%d",
+			session.ID, result.Attempt, loggedErr, failureReason, filesystem.operation, filesystem.kind, filesystem.errno,
 		)
 	}
 	hookCtx := ctx
@@ -122,7 +125,7 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 	if status == "completed" || status == "cancelled" ||
 		(status == "failed" && !runnerInterruptionMayContinueSameTask(failureReason)) {
 		if cleanupErr := cleanup(ctx, session.ID, transcriptAuthority); cleanupErr != nil {
-			retainFinalResponse = transcriptAuthority != nil && status == "completed" && strings.TrimSpace(assistantMessage) != ""
+			retainFinalResponse = transcriptAuthority != nil && (retainFinalResponse || status == "completed") && strings.TrimSpace(assistantMessage) != ""
 			status = "failed"
 			message = "task runtime cleanup failed: " + cleanupErr.Error()
 			failureReason = transcriptstore.RunnerCleanupFailedReason
@@ -191,6 +194,9 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 				failureLanguage = chatRun.ResponseLanguage
 			}
 			message = publicSessionRunnerFailureMessage(message, failureLanguage, failureReason)
+			if retainFinalResponse && failureStage == completionArtifactEvidence {
+				message = publicSessionRunnerRetainedEvidenceFailureMessage(failureLanguage, failureReason)
+			}
 		}
 		receipt, finishTranscriptErr := s.persistTranscriptRunnerFinalization(ctx, transcriptAuthority, transcriptRunnerFinalization{
 			Content: assistantMessage, Status: status, Detail: message, ReasonCode: failureReason,

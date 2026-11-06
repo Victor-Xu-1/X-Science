@@ -1,5 +1,7 @@
 package server
 
+import "errors"
+
 type sessionRunnerCompletionFailureStage string
 
 const (
@@ -30,3 +32,9 @@ type sessionRunnerCompletionFailure struct {
 
 func (failure *sessionRunnerCompletionFailure) Error() string { return failure.err.Error() }
 func (failure *sessionRunnerCompletionFailure) Unwrap() error { return failure.err }
+
+func sessionRunnerRetainsArtifactEvidenceCandidate(err error) bool {
+	var failure *sessionRunnerCompletionFailure
+	return errors.As(err, &failure) && failure.stage == completionArtifactEvidence &&
+		sessionRunnerErrorReasonCode(err) == sessionRunnerExecutionFailedReasonCode
+}

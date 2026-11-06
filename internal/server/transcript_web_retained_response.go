@@ -31,6 +31,9 @@ func transcriptWebRetainedResponseNotice(
 	if projection.Superseded {
 		notice["terminal_superseded"] = true
 	}
+	if projection.UnvalidatedFinalResponse {
+		notice["terminal_final_response_unvalidated"] = true
+	}
 	return notice
 }
 

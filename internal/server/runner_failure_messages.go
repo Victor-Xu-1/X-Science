@@ -73,6 +73,16 @@ func containsSessionRunnerFailureHint(message string, hints ...string) bool {
 	return false
 }
 
+func publicSessionRunnerRetainedEvidenceFailureMessage(language, reason string) string {
+	if reason == transcriptstore.RunnerCleanupFailedReason {
+		return localizedSessionRunnerFailureMessage(language, "evidence_cleanup_retained")
+	}
+	if reason == "runner_stop_hook_failed" {
+		return localizedSessionRunnerFailureMessage(language, "evidence_stop_hook_retained")
+	}
+	return localizedSessionRunnerFailureMessage(language, "evidence_retained")
+}
+
 func localizedSessionRunnerFailureMessage(language, kind string) string {
 	if strings.EqualFold(strings.TrimSpace(language), "zh") {
 		switch kind {
@@ -88,6 +98,12 @@ func localizedSessionRunnerFailureMessage(language, kind string) string {
 			return "任务收尾检查未完成。已有结果已保留；请检查运行详情后继续。"
 		case "cleanup":
 			return "任务运行环境的收尾处理失败。已有结果已保留；请检查运行详情后继续。"
+		case "evidence_retained":
+			return "最终草稿已保留，但交付证据检查未完成，尚不能视为已验证的结果。本轮任务仍未成功，请检查运行详情后继续。"
+		case "evidence_cleanup_retained":
+			return "最终草稿已保留，但交付证据检查和运行环境收尾均未完成。本轮任务仍未成功，请检查运行详情后继续。"
+		case "evidence_stop_hook_retained":
+			return "最终草稿已保留，但交付证据检查未完成，结束钩子也未通过。本轮任务仍未成功，请检查运行详情后继续。"
 		case "persistence":
 			return "回复保存失败，不能确认本轮已完整结束。已有文件不会因此被重新生成；请恢复存储后继续。"
 		case "history_preparation":
@@ -124,6 +140,12 @@ func localizedSessionRunnerFailureMessage(language, kind string) string {
 		return "Task finalization checks did not finish. Existing results were preserved; inspect the run details before continuing."
 	case "cleanup":
 		return "Task runtime cleanup failed. Existing results were preserved; inspect the run details before continuing."
+	case "evidence_retained":
+		return "The final draft was preserved, but delivery evidence checks did not finish; it is not a verified result. This run remains unsuccessful; inspect the run details before continuing."
+	case "evidence_cleanup_retained":
+		return "The final draft was preserved, but delivery evidence checks and runtime cleanup did not finish. This run remains unsuccessful; inspect the run details before continuing."
+	case "evidence_stop_hook_retained":
+		return "The final draft was preserved, but delivery evidence checks did not finish and the Stop hook did not pass. This run remains unsuccessful; inspect the run details before continuing."
 	case "persistence":
 		return "The response could not be saved, so this run is not confirmed complete. Existing files will not be regenerated; restore storage before continuing."
 	case "history_preparation":
