@@ -579,9 +579,9 @@ func (s *Store) FindKernelExecutionBackendForSession(
 // FindLatestKernelExecutionBackendForIdentity returns the latest immutable
 // backend authority for one stable kernel identity without pretending that a
 // changed mount or egress policy is the same session specification. Callers
-// use this only after an exact session lookup misses: a terminal predecessor
-// determines the next kernel generation, while a live predecessor is a real
-// authority conflict that must settle before replacement.
+// use this for new specifications and historical exact-spec handoffs: a
+// terminal predecessor determines the next kernel generation, while a live
+// predecessor must settle before replacement.
 func (s *Store) FindLatestKernelExecutionBackendForIdentity(
 	ctx context.Context,
 	spec KernelExecutionSessionSpecV1,

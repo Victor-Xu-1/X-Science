@@ -103,9 +103,18 @@ func (b *Backend) EnsureSession(ctx context.Context, spec kernelruntime.SessionS
 	}
 	defer unlockSession()
 	durableSpec := durableSessionSpec(spec)
-	if existing, found, err := b.Store.FindKernelExecutionBackendForSession(ctx, durableSpec); err != nil {
+	existing, found, err := b.Store.FindKernelExecutionBackendForSession(ctx, durableSpec)
+	if err != nil {
 		return kernelruntime.BackendSessionRef{}, err
-	} else if found {
+	}
+	if found {
+		historical, err := b.handoffHistoricalKernelSession(ctx, existing, durableSpec)
+		if err != nil {
+			return kernelruntime.BackendSessionRef{}, err
+		}
+		found = !historical
+	}
+	if found {
 		if existing.State == workspace.KernelExecutionBackendStateDraining {
 			var waitErr error
 			existing, _, waitErr = waitForPredecessorKernelAuthorityRelease(ctx, existing, func(refreshCtx context.Context) (workspace.KernelExecutionBackend, bool, error) {
@@ -316,82 +325,10 @@ func (b *Backend) retirePredecessorForReplacement(
 	predecessor workspace.KernelExecutionBackend,
 	spec workspace.KernelExecutionSessionSpecV1,
 ) (workspace.KernelExecutionBackend, bool, error) {
-	for {
-		latest, found, err := b.Store.FindLatestKernelExecutionBackendForIdentity(ctx, spec)
-		if err != nil {
-			return predecessor, false, err
-		}
-		if !found {
-			return predecessor, false, workspace.ErrKernelExecutionBackendStale
-		}
-		predecessor = latest
-		if predecessor.State == workspace.KernelExecutionBackendStateStopped ||
-			predecessor.State == workspace.KernelExecutionBackendStateEvidenceLost {
-			return waitForPredecessorKernelAuthorityRelease(ctx, predecessor, func(refreshCtx context.Context) (workspace.KernelExecutionBackend, bool, error) {
-				return b.Store.GetKernelExecutionBackend(refreshCtx, predecessor.BackendID)
-			})
-		} else if predecessor.State == workspace.KernelExecutionBackendStateStarting {
-			if retired, retireErr := b.retireUnlaunchedResourceWait(ctx, predecessor, spec); retireErr != nil {
-				return predecessor, false, retireErr
-			} else if retired {
-				continue
-			}
-			if ready, waitErr := b.waitForReady(ctx, predecessor.BackendID, predecessor.BackendGeneration, b.StartTimeout); waitErr == nil {
-				predecessor = ready
-				continue
-			} else if err := ctx.Err(); err != nil {
-				return predecessor, false, err
-			}
-			refreshed, found, readErr := b.Store.GetKernelExecutionBackend(ctx, predecessor.BackendID)
-			if readErr != nil {
-				return predecessor, false, readErr
-			}
-			if !found || refreshed.BackendGeneration != predecessor.BackendGeneration {
-				return predecessor, false, workspace.ErrKernelExecutionBackendStale
-			}
-			predecessor = refreshed
-			if predecessor.State == workspace.KernelExecutionBackendStateStarting {
-				if err := b.settleExitedStartup(ctx, predecessor); err != nil {
-					return predecessor, false, err
-				}
-				continue
-			}
-		} else if predecessor.State == workspace.KernelExecutionBackendStateReady ||
-			predecessor.State == workspace.KernelExecutionBackendStateDraining {
-			transitioned, idle, err := b.Store.BeginKernelExecutionBackendDrainIfIdle(ctx,
-				workspace.BeginKernelExecutionBackendDrainIfIdleInput{
-					BackendID: predecessor.BackendID, BackendGeneration: predecessor.BackendGeneration,
-					ExecutorInstanceID: predecessor.ExecutorInstanceID,
-				})
-			if err != nil {
-				return predecessor, false, err
-			}
-			predecessor = transitioned
-			if idle {
-				ref := backendSessionRef(predecessor)
-				lease, err := b.AcquireSessionControl(ctx, ref, 2*time.Minute)
-				if err != nil {
-					return predecessor, false, err
-				}
-				if err := b.CloseSession(ctx, ref, lease); err != nil &&
-					!errors.Is(err, workspace.ErrKernelExecutionBackendStale) {
-					return predecessor, false, err
-				}
-				continue
-			}
-		}
-		dead, err := predecessorBackendDefinitelyDead(predecessor, time.Now().UTC())
-		if err != nil || dead {
-			return predecessor, dead, err
-		}
-		timer := time.NewTimer(defaultBackendPollInterval)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return predecessor, false, ctx.Err()
-		case <-timer.C:
-		}
-	}
+	return b.retireKernelSessionPredecessor(ctx, predecessor, spec,
+		func(refreshCtx context.Context) (workspace.KernelExecutionBackend, bool, error) {
+			return b.Store.FindLatestKernelExecutionBackendForIdentity(refreshCtx, spec)
+		}, b.retireUnlaunchedResourceWait)
 }
 
 // lockSession serializes creation and replacement of one durable kernel
