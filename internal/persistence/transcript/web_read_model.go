@@ -88,7 +88,11 @@ type ApplyTranscriptWebProjectionInput struct {
 	ExpectedProjectionRevision int64
 	ExpectedSourceRevision     int64
 	ExpectedSourceChainSHA256  string
-	ReplaceAll                 bool
+	// ExpectedCanonicalSourceRevision is an optional immutable-prefix fence,
+	// distinct from the stored projection CAS in ExpectedSourceRevision. Zero
+	// is meaningful, so presence is explicit. Ready's exact head gate remains.
+	ExpectedCanonicalSourceRevision *int64
+	ReplaceAll                      bool
 	// TailReplaceFromOrdinal atomically replaces the existing visible tail
 	// beginning at this ordinal. It is intentionally narrower than ReplaceAll:
 	// the current contract permits replacing only the final stored message,
@@ -479,6 +483,8 @@ func (r *WebReadModelRepository) ApplyTranscriptWebProjection(ctx context.Contex
 	input.ExpectedSourceChainSHA256 = strings.TrimSpace(input.ExpectedSourceChainSHA256)
 	if input.ExpectedBranchGeneration < 0 || input.ExpectedThroughPublication < 0 ||
 		input.ExpectedProjectionRevision < 0 || input.ExpectedSourceRevision < 0 ||
+		(input.ExpectedCanonicalSourceRevision != nil && (*input.ExpectedCanonicalSourceRevision < 0 ||
+			*input.ExpectedCanonicalSourceRevision != input.State.SourceRevision)) ||
 		input.TailReplaceFromOrdinal < 0 ||
 		(input.ReplaceAll && input.TailReplaceFromOrdinal != 0) ||
 		(input.ExpectedProjectionRevision == 0) != (input.ExpectedSourceChainSHA256 == "") ||
@@ -556,6 +562,9 @@ func (r *WebReadModelRepository) ApplyTranscriptWebProjection(ctx context.Contex
 		)
 		if err != nil {
 			return err
+		}
+		if input.ExpectedCanonicalSourceRevision != nil && canonicalSourceRevision != *input.ExpectedCanonicalSourceRevision {
+			return ErrTranscriptWebProjectionStale
 		}
 		if canonicalGeneration != input.State.BranchGeneration ||
 			input.State.ThroughPublicationSequence > canonicalThrough ||

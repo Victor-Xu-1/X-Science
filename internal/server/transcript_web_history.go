@@ -171,17 +171,29 @@ func (s *Server) projectTranscriptWebHistory(
 	stream transcriptstore.Stream,
 	ownerID, sessionID, branchID string,
 ) ([]map[string]any, transcriptstore.ProjectionSnapshot, error) {
+	return s.projectTranscriptWebHistoryWithVisitor(ctx, stream, ownerID, sessionID, 3,
+		func(visit func(transcriptstore.ProjectedEvent) error) (transcriptstore.ProjectionSnapshot, error) {
+			return s.visitTranscriptWebBranchHistory(ctx, stream, ownerID, branchID, visit)
+		})
+}
+
+func (s *Server) projectTranscriptWebHistoryWithVisitor(
+	ctx context.Context,
+	stream transcriptstore.Stream,
+	ownerID, sessionID string,
+	maxSnapshotAttempts int,
+	visitHistory func(func(transcriptstore.ProjectedEvent) error) (transcriptstore.ProjectionSnapshot, error),
+) ([]map[string]any, transcriptstore.ProjectionSnapshot, error) {
 	typedRichHistory, err := s.transcriptStore.HasActiveTypedHistoryBootstrap(ctx, stream.UID, ownerID, stream.Epoch)
 	if err != nil {
 		return nil, transcriptstore.ProjectionSnapshot{}, err
 	}
-	const maxSnapshotAttempts = 3
 	for attempt := 0; attempt < maxSnapshotAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
 			return nil, transcriptstore.ProjectionSnapshot{}, err
 		}
 		projectedEvents := make([]transcriptstore.ProjectedEvent, 0, 128)
-		snapshot, err := s.visitTranscriptWebBranchHistory(ctx, stream, ownerID, branchID, func(projected transcriptstore.ProjectedEvent) error {
+		snapshot, err := visitHistory(func(projected transcriptstore.ProjectedEvent) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
@@ -1206,19 +1218,7 @@ func (s *Server) visitTranscriptWebBranchHistoryMode(
 	coordinateOnly bool,
 	visit func(transcriptstore.ProjectedEvent) error,
 ) (transcriptstore.ProjectionSnapshot, error) {
-	normalizer := newTranscriptWebRuntimeDrainSegmentNormalizer()
-	normalizedVisit := func(projected transcriptstore.ProjectedEvent) error {
-		var namespaceErr error
-		projected, namespaceErr = s.normalizeNamespaceAskUserProjection(ctx, ownerID, projected)
-		if namespaceErr != nil {
-			return namespaceErr
-		}
-		normalized, err := normalizer.normalize(projected)
-		if err != nil {
-			return err
-		}
-		return visit(normalized)
-	}
+	normalizedVisit := s.transcriptWebProjectionVisitor(ctx, ownerID, visit)
 	const pageSize = 1000
 	var snapshot transcriptstore.ProjectionSnapshot
 	var err error
@@ -1283,96 +1283,6 @@ func (s *Server) visitTranscriptWebBranchHistoryMode(
 		return transcriptstore.ProjectionSnapshot{}, transcriptstore.ErrBranchStateStale
 	}
 	return snapshot, nil
-}
-
-func (s *Server) visitTranscriptWebProjectionSnapshot(
-	ctx context.Context,
-	stream transcriptstore.Stream,
-	ownerID string,
-	snapshot transcriptstore.ProjectionSnapshot,
-	coordinateOnly bool,
-	visit func(transcriptstore.ProjectedEvent) error,
-) error {
-	normalizer := newTranscriptWebRuntimeDrainSegmentNormalizer()
-	return s.visitTranscriptWebProjectionSnapshotRaw(ctx, stream, ownerID, snapshot, coordinateOnly,
-		func(projected transcriptstore.ProjectedEvent) error {
-			var namespaceErr error
-			projected, namespaceErr = s.normalizeNamespaceAskUserProjection(ctx, ownerID, projected)
-			if namespaceErr != nil {
-				return namespaceErr
-			}
-			normalized, err := normalizer.normalize(projected)
-			if err != nil {
-				return err
-			}
-			return visit(normalized)
-		})
-}
-
-// visitTranscriptWebProjectionSnapshotRaw preserves the immutable source
-// payloads for source-chain hashing and resume-state inspection. Projection
-// consumers should use visitTranscriptWebProjectionSnapshot so the narrow v2
-// legacy runtime-drain repair is applied before message identity reduction.
-func (s *Server) visitTranscriptWebProjectionSnapshotRaw(
-	ctx context.Context,
-	stream transcriptstore.Stream,
-	ownerID string,
-	snapshot transcriptstore.ProjectionSnapshot,
-	coordinateOnly bool,
-	visit func(transcriptstore.ProjectedEvent) error,
-) error {
-	if snapshot.StreamUID != stream.UID || snapshot.BranchID == "" || snapshot.BranchGeneration <= 0 ||
-		snapshot.ThroughPublicationSequence < 0 {
-		return transcriptstore.ErrEventConflict
-	}
-	const pageSize = 1000
-	after := int64(0)
-	for after < snapshot.ThroughPublicationSequence {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		input := transcriptstore.ListProjectedEventsInput{
-			StreamUID: stream.UID, OwnerID: ownerID,
-			BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
-			AfterPublicationSequence:   after,
-			ThroughPublicationSequence: snapshot.ThroughPublicationSequence, Limit: pageSize,
-		}
-		var page []transcriptstore.ProjectedEvent
-		var err error
-		if coordinateOnly {
-			page, err = s.transcriptStore.ListProjectedCoordinateEvents(ctx, input)
-		} else {
-			page, err = s.transcriptStore.ListProjectedEvents(ctx, input)
-		}
-		if err != nil {
-			return err
-		}
-		if len(page) == 0 {
-			return transcriptstore.ErrEventConflict
-		}
-		for _, projected := range page {
-			if err := ctx.Err(); err != nil {
-				return err
-			}
-			if err := visit(projected); err != nil {
-				return err
-			}
-		}
-		next := page[len(page)-1].Event.PublicationSeq
-		if next <= after || next > snapshot.ThroughPublicationSequence {
-			return transcriptstore.ErrEventConflict
-		}
-		after = next
-	}
-	current, err := s.transcriptStore.GetBranchProjectionSnapshot(ctx, stream.UID, ownerID, snapshot.BranchID)
-	if err != nil {
-		return err
-	}
-	if current.BranchID != snapshot.BranchID || current.BranchGeneration != snapshot.BranchGeneration ||
-		current.ThroughPublicationSequence != snapshot.ThroughPublicationSequence {
-		return transcriptstore.ErrBranchStateStale
-	}
-	return nil
 }
 
 type transcriptWebRuntimeDrainSegmentState struct {
