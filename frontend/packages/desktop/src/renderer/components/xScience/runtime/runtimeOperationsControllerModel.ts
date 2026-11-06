@@ -1,6 +1,15 @@
 import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import type { XScienceRuntimeInvalidation } from '@/renderer/services/xScienceRuntimeOperations';
 import type { XSciencePlanReference, XScienceRuntimeSnapshot } from './runtimeOperationsModel';
+import type { XScienceResumeTarget } from './resumeCommandIntent';
+
+// A fresh read may still contain the pre-command resumable boundary. Only a
+// changed server-authored state fence or a non-resumable authority settles it.
+export const isAcceptedResumeReadbackCurrent = (
+  snapshot: XScienceRuntimeSnapshot,
+  target: XScienceResumeTarget
+): boolean =>
+  !snapshot.canResume || Boolean(snapshot.resumeTarget && snapshot.resumeTarget.state_ref !== target.state_ref);
 
 export const planReferenceIdentity = (reference: XSciencePlanReference | null | undefined): string | null =>
   reference ? JSON.stringify([reference.artifactId, reference.versionId]) : null;
