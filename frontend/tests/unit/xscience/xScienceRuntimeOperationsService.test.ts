@@ -148,6 +148,52 @@ describe('X-Science runtime operations service', () => {
     expect(result.runtime).toMatchObject({ state: 'running', is_processing: true });
   });
 
+  it('preserves an accepted Continue when only its authoritative readback fails', async () => {
+    const input = {
+      client_command_id: '006239c2-cc88-45fc-8e9f-d6e16a0c755d',
+      resume_target: { resume_event_id: null, wait_ref: null, state_ref: `resume-state:${'a'.repeat(64)}` },
+    };
+    const readbackError = new Error('authoritative snapshot unavailable');
+    requestJson
+      .mockResolvedValueOnce({
+        root_frame_id: 'accepted-readback',
+        continue_command: {
+          id: 'accepted-command',
+          target: input.resume_target,
+          resume_event_id: 'accepted-resume-event',
+          outcome: 'resumed',
+          replayed: false,
+        },
+      })
+      .mockRejectedValueOnce(readbackError);
+
+    await expect(resumeXScienceFrame('accepted-readback', input)).resolves.toEqual({
+      accepted: true,
+      snapshot: null,
+      runtime: null,
+      readbackError,
+    });
+    expect(requestJson).toHaveBeenCalledTimes(2);
+    expect(requestJson.mock.calls.filter(([, init]) => init.method === 'POST')).toHaveLength(1);
+  });
+
+  it.each(['denied POST', 'unverified receipt'])(
+    'does not accept a Continue with %s or perform readback',
+    async (kind) => {
+      const input = {
+        client_command_id: '006239c2-cc88-45fc-8e9f-d6e16a0c755d',
+        resume_target: { resume_event_id: null, wait_ref: null, state_ref: `resume-state:${'a'.repeat(64)}` },
+      };
+      if (kind === 'denied POST') requestJson.mockRejectedValueOnce(new Error('POST was denied'));
+      else requestJson.mockResolvedValueOnce({ root_frame_id: 'unverified', continue_command: { id: 'untrusted' } });
+
+      await expect(resumeXScienceFrame('unverified', input)).rejects.toThrow(
+        kind === 'denied POST' ? 'POST was denied' : 'resume_receipt_unverified'
+      );
+      expect(requestJson).toHaveBeenCalledOnce();
+    }
+  );
+
   it('loads a bounded 200-record execution-log page with an opaque older cursor', async () => {
     requestJson.mockResolvedValue({
       records: [

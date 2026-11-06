@@ -49,6 +49,10 @@ export type ForkXScienceAtAskUserAnswerInput = {
 
 export type XScienceResumeInput = XScienceContinueInput;
 
+export type XScienceResumeResult =
+  | { accepted: true; snapshot: XScienceRuntimeSnapshot; runtime: TConversationRuntimeSummary }
+  | { accepted: true; snapshot: null; runtime: null; readbackError: unknown };
+
 export type XScienceExecutionLogPage = {
   records: XScienceExecutionRecord[];
   nextBefore: string | null;
@@ -235,7 +239,7 @@ export async function resumeXScienceFrame(
   frameId: string,
   input: XScienceResumeInput,
   options: XScienceRuntimeGatewayOptions = {}
-): Promise<{ snapshot: XScienceRuntimeSnapshot; runtime: TConversationRuntimeSummary }> {
+): Promise<XScienceResumeResult> {
   const accepted = await requestJson<unknown>(
     `/api/frames/${encodeURIComponent(frameId)}/resume`,
     {
@@ -247,8 +251,14 @@ export async function resumeXScienceFrame(
   );
   requireContinueReceipt(accepted, frameId, input);
   invalidateXScienceFrameReads(frameId);
-  const snapshot = await loadXScienceRuntimeSnapshot(frameId, options);
-  return { snapshot, runtime: toXScienceRuntimeSummary(snapshot) };
+  try {
+    const snapshot = await loadXScienceRuntimeSnapshot(frameId, options);
+    return { accepted: true, snapshot, runtime: toXScienceRuntimeSummary(snapshot) };
+  } catch (readbackError) {
+    // The compact receipt already proves mutation acceptance. A failed read
+    // cannot roll that command back or authorize another POST.
+    return { accepted: true, snapshot: null, runtime: null, readbackError };
+  }
 }
 
 export async function resolveXScienceInputRequest(

@@ -50,6 +50,7 @@ import {
   ACTIVE_RUNTIME_STATES,
   TERMINAL_RUNTIME_STATUSES,
   isRuntimePauseTransitionSettled,
+  isAcceptedResumeReadbackCurrent,
   offlineRecoveryDelay,
   projectAcceptedRuntimeStart,
   runtimeSummaryChanged,
@@ -176,8 +177,12 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const resumeRequestRef = useRef(0);
   const resumeControllerRef = useRef<AbortController | null>(null);
   const resumeIntentRef = useRef(new XScienceContinueIntent());
+  const acceptedResumeReadbackRef = useRef<{ scope: string; target: XScienceContinueInput['resume_target'] } | null>(
+    null
+  );
   const retryResumeRef = useRef<() => void>(() => {});
   const [resumeInFlight, setResumeInFlight] = useState(false);
+  const [resumeReadbackPending, setResumeReadbackPending] = useState(false);
   const [pauseInFlight, setPauseInFlight] = useState(false);
   const planActionRequestRef = useRef(0);
   const planActionControllerRef = useRef<AbortController | null>(null);
@@ -188,7 +193,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   const [planAction, setPlanAction] = useState<'approve' | 'discard' | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const snapshotReportsActiveRuntime = doesXScienceRuntimeSnapshotNeedActiveRefresh(snapshot);
-  const shouldRefreshActiveRuntime = ACTIVE_RUNTIME_STATES.has(runtimeState) || snapshotReportsActiveRuntime;
+  const shouldRefreshActiveRuntime =
+    ACTIVE_RUNTIME_STATES.has(runtimeState) || snapshotReportsActiveRuntime || resumeReadbackPending;
   const activeRefreshRef = useRef(shouldRefreshActiveRuntime);
   activeRefreshRef.current = shouldRefreshActiveRuntime;
   const applySnapshot = useCallback((nextSnapshot: XScienceRuntimeSnapshot | null) => {
@@ -245,6 +251,14 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
 
   const applyAuthoritativeSnapshot = useCallback(
     (nextSnapshot: XScienceRuntimeSnapshot, publishRuntime: boolean, source: 'initial' | 'refresh' = 'refresh') => {
+      let acceptedReadbackSettled = false;
+      const accepted = acceptedResumeReadbackRef.current;
+      if (accepted && accepted.scope === captureSnapshotScope(conversationAuthorityRef.current)) {
+        if (!isAcceptedResumeReadbackCurrent(nextSnapshot, accepted.target)) return;
+        acceptedResumeReadbackRef.current = null;
+        setResumeReadbackPending(false);
+        acceptedReadbackSettled = true;
+      }
       applySnapshot(nextSnapshot);
       let runtime: TConversationRuntimeSummary;
       try {
@@ -258,11 +272,11 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       }
       const previous = publishedRuntimeRef.current;
       publishedRuntimeRef.current = runtime;
-      if (publishRuntime && runtimeSummaryChanged(previous, runtime)) {
+      if (publishRuntime && (acceptedReadbackSettled || runtimeSummaryChanged(previous, runtime))) {
         onRuntimeUpdatedRef.current?.(runtime.turn_id ?? nextSnapshot.rootFrameId, runtime, source);
       }
     },
-    [applySnapshot]
+    [applySnapshot, captureSnapshotScope]
   );
   useEffect(() => {
     let active = true;
@@ -316,6 +330,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       stop();
       loadedSnapshotScopeRef.current = null;
       publishedRuntimeRef.current = null;
+      acceptedResumeReadbackRef.current = null;
+      setResumeReadbackPending(false);
       applySnapshot(null);
       setSnapshotError(null);
       setLoading(true);
@@ -353,6 +369,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       resumeControllerRef.current?.abort();
       resumeControllerRef.current = null;
       setResumeInFlight(false);
+      acceptedResumeReadbackRef.current = null;
+      setResumeReadbackPending(false);
       setPauseInFlight(false);
       setSnapshotError(null);
     }
@@ -659,8 +677,10 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
   };
 
   const resumeTask = async (modelOverride?: string) => {
-    if (!snapshotRef.current?.canResume || resumeInFlight || resumeControllerRef.current) return;
+    if (!snapshotRef.current?.canResume || resumeInFlight || resumeControllerRef.current || resumeReadbackPending)
+      return;
     const owner = conversationId;
+    const scope = captureSnapshotScope(owner);
     let input: XScienceContinueInput;
     try {
       input = resumeIntentRef.current.prepare(owner, snapshotRef.current.resumeTarget, modelOverride);
@@ -687,14 +707,37 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       const result = await resumeXScienceFrame(owner, input, {
         signal: controller.signal,
       });
-      if (conversationAuthorityRef.current !== owner || resumeRequestRef.current !== operation) return;
+      if (
+        conversationAuthorityRef.current !== owner ||
+        resumeRequestRef.current !== operation ||
+        captureSnapshotScope(owner) !== scope
+      )
+        return;
       resumeIntentRef.current.accepted(owner, input);
+      // An older snapshot request must not undo a command that now has a
+      // durable receipt. Reconciliation keeps its existing scoped read owner.
+      snapshotRequestRef.current?.controller.abort();
+      snapshotRequestRef.current = null;
+      if (!result.snapshot || !isAcceptedResumeReadbackCurrent(result.snapshot, input.resume_target)) {
+        acceptedResumeReadbackRef.current = { scope, target: input.resume_target };
+        setResumeReadbackPending(true);
+        setSnapshotError('refresh');
+        invalidateXScienceFrameReads(owner);
+        setSnapshotRevision((value) => value + 1);
+        messageApi.success(t('conversation.xscienceRuntime.runtimeOperations.resumeSucceeded'));
+        return;
+      }
       setSnapshotError(null);
       applyAuthoritativeSnapshot(result.snapshot, false);
       onResumed(result.snapshot.rootFrameId, result.runtime);
       messageApi.success(t('conversation.xscienceRuntime.runtimeOperations.resumeSucceeded'));
     } catch (reason) {
-      if (conversationAuthorityRef.current !== owner || resumeRequestRef.current !== operation) return;
+      if (
+        conversationAuthorityRef.current !== owner ||
+        resumeRequestRef.current !== operation ||
+        captureSnapshotScope(owner) !== scope
+      )
+        return;
       if (isXScienceHttpError(reason) && reason.code.startsWith('RESUME_')) {
         onResumeFailed?.(reason.code);
         if (reason.code === 'RESUME_COMMAND_BUSY') {
@@ -958,7 +1001,8 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     acceptedStartPendingRef.current = false;
   }
   previousRuntimeAuthorityRef.current = { conversationId, runtimeState };
-  const submissionPending = localSubmissionPending || Boolean(runtimeView && acceptedStartPendingRef.current);
+  const submissionPending =
+    resumeReadbackPending || localSubmissionPending || Boolean(runtimeView && acceptedStartPendingRef.current);
   const statusSnapshot = projectAcceptedRuntimeStart(
     visibleSnapshot,
     acceptedStartPendingRef.current,

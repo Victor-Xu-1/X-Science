@@ -33,8 +33,9 @@ const secureCommandId = () => {
   return globalThis.crypto.randomUUID();
 };
 
-// One intent keeps its exact body through POST/GET failure, Abort and unknown
-// transport outcomes. Only an explicit stale/conflict result abandons it.
+// One intent keeps its exact body through unknown POST/transport and Abort
+// outcomes. A verified receipt retires it independently of later readback;
+// an explicit stale/conflict result abandons an unaccepted intent.
 export class XScienceContinueIntent {
   private pending = new Map<string, { input: XScienceContinueInput; busy: boolean; automaticRetries: number }>();
 

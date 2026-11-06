@@ -6,6 +6,8 @@ import {
   normalizeXScienceRuntimeSnapshot,
   type XScienceRuntimeSnapshot,
 } from '@/renderer/components/xScience/runtime/runtimeOperationsModel';
+import { getRendererAccountOwnerId, setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
+import { resetXScienceBranchSelection, selectXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
@@ -1426,20 +1428,158 @@ describe('XScienceRuntimeOperations', () => {
     expect(onResumed).toHaveBeenCalledWith('frame-failed', expect.objectContaining({ state: 'running' }));
   });
 
-  it('reuses the original Continue body after an ambiguous POST or subsequent GET failure', async () => {
+  it('reports an ambiguous POST failure and reuses its original Continue body on explicit retry', async () => {
     runtimeMocks.loadSnapshot.mockResolvedValue(failedSnapshot);
     runtimeMocks.resume.mockRejectedValue(new Error('network outcome is unknown'));
+    const onResumeFailed = vi.fn();
     await renderWithI18n(
-      <XScienceRuntimeOperations conversationId='frame-failed' runtimeState='idle' onResumed={vi.fn()} />
+      <XScienceRuntimeOperations
+        conversationId='frame-failed'
+        runtimeState='idle'
+        onResumed={vi.fn()}
+        onResumeFailed={onResumeFailed}
+      />
     );
     fireEvent.click(await screen.findByRole('button', { name: '继续运行' }));
     await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledTimes(1));
+    expect(onResumeFailed).toHaveBeenCalledWith('network outcome is unknown');
     const original = runtimeMocks.resume.mock.calls[0][1];
     await waitFor(() => expect(screen.getByRole('button', { name: '继续运行' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: '继续运行' }));
     await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledTimes(2));
     expect(runtimeMocks.resume.mock.calls[1][1]).toBe(original);
   });
+
+  it('keeps an accepted Continue pending through failed or stale readback and reconciles a new boundary', async () => {
+    const authoritative = deferred<XScienceRuntimeSnapshot>();
+    runtimeMocks.loadSnapshot.mockResolvedValueOnce(failedSnapshot).mockReturnValue(authoritative.promise);
+    runtimeMocks.resume.mockResolvedValue({
+      snapshot: null,
+      runtime: null,
+      readbackError: new Error('read unavailable'),
+    });
+    const onResumed = vi.fn();
+    const onResumeFailed = vi.fn();
+    const onRuntimeUpdated = vi.fn();
+    await renderWithI18n(
+      <XScienceRuntimeOperations
+        conversationId='frame-failed'
+        runtimeState='idle'
+        onResumed={onResumed}
+        onResumeFailed={onResumeFailed}
+        onRuntimeUpdated={onRuntimeUpdated}
+      />
+    );
+    const continueButton = await screen.findByRole('button', { name: '继续运行' });
+    onRuntimeUpdated.mockClear();
+    fireEvent.click(continueButton);
+    await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledOnce());
+    await waitFor(() => expect(runtimeMocks.loadSnapshot).toHaveBeenCalledTimes(2));
+    expect(onResumeFailed).not.toHaveBeenCalled();
+    expect(onResumed).not.toHaveBeenCalled();
+    expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'starting');
+    expect(screen.queryByRole('button', { name: '继续运行' })).not.toBeInTheDocument();
+
+    await act(async () => authoritative.resolve(failedSnapshot));
+    expect(onResumed).not.toHaveBeenCalled();
+    expect(onRuntimeUpdated).not.toHaveBeenCalled();
+    expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'starting');
+
+    const nextBoundary = {
+      ...failedSnapshot,
+      error: 'a different durable execution failed',
+      runtimeAttempt: 2,
+      resumeTarget: {
+        resume_event_id: 'accepted-resume-event',
+        wait_ref: null,
+        state_ref: `resume-state:${'b'.repeat(64)}`,
+      },
+    };
+    runtimeMocks.loadSnapshot.mockResolvedValue(nextBoundary);
+    const invalidation = runtimeMocks.subscribeInvalidation.mock.calls.at(-1) as unknown as [
+      string,
+      (event: { terminal_status: string }) => void,
+    ];
+    act(() => invalidation[1]({ terminal_status: 'failed' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '继续运行' })).toBeEnabled());
+    expect(onRuntimeUpdated).toHaveBeenCalledWith(
+      'frame-failed',
+      expect.objectContaining({ state: 'idle', task_status: 'error' }),
+      'refresh'
+    );
+    expect(onResumeFailed).not.toHaveBeenCalled();
+    expect(runtimeMocks.resume).toHaveBeenCalledOnce();
+  });
+
+  it.each(['conversation', 'account', 'branch'])(
+    'ignores an accepted Continue readback from a retired %s scope',
+    async (kind) => {
+      const accepted = deferred<{ accepted: true; snapshot: null; runtime: null; readbackError: Error }>();
+      const previousOwner = getRendererAccountOwnerId();
+      runtimeMocks.loadSnapshot.mockResolvedValueOnce(failedSnapshot);
+      runtimeMocks.resume.mockReturnValue(accepted.promise);
+      const onResumed = vi.fn();
+      const onResumeFailed = vi.fn();
+      const view = await renderWithI18n(
+        <XScienceRuntimeOperations
+          conversationId='frame-failed'
+          runtimeState='idle'
+          onResumed={onResumed}
+          onResumeFailed={onResumeFailed}
+        />
+      );
+      try {
+        fireEvent.click(await screen.findByRole('button', { name: '继续运行' }));
+        await waitFor(() => expect(runtimeMocks.resume).toHaveBeenCalledOnce());
+        const signal = runtimeMocks.resume.mock.calls[0][2].signal as AbortSignal;
+        const owner = kind === 'conversation' ? 'frame-current' : 'frame-failed';
+        runtimeMocks.loadSnapshot.mockResolvedValue({
+          ...failedSnapshot,
+          frameId: owner,
+          rootFrameId: owner,
+          status: 'completed',
+          error: null,
+          canResume: false,
+          runtimeAttempt: 2,
+        });
+        if (kind === 'conversation')
+          view.rerender(
+            <XScienceRuntimeOperations
+              conversationId={owner}
+              runtimeState='idle'
+              onResumed={onResumed}
+              onResumeFailed={onResumeFailed}
+            />
+          );
+        else
+          act(() =>
+            kind === 'account'
+              ? setRendererAccountOwner('resume-readback-other-owner')
+              : selectXScienceBranch(owner, 'current-branch')
+          );
+        await waitFor(() => expect(signal.aborted).toBe(true));
+        await waitFor(() =>
+          expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'completed')
+        );
+        await act(async () =>
+          accepted.resolve({
+            accepted: true,
+            snapshot: null,
+            runtime: null,
+            readbackError: new Error('old read failed'),
+          })
+        );
+        expect(screen.getByTestId('x-science-runtime-status')).toHaveAttribute('data-state', 'completed');
+        expect(onResumed).not.toHaveBeenCalled();
+        expect(onResumeFailed).not.toHaveBeenCalled();
+        expect(runtimeMocks.resume).toHaveBeenCalledOnce();
+      } finally {
+        view.unmount();
+        resetXScienceBranchSelection('frame-failed');
+        setRendererAccountOwner(previousOwner);
+      }
+    }
+  );
 
   it('allows only one same-body busy retry from existing same-wait refreshes', async () => {
     const target = { ...failedSnapshot.resumeTarget, resume_event_id: 'resume-event', wait_ref: 'wait-1' };
