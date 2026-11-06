@@ -7,7 +7,7 @@ Code is bundled/minified for browser use; upstream package implementations are n
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: 37e5b005665d0dea5d35e0c0488f79d99f6f2ee3098642b2589a1bbbe6b0516b
+Package lock SHA-256: 5eb1e251cdd0e8c92531e5f3960b8475e9739ca72ab8508b00c9980dd9954765
 
 Package index
 -------------
