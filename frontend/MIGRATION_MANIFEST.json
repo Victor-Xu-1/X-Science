@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "9fa59a134297f1db15e429e0d4d81add5ffba0bd4ba005087fe8f99f99ec9aff",
+  "adaptationFingerprintSHA256": "7067454d9ba818ea0e5c117569d826641d0ed6ed3b51ca57e1c0d92c4cf1b1b6",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "75003567ab0ffe67ac978ca7c21ba27160fac645950c48d30aa1fba4619bfadb",
+  "additionFingerprintSHA256": "924ceac8ac254817f5b44212d04430ee6652b1384f7c5e1656cdb6de6ee51308",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1499
+    "addedFiles": 1501
   },
   "adaptations": [
     {
@@ -1812,8 +1812,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "6aa2dfb9d60a1052c9e0dd9b6ccd81b35f4b43723958631cfe09b673415b4bf5",
-      "bytes": 10552,
+      "targetSHA256": "98ed34260111fe90a85bb4da50c3f0db472c16c7542c629b95f69e3cb07a69be",
+      "bytes": 12812,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1884,8 +1884,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/sequenceModel.ts",
       "sourceSHA256": "790dd6313111c0eaebd55fe647fb3c1182dfddf5364b6b98a040aeac3185d5fb",
-      "targetSHA256": "3194bbc16c2c68bed31e0a5c7ff17ceca7d6de11b4d37d9136ee6ad492b228fa",
-      "bytes": 9431,
+      "targetSHA256": "e06df38dd33ab01626e0adfc7006f02a248b8573abf43cbc6477ed0dfb726d4b",
+      "bytes": 10924,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -2952,8 +2952,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json",
       "sourceSHA256": "bf530f4a992cc14652500390e715b7add84853e9b0757158c718244cf4cd8f32",
-      "targetSHA256": "4360c4283ead2b1af6ca3077e8a2210934e6383d61c582b1d2f868832cf45f4a",
-      "bytes": 44578,
+      "targetSHA256": "769b3a46ff6061d88fb5273eeae196e5655f87bd9e6abc6ce7a2d83d41d0d0e3",
+      "bytes": 44622,
       "reason": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -3043,8 +3043,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/preview.json",
       "sourceSHA256": "6b772273972756a3407fee8fe7b4503e992964a8de901375f06bfd2faacf2ba0",
-      "targetSHA256": "8dad01ed09cb836299801b7707d1e892c23b44bc589503c979b58c34568a75ed",
-      "bytes": 42928,
+      "targetSHA256": "61002db5a756c5b7dbf361c591654668b6ede97073bbff032b222f2bd63c9f12",
+      "bytes": 42971,
       "reason": "Add Simplified Chinese labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls."
     },
     {
@@ -13439,6 +13439,18 @@
       "path": "tests/unit/previews/sequenceParserDispatch.test.ts",
       "sha256": "e1d746eddc79510e0fd2a66b59d2fe91222a9758b42c9ce087a0198eed680aab",
       "bytes": 3218,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceProtein.dom.test.tsx",
+      "sha256": "963843775e48f860c82266af5dd01b03f098a949de71f5f2bc623d636570e43c",
+      "bytes": 6972,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/sequenceProtein.test.ts",
+      "sha256": "392a1ed1c42b90712fe8bb40434938eb5131e64145e29e9a95ca6fa4c792dfba",
+      "bytes": 3560,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
