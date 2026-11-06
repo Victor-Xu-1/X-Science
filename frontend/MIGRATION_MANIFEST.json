@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "ebb7de2d7f717e8ea1886ff8751522f1cb83f6431790f63b923298b37835089d",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9f7b56eab2a833b03ee5bfbf53abcdb6a9664cf03d69afa75e7884390e833a23",
+  "additionFingerprintSHA256": "6a3f982deaa24b906013ab025a78b0d3920c96602707680b33ed807e1c62d738",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -8979,14 +8979,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/MessageToolPublicDetail.tsx",
-      "sha256": "605466aa3a77e53a736fc6d6e82a0e5a8f2df50375904ed39205e6962236e518",
-      "bytes": 17771,
+      "sha256": "263ae046cce40dbd2a65cc5e58e380cf649feb9fb2c8e5e256e1ecdc300ac16d",
+      "bytes": 17762,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/components/ToolOperationDetail.tsx",
-      "sha256": "02e30c0a0d54f245b071da5b9e0b5ba9b99f7c0a088c5eccae2d3a39c2e87da2",
-      "bytes": 9173,
+      "sha256": "fb99f6220108b0e1ea24f3f69eeb209ae334c6efcd0a8b7fb02bfa58a726a22d",
+      "bytes": 9472,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -15165,8 +15165,8 @@
     },
     {
       "path": "tests/unit/renderer/toolOperationResultDisclosureHydration.dom.test.tsx",
-      "sha256": "9ee7b5a05e9711e39f8b787dcf42793058d978927518c68162e2d8dc6207a335",
-      "bytes": 4904,
+      "sha256": "8c8baecc614d907c5b297bfda9b13f7f43a1ea1559b5e3ddf85ea45274f9c191",
+      "bytes": 5528,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
