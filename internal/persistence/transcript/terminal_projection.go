@@ -113,7 +113,7 @@ func (r *Repository) ListTerminalProjectionOwners(ctx context.Context, limit int
 	if limit <= 0 || limit > 1000 {
 		return nil, errors.New("bounded terminal owner limit is required")
 	}
-	rows, err := r.db.QueryContext(ctx, `
+	rows, err := r.readDatabase().QueryContext(ctx, `
 		SELECT DISTINCT stream.owner_id
 		FROM transcript_runner_receipts receipt
 		JOIN transcript_events event
