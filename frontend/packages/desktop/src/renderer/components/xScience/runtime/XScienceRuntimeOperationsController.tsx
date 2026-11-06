@@ -697,6 +697,10 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
     resumeControllerRef.current?.abort();
     const controller = new AbortController();
     resumeControllerRef.current = controller;
+    const isCurrentResume = () =>
+      conversationAuthorityRef.current === owner &&
+      resumeRequestRef.current === operation &&
+      captureSnapshotScope(owner) === scope;
     setResumeInFlight(true);
     onResumeStarted?.();
     try {
@@ -707,12 +711,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       const result = await resumeXScienceFrame(owner, input, {
         signal: controller.signal,
       });
-      if (
-        conversationAuthorityRef.current !== owner ||
-        resumeRequestRef.current !== operation ||
-        captureSnapshotScope(owner) !== scope
-      )
-        return;
+      if (!isCurrentResume()) return;
       resumeIntentRef.current.accepted(owner, input);
       // An older snapshot request must not undo a command that now has a
       // durable receipt. Reconciliation keeps its existing scoped read owner.
@@ -732,12 +731,7 @@ const XScienceRuntimeOperationsController: React.FC<XScienceRuntimeOperationsPro
       onResumed(result.snapshot.rootFrameId, result.runtime);
       messageApi.success(t('conversation.xscienceRuntime.runtimeOperations.resumeSucceeded'));
     } catch (reason) {
-      if (
-        conversationAuthorityRef.current !== owner ||
-        resumeRequestRef.current !== operation ||
-        captureSnapshotScope(owner) !== scope
-      )
-        return;
+      if (!isCurrentResume()) return;
       if (isXScienceHttpError(reason) && reason.code.startsWith('RESUME_')) {
         onResumeFailed?.(reason.code);
         if (reason.code === 'RESUME_COMMAND_BUSY') {
