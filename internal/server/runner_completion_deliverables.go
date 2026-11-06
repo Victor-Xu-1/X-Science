@@ -330,7 +330,7 @@ func (s *Server) addMissingSessionRunnerLocalArtifactDependency(
 		return nil
 	}
 	info, err := os.Stat(target)
-	if errors.Is(err, os.ErrNotExist) {
+	if errors.Is(err, os.ErrNotExist) || sessionRunnerInvalidInferredDependencyPath(err) {
 		return nil
 	}
 	if err != nil {

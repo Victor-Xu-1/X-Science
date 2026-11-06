@@ -14,14 +14,14 @@ type ProjectedAssistantSourceRange struct {
 
 // These are read-only source events, not a persisted rendering permission.
 type ProjectedAssistantSource struct {
-	RecordIndex                 int
-	Assistant                   Event
-	Terminal                    Event
-	RetainedAfterCleanupFailure bool
+	RecordIndex          int
+	Assistant            Event
+	Terminal             Event
+	RetainedAfterFailure bool
 }
 
 // ListProjectedAssistantSources reads only the requested page ranges. A real
-// completed or cleanup-retention receipt and the branch's last assistant segment must close each
+// completed or retained-final receipt and the branch's last assistant segment must close each
 // range; arbitrary progress, imported bodies and ID-looking text cannot qualify.
 func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner string, expected ProjectionSnapshot, ranges []ProjectedAssistantSourceRange) ([]ProjectedAssistantSource, error) {
 	db := r.readDatabase()
@@ -69,7 +69,9 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 			AND terminal.event_type='runner_finished' AND terminal.source='payload'
 			AND (receipt.status='completed' OR (receipt.status='failed'
 				AND json_extract(terminal.payload_json,'$.retained_final_response_id')=a.client_message_id
-				AND json_extract(terminal.payload_json,'$.reason_code')=?))
+				AND (json_extract(terminal.payload_json,'$.reason_code')=? OR
+					(json_extract(terminal.payload_json,'$.reason_code') IN ('runner_execution_failed','runner_stop_hook_failed')
+					AND json_extract(terminal.payload_json,'$.failure_stage')='artifact_evidence'))))
 			AND terminal.publication_seq=requested.last_seq AND a.publication_seq<terminal.publication_seq
 			AND (receipt.status='failed' OR NOT EXISTS(SELECT 1 FROM transcript_runner_attempts later WHERE later.stream_uid=a.stream_uid
 				AND later.attempt>a.runner_attempt AND later.claimed_input_revision=attempt.claimed_input_revision))
@@ -102,9 +104,9 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 			return nil, ErrEventConflict
 		}
 		if status == "failed" {
-			source.RetainedAfterCleanupFailure = RetainedFinalResponseID(terminal) == source.Assistant.ClientMessageID &&
+			source.RetainedAfterFailure = RetainedFinalResponseID(terminal) == source.Assistant.ClientMessageID &&
 				matchesRetainedFinalResponse(terminal, source.Assistant.PayloadJSON)
-			if !source.RetainedAfterCleanupFailure {
+			if !source.RetainedAfterFailure {
 				continue
 			}
 		}

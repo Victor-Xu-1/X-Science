@@ -42,7 +42,9 @@ func (s *Server) persistTranscriptRunnerFinalization(parent context.Context, aut
 	if final.ReasonCode != "" {
 		terminalPayload["reason_code"] = final.ReasonCode
 	}
-	if final.Status == "failed" && final.ReasonCode == sessionRunnerExecutionFailedReasonCode && final.FailureStage.valid() {
+	if final.Status == "failed" && final.FailureStage.valid() && (final.ReasonCode == sessionRunnerExecutionFailedReasonCode ||
+		(final.RetainFinalResponse && final.FailureStage == completionArtifactEvidence &&
+			(final.ReasonCode == transcriptstore.RunnerCleanupFailedReason || final.ReasonCode == "runner_stop_hook_failed"))) {
 		terminalPayload["failure_stage"] = final.FailureStage
 	}
 	if final.RetainFinalResponse {

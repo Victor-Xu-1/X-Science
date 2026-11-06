@@ -243,6 +243,7 @@ func terminalProjectionHeader(
 				return TerminalProjection{}, ErrEventConflict
 			}
 			projection.RetainsFinalResponse = true
+			projection.UnvalidatedFinalResponse = value["failure_stage"] == "artifact_evidence"
 		}
 	}
 	return projection, nil
@@ -250,10 +251,13 @@ func terminalProjectionHeader(
 
 const RunnerCleanupFailedReason = "runner_cleanup_failed"
 
-// RetainedFinalResponseID is the server-authored link to the exact accepted
-// assistant event. A cleanup reason by itself does not identify a retained reply.
+// RetainedFinalResponseID is the server-authored link to the exact assistant
+// event. Failed evidence inspection retains an unvalidated draft, not completion.
+// A failure reason alone never identifies a retained reply.
 func RetainedFinalResponseID(payload map[string]any) string {
-	if payload["status"] != "failed" || payload["reason_code"] != RunnerCleanupFailedReason {
+	if payload["status"] != "failed" || (payload["reason_code"] != RunnerCleanupFailedReason &&
+		(payload["failure_stage"] != "artifact_evidence" ||
+			(payload["reason_code"] != "runner_execution_failed" && payload["reason_code"] != "runner_stop_hook_failed"))) {
 		return ""
 	}
 	id, _ := payload["retained_final_response_id"].(string)

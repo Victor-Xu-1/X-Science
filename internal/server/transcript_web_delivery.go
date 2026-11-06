@@ -913,6 +913,9 @@ func (s *Server) publishTranscriptTerminal(
 	if projection.ReasonCode != "" {
 		terminalPayload["terminal_reason_code"] = projection.ReasonCode
 	}
+	if projection.RetainsFinalResponse && projection.UnvalidatedFinalResponse {
+		terminalPayload["terminal_final_response_unvalidated"] = true
+	}
 	if projection.TerminalStatus == "completed" && !projection.Superseded {
 		summaries, err := s.completedRoundSummaries(ctx, projection.StreamUID, projection.OwnerID, projection.SessionID, "", []int64{projection.Attempt})
 		if err != nil {

@@ -423,7 +423,8 @@ type TerminalProjection struct {
 	CreatedAt          time.Time
 	ArtifactReferences []ArtifactReference
 
-	RetainsFinalResponse bool
+	RetainsFinalResponse     bool
+	UnvalidatedFinalResponse bool
 }
 
 type CancelRunnerInput struct {
