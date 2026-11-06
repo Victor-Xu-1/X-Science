@@ -91,15 +91,7 @@ func (s *Server) executeAgentPermissionTool(ctx context.Context, identity *agent
 		if err != nil {
 			return nil, err
 		}
-		items := make([]any, 0, len(grants))
-		for _, grant := range grants {
-			mode := "ro"
-			if grant.Mode == "read_write" {
-				mode = "rw"
-			}
-			items = append(items, map[string]any{"path": grant.Path, "mode": mode})
-		}
-		return map[string]any{"grants": items}, nil
+		return hostGrantSnapshotResult(access.UserID, grants)
 	case requestHostAccessToolName:
 		path, err := expandAgentHostPath(stringValue(input["host_path"]))
 		if err != nil {
