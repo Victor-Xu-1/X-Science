@@ -24,8 +24,7 @@ type UseWorkspaceCollapseParams = {
   preferenceKey?: string;
   /**
    * True when the current workspace is an auto-created temporary one (no folder
-   * picked by the user). Auto-expand on hasFiles is suppressed in that case so
-   * that "send 浣犲ソ without picking a folder" leaves the panel collapsed.
+   * picked by the user). Initial files must not auto-expand that workspace.
    */
   isTemporaryWorkspace?: boolean;
 };
@@ -45,13 +44,12 @@ type UseWorkspaceCollapseReturn = {
  *     file while the user is here).
  *
  * Manual toggle is persisted under `workspace-preference-${preferenceKey}` and
- * overrides auto-expand. The caller decides what `preferenceKey` is 鈥?single
- * Conversation workspaces normally use `conversation_id`.
+ * overrides auto-expand. Conversation workspaces normally use
+ * `conversation_id` as the caller-provided preference key.
  *
  * Known limitation: leaving and re-entering a temporary workspace remounts the
  * workspace tree, so files added while away report as initial load. They will
- * not trigger auto-expand on return 鈥?the user must open the panel manually
- * that one time.
+ * not trigger auto-expand on return; the user opens the panel manually.
  */
 export function useWorkspaceCollapse({
   workspaceEnabled,
@@ -144,11 +142,9 @@ export function useWorkspaceCollapse({
     const handleHasFiles = (event: Event) => {
       const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
 
-      // Mobile: always keep workspace collapsed to avoid covering main chat area
+      // File discovery must not override an explicitly opened mobile panel.
+      // Mobile entry and conversation changes have their own collapse effects.
       if (isMobile) {
-        if (!rightCollapsedRef.current) {
-          setRightSiderCollapsed(true);
-        }
         return;
       }
 
