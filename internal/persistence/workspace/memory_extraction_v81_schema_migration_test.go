@@ -108,10 +108,11 @@ func TestMemoryExtractionV81MigrationRollsBackAndPreservesHistory(t *testing.T) 
 	}
 	// Reopen upgrades to the current registry. Compare the exact v81 projection;
 	// the later cadence column, collections, publication evidence and candidate
-	// Inbox, resource-tag catalog, Study snapshots and task origins have their own migration tests. Still reject any missing, populated
+	// Inbox, resource-tag catalog, Study snapshots, task origins and batch
+	// checkpoints have their own migration tests. Still reject any missing, populated
 	// or unexpected table.
 	retained = memoryExtractionRowsBeforeCadenceColumn(t, reopened.db)
-	for _, table := range []string{"literature_collections", "literature_collection_items", "literature_publication_checks", "literature_candidates", "literature_candidate_sources", "resource_tag_catalog_state", "resource_tags", "resource_tag_assignments", "literature_study_snapshots", "literature_candidate_task_origins"} {
+	for _, table := range []string{"literature_collections", "literature_collection_items", "literature_publication_checks", "literature_candidates", "literature_candidate_sources", "resource_tag_catalog_state", "resource_tags", "resource_tag_assignments", "literature_study_snapshots", "literature_candidate_task_origins", "literature_study_batches"} {
 		rows, found := retained[table]
 		if !found || len(rows) != 0 {
 			t.Fatalf("current-schema additive table %q missing or populated on reopen: rows=%#v found=%t", table, rows, found)
