@@ -2568,6 +2568,43 @@
     "unavailable": "Tags are unavailable for this reference",
     "resumeNeeded": "Pending tag changes need to be resumed."
   },
+  "libraryStudyBatch": {
+    "title": "Batch overviews",
+    "generate": "Generate overviews",
+    "close": "Close batch overviews",
+    "progress": "{{done}} / {{total}} saved",
+    "preparing": "Preparing selection…",
+    "working": "Working on this wave. Saved results will remain available.",
+    "pausing": "Finishing the current wave before pausing…",
+    "paused": "Paused. Continue from the saved checkpoint.",
+    "ready": "A saved batch is available to continue.",
+    "someFailed": "Some overviews could not be generated. Saved results are retained.",
+    "completed": "All available overviews have been saved.",
+    "failed": "The latest request could not be confirmed. Refresh the checkpoint before continuing.",
+    "limit": "Select between 1 and {{count}} papers for a batch.",
+    "pause": "Pause after this wave",
+    "resume": "Continue batch",
+    "retry": "Retry failed papers",
+    "refresh": "Refresh checkpoint",
+    "paper": "Paper {{number}}",
+    "details": "View details",
+    "resultChanged": "This saved result is no longer available for the original source and revision. Reopen the paper to review its current overview.",
+    "state": {
+      "pending": "Pending",
+      "running": "Generating…",
+      "failed": "Not generated"
+    },
+    "issue": {
+      "source-changed": "The source changed. Start a new batch to use the current paper.",
+      "publication-conflict": "Another overview was saved. Reopen the paper to review it.",
+      "item-unavailable": "This paper is no longer available.",
+      "source-unavailable": "No readable abstract or PDF is available.",
+      "input-too-large": "The available source exceeds the overview input limit.",
+      "inference-busy": "Overview capacity is busy. Retry this paper later.",
+      "runtime-draining": "The service is updating. Continue when it is ready.",
+      "generation-failed": "The overview could not be generated. You can retry this paper."
+    }
+  },
   "libraryStudy": {
     "title": "Study overview",
     "generate": "Generate overview",

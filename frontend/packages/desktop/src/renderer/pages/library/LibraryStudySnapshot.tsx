@@ -2,7 +2,7 @@ import React from 'react';
 import { LoaderCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
-import { STUDY_FIELDS } from '@/common/adapter/literatureStudySnapshot';
+import { STUDY_FIELDS, type LiteratureStudySnapshot } from '@/common/adapter/literatureStudySnapshot';
 import { useLibraryStudySnapshot } from './useLibraryStudySnapshot';
 import './libraryStudySnapshot.css';
 
@@ -80,22 +80,28 @@ export function LibraryStudySnapshot({
           {t(PREFIX + (item.deleted ? 'sourceChanged' : model.view?.available ? 'notGenerated' : 'sourceUnavailable'))}
         </p>
       )}
-      {snapshot && (
-        <>
-          <dl>
-            {STUDY_FIELDS.map((field) => (
-              <div key={field}>
-                <dt>{t(PREFIX + 'fields.' + field)}</dt>
-                <dd>{snapshot.sections[field] ?? t(PREFIX + 'notReported')}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className='library-study__muted'>
-            {t(PREFIX + 'model')}: {snapshot.model}
-          </p>
-          <p className='library-study__muted'>{t(PREFIX + 'warning')}</p>
-        </>
-      )}
+      {snapshot && <LibraryStudyContent snapshot={snapshot} />}
     </section>
+  );
+}
+
+/** Shared display only; single-paper and batch readers keep their own exact source fences. */
+export function LibraryStudyContent({ snapshot }: { snapshot: LiteratureStudySnapshot }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <dl>
+        {STUDY_FIELDS.map((field) => (
+          <div key={field}>
+            <dt>{t(PREFIX + 'fields.' + field)}</dt>
+            <dd>{snapshot.sections[field] ?? t(PREFIX + 'notReported')}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className='library-study__muted'>
+        {t(PREFIX + 'model')}: {snapshot.model}
+      </p>
+      <p className='library-study__muted'>{t(PREFIX + 'warning')}</p>
+    </>
   );
 }

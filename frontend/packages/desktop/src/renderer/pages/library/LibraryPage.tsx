@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { LibraryNavigationRail } from './LibraryNavigationRail';
-import { BookOpen, ChevronRight, RefreshCw } from 'lucide-react';
+import { BookOpen, ChevronRight, RefreshCw, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { LiteratureCollectionCommand } from '@/common/adapter/literatureCollections';
@@ -46,6 +46,10 @@ import { useLibraryReferenceExport } from './useLibraryReferenceExport';
 import { LibraryReferenceExportMenu } from './LibraryReferenceExportMenu';
 import { LibrarySelectionToolbar } from './LibrarySelectionToolbar';
 import { LibraryBulkProgress } from './LibraryBulkProgress';
+import { LibraryStudyBatchPanel } from './LibraryStudyBatchPanel';
+import { useLibraryStudyBatch } from './useLibraryStudyBatch';
+import { librarySelectionCount, resolveLibrarySelection } from './librarySelectionState';
+import { loadCompleteLiteratureSelection } from '@/renderer/services/runtime/literatureSelection';
 import { isLiteratureReadingBulk } from '@/renderer/services/runtime/literatureReadingBulkIntent';
 import { LibraryMutationNotice } from './LibraryMutationNotice';
 import { LibraryAddMenu } from './LibraryAddMenu';
@@ -66,7 +70,7 @@ import './libraryWorkbench.css';
 type CollectionEditorState = { owner: object; id: number; mode: LibraryCollectionEditorMode };
 
 export default function LibraryPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [params, setParams] = useSearchParams();
   const {
     query,
@@ -178,6 +182,23 @@ export default function LibraryPage() {
     controller: mutation.controller,
     view: mutation.view,
   });
+  const overviewTrigger = useRef<HTMLButtonElement>(null);
+  const overview = useLibraryStudyBatch(
+    reads.account,
+    i18n.resolvedLanguage ?? i18n.language,
+    JSON.stringify([bulk.scopeKey, bulk.selection])
+  );
+  const overviewUnfinished = overview.view?.batch?.rows.some(
+    (row) => row.state === 'pending' || row.state === 'running'
+  );
+  const overviewSelectionCount = librarySelectionCount(bulk.selection, reads.list.value?.total_count);
+  const overviewLimit = overview.view?.limit ?? 5;
+  const resolveOverviewSelection = async (signal: AbortSignal) => {
+    const complete = bulk.selection.allMatchingSelected
+      ? await loadCompleteLiteratureSelection({ query, collectionId, projectId, readingStatus, lifecycle }, signal)
+      : undefined;
+    return resolveLibrarySelection(bulk.selection, complete?.item_ids);
+  };
   const selectedProject = reads.projects.value?.find((value) => value.projectId === projectId);
   const selectedCollection =
     reads.collections.status === 'ready'
@@ -427,7 +448,7 @@ export default function LibraryPage() {
         );
     }
   };
-  const busy = baseBusy || bulk.resolving || referenceExport.pending;
+  const busy = baseBusy || bulk.resolving || referenceExport.pending || overview.busy;
   const rowActions = useLibraryRowActions({
     account: reads.account,
     readKey: reads.list.key,
@@ -801,6 +822,24 @@ export default function LibraryPage() {
           )}
           {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
+              overviewControl={
+                <button
+                  ref={overviewTrigger}
+                  type='button'
+                  disabled={
+                    busy ||
+                    !listReady ||
+                    Boolean(visibleEditor) ||
+                    !!overviewUnfinished ||
+                    (overviewSelectionCount !== undefined && overviewSelectionCount > overviewLimit)
+                  }
+                  title={t('conversation.libraryStudyBatch.limit', { count: overviewLimit })}
+                  onClick={() => void overview.start(resolveOverviewSelection)}
+                >
+                  <Sparkles size={13} aria-hidden='true' />
+                  {t('conversation.libraryStudyBatch.generate')}
+                </button>
+              }
               exportControl={
                 <LibraryReferenceExportMenu
                   key={referenceExport.selected.identityKey}
@@ -829,6 +868,12 @@ export default function LibraryPage() {
             resume={bulk.resume}
             pause={bulk.pause}
             discard={bulk.discard}
+          />
+          <LibraryStudyBatchPanel
+            account={reads.account}
+            model={overview}
+            onOpenDetails={selectItem}
+            returnFocusRef={overviewTrigger}
           />
           {collectionId && reads.collections.status === 'ready' && !selectedCollection && (
             <p role='alert'>{t('conversation.libraryWorkbench.collectionUnavailable')}</p>

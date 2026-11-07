@@ -977,4 +977,18 @@ reference reader owns the data; editing and PDF state are unaffected.
 文献已有非空文本摘要时，详情显示原文；超出八行时提供展开和收起控件。摘要沿用
 已有文献信息读取链路，不改变元数据编辑或 PDF 状态。
 
+## Batch paper overviews · 批量文献概览
+
+Select up to five papers to generate overviews in waves of two. Pause finishes
+the current wave before stopping; reopening the Library reads the saved batch
+checkpoint. Continue and Retry retain committed results and reuse the original
+paper source, publication receipt and revision checks. A request interrupted
+before publication may need to run inference again. Expand a saved row to read
+its exact result, or open the paper details. Changed or unavailable sources are
+reported rather than silently displaying a different result.
+
+每批最多选择五篇文献，每个波次处理两篇；暂停会先完成当前波次。重新打开文献库后
+从保存的检查点继续，已提交结果通过原来源、修订和回执读回，不重复生成；发布前
+中断的推理可能需要重试。成功行可展开或打开文献详情，来源变化时明确提示。
+
 [模块导航](README.md) · [工程拓扑](../engineering/module-topology.md)

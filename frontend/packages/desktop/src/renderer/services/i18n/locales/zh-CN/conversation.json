@@ -2568,6 +2568,43 @@
     "unavailable": "此文献的标签暂不可用",
     "resumeNeeded": "有待确认的标签更改，可重试恢复。"
   },
+  "libraryStudyBatch": {
+    "title": "批量概览",
+    "generate": "生成概览",
+    "close": "关闭批量概览",
+    "progress": "已保存 {{done}} / {{total}}",
+    "preparing": "正在准备所选文献…",
+    "working": "正在处理当前批次，已保存的结果会保留。",
+    "pausing": "正在完成当前波次，随后暂停…",
+    "paused": "已暂停，可从保存的检查点继续。",
+    "ready": "有已保存的批次可以继续。",
+    "someFailed": "部分概览未能生成，已保存的结果会保留。",
+    "completed": "所有可用概览均已保存。",
+    "failed": "无法确认最近一次请求，请先刷新检查点再继续。",
+    "limit": "每批请选择 1 至 {{count}} 篇文献。",
+    "pause": "本波次后暂停",
+    "resume": "继续批次",
+    "retry": "重试失败文献",
+    "refresh": "刷新检查点",
+    "paper": "文献 {{number}}",
+    "details": "查看详情",
+    "resultChanged": "原来源和修订对应的结果已不可用，请重新打开文献查看当前概览。",
+    "state": {
+      "pending": "待处理",
+      "running": "正在生成…",
+      "failed": "未生成"
+    },
+    "issue": {
+      "source-changed": "来源已变化，请新建批次以使用当前文献。",
+      "publication-conflict": "已有其他概览保存，请打开文献查看。",
+      "item-unavailable": "该文献已不可用。",
+      "source-unavailable": "没有可读取的摘要或 PDF。",
+      "input-too-large": "可用来源超过概览输入限制。",
+      "inference-busy": "概览生成容量繁忙，可稍后重试此文献。",
+      "runtime-draining": "服务正在更新，就绪后可以继续。",
+      "generation-failed": "未能生成概览，可以重试此文献。"
+    }
+  },
   "libraryStudy": {
     "title": "研究概览",
     "generate": "生成概览",
