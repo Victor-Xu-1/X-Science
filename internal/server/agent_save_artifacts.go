@@ -1284,6 +1284,9 @@ func agentSaveArtifactInputFailure(index int, err error) map[string]any {
 }
 
 func agentSaveArtifactFailure(path string, err error) map[string]any {
+	if failure, classified := agentSavedPythonFailureFeedback(path, err); classified {
+		return failure
+	}
 	code := "save_failed"
 	if errors.Is(err, os.ErrNotExist) {
 		code = "file_not_found"

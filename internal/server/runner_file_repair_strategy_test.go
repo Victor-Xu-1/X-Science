@@ -16,7 +16,7 @@ import (
 )
 
 func TestFileRepairKeepsInspectionAndExecutionAvailable(t *testing.T) {
-	for _, code := range []string{"invalid_delimited_artifact", "invalid_json_artifact", "invalid_scientific_artifact", "unresolved_template_marker"} {
+	for _, code := range []string{"invalid_delimited_artifact", "invalid_json_artifact", "invalid_scientific_artifact", "unresolved_template_marker", "invalid_python_artifact"} {
 		t.Run(code, func(t *testing.T) {
 			messages := []agentruntime.Message{
 				runnerEvidenceDepthCall("save", "save_artifacts", map[string]any{"files": []string{"input.data"}}),

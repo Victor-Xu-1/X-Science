@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -66,11 +65,11 @@ func (s *Server) validateAgentSavedPythonArtifact(ctx context.Context, relativeP
 		return nil
 	}
 	if s == nil || s.kernelManager == nil {
-		return errors.New("saved Python artifact validation is unavailable")
+		return agentSavedPythonValidatorFailure("runtime_unavailable", nil)
 	}
 	python, _, _, _, err := s.kernelManager.ScientificArtifactValidator()
 	if err != nil || strings.TrimSpace(python) == "" {
-		return errors.New("saved Python artifact validation is unavailable")
+		return agentSavedPythonValidatorFailure("runtime_unavailable", err)
 	}
 	if _, err := snapshot.Seek(0, io.SeekStart); err != nil {
 		return err
@@ -82,20 +81,7 @@ func (s *Server) validateAgentSavedPythonArtifact(ctx context.Context, relativeP
 	if err != nil {
 		return err
 	}
-	if result.OK && result.Code == "valid_python" && result.UnresolvedCount == 0 {
-		return nil
-	}
-	detail := strings.TrimSpace(result.Detail)
-	if len(result.Unresolved) > 0 {
-		detail = "unresolved globals: " + strings.Join(result.Unresolved, ", ")
-		if result.UnresolvedCount > len(result.Unresolved) {
-			detail += fmt.Sprintf(" (and %d more)", result.UnresolvedCount-len(result.Unresolved))
-		}
-	}
-	if detail == "" {
-		detail = result.Code
-	}
-	return fmt.Errorf("%w: %s", errAgentSavedArtifactPythonInvalid, detail)
+	return agentSavedPythonResultFailure(result)
 }
 
 func validateAgentSavedPythonReader(ctx context.Context, python string, source io.Reader) (agentSavedPythonStaticValidation, error) {
@@ -113,14 +99,14 @@ func validateAgentSavedPythonReader(ctx context.Context, python string, source i
 		return agentSavedPythonStaticValidation{}, ctx.Err()
 	}
 	if err != nil {
-		return agentSavedPythonStaticValidation{}, fmt.Errorf("saved Python artifact validator failed: %w", err)
+		return agentSavedPythonStaticValidation{}, agentSavedPythonValidatorFailure("process_failed", err)
 	}
 	if output.overflow || diagnostic.overflow {
-		return agentSavedPythonStaticValidation{}, errors.New("saved Python artifact validator result exceeded its diagnostic bound")
+		return agentSavedPythonStaticValidation{}, agentSavedPythonValidatorFailure("diagnostic_limit_exceeded", nil)
 	}
 	var result agentSavedPythonStaticValidation
 	if err := json.Unmarshal([]byte(output.String()), &result); err != nil || strings.TrimSpace(result.Code) == "" || result.UnresolvedCount < len(result.Unresolved) || len(result.Unresolved) > 32 {
-		return agentSavedPythonStaticValidation{}, errors.New("saved Python artifact validator returned an invalid result")
+		return agentSavedPythonStaticValidation{}, agentSavedPythonValidatorFailure("invalid_result", err)
 	}
 	return result, nil
 }
