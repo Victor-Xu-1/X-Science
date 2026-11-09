@@ -157,7 +157,8 @@ const RemoteToolDetailNodeView: React.FC<{
   if (node.kind === 'scalar') {
     const value = formatPublicTreeScalar(
       publicReceiptScalar(normalizePublicDetailKey(node.key ?? ''), node.value),
-      chinese
+      chinese,
+      node.key
     );
     return value ? (
       <div className='tool-detail-tree__scalar' data-detail-path={node.path}>

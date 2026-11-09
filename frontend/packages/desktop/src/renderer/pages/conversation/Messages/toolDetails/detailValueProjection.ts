@@ -9,6 +9,18 @@ import { formatBytes } from './detailFormatting';
 const BLOCK_VALUE_KEY = /^(?:code|command|content|markdown|old_string|new_string|old_text|stderr|stdout|text)$/iu;
 const OPAQUE_PRIVATE_VALUE =
   /^(?:mem_|proj(?:ect)?_|artifact_|frame_|swr-|x-science[-_])|(?:^|[-_])(?:acceptance|internal|private|runtime)(?:[-_]|$)/iu;
+// These fixed public diagnostics are values, not opaque runtime identities.
+// The exception applies only to their own scalar field, never array elements.
+const PUBLIC_VALIDATION_CODES = new Set([
+  'invalid_python',
+  'syntax_error',
+  'unresolved_global',
+  'runtime_unavailable',
+  'process_failed',
+  'interpreter_missing',
+  'diagnostic_limit_exceeded',
+  'invalid_result',
+]);
 
 export type DetailValueProjectionOptions = {
   chinese: boolean;
@@ -37,7 +49,8 @@ function projectValue(
   label: string,
   path: string,
   options: DetailValueProjectionOptions,
-  depth: number
+  depth: number,
+  fieldKey?: string
 ): ToolDetailValueNode | null {
   if (depth > 64) {
     return {
@@ -85,14 +98,15 @@ function projectValue(
           : publicDetailKeyLabel(key, options.chinese),
         `${path}/${escapePathSegment(key)}`,
         options,
-        depth + 1
+        depth + 1,
+        key
       );
       if (child) children.push(child);
     }
     if (children.length === 0) return null;
     return { kind: 'object', path, label, children, total: children.length };
   }
-  const scalar = formatPublicTreeScalar(value, options.chinese);
+  const scalar = formatPublicTreeScalar(value, options.chinese, fieldKey);
   return scalar === null ? null : { kind: 'scalar', path, label, value: scalar };
 }
 
@@ -132,11 +146,13 @@ function isPublicRecordIdentity(value: string): boolean {
   );
 }
 
-export function formatPublicTreeScalar(value: unknown, chinese = false): string | null {
+export function formatPublicTreeScalar(value: unknown, chinese = false, fieldKey?: string): string | null {
   if (value === null) return 'null';
   if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   if (typeof value === 'boolean') return toolPublicDetailText(chinese, value ? 'yes' : 'no');
   if (typeof value !== 'string') return null;
+  if (normalizePublicDetailKey(fieldKey ?? '') === 'validation_code' && PUBLIC_VALIDATION_CODES.has(value))
+    return value;
   if (OPAQUE_PRIVATE_VALUE.test(value.trim())) return null;
   const sanitized = sanitizePublicTaskText(value);
   return sanitized?.trim() || null;

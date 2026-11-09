@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RemoteToolDetailTree from '@/renderer/pages/conversation/Messages/toolDetails/RemoteToolDetailTree';
 import { conversationDisclosureStore } from '@/renderer/services/runtime/conversationDisclosureStore';
+import { buildToolPublicDetailPresentation } from '@/renderer/pages/conversation/Messages/toolDetails/detailProjection';
+import { projectToolDetailValue } from '@/renderer/pages/conversation/Messages/toolDetails/detailValueProjection';
 
 const { loadPage } = vi.hoisted(() => ({ loadPage: vi.fn() }));
 
@@ -173,5 +175,78 @@ describe('RemoteToolDetailTree', () => {
     expect(screen.getByRole('button', { name: 'Item 100, 3 fields' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByRole('button', { name: 'Item 105, 3 fields' })).toBeInTheDocument();
+  });
+
+  it('keeps safe validation codes in inline detail without exempting private values in other fields or arrays', () => {
+    const codes = [
+      'invalid_python',
+      'syntax_error',
+      'unresolved_global',
+      'runtime_unavailable',
+      'process_failed',
+      'interpreter_missing',
+      'diagnostic_limit_exceeded',
+      'invalid_result',
+    ];
+    const presentation = buildToolPublicDetailPresentation(
+      {
+        key: 'save-failed',
+        name: 'save_artifacts',
+        status: 'error',
+        input: '{}',
+        output: JSON.stringify({ errors: codes.map((validation_code) => ({ validation_code, retryable: false })) }),
+      },
+      'en-US',
+      null
+    );
+    const visible = JSON.stringify(presentation.outputTree);
+    for (const code of codes) expect(visible).toContain(code);
+    for (const chinese of [false, true]) {
+      const tree = projectToolDetailValue(
+        {
+          message: 'runtime_unavailable',
+          errors: [{ validation_code: 'runtime_secret' }, { validation_code: ' runtime_unavailable ' }],
+          validation_code: ['runtime_unavailable'],
+          ordinary: { value: 'runtime_unavailable' },
+          private_key: 'runtime_unavailable',
+          other: { validation_code: 'future_public_validation' },
+        },
+        { chinese, detailKind: 'analysis', label: 'Details', source: 'output' }
+      );
+      const text = JSON.stringify(tree);
+      expect(text).not.toContain('runtime_unavailable');
+      expect(text).not.toContain('runtime_secret');
+      expect(text).toContain('future_public_validation');
+    }
+  });
+
+  it('shows the safe validation code through the remote main detail consumer while private siblings stay hidden', async () => {
+    loadPage.mockResolvedValue({
+      messageId: 'message-1',
+      section: 'output',
+      path: '',
+      revision: 7,
+      kind: 'object',
+      total: 3,
+      from: 0,
+      items: [
+        { path: '/validation_code', kind: 'scalar', key: 'validation_code', value: 'runtime_unavailable' },
+        { path: '/message', kind: 'scalar', key: 'message', value: 'runtime_unavailable' },
+        { path: '/name', kind: 'scalar', key: 'name', value: 'runtime_secret' },
+      ],
+      nextCursor: null,
+    });
+    render(
+      <RemoteToolDetailTree
+        reference={{ conversationId: 'conversation-1', messageId: 'message-1', revision: 7 }}
+        operationId='operation-validation'
+        chinese={false}
+        detailKind='analysis'
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Full details' }));
+    expect(await screen.findByText('runtime_unavailable')).toBeInTheDocument();
+    expect(screen.getAllByText('runtime_unavailable')).toHaveLength(1);
+    expect(screen.queryByText('runtime_secret')).not.toBeInTheDocument();
   });
 });
