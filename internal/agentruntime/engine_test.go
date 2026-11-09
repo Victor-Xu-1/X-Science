@@ -1569,8 +1569,18 @@ func TestEngineReturnsInvalidToolCallResultWithoutCallingGateway(t *testing.T) {
 		MaxToolRounds: 2,
 	})
 	if err != nil || result.FinalMessage.Content != "saw invalid tool call" ||
-		gatewayCalls.Load() != 0 || requests.Load() != 2 || !hasEvent(events, EventToolFailed, "echo_upper") {
+		gatewayCalls.Load() != 0 || requests.Load() != 2 {
 		t.Fatalf("result=%#v error=%#v gatewayCalls=%d requests=%d events=%#v", result, err, gatewayCalls.Load(), requests.Load(), events)
+	}
+	for _, event := range events {
+		if event.Type == EventToolStarted || event.Type == EventToolFailed {
+			t.Fatalf("private argument repair published an execution lifecycle: %#v", event)
+		}
+	}
+	if len(result.Messages) != 2 || result.Messages[0].Role != "user" || result.Messages[0].Content != "call a tool badly" ||
+		result.Messages[1].Role != "assistant" || result.Messages[1].Content != result.FinalMessage.Content ||
+		len(result.Messages[0].ToolCalls) != 0 || len(result.Messages[1].ToolCalls) != 0 {
+		t.Fatalf("private argument repair leaked into public history: %#v", result.Messages)
 	}
 }
 
