@@ -358,10 +358,8 @@ func buildTranscriptWebMessageRecords(
 		if err != nil {
 			return nil, nil, err
 		}
-		storedMessage := cloneTranscriptWebProjectionMap(message)
-		delete(storedMessage, "artifact_refs")
-		raw, err := json.Marshal(storedMessage)
-		if err != nil || !json.Valid(raw) {
+		raw, err := marshalTranscriptWebMessageRecord(message)
+		if err != nil {
 			return nil, nil, transcriptstore.ErrEventConflict
 		}
 		updatedAt, err := transcriptWebMessageTimestamp(message["created_at"])
