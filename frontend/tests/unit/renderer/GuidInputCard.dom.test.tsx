@@ -11,9 +11,10 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/components/media/FilePreview', () => ({ default: () => null }));
-vi.mock('@/renderer/components/media/UploadProgressBar', () => ({ default: () => null }));
-vi.mock('@arco-design/web-react', () => ({
+vi.mock('@/renderer/components/media/FilePreview', () => ({ default: (): null => null }));
+vi.mock('@/renderer/components/media/UploadProgressBar', () => ({ default: (): null => null }));
+vi.mock('@arco-design/web-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@arco-design/web-react')>()),
   Input: {
     TextArea: ({
       autoSize: _autoSize,

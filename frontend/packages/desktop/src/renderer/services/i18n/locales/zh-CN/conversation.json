@@ -1211,6 +1211,7 @@
     "hint": "输入 / 唤起命令，@ 引用文件",
     "inputHelp": {
       "title": "输入帮助",
+      "commandsOnly": "输入 / 唤起命令。",
       "sessions": "输入 # 引用本项目中的会话。",
       "send": "按 Enter 发送。",
       "newLine": "按 Shift+Enter 换行。",

@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "c2eeede35a701cd6c0945f3342391e878d15f965f2ed5924eecc5fe9345e4508",
+  "adaptationFingerprintSHA256": "64ea0a285fcb76c15a23a8c8dd25718f12f8830e8a31d236e8d3f5fb60718964",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "01b210391971d71ec53abae81b99629c4f3e1040ba6059cbe6fd6df2a85ba255",
+  "additionFingerprintSHA256": "8c97bee3e84d595d8721db61775b635c3e682b3cbe875cc9d68514f3e084c6d6",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1512
+    "addedFiles": 1513
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "05c9f1f0ec9cfdc9aae2d9eb10b18fb9eb01be1005b2bd78f076b6007195db40",
+      "targetSHA256": "3632eead278a65e0da86d6ddd740f37c633ef7980fdc1ba59f3a6b6316eb6312",
       "bytes": 4452,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "69388e04c338f6875f9954df509573a66fce2633ec71a7c61979ab6bcb2f314b",
+      "targetSHA256": "41777d09ce35412ce2f917c0015a4d51697103eecc181b43b126302e4f4c2750",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -2331,8 +2331,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/guid/components/GuidInputCard.tsx",
       "sourceSHA256": "b1e440bc7e48076292c82776164b15a4451136602f5ab7ce01304b5b2740b137",
-      "targetSHA256": "965c3d0211d1df8fffceb28c3540b50f195271bd89c9319dd8cf5f33bbe13861",
-      "bytes": 8725,
+      "targetSHA256": "64b990f422b702a159783f5c578783c1e3dd3b1e5accdbde3747ee05b2ea62f6",
+      "bytes": 9289,
       "reason": "Migrate authenticated login, onboarding, project workbench, and artifact workflows to the Go product shell."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "78c11794b937cec69f69135028ecf29c7ea8757d7be4680fc43784e55a19f098",
-      "bytes": 141599,
+      "targetSHA256": "46ff996b2cbd215e695c7c694abc7626eaa15185d86721333a753bc7c0a9b6ab",
+      "bytes": 141645,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "3257969b0e5028f7aa9d4b65265797cbc49fc6a9e7818e8edbe0b9c8d9e1c5cf",
-      "bytes": 133872,
+      "targetSHA256": "88eb16f2c9eb1d8ecdaf58cdfdf4259b6c01a74683b794419fab0dd720f9dfc9",
+      "bytes": 133922,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -4430,8 +4430,8 @@
     {
       "path": "tests/unit/renderer/GuidInputCard.dom.test.tsx",
       "sourceSHA256": "b7b8c459b8e5511d22a6c562ef635f6291f24b6865e81822adc78c6b521b7833",
-      "targetSHA256": "d39995e3a626719b72af773c83a851e141bd0b15e8266657d9b397ab42878257",
-      "bytes": 5991,
+      "targetSHA256": "04405185aef9e252f701ad6cb6d999229ada4bc76a2b01f93e4797ac4a48d8ae",
+      "bytes": 6095,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -7605,7 +7605,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "f67ff23c829fea62d14bf78df97d6f6960ba15c2abb8e061129883d030950ae5",
+      "sha256": "979750ff0ffc3b0addda26020ae12bba462b0ea0ce784a98337899faefede065",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -7989,8 +7989,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/ComposerInputHelp.tsx",
-      "sha256": "fe70038f09bc2b746b3fc4496696eb49f8bb1003bc883e3236deaff59db9ea77",
-      "bytes": 2472,
+      "sha256": "e9b8c894b81339037b5ddee8aa5286279cfc0ec09fd09dc04e840329a4e346c9",
+      "bytes": 2690,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13757,6 +13757,12 @@
       "path": "tests/unit/renderer/GroupedHistoryRowMemo.dom.test.tsx",
       "sha256": "102bf37cd8892a611542b3cd2aeaa7ab317b69c901876f64d9520ac0d72cf1a2",
       "bytes": 6342,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/GuidInputHelp.dom.test.tsx",
+      "sha256": "aa1c44c188258cd825ded7f54e97fc648d91b185aa533e495a9f865197d4ebee",
+      "bytes": 6269,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

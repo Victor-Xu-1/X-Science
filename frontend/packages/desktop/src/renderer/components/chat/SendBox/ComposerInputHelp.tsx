@@ -8,22 +8,31 @@ type Props = {
   descriptionId: string;
   promptHint: string;
   sessionReferences: boolean;
+  fileReferences?: boolean;
+  historyNavigation?: boolean;
   scopeKey?: string;
 };
 
-const ComposerInputHelp = ({ descriptionId, promptHint, sessionReferences, scopeKey }: Props) => {
+const ComposerInputHelp = ({
+  descriptionId,
+  promptHint,
+  sessionReferences,
+  fileReferences = true,
+  historyNavigation = true,
+  scopeKey,
+}: Props) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const label = t('conversation.sendbox.inputHelp.title');
-  const syntaxHint = t('conversation.sendbox.hint');
+  const syntaxHint = t(fileReferences ? 'conversation.sendbox.hint' : 'conversation.sendbox.inputHelp.commandsOnly');
   const tips = [
     promptHint,
     ...(promptHint.includes(syntaxHint) ? [] : [syntaxHint]),
     ...(sessionReferences ? [t('conversation.sendbox.inputHelp.sessions')] : []),
     t('conversation.sendbox.inputHelp.send'),
     t('conversation.sendbox.inputHelp.newLine'),
-    t('conversation.sendbox.inputHelp.history'),
+    ...(historyNavigation ? [t('conversation.sendbox.inputHelp.history')] : []),
   ].filter(Boolean);
 
   useEffect(() => setOpen(false), [scopeKey]);
