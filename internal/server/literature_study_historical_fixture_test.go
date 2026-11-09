@@ -88,6 +88,9 @@ func TestHistoricalStudyFixtureRestoresOnlyEmptyReviewedPredecessor(t *testing.T
 			}
 			defer tx.Rollback()
 			requireReviewedHistoricalFixtureMigrations(t, tx)
+			if err := restoreEmptyHistoricalStudyBatchPredecessor(t, tx); err != nil {
+				t.Fatal(err)
+			}
 			if !populated {
 				if err := restoreEmptyHistoricalTaskOriginPredecessor(t.Context(), tx); err != nil {
 					t.Fatal(err)
