@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { URL as NodeURL } from 'node:url';
 import LibraryPage from '@/renderer/pages/library/LibraryPage';
+import { readEmptyResourceTagCatalog } from './libraryResourceTagFixtures';
 import type { LiteratureItem } from '@/common/adapter/literatureLibrary';
 import {
   getRendererAccountOwnerId,
@@ -22,7 +23,9 @@ import { installCollectionHTTP, json as fixtureJson, mountCollections, paper } f
 import '@arco-design/web-react/lib/_util/react-19-adapter';
 
 let sortStyles: HTMLStyleElement;
+let unexpectedRequests: string[];
 beforeEach(() => {
+  unexpectedRequests = [];
   resetRendererAccountScopeForTest();
   setRendererAccountOwner('library-rating-sort-owner');
   localStorage.clear();
@@ -45,6 +48,7 @@ afterEach(() => {
   sortStyles.remove();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  expect(unexpectedRequests).toEqual([]);
 });
 
 const json = (value: unknown) =>
@@ -77,17 +81,34 @@ function visibleTitles() {
     .map((button) => button.textContent);
 }
 
+async function waitForRatedReference(title: string) {
+  await screen.findByText(title, { selector: 'button.library-table__title > span' });
+  expect(screen.getByRole('button', { name: title })).toBeInTheDocument();
+}
+
 function installPageReader() {
   const requests: URL[] = [];
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (input: RequestInfo | URL) => {
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = new URL(String(input), 'http://localhost');
+      const method = init?.method ?? 'GET';
+      const tags = readEmptyResourceTagCatalog(url, init);
+      if (tags) return tags;
+      if (method !== 'GET') {
+        unexpectedRequests.push(`${method} ${url.pathname}${url.search}`);
+        throw new Error(`Unexpected rating sort request ${url.pathname}`);
+      }
+      if (url.pathname === '/api/literature/study-batch' && url.search === '')
+        return json({ schema: 'x-science.literature-study-batch.v1', limit: 5, concurrency: 2, batch: null });
       if (url.pathname === '/api/settings/client') return json({});
       if (url.pathname === '/api/projects') return json({ projects: [] });
       if (url.pathname === '/api/literature/collections')
         return json({ schema: 'x-science.literature-collections.v1', collections: [] });
-      if (url.pathname !== '/api/literature/items') throw new Error(`Unexpected rating sort request ${url.pathname}`);
+      if (url.pathname !== '/api/literature/items') {
+        unexpectedRequests.push(`${method} ${url.pathname}${url.search}`);
+        throw new Error(`Unexpected rating sort request ${url.pathname}`);
+      }
       requests.push(url);
       const sorted = url.searchParams.get('sort') === 'rating-desc';
       const offset = url.searchParams.has('cursor') ? 25 : 0;
@@ -117,7 +138,7 @@ it.each([
   const requests = installPageReader();
   const user = userEvent.setup();
   await mount('/library?q=Rated&page_size=25&sort=title-asc&cursor=title-after-25', labels.language);
-  await screen.findByRole('button', { name: 'Rated reference 29' });
+  await waitForRatedReference('Rated reference 29');
   const control = screen.getByRole('combobox', { name: labels.sort });
   await waitFor(() => expect(control).not.toHaveAttribute('aria-disabled', 'true'));
   await user.click(control);
@@ -137,7 +158,7 @@ it('keeps server order across rating page navigation and URL restoration', async
   const requests = installPageReader();
   const user = userEvent.setup();
   let rendered = await mount('/library?q=Rated&page_size=25&sort=rating-desc');
-  await screen.findByRole('button', { name: 'Rated reference 29' });
+  await waitForRatedReference('Rated reference 29');
   expect(visibleTitles()).toEqual(ranked.slice(0, 25).map((item) => item.title));
   await user.click(screen.getByRole('button', { name: 'Next page' }));
   await waitFor(() => expect(visibleTitles()).toEqual(ranked.slice(25).map((item) => item.title)));
@@ -145,7 +166,7 @@ it('keeps server order across rating page navigation and URL restoration', async
   const search = screen.getByLabelText('Rating sort location').textContent ?? '';
   rendered.unmount();
   rendered = await mount(`/library${search}`);
-  await screen.findByRole('button', { name: 'Rated reference 00' });
+  await waitForRatedReference('Rated reference 00');
   expect(screen.getByRole('combobox', { name: 'Sort references' })).toHaveTextContent('Highest rated');
   expect(requests.at(-1)?.searchParams.get('sort')).toBe('rating-desc');
   expect(requests.at(-1)?.searchParams.get('cursor')).toBe('rating-after-25');

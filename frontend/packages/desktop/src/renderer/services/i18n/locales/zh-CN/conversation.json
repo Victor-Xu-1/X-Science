@@ -1209,6 +1209,13 @@
     "draftSaveFailed": "草稿改动仍保留在当前标签页，但保存失败。关闭前请重试保存。",
     "retryDraftSave": "重试保存草稿",
     "hint": "输入 / 唤起命令，@ 引用文件",
+    "inputHelp": {
+      "title": "输入帮助",
+      "sessions": "输入 # 引用本项目中的会话。",
+      "send": "按 Enter 发送。",
+      "newLine": "按 Shift+Enter 换行。",
+      "history": "光标在输入框首行时，按向上箭头浏览之前的提示词，按向下箭头返回草稿。"
+    },
     "invalidReference": "引用格式无效，无法添加到消息。",
     "contextOnlyPrompt": "请读取并使用我选择的文件、Skill 和 MCP 完成任务。",
     "structuredContextNormalSend": "文件、Skill 和 MCP 组合内容请使用普通发送或先制定计划。",

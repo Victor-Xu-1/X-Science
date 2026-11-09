@@ -1,18 +1,21 @@
 import SendBox from '@/renderer/components/chat/SendBox';
 import type { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import type { DomSnippet } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithI18n } from '../../i18nTestUtils';
 
 const previewContext = {
   setSendBoxHandler: vi.fn(),
-  domSnippets: [],
+  domSnippets: [] as DomSnippet[],
   removeDomSnippet: vi.fn(),
   clearDomSnippets: vi.fn(),
 };
 const asideMock = vi.hoisted(() => ({ useHook: vi.fn(), controller: null as unknown }));
 const layoutMock = vi.hoisted(() => ({ isMobile: false }));
+const conversationMock = vi.hoisted(() => ({ id: 'parent-1', projectId: undefined as string | undefined }));
 vi.mock('@/renderer/hooks/context/LayoutContext', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/renderer/hooks/context/LayoutContext')>();
   return {
@@ -21,7 +24,7 @@ vi.mock('@/renderer/hooks/context/LayoutContext', async (importOriginal) => {
   };
 });
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => ({ conversation_id: 'parent-1' }),
+  useConversationContextSafe: () => ({ conversation_id: conversationMock.id, projectId: conversationMock.projectId }),
 }));
 vi.mock('@/renderer/components/chat/BtwOverlay/useBtwCommand', () => ({
   useBtwCommand: (id: string, enabled: boolean) => {
@@ -97,7 +100,100 @@ afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   layoutMock.isMobile = false;
+  conversationMock.id = 'parent-1';
+  conversationMock.projectId = undefined;
   asideMock.controller = makeController();
+});
+
+describe('SendBox input help', () => {
+  it('shows project-only syntax when available and closes the old help on a conversation switch', async () => {
+    const props = { value: 'Keep this draft', onChange: vi.fn(), onSend: vi.fn() };
+    const view = await renderWithI18n(<SendBox {...props} />, 'en-US');
+    const editor = screen.getByTestId('sendbox-input');
+    const help = screen.getByRole('button', { name: 'Input help' });
+    const description = () => document.getElementById(editor.getAttribute('aria-describedby')!)!;
+    expect(description()).not.toHaveTextContent('Type #');
+    conversationMock.projectId = 'project-1';
+    view.rerender(<SendBox {...props} />);
+    expect(description()).toHaveTextContent('Type # to reference sessions in this project.');
+    fireEvent.click(help);
+    expect(screen.getByRole('dialog', { name: 'Input help' })).toBeInTheDocument();
+    conversationMock.id = 'parent-2';
+    conversationMock.projectId = undefined;
+    view.rerender(<SendBox {...props} />);
+    expect(help).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Input help' })).not.toBeInTheDocument());
+    expect(description()).not.toHaveTextContent('Type #');
+    expect(editor).toHaveValue(props.value);
+    expect(props.onChange).not.toHaveBeenCalled();
+    expect(props.onSend).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['en-US', 'Input help', 'Enter to send', 'Shift+Enter for a new line', 'Type / for commands, @ to reference files'],
+    ['zh-CN', '输入帮助', '按 Enter 发送', '按 Shift+Enter 换行', '输入 / 唤起命令，@ 引用文件'],
+  ] as const)(
+    'keeps complete help keyboard-accessible with a nonempty draft in %s',
+    async (language, label, sendHint, lineHint, syntaxHint) => {
+      const user = userEvent.setup();
+      const change = vi.fn();
+      const send = vi.fn().mockResolvedValue(undefined);
+      const draft = 'Keep these results. '.repeat(40);
+      await renderWithI18n(
+        <SendBox value={draft} onChange={change} onSend={send} placeholder='Research prompt' bottomHint='' />,
+        language
+      );
+      const editor = screen.getByTestId('sendbox-input');
+      const help = screen.getByRole('button', { name: label });
+      const descriptionId = editor.getAttribute('aria-describedby');
+      expect(descriptionId).toBeTruthy();
+      expect(document.getElementById(descriptionId!)?.textContent).toContain(sendHint);
+      expect(document.getElementById(descriptionId!)?.textContent).toContain(lineHint);
+      expect(document.getElementById(descriptionId!)?.textContent).toContain('Research prompt');
+      expect(document.getElementById(descriptionId!)?.textContent).toContain(syntaxHint);
+
+      editor.focus();
+      await user.tab();
+      expect(help).toHaveFocus();
+      await user.keyboard('{Enter}');
+      expect(screen.getByRole('dialog', { name: label })).toHaveTextContent(sendHint);
+      expect(screen.getByRole('dialog', { name: label })).toHaveTextContent(lineHint);
+      expect(screen.getByRole('dialog', { name: label })).toHaveTextContent('Research prompt');
+      expect(screen.getByRole('dialog', { name: label })).toHaveTextContent(syntaxHint);
+      await user.keyboard('{Escape}');
+      expect(help).toHaveAttribute('aria-expanded', 'false');
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: label })).not.toBeInTheDocument());
+      expect(help).toHaveFocus();
+      expect(editor).toHaveValue(draft);
+      expect(change).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    }
+  );
+
+  it('retains the same help entry across composition, scrolling and a controlled pasted draft', async () => {
+    const change = vi.fn();
+    const send = vi.fn().mockResolvedValue(undefined);
+    const props = { onChange: change, onSend: send };
+    const view = await renderWithI18n(<SendBox {...props} value='' />, 'en-US');
+    const editor = screen.getByTestId('sendbox-input');
+    const help = screen.getByRole('button', { name: 'Input help' });
+    fireEvent.compositionStart(editor);
+    expect(screen.getByRole('button', { name: 'Input help' })).toBe(help);
+    fireEvent.keyDown(editor, { key: 'Enter', isComposing: true });
+    fireEvent.compositionEnd(editor);
+    const draft = 'Pasted results\n'.repeat(40);
+    view.rerender(<SendBox {...props} value={draft} />);
+    fireEvent.scroll(editor, { target: { scrollTop: 200 } });
+    expect(screen.getByRole('button', { name: 'Input help' })).toBe(help);
+    fireEvent.click(help);
+    expect(screen.getByRole('dialog', { name: 'Input help' })).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(help).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Input help' })).not.toBeInTheDocument());
+    expect(editor).toHaveValue(draft);
+    expect(change).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+  });
 });
 
 describe('SendBox right-side tools', () => {

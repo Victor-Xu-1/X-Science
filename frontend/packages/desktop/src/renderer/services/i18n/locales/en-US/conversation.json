@@ -1209,6 +1209,13 @@
     "draftSaveFailed": "Draft changes are kept in this tab but could not be saved. Retry before closing.",
     "retryDraftSave": "Retry saving draft",
     "hint": "Type / for commands, @ to reference files",
+    "inputHelp": {
+      "title": "Input help",
+      "sessions": "Type # to reference sessions in this project.",
+      "send": "Enter to send.",
+      "newLine": "Shift+Enter for a new line.",
+      "history": "On the first input line, use Up Arrow for earlier prompts and Down Arrow to return to your draft."
+    },
     "invalidReference": "The reference format is invalid and could not be added to the message.",
     "contextOnlyPrompt": "Read and use the files, Skills, and MCP connectors I selected to complete this task.",
     "structuredContextNormalSend": "Send combined file, Skill, and MCP context normally or with Plan first.",

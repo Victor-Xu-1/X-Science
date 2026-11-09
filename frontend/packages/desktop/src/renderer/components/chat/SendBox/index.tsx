@@ -30,7 +30,16 @@ import { ArrowUp, Plus } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { buildSkillSlashCommands, mergeSlashCommands } from '@/common/chat/slash/mergeSlashCommands';
 import { theme } from '@office-ai/platform';
-import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
@@ -50,6 +59,7 @@ import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
+import ComposerInputHelp from './ComposerInputHelp';
 import { extractBtwQuestion, getSelectedItemMatchKeys } from './selectionModel';
 import { useSendBoxHistoryNavigation } from './useSendBoxHistoryNavigation';
 import { useComposerReferenceCatalog } from './useComposerReferenceCatalog';
@@ -145,6 +155,14 @@ const SendBox: React.FC<{
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
+  const inputHelpDescriptionId = useId();
+  const resolvedPlaceholder = isMobileCompact
+    ? (placeholder ?? (bottomHint as string | undefined) ?? t('conversation.sendbox.hint'))
+    : placeholder
+      ? bottomHint === ''
+        ? placeholder
+        : `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint')}`
+      : ((bottomHint as string | undefined) ?? t('conversation.sendbox.hint'));
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -1052,7 +1070,7 @@ const SendBox: React.FC<{
             </div>
           )}
           <div
-            className={`sendbox-highlight-container ${isSingleLine ? 'sendbox-highlight-container--single' : ''}`}
+            className={`sendbox-highlight-container sendbox-input-help-host ${isSingleLine ? 'sendbox-highlight-container--single' : ''}`}
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
@@ -1075,19 +1093,12 @@ const SendBox: React.FC<{
             </div>
             <Input.TextArea
               aria-label={t('conversation.sendbox.hint')}
+              aria-describedby={inputHelpDescriptionId}
               autoFocus={!isMobile}
               disabled={disabled}
               spellCheck={false}
               value={input}
-              placeholder={
-                isMobileCompact
-                  ? (placeholder ?? (bottomHint as string | undefined) ?? t('conversation.sendbox.hint'))
-                  : placeholder
-                    ? bottomHint === ''
-                      ? placeholder
-                      : `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint')}`
-                    : ((bottomHint as string | undefined) ?? t('conversation.sendbox.hint'))
-              }
+              placeholder={resolvedPlaceholder}
               className={`${
                 shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''
               }pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${
@@ -1135,6 +1146,12 @@ const SendBox: React.FC<{
                 return handleReferenceMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
               })}
             ></Input.TextArea>
+            <ComposerInputHelp
+              descriptionId={inputHelpDescriptionId}
+              promptHint={resolvedPlaceholder}
+              sessionReferences={Boolean(conversationContext?.projectId)}
+              scopeKey={conversationContext?.conversation_id}
+            />
           </div>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
