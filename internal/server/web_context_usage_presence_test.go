@@ -49,14 +49,14 @@ func TestContext395CallEvidenceCopyHistoryAndFailureBoundaries(t *testing.T) {
 	if first.CallUsage == nil || !first.CallUsage.Reported.Input {
 		t.Fatal("captured receipt shares the response Reported pointer")
 	}
-	latest, history, _, err := readRunnerContextUsage(store, recorder.sessionID)
+	latest, history, _, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || latest.CallUsage == nil || history.Samples[0].CallUsage == nil || !latest.CallUsage.InvalidFields.CacheWrite || latest.CallUsage.CacheReadTokens != 20 || latest.UsedTokens != 110 {
 		t.Fatalf("typed siblings/history or occupancy changed: latest=%+v history=%+v err=%v", latest, history, err)
 	}
 	second := recorder.begin("fixture-model", request)
 	unsafe := agentruntime.ModelUsage{InputTokens: 10, OutputTokens: 1, TotalTokens: 11, CacheReadTokens: int(^uint(0) >> 1), Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true}}
 	recorder.finish(second, agentruntime.ModelResponse{Usage: unsafe}, nil)
-	latest, history, _, err = readRunnerContextUsage(store, recorder.sessionID)
+	latest, history, _, err = readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || latest.CallUsage != nil || latest.UsedTokens != 11 || latest.Source != "provider" || history.Samples[0].RequestID != first.RequestID || history.Samples[0].CallUsage == nil {
 		t.Fatalf("unrepresentable optional metadata poisoned the old context contract: %+v %v", latest, err)
 	}

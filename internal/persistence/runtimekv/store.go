@@ -234,37 +234,7 @@ func (s *Store) GetContext(ctx context.Context, namespace string, key string) (E
 }
 
 func (s *Store) List(namespace string) ([]Entry, error) {
-	if namespace != "" {
-		if err := validateNamespace(namespace); err != nil {
-			return nil, err
-		}
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if err := s.ensureDatabase(); err != nil {
-		return nil, err
-	}
-	query := `SELECT namespace,entry_key,value_json,version,updated_at FROM runtime_state_entries`
-	args := []any{}
-	if namespace != "" {
-		query += ` WHERE namespace=?`
-		args = append(args, namespace)
-	}
-	query += ` ORDER BY namespace,entry_key`
-	rows, err := s.db.Query(query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("list runtime state: %w", err)
-	}
-	defer rows.Close()
-	entries := make([]Entry, 0)
-	for rows.Next() {
-		entry, err := scanEntry(rows)
-		if err != nil {
-			return nil, err
-		}
-		entries = append(entries, entry)
-	}
-	return entries, rows.Err()
+	return s.ListReadOnlyContext(context.Background(), namespace)
 }
 
 // ListReadOnly keeps the historical API name. SQLite already returns detached

@@ -201,7 +201,7 @@ func TestContextInspectorPinsRuntimeRequestSetBeforeJournalRead(t *testing.T) {
 	var later *runnerContextUsage
 	bundle, err := readContextUsageInspectionBundle(f.stream.SessionID, func() (runnerContextUsage, runnerContextHistory, bool, error) {
 		order = append(order, "runtime")
-		return readRunnerContextUsage(f.server.runtimeStore, f.stream.SessionID)
+		return readRunnerContextUsage(t.Context(), f.server.runtimeStore, f.stream.SessionID)
 	}, func() (*transcriptstore.ContextInspectionSnapshot, string, error) {
 		order = append(order, "journal")
 		// Real recorder retention advances between the two readers; it must
@@ -218,7 +218,7 @@ func TestContextInspectorPinsRuntimeRequestSetBeforeJournalRead(t *testing.T) {
 	if err != nil || bundle.inspectionError != nil || bundle.authority == nil || later == nil || strings.Join(order, ",") != "runtime,journal" {
 		t.Fatalf("ordered read failed: order=%v err=%v authorityErr=%v", order, err, bundle.inspectionError)
 	}
-	latest, live, found, err := readRunnerContextUsage(f.server.runtimeStore, f.stream.SessionID)
+	latest, live, found, err := readRunnerContextUsage(t.Context(), f.server.runtimeStore, f.stream.SessionID)
 	if err != nil || !found || latest.RequestID != later.RequestID || live.TotalObserved != contextHistoryRetention+1 ||
 		live.Samples[0].RequestID != history.Samples[1].RequestID {
 		t.Fatalf("fixture did not roll over: found=%v err=%v", found, err)
