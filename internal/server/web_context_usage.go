@@ -29,7 +29,7 @@ func (s *Server) handleWebContextUsage(w http.ResponseWriter, r *http.Request, f
 		}
 	}
 	bundle, err := readContextUsageInspectionBundle(frame.ID, func() (runnerContextUsage, runnerContextHistory, bool, error) {
-		return readRunnerContextUsage(s.runtimeStore, frame.ID)
+		return readRunnerContextUsage(r.Context(), s.runtimeStore, frame.ID)
 	}, readAuthority)
 	if err != nil {
 		log.Printf("context_usage_read_failed frame=%s: %v", frame.ID, err)

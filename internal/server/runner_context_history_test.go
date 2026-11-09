@@ -23,7 +23,7 @@ func TestContextHistoryBoundedRetentionPreservesProviderPeakAndScope(t *testing.
 		}
 		recorder.finish(snapshot, agentruntime.ModelResponse{Usage: agentruntime.ModelUsage{InputTokens: used, TotalTokens: used}}, nil)
 	}
-	latest, history, found, err := readRunnerContextUsage(store, recorder.sessionID)
+	latest, history, found, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || !found || len(history.Samples) != contextHistoryRetention || history.TotalObserved != contextHistoryRetention+3 ||
 		history.Peak == nil || history.Peak.RequestID != firstID || history.Peak.UsedTokens != 9000 || history.Peak.LimitTokens != 10000 ||
 		history.Samples[len(history.Samples)-1].RequestID != latest.RequestID {
@@ -49,12 +49,12 @@ func TestContextHistoryLiveProjectionAndLateCompletionKeepRequestIdentity(t *tes
 	if err := recorder.persist(*second, true); err != nil {
 		t.Fatal(err)
 	}
-	latest, history, _, err := readRunnerContextUsage(store, recorder.sessionID)
+	latest, history, _, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || latest.Progress == nil || history.Samples[1].Progress == nil || history.Samples[1].Progress.OutputTokens != 5 || history.Samples[1].LimitTokens != 0 {
 		t.Fatalf("live projection stale or rebound old capacity: %v %+v", err, history)
 	}
 	recorder.finish(first, agentruntime.ModelResponse{Usage: agentruntime.ModelUsage{InputTokens: 999, TotalTokens: 999}}, nil)
-	latest, history, _, err = readRunnerContextUsage(store, recorder.sessionID)
+	latest, history, _, err = readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || latest.RequestID != second.RequestID || history.TotalObserved != 2 || history.Peak.UsedTokens != 80 {
 		t.Fatalf("late completion replaced a newer request: %v %+v", err, history)
 	}
@@ -63,7 +63,7 @@ func TestContextHistoryLiveProjectionAndLateCompletionKeepRequestIdentity(t *tes
 		t.Fatal(err)
 	}
 	third := recorder.begin("second-model", agentruntime.ModelRequest{}, runnerContextCapacity{Source: "unknown"})
-	_, history, _, err = readRunnerContextUsage(store, recorder.sessionID)
+	_, history, _, err = readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || history.Samples[1].Progress == nil || history.Samples[1].Progress.Phase != "compacting" || history.Samples[2].RequestID != third.RequestID {
 		t.Fatalf("observed compaction pressure lost: %v %+v", err, history)
 	}
@@ -77,7 +77,7 @@ func TestContextHistoryLegacyCoverageAndInvalidHistoryAreExplicit(t *testing.T) 
 	if _, err := store.Delete(contextUsageNamespace(recorder.sessionID), "history"); err != nil {
 		t.Fatal(err)
 	}
-	_, history, _, err := readRunnerContextUsage(store, recorder.sessionID)
+	_, history, _, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || history.Coverage != "latest_only" || len(history.Samples) != 1 || history.TotalObserved != 1 {
 		t.Fatalf("invented historical coverage: %v %+v", err, history)
 	}
@@ -86,7 +86,7 @@ func TestContextHistoryLegacyCoverageAndInvalidHistoryAreExplicit(t *testing.T) 
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, _, err := readRunnerContextUsage(store, recorder.sessionID); err == nil {
+	if _, _, _, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID); err == nil {
 		t.Fatal("foreign/corrupt history silently presented as valid")
 	}
 }
@@ -111,7 +111,7 @@ func TestContextHistoryNextRequestRetainsInterruptedStreamProjection(t *testing.
 	if second == nil {
 		t.Fatal("next request not recorded")
 	}
-	_, history, _, err := readRunnerContextUsage(store, first.SessionID)
+	_, history, _, err := readRunnerContextUsage(t.Context(), store, first.SessionID)
 	if err != nil || len(history.Samples) != 2 || history.Samples[0].Progress == nil ||
 		history.Samples[0].Progress.OutputTokens != 123 || history.Samples[0].Progress.UsedTokens != first.Progress.UsedTokens {
 		t.Fatalf("new request discarded the prior durable stream projection: err=%v history=%+v", err, history)

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
@@ -117,8 +118,8 @@ func recordRunnerContextHistory(entries map[string]runtimekv.Entry, snapshot run
 
 // Latest and history are read under one store lock. A poll cannot mix the
 // previous request's history with the next request's stream or model capacity.
-func readRunnerContextUsage(store *runtimekv.Store, sessionID string) (runnerContextUsage, runnerContextHistory, bool, error) {
-	entries, err := store.ListReadOnly(contextUsageNamespace(sessionID))
+func readRunnerContextUsage(ctx context.Context, store *runtimekv.Store, sessionID string) (runnerContextUsage, runnerContextHistory, bool, error) {
+	entries, err := store.ListReadOnlyContext(ctx, contextUsageNamespace(sessionID))
 	if err != nil {
 		return runnerContextUsage{}, runnerContextHistory{}, false, err
 	}
