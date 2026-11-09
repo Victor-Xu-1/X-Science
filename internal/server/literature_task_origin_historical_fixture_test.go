@@ -63,6 +63,9 @@ func TestHistoricalTaskOriginFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			}
 			defer tx.Rollback()
 			requireReviewedHistoricalFixtureMigrations(t, tx)
+			if err := restoreEmptyHistoricalStudyBatchPredecessor(t, tx); err != nil {
+				t.Fatal(err)
+			}
 			if populated {
 				if _, err = tx.Exec(`INSERT INTO literature_candidates(id,owner_user_id,provider,external_id,title,metadata_json,state,created_at,updated_at) VALUES('historical-candidate','owner','fixture','record','Retained origin','{}','pending','2026-11-04','2026-11-04')`); err != nil {
 					t.Fatal(err)

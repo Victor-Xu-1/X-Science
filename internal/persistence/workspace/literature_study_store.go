@@ -55,6 +55,21 @@ func (s *Store) PublishLiteratureStudy(ctx context.Context, owner, id string, in
 		return result, ErrLiteratureInvalid
 	}
 	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
+		var err error
+		result, err = s.publishLiteratureStudyTx(ctx, tx, owner, id, input, snapshot)
+		return err
+	})
+	return result, err
+}
+
+// Both the single-paper endpoint and its bounded batch consumer publish through
+// this original transaction: source, revision and immutable receipt stay one authority.
+func (s *Store) publishLiteratureStudyTx(ctx context.Context, tx *sql.Tx, owner, id string, input LiteratureStudyGenerate, snapshot LiteratureStudySnapshot) (LiteratureStudyView, error) {
+	var result LiteratureStudyView
+	if !input.valid() || !validLiteratureID(owner) || !validLiteratureID(id) || !validStudySnapshot(snapshot) || snapshot.SourceKey != input.ExpectedSourceKey {
+		return result, ErrLiteratureInvalid
+	}
+	err := func() error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
@@ -102,6 +117,6 @@ func (s *Store) PublishLiteratureStudy(ctx context.Context, owner, id string, in
 		}
 		result = current
 		return insertMutationResultTx(ctx, tx, owner, input.OperationID, literatureStudyOperation, studyRequestHash(id, input), result, s.now().UTC())
-	})
+	}()
 	return result, err
 }

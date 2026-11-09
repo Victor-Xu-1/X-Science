@@ -15,6 +15,9 @@ import (
 func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx) {
 	t.Helper()
 	requireReviewedHistoricalFixtureMigrations(t, tx)
+	if err := restoreEmptyHistoricalStudyBatchPredecessor(t, tx); err != nil {
+		t.Fatal(err)
+	}
 	var facts int
 	if err := tx.QueryRowContext(t.Context(), `SELECT (SELECT COUNT(*) FROM project_literature)+
 		(SELECT COUNT(*) FROM literature_attachment_versions)+(SELECT COUNT(*) FROM literature_attachments)+
@@ -63,7 +66,7 @@ func dropEmptyReviewedMemoryAndLiteratureFixtureObjects(t *testing.T, tx *sql.Tx
 
 func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	t.Helper()
-	const reviewedTarget = 93
+	const reviewedTarget = 94
 	var versions, installed int
 	if err := tx.QueryRowContext(t.Context(), `SELECT COUNT(*),MAX(version) FROM workspace_schema_migrations`).Scan(&versions, &installed); err != nil || versions != reviewedTarget || installed != reviewedTarget {
 		t.Fatalf("historical reconstruction requires complete reviewed current%d schema: count=%d version=%d err=%v", reviewedTarget, versions, installed, err)
@@ -85,6 +88,8 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	// removed before the candidate parent. Populated origins remain protected.
 	// Reviewed93 widens the derived projection CHECK. Callers also restore the
 	// actual74/79 empty projection DDL before removing its migration receipt.
+	// Reviewed94 adds only the empty batch checkpoint. Its exact table and
+	// journal tail are removed before reconstructing any earlier predecessor.
 	// These must be removed before reconstructing the earlier Library-free shape.
 	// This explicit prospective removal must be reviewed again for a later
 	// schema. Merely accepting the new maximum would leave newer objects behind
@@ -93,10 +98,14 @@ func requireReviewedHistoricalFixtureMigrations(t *testing.T, tx *sql.Tx) {
 	if err != nil || expected.CurrentVersion != reviewedTarget || expected.TargetVersion != reviewedTarget || len(expected.Migrations) != reviewedTarget {
 		t.Fatalf("historical reconstruction has an unreviewed schema target: %+v err=%v", expected, err)
 	}
-	current := expected.Migrations[reviewedTarget-1]
-	if current.Version != reviewedTarget || current.Name != "transcript-web-projector-v15" ||
+	current := expected.Migrations[92]
+	if current.Version != 93 || current.Name != "transcript-web-projector-v15" ||
 		current.Checksum != "1b255447860d4db515f5e7aa651c6f3edca1bf3f425477a6a369ed626af92313" {
 		t.Fatalf("historical reconstruction requires the reviewed projector93 identity: %+v", current)
+	}
+	current94 := expected.Migrations[93]
+	if current94.Version != 94 || current94.Name != "literature-study-batch-checkpoint" || current94.Checksum != reviewedHistoricalStudyBatch94Checksum {
+		t.Fatalf("historical reconstruction requires the reviewed batch94 identity: %+v", current94)
 	}
 	original92 := expected.Migrations[91]
 	if original92.Version != 92 || original92.Name != "literature-candidate-task-origins" ||
@@ -274,6 +283,9 @@ func TestHistoricalAnnotationFixtureRestoresOnlyEmptyReviewedPredecessor(t *test
 			}
 			defer tx.Rollback()
 			requireReviewedHistoricalFixtureMigrations(t, tx)
+			if err := restoreEmptyHistoricalStudyBatchPredecessor(t, tx); err != nil {
+				t.Fatal(err)
+			}
 			if populated {
 				if _, err := tx.Exec(`INSERT INTO annotations(id,library_owner_id,target_kind,target_key,label_idx,body,created_at)
  VALUES('retained-note','retained-owner','literature-attachment-version','litv:litv_retained',0,'{"text":"Retained note"}','2026-01-01')`); err != nil {

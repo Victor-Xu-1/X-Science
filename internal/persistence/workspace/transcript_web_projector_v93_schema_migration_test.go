@@ -55,9 +55,21 @@ func TestTranscriptWebProjectorV93PreservesV14RowsAndMigrationHistory(t *testing
 		t.Fatal(err)
 	}
 	defer store.Close()
-	assertTranscriptWebV93Integrity(t, store.db, 93)
-	if !reflect.DeepEqual(afterJournal, readMigrationJournal(t, path)) ||
-		!reflect.DeepEqual(before, transcriptWebMigrationRows(t, store.db)) {
+	assertTranscriptWebV93Integrity(t, store.db, workspaceSchemaVersion)
+	reopenedJournal := readMigrationJournal(t, path)
+	if len(reopenedJournal) != workspaceSchemaVersion || len(reopenedJournal) < len(afterJournal) ||
+		!reflect.DeepEqual(afterJournal, reopenedJournal[:len(afterJournal)]) {
+		t.Fatal("normal reopen changed the immutable v93 journal prefix")
+	}
+	// Normal Open applies the current registry, including the separately tested
+	// additive batch checkpoint migration. Its new table must remain empty;
+	// all predecessor tables still require exact row equality.
+	retained := transcriptWebMigrationRows(t, store.db)
+	if rows, found := retained["literature_study_batches"]; !found || len(rows) != 0 {
+		t.Fatalf("reopen batch checkpoint missing or populated: rows=%#v found=%t", rows, found)
+	}
+	delete(retained, "literature_study_batches")
+	if !reflect.DeepEqual(before, retained) {
 		t.Fatal("normal reopen reran migration or changed original rows")
 	}
 }
