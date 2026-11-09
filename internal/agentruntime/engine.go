@@ -55,9 +55,10 @@ const (
 )
 
 type ToolCall struct {
-	ID        string          `json:"id"`
-	Name      string          `json:"name"`
-	Arguments json.RawMessage `json:"arguments,omitempty"`
+	ID                string               `json:"id"`
+	Name              string               `json:"name"`
+	Arguments         json.RawMessage      `json:"arguments,omitempty"`
+	originalArguments *toolArgumentsOrigin // Host-only, never provider JSON or admission authority.
 	// Resumed marks a durable call whose start boundary was committed by an
 	// earlier runner attempt. Recovery executes the exact same call without
 	// publishing a second start event, so one call never becomes two paths.

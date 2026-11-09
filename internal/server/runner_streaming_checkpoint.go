@@ -129,11 +129,14 @@ func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, op
 		} else if name == "" {
 			return err
 		}
-		arguments := call.Arguments
+		arguments, err := rejectedCheckpointArguments(call)
+		if err != nil {
+			return err
+		}
 		if kernelcontract.IsTool(name) && !call.RejectedBeforeExecution && !orderedKernelAdmission {
 			gateway, err := s.kernelCheckpointAdmissionGateway(ctx, options, run, name, gateways)
 			if err != nil {
-				return err
+				return classifySessionRunnerPreparationFailure("tool_checkpoint_authority", err)
 			}
 			arguments, err = normalizedKernelCheckpointArguments(gateway, name, arguments)
 			if err != nil {
@@ -149,13 +152,16 @@ func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, op
 			"name":      name,
 			"arguments": decodeToolEventJSON(string(arguments)),
 		}
-		if string(arguments) != string(call.Arguments) {
+		originalDigest, originalBytes, changed, err := checkpointOriginalArguments(call, arguments)
+		if err != nil {
+			return err
+		}
+		if changed {
 			// Non-authoritative provenance only. Execution and approval bind solely
 			// to arguments above. Do not duplicate the original body within the
 			// bounded event; its digest cannot reconstruct the original proposal.
-			originalDigest := sha256.Sum256(call.Arguments)
-			toolCallPayload["originalArgumentsSHA256"] = hex.EncodeToString(originalDigest[:])
-			toolCallPayload["originalArgumentsByteLength"] = len(call.Arguments)
+			toolCallPayload["originalArgumentsSHA256"] = originalDigest
+			toolCallPayload["originalArgumentsByteLength"] = originalBytes
 		}
 		if call.RejectedBeforeExecution {
 			toolCallPayload["rejectedBeforeExecution"] = true
@@ -262,7 +268,7 @@ func (s *Server) checkpointChatModelToolCallsWithContext(ctx context.Context, op
 			cacheKey, payload, true, destinations, commitHook, run,
 		)
 		if err != nil {
-			return err
+			return classifySessionRunnerPreparationFailure("tool_checkpoint_persistence", err)
 		}
 		if committedBatch.BatchID == "" || len(committedItems) != len(calls) {
 			return errors.New("durable model tool-call batch was not committed")

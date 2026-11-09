@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -13,6 +12,7 @@ import (
 	"x-science/internal/sciencecapability"
 	"x-science/internal/software"
 	"x-science/internal/software/localconda"
+	"x-science/internal/toolcontract"
 )
 
 // LegacyWorkspaceAlias identifies only the narrow absolute path shapes that
@@ -240,62 +240,5 @@ func CanonicalInput(tool string, raw json.RawMessage) ([]byte, string, error) {
 // ValidateJSON rejects duplicate object keys and trailing data before a model
 // input can become a durable authority record.
 func ValidateJSON(raw []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	if err := validateJSONValue(decoder); err != nil {
-		return err
-	}
-	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
-		return errors.New("kernel local operation input contains trailing JSON")
-	}
-	return nil
-}
-
-func validateJSONValue(decoder *json.Decoder) error {
-	token, err := decoder.Token()
-	if err != nil {
-		return err
-	}
-	delimiter, compound := token.(json.Delim)
-	if !compound {
-		return nil
-	}
-	switch delimiter {
-	case '{':
-		seen := map[string]struct{}{}
-		for decoder.More() {
-			keyToken, err := decoder.Token()
-			if err != nil {
-				return err
-			}
-			key, ok := keyToken.(string)
-			if !ok {
-				return errors.New("kernel local operation object key is invalid")
-			}
-			if _, duplicate := seen[key]; duplicate {
-				return errors.New("kernel local operation input contains a duplicate key")
-			}
-			seen[key] = struct{}{}
-			if err := validateJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		closing, err := decoder.Token()
-		if err != nil || closing != json.Delim('}') {
-			return errors.New("kernel local operation object is invalid")
-		}
-	case '[':
-		for decoder.More() {
-			if err := validateJSONValue(decoder); err != nil {
-				return err
-			}
-		}
-		closing, err := decoder.Token()
-		if err != nil || closing != json.Delim(']') {
-			return errors.New("kernel local operation array is invalid")
-		}
-	default:
-		return errors.New("kernel local operation JSON delimiter is invalid")
-	}
-	return nil
+	return toolcontract.ValidateJSON(raw)
 }
