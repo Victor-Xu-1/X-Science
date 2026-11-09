@@ -1211,6 +1211,7 @@
     "hint": "Type / for commands, @ to reference files",
     "inputHelp": {
       "title": "Input help",
+      "commandsOnly": "Type / for commands.",
       "sessions": "Type # to reference sessions in this project.",
       "send": "Enter to send.",
       "newLine": "Shift+Enter for a new line.",

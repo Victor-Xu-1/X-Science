@@ -7,6 +7,7 @@
 import FilePreview from '@/renderer/components/media/FilePreview';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import ComposerContextChips from '@/renderer/components/chat/SendBox/ComposerContextChips';
+import ComposerInputHelp from '@/renderer/components/chat/SendBox/ComposerInputHelp';
 import type {
   ComposerContextItem,
   ComposerArtifactContext,
@@ -15,7 +16,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input } from '@arco-design/web-react';
 import { Close, Paperclip } from '@icon-park/react';
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
 import type { GuidLocalFile } from '../hooks/useGuidInput';
@@ -148,6 +149,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const layout = useLayoutContext();
   const { t } = useTranslation();
   const isMobile = layout?.isMobile ?? false;
+  const inputHelpDescriptionId = useId();
   const { compositionHandlers, isComposing } = useCompositionInput();
   const textareaAutoSize = isMobile ? { minRows: 1, maxRows: 8 } : { minRows: 1, maxRows: 12 };
 
@@ -192,21 +194,31 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
             <ComposerContextChips items={contextItems} onRemove={onRemoveContextItem} onOpenArtifact={onOpenArtifact} />
           </div>
         ) : null}
-        <Input.TextArea
-          aria-label={t('conversation.welcome.placeholder')}
-          autoSize={textareaAutoSize}
-          placeholder={placeholder}
-          spellCheck={false}
-          className={`text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
-          value={input}
-          onChange={onInputChange}
-          onPaste={onPaste}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          {...compositionHandlers}
-          onKeyDown={handleKeyDown}
-          data-testid='guid-input'
-        />
+        <div className='relative sendbox-input-help-host'>
+          <Input.TextArea
+            aria-label={t('conversation.welcome.placeholder')}
+            aria-describedby={inputHelpDescriptionId}
+            autoSize={textareaAutoSize}
+            placeholder={placeholder}
+            spellCheck={false}
+            className={`text-14px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !py-0 !pr-0 !pl-7px ${styles.lightPlaceholder}`}
+            value={input}
+            onChange={onInputChange}
+            onPaste={onPaste}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            {...compositionHandlers}
+            onKeyDown={handleKeyDown}
+            data-testid='guid-input'
+          />
+          <ComposerInputHelp
+            descriptionId={inputHelpDescriptionId}
+            promptHint={t('conversation.welcome.placeholder')}
+            sessionReferences={false}
+            fileReferences={false}
+            historyNavigation={false}
+          />
+        </div>
         <div className={styles.composerSpacer} aria-hidden='true' />
         {(files.length > 0 || localFiles.length > 0) && (
           <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
