@@ -1,0 +1,57 @@
+.sendbox-input-help-host {
+  box-sizing: border-box;
+  padding-right: 28px;
+}
+
+.sendbox-input-help-host > .sendbox-highlight-layer {
+  right: 28px;
+}
+
+.composer-input-help-trigger {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-radius-sm, 4px);
+  background: transparent;
+  color: var(--color-text-3);
+  cursor: pointer;
+}
+
+.composer-input-help-trigger:hover {
+  background: var(--color-fill-2);
+  color: var(--text-primary);
+}
+
+.composer-input-help-trigger:focus-visible {
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
+  background: var(--color-fill-2);
+  color: var(--text-primary);
+}
+
+.composer-input-help-content {
+  width: 272px;
+  max-width: calc(100vw - 48px);
+  font-size: var(--ui-font-body);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.composer-input-help-content p {
+  margin: 0;
+}
+
+.composer-input-help-content p + p {
+  margin-top: 6px;
+}
+
+.composer-input-help-title {
+  font-weight: 500;
+}
