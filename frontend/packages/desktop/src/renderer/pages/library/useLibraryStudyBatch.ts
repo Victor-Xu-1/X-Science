@@ -32,9 +32,9 @@ export function useLibraryStudyBatch(account: string, language: string, selectio
   const publish = useCallback((next: LiteratureStudyBatchView) => {
     const previous = owner.current.view;
     if (
-      previous?.batch?.id === next.batch?.id &&
-      previous.batch &&
+      previous?.batch &&
       next.batch &&
+      previous.batch.id === next.batch.id &&
       previous.batch.revision > next.batch.revision
     )
       return;
