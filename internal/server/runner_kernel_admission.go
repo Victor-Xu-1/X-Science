@@ -77,7 +77,7 @@ func normalizedKernelCheckpointArguments(
 	// Decoding must not turn duplicate keys or trailing data into a newly
 	// executable proposal; the durable kernel contract rejects both shapes.
 	if err := kernelcontract.ValidateJSON(raw); err != nil {
-		return nil, err
+		return nil, classifySessionRunnerPreparationFailure("tool_arguments", err)
 	}
 	var input map[string]any
 	if json.Unmarshal(raw, &input) != nil || input == nil {
@@ -85,7 +85,7 @@ func normalizedKernelCheckpointArguments(
 	}
 	encoded, err := json.Marshal(gateway.normalizeAdmittedToolArguments(name, input))
 	if err != nil {
-		return nil, err
+		return nil, classifySessionRunnerPreparationFailure("tool_arguments", err)
 	}
 	return encoded, nil
 }

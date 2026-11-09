@@ -40,6 +40,10 @@ func (recovery *modelPresentationRecovery) finish(ctx context.Context, engine En
 	if err != nil {
 		return ModelResponse{}, nil, err
 	}
+	response.Message.ToolCalls, err = prepareModelToolArguments(response.Message.ToolCalls)
+	if err != nil {
+		return ModelResponse{}, nil, err
+	}
 	if recovery.failure == nil {
 		return response, buffered, nil
 	}
