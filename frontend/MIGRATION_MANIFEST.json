@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "082f7c582b2769c57090f63fbe218ec93d971a8d75f915c0b6f855d71d23db76",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9092a24ead6c81c908c8a4bae44f8907c07e51f8274df720fed19e3a033c0856",
+  "additionFingerprintSHA256": "78697bde06b9793439c583326a604d3801befec88d5bc2facd34af2ee7fe1515",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -9189,8 +9189,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/RemoteToolDetailTree.tsx",
-      "sha256": "82f138629c266de71bc8b3726889fc45b14c204601a73b0df6db01b0a0eafbce",
-      "bytes": 9209,
+      "sha256": "bc7659f1418685a6d824fdc58211b7667ce3b2ce2c2a75e304fb221787b2cc49",
+      "bytes": 9225,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -9237,8 +9237,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Messages/toolDetails/detailValueProjection.ts",
-      "sha256": "0c717d3b04aebd3e91cb8d2741bd5a0daeb1738af435cb8d2ffc416fae6e9176",
-      "bytes": 5747,
+      "sha256": "32a825c1fec47465e61878b5b00b9f6748c13b9f2427c883f688bf6f65430128",
+      "bytes": 6320,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13893,8 +13893,8 @@
     },
     {
       "path": "tests/unit/renderer/RemoteToolDetailTree.dom.test.tsx",
-      "sha256": "2da657db8d25b79536a9621c70221ba2440900bb4cfa80a1fa7b42f55d3c8fb3",
-      "bytes": 6801,
+      "sha256": "71b11d5b4f7d37cf404a2da910908847a29419c9c19cfa44b1113f36dc47a5cc",
+      "bytes": 9833,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
