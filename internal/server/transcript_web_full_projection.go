@@ -26,11 +26,11 @@ func (s *Server) rebuildTranscriptWebFullProjection(
 		StreamUID: captured.StreamUID, BranchID: captured.BranchID,
 		BranchGeneration: captured.BranchGeneration, ThroughPublicationSequence: captured.ThroughPublicationSequence,
 	}
-	messages, err := s.projectTranscriptWebHistoryPrefix(ctx, stream, work.OwnerID, work.SessionID, snapshot)
+	messages, metadata, err := s.projectTranscriptWebHistoryPrefix(ctx, stream, work.OwnerID, work.SessionID, snapshot)
 	if err != nil {
 		return fmt.Errorf("full history projection: %w", err)
 	}
-	return s.finishTranscriptWebFullProjection(ctx, stream, work, captured, messages, snapshot)
+	return s.finishTranscriptWebFullProjection(ctx, stream, work, captured, messages, metadata, snapshot)
 }
 
 func (s *Server) transcriptWebFullProjectionFence(
@@ -62,6 +62,7 @@ func (s *Server) finishTranscriptWebFullProjection(
 	work transcriptstore.TranscriptWebProjectionWork,
 	captured transcriptstore.TranscriptWebProjectionFence,
 	messages []map[string]any,
+	metadata transcriptWebProjectionSourceMetadata,
 	snapshot transcriptstore.ProjectionSnapshot,
 ) error {
 	if !transcriptWebFullProjectionSourceMatches(stream, work, captured) ||
@@ -72,11 +73,6 @@ func (s *Server) finishTranscriptWebFullProjection(
 	}
 	if _, err := s.transcriptWebFullPrefixCurrentFence(ctx, work, captured, snapshot); err != nil {
 		return err
-	}
-	noteTranscriptWebReadStage(ctx, webReadMetadata)
-	metadata, err := s.projectTranscriptWebSourceMetadata(ctx, stream, work.OwnerID, work.SessionID, snapshot)
-	if err != nil {
-		return fmt.Errorf("source metadata: %w", err)
 	}
 	noteTranscriptWebReadStage(ctx, webReadRecords)
 	records, references, err := buildTranscriptWebMessageRecords(messages, metadata)
