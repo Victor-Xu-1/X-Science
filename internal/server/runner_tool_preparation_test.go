@@ -87,11 +87,11 @@ func TestToolCheckpointPreservesStaleClaimAndOwnerFences(t *testing.T) {
 		} else {
 			authority.Claim.ClaimToken += "-stale"
 		}
-		run := *fixture.run
+		run := fixture.run
 		run.Transcript = &authority
 		call := agentruntime.ToolCall{ID: "rejected-stale", Name: "bash", Arguments: json.RawMessage(`[]`), RejectedBeforeExecution: true,
 			PreExecutionRejection: json.RawMessage(`{"ok":false,"executed":false,"code":"invalid_tool_arguments","message":"Invalid proposal."}`)}
-		err := fixture.server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID}, &run, []agentruntime.ToolCall{call})
+		err := fixture.server.checkpointChatModelToolCalls(SessionRunnerChatOptions{RunnerID: fixture.claim.RunnerID}, run, []agentruntime.ToolCall{call})
 		if !errors.Is(err, want) || len(run.ToolBatchIDs) != 0 {
 			t.Fatalf("authority failure changed: expected=%v actual=%v", want, err)
 		}
