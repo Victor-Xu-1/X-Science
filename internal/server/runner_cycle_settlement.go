@@ -85,9 +85,14 @@ func (s *Server) settleSessionRunnerChatOutcomeWithCleanup(
 		retainFinalResponse = transcriptAuthority != nil && strings.TrimSpace(assistantMessage) != "" &&
 			sessionRunnerRetainsArtifactEvidenceCandidate(chatErr)
 		filesystem := sessionRunnerFilesystemFailure(loggedErr)
+		preparationStage := ""
+		var preparation sessionRunnerPreparationFailure
+		if errors.As(chatErr, &preparation) {
+			preparationStage = preparation.diagnosticStage()
+		}
 		log.Printf(
-			"session runner chat failed session=%q attempt=%d err_type=%T reason=%q filesystem_op=%q filesystem_kind=%q filesystem_errno=%d",
-			session.ID, result.Attempt, loggedErr, failureReason, filesystem.operation, filesystem.kind, filesystem.errno,
+			"session runner chat failed session=%q attempt=%d err_type=%T reason=%q filesystem_op=%q filesystem_kind=%q filesystem_errno=%d preparation_stage=%q",
+			session.ID, result.Attempt, loggedErr, failureReason, filesystem.operation, filesystem.kind, filesystem.errno, preparationStage,
 		)
 	}
 	hookCtx := ctx

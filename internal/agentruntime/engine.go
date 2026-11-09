@@ -58,6 +58,9 @@ type ToolCall struct {
 	ID        string          `json:"id"`
 	Name      string          `json:"name"`
 	Arguments json.RawMessage `json:"arguments,omitempty"`
+	// Host-only provenance of an invalid proposal replaced with an inert object.
+	// It conveys no admission authority and is never part of provider JSON.
+	originalArguments *toolArgumentsOrigin
 	// Resumed marks a durable call whose start boundary was committed by an
 	// earlier runner attempt. Recovery executes the exact same call without
 	// publishing a second start event, so one call never becomes two paths.

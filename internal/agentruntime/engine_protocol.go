@@ -217,6 +217,9 @@ func applyToolSchemaDefaults(calls []ToolCall, schemas []ToolSchema) []ToolCall 
 	}
 	var normalized []ToolCall
 	for index, call := range calls {
+		if call.ProviderProtocolDiagnostic != "" || call.RejectedBeforeExecution {
+			continue
+		}
 		schema, found := schemaByName[strings.TrimSpace(call.Name)]
 		if !found {
 			continue
