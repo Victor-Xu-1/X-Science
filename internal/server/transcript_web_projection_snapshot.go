@@ -6,22 +6,6 @@ import (
 	transcriptstore "x-science/internal/persistence/transcript"
 )
 
-func (s *Server) projectTranscriptWebHistoryPrefix(
-	ctx context.Context,
-	stream transcriptstore.Stream,
-	ownerID, sessionID string,
-	snapshot transcriptstore.ProjectionSnapshot,
-) ([]map[string]any, error) {
-	messages, _, err := s.projectTranscriptWebHistoryWithVisitor(ctx, stream, ownerID, sessionID, 1,
-		func(visit func(transcriptstore.ProjectedEvent) error) (transcriptstore.ProjectionSnapshot, error) {
-			if err := s.visitTranscriptWebProjectionPrefix(ctx, stream, ownerID, snapshot, false, visit); err != nil {
-				return transcriptstore.ProjectionSnapshot{}, err
-			}
-			return snapshot, nil
-		})
-	return messages, err
-}
-
 func (s *Server) transcriptWebProjectionVisitor(
 	ctx context.Context,
 	ownerID string,
@@ -72,18 +56,6 @@ func (s *Server) visitTranscriptWebProjectionSnapshotRaw(
 		return transcriptstore.ErrBranchStateStale
 	}
 	return nil
-}
-
-func (s *Server) visitTranscriptWebProjectionPrefix(
-	ctx context.Context,
-	stream transcriptstore.Stream,
-	ownerID string,
-	snapshot transcriptstore.ProjectionSnapshot,
-	coordinateOnly bool,
-	visit func(transcriptstore.ProjectedEvent) error,
-) error {
-	return s.visitTranscriptWebProjectionPrefixRaw(ctx, stream, ownerID, snapshot, coordinateOnly,
-		s.transcriptWebProjectionVisitor(ctx, ownerID, visit))
 }
 
 // Prefix traversal proves owner/branch/generation and bounded event membership,

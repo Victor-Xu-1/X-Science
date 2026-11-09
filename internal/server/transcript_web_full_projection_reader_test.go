@@ -37,11 +37,12 @@ func TestTranscriptWebFullProjectionDoesNotWaitForUnrelatedWriter(t *testing.T) 
 		err      error
 	}
 	project := func(ctx context.Context) result {
-		messages, snapshot, err := fixture.server.projectTranscriptWebHistory(ctx, fixture.stream,
-			fixture.stream.OwnerID, fixture.stream.SessionID, fixture.fence.BranchID)
+		snapshot, err := fixture.repository.GetBranchProjectionSnapshot(ctx, fixture.stream.UID,
+			fixture.stream.OwnerID, fixture.fence.BranchID)
+		var messages []map[string]any
 		var metadata transcriptWebProjectionSourceMetadata
 		if err == nil {
-			metadata, err = fixture.server.projectTranscriptWebSourceMetadata(ctx, fixture.stream,
+			messages, metadata, err = fixture.server.projectTranscriptWebHistoryPrefix(ctx, fixture.stream,
 				fixture.stream.OwnerID, fixture.stream.SessionID, snapshot)
 		}
 		return result{messages, snapshot, metadata, err}

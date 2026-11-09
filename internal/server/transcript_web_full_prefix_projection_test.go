@@ -114,6 +114,7 @@ type transcriptWebCapturedFullProjection struct {
 	fence    transcriptstore.TranscriptWebProjectionFence
 	snapshot transcriptstore.ProjectionSnapshot
 	messages []map[string]any
+	metadata transcriptWebProjectionSourceMetadata
 }
 
 func captureTranscriptWebFullProjection(t *testing.T) transcriptWebCapturedFullProjection {
@@ -123,19 +124,19 @@ func captureTranscriptWebFullProjection(t *testing.T) transcriptWebCapturedFullP
 	fence := requireTranscriptWebReadModelFence(t, fixture.readModel, fixture.stream, work.BranchID)
 	snapshot := transcriptstore.ProjectionSnapshot{StreamUID: fence.StreamUID, BranchID: fence.BranchID,
 		BranchGeneration: fence.BranchGeneration, ThroughPublicationSequence: fence.ThroughPublicationSequence}
-	messages, err := fixture.server.projectTranscriptWebHistoryPrefix(
+	messages, metadata, err := fixture.server.projectTranscriptWebHistoryPrefix(
 		t.Context(), fixture.stream, fixture.stream.OwnerID, fixture.stream.SessionID, snapshot,
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return transcriptWebCapturedFullProjection{fixture: fixture, work: work, fence: fence, snapshot: snapshot, messages: messages}
+	return transcriptWebCapturedFullProjection{fixture: fixture, work: work, fence: fence, snapshot: snapshot, messages: messages, metadata: metadata}
 }
 
 func (captured transcriptWebCapturedFullProjection) finish(t *testing.T) error {
 	t.Helper()
 	return captured.fixture.server.finishTranscriptWebFullProjection(
-		t.Context(), captured.fixture.stream, captured.work, captured.fence, captured.messages, captured.snapshot,
+		t.Context(), captured.fixture.stream, captured.work, captured.fence, captured.messages, captured.metadata, captured.snapshot,
 	)
 }
 
