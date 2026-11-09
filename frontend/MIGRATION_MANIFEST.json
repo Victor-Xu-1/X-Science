@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "20c822cacf2988c15a32ca7727bc2cc33cc32c83998bfc64cbb6254a0ce1d13e",
+  "adaptationFingerprintSHA256": "34f4f84e795ee5f1c2144a1e6614c08a058615f396332349ee2d1b85eb243630",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "8fe1dcc06747a84ece41e50d51a9a8c1214495cbe208e08c3c5cc27b86ee26f4",
+  "additionFingerprintSHA256": "409aaeb36e7634bb3fc4076786b6b6d5b243d285ed87097b2ad7a9bf02d5a3f8",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1510
+    "addedFiles": 1512
   },
   "adaptations": [
     {
@@ -456,8 +456,8 @@
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/index.tsx",
       "sourceSHA256": "90378dc6801ee6b020e16d29c3b7f6fef1a64e3dedc997e94398349ce6814234",
-      "targetSHA256": "7d0581bb98d3332faacf36aab83a22d2d368fe41194196e01aa3b8c5a25c427a",
-      "bytes": 45409,
+      "targetSHA256": "b02e1f1fec93907a3a927e2e592a7dade1b9dbb11b98032dc8b957656a634d6b",
+      "bytes": 45825,
       "reason": "Connect the composer, queue, attachments, and chat actions to the Go-owned conversation runtime with localized responsive states."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "c3095f3bd874f15b19ef979ff4555e2ba2157618c4d564b20f947e10d9bbda07",
-      "bytes": 141280,
+      "targetSHA256": "78c11794b937cec69f69135028ecf29c7ea8757d7be4680fc43784e55a19f098",
+      "bytes": 141599,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "d4baddb829c682970920cdfda61bc9e64ec482331e3ee3e604c245c13403772a",
-      "bytes": 133549,
+      "targetSHA256": "3257969b0e5028f7aa9d4b65265797cbc49fc6a9e7818e8edbe0b9c8d9e1c5cf",
+      "bytes": 133872,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7988,6 +7988,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/components/chat/SendBox/ComposerInputHelp.tsx",
+      "sha256": "fe70038f09bc2b746b3fc4496696eb49f8bb1003bc883e3236deaff59db9ea77",
+      "bytes": 2472,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/ConversationExportFileNamePanel.tsx",
       "sha256": "0a517bad9e9b3bc8b023b03743a91358416266939c6d93ee84ff09d7b8fec1d8",
       "bytes": 1932,
@@ -8015,6 +8021,12 @@
       "path": "packages/desktop/src/renderer/components/chat/SendBox/composerCompositionModel.ts",
       "sha256": "7f5e1b612a9c132df35bd9989645f97a4c8d4478e4344daea5fb5fdca0fbb63b",
       "bytes": 6578,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/components/chat/SendBox/composerInputHelp.css",
+      "sha256": "b2aaa37375e8524e8c6efa0b0a382ed0ad1c84668c0b88f914c764bf1110974c",
+      "bytes": 1131,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14181,8 +14193,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/SendBoxRightTools.dom.test.tsx",
-      "sha256": "9bf9ac125f9470f1f931c86b7ab7435b809f0257b1e4403d3f2c7d5ab737bc44",
-      "bytes": 9067,
+      "sha256": "393a31a22250da1cb29e21c0a0702537505ea7c932512c4ac5718a715bf55469",
+      "bytes": 14459,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
