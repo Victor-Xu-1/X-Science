@@ -86,6 +86,9 @@ function Harness({
   const model = useLibraryStudyBatch(account, 'en-US', JSON.stringify(ids));
   return (
     <>
+      <output data-testid='checkpoint-status' hidden>
+        {model.view === undefined ? 'unread' : model.view.batch === null ? 'empty' : 'present'}
+      </output>
       <LibrarySelectionToolbar
         selection={{ allMatchingSelected: false, selectedIds: ids, excludedMatchingIds: [] }}
         canSelectAllMatching={false}
@@ -137,6 +140,80 @@ afterEach(() => {
 });
 
 describe('resumable selected-paper overviews', () => {
+  it('accepts an initial empty checkpoint without showing a failed batch panel', async () => {
+    const initial = deferred<LiteratureStudyBatchView>();
+    vi.mocked(requestStudyBatch).mockReturnValue(initial.promise);
+    await renderWithI18n(<Harness />, 'en-US');
+    await act(async () => initial.resolve({ ...checkpoint(), batch: null }));
+    expect(screen.getByTestId('checkpoint-status')).toHaveTextContent('empty');
+    expect(screen.queryByRole('region', { name: 'Batch overviews' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(requestStudyBatch).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(requestStudyBatch).mock.calls[0][1]).toBeUndefined();
+    expect(loadLiteratureItem).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a saved checkpoint to empty and can start a new batch afterwards', async () => {
+    const completedBatch = completed(checkpoint());
+    const saved = { ...completedBatch, batch: { ...completedBatch.batch!, revision: 20 } };
+    let reads = 0;
+    let next = checkpoint();
+    const commands: LiteratureStudyBatchCommand[] = [];
+    vi.mocked(requestStudyBatch).mockImplementation(async (_signal, command) => {
+      if (!command) return ++reads === 1 ? saved : { ...checkpoint(), batch: null };
+      commands.push(command);
+      if (command.action === 'start') {
+        next = { ...checkpoint(), batch: { ...checkpoint().batch!, id: command.operation_id } };
+        return copy(next);
+      }
+      if (command.action === 'advance') return completed(next);
+      throw new Error('Unexpected checkpoint command');
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    expect(await screen.findByText('2 / 2 saved')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /Batch overviews/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh checkpoint' }));
+    await waitFor(() => expect(screen.getByTestId('checkpoint-status')).toHaveTextContent('empty'));
+    expect(screen.queryByRole('region', { name: 'Batch overviews' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Generate selected overviews' }));
+    expect(await screen.findByText('2 / 2 saved')).toBeVisible();
+    expect(commands.map((command) => command.action)).toEqual(['start', 'advance']);
+    expect(next.batch!.id).not.toBe(saved.batch!.id);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('keeps a newer checkpoint revision when an older advance response arrives', async () => {
+    let value: LiteratureStudyBatchView = { ...checkpoint(), batch: null };
+    const advance = deferred<LiteratureStudyBatchView>();
+    let tick: (() => void) | undefined;
+    const originalInterval = globalThis.setInterval;
+    vi.spyOn(globalThis, 'setInterval').mockImplementation((handler, delay, ...args) => {
+      if (delay !== 1000) return originalInterval(handler, delay, ...args);
+      tick = handler as () => void;
+      return 124 as unknown as ReturnType<typeof setInterval>;
+    });
+    vi.mocked(requestStudyBatch).mockImplementation(async (_signal, command) => {
+      if (command?.action === 'start')
+        value = { ...checkpoint(), batch: { ...checkpoint().batch!, id: command.operation_id } };
+      if (command?.action === 'advance') return advance.promise;
+      return copy(value);
+    });
+    await renderWithI18n(<Harness />, 'en-US');
+    fireEvent.click(screen.getByRole('button', { name: 'Generate selected overviews' }));
+    await waitFor(() => expect(tick).toBeTypeOf('function'));
+    const older = { ...copy(value), batch: { ...value.batch!, revision: 2, paused: true } };
+    const completedBatch = completed(value);
+    value = { ...completedBatch, batch: { ...completedBatch.batch!, revision: 10 } };
+    await act(async () => tick!());
+    expect(await screen.findByText('2 / 2 saved')).toBeVisible();
+    await act(async () => advance.resolve(older));
+    expect(screen.getByText('2 / 2 saved')).toBeVisible();
+    expect(screen.queryByText('0 / 2 saved')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate selected overviews' })).toBeEnabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('keeps the next account wave progress owner when the old advance arrives late', async () => {
     const oldAdvance = deferred<LiteratureStudyBatchView>();
     const nextAdvance = deferred<LiteratureStudyBatchView>();
