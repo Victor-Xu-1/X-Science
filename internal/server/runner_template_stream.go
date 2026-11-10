@@ -228,7 +228,7 @@ func scanRunnerTemplateFailures(ctx context.Context, source io.ReadSeeker, name 
 			lastNonSpace = tail
 		}
 	}
-	firstFailure := ""
+	firstFailure, artifactFailure := "", ""
 	for {
 		value, err := cursor.read()
 		if errors.Is(err, io.EOF) {
@@ -260,21 +260,28 @@ func scanRunnerTemplateFailures(ctx context.Context, source io.ReadSeeker, name 
 		if err != nil {
 			return nil, err
 		}
-		if !token.matched || firstFailure != "" {
+		if !token.matched {
 			continue
 		}
 		if !strings.HasPrefix(strings.ToLower(token.text), "artifact:") {
-			firstFailure = "unresolved_template_marker:" + name
+			if firstFailure == "" {
+				firstFailure = "unresolved_template_marker:" + name
+			}
 		} else {
 			reference := strings.TrimSpace(token.text[len("artifact:"):])
-			if _, err := uuid.Parse(reference); err != nil || token.oversized {
+			if _, err := uuid.Parse(reference); (err != nil || token.oversized) && artifactFailure == "" {
 				if token.oversized {
-					firstFailure = "malformed_artifact_placeholder:" + name + " value_sha256=" + token.digest
+					artifactFailure = "malformed_artifact_placeholder:" + name + " value_sha256=" + token.digest
 				} else {
-					firstFailure = "malformed_artifact_placeholder:" + name + " value=" + reference
+					artifactFailure = "malformed_artifact_placeholder:" + name + " value=" + reference
 				}
 			}
 		}
+	}
+	// A presentation finding cannot hide a reference-integrity defect in the
+	// same file, irrespective of token order or surrounding template syntax.
+	if artifactFailure != "" {
+		return []string{artifactFailure}, nil
 	}
 	lowerPrefix := strings.ToLower(string(prefix))
 	lastNonSpaceTail := string(lastNonSpace[:])

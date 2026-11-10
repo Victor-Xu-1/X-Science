@@ -24,6 +24,9 @@ func sessionRunnerObserveUnsupportedCitationAdvisories(references []string) {
 // policy only separates execution-blocking integrity failures from
 // non-blocking quality feedback. It is deliberately domain-neutral.
 func sessionRunnerCompletionAdvisoryCrossArtifactFailure(failure string) bool {
+	if sessionRunnerTemplateQualityFinding(failure) {
+		return true
+	}
 	failure = strings.ToLower(strings.TrimSpace(failure))
 	for _, prefix := range []string{
 		"numeric_table_mismatch:",

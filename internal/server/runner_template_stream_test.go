@@ -22,6 +22,16 @@ func legacyRunnerCrossArtifactTemplateFailures(name, content string) []string {
 	default:
 		return nil
 	}
+	// Integrity findings take precedence over presentation-quality findings.
+	for _, match := range legacyRunnerCrossArtifactMustachePattern.FindAllStringSubmatch(content, -1) {
+		inner := strings.TrimSpace(match[1])
+		if strings.HasPrefix(strings.ToLower(inner), "artifact:") {
+			reference := strings.TrimSpace(inner[len("artifact:"):])
+			if _, err := uuid.Parse(reference); err != nil {
+				return []string{"malformed_artifact_placeholder:" + name + " value=" + reference}
+			}
+		}
+	}
 	if legacyRunnerCrossArtifactWholeFileScriptTemplate(content) {
 		return []string{"unresolved_template_marker:" + name}
 	}

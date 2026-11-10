@@ -242,7 +242,8 @@ func (s *Server) executeAgentSaveArtifacts(
 			retention = "snapshot"
 		}
 		normalizedReferences, normalizationErr := s.prepareAgentSavedArtifactReportBytes(ctx, relativePath, stream.ProjectID, retention, snapshot)
-		if normalizationErr != nil {
+		templateFindings := agentSavedArtifactTemplateQualityFindings(normalizationErr)
+		if normalizationErr != nil && len(templateFindings) == 0 {
 			_ = snapshot.Close()
 			_ = os.Remove(snapshotPath)
 			failures = append(failures, agentSaveArtifactFailure(relativePath, normalizationErr))
@@ -426,6 +427,9 @@ func (s *Server) executeAgentSaveArtifacts(
 				request.Checkpoints[relativePath], stream.RootFrameID,
 				request.Environment, retention, intermediate, true,
 			))
+			if warning := agentSavedArtifactTemplateWarning(relativePath, artifact.ID, version, templateFindings); warning != nil {
+				warnings = append(warnings, warning)
+			}
 			if scientificUnavailable != "" {
 				warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
 			}
@@ -481,6 +485,9 @@ func (s *Server) executeAgentSaveArtifacts(
 			artifactResult["retention_error"] = retentionError
 		}
 		artifacts = append(artifacts, artifactResult)
+		if warning := agentSavedArtifactTemplateWarning(relativePath, artifact.ID, version, templateFindings); warning != nil {
+			warnings = append(warnings, warning)
+		}
 		if scientificUnavailable != "" {
 			warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
 		}

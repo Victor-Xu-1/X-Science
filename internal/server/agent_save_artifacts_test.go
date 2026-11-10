@@ -888,7 +888,7 @@ func TestAgentSaveArtifactsPublishesValidMachineReadableJSONAndRejectsMalformedJ
 	}
 }
 
-func TestAgentSaveArtifactsRejectsUnrenderedTemplateBeforeCanonicalWrite(t *testing.T) {
+func TestAgentSaveArtifactsWarnsForUnrenderedTemplateAfterCanonicalWrite(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/report.md", "# Results\n{% for row in results %}\n{{ row.value }}\n{% endfor %}\n")
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "execution-unrendered-template", 1, write)
@@ -899,19 +899,10 @@ func TestAgentSaveArtifactsRejectsUnrenderedTemplateBeforeCanonicalWrite(t *test
 	result, err := fixture.server.executeAgentSaveArtifacts(
 		fixture.toolContext(t, "save-unrendered-template", input), fixture.identity, "save-unrendered-template", input,
 	)
-	if !errors.Is(err, errAgentSaveArtifactsNoResults) {
+	if err != nil {
 		t.Fatalf("unrendered template err=%v result=%#v", err, result)
 	}
-	failures := agentSaveArtifactFailures(t, result)
-	if len(failures) != 1 {
-		t.Fatalf("template failures=%#v", result)
-	}
-	assertAgentSaveArtifactFailure(t, failures[0], "out/report.md", "unresolved_template_marker")
-	recovery := failures[0]["recovery"].(map[string]any)
-	if !strings.Contains(stringValue(recovery["template_policy"]), "final rendered bytes") {
-		t.Fatalf("template recovery=%#v", recovery)
-	}
-	assertAgentSaveArtifactsNoCanonicalWrites(t, fixture)
+	assertTemplateQualityCommittedWarning(t, fixture, result, "out/report.md")
 }
 
 func TestAgentSaveArtifactsAllowsRenderedMarkdownFormula(t *testing.T) {
