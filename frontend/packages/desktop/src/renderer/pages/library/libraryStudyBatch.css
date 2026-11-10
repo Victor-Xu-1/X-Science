@@ -116,8 +116,8 @@ button.library-study-batch__row:hover {
   transform: rotate(90deg);
 }
 .library-study-batch button:focus-visible {
-  outline: 2px solid var(--primary-6, #7c82df);
-  outline-offset: 2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 @media (max-width: 640px) {
   .library-study-batch__card {

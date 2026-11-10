@@ -372,11 +372,11 @@
 .tags-workbench button:focus-visible,
 .tags-workbench a:focus-visible,
 .tag-editor__name input:focus-visible {
-  outline: 2px solid var(--workspace-accent);
-  outline-offset: 2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 .tag-editor__choices input:focus-visible + span {
-  outline: 2px solid var(--workspace-accent);
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
   outline-offset: 3px;
 }
 @media (max-width: 640px) {

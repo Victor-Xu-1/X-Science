@@ -175,14 +175,19 @@ describe('conversation visual system CSS', () => {
     const css = readFileSync(layoutCssPath, 'utf8');
 
     expect(css).toMatch(
-      /\.x-science-sidebar-new-chat > span:first-child\s*\{[^}]*box-sizing:\s*border-box[^}]*width:\s*28px[^}]*height:\s*28px[^}]*border:\s*0[^}]*border-radius:\s*8px[^}]*background:\s*var\(--x-science-sidebar-hover\)/s
+      /\.x-science-sidebar-new-chat\s*\{[^}]*box-sizing:\s*border-box[^}]*display:\s*flex[^}]*width:\s*100%[^}]*min-height:\s*32px[^}]*align-items:\s*center[^}]*gap:\s*6px[^}]*padding:\s*6px 10px[^}]*background:\s*transparent/s
     );
     expect(css).toMatch(
-      /\.x-science-sidebar-new-chat \.i-icon\s*\{[^}]*display:\s*inline-flex[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*line-height:\s*0/s
+      /\.x-science-sidebar-new-chat-icon\s*\{[^}]*display:\s*flex[^}]*width:\s*14px[^}]*height:\s*14px[^}]*flex:\s*0 0 14px[^}]*align-items:\s*center[^}]*justify-content:\s*center[^}]*line-height:\s*0/s
     );
-    expect(css).toMatch(/\.x-science-sidebar-new-chat \.i-icon svg\s*\{[^}]*display:\s*block/s);
     expect(css).toMatch(
-      /\.x-science-sidebar-new-chat > span:last-child\s*\{[^}]*display:\s*flex[^}]*align-items:\s*center[^}]*min-height:\s*24px[^}]*line-height:\s*24px/s
+      /\.x-science-sidebar-new-chat-icon :is\(\.i-icon, svg\)\s*\{[^}]*display:\s*block[^}]*width:\s*14px[^}]*height:\s*14px/s
+    );
+    expect(css).toMatch(
+      /\.x-science-sidebar-new-chat-label\s*\{[^}]*min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis[^}]*white-space:\s*nowrap/s
+    );
+    expect(css).toMatch(
+      /\.x-science-sidebar-new-chat--collapsed\s*\{[^}]*justify-content:\s*center[^}]*padding-inline:\s*0/s
     );
   });
 });

@@ -204,8 +204,8 @@
 }
 :is(.resource-tag-menu__trigger, .resource-tag-badges__remove):focus-visible,
 .resource-tag-menu__search input:focus-visible {
-  outline: 2px solid var(--workspace-focus);
-  outline-offset: 2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
 @media (prefers-reduced-motion: no-preference) {
   .resource-tag-menu {
@@ -284,6 +284,6 @@
   background: color-mix(in srgb, var(--resource-tag-color) 15%, transparent);
 }
 .resource-tag-badges__open:focus-visible {
-  outline: 2px solid var(--workspace-accent);
-  outline-offset: 2px;
+  outline: var(--ui-focus-width) solid var(--workspace-focus-ring);
+  outline-offset: var(--ui-focus-offset);
 }
