@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6547af335da7b1ae8dd57fbf034d1817dd8ec1e0a670b6b48177ca499fd4d6b8",
+  "adaptationFingerprintSHA256": "c03306574c10b01201b82e6f053617d4635b9e0043097bfbee108ec217491135",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "75f167419f822670d049ee8125c012f34e5f94d4f2e445deb77c93493f9dd74e",
+  "additionFingerprintSHA256": "fc5bc2842006fd18baaf15dd705c268ab84c727f9dea8019c878dd42e7d1003b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1524
+    "addedFiles": 1525
   },
   "adaptations": [
     {
@@ -3165,8 +3165,8 @@
       "path": "packages/desktop/src/renderer/services/xScienceArtifacts.ts",
       "originalPath": "packages/desktop/src/renderer/services/synonBiomedArtifacts.ts",
       "sourceSHA256": "a2b9dc567dc942b1ca0f0013ec6ddf49e5f2e8f0ca3ce68782538a39fbae550e",
-      "targetSHA256": "926572a1a3d0a852eef371c1fa41b96f58f2a999ef2c69c3b31f41296a99f885",
-      "bytes": 10504,
+      "targetSHA256": "612bd544f5d363101fcfd42998ea1111654b07bdbc28cb6175073d338c9574ad",
+      "bytes": 11163,
       "reason": "Move genuine imported source to the current X-Science namespace. Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -15791,6 +15791,12 @@
       "path": "tests/unit/workspace/artifactLibraryVisualContract.test.ts",
       "sha256": "4c5cbab4d3a8422048a634c1dcc6db251b04935c1a09ceb491a9e4fddf53c6d4",
       "bytes": 776,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/workspace/artifactVersionWorkspaceRefresh.dom.test.tsx",
+      "sha256": "bf05e27f5a7e2c13620a8e4303af9a1c9fddc670764e9919e3ea7c6850640303",
+      "bytes": 9616,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
