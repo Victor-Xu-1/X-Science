@@ -1072,6 +1072,15 @@ and unavailable-import checks still run; a genuine missing name is a runtime
 failure, with any earlier effects preserved rather than described as unexecuted.
 Recovery restores only missing state and must not replay completed side effects.
 
+Python artifact publication uses one embedded, non-executing static analyzer.
+Syntax errors and definite unresolved global names remain content failures.
+Recognized dynamic module execution can instead make namespace resolution
+indeterminate. Saving that source emits a warning only after the canonical
+snapshot write or unchanged association succeeds, bound to its actual version
+and digest; it does not certify execution. The analyzer never executes or
+rewrites artifact source. Unavailable validation infrastructure remains distinct
+from invalid content and does not require a source-code repair.
+
 Public PubMed retrieval does not require opting into contact-email disclosure.
 The connector omits absent email identification, retains explicitly supplied
 operator or consented contact values, and rejects malformed supplied values.

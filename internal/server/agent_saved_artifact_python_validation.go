@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,77 +12,50 @@ import (
 	"strings"
 )
 
-const agentSavedPythonStaticValidator = `
-import builtins
-import json
-import symtable
-import sys
-
-source = sys.stdin.read()
-result = {"ok": False, "code": "invalid_python", "unresolved": [], "unresolved_count": 0}
-try:
-    root = symtable.symtable(source, "artifact.py", "exec")
-except (SyntaxError, ValueError) as exc:
-    result["code"] = "syntax_error"
-    result["detail"] = str(exc)
-else:
-    module_definitions = {
-        symbol.get_name()
-        for symbol in root.get_symbols()
-        if symbol.is_assigned() or symbol.is_imported() or symbol.is_parameter() or symbol.is_namespace()
-    }
-    allowed = set(dir(builtins)) | {"__name__", "__file__", "__package__", "__spec__"}
-    unresolved = set()
-
-    def visit(table):
-        for symbol in table.get_symbols():
-            name = symbol.get_name()
-            if symbol.is_referenced() and symbol.is_global() and name not in module_definitions and name not in allowed:
-                unresolved.add(name)
-        for child in table.get_children():
-            visit(child)
-
-    visit(root)
-    result["unresolved_count"] = len(unresolved)
-    result["unresolved"] = sorted(unresolved)[:32]
-    if unresolved:
-        result["code"] = "unresolved_global"
-    else:
-        result["ok"] = True
-        result["code"] = "valid_python"
-print(json.dumps(result, sort_keys=True))
-`
+//go:embed agent_saved_artifact_python_validator.py
+var agentSavedPythonStaticValidator string
 
 type agentSavedPythonStaticValidation struct {
-	OK              bool     `json:"ok"`
-	Code            string   `json:"code"`
-	Unresolved      []string `json:"unresolved"`
-	UnresolvedCount int      `json:"unresolved_count"`
-	Detail          string   `json:"detail,omitempty"`
+	OK                 bool     `json:"ok"`
+	Code               string   `json:"code"`
+	Unresolved         []string `json:"unresolved"`
+	UnresolvedCount    int      `json:"unresolved_count"`
+	Indeterminate      []string `json:"indeterminate"`
+	IndeterminateCount int      `json:"indeterminate_count"`
+	Detail             string   `json:"detail,omitempty"`
 }
 
-func (s *Server) validateAgentSavedPythonArtifact(ctx context.Context, relativePath string, snapshot *os.File) error {
+type agentSavedPythonAnalysis uint8
+
+const (
+	agentSavedPythonValid agentSavedPythonAnalysis = iota
+	agentSavedPythonIndeterminate
+)
+
+type agentSavedPythonValidator func(context.Context, string, *os.File) (agentSavedPythonAnalysis, error)
+
+func (s *Server) validateAgentSavedPythonArtifact(ctx context.Context, relativePath string, snapshot *os.File) (agentSavedPythonAnalysis, error) {
 	if !strings.EqualFold(filepath.Ext(strings.TrimSpace(relativePath)), ".py") || snapshot == nil {
-		return nil
+		return agentSavedPythonValid, nil
 	}
 	if s == nil || s.kernelManager == nil {
-		return agentSavedPythonValidatorFailure("runtime_unavailable", nil)
+		return agentSavedPythonValid, agentSavedPythonValidatorFailure("runtime_unavailable", nil)
 	}
 	python, _, _, _, err := s.kernelManager.ScientificArtifactValidator()
 	if err != nil || strings.TrimSpace(python) == "" {
-		return agentSavedPythonValidatorFailure("runtime_unavailable", err)
+		return agentSavedPythonValid, agentSavedPythonValidatorFailure("runtime_unavailable", err)
 	}
 	if _, err := snapshot.Seek(0, io.SeekStart); err != nil {
-		return err
+		return agentSavedPythonValid, err
 	}
 	result, err := validateAgentSavedPythonReader(ctx, python, snapshot)
 	if _, seekErr := snapshot.Seek(0, io.SeekStart); seekErr != nil {
-		return errors.Join(err, seekErr)
+		return agentSavedPythonValid, errors.Join(err, seekErr)
 	}
 	if err != nil {
-		return err
+		return agentSavedPythonValid, err
 	}
-	return agentSavedPythonResultFailure(result)
+	return classifyAgentSavedPythonResult(result)
 }
 
 func validateAgentSavedPythonReader(ctx context.Context, python string, source io.Reader) (agentSavedPythonStaticValidation, error) {
@@ -105,7 +79,7 @@ func validateAgentSavedPythonReader(ctx context.Context, python string, source i
 		return agentSavedPythonStaticValidation{}, agentSavedPythonValidatorFailure("diagnostic_limit_exceeded", nil)
 	}
 	var result agentSavedPythonStaticValidation
-	if err := json.Unmarshal([]byte(output.String()), &result); err != nil || strings.TrimSpace(result.Code) == "" || result.UnresolvedCount < len(result.Unresolved) || len(result.Unresolved) > 32 {
+	if err := json.Unmarshal([]byte(output.String()), &result); err != nil {
 		return agentSavedPythonStaticValidation{}, agentSavedPythonValidatorFailure("invalid_result", err)
 	}
 	return result, nil
