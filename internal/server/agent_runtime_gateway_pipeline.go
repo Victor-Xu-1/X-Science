@@ -410,6 +410,10 @@ func serverAgentRuntimeGatewayRevalidate(invocation *toolgateway.Invocation) {
 	execution := serverAgentRuntimeExecution(invocation)
 	gateway := execution.gateway
 	name := invocation.CanonicalName
+	if err := validateNativeScientificSourceInvocation(invocation.Context, execution.call.ID, name, invocation.Input); err != nil {
+		invocation.CompleteForAudit(nil, "failed", err.Error(), err)
+		return
+	}
 	if name == "wait_for_notification" {
 		return
 	}

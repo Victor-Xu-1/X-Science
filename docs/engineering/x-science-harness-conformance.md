@@ -798,7 +798,15 @@ tools are absent from new model snapshots.
     docking. Source lineage activates from selected Skill/Tool capabilities or
     successful durable source receipts; model-selected computation and its real
     tool results determine the execution route. User prose, plan titles and
-    filenames cannot activate a separate scientific path.
+    filenames cannot activate a separate scientific path. An admitted public-file
+    download may acquire missing source evidence through a bounded `web_fetch`
+    phase using the same captured gateway permissions and hooks. Rejected source
+    evidence is not treated as absent. Source selection binds the actual source
+    event to the parent's original and executed input before transfer or cache
+    effects. Exact-parent committed replay retains immutable source selection
+    and URL, version and digest checks; an unrelated later fetch failure cannot
+    invalidate that completed receipt. Private acquisition and selection phases
+    do not manufacture model tool calls or kernel operations.
 22. Skill discovery has one loading route. Explicitly selected Skills enter the
     initial turn context; a bounded deterministic task-text pre-scan may expose
     candidate names and descriptions, while only the model-selected `skill`

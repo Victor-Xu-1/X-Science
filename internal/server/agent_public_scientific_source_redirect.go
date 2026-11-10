@@ -14,6 +14,8 @@ import (
 type agentPublicScientificSourceBinding struct {
 	ToolCallID    string
 	RedirectHosts []string
+	EventID       int64
+	PayloadSHA256 string
 }
 
 // Only a completed transport receipt can connect a stable request URL with

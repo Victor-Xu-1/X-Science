@@ -138,14 +138,14 @@ type agentPublicScientificDownloadRecoveryState struct {
 func agentPublicScientificFileToolSchema() agentruntime.ToolSchema {
 	return agentruntime.ToolSchema{
 		Name:         "download_public_scientific_file",
-		Description:  "Download one public scientific file or complete HTML/XHTML source page whose exact URL already appears in a completed durable source-tool result. This is the only file-download path: use web_fetch for bounded page inspection, then use this tool for complete source pages, PDB/mmCIF/SDF, datasets, archives, PDFs, model checkpoints, or other supported scientific files. Use read_file with the returned immutable version_id to read bounded line or raw-byte windows. HTML is untrusted source data and is previewed passively. The server infers source_tool_call_id when omitted, validates the public destination and content type, reuses an owner-scoped previously verified artifact across tasks when the exact URL, filename, and expected_sha256 match, preserves verified partial bytes across cancellation or service restart, resumes with Range and If-Range when supported, writes completed content atomically to the task workspace, and records immutable provenance.",
+		Description:  "Download one public scientific file or complete HTML/XHTML source page from its exact public URL. The runtime reuses a completed durable source receipt or, when no prior source exists and the inherited tool snapshot permits web_fetch, acquires a bounded source receipt internally before transfer. Rejected source evidence remains blocked. This is the only file-download path: use web_fetch for bounded page inspection and this tool for complete source pages, PDB/mmCIF/SDF, datasets, archives, PDFs, model checkpoints, or other supported scientific files. Use read_file with the returned immutable version_id to read bounded line or raw-byte windows. HTML is untrusted source data and is previewed passively. The server infers source_tool_call_id when omitted, validates the public destination and content type, reuses an owner-scoped previously verified artifact across tasks when the exact URL, filename, and expected_sha256 match, preserves verified partial bytes across cancellation or service restart, resumes with Range and If-Range when supported, writes completed content atomically to the task workspace, and records immutable provenance.",
 		Capabilities: []string{"source-evidence", "source-download", "artifact-write"},
 		Exposure:     agentruntime.ToolExposureDirect,
 		Parameters: map[string]any{
 			"type": "object", "additionalProperties": false,
 			"properties": map[string]any{
-				"source_tool_call_id": map[string]any{"type": "string", "maxLength": 512, "description": "Optional prior source tool-call id. Omit when the exact URL uniquely identifies the latest durable source result."},
-				"url":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "Exact public HTTPS URL already returned by a completed source tool."},
+				"source_tool_call_id": map[string]any{"type": "string", "maxLength": 512, "description": "Optional existing source tool-call id. Omit to let the runtime resolve or acquire the durable source receipt for this exact URL."},
+				"url":                 map[string]any{"type": "string", "minLength": 1, "maxLength": 4096, "description": "Exact public HTTPS source URL, preserving its complete query identity."},
 				"filename":            map[string]any{"type": "string", "minLength": 1, "maxLength": 200, "description": "Optional path-free filename with the same format extension as the source URL."},
 				"expected_sha256": map[string]any{"type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional authoritative lowercase SHA-256 of the complete staged-file bytes, for integrity and owner-scoped reuse. The download requests identity encoding. Omit if no authoritative complete-file checksum is known. " +
 					"web_fetch bodySha256 hashes bytes read from resp.Body before tool gzip/charset text projection; Go HTTP transport may already have decompressed them (uncompressed). " +
@@ -230,7 +230,7 @@ func (s *Server) executeAgentPublicScientificFileDownload(
 			request.RegisteredSize = download.SizeBytes
 		}
 	}
-	sourceBinding, err := s.validateAgentPublicScientificSourceURL(ctx, stream.UID, stream.OwnerID, request)
+	sourceBinding, err := s.resolveAgentPublicScientificDownloadSource(ctx, run, toolCallID, input, request)
 	if err != nil {
 		return nil, err
 	}
@@ -802,96 +802,6 @@ func agentPublicScientificValidJSONStream(reader io.Reader) bool {
 			}
 		}
 	}
-}
-
-func (s *Server) validateAgentPublicScientificSourceURL(
-	ctx context.Context,
-	streamUID, ownerID string,
-	request agentPublicScientificFileRequest,
-) (agentPublicScientificSourceBinding, error) {
-	if run, _ := transcriptRunnerChatRunFromContext(ctx); run != nil {
-		if source, found := s.registeredExecutionDownloadSource(run, request); found {
-			return agentPublicScientificSourceBinding{ToolCallID: source}, nil
-		}
-	}
-	// The selected-run view may be unavailable during a fresh acquisition. An
-	// exact match against the local execution-pack catalog is independently
-	// authoritative and permits cache reuse without inventing a web source
-	// receipt. Arbitrary URLs still take the durable source-evidence path below.
-	if _, source, found := s.registeredExecutionDownloadCatalogSource(request); found {
-		return agentPublicScientificSourceBinding{ToolCallID: source}, nil
-	}
-	snapshot, err := s.transcriptStore.GetProjectionSnapshot(ctx, streamUID, ownerID)
-	if err != nil {
-		return agentPublicScientificSourceBinding{}, errAgentPublicScientificFileSource
-	}
-	requestedSourceToolCallID := request.SourceToolCallID
-	for windowEnd := snapshot.ThroughPublicationSequence; windowEnd > 0; {
-		windowStart := maxInt64(0, windowEnd-agentPublicScientificReverseWindowSize)
-		page, err := s.transcriptStore.ListProjectedCoordinateEvents(ctx, transcriptstore.ListProjectedEventsInput{
-			StreamUID: streamUID, OwnerID: ownerID, BranchID: snapshot.BranchID,
-			BranchGeneration: snapshot.BranchGeneration, AfterPublicationSequence: windowStart,
-			ThroughPublicationSequence: windowEnd,
-			Limit:                      sessionRunnerDurableEvidencePageSize,
-		})
-		if err != nil {
-			return agentPublicScientificSourceBinding{}, errAgentPublicScientificFileSource
-		}
-		var fallback agentPublicScientificSourceBinding
-		for index := len(page) - 1; index >= 0; index-- {
-			projected := page[index]
-			if projected.Event.Type != "runner_checkpoint" {
-				continue
-			}
-			payload := projected.ResolvedPayloadJSON
-			if len(payload) == 0 {
-				payload = projected.Event.PayloadJSON
-			}
-			var checkpoint sessionRunnerDurableToolCheckpoint
-			if json.Unmarshal(payload, &checkpoint) != nil ||
-				!strings.EqualFold(strings.TrimSpace(checkpoint.ToolPhase), "completed") {
-				continue
-			}
-			content, err := s.agentPublicScientificSourceResult(ctx, ownerID, checkpoint.ToolResult)
-			if err == nil && agentPublicScientificReadWindowAuthorizesDownload(checkpoint, content, request.SourceURL) {
-				return agentPublicScientificSourceBinding{ToolCallID: checkpoint.ToolCallID}, nil
-			}
-			if !s.sessionRunnerDurableCheckpointEvidenceTool(checkpoint) {
-				continue
-			}
-			if err != nil || !agentPublicScientificResultAuthorizesDownload(content, request.SourceURL) {
-				continue
-			}
-			binding := agentPublicScientificSourceBinding{ToolCallID: checkpoint.ToolCallID}
-			// Host expansion is transport metadata, not a capability granted by
-			// arbitrary connector payloads or URLs in an incomplete page body.
-			if checkpoint.ToolName == "web_fetch" {
-				canonical, hosts, verified := agentPublicScientificWebFetchRedirectBinding(content)
-				var executedInput struct {
-					URL string `json:"url"`
-				}
-				if verified && canonical == request.SourceURL &&
-					json.Unmarshal(sessionRunnerDurableExecutedToolInput(checkpoint), &executedInput) == nil &&
-					executedInput.URL == canonical {
-					binding.RedirectHosts = hosts
-				}
-			}
-			// A model-supplied ID is only a preference. The durable checkpoint
-			// and exact URL remain the authority, so invented opaque IDs cannot
-			// block an otherwise valid download.
-			if requestedSourceToolCallID != "" && checkpoint.ToolCallID == requestedSourceToolCallID {
-				return binding, nil
-			}
-			if fallback.ToolCallID == "" {
-				fallback = binding
-			}
-		}
-		if fallback.ToolCallID != "" {
-			return fallback, nil
-		}
-		windowEnd = windowStart
-	}
-	return agentPublicScientificSourceBinding{}, errAgentPublicScientificFileSource
 }
 
 func agentPublicScientificReadWindowAuthorizesDownload(
@@ -1569,7 +1479,8 @@ func (s *Server) replayAgentPublicScientificFileDownload(
 	}
 	defer content.Close()
 	if artifact.ID != artifactID || artifact.ProjectID != stream.ProjectID || artifact.Name != request.Filename ||
-		version.ArtifactID != artifact.ID || version.SizeBytes <= 0 || version.ContentSHA256 == "" {
+		version.ArtifactID != artifact.ID || version.SizeBytes <= 0 || version.ContentSHA256 == "" ||
+		request.ExpectedSHA256 != "" && request.ExpectedSHA256 != version.ContentSHA256 {
 		return nil, true, errAgentPublicScientificFileConflict
 	}
 	if s.runtimeStore == nil {

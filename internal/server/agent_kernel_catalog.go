@@ -256,7 +256,7 @@ func (g serverAgentRuntimeToolGateway) executeAgentToolResponseUncached(ctx cont
 		return g.server.executeAgentLibraryInbox(ctx, g.libraryAccess, call.ID, input)
 	}
 	if name == "download_public_scientific_file" {
-		return g.server.executeAgentPublicScientificFileDownload(ctx, g.kernel, call.ID, input)
+		return g.server.executeAgentPublicScientificFileDownload(withNativeScientificAcquisitionGateway(ctx, g), g.kernel, call.ID, input)
 	}
 	if name == "download_rcsb_file" {
 		return g.server.executeAgentRCSBFileDownload(ctx, g.kernel, call.ID, input)
