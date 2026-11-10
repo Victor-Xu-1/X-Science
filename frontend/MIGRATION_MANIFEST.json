@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "74fe067898609390ff802955829120fd21d73f7c9fd93d675b88319dfccf562d",
+  "adaptationFingerprintSHA256": "3df3982c7eb1767a619c3252f3f2c1e4ccdecfe64f4110dab8dc54561fc9183c",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9020ba958c0bd2ab24dbbf02cf31637d4fd267ae8073beb4e647ed296d9aed08",
+  "additionFingerprintSHA256": "2e82c3a70e230525846913937f28dbcd441afd224e01589252b8cc1c84ff9b34",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1522
+    "addedFiles": 1524
   },
   "adaptations": [
     {
@@ -1920,8 +1920,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewHistory.ts",
       "sourceSHA256": "dda9a8db659844c129f805b406c691e9719fccddea0c7c4f4ad5f873e5302fb4",
-      "targetSHA256": "995c13f5f79f060f8232d84cd6d02d3dbe6b6cdaaeefbc7f3bf1530069614d6b",
-      "bytes": 10298,
+      "targetSHA256": "d02884a87058dfe7c7e851a258fa476398bdff74b6063176c44ea6f349dd6470",
+      "bytes": 12209,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -9782,6 +9782,12 @@
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewHistoryOwner.ts",
+      "sha256": "0178fc5e35a3915bd4fba7b57a22949ea96b841900751aed8370027d4ab5d76b",
+      "bytes": 1300,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/previewContentPersistence.ts",
       "sha256": "3a62bc22c5b9df5ade1fa229890327b30fb7c7c44c96b87de6435e942e69a1f0",
       "bytes": 1237,
@@ -13337,6 +13343,12 @@
       "path": "tests/unit/previews/PreviewFullscreenLayer.dom.test.tsx",
       "sha256": "1498c65a345b4091bbf6f9140f1cfec5a81d5eef2736776604bdb4c17c54e17a",
       "bytes": 3222,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/PreviewHistorySaveLifetime.dom.test.tsx",
+      "sha256": "c61ca108927f3fc36fdd6fcb73906e6727d87efe0d13ae67374d24210315e93e",
+      "bytes": 13833,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
