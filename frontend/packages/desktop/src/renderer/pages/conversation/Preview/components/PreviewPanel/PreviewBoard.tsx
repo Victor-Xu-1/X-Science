@@ -20,7 +20,7 @@ import {
   OffScreen as OffScreenGlyph,
   Save as SaveGlyph,
 } from '@icon-park/react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import { useTranslation } from 'react-i18next';
 import { PreviewToolbarExtrasProvider } from '../../context/PreviewToolbarExtrasContext';
@@ -601,6 +601,17 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   const [saveAnnouncement, setSaveAnnouncement] = useState('');
   const columns = boardColumns;
   const tileRefs = useRef(new Map<string, HTMLElement>());
+  const workspaceGenerationRef = useRef(workspaceGeneration);
+  workspaceGenerationRef.current = workspaceGeneration;
+  const mountedRef = useRef(false);
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  const isCurrentSaveGeneration = (generation: number) =>
+    mountedRef.current && workspaceGenerationRef.current === generation;
   useEffect(() => {
     setIsBoardFullscreen(false);
     setEditingTabId(null);
@@ -645,17 +656,23 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   };
 
   const saveEdit = async (tab: PreviewTab) => {
-    if ((!tab.isDirty && !artifactEditStates[tab.id]?.restoring) || savingTabId) return;
+    if (
+      !isCurrentSaveGeneration(workspaceGeneration) ||
+      (!tab.isDirty && !artifactEditStates[tab.id]?.restoring) ||
+      savingTabId
+    )
+      return;
+    const saveGeneration = workspaceGeneration;
     setSavingTabId(tab.id);
     try {
       const saved = await saveContent(tab.id, tab.content);
-      if (!saved) return;
+      if (!saved || !isCurrentSaveGeneration(saveGeneration)) return;
       setEditingTabId((current) => (current === tab.id ? null : current));
       setSaveAnnouncement(t('preview.board.saveSucceeded'));
     } catch {
-      messageApi.error(t('preview.board.saveFailed'));
+      if (isCurrentSaveGeneration(saveGeneration)) messageApi.error(t('preview.board.saveFailed'));
     } finally {
-      setSavingTabId(null);
+      if (isCurrentSaveGeneration(saveGeneration)) setSavingTabId(null);
     }
   };
 
