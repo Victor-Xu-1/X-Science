@@ -1357,3 +1357,13 @@ The interactive cache retains same-source live rows, rejects late/lower-scope
 responses, clears rows only on an actual source/branch/generation advance, and
 does not infer terminal delivery from a partial page. Navigation cancels the
 same route-owned retry; a pending anchor while idle wakes that existing owner.
+
+Preview snapshot completion belongs to its receiving tab, canvas and account
+lifetime. Closing, switching or returning to a prior receiver cannot revive an
+old save, history read or selection. A current save may keep its receiver lease
+when its own canonical acknowledgement advances the artifact version; history
+reads and selections remain version-bound. Single-flight state, feedback and
+local debounce follow the current receiver, and stale completion cannot clear
+its successor. Existing server publication and version-conflict authorities
+remain unchanged; presentation errors do not turn a committed write into a
+reported server-write failure.
