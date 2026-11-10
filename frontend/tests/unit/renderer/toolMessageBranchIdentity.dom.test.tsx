@@ -314,12 +314,22 @@ it.each(['different durable id', 'conflicting input', 'conflicting coordinates']
     const rows = screen.getAllByTestId('tool-chip');
     expect(rows).toHaveLength(2);
     fireEvent.click(rows[0]);
-    expect(rows[0].getAttribute('aria-expanded')).toBe('true');
-    expect(rows[1].getAttribute('aria-expanded')).toBe('false');
-    fireEvent.click(rows[1]);
-    expect(rows[0].getAttribute('aria-expanded')).toBe('true');
-    expect(rows[1].getAttribute('aria-expanded')).toBe('true');
-    expect(rows[0].getAttribute('aria-controls')).not.toBe(rows[1].getAttribute('aria-controls'));
+    // Observe the committed disclosure state after the RAF-owned publication;
+    // each click must expand only its own current row.
+    await waitFor(() => {
+      const currentRows = screen.getAllByTestId('tool-chip');
+      expect(currentRows).toHaveLength(2);
+      expect(currentRows[0].getAttribute('aria-expanded')).toBe('true');
+      expect(currentRows[1].getAttribute('aria-expanded')).toBe('false');
+    });
+    fireEvent.click(screen.getAllByTestId('tool-chip')[1]);
+    await waitFor(() => {
+      const currentRows = screen.getAllByTestId('tool-chip');
+      expect(currentRows).toHaveLength(2);
+      expect(currentRows[0].getAttribute('aria-expanded')).toBe('true');
+      expect(currentRows[1].getAttribute('aria-expanded')).toBe('true');
+      expect(currentRows[0].getAttribute('aria-controls')).not.toBe(currentRows[1].getAttribute('aria-controls'));
+    });
   }
 );
 
