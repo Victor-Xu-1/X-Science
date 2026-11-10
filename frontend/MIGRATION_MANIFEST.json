@@ -3,22 +3,22 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "48dddd4f35f0e9d09c092fdf28472c8c68d799df7f53c3a1ecefaab514b15665",
+  "adaptationFingerprintSHA256": "f1ee50af7e7017b5712d8c5d38a9b19e23546006ff864d2c5ae73f410939b888",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "e6dc099c2ea31ad03d047df0398adf3df36e7321f34597102e0c141383c5d306",
+  "additionFingerprintSHA256": "60aa65016776cf965ae00fa0e4a80e9c12e977c34bec75c3ee6ae73e7d68f4bd",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1518
+    "addedFiles": 1522
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "3e18d73f79e9bdc0041648288f1ca4f323ce88356b729e562ec4031a01a3965a",
-      "bytes": 4452,
+      "targetSHA256": "604e163dca5e933b0002f6438f752d2a5799300389d181b9d77d3dcb81f21186",
+      "bytes": 4712,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
@@ -4194,8 +4194,8 @@
     {
       "path": "tests/unit/previews/PreviewPanel.dom.test.tsx",
       "sourceSHA256": "fdf5da9df9c125fd4bc5399787c42a470e36d0ecd0a7cefa4842ad18da8787a2",
-      "targetSHA256": "5e597453b00340675f464f2dc354cedc386c4ae81b71fb8a87326e573fe33d77",
-      "bytes": 20302,
+      "targetSHA256": "11c38d6d6029485df7f6a1706cb8a624c8c238e2e6914175d77d63f33035a197",
+      "bytes": 20495,
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -12812,10 +12812,22 @@
       "reason": "Restore the validated cached light or dark appearance before renderer startup without allowing inline scripts."
     },
     {
+      "path": "scripts/arcoMessageIdentityPatch.mjs",
+      "sha256": "457419ecff5f8cef7f26253b10282af1c493bccf83311c9cf27808329f3eabab",
+      "bytes": 3429,
+      "reason": "Apply the locked Arco Message container identity and close-handle ownership compatibility without replacing its notification authority."
+    },
+    {
       "path": "scripts/molstarPickingPatch.ts",
       "sha256": "1cb47ec0a85ea77c34cfd1818a776c51a727cba27635ca592821e8d2efe85754",
       "bytes": 2077,
       "reason": "Keep explicit molecular picks synchronous when the locked Molstar hover GPU read is pending, consistently in production and development bundles."
+    },
+    {
+      "path": "scripts/prepareArcoMessage.mjs",
+      "sha256": "cbf26f1924c73742c0852ebe95964de400392a8dfb5ed6e14603a365cf2cd32d",
+      "bytes": 3594,
+      "reason": "Prepare and verify only owned locked Arco ESM and CJS modules before their existing build and test consumers."
     },
     {
       "path": "scripts/rendererBoot.ts",
@@ -13253,6 +13265,18 @@
       "path": "tests/unit/previews/ArchiveViewerLifecycle.dom.test.tsx",
       "sha256": "7e2d03f8959faee55f8830a6229eedc3740f42eb548787ca0f8be45078e93cab",
       "bytes": 12142,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/ArcoMessageIdentity.dom.test.tsx",
+      "sha256": "7bf98984db7ff954bcd5078c2a33a29c7b0c54a3de9ced2e779534ddd7caff33",
+      "bytes": 5874,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/ArcoMessageIdentityPatch.test.ts",
+      "sha256": "4349d39a912caacee2e5b49ababf77d995e056228a9523b90003ded9df9b27aa",
+      "bytes": 4418,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
