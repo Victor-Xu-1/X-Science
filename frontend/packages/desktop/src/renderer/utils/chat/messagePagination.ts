@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { requestConversationMessages, type MessageCursorPage } from '@/common/adapter/ipcBridge';
+import {
+  requestConversationMessages,
+  type MessageCursorPage,
+  type MessageHistoryConsistency,
+} from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
   getSelectedXScienceBranch,
@@ -23,6 +27,7 @@ export type LoadConversationMessagePageOptions = {
   branchId?: string;
   signal?: AbortSignal;
   retryTransient?: boolean;
+  consistency?: MessageHistoryConsistency;
 };
 
 // The reference 0.1.25 runtime uses a 200-message tail/older-page window and keeps a
@@ -58,6 +63,7 @@ async function loadConversationMessagePageOnce(
       ...(options.anchorMessageId ? { anchor_message_id: options.anchorMessageId } : {}),
       content_mode: options.contentMode ?? 'compact',
       ...(branchId ? { branch_id: branchId } : {}),
+      ...(options.consistency ? { consistency: options.consistency } : {}),
     },
     options.signal
   );
@@ -77,7 +83,7 @@ export function loadLatestConversationMessages(
   conversationId: string,
   options: Pick<
     LoadConversationMessagePageOptions,
-    'limit' | 'contentMode' | 'branchId' | 'signal' | 'retryTransient'
+    'limit' | 'contentMode' | 'branchId' | 'signal' | 'retryTransient' | 'consistency'
   > = {}
 ): Promise<MessageCursorPage<TMessage>> {
   return loadConversationMessagePage(conversationId, options);
@@ -88,7 +94,7 @@ export function loadConversationAnchorWindow(
   messageId: string,
   options: Pick<
     LoadConversationMessagePageOptions,
-    'limit' | 'contentMode' | 'branchId' | 'signal' | 'retryTransient'
+    'limit' | 'contentMode' | 'branchId' | 'signal' | 'retryTransient' | 'consistency'
   > = {}
 ): Promise<MessageCursorPage<TMessage>> {
   return loadConversationMessagePage(conversationId, {

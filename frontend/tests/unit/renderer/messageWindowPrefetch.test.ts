@@ -75,6 +75,7 @@ describe('messageWindowPrefetch', () => {
 
   it('consumes a completed click prefetch without issuing a duplicate mounted read', async () => {
     const request = {
+      consistency: 'prefix' as const,
       ownerId: 'owner-prefetch',
       conversationId: 'conversation-prefetch',
       branchRevision: 0,
@@ -88,6 +89,31 @@ describe('messageWindowPrefetch', () => {
     vi.advanceTimersByTime(MESSAGE_WINDOW_SETTLED_REUSE_MS);
     await loadLatestConversationMessagesShared(request);
     expect(loadLatestConversationMessagesMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('consumes a pending prefix once and keeps exact reads in a separate request', async () => {
+    const prefix = {
+      ...page,
+      projection_pending: true,
+      source_revision: 0,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 8,
+    };
+    const request = {
+      ownerId: 'owner-prefix',
+      conversationId: 'conversation-prefix',
+      branchRevision: 0,
+      consistency: 'prefix' as const,
+    };
+    loadLatestConversationMessagesMock.mockResolvedValue(prefix);
+    await prefetchConversationMessages(request);
+    await expect(loadLatestConversationMessagesShared(request)).resolves.toBe(prefix);
+    expect(loadLatestConversationMessagesMock).toHaveBeenCalledTimes(1);
+    await loadLatestConversationMessagesShared(request);
+    expect(loadLatestConversationMessagesMock).toHaveBeenCalledTimes(2);
+    await loadLatestConversationMessagesShared({ ...request, consistency: 'exact' });
+    expect(loadLatestConversationMessagesMock).toHaveBeenCalledTimes(3);
+    expect(loadLatestConversationMessagesMock.mock.calls[2]?.[1]).toMatchObject({ consistency: 'exact' });
   });
 
   it('lets a live refresh share an initial request that is still converging', async () => {

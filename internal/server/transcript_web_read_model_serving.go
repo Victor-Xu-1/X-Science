@@ -15,6 +15,7 @@ type activatedTranscriptWebReadModel struct {
 	snapshot                 transcriptstore.ProjectionSnapshot
 	fence                    transcriptstore.TranscriptWebProjectionFence
 	allowQuarantinedSnapshot bool
+	allowConsistentPrefix    bool
 }
 
 func (s *Server) activatedTranscriptWebReadModel(
@@ -30,6 +31,13 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 	ctx context.Context,
 	ownerID, sessionID, requestedBranchID string,
 	allowCatchup bool,
+) (activatedTranscriptWebReadModel, bool, error) {
+	return s.activatedTranscriptWebReadModelWithPolicy(ctx, ownerID, sessionID, requestedBranchID, allowCatchup, false)
+}
+
+func (s *Server) activatedTranscriptWebReadModelWithPolicy(
+	ctx context.Context, ownerID, sessionID, requestedBranchID string,
+	allowCatchup, allowConsistentPrefix bool,
 ) (activatedTranscriptWebReadModel, bool, error) {
 	noteTranscriptWebReadStage(ctx, webReadFence)
 	if s == nil || s.transcriptStore == nil || s.transcriptWebReadModel == nil {
@@ -83,7 +91,7 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 	if err != nil {
 		return activatedTranscriptWebReadModel{}, true, transcriptWebStorageError(err)
 	}
-	if allowCatchup && transcriptWebFenceCanCatchUp(fence) {
+	if allowCatchup && transcriptWebFenceCanCatchUp(fence) && !(allowConsistentPrefix && fence.ConsistentPrefixEligible()) {
 		if catchupErr := s.catchUpTranscriptWebReadModel(
 			ctx, ownerID, stream.UID, snapshot.BranchID,
 		); catchupErr == nil || errors.Is(catchupErr, transcriptstore.ErrBranchStateStale) ||
@@ -99,7 +107,17 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 	}
 	noteTranscriptWebReadStage(ctx, webReadFence)
 	allowQuarantinedSnapshot := false
-	if !transcriptWebFenceReady(fence) {
+	servingThrough := fence.ThroughPublicationSequence
+	if allowConsistentPrefix {
+		if fence.ConsistentPrefixEligible() {
+			servingThrough = fence.StateThroughPublicationSequence
+			// The existing delivery/projector coordinator remains the only worker.
+			// Wake it without waiting on the flight owned by another reader.
+			s.signalTranscriptWebDelivery()
+		} else if !transcriptWebFenceReady(fence) || fence.SourceDirty {
+			return activatedTranscriptWebReadModel{}, true, transcriptWebAuthorityUnavailableError()
+		}
+	} else if !transcriptWebFenceReady(fence) {
 		if !transcriptWebVerifiedSnapshotEligible(fence) {
 			return activatedTranscriptWebReadModel{}, true, transcriptWebAuthorityUnavailableError()
 		}
@@ -107,15 +125,16 @@ func (s *Server) activatedTranscriptWebReadModelWithCatchup(
 		fence.BranchGeneration = fence.StateBranchGeneration
 		fence.ThroughPublicationSequence = fence.StateThroughPublicationSequence
 		fence.SourceRevision = fence.StateSourceRevision
+		servingThrough = fence.StateThroughPublicationSequence
 	}
 	return activatedTranscriptWebReadModel{
 		stream: stream,
 		snapshot: transcriptstore.ProjectionSnapshot{
 			StreamUID: stream.UID, BranchID: fence.BranchID,
 			BranchGeneration:           fence.BranchGeneration,
-			ThroughPublicationSequence: fence.ThroughPublicationSequence,
+			ThroughPublicationSequence: servingThrough,
 		},
-		fence: fence, allowQuarantinedSnapshot: allowQuarantinedSnapshot,
+		fence: fence, allowQuarantinedSnapshot: allowQuarantinedSnapshot, allowConsistentPrefix: allowConsistentPrefix,
 	}, true, nil
 }
 
@@ -163,6 +182,10 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 			r, frameID, before, active, ownerID,
 		)
 		if err != nil {
+			if status == http.StatusServiceUnavailable {
+				writeWebConversationError(w, err)
+				return
+			}
 			writeWorkspaceJSON(w, status, map[string]any{"message": err.Error()})
 			return
 		}
@@ -173,6 +196,10 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 			r, frameID, after, active, ownerID,
 		)
 		if err != nil {
+			if status == http.StatusServiceUnavailable {
+				writeWebConversationError(w, err)
+				return
+			}
 			writeWorkspaceJSON(w, status, map[string]any{"message": err.Error()})
 			return
 		}
@@ -187,6 +214,10 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 			return
 		}
 		if !found {
+			if active.allowConsistentPrefix && active.snapshot.ThroughPublicationSequence < active.fence.ThroughPublicationSequence {
+				writeWebConversationError(w, transcriptWebAuthorityUnavailableError())
+				return
+			}
 			writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "anchor message was not found"})
 			return
 		}
@@ -200,6 +231,7 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 			ThroughPublicationSequence: active.snapshot.ThroughPublicationSequence,
 			SourceRevision:             active.fence.SourceRevision, From: from, Limit: limit,
 			AllowQuarantinedSnapshot: active.allowQuarantinedSnapshot,
+			AllowConsistentPrefix:    active.allowConsistentPrefix,
 		},
 	)
 	if err != nil {
@@ -226,14 +258,23 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 	var oldest any
 	var newest any
 	if len(items) > 0 {
-		oldest = encodeTranscriptBranchMessageCursor(active.snapshot, page.From)
-		newest = encodeTranscriptBranchMessageCursor(active.snapshot, page.From+len(items)-1)
+		var sourceRevision *int64
+		if active.allowConsistentPrefix {
+			sourceRevision = &page.State.SourceRevision
+		}
+		oldest = encodeTranscriptBranchMessageCursorWithSource(active.snapshot, page.From, sourceRevision)
+		newest = encodeTranscriptBranchMessageCursorWithSource(active.snapshot, page.From+len(items)-1, sourceRevision)
 	}
 	payload := map[string]any{
 		"items": items, "oldest_cursor": oldest, "newest_cursor": newest,
 		"has_more_before": page.From > 0, "has_more_after": page.From+len(items) < page.Total,
 		"branch_id": active.snapshot.BranchID, "branch_generation": active.snapshot.BranchGeneration,
 		"through_publication_sequence": active.snapshot.ThroughPublicationSequence,
+	}
+	if active.allowConsistentPrefix {
+		payload["projection_pending"] = page.ProjectionPending
+		payload["canonical_through_publication_sequence"] = page.CanonicalThroughPublicationSequence
+		payload["source_revision"] = page.State.SourceRevision
 	}
 	noteTranscriptWebReadStage(r.Context(), webReadResponse)
 	writePrivateRevalidatedWorkspaceJSON(w, r, ownerID, payload)
@@ -242,13 +283,19 @@ func (s *Server) writeActivatedTranscriptWebReadModelPage(
 func (active activatedTranscriptWebReadModel) transcriptWebMessageIdentity(
 	ownerID, identity string,
 ) transcriptstore.TranscriptWebMessageIdentityInput {
-	return transcriptstore.TranscriptWebMessageIdentityInput{
+	input := transcriptstore.TranscriptWebMessageIdentityInput{
 		OwnerID: ownerID, StreamUID: active.stream.UID, BranchID: active.snapshot.BranchID,
 		BranchGeneration:           active.snapshot.BranchGeneration,
 		ThroughPublicationSequence: active.snapshot.ThroughPublicationSequence,
 		SourceRevision:             active.fence.SourceRevision, Identity: identity,
 		AllowQuarantinedSnapshot: active.allowQuarantinedSnapshot,
+		AllowConsistentPrefix:    active.allowConsistentPrefix,
 	}
+	if active.allowConsistentPrefix {
+		through := active.fence.ThroughPublicationSequence
+		input.ExpectedCanonicalThrough = &through
+	}
+	return input
 }
 
 func (s *Server) resolveTranscriptWebReadModelCursor(
@@ -257,14 +304,26 @@ func (s *Server) resolveTranscriptWebReadModelCursor(
 	active activatedTranscriptWebReadModel,
 	ownerID string,
 ) (transcriptBranchMessageCursor, int, error) {
-	cursor, status, err := parseTranscriptBranchMessageCursor(
-		value, active.snapshot, active.fence.VisibleMessageCount,
+	var sourceRevision *int64
+	if active.allowConsistentPrefix {
+		sourceRevision = &active.fence.SourceRevision
+	}
+	cursor, status, err := parseTranscriptBranchMessageCursorWithSource(
+		value, active.snapshot, active.fence.VisibleMessageCount, sourceRevision,
 	)
+	// Opaque prefix cursors can never be reinterpreted as identities or mapped
+	// through an older view after a source/coverage/consistency mismatch.
+	if cursor.Version != 0 && (active.allowConsistentPrefix || err != nil && (cursor.Version == 2 || status == http.StatusBadRequest)) {
+		return cursor, status, err
+	}
 	if err != nil {
 		index, found, locateErr := s.transcriptWebReadModel.LocateTranscriptWebMessage(
 			r.Context(), active.transcriptWebMessageIdentity(ownerID, value),
 		)
 		if locateErr != nil {
+			if active.allowConsistentPrefix && (errors.Is(locateErr, transcriptstore.ErrTranscriptWebProjectionStale) || errors.Is(locateErr, transcriptstore.ErrBranchStateStale)) {
+				return transcriptBranchMessageCursor{}, http.StatusServiceUnavailable, transcriptWebAuthorityUnavailableError()
+			}
 			return transcriptBranchMessageCursor{}, http.StatusInternalServerError, errors.New("unable to resolve conversation cursor")
 		}
 		if found {
@@ -274,6 +333,9 @@ func (s *Server) resolveTranscriptWebReadModelCursor(
 				ThroughPublicationSequence: active.snapshot.ThroughPublicationSequence,
 				Index:                      index,
 			}, http.StatusOK, nil
+		}
+		if active.allowConsistentPrefix && active.snapshot.ThroughPublicationSequence < active.fence.ThroughPublicationSequence {
+			return transcriptBranchMessageCursor{}, http.StatusServiceUnavailable, transcriptWebAuthorityUnavailableError()
 		}
 	}
 	if err == nil || cursor.Version != 1 || cursor.BranchID == "" ||

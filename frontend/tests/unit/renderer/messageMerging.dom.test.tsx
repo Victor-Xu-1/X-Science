@@ -22,6 +22,7 @@ import {
   useMessageListLoading,
   useMessageListLoadError,
   useMessagePaginationState,
+  useUpdateMessagePaginationState,
   useLoadAnchorMessageWindow,
   useLoadPreviousMessagePage,
   useReplaceWithAnchorWindow,
@@ -30,6 +31,8 @@ import { mergeLoadedPageWithCurrent } from '@/renderer/pages/conversation/Messag
 import { getSelectedXScienceBranch, selectXScienceBranch } from '@/renderer/services/xScienceConversationBranches';
 import { TRANSIENT_HISTORY_RETRY_DELAYS_MS } from '@/renderer/services/xScienceHistoryRetry';
 import { INTERACTIVE_MESSAGE_PAGE_LIMIT } from '@/renderer/utils/chat/messagePagination';
+import { MESSAGE_WINDOW_SETTLED_REUSE_MS } from '@/renderer/pages/conversation/Messages/messageWindowPrefetch';
+import { setRendererAccountOwner } from '@/renderer/services/rendererAccountScope';
 
 const { requestConversationMessagesMock } = vi.hoisted(() => ({
   requestConversationMessagesMock: vi.fn(),
@@ -191,8 +194,12 @@ async function flushMessageQueue(): Promise<void> {
   });
 }
 
+let fixtureAccountSequence = 0;
+
 describe('message merging', () => {
   beforeEach(() => {
+    // Exercise the actual account owner reset, including registered singleton caches.
+    setRendererAccountOwner(`message-merging-fixture-${++fixtureAccountSequence}`);
     vi.useFakeTimers();
     vi.mocked(ipcBridge.conversation.historyRebased.on).mockClear();
     requestConversationMessagesMock.mockImplementation((params) =>
@@ -593,6 +600,7 @@ describe('message merging', () => {
       conversation_id: CONVERSATION_ID,
       limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
       content_mode: 'compact',
+      consistency: 'prefix',
     });
   });
   it('returns a stable refresh function for persisted X-Science message polling', async () => {
@@ -624,6 +632,7 @@ describe('message merging', () => {
       conversation_id: CONVERSATION_ID,
       limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
       content_mode: 'compact',
+      consistency: 'prefix',
     });
   });
 
@@ -872,6 +881,391 @@ describe('message merging', () => {
     });
     expect(result.current.messages.map((message) => message.msg_id)).toEqual(['durable', 'live-progress']);
   });
+
+  it('renders a real prefix with the live tail and uses the existing retry until complete', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const initial = deferred<MessageCursorPage<TMessage>>();
+    const complete = deferred<MessageCursorPage<TMessage>>();
+    invoke.mockReset().mockReturnValueOnce(initial.promise).mockReturnValueOnce(complete.promise);
+    const conversationId = 'conversation-consistent-prefix';
+    const view = renderHook(
+      () => ({
+        messages: useMessageList(),
+        pagination: useMessagePaginationState(),
+        loading: useMessageListLoading(),
+        add: useAddOrUpdateMessage(),
+        refresh: useMessageLstCache(conversationId, 'owner-prefix'),
+      }),
+      { wrapper: CacheWrapper }
+    );
+    act(() => {
+      view.result.current.add(createTextMessage('live-tail', 'live progress', conversationId));
+    });
+    await flushMessageQueue();
+    await act(async () => {
+      initial.resolve({
+        ...createMessagePage([createTextMessage('durable-prefix', 'stored prefix', conversationId)]),
+        through_publication_sequence: 3,
+        canonical_through_publication_sequence: 9,
+        source_revision: 0,
+        projection_pending: true,
+      });
+      await initial.promise;
+    });
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['durable-prefix', 'live-tail']);
+    expect(view.result.current.loading).toBe(false);
+    expect(view.result.current.pagination).toMatchObject({
+      historyRevision: 3,
+      canonicalHistoryRevision: 9,
+      sourceRevision: 0,
+      projectionPending: true,
+    });
+    expect(invoke.mock.calls[0]?.[0]).toMatchObject({ consistency: 'prefix' });
+    await act(async () => {
+      vi.advanceTimersByTime(TRANSIENT_HISTORY_RETRY_DELAYS_MS[0]);
+      await Promise.resolve();
+    });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      complete.resolve({
+        ...createMessagePage([
+          createTextMessage('durable-prefix', 'stored prefix', conversationId),
+          createTextMessage('durable-tail', 'stored tail', conversationId),
+        ]),
+        through_publication_sequence: 9,
+        canonical_through_publication_sequence: 9,
+        source_revision: 0,
+        projection_pending: false,
+      });
+      await complete.promise;
+    });
+    expect(view.result.current.pagination).toMatchObject({ historyRevision: 9, projectionPending: false });
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['durable-prefix', 'durable-tail', 'live-tail']);
+    view.unmount();
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not merge a previous source revision into a newly proven prefix', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const conversationId = 'conversation-prefix-revision';
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('old-source', 'previous source', conversationId)]),
+      source_revision: 0,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    });
+    const view = renderHook(
+      () => ({ messages: useMessageList(), refresh: useMessageLstCache(conversationId, 'owner-source-revision') }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['old-source']);
+    invoke.mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('new-prefix', 'current canonical source', conversationId)]),
+      source_revision: 1,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 9,
+      projection_pending: true,
+    });
+    await act(async () => {
+      await view.result.current.refresh();
+    });
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['new-prefix']);
+    view.unmount();
+  });
+
+  it.each([0, undefined])(
+    'discards an older or unbound revision %s without rolling back the known window',
+    async (revision) => {
+      const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+      const conversationId = `conversation-prefix-stale-${String(revision)}`;
+      invoke.mockReset().mockResolvedValueOnce({
+        ...createMessagePage([createTextMessage('known-new', 'new canonical source', conversationId)]),
+        source_revision: 1,
+        through_publication_sequence: 8,
+        canonical_through_publication_sequence: 8,
+        projection_pending: false,
+      });
+      const view = renderHook(
+        () => ({
+          messages: useMessageList(),
+          pagination: useMessagePaginationState(),
+          refresh: useMessageLstCache(conversationId, 'owner-stale-prefix'),
+        }),
+        { wrapper: CacheWrapper }
+      );
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      invoke.mockResolvedValueOnce({
+        ...createMessagePage([createTextMessage('late-old', 'obsolete prefetch', conversationId)]),
+        source_revision: revision,
+        through_publication_sequence: 3,
+        canonical_through_publication_sequence: 8,
+        projection_pending: true,
+      });
+      await act(async () => {
+        await view.result.current.refresh();
+      });
+      expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['known-new']);
+      expect(view.result.current.pagination).toMatchObject({
+        sourceRevision: 1,
+        historyRevision: 8,
+        projectionPending: false,
+      });
+      view.unmount();
+    }
+  );
+
+  it.each([
+    { branch: 'br_00000001', generation: 3, revision: 0, accepted: true },
+    { branch: 'br_00000001', generation: 1, revision: 9, accepted: false },
+    { branch: 'br_00000002', generation: 3, revision: 9, accepted: false },
+  ])('keeps prefix source revisions inside their branch/generation owner: %j', async (next) => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const conversationId = `conversation-prefix-scope-${next.branch}-${next.generation}`;
+    // A foreign branch is meaningful only for an explicitly pinned request.
+    // Null selection intentionally follows the canonical active branch.
+    const pinnedBranchMismatch = next.branch !== 'br_00000001';
+    if (pinnedBranchMismatch) selectXScienceBranch(conversationId, 'br_00000001');
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('known-scope', 'current scope', conversationId)]),
+      branch_id: 'br_00000001',
+      branch_generation: 2,
+      source_revision: 1,
+      through_publication_sequence: 8,
+      canonical_through_publication_sequence: 8,
+      projection_pending: false,
+    });
+    const view = renderHook(
+      () => ({ messages: useMessageList(), refresh: useMessageLstCache(conversationId, 'owner-prefix-scope') }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    invoke.mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('response-scope', 'received scope', conversationId)]),
+      branch_id: next.branch,
+      branch_generation: next.generation,
+      source_revision: next.revision,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 9,
+      projection_pending: true,
+    });
+    await act(async () => {
+      if (pinnedBranchMismatch) {
+        await expect(view.result.current.refresh()).rejects.toThrow('conversation_branch_response_mismatch');
+      } else await view.result.current.refresh();
+    });
+    if (pinnedBranchMismatch) expect(invoke.mock.calls[1]?.[0]).toHaveProperty('branch_id', 'br_00000001');
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual([
+      next.accepted ? 'response-scope' : 'known-scope',
+    ]);
+    view.unmount();
+  });
+
+  it('replaces the previous branch when an explicit switch first returns a pending prefix', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const conversationId = 'conversation-prefix-branch-switch';
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('old-branch', 'previous branch', conversationId)]),
+      branch_id: 'br_00000001',
+      branch_generation: 1,
+      source_revision: 0,
+      through_publication_sequence: 8,
+      canonical_through_publication_sequence: 8,
+      projection_pending: false,
+    });
+    const view = renderHook(
+      () => ({ messages: useMessageList(), refresh: useMessageLstCache(conversationId, 'owner-prefix-branch-switch') }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    invoke.mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('new-branch', 'selected branch prefix', conversationId)]),
+      branch_id: 'br_00000002',
+      branch_generation: 2,
+      source_revision: 0,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 9,
+      projection_pending: true,
+    });
+    await act(async () => {
+      selectXScienceBranch(conversationId, 'br_00000002');
+      await Promise.resolve();
+    });
+    expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['new-branch']);
+    view.unmount();
+  });
+
+  it('reconciles idle anchor pending through the original retry owner after an initially complete page', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const conversationId = 'conversation-idle-anchor-pending';
+    const page = {
+      ...createMessagePage([createTextMessage('base', 'stored history', conversationId)]),
+      branch_id: 'br_00000001',
+      branch_generation: 1,
+      source_revision: 0,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    };
+    const complete = deferred<MessageCursorPage<TMessage>>();
+    invoke
+      .mockReset()
+      .mockResolvedValueOnce(page)
+      .mockResolvedValueOnce({ ...page, projection_pending: true, canonical_through_publication_sequence: 9 })
+      .mockReturnValueOnce(complete.promise);
+    const view = renderHook(
+      () => ({
+        pagination: useMessagePaginationState(),
+        refresh: useMessageLstCache(conversationId, 'owner-idle-anchor'),
+        anchor: useLoadAnchorMessageWindow(conversationId),
+      }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      expect(await view.result.current.anchor('base')).toBe(true);
+    });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(view.result.current.pagination.projectionPending).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TRANSIENT_HISTORY_RETRY_DELAYS_MS[0]);
+    });
+    // The old complete promise is still inside its 500ms grace period. This
+    // must be a real third read, not false completion from that stale promise.
+    expect(invoke).toHaveBeenCalledTimes(3);
+    expect(invoke.mock.calls[2]?.[0]).not.toHaveProperty('anchor_message_id');
+    expect(view.result.current.pagination.projectionPending).toBe(true);
+    await act(async () => {
+      complete.resolve({ ...page, through_publication_sequence: 9, canonical_through_publication_sequence: 9 });
+      await complete.promise;
+    });
+    expect(view.result.current.pagination.projectionPending).toBe(false);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(invoke).toHaveBeenCalledTimes(3);
+    view.unmount();
+  });
+
+  it('cancels idle pending pagination retry when the route is replaced', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    const page = (conversationId: string) => ({
+      ...createMessagePage([createTextMessage('base', 'stored history', conversationId)]),
+      branch_id: 'br_00000001',
+      branch_generation: 1,
+      source_revision: 0,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    });
+    invoke
+      .mockReset()
+      .mockResolvedValueOnce(page('idle-route-a'))
+      .mockResolvedValueOnce({
+        ...page('idle-route-a'),
+        projection_pending: true,
+        canonical_through_publication_sequence: 9,
+      })
+      .mockResolvedValueOnce(page('idle-route-b'));
+    const view = renderHook(
+      ({ conversationId }) => ({
+        pagination: useMessagePaginationState(),
+        refresh: useMessageLstCache(conversationId, 'owner-idle-route'),
+        anchor: useLoadAnchorMessageWindow(conversationId),
+      }),
+      { wrapper: CacheWrapper, initialProps: { conversationId: 'idle-route-a' } }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await view.result.current.anchor('base');
+    });
+    view.rerender({ conversationId: 'idle-route-b' });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(invoke.mock.calls.map(([request]) => request.conversation_id)).toEqual([
+      'idle-route-a',
+      'idle-route-a',
+      'idle-route-b',
+    ]);
+    expect(view.result.current.pagination).toMatchObject({ conversationId: 'idle-route-b', projectionPending: false });
+    view.unmount();
+  });
+
+  it.each([0, 1])(
+    'preserves same-branch cursor recovery authority and live tail from revision %s',
+    async (knownRevision) => {
+      const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+      const conversationId = `conversation-same-branch-pending-${knownRevision}`;
+      const page = {
+        ...createMessagePage([createTextMessage('base', 'stored history', conversationId)]),
+        branch_id: 'br_00000001',
+        branch_generation: 1,
+        source_revision: knownRevision,
+        through_publication_sequence: 3,
+        canonical_through_publication_sequence: 3,
+        projection_pending: false,
+      };
+      invoke
+        .mockReset()
+        .mockResolvedValueOnce(page)
+        .mockResolvedValueOnce({
+          ...page,
+          projection_pending: true,
+          source_revision: 0,
+          canonical_through_publication_sequence: 9,
+        });
+      const view = renderHook(
+        () => ({
+          messages: useMessageList(),
+          pagination: useMessagePaginationState(),
+          add: useAddOrUpdateMessage(),
+          refresh: useMessageLstCache(conversationId, 'owner-same-branch'),
+        }),
+        { wrapper: CacheWrapper }
+      );
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      act(() => {
+        view.result.current.add(createTextMessage('live', 'new live tail', conversationId));
+      });
+      await flushMessageQueue();
+      await act(async () => {
+        selectXScienceBranch(conversationId, 'br_00000001');
+        await Promise.resolve();
+      });
+      expect(view.result.current.messages.map((m) => m.msg_id)).toEqual(['base', 'live']);
+      expect(view.result.current.pagination).toMatchObject({
+        sourceRevision: knownRevision,
+        projectionPending: knownRevision === 0,
+      });
+      view.unmount();
+    }
+  );
 
   it('ignores a late response from the previous conversation after navigation', async () => {
     const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
@@ -1354,5 +1748,218 @@ describe('message merging', () => {
     expect(invoke).toHaveBeenCalledTimes(3);
     unmount();
     selectXScienceBranch(CONVERSATION_ID, null);
+  });
+  it('follows a fresh server active branch with retained same-owner cache and null selection', async () => {
+    const owner = 'owner-active-follow';
+    setRendererAccountOwner(owner);
+    const conversationId = 'conversation-active-follow';
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('previous-active', 'old active branch', conversationId)]),
+      branch_id: 'br_00000001',
+      branch_generation: 2,
+      source_revision: 4,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    });
+    const harness = () => ({
+      messages: useMessageList(),
+      pagination: useMessagePaginationState(),
+      refresh: useMessageLstCache(conversationId, owner),
+    });
+    const warm = renderHook(harness, { wrapper: CacheWrapper });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(warm.result.current.messages.map((message) => message.msg_id)).toEqual(['previous-active']);
+    expect(getSelectedXScienceBranch(conversationId)).toBeNull();
+    warm.unmount();
+    // Expire only the short shared promise. Keep the authenticated window cache.
+    await vi.advanceTimersByTimeAsync(MESSAGE_WINDOW_SETTLED_REUSE_MS);
+    const fresh = deferred<MessageCursorPage<TMessage>>();
+    invoke.mockReturnValueOnce(fresh.promise);
+    const view = renderHook(harness, { wrapper: CacheWrapper });
+    expect(view.result.current.messages.map((message) => message.msg_id)).toEqual(['previous-active']);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke.mock.calls[1]?.[0]).toEqual({
+      conversation_id: conversationId,
+      limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
+      content_mode: 'compact',
+      consistency: 'prefix',
+    });
+    await act(async () => {
+      fresh.resolve({
+        ...createMessagePage([createTextMessage('current-active', 'new canonical active branch', conversationId)]),
+        branch_id: 'br_00000005',
+        branch_generation: 5,
+        source_revision: 0,
+        through_publication_sequence: 9,
+        canonical_through_publication_sequence: 9,
+        projection_pending: false,
+      });
+      await fresh.promise;
+    });
+    expect(view.result.current.messages.map((message) => message.msg_id)).toEqual(['current-active']);
+    expect(view.result.current.pagination).toMatchObject({
+      branchId: 'br_00000005',
+      branchGeneration: 5,
+      sourceRevision: 0,
+      historyRevision: 9,
+      projectionPending: false,
+    });
+    expect(getSelectedXScienceBranch(conversationId)).toBeNull();
+    view.unmount();
+  });
+
+  it('returns from an explicit view to server active at the same global generation', async () => {
+    const owner = 'owner-return-to-active';
+    setRendererAccountOwner(owner);
+    const conversationId = 'conversation-return-to-active';
+    selectXScienceBranch(conversationId, 'br_00000005');
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('viewed-branch', 'nonactive branch view', conversationId)]),
+      branch_id: 'br_00000005',
+      branch_generation: 5,
+      source_revision: 4,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    });
+    const fresh = deferred<MessageCursorPage<TMessage>>();
+    invoke.mockReturnValueOnce(fresh.promise);
+    const view = renderHook(
+      () => ({
+        messages: useMessageList(),
+        pagination: useMessagePaginationState(),
+        refresh: useMessageLstCache(conversationId, owner),
+      }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(view.result.current.messages.map((message) => message.msg_id)).toEqual(['viewed-branch']);
+    expect(invoke.mock.calls[0]?.[0]).toHaveProperty('branch_id', 'br_00000005');
+    await act(async () => {
+      selectXScienceBranch(conversationId, null);
+      await Promise.resolve();
+    });
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(invoke.mock.calls[1]?.[0]).not.toHaveProperty('branch_id');
+    await act(async () => {
+      fresh.resolve({
+        ...createMessagePage([createTextMessage('server-active', 'unchanged canonical active branch', conversationId)]),
+        branch_id: 'br_00000001',
+        branch_generation: 5,
+        source_revision: 0,
+        through_publication_sequence: 9,
+        canonical_through_publication_sequence: 9,
+        projection_pending: false,
+      });
+      await fresh.promise;
+    });
+    expect(view.result.current.messages.map((message) => message.msg_id)).toEqual(['server-active']);
+    expect(view.result.current.pagination).toMatchObject({
+      branchId: 'br_00000001',
+      branchGeneration: 5,
+      sourceRevision: 0,
+    });
+    expect(getSelectedXScienceBranch(conversationId)).toBeNull();
+    view.unmount();
+  });
+  it.each<{
+    branch: unknown;
+    generation: unknown;
+    invalidWire?: boolean;
+    knownGeneration?: unknown;
+    label?: string;
+  }>([
+    { branch: 'br_00000001', generation: 4 },
+    { branch: undefined, generation: 6 },
+    { branch: null, generation: 6, invalidWire: true },
+    { branch: '', generation: 6, invalidWire: true },
+    { branch: ' ', generation: 6, invalidWire: true },
+    { branch: 'br_00000001', generation: '6', invalidWire: true },
+    { branch: 'br_00000001', generation: null, invalidWire: true },
+    { branch: 'br_00000001', generation: 0, invalidWire: true },
+    { branch: 'br_00000001', generation: -1, invalidWire: true },
+    { branch: 'br_00000001', generation: 6.5, invalidWire: true },
+    { branch: 'br_00000001', generation: Number.MAX_SAFE_INTEGER + 1, invalidWire: true },
+    { branch: 'br_00000001', generation: Infinity, invalidWire: true, label: 'nonfinite bridge response' },
+    { branch: 'br_00000001', generation: 6, knownGeneration: '5' },
+    { branch: 'br_00000001', generation: 6, knownGeneration: null },
+    { branch: 'br_00000001', generation: 6, knownGeneration: 0 },
+    { branch: 'br_00000001', generation: 6, knownGeneration: -1 },
+    { branch: 'br_00000001', generation: 6, knownGeneration: 4.5 },
+    { branch: 'br_00000001', generation: 6, knownGeneration: Infinity, label: 'nonfinite legacy cache' },
+  ])('refuses an older or unbound active page while following server active: %j', async (next) => {
+    const owner = 'owner-stale-active';
+    setRendererAccountOwner(owner);
+    const conversationId = 'conversation-stale-active';
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockReset().mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('current-scope', 'known current scope', conversationId)]),
+      branch_id: 'br_00000005',
+      branch_generation: 5,
+      source_revision: 2,
+      through_publication_sequence: 9,
+      canonical_through_publication_sequence: 9,
+      projection_pending: false,
+    });
+    const view = renderHook(
+      () => ({
+        messages: useMessageList(),
+        pagination: useMessagePaginationState(),
+        setPagination: useUpdateMessagePaginationState(),
+        refresh: useMessageLstCache(conversationId, owner),
+      }),
+      { wrapper: CacheWrapper }
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    if ('knownGeneration' in next) {
+      // Exercise a malformed legacy cache through its existing context owner.
+      // Fresh wire pages still pass through the real pagination validator.
+      await act(async () => {
+        view.result.current.setPagination((current) => ({
+          ...current,
+          branchGeneration: next.knownGeneration as number,
+        }));
+      });
+      expect(view.result.current.pagination.branchGeneration).toBe(next.knownGeneration);
+    }
+    // A delayed clock or an identity-free legacy page cannot replace known scope.
+    invoke.mockResolvedValueOnce({
+      ...createMessagePage([createTextMessage('older-scope', 'stale response', conversationId)]),
+      branch_id: next.branch,
+      branch_generation: next.generation,
+      source_revision: 9,
+      through_publication_sequence: 3,
+      canonical_through_publication_sequence: 3,
+      projection_pending: false,
+    } as unknown as MessageCursorPage<TMessage>);
+    await act(async () => {
+      if (next.invalidWire) {
+        await expect(view.result.current.refresh()).rejects.toThrow('conversation_branch_response_invalid');
+      } else await view.result.current.refresh();
+    });
+    expect(invoke.mock.calls[1]?.[0]).not.toHaveProperty('branch_id');
+    expect(view.result.current.messages.map((message) => message.msg_id)).toEqual(['current-scope']);
+    expect(view.result.current.pagination).toMatchObject({
+      branchId: 'br_00000005',
+      branchGeneration: 'knownGeneration' in next ? next.knownGeneration : 5,
+      sourceRevision: 2,
+      historyRevision: 9,
+    });
+    view.unmount();
   });
 });

@@ -354,6 +354,7 @@ type transcriptBranchMessageCursor struct {
 	BranchGeneration           int64  `json:"branch_generation"`
 	ThroughPublicationSequence int64  `json:"through_publication_sequence"`
 	Index                      int    `json:"index"`
+	SourceRevision             *int64 `json:"source_revision,omitempty"`
 }
 
 func (s *Server) writeTranscriptBranchMessagePage(
@@ -459,9 +460,18 @@ func (s *Server) resolveTranscriptBranchMessageCursor(
 }
 
 func encodeTranscriptBranchMessageCursor(snapshot transcriptstore.ProjectionSnapshot, index int) string {
+	return encodeTranscriptBranchMessageCursorWithSource(snapshot, index, nil)
+}
+
+func encodeTranscriptBranchMessageCursorWithSource(snapshot transcriptstore.ProjectionSnapshot, index int, sourceRevision *int64) string {
+	version := 1
+	if sourceRevision != nil {
+		version = 2
+	}
 	encoded, _ := json.Marshal(transcriptBranchMessageCursor{
-		Version: 1, BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
+		Version: version, BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
 		ThroughPublicationSequence: snapshot.ThroughPublicationSequence, Index: index,
+		SourceRevision: sourceRevision,
 	})
 	return base64.RawURLEncoding.EncodeToString(encoded)
 }
@@ -470,6 +480,12 @@ func parseTranscriptBranchMessageCursor(
 	value string,
 	snapshot transcriptstore.ProjectionSnapshot,
 	messageCount int,
+) (transcriptBranchMessageCursor, int, error) {
+	return parseTranscriptBranchMessageCursorWithSource(value, snapshot, messageCount, nil)
+}
+
+func parseTranscriptBranchMessageCursorWithSource(
+	value string, snapshot transcriptstore.ProjectionSnapshot, messageCount int, sourceRevision *int64,
 ) (transcriptBranchMessageCursor, int, error) {
 	if len(value) == 0 || len(value) > 1024 {
 		return transcriptBranchMessageCursor{}, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
@@ -481,12 +497,21 @@ func parseTranscriptBranchMessageCursor(
 	var cursor transcriptBranchMessageCursor
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&cursor); err != nil || cursor.Version != 1 ||
+	if err := decoder.Decode(&cursor); err != nil || (cursor.Version != 1 && cursor.Version != 2) ||
 		cursor.BranchID == "" || cursor.Index < 0 {
-		return transcriptBranchMessageCursor{}, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
+		return cursor, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
 	}
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return transcriptBranchMessageCursor{}, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
+		return cursor, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
+	}
+	if cursor.Version == 1 && cursor.SourceRevision != nil || cursor.Version == 2 && (cursor.SourceRevision == nil || *cursor.SourceRevision < 0) {
+		return cursor, http.StatusBadRequest, errors.New("invalid conversation branch cursor")
+	}
+	if (sourceRevision != nil) != (cursor.Version == 2) {
+		return cursor, http.StatusConflict, errors.New("conversation cursor consistency changed; refresh and retry")
+	}
+	if cursor.Version == 2 && *cursor.SourceRevision != *sourceRevision {
+		return cursor, http.StatusConflict, errors.New("conversation branch cursor source is stale")
 	}
 	if cursor.Index >= messageCount {
 		return cursor, http.StatusBadRequest, errors.New("invalid conversation branch cursor")

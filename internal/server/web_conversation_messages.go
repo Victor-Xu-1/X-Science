@@ -53,9 +53,14 @@ func (s *Server) handleWebConversationMessages(
 	limit := max(1, min(compatPositiveQuery(r, "limit", defaultWebMessagePageSize, maxWebMessagePageSize), maxWebMessagePageSize))
 	historyProjectionStarted := time.Now()
 	branchID := strings.TrimSpace(r.URL.Query().Get("branch_id"))
+	consistency := strings.TrimSpace(r.URL.Query().Get("consistency"))
+	if consistency != "" && consistency != "exact" && consistency != "prefix" {
+		writeWorkspaceJSON(w, http.StatusBadRequest, map[string]any{"message": "invalid conversation history consistency"})
+		return
+	}
 	if s.transcriptWebReadModel != nil {
-		readModel, active, err := s.activatedTranscriptWebReadModel(
-			r.Context(), compatAgentUserID(r), frame.ID, branchID,
+		readModel, active, err := s.activatedTranscriptWebReadModelWithPolicy(
+			r.Context(), compatAgentUserID(r), frame.ID, branchID, true, consistency == "prefix",
 		)
 		if err != nil {
 			if branchID != "" && errors.Is(err, transcriptstore.ErrBranchStateStale) {

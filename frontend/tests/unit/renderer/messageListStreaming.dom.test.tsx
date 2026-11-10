@@ -18,9 +18,12 @@ import {
   type ConversationRuntimeView,
 } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 import MessageList from '@/renderer/pages/conversation/Messages/MessageList';
+import * as runtimeViewStore from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+import * as annotations from '@/renderer/services/xScienceAnnotations';
 const activityHarness = vi.hoisted(() => ({
   view: undefined as ConversationRuntimeView | undefined,
   connection: 'connected',
+  context: false,
 }));
 vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
   useRealtime: () => ({ snapshot: { status: activityHarness.connection } }),
@@ -120,7 +123,7 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => null,
+  useConversationContextSafe: () => (activityHarness.context ? { conversation_id: 'conversation-1' } : null),
 }));
 
 vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
@@ -276,12 +279,58 @@ describe('MessageList streaming scroll behavior', () => {
     messageTextHarness.props.length = 0;
     activityHarness.view = undefined;
     activityHarness.connection = 'connected';
+    activityHarness.context = false;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it('retains terminal pending while the visible page is a consistent prefix', async () => {
+    activityHarness.context = true;
+    activityHarness.view = {
+      ...createDefaultConversationRuntimeView('conversation-1'),
+      terminalProjectionPending: true,
+    };
+    const ready = vi.spyOn(runtimeViewStore, 'markTerminalProjectionReady');
+    const annotationRead = vi.spyOn(annotations, 'loadXScienceTranscriptAnnotations').mockResolvedValue([]);
+    const message = { ...createTextMessage('old completed answer'), terminal_status: 'completed' as const };
+    const window = (pending: boolean) => (
+      <MessagePaginationProvider
+        key={String(pending)}
+        value={{
+          hasMoreBefore: false,
+          hasMoreAfter: false,
+          isLoadingBefore: false,
+          isLoadingAfter: false,
+          isLoadingAnchor: false,
+          projectionPending: pending,
+        }}
+      >
+        <Wrapper messages={[message]}>
+          <MessageList />
+        </Wrapper>
+      </MessagePaginationProvider>
+    );
+    try {
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(window(true));
+        await Promise.resolve();
+      });
+      expect(ready).not.toHaveBeenCalled();
+      await act(async () => {
+        view.rerender(window(false));
+        await Promise.resolve();
+      });
+      expect(ready).toHaveBeenCalledWith('conversation-1');
+      view.unmount();
+    } finally {
+      ready.mockRestore();
+      annotationRead.mockRestore();
+    }
   });
 
   it('attaches activity only to the live tail and stops animation after disconnection', () => {

@@ -47,6 +47,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   X_SCIENCE_BRANCH_SELECTION_EVENT,
   getXScienceBranchSelectionRevision,
+  getSelectedXScienceBranch,
   resetXScienceBranchSelection,
   rollbackXScienceBranchSelection,
   selectXScienceBranch,
@@ -108,6 +109,10 @@ export type MessagePaginationState = {
   branchGeneration?: number;
   /** Durable Transcript publication boundary represented by this window. */
   historyRevision?: number;
+  /** The canonical projector is still advancing beyond this real window. */
+  projectionPending?: boolean;
+  canonicalHistoryRevision?: number;
+  sourceRevision?: number;
   /**
    * Presentation boundaries introduced by cursor-page prepends. Tool and file
    * summaries must not merge across one of these IDs because doing so would
@@ -1200,6 +1205,7 @@ export const useLoadPreviousMessagePage = (conversationId?: string) => {
         limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
         before: pagination.oldestCursor,
         contentMode: 'compact',
+        consistency: 'prefix',
         branchId: pagination.branchId,
         signal: request.controller.signal,
       });
@@ -1218,6 +1224,9 @@ export const useLoadPreviousMessagePage = (conversationId?: string) => {
         branchId: page.branch_id ?? current.branchId,
         branchGeneration: page.branch_generation ?? current.branchGeneration,
         historyRevision: messagePageHistoryRevision(page.through_publication_sequence) ?? current.historyRevision,
+        projectionPending: page.projection_pending === true,
+        canonicalHistoryRevision: messagePageHistoryRevision(page.canonical_through_publication_sequence),
+        sourceRevision: page.source_revision,
         groupBoundaryMessageIds: existingWindowFirstMessageId
           ? Array.from(new Set([...(current.groupBoundaryMessageIds ?? []), existingWindowFirstMessageId]))
           : current.groupBoundaryMessageIds,
@@ -1277,6 +1286,7 @@ export const useLoadNextMessagePage = (conversationId?: string) => {
         limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
         after: pagination.newestCursor,
         contentMode: 'compact',
+        consistency: 'prefix',
         branchId: pagination.branchId,
         signal: request.controller.signal,
       });
@@ -1294,6 +1304,9 @@ export const useLoadNextMessagePage = (conversationId?: string) => {
         branchId: page.branch_id ?? current.branchId,
         branchGeneration: page.branch_generation ?? current.branchGeneration,
         historyRevision: messagePageHistoryRevision(page.through_publication_sequence) ?? current.historyRevision,
+        projectionPending: page.projection_pending === true,
+        canonicalHistoryRevision: messagePageHistoryRevision(page.canonical_through_publication_sequence),
+        sourceRevision: page.source_revision,
         groupBoundaryMessageIds: [],
       }));
       return true;
@@ -1350,6 +1363,7 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
         const page = await loadConversationAnchorWindow(conversationId, messageId, {
           limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
           contentMode: 'compact',
+          consistency: 'prefix',
           branchId: pagination.branchId,
           signal: request.controller.signal,
         });
@@ -1367,6 +1381,9 @@ export const useLoadAnchorMessageWindow = (conversationId?: string) => {
           branchId: page.branch_id,
           branchGeneration: page.branch_generation,
           historyRevision: messagePageHistoryRevision(page.through_publication_sequence),
+          projectionPending: page.projection_pending === true,
+          canonicalHistoryRevision: messagePageHistoryRevision(page.canonical_through_publication_sequence),
+          sourceRevision: page.source_revision,
           groupBoundaryMessageIds: [],
         });
         return true;
@@ -1415,6 +1432,32 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
     if (retry.timer !== null) clearTimeout(retry.timer);
     initialHistoryRetryRef.current = null;
   }, []);
+  const scheduleInitialHistoryRetry = useCallback((): void => {
+    // The existing route-owned retry also reconciles successful partial pages.
+    // Navigation cleanup cancels it; no second poller or retry budget is added.
+    const previous = initialHistoryRetryRef.current;
+    const attempt = previous?.conversationId === key ? previous.attempt : 0;
+    if (previous?.timer !== null && previous?.timer !== undefined) clearTimeout(previous.timer);
+    const delayMs = TRANSIENT_HISTORY_RETRY_DELAYS_MS[Math.min(attempt, TRANSIENT_HISTORY_RETRY_DELAYS_MS.length - 1)];
+    const retry = {
+      conversationId: key,
+      attempt: attempt + 1,
+      timer: null as ReturnType<typeof setTimeout> | null,
+    };
+    retry.timer = setTimeout(() => {
+      retry.timer = null;
+      if (activeKeyRef.current !== key || initialHistoryRetryRef.current !== retry) return;
+      if (activeMessageHistoryRequestEpochs.has(key)) {
+        scheduleInitialHistoryRetry();
+        return;
+      }
+      void loadMessagesRef.current(false, 'initial', false).catch((retryError) => {
+        if (isMessageRequestAbort(retryError)) return;
+        console.error('[useMessageLstCache] Failed to reconcile conversation history:', retryError);
+      });
+    }, delayMs);
+    initialHistoryRetryRef.current = retry;
+  }, [key]);
   const loadMessages = useCallback(
     async (
       replace = false,
@@ -1425,6 +1468,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
       if (source !== 'initial') clearInitialHistoryRetry(key);
       const requestEpoch = beginMessageHistoryRequest(key);
       const branchRevision = getXScienceBranchSelectionRevision(key);
+      const requestedBranchId = getSelectedXScienceBranch(key);
       const blocksVisibleWindow = blockCachedWindow && (source === 'initial' || source === 'branch');
       if (blocksVisibleWindow) setLoading(true);
       setPagination((current) => ({
@@ -1441,7 +1485,12 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
           branchRevision,
           limit: INTERACTIVE_MESSAGE_PAGE_LIMIT,
           contentMode: 'compact',
-          force: source !== 'initial' && source !== 'terminal-mount',
+          consistency: 'prefix',
+          // A retry must observe new authority rather than a completed page
+          // retained inside the shared fetch's short mount grace period.
+          force:
+            (initialHistoryRetryRef.current?.conversationId === key && initialHistoryRetryRef.current.attempt > 0) ||
+            (source !== 'initial' && source !== 'terminal-mount'),
           dedupeInFlight: source === 'live',
           retryTransient: source !== 'initial' && source !== 'terminal-mount' && source !== 'live',
         });
@@ -1456,7 +1505,57 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
           ? normalizeDbMessagePage(result.items, result.through_publication_sequence)
           : undefined;
         if (messages && Array.isArray(messages)) {
-          clearInitialHistoryRetry(key);
+          const cachedScope = readCachedMessageWindow(key, ownerId, branchRevision)?.pagination;
+          const cachedRevision = cachedScope?.sourceRevision;
+          const sameBranch = cachedScope?.branchId === result.branch_id;
+          const knownGeneration = cachedScope?.branchGeneration;
+          // An omitted branch follows the server's active branch. Generation is
+          // stream-wide, including explicit nonactive views; returning to active
+          // can therefore keep the same generation, but cannot rewind it.
+          const branchChanged =
+            cachedScope?.branchId !== undefined &&
+            typeof result.branch_id === 'string' &&
+            result.branch_id.trim().length > 0 &&
+            !sameBranch &&
+            (requestedBranchId === null || result.branch_id === requestedBranchId) &&
+            typeof knownGeneration === 'number' &&
+            Number.isSafeInteger(knownGeneration) &&
+            knownGeneration > 0 &&
+            typeof result.branch_generation === 'number' &&
+            Number.isSafeInteger(result.branch_generation) &&
+            result.branch_generation > 0 &&
+            result.branch_generation >= knownGeneration;
+          const generationAdvanced =
+            sameBranch &&
+            knownGeneration !== undefined &&
+            result.branch_generation !== undefined &&
+            result.branch_generation > knownGeneration;
+          const scopeUnbound =
+            cachedScope?.branchId !== undefined &&
+            (!sameBranch ||
+              result.branch_generation === undefined ||
+              (knownGeneration !== undefined && result.branch_generation < knownGeneration));
+          // Revisions are monotone only inside their branch/generation owner.
+          // Neither an old prefetch nor an unbound legacy page may rewind it.
+          if (
+            !branchChanged &&
+            (scopeUnbound ||
+              (cachedRevision !== undefined &&
+                (result.source_revision === undefined ||
+                  (!generationAdvanced && result.source_revision < cachedRevision))))
+          ) {
+            scheduleInitialHistoryRetry();
+            return [];
+          }
+          const sourceChanged =
+            branchChanged ||
+            generationAdvanced ||
+            (cachedRevision !== undefined &&
+              result.source_revision !== undefined &&
+              result.source_revision > cachedRevision);
+          const projectionPending = result.projection_pending === true;
+          if (projectionPending) scheduleInitialHistoryRetry();
+          else clearInitialHistoryRetry(key);
           const nextPagination: MessagePaginationState = {
             conversationId: key,
             oldestCursor: result.oldest_cursor ?? undefined,
@@ -1469,26 +1568,32 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
             branchId: result.branch_id,
             branchGeneration: result.branch_generation,
             historyRevision: messagePageHistoryRevision(result.through_publication_sequence),
+            projectionPending: result.projection_pending === true,
+            canonicalHistoryRevision: messagePageHistoryRevision(result.canonical_through_publication_sequence),
+            sourceRevision: result.source_revision,
             groupBoundaryMessageIds: [],
           };
           update((existingList) => {
             const initialBaseline =
-              source === 'initial' && initialHistoryBaselineRef.current?.conversationId === key
+              !projectionPending && source === 'initial' && initialHistoryBaselineRef.current?.conversationId === key
                 ? initialHistoryBaselineRef.current.messages
                 : null;
             const liveWindow = initialBaseline
               ? existingList.filter((message) => !initialBaseline.has(message))
               : existingList;
-            const nextList = replace
-              ? messages
-              : mergeLoadedPageWithCurrent(
-                  key,
-                  messages,
-                  withoutOptimisticUserMessages(liveWindow),
-                  true,
-                  source !== 'initial' && source !== 'rebase'
-                );
-            if (source === 'initial') initialHistoryBaselineRef.current = null;
+            // Append-only prefixes can retain the live tail. A changed canonical
+            // source revision cannot borrow rows from the previous window.
+            const nextList =
+              sourceChanged || (replace && !projectionPending)
+                ? messages
+                : mergeLoadedPageWithCurrent(
+                    key,
+                    messages,
+                    withoutOptimisticUserMessages(liveWindow),
+                    true,
+                    source !== 'initial' && source !== 'rebase'
+                  );
+            if (source === 'initial' && !projectionPending) initialHistoryBaselineRef.current = null;
             writeCachedMessageWindow(key, ownerId, branchRevision, nextList, nextPagination);
             return nextList;
           });
@@ -1507,28 +1612,7 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
             setLoadError(null);
             scheduleConversationRoutePerformanceStage('settled', 2);
             if (source === 'initial') {
-              // Keep converging for as long as this route is mounted. The
-              // delay is capped, but the logical transcript has no retry-count
-              // or wall-clock limit; navigation cleanup cancels the timer.
-              const previous = initialHistoryRetryRef.current;
-              const attempt = previous?.conversationId === key ? previous.attempt : 0;
-              if (previous?.timer !== null && previous?.timer !== undefined) clearTimeout(previous.timer);
-              const delayMs =
-                TRANSIENT_HISTORY_RETRY_DELAYS_MS[Math.min(attempt, TRANSIENT_HISTORY_RETRY_DELAYS_MS.length - 1)];
-              const retry = {
-                conversationId: key,
-                attempt: attempt + 1,
-                timer: null as ReturnType<typeof setTimeout> | null,
-              };
-              retry.timer = setTimeout(() => {
-                retry.timer = null;
-                if (activeKeyRef.current !== key || initialHistoryRetryRef.current !== retry) return;
-                void loadMessagesRef.current(false, 'initial', false).catch((retryError) => {
-                  if (isMessageRequestAbort(retryError)) return;
-                  console.error('[useMessageLstCache] Failed to reconcile conversation history:', retryError);
-                });
-              }, delayMs);
-              initialHistoryRetryRef.current = retry;
+              scheduleInitialHistoryRetry();
             }
           }
           return [];
@@ -1547,7 +1631,16 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
         releaseMessageHistoryRequest(key, requestEpoch);
       }
     },
-    [clearInitialHistoryRetry, key, ownerId, setLoadError, setLoading, setPagination, update]
+    [
+      clearInitialHistoryRetry,
+      scheduleInitialHistoryRetry,
+      key,
+      ownerId,
+      setLoadError,
+      setLoading,
+      setPagination,
+      update,
+    ]
   );
   loadMessagesRef.current = loadMessages;
 
@@ -1599,6 +1692,35 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
     if (messages.length !== currentList.length) return;
     writeCachedMessageWindow(key, ownerId, getXScienceBranchSelectionRevision(key), messages, pagination);
   }, [currentList, key, ownerId, pagination]);
+
+  useEffect(() => {
+    if (!key || !ownerId.trim() || pagination.conversationId !== key || !pagination.projectionPending) return;
+    if (
+      !/^br_[0-9a-f]{8}$/.test(pagination.branchId ?? '') ||
+      !Number.isSafeInteger(pagination.branchGeneration) ||
+      Number(pagination.branchGeneration) <= 0 ||
+      messagePageHistoryRevision(pagination.sourceRevision) === undefined ||
+      messagePageHistoryRevision(pagination.historyRevision) === undefined ||
+      messagePageHistoryRevision(pagination.canonicalHistoryRevision) === undefined ||
+      Number(pagination.canonicalHistoryRevision) <= Number(pagination.historyRevision)
+    )
+      return;
+    const accepted = readCachedMessageWindow(key, ownerId, getXScienceBranchSelectionRevision(key))?.pagination;
+    if (
+      !accepted ||
+      !accepted.projectionPending ||
+      accepted.canonicalHistoryRevision !== pagination.canonicalHistoryRevision ||
+      accepted.branchId !== pagination.branchId ||
+      accepted.branchGeneration !== pagination.branchGeneration ||
+      accepted.sourceRevision !== pagination.sourceRevision ||
+      accepted.historyRevision !== pagination.historyRevision
+    )
+      return;
+    const retry = initialHistoryRetryRef.current;
+    if (activeMessageHistoryRequestEpochs.has(key) || (retry?.conversationId === key && retry.timer !== null)) return;
+    // Cursor/anchor reads use this same route owner even while runtime is idle.
+    scheduleInitialHistoryRetry();
+  }, [key, ownerId, pagination, scheduleInitialHistoryRetry]);
 
   useEffect(() => {
     if (!key || typeof window === 'undefined') return;
