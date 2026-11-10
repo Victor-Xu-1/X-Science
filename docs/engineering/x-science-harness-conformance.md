@@ -1367,3 +1367,12 @@ local debounce follow the current receiver, and stale completion cannot clear
 its successor. Existing server publication and version-conflict authorities
 remain unchanged; presentation errors do not turn a committed write into a
 reported server-write failure.
+
+A conditional artifact-version save also notifies the existing workspace
+refresh owner after a usable commit acknowledgement in the same account scope.
+The mounted artifact library re-reads its current query through its original
+force reader, keeping source, pagination and late-page fences. This notification
+is independent of the preview receiving lifetime and never rewrites immutable
+message links. A notification-listener failure preserves the committed save
+result and emits a fixed payload-free diagnostic; it neither retries the write
+nor claims that the library refreshed successfully.
