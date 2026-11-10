@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "cef7af352e49eed88e08782b741290db75d5bdd24f19a5dd8bb6994d53003398",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "4fe7e97b78b0aa01cfe7026b28e8851fa52ba1c8cc760296b1224a789a0f4c38",
+  "additionFingerprintSHA256": "161a4d22bb6d98aebb7bdeae9fbc166d517d04d3cd12ee0c44235885e91f5307",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -10455,8 +10455,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryStudyBatch.css",
-      "sha256": "8d8c10d7b076a9bcd238459c697afdab77b4f68056b8c911c7e5c4090162078e",
-      "bytes": 3083,
+      "sha256": "32155cc3a67708acc6dd672cb0f6261ad6ef21c083b59a1ae2cf91d702e2b0d0",
+      "bytes": 3122,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10521,8 +10521,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/resourceTags.css",
-      "sha256": "9e1ac2284ccfb39d7c9d44517d7e72651fbccb1fbefe3f393215629f9fcd04a9",
-      "bytes": 6831,
+      "sha256": "ac4282fda936d3cac9322760369899ddcda38c6108bd34c31b3086b17f51be9f",
+      "bytes": 6914,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11319,8 +11319,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/tags/tags.css",
-      "sha256": "85f2bbcc988862abb8a63b1300c96c827ac73574c6599871b1f8fad4ac80cee2",
-      "bytes": 8601,
+      "sha256": "e2e48d55a5a7ceff698e1faa272549c3846a2ce358deda11cc0c34fb3daeefe9",
+      "bytes": 8664,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -14301,8 +14301,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/conversationVisualSystemCss.test.ts",
-      "sha256": "2fc9e8c8516f1735fc4eb76f4762447da244d9403840c14a56f665ff7f83cab4",
-      "bytes": 9989,
+      "sha256": "36ad4faefa260f49a72c8f0260f440cdf602d632fb4a3386b8c2cbe50e83ed22",
+      "bytes": 10239,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
