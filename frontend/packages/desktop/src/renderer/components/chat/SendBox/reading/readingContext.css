@@ -336,7 +336,7 @@ body[arco-theme='dark'] .library-workbench__detail .pdf-library-related {
   border: 1px solid var(--reading-border);
   border-radius: var(--ui-radius-md);
   background: var(--reading-bg);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 18px;
 }
 .pdf-library-related__header,
@@ -378,7 +378,7 @@ body[arco-theme='dark'] .library-workbench__detail .pdf-library-related {
 }
 .pdf-library-related__hint,
 .pdf-library-related__identifiers {
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   line-height: 16px;
 }
 .pdf-library-related__tabs {

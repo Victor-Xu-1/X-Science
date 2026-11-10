@@ -17,7 +17,7 @@
 .library-workbench__detail-main-header {
   position: sticky;
   inset-block-start: 0;
-  z-index: 2;
+  z-index: var(--ui-z-layer);
   display: flex;
   align-items: start;
   justify-content: space-between;

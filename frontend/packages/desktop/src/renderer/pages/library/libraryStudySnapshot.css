@@ -2,9 +2,9 @@
   margin-block: 12px;
   padding: 12px;
   border: 1px solid var(--color-border-2);
-  border-radius: 10px;
+  border-radius: var(--ui-radius-lg);
   background: var(--color-fill-1);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 1.5;
 }
 .library-study__heading {
@@ -18,14 +18,14 @@
   align-items: center;
   gap: 5px;
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ui-font-body);
+  font-weight: var(--ui-weight-semibold);
 }
 .library-study__heading button {
   margin-inline-start: auto;
 }
 .library-study__coverage {
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   color: var(--color-text-3);
 }
 .library-study dl {
@@ -39,7 +39,7 @@
   border-block-end: 1px solid var(--color-border-2);
 }
 .library-study dt {
-  font-weight: 500;
+  font-weight: var(--ui-weight-medium);
 }
 .library-study dd {
   margin: 0;
@@ -51,7 +51,7 @@
 }
 .library-study__muted {
   color: var(--color-text-3);
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
 }
 .library-study__issue {
   color: var(--color-warning-6);

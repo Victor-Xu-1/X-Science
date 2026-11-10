@@ -42,13 +42,13 @@
   color: var(--workspace-text);
   background: var(--workspace-canvas);
   box-shadow: var(--ui-shadow-popover);
-  font-size: 14px;
+  font-size: var(--ui-font-subtitle);
   line-height: 1.4;
 }
 .resource-tag-menu__heading {
   padding: 6px 8px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ui-font-meta);
+  font-weight: var(--ui-weight-medium);
 }
 .resource-tag-menu__search {
   position: relative;
@@ -110,7 +110,7 @@
   margin: 0;
   padding: 12px 8px;
   color: var(--workspace-text-tertiary);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
 }
 .resource-tag-badge {
   --resource-tag-color: #2563eb;
@@ -121,10 +121,10 @@
   gap: 4px;
   padding: 2px 6px;
   border: 1px solid color-mix(in srgb, var(--resource-tag-color) 28%, transparent);
-  border-radius: 4px;
+  border-radius: var(--ui-radius-xs);
   color: var(--resource-tag-color);
   background: color-mix(in srgb, var(--resource-tag-color) 9%, transparent);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   line-height: 16px;
   vertical-align: middle;
 }
@@ -180,7 +180,7 @@
   place-items: center;
   padding: 0;
   border: 0;
-  border-radius: 3px;
+  border-radius: calc(var(--ui-radius-xs) - 1px);
   color: var(--workspace-text-secondary);
   background: transparent;
   cursor: pointer;
@@ -194,13 +194,13 @@
 }
 .resource-tag-badges__more {
   color: var(--workspace-text-tertiary);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
 }
 .resource-tags__error {
   display: block;
   margin: 4px;
   color: var(--color-danger-6, #c43c3c);
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
 }
 :is(.resource-tag-menu__trigger, .resource-tag-badges__remove):focus-visible,
 .resource-tag-menu__search input:focus-visible {
@@ -278,7 +278,7 @@
   min-width: 0;
   color: inherit;
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-xs);
 }
 .resource-tag-badges__open:hover .resource-tag-badge {
   background: color-mix(in srgb, var(--resource-tag-color) 15%, transparent);

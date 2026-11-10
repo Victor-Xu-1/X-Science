@@ -1,6 +1,6 @@
 .library-study-batch {
   margin: 8px 0;
-  font-size: 12px;
+  font-size: var(--ui-font-meta);
   color: var(--text-primary);
 }
 .library-study-batch__trigger {
@@ -9,7 +9,7 @@
   gap: 7px;
   padding: 7px 10px;
   border: 1px solid var(--border-base, #e5e5e5);
-  border-radius: 9px;
+  border-radius: calc(var(--ui-radius-lg) - 1px);
   background: var(--bg-1, #fff);
   color: inherit;
   cursor: pointer;
@@ -23,7 +23,7 @@
   margin-top: 7px;
   overflow: hidden;
   border: 1px solid var(--border-base, #e5e5e5);
-  border-radius: 12px;
+  border-radius: var(--ui-radius-xl);
   background: var(--bg-1, #fff);
   box-shadow: 0 4px 18px #00000007;
 }
@@ -40,14 +40,14 @@
 }
 .library-study-batch__card h3 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ui-font-body);
+  font-weight: var(--ui-weight-semibold);
 }
 .library-study-batch__card header button {
   display: inline-flex;
   padding: 3px;
   border: 0;
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius-sm) - 1px);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -93,11 +93,11 @@ button.library-study-batch__row:hover {
 .library-study-batch__row small,
 .library-study-batch__muted {
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
 }
 .library-study-batch__row-issue {
   margin: 0 14px 10px 38px;
-  font-size: 11px;
+  font-size: var(--ui-font-micro);
   color: var(--text-secondary);
 }
 .library-study-batch__dot {

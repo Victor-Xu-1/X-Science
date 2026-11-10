@@ -364,9 +364,16 @@ describe('shared visual shell contract', () => {
   });
 
   it('maps legacy tertiary text utilities onto the readable family palette', () => {
-    expect(shellCss).toMatch(
-      /\.text-t-tertiary,[\s\S]*?\.placeholder\\:text-t-tertiary::placeholder\s*\{[^}]*color:\s*var\(--workspace-text-tertiary\)/i
+    const rule = shellCss.match(
+      /html\s+body\s+\.text-t-tertiary:not\(([^)]+)\),\s*html body \.placeholder\\:text-t-tertiary::placeholder\s*\{([^}]+)\}/i
     );
+    expect(rule).not.toBeNull();
+    expect(rule?.[1]?.split(',').map((selector) => selector.trim())).toEqual([
+      '.x-science-sidebar-section-title-button .sider-section-title',
+      '.x-science-sidebar-shell .x-science-sidebar-section-toggle',
+      '.x-science-sidebar-shell .x-science-sidebar-section-toggle .i-icon',
+    ]);
+    expect(rule?.[2]).toMatch(/color:\s*var\(--workspace-text-tertiary\)\s*!important;/);
   });
 
   it('keeps every explicit frame neutral', () => {
