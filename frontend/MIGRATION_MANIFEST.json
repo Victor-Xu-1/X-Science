@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "6df2794e1f9731c755d42f1cda4c0d281267480937daab74cda0a47d0b94a2e3",
+  "adaptationFingerprintSHA256": "d71c64c9143cf053ebbd4480d268886b3b22fdcdf7fc2c5bc63754902726a92c",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1b7b3dfc1e45f364ef594e46e06bdf2ad199df653b0db437cd9b4f15e7283cc9",
+  "additionFingerprintSHA256": "d96bea13b340c0f9e33e3c206f9426ee40964a48c3ef095d76de4f9e9291789e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -1899,8 +1899,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/context/PreviewContext.tsx",
       "sourceSHA256": "ea6bd57ad08f37347bf39e38aa460505b34053c2508788d5fd8cead43c1cd57b",
-      "targetSHA256": "49ad692e93869ab11dd386ba02be24cf40cd0c88408434d79002a8d3031d68d0",
-      "bytes": 35403,
+      "targetSHA256": "35abb96025879376fccfb4ff0c6a10bac46731493ff7572704b3cd2dd38064b4",
+      "bytes": 34772,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -9777,8 +9777,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/context/usePreviewWorkspaceState.ts",
-      "sha256": "7a503737a962350d585dfe5ce8ac4fb9d437fdf644b00cd644bc2f89bcf7301a",
-      "bytes": 6345,
+      "sha256": "188387c70281dac8099a2f472062c737dc97a801fa4598970657fcf7831c8d81",
+      "bytes": 6523,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -15819,8 +15819,8 @@
     },
     {
       "path": "tests/unit/xscience/ManualNotebookPreviewIdentity.dom.test.tsx",
-      "sha256": "3af7f3ce9b6a5066724018cfeaaef2d296f26fd549fb2894d725f0d47f67427e",
-      "bytes": 4417,
+      "sha256": "eaed2cd8f2ad6ede11cb03a3fd41e95c8c6b9cfbcf5bb8f4a5bf49627be6d960",
+      "bytes": 6516,
       "reason": "Verify or support the directly scoped archive and manual Notebook contract in ManualNotebookPreviewIdentity.dom.test.tsx, without user artifacts or scientific result substitution."
     },
     {
@@ -16077,8 +16077,8 @@
     },
     {
       "path": "tests/unit/xscience/manualNotebookFixtures.ts",
-      "sha256": "85a7815cb7d6199be9251368bee609f573e5d48ac8f21f57dfeabe72b151cfb9",
-      "bytes": 4353,
+      "sha256": "32ab9379951da673805f76cf487626983223b0e495b303eee7906f7220948321",
+      "bytes": 4366,
       "reason": "Verify or support the directly scoped archive and manual Notebook contract in manualNotebookFixtures.ts, without user artifacts or scientific result substitution."
     },
     {
