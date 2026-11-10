@@ -46,6 +46,7 @@ type transcriptWebReadDiagnostic struct {
 	stage        transcriptWebReadStage
 	role, mode   string
 	finished     bool
+	stageTimings transcriptWebStageTimings
 }
 
 func transcriptWebReadDiagnosticRoute(r *http.Request) string {
@@ -108,7 +109,9 @@ func noteTranscriptWebReadStage(ctx context.Context, stage transcriptWebReadStag
 			return
 		}
 		if !diagnostic.finished {
-			diagnostic.stage, diagnostic.stageStarted = stage, time.Now()
+			now := time.Now()
+			diagnostic.stageTimings.add(diagnostic.stage, now.Sub(diagnostic.stageStarted))
+			diagnostic.stage, diagnostic.stageStarted = stage, now
 			switch stage {
 			case webReadCatchupLeader:
 				diagnostic.role = "leader"
@@ -131,7 +134,8 @@ func (diagnostic *transcriptWebReadDiagnostic) finish() {
 		return
 	}
 	diagnostic.finished = true
-	elapsed := time.Since(diagnostic.started)
+	now := time.Now()
+	elapsed := now.Sub(diagnostic.started)
 	outcome := "completed"
 	switch diagnostic.ctx.Err() {
 	case context.Canceled:
@@ -145,7 +149,9 @@ func (diagnostic *transcriptWebReadDiagnostic) finish() {
 	}
 	id, route, stage := diagnostic.id, diagnostic.route, diagnostic.stage
 	role, mode := diagnostic.role, diagnostic.mode
-	stageElapsed := time.Since(diagnostic.stageStarted)
+	stageElapsed := now.Sub(diagnostic.stageStarted)
+	diagnostic.stageTimings.add(stage, stageElapsed)
+	stageTimings := diagnostic.stageTimings
 	diagnostic.mu.Unlock()
 	// Every string is either generated here or a fixed internal label. Never
 	// include URL, caller request IDs, identity, query, error, or payload data.
@@ -153,4 +159,8 @@ func (diagnostic *transcriptWebReadDiagnostic) finish() {
 		id, route, stage, outcome,
 		float64(elapsed.Microseconds())/1000, float64(stageElapsed.Microseconds())/1000,
 		role, mode)
+	// Keep the original line unchanged for existing exact-match readers. This
+	// companion uses the same identity and only fixed numeric stage fields.
+	log.Printf("history_read_stages request_id=%s route=%s final_stage=%s outcome=%s elapsed_ms=%.3f %s",
+		id, route, stage, outcome, float64(elapsed.Microseconds())/1000, stageTimings.requestFields())
 }

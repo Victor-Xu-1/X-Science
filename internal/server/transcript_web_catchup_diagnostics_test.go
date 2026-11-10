@@ -143,13 +143,18 @@ func TestTranscriptWebCatchupDiagnosticsOutliveCanceledRequestStage(t *testing.T
 	flight.finish(nil)
 	flight.finish(errors.New("private-error-sentinel"))
 	lines := logs.snapshot()
-	if len(lines) != 2 {
-		t.Fatalf("one frozen request and one completed owner expected: %q", lines)
+	if len(lines) != 4 {
+		t.Fatalf("one frozen request and one completed owner, each with one breakdown, expected: %q", lines)
 	}
-	old, final := catchupDiagnosticFields(lines[0]), catchupDiagnosticFields(lines[1])
+	old, final := catchupDiagnosticFields(lines[0]), catchupDiagnosticFields(lines[2])
 	if old["stage"] != "project_full" || old["outcome"] != "canceled" ||
 		final["stage"] != "project_metadata" || final["projection"] != "full" || final["outcome"] != "ok" {
 		t.Fatalf("detached owner lost progress or thawed canceled request: %q", lines)
+	}
+	readStages, flightStages := catchupDiagnosticFields(lines[1]), catchupDiagnosticFields(lines[3])
+	if readStages["request_id"] != old["request_id"] || readStages["final_stage"] != old["stage"] ||
+		flightStages["flight_id"] != final["flight_id"] || flightStages["final_stage"] != final["stage"] {
+		t.Fatalf("stage breakdowns changed diagnostic identities: %q", lines)
 	}
 }
 
@@ -183,12 +188,16 @@ func TestTranscriptWebCatchupDiagnosticsUseBoundedReturnClasses(t *testing.T) {
 			}
 			flight.diagnostic.finish(test.err)
 			lines := logs.snapshot()
-			if len(lines) != 1 || strings.Contains(lines[0], "private-") {
+			if len(lines) != 2 || strings.Contains(strings.Join(lines, ""), "private-") {
 				t.Fatalf("completion duplicated or leaked raw data: %q", lines)
 			}
 			fields := catchupDiagnosticFields(lines[0])
 			if fields["outcome"] != test.name || fields["owner"] != "background" || fields["projection"] != "incremental" {
 				t.Fatalf("unsafe outcome or lost owner mode: %q", lines)
+			}
+			stages := catchupDiagnosticFields(lines[1])
+			if stages["outcome"] != test.name || stages["flight_id"] != fields["flight_id"] {
+				t.Fatalf("stage breakdown lost bounded return class: %q", lines)
 			}
 		})
 	}
@@ -201,7 +210,7 @@ type transcriptWebCatchupLogs struct {
 
 func (capture *transcriptWebCatchupLogs) Write(value []byte) (int, error) {
 	line := string(value)
-	if strings.Contains(line, "history_read_request ") || strings.Contains(line, "history_catchup_") {
+	if strings.Contains(line, "history_read_") || strings.Contains(line, "history_catchup_") {
 		capture.mu.Lock()
 		capture.lines = append(capture.lines, line)
 		capture.mu.Unlock()
