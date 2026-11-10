@@ -71,27 +71,6 @@ func TestAgentSaveWorkingDataHTMLKeepsRawBytesAcrossReplayAndCompletion(t *testi
 		t.Fatalf("working-source replay changed identity or retention: %#v", replayRaw)
 	}
 
-	// Explicitly promoting those bytes to a rendered report must still fail
-	// the existing template gate, without changing their stored retention.
-	promote := map[string]any{
-		"files": []any{sourcePath}, "language": "text", "human_description": "Publish a rendered source page",
-		"destination": map[string]any{sourcePath: "snapshot"},
-	}
-	promoted, err := fixture.server.executeAgentSaveArtifacts(
-		fixture.toolContext(t, "promote-retention-template", promote), fixture.identity, "promote-retention-template", promote,
-	)
-	if !errors.Is(err, errAgentSaveArtifactsNoResults) {
-		t.Fatalf("unrendered promotion=%#v err=%v", promoted, err)
-	}
-	failures := agentSaveArtifactFailures(t, promoted)
-	if len(failures) != 1 {
-		t.Fatalf("promotion failures=%#v", failures)
-	}
-	assertAgentSaveArtifactFailure(t, failures[0], sourcePath, "unresolved_template_marker")
-	if retention, found, err := fixture.store.ArtifactRetentionMode(stringValue(raw["artifact_id"])); err != nil || !found || retention != "working_data" {
-		t.Fatalf("failed promotion retention=%q found=%t err=%v", retention, found, err)
-	}
-
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: fixture.stream, Claim: fixture.claim}}
 	commits, err := fixture.server.sessionRunnerArtifactCommitReferences(context.Background(), run)
 	if err != nil || len(commits) != 1 || commits[0].VersionID != report["version_id"] {
@@ -119,6 +98,51 @@ func TestAgentSaveWorkingDataHTMLKeepsRawBytesAcrossReplayAndCompletion(t *testi
 	visible := anySliceValue(mapValue(projection[0]["payload"])["files"])
 	if len(visible) != 1 || mapValue(visible[0])["version_id"] != report["version_id"] || mapValue(visible[0])["is_intermediate"] != false {
 		t.Fatalf("terminal visible artifacts=%#v", visible)
+	}
+	assertWorkingDataSourceBytes(t, fixture, stringValue(raw["version_id"]), sourcePath, source)
+
+	// Complete the working-data preservation assertions before the user
+	// explicitly promotes those exact bytes into a report. Promotion is a real
+	// publication role change, with a quality warning rather than rewritten data.
+	promote := map[string]any{
+		"files": []any{sourcePath}, "language": "text", "human_description": "Publish the retained source page",
+		"destination": map[string]any{sourcePath: "snapshot"},
+	}
+	promoted, err := fixture.server.executeAgentSaveArtifacts(
+		fixture.toolContext(t, "promote-retention-template", promote), fixture.identity, "promote-retention-template", promote,
+	)
+	if err != nil {
+		t.Fatalf("explicit report promotion failed: %#v %v", promoted, err)
+	}
+	promotedArtifact := assertTemplateQualityCommittedWarning(t, fixture, promoted, sourcePath)
+	if promotedArtifact["artifact_id"] != raw["artifact_id"] {
+		t.Fatalf("promotion replaced the canonical artifact identity: before=%#v after=%#v", raw, promotedArtifact)
+	}
+	if retention, found, err := fixture.store.ArtifactRetentionMode(stringValue(raw["artifact_id"])); err != nil || !found || retention != "snapshot" {
+		t.Fatalf("promotion was not canonical: retention=%q found=%t err=%v", retention, found, err)
+	}
+	afterPromotion, err := fixture.server.sessionRunnerArtifactCommitReferences(t.Context(), run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	produced := false
+	for _, ref := range afterPromotion {
+		produced = produced || ref.ArtifactID == promotedArtifact["artifact_id"] && ref.VersionID == promotedArtifact["version_id"] && ref.Relation == transcriptstore.ArtifactRelationProduced
+	}
+	if !produced {
+		t.Fatalf("explicitly promoted report was downgraded to input: %#v", afterPromotion)
+	}
+	_, _, promotedReader, promotedFound, openErr := fixture.store.OpenArtifactVersionContent(stringValue(promotedArtifact["version_id"]))
+	if openErr != nil || !promotedFound {
+		t.Fatalf("promoted immutable report missing: found=%t err=%v", promotedFound, openErr)
+	}
+	promotedBytes, readErr := io.ReadAll(promotedReader)
+	closeErr := promotedReader.Close()
+	if readErr != nil || closeErr != nil || !strings.Contains(string(promotedBytes), `const template="{{ client.value }}"`) {
+		t.Fatalf("promotion fabricated rendered template bytes: read=%v close=%v", readErr, closeErr)
+	}
+	if !strings.Contains(string(promotedBytes), `const ref="../out/report.md"`) {
+		t.Fatal("report promotion lost canonical artifact-link normalization")
 	}
 	assertWorkingDataSourceBytes(t, fixture, stringValue(raw["version_id"]), sourcePath, source)
 }

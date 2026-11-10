@@ -849,9 +849,14 @@ tools are absent from new model snapshots.
     matcher gates both generic Web reads and structured article records: a valid
     DOI/PMID/PMCID that resolves to an unrelated article remains a real source
     receipt but cannot satisfy the active investigation. Whole-file PHP/ERB
-    script templates join Jinja, Mustache and format fields in the unresolved
-    deliverable check; the check is scoped to the entire text artifact so a
-    rendered report may still contain a fenced code example. Legacy continuations without an explicit flag retain their
+    script templates join Jinja, Mustache and format fields in report-quality
+    observations. Template-only findings are nonblocking during save, final
+    settlement and recovery; the committed version retains the template text
+    and its advisory identifies the saved artifact, version and digest.
+    Malformed artifact placeholders remain reference-integrity errors and
+    take precedence over presentation findings in the same file. The check
+    is scoped to the entire text artifact so a rendered report may still
+    contain a fenced code example. Legacy continuations without an explicit flag retain their
     required semantics until executed or explicitly completed. Autonomous
     plans remain revisable navigation and progress data during execution, but
     every current-task-bound executable plan now retains unfinished, blocked, and skipped steps at

@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"errors"
 	"reflect"
 	"testing"
 
@@ -23,7 +22,7 @@ func TestArtifactTemplateValidationRejectsWholeFileScriptTemplate(t *testing.T) 
 	}
 }
 
-func TestAgentSaveArtifactsRejectsWholeFileScriptTemplateBeforeCanonicalWrite(t *testing.T) {
+func TestAgentSaveArtifactsWarnsForWholeFileScriptTemplateAfterCanonicalWrite(t *testing.T) {
 	fixture := newAgentSaveArtifactsFixture(t)
 	write := writeAgentSaveArtifactsFile(t, fixture.projectPath, "out/report.md", "<?php echo $content; ?>")
 	fixture.saveExecution(t, fixture.identity.access, fixture.projectPath, "execution-script-template", 1, write)
@@ -34,15 +33,10 @@ func TestAgentSaveArtifactsRejectsWholeFileScriptTemplateBeforeCanonicalWrite(t 
 	result, err := fixture.server.executeAgentSaveArtifacts(
 		fixture.toolContext(t, "save-script-template", input), fixture.identity, "save-script-template", input,
 	)
-	if !errors.Is(err, errAgentSaveArtifactsNoResults) {
+	if err != nil {
 		t.Fatalf("whole-file script template err=%v result=%#v", err, result)
 	}
-	failures := agentSaveArtifactFailures(t, result)
-	if len(failures) != 1 {
-		t.Fatalf("whole-file script template failures=%#v", failures)
-	}
-	assertAgentSaveArtifactFailure(t, failures[0], "out/report.md", "unresolved_template_marker")
-	assertAgentSaveArtifactsNoCanonicalWrites(t, fixture)
+	assertTemplateQualityCommittedWarning(t, fixture, result, "out/report.md")
 }
 
 func TestUnresolvedTemplateSaveKeepsRepairToolsAvailable(t *testing.T) {

@@ -2,15 +2,12 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
-	"strings"
 )
 
-// Working data retains source syntax and bytes. Only user-facing snapshots
-// require report-link normalization and fully materialized template fields.
-// Unknown or legacy retention modes keep the strict report policy.
+// Working data retains source syntax and bytes. User-facing snapshots also
+// receive report-link normalization and template-quality observations.
 func agentSavedArtifactRequiresRenderedBytes(retention string) bool {
 	return retention != "working_data"
 }
@@ -26,10 +23,8 @@ func (s *Server) prepareAgentSavedArtifactReportBytes(ctx context.Context, relat
 	return normalized, validateAgentSavedArtifactTemplates(ctx, relativePath, snapshot)
 }
 
-// validateAgentSavedArtifactTemplates enforces the final-bytes contract at the
-// publication boundary. Completion review keeps the same check as defense in
-// depth, but a model receives an actionable save_artifacts failure before any
-// invalid version becomes canonical.
+// Keep exact checker findings so the save owner can distinguish a template
+// quality observation from a malformed artifact reference or a read failure.
 func validateAgentSavedArtifactTemplates(ctx context.Context, relativePath string, snapshot *os.File) error {
 	if snapshot == nil {
 		return nil
@@ -47,5 +42,5 @@ func validateAgentSavedArtifactTemplates(ctx context.Context, relativePath strin
 	if len(failures) == 0 {
 		return nil
 	}
-	return fmt.Errorf("%w: %s", errAgentSavedArtifactTemplateUnresolved, strings.Join(failures, ", "))
+	return &agentSavedArtifactTemplateFindings{failures: append([]string(nil), failures...)}
 }
