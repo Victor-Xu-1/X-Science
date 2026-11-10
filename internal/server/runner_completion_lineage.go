@@ -186,6 +186,10 @@ func (s *Server) sessionRunnerArtifactCommitReferences(
 	if err != nil {
 		return nil, err
 	}
+	canonicalVersions := make(map[[2]string]struct{}, len(snapshot.References))
+	for _, ref := range snapshot.References {
+		canonicalVersions[[2]string{strings.TrimSpace(ref.ArtifactID), strings.TrimSpace(ref.VersionID)}] = struct{}{}
+	}
 	result := make([]transcriptstore.ArtifactReferenceInput, 0, len(run.ContinuationArtifactReferences)+len(snapshot.References))
 	for _, ref := range run.ContinuationArtifactReferences {
 		artifactID := strings.TrimSpace(ref.ArtifactID)
@@ -198,6 +202,12 @@ func (s *Server) sessionRunnerArtifactCommitReferences(
 			return nil, err
 		}
 		if internal {
+			continue
+		}
+		// Payload replay is a compatibility hint, not publication authority.
+		// The branch-owned ledger below already supplies every genuine role for
+		// this exact version, including a real produced/consumed dual role.
+		if _, canonical := canonicalVersions[[2]string{artifactID, versionID}]; canonical {
 			continue
 		}
 		result = append(result, transcriptstore.ArtifactReferenceInput{
