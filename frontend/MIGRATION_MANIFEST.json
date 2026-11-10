@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "74fe067898609390ff802955829120fd21d73f7c9fd93d675b88319dfccf562d",
+  "adaptationFingerprintSHA256": "6547af335da7b1ae8dd57fbf034d1817dd8ec1e0a670b6b48177ca499fd4d6b8",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "9020ba958c0bd2ab24dbbf02cf31637d4fd267ae8073beb4e647ed296d9aed08",
+  "additionFingerprintSHA256": "75f167419f822670d049ee8125c012f34e5f94d4f2e445deb77c93493f9dd74e",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
     "adaptedSourceFiles": 795,
     "removedSourceFiles": 295,
-    "addedFiles": 1522
+    "addedFiles": 1524
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "1305bae4cd04d0ef78b853238127a887aae7122690d08a93d8ea316f468812b2",
+      "targetSHA256": "032c6efacb144b28d475f6072ed44a2ed5cc0292f0c348a9cfa572b41d96abde",
       "bytes": 4712,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "a86b9cf2d49c26217aae31d5afd42074b9f601d7675a81f6187b1dac6bfea96b",
+      "targetSHA256": "8abcc7a3be38e1adc32ac109eaf2663cd2758edfc8dc1d14603b8df2f0d894da",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1920,8 +1920,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewHistory.ts",
       "sourceSHA256": "dda9a8db659844c129f805b406c691e9719fccddea0c7c4f4ad5f873e5302fb4",
-      "targetSHA256": "995c13f5f79f060f8232d84cd6d02d3dbe6b6cdaaeefbc7f3bf1530069614d6b",
-      "bytes": 10298,
+      "targetSHA256": "d02884a87058dfe7c7e851a258fa476398bdff74b6063176c44ea6f349dd6470",
+      "bytes": 12209,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -7605,7 +7605,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "ef06f390782fbe3779d1b418f2ab02e2e42d91cec57d44e5a39bf1f6cb5069f2",
+      "sha256": "98d49aec71464d1694e7ae11a2af61aa58aa0c4918c94a465f0e9a4dbf9d5f81",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -9779,6 +9779,12 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/context/usePreviewWorkspaceState.ts",
       "sha256": "188387c70281dac8099a2f472062c737dc97a801fa4598970657fcf7831c8d81",
       "bytes": 6523,
+      "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewHistoryOwner.ts",
+      "sha256": "0178fc5e35a3915bd4fba7b57a22949ea96b841900751aed8370027d4ab5d76b",
+      "bytes": 1300,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -13337,6 +13343,12 @@
       "path": "tests/unit/previews/PreviewFullscreenLayer.dom.test.tsx",
       "sha256": "1498c65a345b4091bbf6f9140f1cfec5a81d5eef2736776604bdb4c17c54e17a",
       "bytes": 3222,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/previews/PreviewHistorySaveLifetime.dom.test.tsx",
+      "sha256": "c61ca108927f3fc36fdd6fcb73906e6727d87efe0d13ae67374d24210315e93e",
+      "bytes": 13833,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

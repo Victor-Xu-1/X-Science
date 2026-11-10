@@ -11,6 +11,8 @@ import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountSco
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SNAPSHOT_DEBOUNCE_TIME } from '../constants';
+import { useOptionalPreviewContext } from '../context/PreviewContext';
+import { usePreviewHistoryOwner, type PreviewHistoryLease } from './usePreviewHistoryOwner';
 import { isPreviewContentStoredAsText } from '../previewContentPersistence';
 import {
   getXScienceArtifactVersionContentUrl,
@@ -28,6 +30,7 @@ interface UsePreviewHistoryOptions {
    * Current active tab
    */
   activeTab: {
+    id?: string;
     content_type: string;
     content: string;
     title: string;
@@ -135,24 +138,48 @@ export const usePreviewHistory = ({
   saveContent,
 }: UsePreviewHistoryOptions): UsePreviewHistoryReturn => {
   const { t } = useTranslation();
-  const [historyVersions, setHistoryVersions] = useState<PreviewSnapshotInfo[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [snapshotSaving, setSnapshotSaving] = useState(false);
-  const [historyError, setHistoryError] = useState(false);
+  const [history, setHistory] = useState<{
+    lease: PreviewHistoryLease;
+    versions: PreviewSnapshotInfo[];
+    loading: boolean;
+    error: boolean;
+  } | null>(null);
+  const [saving, setSaving] = useState<PreviewHistoryLease | null>(null);
+  const saveFlight = useRef<PreviewHistoryLease | null>(null);
+  const canvasGeneration = useOptionalPreviewContext()?.workspaceGeneration;
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const receiver = [canvasGeneration, activeTab?.id];
   const historyOwner = rendererAccountScopedKey(
     JSON.stringify([
+      ...receiver,
       activeTab?.metadata?.artifactId,
       activeTab?.metadata?.versionId,
+      activeTab?.metadata?.workspace,
       activeTab?.metadata?.file_path,
       activeTab?.content_type,
     ])
   );
-  const latestHistoryOwner = useRef(historyOwner);
-  latestHistoryOwner.current = historyOwner;
+  // An artifact ACK changes version in the original save owner. That does not
+  // change its receiving tab/canvas; reads and selection remain version-bound.
+  const saveOwner = rendererAccountScopedKey(
+    JSON.stringify([
+      ...receiver,
+      activeTab?.metadata?.artifactId,
+      activeTab?.metadata?.artifactId ? null : activeTab?.metadata?.workspace,
+      activeTab?.metadata?.artifactId ? null : activeTab?.metadata?.file_path,
+      activeTab?.content_type,
+    ])
+  );
+  const beginHistory = usePreviewHistoryOwner(historyOwner);
+  const beginSave = usePreviewHistoryOwner(saveOwner);
+  const visibleHistory = history?.lease.owns() ? history : null;
+  const historyVersions = visibleHistory?.versions ?? [];
+  const historyLoading = visibleHistory?.loading ?? false;
+  const historyError = visibleHistory?.error ?? false;
+  const snapshotSaving = saving?.owns() ?? false;
   const readRevision = useRef(0);
   const selectionRevision = useRef(0);
-  const lastSnapshotTimeRef = useRef<number>(0); // 记录上次快照保存时间 / Track last snapshot save time
+  const lastSnapshot = useRef<{ lease: PreviewHistoryLease; time: number } | null>(null);
 
   // 构建历史目标对象 / Build history target object
   const historyTarget = useMemo<PreviewHistoryTarget | null>(() => {
@@ -185,23 +212,28 @@ export const usePreviewHistory = ({
 
   // 刷新历史列表 / Refresh history list
   const refreshHistory = useCallback(async () => {
-    if (historyOwner !== latestHistoryOwner.current) return;
-    const owner = historyOwner,
-      revision = ++readRevision.current;
-    const owns = () => owner === latestHistoryOwner.current && revision === readRevision.current;
+    const lease = beginHistory();
+    if (!lease) return;
+    const revision = ++readRevision.current;
+    const owns = () => lease.owns() && revision === readRevision.current;
     if (!historyTarget) {
-      setHistoryVersions([]);
+      setHistory({ lease, versions: [], loading: false, error: false });
       return;
     }
 
-    setHistoryLoading(true);
-    setHistoryError(false);
+    setHistory((current) => ({
+      lease,
+      versions: current?.lease.owns() ? current.versions : [],
+      loading: true,
+      error: false,
+    }));
     try {
       if (historyTarget.artifact_id) {
         const versions = await loadXScienceArtifactVersions(historyTarget.artifact_id);
         if (!owns()) return;
-        setHistoryVersions(
-          versions.map((version) => ({
+        setHistory({
+          lease,
+          versions: versions.map((version) => ({
             id: version.versionId,
             label: t('preview.versionLabel', { version: version.versionNumber }),
             created_at: version.createdAt ? new Date(version.createdAt).getTime() : 0,
@@ -209,23 +241,22 @@ export const usePreviewHistory = ({
             contentType: historyTarget.contentType,
             file_name: historyTarget.file_name,
             file_path: getXScienceArtifactVersionContentUrl(version.versionId),
-          }))
-        );
-        setHistoryError(false);
+          })),
+          loading: false,
+          error: false,
+        });
         return;
       }
       const versions = await ipcBridge.previewHistory.list.invoke({ target: historyTarget });
       if (!owns()) return;
-      setHistoryVersions(versions || []);
-      setHistoryError(false);
+      setHistory({ lease, versions: versions || [], loading: false, error: false });
     } catch {
       if (!owns()) return;
-      setHistoryError(true);
-      setHistoryVersions([]);
+      setHistory({ lease, versions: [], loading: false, error: true });
     } finally {
-      if (owns()) setHistoryLoading(false);
+      if (owns()) setHistory((current) => (current?.lease === lease ? { ...current, loading: false } : current));
     }
-  }, [historyTarget, historyOwner, t]);
+  }, [historyTarget, beginHistory, t]);
 
   // 当 historyTarget 变化时自动刷新历史 / Auto refresh history when historyTarget changes
   useEffect(() => {
@@ -237,57 +268,60 @@ export const usePreviewHistory = ({
     if (!historyTarget || !activeTab) {
       return false;
     }
-    if (snapshotSaving) return false;
+    const lease = beginSave();
+    if (!lease || saveFlight.current?.owns()) return false;
 
     // 防抖检查：如果距离上次保存快照时间小于1秒，则忽略 / Debounce check: Ignore if less than 1 second since last save
     const now = Date.now();
-    if (!historyTarget.artifact_id && now - lastSnapshotTimeRef.current < SNAPSHOT_DEBOUNCE_TIME) {
+    if (
+      !historyTarget.artifact_id &&
+      lastSnapshot.current?.lease.owns() &&
+      now - lastSnapshot.current.time < SNAPSHOT_DEBOUNCE_TIME
+    ) {
       messageApi.info(t('preview.tooFrequent'));
       return false;
     }
 
+    saveFlight.current = lease;
+    setSaving(lease);
+    lastSnapshot.current = { lease, time: now };
     try {
-      setSnapshotSaving(true);
-      lastSnapshotTimeRef.current = now; // 更新最后保存时间 / Update last save time
-      if (historyTarget.artifact_id) {
-        if (!(await saveContent())) return false;
-      } else {
-        await ipcBridge.previewHistory.save.invoke({
-          target: historyTarget,
-          content: activeTab.content,
-        });
-        markContentSaved();
+      // Catch write failures only. Notification/receiver errors must not turn
+      // a successful server write into a pretend save failure.
+      try {
+        if (historyTarget.artifact_id) {
+          const saved = await saveContent();
+          if (!lease.owns() || !saved) return false;
+        } else {
+          await ipcBridge.previewHistory.save.invoke({ target: historyTarget, content: activeTab.content });
+        }
+      } catch {
+        if (lease.owns()) messageApi.error(t('preview.snapshotSaveFailed'));
+        return false;
       }
+      if (!lease.owns()) return false;
+      if (!historyTarget.artifact_id) markContentSaved();
+      if (!lease.owns()) return false;
       messageApi.success(t('preview.snapshotSaved'));
-      await refreshHistory();
-      return true;
-    } catch {
-      messageApi.error(t('preview.snapshotSaveFailed'));
-      return false;
+      if (lease.owns()) await refreshHistory();
+      return lease.owns();
     } finally {
-      setSnapshotSaving(false);
+      if (lease.owns() && saveFlight.current === lease) {
+        saveFlight.current = null;
+        setSaving((current) => (current === lease ? null : current));
+      }
     }
-  }, [
-    historyTarget,
-    historyOwner,
-    activeTab,
-    snapshotSaving,
-    messageApi,
-    refreshHistory,
-    markContentSaved,
-    saveContent,
-    t,
-  ]);
+  }, [historyTarget, beginSave, activeTab, messageApi, refreshHistory, markContentSaved, saveContent, t]);
 
   // 选择历史快照 / Select history snapshot
   const handleSnapshotSelect = useCallback(
     async (snapshot: PreviewSnapshotInfo) => {
-      const owner = historyOwner,
-        revision = ++selectionRevision.current;
-      const owns = () => owner === latestHistoryOwner.current && revision === selectionRevision.current;
-      if (!historyTarget) {
+      const lease = beginHistory();
+      if (!lease || !historyTarget) {
         return;
       }
+      const revision = ++selectionRevision.current;
+      const owns = () => lease.owns() && revision === selectionRevision.current;
       try {
         if (historyTarget.artifact_id) {
           const remoteContent = isPreviewContentStoredAsText(historyTarget.contentType, historyTarget.file_name)
@@ -319,7 +353,7 @@ export const usePreviewHistory = ({
         if (owns()) messageApi.error(t('preview.historyLoadFailed'));
       }
     },
-    [historyTarget, historyOwner, messageApi, updateContent, markContentSaved, t]
+    [historyTarget, beginHistory, messageApi, updateContent, markContentSaved, t]
   );
 
   return {
