@@ -66,7 +66,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false, librar
   const handleNewChat = (projectId?: string) => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     setIsBatchMode(false);
     Promise.resolve(
       navigate('/guid', {
@@ -133,7 +132,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false, librar
   const handleConversationSelect = () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     setIsBatchMode(false);
   };
 

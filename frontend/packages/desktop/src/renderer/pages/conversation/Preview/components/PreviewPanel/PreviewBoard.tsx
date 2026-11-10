@@ -20,7 +20,7 @@ import {
   OffScreen as OffScreenGlyph,
   Save as SaveGlyph,
 } from '@icon-park/react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { PreviewFullscreenLayer } from './PreviewFullscreenLayer';
 import { useTranslation } from 'react-i18next';
 import { PreviewToolbarExtrasProvider } from '../../context/PreviewToolbarExtrasContext';
@@ -62,28 +62,9 @@ import NotebookPreviewContent from '../notebook/NotebookPreviewContent';
 import { isNotebookSessionNavigation } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 const noopToolbarExtras = { setExtras: (): void => undefined };
-const PREVIEW_BOARD_COLUMNS_KEY = 'x-science_preview_board_columns';
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
 
 type PreviewBoardColumns = 1 | 2 | 3;
-
-function readPreviewBoardColumns(): PreviewBoardColumns {
-  try {
-    const stored = Number.parseInt(localStorage.getItem(PREVIEW_BOARD_COLUMNS_KEY) ?? '', 10);
-    return stored === 1 || stored === 2 || stored === 3 ? stored : 2;
-  } catch {
-    return 2;
-  }
-}
-
-function persistPreviewBoardColumns(columns: PreviewBoardColumns): void {
-  try {
-    localStorage.setItem(PREVIEW_BOARD_COLUMNS_KEY, String(columns));
-  } catch {
-    // Storage can be unavailable in privacy-restricted webviews. The selected
-    // layout still applies for the current preview session.
-  }
-}
 
 function getBoardScrollBehavior(): ScrollBehavior {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
@@ -606,16 +587,38 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
     cancelContentEdit,
     artifactEditStates,
     openLatestArtifactEdit,
+    boardColumns,
+    setBoardColumns,
+    focusedTabId,
+    setFocusedTabId,
+    workspaceGeneration,
   } = usePreviewContext();
   const [messageApi, messageContextHolder] = Message.useMessage();
-  const [focusedTabId, setFocusedTabId] = useState<string | null>(null);
   const [isBoardFullscreen, setIsBoardFullscreen] = useState(false);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [regionCommentTabId, setRegionCommentTabId] = useState<string | null>(null);
   const [savingTabId, setSavingTabId] = useState<string | null>(null);
   const [saveAnnouncement, setSaveAnnouncement] = useState('');
-  const [columns, setColumns] = useState<PreviewBoardColumns>(() => (embedded ? 1 : readPreviewBoardColumns()));
+  const columns = boardColumns;
   const tileRefs = useRef(new Map<string, HTMLElement>());
+  const workspaceGenerationRef = useRef(workspaceGeneration);
+  workspaceGenerationRef.current = workspaceGeneration;
+  const mountedRef = useRef(false);
+  useLayoutEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  const isCurrentSaveGeneration = (generation: number) =>
+    mountedRef.current && workspaceGenerationRef.current === generation;
+  useEffect(() => {
+    setIsBoardFullscreen(false);
+    setEditingTabId(null);
+    setRegionCommentTabId(null);
+    setSavingTabId(null);
+    setSaveAnnouncement('');
+  }, [workspaceGeneration]);
 
   useEffect(() => {
     if (focusedTabId && !tabs.some((tab) => tab.id === focusedTabId)) setFocusedTabId(null);
@@ -643,8 +646,7 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   };
 
   const changeColumns = (nextColumns: PreviewBoardColumns) => {
-    setColumns(nextColumns);
-    if (!embedded) persistPreviewBoardColumns(nextColumns);
+    setBoardColumns(nextColumns);
   };
 
   const cancelEdit = (tab: PreviewTab) => {
@@ -654,17 +656,23 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   };
 
   const saveEdit = async (tab: PreviewTab) => {
-    if ((!tab.isDirty && !artifactEditStates[tab.id]?.restoring) || savingTabId) return;
+    if (
+      !isCurrentSaveGeneration(workspaceGeneration) ||
+      (!tab.isDirty && !artifactEditStates[tab.id]?.restoring) ||
+      savingTabId
+    )
+      return;
+    const saveGeneration = workspaceGeneration;
     setSavingTabId(tab.id);
     try {
       const saved = await saveContent(tab.id, tab.content);
-      if (!saved) return;
+      if (!saved || !isCurrentSaveGeneration(saveGeneration)) return;
       setEditingTabId((current) => (current === tab.id ? null : current));
       setSaveAnnouncement(t('preview.board.saveSucceeded'));
     } catch {
-      messageApi.error(t('preview.board.saveFailed'));
+      if (isCurrentSaveGeneration(saveGeneration)) messageApi.error(t('preview.board.saveFailed'));
     } finally {
-      setSavingTabId(null);
+      if (isCurrentSaveGeneration(saveGeneration)) setSavingTabId(null);
     }
   };
 

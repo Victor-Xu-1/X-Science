@@ -8,13 +8,25 @@ import { ipcBridge } from '@/common';
 import type { PdfReadingPreviewOwner } from '@/renderer/services/runtime/pdfReadingPreview';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
-import React, { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePreviewFocusReturn } from './usePreviewFocusReturn';
 import type { NotebookSessionNavigation } from '@/renderer/services/notebook/manualNotebookTypes';
 import { sameNotebookPreview } from '@/renderer/services/notebook/notebookPreviewNavigation';
 import { registerRendererAccountReset } from '@/renderer/services/rendererAccountScope';
 import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import { usePreviewWorkspaceState } from './usePreviewWorkspaceState';
+import type { PreviewWorkspace } from './previewWorkspacePersistence';
 import { usePreviewArtifactEdits, type PreviewArtifactEditState } from './usePreviewArtifactEdits';
 
 type PreviewDefaultTitleKey =
@@ -99,6 +111,12 @@ export interface OpenPreviewOptions {
 export type PreviewPresentationMode = 'single' | 'board';
 
 export interface PreviewContextValue {
+  bindWorkspaceProject: (conversationId: string, projectId?: string, workspaceId?: string) => void;
+  boardColumns: 1 | 2 | 3;
+  setBoardColumns: React.Dispatch<React.SetStateAction<1 | 2 | 3>>;
+  focusedTabId: string | null;
+  setFocusedTabId: React.Dispatch<React.SetStateAction<string | null>>;
+  workspaceGeneration: number;
   pdfReadingOwner: PdfReadingPreviewOwner | null;
   registerPdfReadingOwner: (owner: PdfReadingPreviewOwner) => () => void;
   previewFocusScopeId?: string;
@@ -146,120 +164,41 @@ export interface PreviewContextValue {
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
-// 持久化 key / Persistence keys
-const PREVIEW_TABS_KEY = 'x-science_preview_tabs';
-const PREVIEW_ACTIVE_TAB_ID_KEY = 'x-science_preview_active_tab_id';
-const LEGACY_PREVIEW_STATE_KEY = 'x-science_preview_state';
-
-// 仅持久化小体积文本预览，避免大文本导致 localStorage 写入卡顿
-// Persist only lightweight text previews to avoid localStorage jank on large files
-const MAX_PERSISTED_TAB_CONTENT_LENGTH = 80_000;
-const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html', 'code', 'diff']);
-
-const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
-  return input
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) =>
-      Object.assign({}, tab, {
-        isDirty: false,
-        originalContent: tab.content,
-      })
-    );
-};
-
-const parsePersistedTabs = (value: unknown): PreviewTab[] => {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .filter((tab): tab is PreviewTab => {
-      if (!tab || typeof tab !== 'object') return false;
-      const candidate = tab as Partial<PreviewTab>;
-      return (
-        typeof candidate.id === 'string' &&
-        typeof candidate.title === 'string' &&
-        typeof candidate.content === 'string' &&
-        typeof candidate.content_type === 'string'
-      );
-    })
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
-    .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
-    .map((tab) =>
-      Object.assign({}, tab, {
-        originalContent: typeof tab.originalContent === 'string' ? tab.originalContent : tab.content,
-        isDirty: false,
-      })
-    );
-};
-
-// 从 localStorage 恢复状态 / Restore state from localStorage
-// 注意：isOpen 不从 localStorage 恢复，新会话时预览面板默认关闭
-// Note: isOpen is not restored from localStorage, preview panel is closed by default for new sessions
-const loadPersistedState = (): {
-  isOpen: boolean;
-  tabs: PreviewTab[];
-  activeTabId: string | null;
-} => {
-  try {
-    let tabs = parsePersistedTabs(JSON.parse(localStorage.getItem(PREVIEW_TABS_KEY) || '[]'));
-    let activeTabId = localStorage.getItem(PREVIEW_ACTIVE_TAB_ID_KEY);
-
-    // 兼容旧版单 key 存储 / Backward compatibility for legacy single-key storage
-    if (tabs.length === 0) {
-      const legacyStored = localStorage.getItem(LEGACY_PREVIEW_STATE_KEY);
-      if (legacyStored) {
-        const parsed = JSON.parse(legacyStored) as { tabs?: unknown; activeTabId?: unknown };
-        tabs = parsePersistedTabs(parsed.tabs);
-        activeTabId = typeof parsed.activeTabId === 'string' ? parsed.activeTabId : activeTabId;
-      }
-    }
-
-    if (activeTabId && !tabs.some((tab) => tab.id === activeTabId)) {
-      activeTabId = tabs[0]?.id || null;
-    }
-
-    return {
-      isOpen: false, // 始终默认关闭 / Always start closed
-      tabs,
-      activeTabId,
-    };
-  } catch {
-    // 忽略解析错误 / Ignore parsing errors
-  }
-  return { isOpen: false, tabs: [], activeTabId: null };
-};
-
 type PreviewScope = 'workspace' | 'embedded';
-type PreviewProviderProps = { children: React.ReactNode; scope?: PreviewScope };
+type PreviewProviderProps = { children: React.ReactNode; scope?: PreviewScope; workspace?: PreviewWorkspace };
 
-const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scope = 'workspace' }) => {
+const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scope = 'workspace', workspace }) => {
+  const {
+    isOpen,
+    tabs,
+    activeTabId,
+    presentationMode,
+    boardColumns,
+    focusedTabId,
+    updateSlice,
+    setTabs,
+    setActiveTabId,
+    setBoardColumns,
+    setFocusedTabId,
+    bindWorkspaceProject,
+    ownsWorkspace,
+    reset: resetWorkspace,
+    generation: workspaceGeneration,
+  } = usePreviewWorkspaceState(workspace, scope === 'embedded');
   const [pdfReadingOwner, setPdfReadingOwner] = useState<PdfReadingPreviewOwner | null>(null);
-  const registerPdfReadingOwner = useCallback((owner: PdfReadingPreviewOwner) => {
-    setPdfReadingOwner(owner);
-    return () => setPdfReadingOwner((current) => (current === owner ? null : current));
-  }, []);
-  const { t, i18n } = useTranslation();
-  // 从 localStorage 恢复初始状态 / Restore initial state from localStorage
-  // localStorage parsing is synchronous and may include several preview tabs.
-  // React ignores subsequent initial-state values, so calculate it only once
-  // instead of blocking every provider render.
-  const [persistedState] = useState(() =>
-    scope === 'workspace'
-      ? loadPersistedState()
-      : {
-          isOpen: false,
-          tabs: [] as PreviewTab[],
-          activeTabId: null as string | null,
-        }
+  const registerPdfReadingOwner = useCallback(
+    (owner: PdfReadingPreviewOwner) => {
+      if (!ownsWorkspace()) return () => {};
+      setPdfReadingOwner(owner);
+      return () => {
+        if (ownsWorkspace()) setPdfReadingOwner((current) => (current === owner ? null : current));
+      };
+    },
+    [ownsWorkspace]
   );
-  const [isOpen, setIsOpen] = useState(persistedState.isOpen);
-  const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
-  const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
-  const [presentationMode, setPresentationMode] = useState<PreviewPresentationMode>('single');
-  // Mirror activeTabId in a ref so setTabs updaters can read the latest value
-  // without adding activeTabId to their dependencies.
-  const activeTabIdRef = useRef<string | null>(persistedState.activeTabId);
-  // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
+  const { t, i18n } = useTranslation();
+  const activeTabIdRef = useRef<string | null>(activeTabId);
+  activeTabIdRef.current = activeTabId;
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
   const previewFocusIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
@@ -267,17 +206,17 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   const embeddedFocusId = useId();
   useEffect(
     () =>
-      registerRendererAccountReset(`notebook-preview:${embeddedFocusId}`, () => {
+      registerRendererAccountReset(`preview:${embeddedFocusId}`, () => {
         setPdfReadingOwner(null);
-        setTabs((current) => {
-          const retained = current.filter((tab) => !tab.metadata?.notebookSession);
-          setActiveTabId((active) => (retained.some((tab) => tab.id === active) ? active : (retained[0]?.id ?? null)));
-          if (retained.length === 0) setIsOpen(false);
-          return retained;
-        });
+        resetWorkspace();
       }),
-    [embeddedFocusId]
+    [embeddedFocusId, resetWorkspace]
   );
+  useLayoutEffect(() => {
+    setPdfReadingOwner(null);
+    setDomSnippets([]);
+    sendBoxHandler.current = null;
+  }, [workspaceGeneration]);
   const previewFocusScopeId = scope === 'embedded' ? embeddedFocusId : undefined;
   const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(
     previewFocusIds,
@@ -298,41 +237,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       });
       return changed ? translatedTabs : currentTabs;
     });
-  }, [i18n.language, i18n.resolvedLanguage, t]);
-
-  // 持久化 tabs 到 localStorage（仅保存小体积文本 tab）
-  // Persist tabs to localStorage (only lightweight text tabs)
-  useEffect(() => {
-    if (scope !== 'workspace') return;
-    const timer = setTimeout(() => {
-      try {
-        localStorage.setItem(PREVIEW_TABS_KEY, JSON.stringify(sanitizeTabsForPersistence(tabs)));
-        // 迁移后清理旧 key，减少重复解析
-        // Remove legacy key after migration to avoid duplicate parsing
-        localStorage.removeItem(LEGACY_PREVIEW_STATE_KEY);
-      } catch {
-        // 忽略存储错误（如存储空间不足）/ Ignore storage errors (e.g., quota exceeded)
-      }
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [scope, tabs]);
-
-  // 持久化 activeTabId（单独存储，避免切换 tab 时重复序列化大内容）
-  // Persist activeTabId separately to avoid re-serializing large tab content on tab switch
-  useEffect(() => {
-    activeTabIdRef.current = activeTabId;
-    if (scope !== 'workspace') return;
-    try {
-      if (activeTabId) {
-        localStorage.setItem(PREVIEW_ACTIVE_TAB_ID_KEY, activeTabId);
-      } else {
-        localStorage.removeItem(PREVIEW_ACTIVE_TAB_ID_KEY);
-      }
-    } catch {
-      // 忽略存储错误 / Ignore storage errors
-    }
-  }, [scope, activeTabId]);
+  }, [i18n.language, i18n.resolvedLanguage, t, setTabs]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -434,38 +339,46 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
+      if (!ownsWorkspace()) return;
       // A repeated reveal is an action even if the version and page are equal.
       if (type === 'pdf' && meta?.targetPdfPage !== undefined) meta = { ...meta, pdfRevealId: crypto.randomUUID() };
       const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const activateTab = (tabId: string) => {
-        rememberPreviewOpener(tabId, opener);
-        // Keep the ref current inside a batched update so immediately-opened
-        // files and replace-mode callers observe the same active identity.
-        activeTabIdRef.current = tabId;
-        setActiveTabId(tabId);
-      };
-
-      setTabs((prevTabs) => {
+      const requestedTabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      updateSlice((current) => {
+        const prevTabs = current.tabs;
+        const activateTab = (tabId: string, nextTabs: PreviewTab[]) => {
+          rememberPreviewOpener(tabId, opener);
+          activeTabIdRef.current = tabId;
+          return {
+            ...current,
+            tabs: nextTabs,
+            activeTabId: tabId,
+            isOpen: true,
+            presentationMode: options?.presentation ?? current.presentationMode,
+          };
+        };
         // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
         const existingTab = findPreviewTabInList(prevTabs, type, new_content, meta);
 
         if (existingTab) {
-          activateTab(existingTab.id);
-          return prevTabs.map((tab) => {
-            if (tab.id !== existingTab.id) return tab;
+          return activateTab(
+            existingTab.id,
+            prevTabs.map((tab) => {
+              if (tab.id !== existingTab.id) return tab;
 
-            // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
-            if (tab.isDirty) {
-              return meta ? { ...tab, metadata: { ...tab.metadata, ...meta } } : tab;
-            }
+              // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
+              if (tab.isDirty) {
+                return meta ? { ...tab, metadata: { ...tab.metadata, ...meta } } : tab;
+              }
 
-            return {
-              ...tab,
-              content: new_content,
-              metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
-              originalContent: new_content,
-            };
-          });
+              return {
+                ...tab,
+                content: new_content,
+                metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
+                originalContent: new_content,
+              };
+            })
+          );
         }
 
         // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
@@ -507,7 +420,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
             : { ...meta, generatedTitleKey: fallbackTitle.key as PreviewDefaultTitleKey };
 
         // 生成唯一 ID / Generate unique ID
-        const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const tabId = requestedTabId;
 
         const newTab: PreviewTab = {
           id: tabId,
@@ -523,35 +436,36 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         // stacking a new one — unless it has unsaved edits, then fall back to a
         // new tab so changes aren't lost.
         if (options?.replace && options.presentation !== 'board') {
-          const activeIdx = activeTabIdRef.current
-            ? prevTabs.findIndex((tab) => tab.id === activeTabIdRef.current)
-            : -1;
+          const activeIdx = current.activeTabId ? prevTabs.findIndex((tab) => tab.id === current.activeTabId) : -1;
           const activePreviewTab = activeIdx >= 0 ? prevTabs[activeIdx] : null;
           if (activePreviewTab && !activePreviewTab.isDirty) {
-            activateTab(activePreviewTab.id);
             const replacedTab: PreviewTab = { ...newTab, id: activePreviewTab.id };
-            return prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab));
+            return activateTab(
+              activePreviewTab.id,
+              prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab))
+            );
           }
         }
 
-        activateTab(tabId);
-        return [...prevTabs, newTab];
+        return activateTab(tabId, [...prevTabs, newTab]);
       });
-
-      setPresentationMode((currentMode) => options?.presentation ?? currentMode);
-      setIsOpen(true);
     },
-    [extractFileName, findPreviewTabInList, rememberPreviewOpener, t]
+    [ownsWorkspace, extractFileName, findPreviewTabInList, rememberPreviewOpener, t, updateSlice]
   );
 
   const closePreview = useCallback(() => {
+    if (!ownsWorkspace()) return;
     restorePreviewOpener(activeTabIdRef.current, true);
-    setIsOpen(false);
-    setTabs([]);
-    setActiveTabId(null);
-    setPresentationMode('single');
+    updateSlice((current) => ({
+      ...current,
+      isOpen: false,
+      tabs: [],
+      activeTabId: null,
+      presentationMode: 'single',
+      focusedTabId: null,
+    }));
     setDomSnippets([]);
-  }, [restorePreviewOpener]);
+  }, [ownsWorkspace, restorePreviewOpener, updateSlice]);
 
   // Track last-known mtime per file path for external change detection
   const fileMtimeRef = useRef<Map<string, number>>(new Map());
@@ -559,39 +473,25 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const closeTab = useCallback(
     (tabId: string) => {
+      if (!ownsWorkspace()) return;
       restorePreviewOpener(tabId);
-      setTabs((prevTabs) => {
-        // Clean up mtime record for the closed tab
-        const tabToClose = prevTabs.find((tab) => tab.id === tabId);
-        if (tabToClose?.metadata?.file_path) {
-          fileMtimeRef.current.delete(tabToClose.metadata.file_path);
-        }
-
-        const newTabs = prevTabs.filter((tab) => tab.id !== tabId);
-
-        // The board is a multi-file workspace. Once only one file remains,
-        // return to the established full-size single-file preview instead of
-        // leaving that file trapped in a board tile.
-        if (newTabs.length <= 1) {
-          setPresentationMode('single');
-        }
-
-        // 如果关闭的是当前激活的 tab / If closing the active tab
-        if (tabId === activeTabId) {
-          if (newTabs.length > 0) {
-            // 切换到最后一个 tab / Switch to the last tab
-            setActiveTabId(newTabs[newTabs.length - 1].id);
-          } else {
-            // 没有 tab 了，关闭预览面板 / No more tabs, close preview panel
-            setIsOpen(false);
-            setActiveTabId(null);
-          }
-        }
-
-        return newTabs;
+      updateSlice((current) => {
+        const closing = current.tabs.find((tab) => tab.id === tabId);
+        if (closing?.metadata?.file_path) fileMtimeRef.current.delete(closing.metadata.file_path);
+        const nextTabs = current.tabs.filter((tab) => tab.id !== tabId);
+        const nextActive =
+          current.activeTabId === tabId ? (nextTabs[nextTabs.length - 1]?.id ?? null) : current.activeTabId;
+        return {
+          ...current,
+          tabs: nextTabs,
+          activeTabId: nextActive,
+          focusedTabId: current.focusedTabId === tabId ? null : current.focusedTabId,
+          presentationMode: nextTabs.length <= 1 ? 'single' : current.presentationMode,
+          isOpen: nextTabs.length > 0 && current.isOpen,
+        };
       });
     },
-    [activeTabId, restorePreviewOpener]
+    [ownsWorkspace, restorePreviewOpener, updateSlice]
   );
 
   const closePreviewByIdentity = useCallback(
@@ -604,22 +504,25 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     [findPreviewTab, closeTab]
   );
 
-  const updateTabContent = useCallback((tabId: string, new_content: string) => {
-    // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
-    if (typeof new_content !== 'string') {
-      return;
-    }
+  const updateTabContent = useCallback(
+    (tabId: string, new_content: string) => {
+      // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
+      if (typeof new_content !== 'string') {
+        return;
+      }
 
-    setTabs((prevTabs) =>
-      prevTabs.map((tab) => {
-        if (tab.id !== tabId) return tab;
+      setTabs((prevTabs) =>
+        prevTabs.map((tab) => {
+          if (tab.id !== tabId) return tab;
 
-        // 检查内容是否与原始内容不同 / Check if content differs from original
-        const isDirty = new_content !== tab.originalContent;
-        return { ...tab, content: new_content, isDirty };
-      })
-    );
-  }, []);
+          // 检查内容是否与原始内容不同 / Check if content differs from original
+          const isDirty = new_content !== tab.originalContent;
+          return { ...tab, content: new_content, isDirty };
+        })
+      );
+    },
+    [setTabs]
+  );
 
   const updateContent = useCallback(
     (new_content: string) => {
@@ -629,22 +532,25 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     [activeTabId, updateTabContent]
   );
 
-  const commitTabContent = useCallback((tabId: string, content: string, metadata?: Partial<PreviewMetadata>) => {
-    if (typeof content !== 'string') return;
-    setTabs((prevTabs) =>
-      prevTabs.map((tab) =>
-        tab.id === tabId
-          ? {
-              ...tab,
-              content,
-              metadata: metadata ? { ...tab.metadata, ...metadata } : tab.metadata,
-              originalContent: content,
-              isDirty: false,
-            }
-          : tab
-      )
-    );
-  }, []);
+  const commitTabContent = useCallback(
+    (tabId: string, content: string, metadata?: Partial<PreviewMetadata>) => {
+      if (typeof content !== 'string') return;
+      setTabs((prevTabs) =>
+        prevTabs.map((tab) =>
+          tab.id === tabId
+            ? {
+                ...tab,
+                content,
+                metadata: metadata ? { ...tab.metadata, ...metadata } : tab.metadata,
+                originalContent: content,
+                isDirty: false,
+              }
+            : tab
+        )
+      );
+    },
+    [setTabs]
+  );
 
   const markContentSaved = useCallback(
     (metadata?: Partial<PreviewMetadata>) => {
@@ -662,7 +568,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         )
       );
     },
-    [activeTabId]
+    [activeTabId, setTabs]
   );
 
   const commitArtifactEdit = useCallback(
@@ -680,7 +586,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         )
       );
     },
-    []
+    [setTabs]
   );
   const artifactEdits = usePreviewArtifactEdits({
     tabs,
@@ -690,8 +596,13 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     presentation: presentationMode,
   });
 
+  useLayoutEffect(() => {
+    for (const tabId of Object.keys(artifactEdits.states)) artifactEdits.cancel(tabId);
+  }, [workspaceGeneration]);
+
   const saveContent = useCallback(
     async (tabId?: string, contentOverride?: string) => {
+      if (!ownsWorkspace()) return false;
       const targetTabId = tabId || activeTabId;
       if (!targetTabId) return false;
 
@@ -740,33 +651,47 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       }
       return false;
     },
-    [activeTabId, tabs, commitTabContent, artifactEdits.save]
+    [ownsWorkspace, activeTabId, tabs, commitTabContent, artifactEdits.save]
   );
 
-  const addToSendBox = useCallback((text: string) => {
-    if (sendBoxHandler.current) {
-      sendBoxHandler.current(text);
-    }
-  }, []);
+  const addToSendBox = useCallback(
+    (text: string) => {
+      if (!ownsWorkspace()) return;
+      if (sendBoxHandler.current) {
+        sendBoxHandler.current(text);
+      }
+    },
+    [ownsWorkspace]
+  );
 
-  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null) => {
-    sendBoxHandler.current = handler;
-  }, []);
+  const setSendBoxHandler = useCallback(
+    (handler: ((text: string) => void) | null) => {
+      if (ownsWorkspace()) sendBoxHandler.current = handler;
+    },
+    [ownsWorkspace]
+  );
 
   // DOM 片段管理函数 / DOM snippet management functions
   // 只保留最新的一个片段 / Only keep the latest snippet
-  const addDomSnippet = useCallback((tag: string, html: string) => {
-    const id = `snippet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    setDomSnippets([{ id, tag, html }]);
-  }, []);
+  const addDomSnippet = useCallback(
+    (tag: string, html: string) => {
+      if (!ownsWorkspace()) return;
+      const id = `snippet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      setDomSnippets([{ id, tag, html }]);
+    },
+    [ownsWorkspace]
+  );
 
-  const removeDomSnippet = useCallback((id: string) => {
-    setDomSnippets((prev) => prev.filter((s) => s.id !== id));
-  }, []);
+  const removeDomSnippet = useCallback(
+    (id: string) => {
+      if (ownsWorkspace()) setDomSnippets((prev) => prev.filter((s) => s.id !== id));
+    },
+    [ownsWorkspace]
+  );
 
   const clearDomSnippets = useCallback(() => {
-    setDomSnippets([]);
-  }, []);
+    if (ownsWorkspace()) setDomSnippets([]);
+  }, [ownsWorkspace]);
 
   // File mtime polling: detect external file changes (external editors or command-line tools) by comparing lastModified.
   // Only polls the active tab to minimize IPC overhead; checks other tabs once on tab switch.
@@ -774,6 +699,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   // is unreliable after the first emission in Electron (only the first event reaches the renderer).
   const checkFileUpdate = useCallback(
     async (tab: PreviewTab) => {
+      if (!ownsWorkspace()) return;
       const file_path = tab.metadata?.file_path;
       if (
         !shouldPollPreviewFileMetadata(tab, document.visibilityState) ||
@@ -791,7 +717,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
           path: file_path,
           workspace: tab.metadata?.workspace,
         });
-        if (!metadata) return;
+        if (!ownsWorkspace() || !metadata) return;
         const prevMtime = fileMtimeRef.current.get(file_path);
         fileMtimeRef.current.set(file_path, metadata.lastModified);
         if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
@@ -807,7 +733,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
                 path: file_path,
                 workspace: tab.metadata?.workspace,
               });
-        if (content == null) return;
+        if (!ownsWorkspace() || content == null) return;
         setTabs((latest) =>
           latest.map((candidate) => {
             if (candidate.metadata?.file_path !== file_path) return candidate;
@@ -821,7 +747,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         fileMetadataChecksRef.current.delete(file_path);
       }
     },
-    [setTabs]
+    [setTabs, ownsWorkspace]
   );
 
   // Keep a ref to activeTab so the polling interval always sees the latest object
@@ -885,6 +811,12 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const previewContextValue = useMemo(() => {
     return {
+      bindWorkspaceProject,
+      workspaceGeneration,
+      boardColumns,
+      setBoardColumns,
+      focusedTabId,
+      setFocusedTabId,
       pdfReadingOwner,
       registerPdfReadingOwner,
       previewFocusScopeId,
@@ -916,6 +848,12 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       clearDomSnippets,
     };
   }, [
+    bindWorkspaceProject,
+    workspaceGeneration,
+    boardColumns,
+    setBoardColumns,
+    focusedTabId,
+    setFocusedTabId,
     pdfReadingOwner,
     registerPdfReadingOwner,
     previewFocusScopeId,

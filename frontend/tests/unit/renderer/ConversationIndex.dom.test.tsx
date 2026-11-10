@@ -14,6 +14,7 @@ const navigateMock = vi.fn();
 const mutateMock = vi.fn(async () => undefined);
 const conversationGetMock = vi.fn();
 const closePreviewMock = vi.fn();
+const bindPreviewProjectMock = vi.fn();
 const syncTitleMock = vi.fn();
 let routeConversationId = 'frame-missing';
 let listChangedListener:
@@ -48,7 +49,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({ closePreview: closePreviewMock }),
+  usePreviewContext: () => ({ closePreview: closePreviewMock, bindWorkspaceProject: bindPreviewProjectMock }),
 }));
 
 vi.mock('@/renderer/hooks/chat/useAutoTitle', () => ({
@@ -91,6 +92,7 @@ describe('ChatConversationIndex unavailable states', () => {
     mutateMock.mockResolvedValue(undefined);
     conversationGetMock.mockReset();
     closePreviewMock.mockClear();
+    bindPreviewProjectMock.mockClear();
     syncTitleMock.mockClear();
     routeConversationId = 'frame-missing';
     listChangedListener = undefined;
@@ -454,7 +456,7 @@ describe('ChatConversationIndex unavailable states', () => {
     expect(mutateMock).not.toHaveBeenCalled();
   });
 
-  it('preserves an open preview across same-conversation remount work and closes only on a route-id change', async () => {
+  it('binds exact conversation project identity without clearing the project canvas on session navigation', async () => {
     swrMock.mockReturnValue({
       data: { id: 'frame-missing', name: 'Ready session' },
       error: undefined,
@@ -469,13 +471,14 @@ describe('ChatConversationIndex unavailable states', () => {
 
     routeConversationId = 'frame-next';
     swrMock.mockReturnValue({
-      data: { id: 'frame-next', name: 'Next session' },
+      data: { id: 'frame-next', name: 'Next session', extra: { project_id: 'project-a' } },
       error: undefined,
       isLoading: false,
       mutate: mutateMock,
     });
     view.rerender(<ChatConversationIndex />);
-    expect(closePreviewMock).toHaveBeenCalledTimes(1);
+    expect(closePreviewMock).not.toHaveBeenCalled();
+    expect(bindPreviewProjectMock).toHaveBeenLastCalledWith('frame-next', 'project-a', undefined);
   });
 
   it('redirects a missing conversation independently of locale', async () => {

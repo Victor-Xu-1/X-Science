@@ -5,8 +5,8 @@
  */
 
 import { PreviewProvider, usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import React, { useEffect, useRef } from 'react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import React, { useEffect, useRef, useState } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createTestI18n } from '../i18nTestUtils';
@@ -145,6 +145,51 @@ const RemoteEditableBoardHarness: React.FC = () => {
   return <PreviewBoard />;
 };
 
+const ScopedEditableFile: React.FC<{ projectId: string }> = ({ projectId }) => {
+  const { openPreview } = usePreviewContext();
+  const initialized = useRef(new Set<string>());
+  useEffect(() => {
+    if (initialized.current.has(projectId)) return;
+    initialized.current.add(projectId);
+    openPreview(
+      `# Project ${projectId}`,
+      'markdown',
+      {
+        projectId,
+        file_name: `${projectId}.md`,
+        file_path: `${projectId}.md`,
+        workspace: `/project/${projectId}`,
+        editable: true,
+      },
+      { presentation: 'board' }
+    );
+  }, [openPreview, projectId]);
+  return null;
+};
+
+const ProjectSaveScopeHarness: React.FC = () => {
+  const [projectId, setProjectId] = useState('b');
+  const PreviewBoard = PreviewBoardComponent;
+  return (
+    <PreviewProvider workspace={{ ownerId: 'save-owner', routeKey: 'same-conversation-route', projectId }}>
+      <button onClick={() => setProjectId('a')}>Project A</button>
+      <button onClick={() => setProjectId('b')}>Project B</button>
+      <ScopedEditableFile projectId={projectId} />
+      <PreviewBoard />
+    </PreviewProvider>
+  );
+};
+
+function deferredWrite() {
+  let resolve!: (success: boolean) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<boolean>((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('PreviewBoard', () => {
   beforeEach(async () => {
     localStorage.clear();
@@ -180,6 +225,100 @@ describe('PreviewBoard', () => {
     cleanup();
     vi.unstubAllGlobals();
   });
+
+  it.each(['resolve', 'reject'] as const)(
+    'does not publish a save %s after StrictMode board unmount',
+    async (outcome) => {
+      const write = deferredWrite();
+      commonMocks.writeFileInvoke.mockReturnValueOnce(write.promise);
+      const i18n = await createTestI18n('en-US');
+      const view = render(
+        <React.StrictMode>
+          <I18nextProvider i18n={i18n}>
+            <PreviewProvider>
+              <EditableBoardHarness />
+            </PreviewProvider>
+          </I18nextProvider>
+        </React.StrictMode>
+      );
+      await screen.findByText('notes.md');
+      fireEvent.click(screen.getByRole('button', { name: 'Edit file' }));
+      const editor = await screen.findByRole('textbox', { name: 'Board file editor' });
+      fireEvent.change(editor, { target: { value: '# Pending before unmount' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(commonMocks.writeFileInvoke).toHaveBeenCalledTimes(1));
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+      view.unmount();
+      await act(async () => {
+        if (outcome === 'resolve') write.resolve(true);
+        else write.reject(new Error('write-rejected-after-unmount'));
+        await write.promise.catch((): void => undefined);
+      });
+      expect(screen.queryByTestId('preview-board')).not.toBeInTheDocument();
+      expect(screen.queryByText(i18n.t('preview.board.saveSucceeded'))).not.toBeInTheDocument();
+      expect(screen.queryByText(i18n.t('preview.board.saveFailed'))).not.toBeInTheDocument();
+    }
+  );
+
+  it.each(['resolve', 'reject'] as const)(
+    'ignores an old project save %s while the restored project is saving',
+    async (outcome) => {
+      const writeA = deferredWrite();
+      const writeB = deferredWrite();
+      commonMocks.writeFileInvoke.mockImplementation(({ workspace }: { workspace: string }) =>
+        workspace === '/project/a' ? writeA.promise : writeB.promise
+      );
+      const i18n = await createTestI18n('en-US');
+      render(
+        <I18nextProvider i18n={i18n}>
+          <ProjectSaveScopeHarness />
+        </I18nextProvider>
+      );
+
+      // Visit B first so returning from A restores an already-open board rather
+      // than remounting the consumer or creating B only after A has finished.
+      await screen.findByText('b.md');
+      fireEvent.click(screen.getByRole('button', { name: 'Project A' }));
+      await screen.findByText('a.md');
+      fireEvent.click(screen.getByRole('button', { name: 'Edit file' }));
+      const editorA = await screen.findByRole('textbox', { name: 'Board file editor' });
+      fireEvent.change(editorA, { target: { value: '# Unsaved A' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(commonMocks.writeFileInvoke).toHaveBeenCalledTimes(1));
+      const boardInstance = screen.getByTestId('preview-board');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Project B' }));
+      await screen.findByText('b.md');
+      expect(screen.getByTestId('preview-board')).toBe(boardInstance);
+      fireEvent.click(screen.getByRole('button', { name: 'Edit file' }));
+      const editorB = await screen.findByRole('textbox', { name: 'Board file editor' });
+      fireEvent.change(editorB, { target: { value: '# Unsaved B' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+      await waitFor(() => expect(commonMocks.writeFileInvoke).toHaveBeenCalledTimes(2));
+      expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+
+      await act(async () => {
+        if (outcome === 'resolve') writeA.resolve(true);
+        else writeA.reject(new Error('project-a-write-failed'));
+        await writeA.promise.catch((): void => undefined);
+      });
+      expect.soft(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+      expect.soft(editorB).toBeInTheDocument();
+      expect.soft(editorB).toHaveValue('# Unsaved B');
+      expect.soft(screen.queryByText(i18n.t('preview.board.saveSucceeded'))).not.toBeInTheDocument();
+      expect.soft(screen.queryByText(i18n.t('preview.board.saveFailed'))).not.toBeInTheDocument();
+
+      await act(async () => {
+        writeB.resolve(true);
+        await writeB.promise;
+      });
+      await waitFor(() => expect(screen.queryByRole('textbox', { name: 'Board file editor' })).not.toBeInTheDocument());
+      expect(boardInstance.querySelector('span[role="status"][aria-live="polite"]')).toHaveTextContent(
+        i18n.t('preview.board.saveSucceeded')
+      );
+    }
+  );
 
   it('promotes one project file to fullscreen without reflowing the other tile', async () => {
     const i18n = await createTestI18n('en-US');
@@ -259,7 +398,7 @@ describe('PreviewBoard', () => {
     const renderBoard = () =>
       render(
         <I18nextProvider i18n={i18n}>
-          <PreviewProvider>
+          <PreviewProvider workspace={{ ownerId: 'board-owner', routeKey: 'board-route', projectId: 'board-project' }}>
             <BoardHarness />
           </PreviewProvider>
         </I18nextProvider>

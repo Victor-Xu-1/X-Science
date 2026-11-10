@@ -56,7 +56,7 @@ vi.mock('@/renderer/hooks/context/RealtimeContext', () => ({
   }),
 }));
 vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({ closePreview: mocks.closePreview }),
+  usePreviewContext: () => ({ closePreview: mocks.closePreview, bindWorkspaceProject: vi.fn() }),
 }));
 vi.mock('@/renderer/hooks/chat/useAutoTitle', () => ({ useAutoTitle: () => ({ syncTitleFromHistory: vi.fn() }) }));
 vi.mock('@/renderer/pages/conversation/components/ChatConversation', () => ({
@@ -69,7 +69,7 @@ vi.mock('@/renderer/pages/conversation/components/ChatConversation', () => ({
   ),
 }));
 
-function NestedSync({ conversation }: { conversation: TChatConversation }) {
+function NestedSync({ conversation }: { conversation: TChatConversation }): null {
   useXScienceConversationSync({
     conversationId: conversation.id,
     initialConversation: conversation,

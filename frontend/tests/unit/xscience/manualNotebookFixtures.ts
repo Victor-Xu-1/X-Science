@@ -50,7 +50,7 @@ export const inventory = (targets = [rawTarget]) => ({
   manual_execution_scope: rawScope,
   kernels: targets.map((item) => ({
     ...item,
-    schema: undefined,
+    schema: undefined as undefined,
     kind: 'analysis',
     project_id: 'project-1',
     agent_name: 'OPERON',
