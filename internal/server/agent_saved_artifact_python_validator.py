@@ -114,6 +114,24 @@ class ModuleNamespace(ModuleExpressions):
         if isinstance(node.ctx, ast.Load) and node.id in self.unresolved:
             self.loads[node.id].append((node.lineno, node.col_offset))
 
+    def add_provider(self, node, bindings):
+        self.providers.append(((node.end_lineno, node.end_col_offset), bindings))
+
+    def visit_Assign(self, node):
+        for target in node.targets:
+            if (isinstance(target, ast.Subscript)
+                    and module_globals(target.value, self.module_definitions)
+                    and isinstance(target.slice, ast.Constant)
+                    and isinstance(target.slice.value, str)):
+                self.add_provider(node, {target.slice.value})
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        if any(alias.name == "*" for alias in node.names):
+            # Do not import artifact modules to discover their exported names.
+            self.add_provider(node, None)
+        self.generic_visit(node)
+
     def visit_Call(self, node):
         # A separate locals dictionary does not populate ordinary module names.
         # Builtin shadowing prevents this narrow module-namespace recognition.
@@ -121,8 +139,14 @@ class ModuleNamespace(ModuleExpressions):
                 and not node.keywords
                 and (len(node.args) == 1 or module_globals(node.args[1], self.module_definitions))
                 and (len(node.args) < 3 or module_globals(node.args[2], self.module_definitions))):
-            self.providers.append(((node.end_lineno, node.end_col_offset),
-                                   literal_bindings(node.args[0], self.module_definitions)))
+            self.add_provider(node, literal_bindings(node.args[0], self.module_definitions))
+        elif (isinstance(node.func, ast.Attribute) and node.func.attr == "update"
+                and module_globals(node.func.value, self.module_definitions)
+                and len(node.args) == 1 and not node.keywords
+                and isinstance(node.args[0], ast.Dict)
+                and all(isinstance(key, ast.Constant) and isinstance(key.value, str)
+                        for key in node.args[0].keys)):
+            self.add_provider(node, {key.value for key in node.args[0].keys})
         self.generic_visit(node)
 
     def classify(self):

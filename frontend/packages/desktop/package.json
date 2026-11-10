@@ -1,6 +1,6 @@
 {
   "name": "@x-science/workbench-renderer",
-  "version": "0.5.62",
+  "version": "0.5.63",
   "private": true,
   "description": "X-Science scientific workbench browser renderer."
 }
