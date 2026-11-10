@@ -1,26 +1,10 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const listLocalHistoryMock = vi.fn();
 const saveLocalHistoryMock = vi.fn();
 const saveContentMock = vi.fn(async () => true);
-const getLocalHistoryContentMock = vi.fn();
-const loadArtifactVersionsMock = vi.fn(async (_artifactId: string) => [
-  {
-    versionId: 'version-2',
-    versionNumber: 2,
-    artifactId: 'artifact-1',
-    frameId: 'frame-1',
-    agentName: 'OPERON',
-    language: 'markdown',
-    contentType: 'text/markdown',
-    sizeBytes: 128,
-    createdAt: '2026-07-11T02:00:00.000Z',
-    filePath: '/state/v2-report.md',
-    parentVersionId: 'version-1',
-  },
-]);
-const loadVersionTextMock = vi.fn(async (_versionId: string) => '# version 2');
+const loadArtifactVersionsMock = vi.fn(async (_artifactId: string) => []);
 const createArtifactVersionMock = vi.fn(
   async (_input: import('@/renderer/services/xScienceArtifacts').XScienceTextArtifactVersionInput) => ({
     artifactId: 'artifact-1',
@@ -31,95 +15,47 @@ const createArtifactVersionMock = vi.fn(
   })
 );
 const messageMocks = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
-const translateMock = vi.hoisted(
-  () => (key: string, options?: { version?: number }) =>
-    key === 'preview.versionLabel' ? `版本 ${options?.version ?? ''}` : key
-);
+const translateMock = vi.hoisted(() => (key: string) => key);
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: translateMock }),
-}));
-
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: translateMock }) }));
 vi.mock('@arco-design/web-react', async (importOriginal) => {
   const original = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
     ...original,
-    Message: {
-      ...original.Message,
-      useMessage: () => [messageMocks, null],
-    },
+    Message: { ...original.Message, useMessage: () => [messageMocks, null] },
   };
 });
-
 vi.mock('@/common', () => ({
   ipcBridge: {
     previewHistory: {
       list: { invoke: (...args: unknown[]) => listLocalHistoryMock(...args) },
       save: { invoke: (...args: unknown[]) => saveLocalHistoryMock(...args) },
-      getContent: { invoke: (...args: unknown[]) => getLocalHistoryContentMock(...args) },
     },
   },
 }));
-
 vi.mock('@/renderer/services/xScienceArtifacts', () => ({
   loadXScienceArtifactVersions: (...args: Parameters<typeof loadArtifactVersionsMock>) =>
     loadArtifactVersionsMock(...args),
-  loadXScienceArtifactVersionText: (...args: Parameters<typeof loadVersionTextMock>) => loadVersionTextMock(...args),
-  getXScienceArtifactVersionContentUrl: (versionId: string) => `/api/artifacts/versions/${versionId}`,
   createXScienceTextArtifactVersion: (...args: Parameters<typeof createArtifactVersionMock>) =>
     createArtifactVersionMock(...args),
 }));
 
 import { usePreviewHistory } from '@/renderer/pages/conversation/Preview/hooks/usePreviewHistory';
 
+const previewForUnusedReadCheck = (target: 'artifact' | 'local') => ({
+  id: 'read-check-tab',
+  content_type: 'markdown',
+  content: '# edited synthetic report',
+  title: 'synthetic.md',
+  metadata:
+    target === 'artifact'
+      ? { artifactId: 'artifact-1', versionId: 'version-1', file_name: 'synthetic.md' }
+      : { workspace: '/synthetic', file_path: '/synthetic/synthetic.md', file_name: 'synthetic.md' },
+});
+
 describe('X-Science preview history integration', () => {
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('loads and selects backend artifact versions through the existing XScience preview history hook', async () => {
-    const updateContent = vi.fn();
-    const markContentSaved = vi.fn();
-    const activeTab = {
-      content_type: 'markdown',
-      content: '# current',
-      title: 'report.md',
-      metadata: {
-        file_name: 'report.md',
-        artifactId: 'artifact-1',
-        versionId: 'version-1',
-        contentUrl: '/api/artifacts/artifact-1',
-      },
-    };
-    const { result } = renderHook(() =>
-      usePreviewHistory({
-        activeTab,
-        updateContent,
-        markContentSaved,
-        saveContent: saveContentMock,
-      })
-    );
-
-    await waitFor(() => expect(result.current.historyVersions).toHaveLength(1));
-    expect(loadArtifactVersionsMock).toHaveBeenCalledWith('artifact-1');
-    expect(listLocalHistoryMock).not.toHaveBeenCalled();
-    expect(result.current.historyVersions[0]).toMatchObject({
-      id: 'version-2',
-      label: '版本 2',
-      file_path: '/api/artifacts/versions/version-2',
-    });
-
-    await act(async () => {
-      await result.current.handleSnapshotSelect(result.current.historyVersions[0]!);
-    });
-
-    expect(loadVersionTextMock).toHaveBeenCalledWith('version-2');
-    expect(updateContent).toHaveBeenCalledWith('# version 2');
-    expect(markContentSaved).toHaveBeenCalledWith({
-      versionId: 'version-2',
-      contentUrl: '/api/artifacts/versions/version-2',
-    });
-    expect(getLocalHistoryContentMock).not.toHaveBeenCalled();
   });
 
   it('delegates remote saving to the shared PreviewContext owner without a competing write', async () => {
@@ -138,13 +74,11 @@ describe('X-Science preview history integration', () => {
     const { result } = renderHook(() =>
       usePreviewHistory({
         activeTab,
-        updateContent: vi.fn(),
         markContentSaved,
         saveContent: saveContentMock,
       })
     );
 
-    await waitFor(() => expect(result.current.historyVersions).toHaveLength(1));
     let saved = false;
     await act(async () => {
       saved = await result.current.handleSaveSnapshot();
@@ -155,38 +89,64 @@ describe('X-Science preview history integration', () => {
     expect(createArtifactVersionMock).not.toHaveBeenCalled();
     expect(markContentSaved).not.toHaveBeenCalled();
   });
+});
 
-  it('ignores a late history selection after the displayed artifact changes', async () => {
-    let resolve!: (value: string) => void;
-    loadVersionTextMock.mockReturnValueOnce(
-      new Promise((done) => {
-        resolve = done;
+describe('unused preview history reads', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each(['artifact', 'local'] as const)('does not fetch unused history when a %s preview mounts', async (target) => {
+    const { result } = renderHook(() =>
+      usePreviewHistory({
+        activeTab: previewForUnusedReadCheck(target),
+        markContentSaved: vi.fn(),
+        saveContent: saveContentMock,
       })
     );
-    const updateContent = vi.fn(),
-      markContentSaved = vi.fn();
-    const activeTab = {
-      content_type: 'markdown',
-      content: 'first',
-      title: 'first.md',
-      metadata: { artifactId: 'artifact-1', versionId: 'version-1' },
-    };
-    const hook = renderHook(
-      ({ activeTab }) =>
-        usePreviewHistory({ activeTab, updateContent, markContentSaved, saveContent: saveContentMock }),
-      { initialProps: { activeTab } }
-    );
-    await waitFor(() => expect(hook.result.current.historyVersions).toHaveLength(1));
-    let pending!: Promise<void>;
-    act(() => {
-      pending = hook.result.current.handleSnapshotSelect(hook.result.current.historyVersions[0]!);
-    });
-    hook.rerender({ activeTab: { ...activeTab, metadata: { artifactId: 'artifact-2', versionId: 'other-version' } } });
     await act(async () => {
-      resolve('old history');
-      await pending;
+      await Promise.resolve();
     });
-    expect(updateContent).not.toHaveBeenCalled();
-    expect(markContentSaved).not.toHaveBeenCalled();
+    expect(result.current.historyTarget?.artifact_id).toBe(target === 'artifact' ? 'artifact-1' : undefined);
+    expect(result.current.snapshotSaving).toBe(false);
+    expect(loadArtifactVersionsMock).not.toHaveBeenCalled();
+    expect(listLocalHistoryMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['artifact', 'local'] as const)('does not fetch unused history after saving a %s preview', async (target) => {
+    const markContentSaved = vi.fn();
+    if (target === 'local') {
+      saveLocalHistoryMock.mockResolvedValueOnce({
+        id: 'local-snapshot',
+        label: 'Synthetic saved snapshot',
+        created_at: 1,
+        size: 25,
+        contentType: 'markdown',
+      });
+    }
+    const { result } = renderHook(() =>
+      usePreviewHistory({
+        activeTab: previewForUnusedReadCheck(target),
+        markContentSaved,
+        saveContent: saveContentMock,
+      })
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    // Separate the post-save read from any existing mount read in the RED.
+    loadArtifactVersionsMock.mockClear();
+    listLocalHistoryMock.mockClear();
+    await act(async () => {
+      expect(await result.current.handleSaveSnapshot()).toBe(true);
+    });
+    expect(saveContentMock).toHaveBeenCalledTimes(target === 'artifact' ? 1 : 0);
+    expect(saveLocalHistoryMock).toHaveBeenCalledTimes(target === 'local' ? 1 : 0);
+    expect(markContentSaved).toHaveBeenCalledTimes(target === 'local' ? 1 : 0);
+    expect(createArtifactVersionMock).not.toHaveBeenCalled();
+    expect(messageMocks.success).toHaveBeenCalledWith('preview.snapshotSaved');
+    expect(result.current.snapshotSaving).toBe(false);
+    expect(loadArtifactVersionsMock).not.toHaveBeenCalled();
+    expect(listLocalHistoryMock).not.toHaveBeenCalled();
   });
 });

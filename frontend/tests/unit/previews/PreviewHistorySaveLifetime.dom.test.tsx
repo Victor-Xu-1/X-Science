@@ -43,13 +43,12 @@ async function host(
   onMountSave?: (operation: Promise<boolean>) => void
 ) {
   const i18n = await createTestI18n('en-US');
-  const updateContent = vi.fn(),
-    markContentSaved = vi.fn();
+  const markContentSaved = vi.fn();
   let tab = initial,
     canvas = 'a',
     current!: History;
   function Host() {
-    current = usePreviewHistory({ activeTab: tab, saveContent, updateContent, markContentSaved });
+    current = usePreviewHistory({ activeTab: tab, saveContent, markContentSaved });
     React.useEffect(() => {
       if (onMountSave) onMountSave(current.handleSaveSnapshot());
     }, [onMountSave]);
@@ -72,7 +71,6 @@ async function host(
   return {
     ...view,
     i18n,
-    updateContent,
     markContentSaved,
     current: () => current,
     move(next: Tab, nextCanvas = canvas) {
@@ -84,13 +82,6 @@ async function host(
       let promise!: Promise<boolean>;
       act(() => {
         promise = current.handleSaveSnapshot();
-      });
-      return promise;
-    },
-    select(id: string) {
-      let promise!: Promise<void>;
-      act(() => {
-        promise = current.handleSnapshotSelect({ id, label: id, created_at: 1, size: 0, contentType: 'markdown' });
       });
       return promise;
     },
@@ -232,89 +223,6 @@ describe('preview history save lifetime', () => {
       next.resolve(true);
       expect(await second).toBe(true);
     });
-  });
-  it('keeps the new history read busy when old A arrives after A to B to A', async () => {
-    const old = deferred<Response>(),
-      next = deferred<Response>(),
-      tab = artifact();
-    let reads = 0;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn<typeof fetch>(async (input) =>
-        String(input).includes('/artifact-a/versions')
-          ? ++reads === 1
-            ? old.promise
-            : next.promise
-          : Response.json([])
-      )
-    );
-    const view = await host(tab, async () => true);
-    view.move(artifact('tab-b', 'artifact-b'));
-    view.move(tab);
-    expect(reads).toBe(2);
-    await act(async () => {
-      old.resolve(Response.json([{ artifact_id: 'artifact-a', version_id: 'old', version_number: 1 }]));
-    });
-    expect(view.current().historyLoading).toBe(true);
-    expect(view.current().historyVersions).toEqual([]);
-    await act(async () => {
-      next.resolve(Response.json([{ artifact_id: 'artifact-a', version_id: 'current', version_number: 2 }]));
-    });
-    expect(view.current().historyLoading).toBe(false);
-    expect(view.current().historyVersions.map((item) => item.id)).toEqual(['current']);
-  });
-  it('ignores an old selection after A to B to A and accepts its next selection', async () => {
-    const old = deferred<Response>(),
-      tab = artifact();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn<typeof fetch>(async (input) =>
-        String(input).includes('/versions/old')
-          ? old.promise
-          : String(input).includes('/versions/current')
-            ? new Response('Current text')
-            : Response.json([])
-      )
-    );
-    const view = await host(tab, async () => true),
-      first = view.select('old');
-    view.move(artifact('tab-b', 'artifact-b'));
-    view.move(tab);
-    await act(async () => {
-      old.resolve(new Response('Stale text'));
-      await first;
-    });
-    expect(view.updateContent).not.toHaveBeenCalled();
-    expect(view.markContentSaved).not.toHaveBeenCalled();
-    await act(async () => {
-      await view.select('current');
-    });
-    expect(view.updateContent).toHaveBeenCalledExactlyOnceWith('Current text');
-    expect(view.markContentSaved).toHaveBeenCalledExactlyOnceWith({
-      versionId: 'current',
-      contentUrl: '/api/artifacts/versions/current',
-    });
-  });
-  it('drops a pending history selection and read when the message host unmounts', async () => {
-    const selected = deferred<Response>(),
-      listed = deferred<Response>();
-    vi.stubGlobal(
-      'fetch',
-      vi.fn<typeof fetch>(async (input) =>
-        String(input).includes('/versions/selected') ? selected.promise : listed.promise
-      )
-    );
-    const view = await host(artifact(), async () => true),
-      operation = view.select('selected'),
-      discarded = expect(operation).resolves.toBeUndefined();
-    view.unmount();
-    await act(async () => {
-      selected.resolve(new Response('Disposed text'));
-      listed.resolve(Response.json([]));
-      await discarded;
-    });
-    expect(view.updateContent).not.toHaveBeenCalled();
-    expect(view.markContentSaved).not.toHaveBeenCalled();
   });
   it('marks only the current local file and avoids carrying the old debounce into it', async () => {
     const old = deferred<boolean>(),

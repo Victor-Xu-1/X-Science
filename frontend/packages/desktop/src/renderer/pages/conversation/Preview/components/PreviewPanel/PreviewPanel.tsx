@@ -126,7 +126,6 @@ const SinglePreviewPanel: React.FC<{ conversationId?: string }> = ({ conversatio
   // eslint-disable-next-line max-len
   const { snapshotSaving, historyTarget, handleSaveSnapshot, messageApi, messageContextHolder } = usePreviewHistory({
     activeTab,
-    updateContent,
     markContentSaved,
     saveContent,
   });

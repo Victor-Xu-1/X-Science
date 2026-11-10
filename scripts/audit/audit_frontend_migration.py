@@ -525,6 +525,7 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewHistoryDropdown.tsx": "Retire the unmounted snapshot dropdown after its only barrel export and unconsumed preview-history reads are removed; preserve the canonical ArtifactPreview version-history page and original import provenance.",
     "packages/desktop/src/renderer/hooks/file/useWorkspaceSelector.ts": "Retire the unconsumed legacy native workspace selector after all conversation file intake uses the existing browser/project picker or explicit host-grant controls; preserve original import history.",
     "packages/desktop/src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx": "Retire the competing synchronous Skill author/install button; preserve historical suggestions as read-only content and use the sole typed conversation action.",
     "public/pwa/icon-180.png": "Retire the superseded product artwork after the original approved touch icon became the only current browser reference.",
