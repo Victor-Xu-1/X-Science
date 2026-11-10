@@ -42,6 +42,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.resetModules();
   delete window.__backendPort;
@@ -73,6 +74,7 @@ describe('PreviewPanel', () => {
   it(
     'restores an unchanged historical artifact through the shared conditional-save owner',
     async () => {
+      const errors = vi.spyOn(console, 'error');
       localStorage.clear();
       const writes: { body: Record<string, unknown>; key: string | null }[] = [];
       vi.stubGlobal(
@@ -137,6 +139,7 @@ describe('PreviewPanel', () => {
       await waitFor(() =>
         expect(screen.queryByRole('textbox', { name: 'Single preview editor' })).not.toBeInTheDocument()
       );
+      expect(errors.mock.calls.filter((args) => /unique.*key|same key/i.test(args.map(String).join(' ')))).toEqual([]);
     },
     IMPORT_TIMEOUT_MS
   );

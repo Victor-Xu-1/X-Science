@@ -375,6 +375,7 @@ def main() -> int:
                               "selection": "Vitest dependency-related and changed fixture build; no global fallback"}))
             commands = [
                 ["npm", "ci", "--ignore-scripts"],
+                ["npm", "run", "dependencies:prepare"],
                 ["npx", "--no-install", "playwright", "install", "chromium"],
                 ["npm", "run", "i18n:types"],
                 ["npm", "run", "typecheck"], ["npm", "run", "lint"],

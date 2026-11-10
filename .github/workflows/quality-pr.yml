@@ -201,6 +201,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci --ignore-scripts
+          npm run dependencies:prepare
           npx --no-install playwright install chromium
           npm run i18n:types
 

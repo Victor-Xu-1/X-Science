@@ -131,6 +131,8 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "scripts/arcoMessageIdentityPatch.mjs": "Apply the locked Arco Message container identity and close-handle ownership compatibility without replacing its notification authority.",
+    "scripts/prepareArcoMessage.mjs": "Prepare and verify only owned locked Arco ESM and CJS modules before their existing build and test consumers.",
     "packages/desktop/src/renderer/hooks/system/notification/BrowserNotificationPreference.tsx": "Keep authenticated browser task-notification preference reads, writes, and sender state under one account-scoped owner and invalidate other tabs without exposing the value.",
     "packages/desktop/src/renderer/pages/settings/NotificationsSettings.tsx": "Expose the existing browser task-notification preference and explicit permission control through the canonical settings route.",
     "tests/unit/settings/NotificationsSettings.dom.test.tsx": "Verify the routed notification setting and its default, persistence, read and write errors, stale-account fencing, and cross-tab invalidation races.",
