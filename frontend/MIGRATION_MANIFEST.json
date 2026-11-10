@@ -5,7 +5,7 @@
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
   "adaptationFingerprintSHA256": "cef7af352e49eed88e08782b741290db75d5bdd24f19a5dd8bb6994d53003398",
   "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "1e364f33b057cbd924d932954388be98601117704aa9d09ce03cb15f730c6644",
+  "additionFingerprintSHA256": "4fe7e97b78b0aa01cfe7026b28e8851fa52ba1c8cc760296b1224a789a0f4c38",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 264,
@@ -8025,8 +8025,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/composerInputHelp.css",
-      "sha256": "b2aaa37375e8524e8c6efa0b0a382ed0ad1c84668c0b88f914c764bf1110974c",
-      "bytes": 1131,
+      "sha256": "1205dc4cc5fe205b90fdb8e838b7a8dadc5d10f614f85ae534ea9da803c15128",
+      "bytes": 1151,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -8115,8 +8115,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/components/chat/SendBox/reading/readingContext.css",
-      "sha256": "049d83f1ec49252bf96c5251bd529e4c12773f6a4e2a257ffd64f09e108bfda4",
-      "bytes": 10932,
+      "sha256": "4a4f08149f06b532356315b6053a8b2bc48479ad9c4621967beca3fad579a356",
+      "bytes": 10963,
       "reason": "Translate the reference linked-bar/picker geometry and light/dark color tokens into scoped CSS using existing application radius/weight tokens. Adapted with reference to Open Science6d869cd: src/renderer/src/pages/workspace/ConversationPanel.tsx, src/renderer/src/pages/workspace/ReadingContextPicker.tsx, src/renderer/src/assets/main.css."
     },
     {
@@ -10377,8 +10377,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryInbox.css",
-      "sha256": "60a87adb99bd00fe6b6de804004f1e06f8763a88a4bd7764d35f59f3262a3ffb",
-      "bytes": 4293,
+      "sha256": "b85bb4a1646d5772c0e7c7ef5f8d502fc9b33bdc7b5dc25a06a37edbf29cae9f",
+      "bytes": 4324,
       "reason": "Translate Open Science b664635320b5 Inbox card/header geometry and reduced-motion behavior into scoped X-Science theme styles; rendered pixel acceptance remains separate from source provenance."
     },
     {
@@ -10389,8 +10389,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryNavigationRail.css",
-      "sha256": "552333d6265396db6ccd47abc8317724e564b83d1ef8c61d46aa61740a1ab7d5",
-      "bytes": 4178,
+      "sha256": "78c5a8a7a0964bd1310f73c316bd7101af160cc6505a1a1dd238b1fa4066fa5e",
+      "bytes": 4347,
       "reason": "Translate Open Science b664635320b5 single-rail 240px and 56px geometry into scoped X-Science theme styles while retaining global chrome and the existing Web mobile drawer; rendered pixel acceptance remains separate from source provenance."
     },
     {
@@ -10455,14 +10455,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryStudyBatch.css",
-      "sha256": "31cdd1ef7ee1f1e186e91dd659c33ef7c8ad33f8410cbbb0f99b4ca8ef8281b5",
-      "bytes": 2928,
+      "sha256": "8d8c10d7b076a9bcd238459c697afdab77b4f68056b8c911c7e5c4090162078e",
+      "bytes": 3083,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryStudySnapshot.css",
-      "sha256": "727fba24ea55b975561e61d9bbeaa61333516939f50eafd10f2f0332089bc5e3",
-      "bytes": 1488,
+      "sha256": "34048cb6008cb6ff8116cf37b296c59cb87e6572342a80e8bfcb1ba9fa1e1481",
+      "bytes": 1607,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10485,14 +10485,14 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.detail.css",
-      "sha256": "0fa223bc5665994b8dd1fcbfdf1fa067971810bb2ac6c47dfe2231f5b101825e",
-      "bytes": 7468,
+      "sha256": "79c3b6ab8fbd41953d79a11c93cc7ec4135eb47db80efd7aedf7f032122b1f69",
+      "bytes": 7484,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/libraryWorkbench.header.css",
-      "sha256": "6ffdb364e5fb11a0847b12ec1591738c405864ee1d676f6cf36de6afcbbd9917",
-      "bytes": 6499,
+      "sha256": "7b6f16a054117f3e4d7b9f37b04b8803422f573594fd8ac8f67f35457fb366bf",
+      "bytes": 6618,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -10521,8 +10521,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/resourceTags.css",
-      "sha256": "4712cd0b6c72f41edb5e1737c32d9384d544ff03b93a9b93c5f9c7de23fd4343",
-      "bytes": 6657,
+      "sha256": "9e1ac2284ccfb39d7c9d44517d7e72651fbccb1fbefe3f393215629f9fcd04a9",
+      "bytes": 6831,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -11319,8 +11319,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/settings/tags/tags.css",
-      "sha256": "dd68dfa666114c2273aaf9e14d552aded5e677dd50a6880a4458f311ab7c9385",
-      "bytes": 8336,
+      "sha256": "85f2bbcc988862abb8a63b1300c96c827ac73574c6599871b1f8fad4ac80cee2",
+      "bytes": 8601,
       "reason": "Add bounded typed renderer components, hooks, pages, services, and utilities required by the authenticated Go-owned product surface."
     },
     {
@@ -15759,8 +15759,8 @@
     },
     {
       "path": "tests/unit/themeVisualContract.test.ts",
-      "sha256": "6193542fc38d012f7b3093c7e880244e1773f108b57035222b207966e7f56156",
-      "bytes": 22665,
+      "sha256": "eba46091f51fe5512de6fa69259c04ca8a7b8414b01ef30dc1f949846e0ace72",
+      "bytes": 23089,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
