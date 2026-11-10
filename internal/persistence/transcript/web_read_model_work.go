@@ -29,6 +29,7 @@ type TranscriptWebProjectionFence struct {
 	BranchGeneration                int64
 	ThroughPublicationSequence      int64
 	SourceRevision                  int64
+	SourceDirty                     bool
 	StateFound                      bool
 	StateStatus                     string
 	StateProjectionRevision         int64
@@ -41,6 +42,17 @@ type TranscriptWebProjectionFence struct {
 	StateArtifactReferenceCount     int
 	StateProjectorStateJSON         []byte
 	StateSourceChainSHA256          string
+}
+
+// This is a serving policy over the existing projection, not another view or
+// readiness status. Row and identity reads repeat it in their READ transaction.
+func (fence TranscriptWebProjectionFence) ConsistentPrefixEligible() bool {
+	return fence.StateFound && transcriptWebConsistentPrefixEligible(TranscriptWebProjectionState{
+		Status: fence.StateStatus, ProjectorVersion: fence.StateProjectorVersion,
+		BranchGeneration: fence.StateBranchGeneration, SourceRevision: fence.StateSourceRevision,
+		ThroughPublicationSequence: fence.StateThroughPublicationSequence,
+		MessageCount:               fence.StateMessageCount, VisibleMessageCount: fence.VisibleMessageCount,
+	}, fence.BranchGeneration, fence.ThroughPublicationSequence, fence.SourceRevision, fence.SourceDirty)
 }
 
 // TranscriptWebProjectionWork is one active canonical Frame branch whose Web
@@ -114,6 +126,10 @@ func (r *WebReadModelRepository) getTranscriptWebProjectionFence(
 	fence := TranscriptWebProjectionFence{
 		OwnerID: ownerID, SessionID: sessionID, StreamUID: streamUID, BranchID: branchID,
 		BranchGeneration: generation, ThroughPublicationSequence: through, SourceRevision: sourceRevision,
+	}
+	fence.SourceDirty, err = transcriptWebProjectionSourceDirty(ctx, tx, streamUID, branchID)
+	if err != nil {
+		return TranscriptWebProjectionFence{}, err
 	}
 	var state TranscriptWebProjectionState
 	var found bool

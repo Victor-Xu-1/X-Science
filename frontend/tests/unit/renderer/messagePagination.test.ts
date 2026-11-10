@@ -5,6 +5,8 @@
  */
 
 import { BackendHttpError } from '@/common/adapter/httpBridge';
+import * as httpBridge from '@/common/adapter/httpBridge';
+import { requestConversationMessages as requestActualConversationMessages } from '@/common/adapter/ipcDatabaseClient';
 import * as branches from '@/renderer/services/xScienceConversationBranches';
 import * as ipcBridge from '@/common/adapter/ipcBridge';
 import {
@@ -63,6 +65,43 @@ describe('message pagination helpers', () => {
       },
       undefined
     );
+  });
+
+  it('requires explicit prefix opt-in and refuses partial responses for exact/export reads', async () => {
+    const prefix: ipcBridge.MessageCursorPage<never> = {
+      items: [],
+      oldest_cursor: null,
+      newest_cursor: null,
+      has_more_before: false,
+      has_more_after: false,
+      projection_pending: true,
+      source_revision: 0,
+      through_publication_sequence: 4,
+      canonical_through_publication_sequence: 9,
+    };
+    const transport = vi.spyOn(httpBridge, 'httpRequest').mockResolvedValue(prefix);
+    try {
+      await expect(requestActualConversationMessages({ conversation_id: 'prefix' })).rejects.toMatchObject({
+        status: 503,
+        code: 'HISTORY_NOT_READY',
+      });
+      await expect(
+        requestActualConversationMessages({ conversation_id: 'prefix', consistency: 'exact' })
+      ).rejects.toMatchObject({ status: 503, code: 'HISTORY_NOT_READY' });
+      await expect(
+        requestActualConversationMessages({ conversation_id: 'prefix', consistency: 'prefix' })
+      ).resolves.toBe(prefix);
+      expect(transport.mock.calls[2]?.[1]).toContain('consistency=prefix');
+      transport.mockResolvedValue({ ...prefix, projection_pending: false });
+      await expect(
+        requestActualConversationMessages({ conversation_id: 'prefix', consistency: 'prefix' })
+      ).rejects.toThrow('conversation_history_coverage_invalid');
+    } finally {
+      transport.mockRestore();
+    }
+    requestConversationMessages.mockResolvedValue(prefix);
+    await loadLatestConversationMessages('prefix', { consistency: 'prefix', retryTransient: false });
+    expect(requestConversationMessages.mock.calls[0]?.[0]).toMatchObject({ consistency: 'prefix' });
   });
 
   it('walks older pages and returns all messages in display order', async () => {

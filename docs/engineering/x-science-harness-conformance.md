@@ -1333,3 +1333,18 @@ evidence for its exact source revision and applicable external prerequisites.
 Waiting-period identity and diagnostic wake-source evidence follow the
 [resume wake audit contract](frame-resume-wake-audit.md). That audit does not
 grant execution authority or prove a successful task outcome.
+
+Interactive history explicitly requests a consistent prefix of the current Web
+projector. A clean nonempty append-only prefix may be served without joining
+another reader's catch-up flight, only for the same owner, stream/epoch, branch
+generation and source revision. Row and identity reads repeat the source/state
+fences in their READ transaction and report actual covered and canonical
+publication boundaries. A version2 cursor binds source revision and covered
+boundary; a pending unknown anchor is not an empty history or a missing message.
+Exact/full/export callers keep their existing complete-page contract, including
+its existing verified-quarantined-snapshot compatibility; they cannot consume a
+pending prefix. The original projector and retry owner keep advancing coverage.
+The interactive cache retains same-source live rows, rejects late/lower-scope
+responses, clears rows only on an actual source/branch/generation advance, and
+does not infer terminal delivery from a partial page. Navigation cancels the
+same route-owned retry; a pending anchor while idle wakes that existing owner.

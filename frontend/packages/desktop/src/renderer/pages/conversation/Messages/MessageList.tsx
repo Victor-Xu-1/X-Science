@@ -287,9 +287,9 @@ const MessageList: React.FC<{
   const terminalAnswerReady = useMemo(
     () =>
       hasRenderableTerminalAnswerForLatestUserTurn(list, {
-        isLatestWindow: !pagination.hasMoreAfter && !isMessageListLoading,
+        isLatestWindow: !pagination.hasMoreAfter && !pagination.projectionPending && !isMessageListLoading,
       }),
-    [list, pagination.hasMoreAfter, isMessageListLoading]
+    [list, pagination.hasMoreAfter, pagination.projectionPending, isMessageListLoading]
   );
   useLayoutEffect(() => {
     if (!conversationId || !runtimeView?.terminalProjectionPending || !terminalAnswerReady) return;

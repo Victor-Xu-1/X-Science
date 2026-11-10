@@ -113,13 +113,16 @@ type TranscriptWebMessagePageInput struct {
 	From                       *int
 	Limit                      int
 	AllowQuarantinedSnapshot   bool
+	AllowConsistentPrefix      bool
 }
 
 type TranscriptWebMessagePage struct {
-	State    TranscriptWebProjectionState
-	Messages []TranscriptWebMessageRecord
-	From     int
-	Total    int
+	State                               TranscriptWebProjectionState
+	Messages                            []TranscriptWebMessageRecord
+	From                                int
+	Total                               int
+	CanonicalThroughPublicationSequence int64
+	ProjectionPending                   bool
 }
 
 type TranscriptWebMessageIdentityInput struct {
@@ -131,18 +134,41 @@ type TranscriptWebMessageIdentityInput struct {
 	SourceRevision             int64
 	Identity                   string
 	AllowQuarantinedSnapshot   bool
+	AllowConsistentPrefix      bool
+	ExpectedCanonicalThrough   *int64
+}
+
+func transcriptWebConsistentPrefixEligible(state TranscriptWebProjectionState, generation, through, sourceRevision int64, dirty bool) bool {
+	return !dirty && (state.Status == "ready" || state.Status == "building") &&
+		state.ProjectorVersion == TranscriptWebProjectorVersion &&
+		state.BranchGeneration == generation && state.SourceRevision == sourceRevision &&
+		state.ThroughPublicationSequence > 0 && state.ThroughPublicationSequence < through &&
+		state.MessageCount > 0 && state.VisibleMessageCount > 0
 }
 
 func transcriptWebProjectionStateServable(
 	state TranscriptWebProjectionState,
 	branchGeneration, throughPublicationSequence, sourceRevision int64,
 	canonicalGeneration, canonicalThrough, canonicalSourceRevision int64,
-	allowQuarantinedSnapshot bool,
+	allowQuarantinedSnapshot, allowConsistentPrefix, sourceDirty bool,
 ) bool {
 	if state.BranchGeneration != branchGeneration ||
 		state.ThroughPublicationSequence != throughPublicationSequence ||
 		state.SourceRevision != sourceRevision {
 		return false
+	}
+	if allowConsistentPrefix {
+		if sourceDirty {
+			return false
+		}
+		if transcriptWebConsistentPrefixEligible(state, canonicalGeneration, canonicalThrough, canonicalSourceRevision, sourceDirty) {
+			return true
+		}
+		// A caught-up prefix request is an ordinary current ready view. It may
+		// never use the historical quarantined-snapshot exception below.
+		if state.Status != "ready" {
+			return false
+		}
 	}
 	if state.Status == "ready" {
 		return canonicalGeneration == state.BranchGeneration &&
@@ -174,6 +200,9 @@ func (r *WebReadModelRepository) GetTranscriptWebMessageRange(
 		(input.From != nil && *input.From < 0) {
 		return TranscriptWebMessagePage{}, false, errors.New("invalid Transcript Web message page request")
 	}
+	if input.AllowConsistentPrefix && input.AllowQuarantinedSnapshot {
+		return TranscriptWebMessagePage{}, false, errors.New("incompatible Transcript Web page consistency policies")
+	}
 	tx, err := r.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return TranscriptWebMessagePage{}, false, fmt.Errorf("begin Transcript Web page read: %w", err)
@@ -185,6 +214,10 @@ func (r *WebReadModelRepository) GetTranscriptWebMessageRange(
 	if err != nil {
 		return TranscriptWebMessagePage{}, false, err
 	}
+	sourceDirty, err := transcriptWebProjectionSourceDirty(ctx, tx, input.StreamUID, input.BranchID)
+	if err != nil {
+		return TranscriptWebMessagePage{}, false, err
+	}
 	state, found, err := readTranscriptWebProjectionState(ctx, tx, input.StreamUID, input.BranchID)
 	if err != nil || !found {
 		return TranscriptWebMessagePage{}, found, err
@@ -193,7 +226,7 @@ func (r *WebReadModelRepository) GetTranscriptWebMessageRange(
 		state,
 		input.BranchGeneration, input.ThroughPublicationSequence, input.SourceRevision,
 		canonicalGeneration, canonicalThrough, canonicalSourceRevision,
-		input.AllowQuarantinedSnapshot,
+		input.AllowQuarantinedSnapshot, input.AllowConsistentPrefix, sourceDirty,
 	) {
 		return TranscriptWebMessagePage{}, true, ErrTranscriptWebProjectionStale
 	}
@@ -251,7 +284,9 @@ func (r *WebReadModelRepository) GetTranscriptWebMessageRange(
 	if err := tx.Commit(); err != nil {
 		return TranscriptWebMessagePage{}, true, fmt.Errorf("commit Transcript Web page read: %w", err)
 	}
-	return TranscriptWebMessagePage{State: state, Messages: messages, From: start, Total: state.VisibleMessageCount}, true, nil
+	return TranscriptWebMessagePage{State: state, Messages: messages, From: start, Total: state.VisibleMessageCount,
+		CanonicalThroughPublicationSequence: canonicalThrough,
+		ProjectionPending:                   input.AllowConsistentPrefix && state.ThroughPublicationSequence < canonicalThrough}, true, nil
 }
 
 func (r *WebReadModelRepository) LocateTranscriptWebMessage(
@@ -343,6 +378,12 @@ func (r *WebReadModelRepository) beginReadyTranscriptWebRead(
 		input.BranchGeneration <= 0 || input.ThroughPublicationSequence < 0 || input.SourceRevision < 0 {
 		return TranscriptWebProjectionState{}, nil, false, errors.New("invalid Transcript Web message identity request")
 	}
+	if input.AllowConsistentPrefix && input.AllowQuarantinedSnapshot {
+		return TranscriptWebProjectionState{}, nil, false, errors.New("incompatible Transcript Web identity consistency policies")
+	}
+	if input.AllowConsistentPrefix && input.ExpectedCanonicalThrough == nil {
+		return TranscriptWebProjectionState{}, nil, false, errors.New("prefix identity read requires its canonical coverage fence")
+	}
 	tx, err := r.readDB.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
 		return TranscriptWebProjectionState{}, nil, false, fmt.Errorf("begin Transcript Web message read: %w", err)
@@ -354,6 +395,15 @@ func (r *WebReadModelRepository) beginReadyTranscriptWebRead(
 		_ = tx.Rollback()
 		return TranscriptWebProjectionState{}, nil, false, err
 	}
+	sourceDirty, err := transcriptWebProjectionSourceDirty(ctx, tx, input.StreamUID, input.BranchID)
+	if err != nil {
+		_ = tx.Rollback()
+		return TranscriptWebProjectionState{}, nil, false, err
+	}
+	if input.AllowConsistentPrefix && *input.ExpectedCanonicalThrough != through {
+		_ = tx.Rollback()
+		return TranscriptWebProjectionState{}, nil, true, ErrTranscriptWebProjectionStale
+	}
 	state, found, err := readTranscriptWebProjectionState(ctx, tx, input.StreamUID, input.BranchID)
 	if err != nil || !found {
 		_ = tx.Rollback()
@@ -363,7 +413,7 @@ func (r *WebReadModelRepository) beginReadyTranscriptWebRead(
 		state,
 		input.BranchGeneration, input.ThroughPublicationSequence, input.SourceRevision,
 		generation, through, sourceRevision,
-		input.AllowQuarantinedSnapshot,
+		input.AllowQuarantinedSnapshot, input.AllowConsistentPrefix, sourceDirty,
 	) {
 		_ = tx.Rollback()
 		return TranscriptWebProjectionState{}, nil, true, ErrTranscriptWebProjectionStale
@@ -918,6 +968,14 @@ func (r *WebReadModelRepository) ApplyTranscriptWebProjection(ctx context.Contex
 
 type transcriptWebProjectionQuerier interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func transcriptWebProjectionSourceDirty(ctx context.Context, db transcriptWebProjectionQuerier, streamUID, branchID string) (bool, error) {
+	var dirty bool
+	if err := db.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM transcript_web_projection_dirty WHERE stream_uid=? AND branch_id=?)`, streamUID, branchID).Scan(&dirty); err != nil {
+		return false, fmt.Errorf("read Transcript Web source dirtiness: %w", err)
+	}
+	return dirty, nil
 }
 
 func transcriptWebSourceFence(

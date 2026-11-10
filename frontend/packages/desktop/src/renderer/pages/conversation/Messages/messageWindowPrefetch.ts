@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { MessageCursorPage } from '@/common/adapter/ipcBridge';
+import type { MessageCursorPage, MessageHistoryConsistency } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
   INTERACTIVE_MESSAGE_PAGE_LIMIT,
@@ -24,6 +24,7 @@ export type MessageWindowRequest = {
   branchId?: string;
   limit?: number;
   contentMode?: MessageContentMode;
+  consistency?: MessageHistoryConsistency;
   force?: boolean;
   /**
    * A live transcript refresh may share the initial window that is already
@@ -44,6 +45,7 @@ type MessageWindowRequestEntry = {
   cleanupTimer: ReturnType<typeof setTimeout>;
   prefetched: boolean;
   settled: boolean;
+  projectionPending: boolean;
 };
 
 const messageWindowRequests = new Map<string, MessageWindowRequestEntry>();
@@ -57,6 +59,7 @@ function messageWindowRequestKey(request: MessageWindowRequest): string {
     request.limit ?? INTERACTIVE_MESSAGE_PAGE_LIMIT,
     request.contentMode ?? 'compact',
     request.retryTransient !== false,
+    request.consistency ?? 'exact',
   ]);
 }
 
@@ -113,6 +116,7 @@ export function loadLatestConversationMessagesShared(
       contentMode: request.contentMode ?? 'compact',
       ...(request.branchId ? { branchId: request.branchId } : {}),
       retryTransient: request.retryTransient,
+      consistency: request.consistency,
     });
   }
   const now = Date.now();
@@ -132,7 +136,10 @@ export function loadLatestConversationMessagesShared(
     const promise = existing.promise;
     if (!request.prefetch && existing.prefetched) {
       existing.prefetched = false;
-      if (existing.settled) retainSettledMessageWindowRequest(key, existing);
+      if (existing.settled) {
+        if (existing.projectionPending) removeMessageWindowRequest(key, existing);
+        else retainSettledMessageWindowRequest(key, existing);
+      }
     }
     return promise;
   }
@@ -149,11 +156,16 @@ export function loadLatestConversationMessagesShared(
     contentMode: request.contentMode ?? 'compact',
     ...(request.branchId ? { branchId: request.branchId } : {}),
     retryTransient: request.retryTransient,
+    consistency: request.consistency,
     signal: controller.signal,
   }).then(
     (page) => {
       entry.settled = true;
-      if (!entry.prefetched) retainSettledMessageWindowRequest(key, entry);
+      entry.projectionPending = page.projection_pending === true;
+      if (!entry.prefetched) {
+        if (entry.projectionPending) removeMessageWindowRequest(key, entry);
+        else retainSettledMessageWindowRequest(key, entry);
+      }
       return page;
     },
     (error) => {
@@ -170,6 +182,7 @@ export function loadLatestConversationMessagesShared(
     cleanupTimer: setTimeout(() => removeMessageWindowRequest(key, entry, true), MESSAGE_WINDOW_DEDUPE_MS),
     prefetched: request.prefetch === true,
     settled: false,
+    projectionPending: false,
   };
   messageWindowRequests.set(key, entry);
   return promise;
@@ -177,5 +190,9 @@ export function loadLatestConversationMessagesShared(
 
 export async function prefetchConversationMessages(request: MessageWindowRequest): Promise<void> {
   if (!request.ownerId.trim() || !request.conversationId) return;
-  await loadLatestConversationMessagesShared({ ...request, prefetch: true });
+  await loadLatestConversationMessagesShared({
+    ...request,
+    consistency: request.consistency ?? 'prefix',
+    prefetch: true,
+  });
 }

@@ -14,7 +14,7 @@
  */
 
 import { fromApiPaginatedConversations } from './apiModelMapper';
-import { httpGet, httpRequest, withResponseMap } from './httpBridge';
+import { BackendHttpError, httpGet, httpRequest, withResponseMap } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 
 export type PaginatedResult<T> = {
@@ -23,6 +23,8 @@ export type PaginatedResult<T> = {
   has_more: boolean;
   next_cursor?: string | null;
 };
+
+export type MessageHistoryConsistency = 'exact' | 'prefix';
 
 export type MessageCursorPage<T> = {
   items: T[];
@@ -33,6 +35,9 @@ export type MessageCursorPage<T> = {
   branch_id?: string;
   branch_generation?: number;
   through_publication_sequence?: number;
+  canonical_through_publication_sequence?: number;
+  source_revision?: number;
+  projection_pending?: boolean;
 };
 
 export type GetConversationMessagesParams = {
@@ -43,6 +48,7 @@ export type GetConversationMessagesParams = {
   anchor_message_id?: string;
   content_mode?: 'compact' | 'full';
   branch_id?: string;
+  consistency?: MessageHistoryConsistency;
 };
 
 export function conversationMessagesPath(p: GetConversationMessagesParams): string {
@@ -53,6 +59,7 @@ export function conversationMessagesPath(p: GetConversationMessagesParams): stri
   if (p.anchor_message_id) params.set('anchor_message_id', p.anchor_message_id);
   if (p.content_mode) params.set('content_mode', p.content_mode);
   if (p.branch_id) params.set('branch_id', p.branch_id);
+  if (p.consistency) params.set('consistency', p.consistency);
   const qs = params.toString();
   return `/api/conversations/${encodeURIComponent(p.conversation_id)}/messages${qs ? `?${qs}` : ''}`;
 }
@@ -62,15 +69,41 @@ export function conversationMessagesPath(p: GetConversationMessagesParams): stri
  * conversation store. The legacy bridge invoke delegates here so both paths
  * have identical URL, timeout, auth, and response-unwrapping behavior.
  */
-export function requestConversationMessages(
+export async function requestConversationMessages(
   params: GetConversationMessagesParams,
   signal?: AbortSignal
 ): Promise<MessageCursorPage<import('@/common/chat/chatLib').TMessage>> {
-  return httpRequest('GET', conversationMessagesPath(params), undefined, {
+  const path = conversationMessagesPath(params);
+  const page = await httpRequest<MessageCursorPage<import('@/common/chat/chatLib').TMessage>>('GET', path, undefined, {
     timeoutMs: 15_000,
     signal,
     silentErrorCodes: ['HISTORY_NOT_READY'],
   });
+  if (page.projection_pending !== undefined) {
+    if (
+      typeof page.projection_pending !== 'boolean' ||
+      !Number.isSafeInteger(page.source_revision) ||
+      Number(page.source_revision) < 0 ||
+      !Number.isSafeInteger(page.through_publication_sequence) ||
+      Number(page.through_publication_sequence) < 0 ||
+      !Number.isSafeInteger(page.canonical_through_publication_sequence) ||
+      Number(page.canonical_through_publication_sequence) < Number(page.through_publication_sequence) ||
+      page.projection_pending !==
+        Number(page.through_publication_sequence) < Number(page.canonical_through_publication_sequence)
+    )
+      throw new Error('conversation_history_coverage_invalid');
+    // Exact/export callers must never consume a partial result, including a
+    // response accidentally retained by an older shared-fetch implementation.
+    if (page.projection_pending && params.consistency !== 'prefix') {
+      throw new BackendHttpError({
+        method: 'GET',
+        path,
+        status: 503,
+        body: { code: 'HISTORY_NOT_READY', message: 'Complete conversation history is still being prepared' },
+      });
+    }
+  }
+  return page;
 }
 
 export type ConversationReadCursor = {
