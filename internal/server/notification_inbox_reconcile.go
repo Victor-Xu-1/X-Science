@@ -7,19 +7,41 @@ import (
 	"reflect"
 
 	runtimekv "x-science/internal/persistence/runtimekv"
+	transcriptstore "x-science/internal/persistence/transcript"
 )
+
+type notificationInboxSourceReader func(context.Context, string, string, bool, map[string]transcriptstore.NotificationSourcePosition) (transcriptstore.NotificationSourcePage, error)
 
 // Reconciliation is initiated only by this independent read path. In particular
 // no runner, delivery ACK, outbox partition, or text frontier waits on it.
 func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor string) (notificationInboxSnapshot, error) {
+	return s.reconcileNotificationInboxWithReader(ctx, owner, cursor, s.transcriptStore.ReadNotificationSources)
+}
+
+func (s *Server) reconcileNotificationInboxWithReader(ctx context.Context, owner, cursor string, readSources notificationInboxSourceReader) (notificationInboxSnapshot, error) {
+	result, casLost, err := s.reconcileNotificationInboxAttempt(ctx, owner, cursor, readSources)
+	if !casLost || cursor != "" {
+		return result, err
+	}
+	if err := ctx.Err(); err != nil {
+		return notificationInboxSnapshot{}, err
+	}
+	// One fresh attempt only. Never rebase the old candidate onto a new
+	// revision: concurrent read acknowledgements and source facts must be read
+	// again. A nonempty cursor remains bound to its original exact revision.
+	result, _, err = s.reconcileNotificationInboxAttempt(ctx, owner, cursor, readSources)
+	return result, err
+}
+
+func (s *Server) reconcileNotificationInboxAttempt(ctx context.Context, owner, cursor string, readSources notificationInboxSourceReader) (notificationInboxSnapshot, bool, error) {
 	state, err := s.loadNotificationInbox(owner)
 	if err != nil {
-		return notificationInboxSnapshot{}, err
+		return notificationInboxSnapshot{}, false, err
 	}
 	if cursor != "" {
 		revision, err := notificationInboxTokenRevision(state, "cursor", cursor)
 		if err != nil || revision != state.Revision || !state.Incomplete {
-			return notificationInboxSnapshot{}, errNotificationInboxConflict
+			return notificationInboxSnapshot{}, false, errNotificationInboxConflict
 		}
 	}
 	baseRevision := state.Revision
@@ -30,7 +52,7 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 		var candidate notificationInboxState
 		raw, _ := json.Marshal(state)
 		_ = json.Unmarshal(raw, &candidate)
-		page, sourceErr := s.transcriptStore.ReadNotificationSources(ctx, owner, state.AfterSession, state.IncludeSession, state.Positions)
+		page, sourceErr := readSources(ctx, owner, state.AfterSession, state.IncludeSession, state.Positions)
 		if sourceErr == nil {
 			for _, source := range page.Sources {
 				if sourceErr = notificationInboxApplySource(&candidate, source); sourceErr != nil {
@@ -67,6 +89,7 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 		}
 	}
 	var result notificationInboxSnapshot
+	casLost := false
 	err = s.runtimeStore.EditNamespace(notificationInboxNamespace(owner), func(entries map[string]runtimekv.Entry) (bool, error) {
 		entry, found := entries["snapshot"]
 		current, err := decodeNotificationInboxState(entry, found, owner)
@@ -74,6 +97,7 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 			return false, err
 		}
 		if current.Revision != baseRevision {
+			casLost = true
 			return false, errNotificationInboxConflict
 		}
 		if found && reflect.DeepEqual(current, state) {
@@ -87,7 +111,7 @@ func (s *Server) reconcileNotificationInbox(ctx context.Context, owner, cursor s
 		result = notificationInboxPublic(state)
 		return true, nil
 	})
-	return result, err
+	return result, casLost, err
 }
 
 // Every newly accepted snapshot must leave room for read and invalidated-target
