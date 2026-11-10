@@ -38,17 +38,32 @@ func agentSavedPythonValidatorFailure(code string, cause error) error {
 	}
 }
 
-func agentSavedPythonResultFailure(result agentSavedPythonStaticValidation) error {
-	if result.OK && result.Code == "valid_python" && result.UnresolvedCount == 0 && len(result.Unresolved) == 0 {
-		return nil
+func classifyAgentSavedPythonResult(result agentSavedPythonStaticValidation) (agentSavedPythonAnalysis, error) {
+	consistent := result.UnresolvedCount >= len(result.Unresolved) && len(result.Unresolved) <= 32 &&
+		result.IndeterminateCount >= len(result.Indeterminate) && len(result.Indeterminate) <= 32
+	valid, indeterminate, invalid := false, false, false
+	if consistent {
+		switch result.Code {
+		case "valid_python":
+			valid = result.OK && result.UnresolvedCount == 0 && result.IndeterminateCount == 0
+		case "analysis_indeterminate":
+			indeterminate = !result.OK && result.UnresolvedCount == 0 && result.IndeterminateCount > 0
+		case "syntax_error":
+			invalid = !result.OK && result.UnresolvedCount == 0 && result.IndeterminateCount == 0
+		case "unresolved_global":
+			invalid = !result.OK && result.UnresolvedCount > 0
+		}
 	}
-	consistent := !result.OK && result.UnresolvedCount >= len(result.Unresolved) && len(result.Unresolved) <= 32
-	if !consistent || result.Code != "syntax_error" && result.Code != "unresolved_global" ||
-		result.Code == "syntax_error" && result.UnresolvedCount != 0 ||
-		result.Code == "unresolved_global" && result.UnresolvedCount <= 0 {
-		return agentSavedPythonValidatorFailure("invalid_result", nil)
+	if valid {
+		return agentSavedPythonValid, nil
 	}
-	return &agentSavedPythonValidationError{
+	if indeterminate {
+		return agentSavedPythonIndeterminate, nil
+	}
+	if !invalid {
+		return agentSavedPythonValid, agentSavedPythonValidatorFailure("invalid_result", nil)
+	}
+	return agentSavedPythonValid, &agentSavedPythonValidationError{
 		contentInvalid: true, validationCode: result.Code,
 		unresolvedCount: result.UnresolvedCount, cause: errAgentSavedArtifactPythonInvalid,
 	}

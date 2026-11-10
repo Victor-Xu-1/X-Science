@@ -126,6 +126,16 @@ func (s *Server) executeAgentSaveArtifacts(
 	toolCallID string,
 	input map[string]any,
 ) (map[string]any, error) {
+	return s.executeAgentSaveArtifactsWithPythonValidator(ctx, identity, toolCallID, input, s.validateAgentSavedPythonArtifact)
+}
+
+func (s *Server) executeAgentSaveArtifactsWithPythonValidator(
+	ctx context.Context,
+	identity *agentKernelContext,
+	toolCallID string,
+	input map[string]any,
+	validatePython agentSavedPythonValidator,
+) (map[string]any, error) {
 	if s == nil || s.workspaceStore == nil || s.transcriptStore == nil || identity == nil {
 		return nil, errors.New("save_artifacts authority is unavailable")
 	}
@@ -270,7 +280,8 @@ func (s *Server) executeAgentSaveArtifacts(
 			failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
 			continue
 		}
-		if validationErr := s.validateAgentSavedPythonArtifact(ctx, relativePath, snapshot); validationErr != nil {
+		pythonAnalysis, validationErr := validatePython(ctx, relativePath, snapshot)
+		if validationErr != nil {
 			_ = snapshot.Close()
 			_ = os.Remove(snapshotPath)
 			failures = append(failures, agentSaveArtifactFailure(relativePath, validationErr))
@@ -433,6 +444,9 @@ func (s *Server) executeAgentSaveArtifacts(
 			if scientificUnavailable != "" {
 				warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
 			}
+			if pythonAnalysis == agentSavedPythonIndeterminate {
+				warnings = append(warnings, agentSavedPythonAnalysisWarning(relativePath, version))
+			}
 			continue
 		}
 
@@ -490,6 +504,9 @@ func (s *Server) executeAgentSaveArtifacts(
 		}
 		if scientificUnavailable != "" {
 			warnings = append(warnings, scientificArtifactUnavailableWarning(relativePath, scientificUnavailable, version))
+		}
+		if pythonAnalysis == agentSavedPythonIndeterminate {
+			warnings = append(warnings, agentSavedPythonAnalysisWarning(relativePath, version))
 		}
 	}
 	if warning := s.agentSavedArtifactBatchQualityAdvisory(ctx, stream.ProjectID, artifacts); warning != nil {
