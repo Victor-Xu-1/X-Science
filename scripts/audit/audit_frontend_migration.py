@@ -131,6 +131,8 @@ ALLOWED_ADAPTATIONS = {
 }
 
 ALLOWED_ADDITIONS = {
+    "scripts/arcoMessageIdentityPatch.mjs": "Apply the locked Arco Message container identity and close-handle ownership compatibility without replacing its notification authority.",
+    "scripts/prepareArcoMessage.mjs": "Prepare and verify only owned locked Arco ESM and CJS modules before their existing build and test consumers.",
     "packages/desktop/src/renderer/hooks/system/notification/BrowserNotificationPreference.tsx": "Keep authenticated browser task-notification preference reads, writes, and sender state under one account-scoped owner and invalidate other tabs without exposing the value.",
     "packages/desktop/src/renderer/pages/settings/NotificationsSettings.tsx": "Expose the existing browser task-notification preference and explicit permission control through the canonical settings route.",
     "tests/unit/settings/NotificationsSettings.dom.test.tsx": "Verify the routed notification setting and its default, persistence, read and write errors, stale-account fencing, and cross-tab invalidation races.",
@@ -741,9 +743,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "48dddd4f35f0e9d09c092fdf28472c8c68d799df7f53c3a1ecefaab514b15665"
+APPROVED_ADAPTATION_FINGERPRINT = "cef7af352e49eed88e08782b741290db75d5bdd24f19a5dd8bb6994d53003398"
 APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "e6dc099c2ea31ad03d047df0398adf3df36e7321f34597102e0c141383c5d306"
+APPROVED_ADDITION_FINGERPRINT = "9d8a49e8b7cda009376b14d3a80cc8d646ae689bd1f54576b57a0739655106d7"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

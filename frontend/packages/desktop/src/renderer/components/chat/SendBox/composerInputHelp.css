@@ -53,5 +53,5 @@
 }
 
 .composer-input-help-title {
-  font-weight: 500;
+  font-weight: var(--ui-weight-medium);
 }

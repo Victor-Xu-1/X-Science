@@ -124,7 +124,7 @@
 .library-sort-control .library-sort-select {
   width: 100%;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--ui-font-subtitle);
   line-height: 20px;
 }
 .library-sort-control .library-sort-select .arco-select-view {
@@ -133,7 +133,7 @@
   min-height: 32px;
   padding: 0 10px;
   border: 1px solid var(--workspace-border);
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
   color: var(--workspace-text);
   background: var(--x-science-surface-card, var(--workspace-overlay-surface));
   font-size: inherit;
@@ -178,7 +178,7 @@ html body .library-sort-popup .arco-select-popup {
   overflow: hidden;
   padding: 0 !important;
   border: 1px solid var(--workspace-border);
-  border-radius: 15px !important;
+  border-radius: calc(var(--ui-radius-2xl) - 1px) !important;
   color: var(--workspace-text);
   background: var(--workspace-overlay-surface);
   box-shadow: var(--ui-shadow-popover);
@@ -197,10 +197,10 @@ html body .library-sort-popup .arco-select-option {
   min-height: 32px;
   margin: 0 !important;
   padding: 6px 32px 6px 8px !important;
-  border-radius: 8px !important;
+  border-radius: var(--ui-radius-md) !important;
   color: var(--workspace-text);
-  font-size: 14px !important;
-  font-weight: 400;
+  font-size: var(--ui-font-subtitle) !important;
+  font-weight: var(--ui-weight-regular);
   line-height: 20px !important;
 }
 .library-sort-popup .arco-select-option-selected,

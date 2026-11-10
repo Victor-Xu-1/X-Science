@@ -1,6 +1,6 @@
 {
   "name": "@x-science/workbench-web",
-  "version": "0.5.54",
+  "version": "0.5.55",
   "private": true,
   "description": "X-Science scientific workbench Web application.",
   "license": "Apache-2.0",
@@ -11,13 +11,18 @@
     "packages/desktop"
   ],
   "scripts": {
+    "dependencies:prepare": "node scripts/prepareArcoMessage.mjs",
+    "predev": "npm run dependencies:prepare",
     "dev": "vite --config vite.config.ts",
+    "prebuild": "npm run dependencies:prepare",
     "build": "node --max-old-space-size=4096 node_modules/vite/bin/vite.js build --config vite.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint packages/desktop/src tests/unit",
     "format:check": "oxfmt --check package.json packages/desktop/src tests/unit",
     "i18n:types": "node scripts/generate-i18n-types.js",
+    "pretest": "npm run dependencies:prepare",
     "test": "vitest run --project node --project dom",
+    "pretest:unit": "npm run dependencies:prepare",
     "test:unit": "vitest run --project node --project dom",
     "test:integration:real": "vitest run --project real-integration",
     "test:packaged": "vitest run --project packaged",
