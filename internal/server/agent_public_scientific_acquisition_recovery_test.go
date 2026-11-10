@@ -86,11 +86,15 @@ func TestNativeScientificAcquisitionRecovery(t *testing.T) {
 			if err != nil || !reclaimed.Claimed || reclaimed.Claim.ClaimToken == fixture.claim.ClaimToken || reclaimed.Claim.RunnerID == fixture.claim.RunnerID {
 				t.Fatalf("runner reclaim=%#v err=%v", reclaimed, err)
 			}
-			restored := *gateway.taskRun
-			restored.Transcript = &transcriptRunnerAuthority{Stream: fixture.stream, Claim: reclaimed.Claim}
-			restored.ToolSourceEventIDs = nil // Recover the start from the actual persisted batch.
-			gateway.taskRun = &restored
-			ctx = withTranscriptRunnerChatRun(context.Background(), &restored)
+			// A restarted runner has fresh locks and no prior in-memory tool maps.
+			// Recover the parent start from its actual persisted batch instead.
+			restored := &sessionRunnerChatRun{SessionID: fixture.stream.SessionID,
+				Transcript: &transcriptRunnerAuthority{Stream: fixture.stream, Claim: reclaimed.Claim}}
+			if err := fixture.server.bindRunnableToolCallBatches(t.Context(), restored); err != nil {
+				t.Fatal(err)
+			}
+			gateway.taskRun = restored
+			ctx = withTranscriptRunnerChatRun(context.Background(), restored)
 			result, err := gateway.Execute(ctx, call)
 			if err != nil || mapValue(result.Value)["ok"] != true || requests.Load() != 2 {
 				t.Fatalf("recovery repeated completed acquisition or failed transfer: %#v err=%v requests=%d", result.Value, err, requests.Load())
