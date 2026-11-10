@@ -1508,12 +1508,23 @@ export const useMessageLstCache = (key: string, ownerId = '') => {
           const cachedScope = readCachedMessageWindow(key, ownerId, branchRevision)?.pagination;
           const cachedRevision = cachedScope?.sourceRevision;
           const sameBranch = cachedScope?.branchId === result.branch_id;
-          const branchChanged =
-            requestedBranchId !== null &&
-            result.branch_id === requestedBranchId &&
-            cachedScope?.branchId !== undefined &&
-            !sameBranch;
           const knownGeneration = cachedScope?.branchGeneration;
+          // An omitted branch follows the server's active branch. Generation is
+          // stream-wide, including explicit nonactive views; returning to active
+          // can therefore keep the same generation, but cannot rewind it.
+          const branchChanged =
+            cachedScope?.branchId !== undefined &&
+            typeof result.branch_id === 'string' &&
+            result.branch_id.trim().length > 0 &&
+            !sameBranch &&
+            (requestedBranchId === null || result.branch_id === requestedBranchId) &&
+            typeof knownGeneration === 'number' &&
+            Number.isSafeInteger(knownGeneration) &&
+            knownGeneration > 0 &&
+            typeof result.branch_generation === 'number' &&
+            Number.isSafeInteger(result.branch_generation) &&
+            result.branch_generation > 0 &&
+            result.branch_generation >= knownGeneration;
           const generationAdvanced =
             sameBranch &&
             knownGeneration !== undefined &&
