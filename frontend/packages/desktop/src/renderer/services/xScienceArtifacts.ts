@@ -1,6 +1,7 @@
 import { PRODUCT_NAME } from '@/common/config/productIdentity';
 import { clearSharedGatewayReads } from '@/renderer/services/xScienceGateway';
 import { rendererAccountScopedKey } from '@/renderer/services/rendererAccountScope';
+import { emitter } from '@/renderer/utils/emitter';
 import { requestXScienceJson } from './xScienceHttp';
 
 export type XScienceArtifactVersion = {
@@ -148,7 +149,8 @@ export async function createXScienceTextArtifactVersion(
     !input.operationId.trim()
   )
     throw new TypeError('Conditional artifact saving requires a head version and operation identity');
-  return requestArtifactMutation(
+  const accountScope = rendererAccountScopedKey('');
+  const result = await requestArtifactMutation(
     `/api/artifacts/${encodeURIComponent(input.artifactId)}/versions`,
     'POST',
     {
@@ -159,6 +161,21 @@ export async function createXScienceTextArtifactVersion(
     },
     input.operationId
   );
+  // The mounted library owns a separate paged snapshot. Re-read it through
+  // its existing force-refresh owner after an acknowledged version commit.
+  if (
+    accountScope === rendererAccountScopedKey('') &&
+    result.artifactId === input.artifactId &&
+    typeof result.versionId === 'string' &&
+    result.versionId.trim().length > 0
+  ) {
+    try {
+      emitter.emit('acp.workspace.refresh');
+    } catch {
+      console.warn('[xScienceArtifacts] Version saved; workspace refresh notification failed.');
+    }
+  }
+  return result;
 }
 
 export function getXScienceArtifactVersionContentUrl(versionId: string): string {
