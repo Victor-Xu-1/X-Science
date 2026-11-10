@@ -1074,8 +1074,12 @@ Recovery restores only missing state and must not replay completed side effects.
 
 Python artifact publication uses one embedded, non-executing static analyzer.
 Syntax errors and definite unresolved global names remain content failures.
-Recognized dynamic module execution can instead make namespace resolution
-indeterminate. Saving that source emits a warning only after the canonical
+Recognized dynamic module providers can instead make namespace resolution
+indeterminate: module execution, literal-key writes or dictionary updates to
+the unshadowed builtin `globals()`, and wildcard imports. These providers retain
+source ordering; closed binding sets cannot excuse unrelated missing names.
+The analyzer never imports modules to discover their wildcard exports.
+Saving that source emits a warning only after the canonical
 snapshot write or unchanged association succeeds, bound to its actual version
 and digest; it does not certify execution. The analyzer never executes or
 rewrites artifact source. Unavailable validation infrastructure remains distinct
