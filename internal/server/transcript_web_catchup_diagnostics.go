@@ -31,6 +31,7 @@ type transcriptWebCatchupDiagnostic struct {
 	stage                 transcriptWebReadStage
 	mode                  string
 	finished              bool
+	stageTimings          transcriptWebStageTimings
 }
 
 func newTranscriptWebCatchupDiagnostic(owner transcriptWebCatchupOwner) *transcriptWebCatchupDiagnostic {
@@ -68,7 +69,9 @@ func noteTranscriptWebCatchupStage(ctx context.Context, stage transcriptWebReadS
 	diagnostic.mu.Lock()
 	defer diagnostic.mu.Unlock()
 	if !diagnostic.finished {
-		diagnostic.stage, diagnostic.stageStarted = stage, time.Now()
+		now := time.Now()
+		diagnostic.stageTimings.add(diagnostic.stage, now.Sub(diagnostic.stageStarted))
+		diagnostic.stage, diagnostic.stageStarted = stage, now
 		switch stage {
 		case webReadIncremental:
 			diagnostic.mode = "incremental"
@@ -89,12 +92,18 @@ func (diagnostic *transcriptWebCatchupDiagnostic) finish(err error) {
 	}
 	diagnostic.finished = true
 	id, owner, stage, mode := diagnostic.id, diagnostic.owner, diagnostic.stage, diagnostic.mode
-	elapsed, stageElapsed := time.Since(diagnostic.started), time.Since(diagnostic.stageStarted)
+	now := time.Now()
+	elapsed, stageElapsed := now.Sub(diagnostic.started), now.Sub(diagnostic.stageStarted)
+	diagnostic.stageTimings.add(stage, stageElapsed)
+	stageTimings := diagnostic.stageTimings
 	diagnostic.mu.Unlock()
 	// "ok" describes only the owner's returned error, never a ready projection.
 	log.Printf("history_catchup_flight flight_id=%s owner=%s stage=%s projection=%s outcome=%s elapsed_ms=%.3f stage_ms=%.3f",
 		id, owner, stage, mode, transcriptWebCatchupOutcome(err),
 		float64(elapsed.Microseconds())/1000, float64(stageElapsed.Microseconds())/1000)
+	log.Printf("history_catchup_stages flight_id=%s owner=%s final_stage=%s projection=%s outcome=%s elapsed_ms=%.3f %s",
+		id, owner, stage, mode, transcriptWebCatchupOutcome(err),
+		float64(elapsed.Microseconds())/1000, stageTimings.flightFields())
 }
 
 func noteTranscriptWebCatchupWait(ctx context.Context, diagnostic *transcriptWebCatchupDiagnostic, started time.Time, err error) {
