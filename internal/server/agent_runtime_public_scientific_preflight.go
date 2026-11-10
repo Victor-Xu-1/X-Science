@@ -11,9 +11,8 @@ import (
 // download plan inside the model's private repair loop. The actual download
 // tool remains fail-closed, but a guessed or transformed URL must not first
 // become a public failed tool call before the model returns to the authoritative
-// source method. This is source-contract validation, not domain-specific URL
-// reconstruction: every accepted URL must already exist in the current durable
-// transcript branch.
+// source method. Missing provenance may be acquired by the admitted download
+// through its inherited gateway; rejected provenance remains fail-closed.
 func (g serverAgentRuntimeToolGateway) agentRuntimePublicScientificSourcePreflight(
 	publicName string,
 	input map[string]any,
@@ -41,6 +40,9 @@ func (g serverAgentRuntimeToolGateway) agentRuntimePublicScientificSourcePreflig
 		return nil
 	}
 	if !errors.Is(err, errAgentPublicScientificFileSource) {
+		return nil
+	}
+	if errors.Is(err, errAgentPublicScientificSourceMissing) && g.nativeScientificAcquisitionAllowed() {
 		return nil
 	}
 	return map[string]any{
