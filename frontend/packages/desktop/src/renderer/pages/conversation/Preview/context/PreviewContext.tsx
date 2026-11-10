@@ -175,10 +175,9 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     presentationMode,
     boardColumns,
     focusedTabId,
-    setIsOpen,
+    updateSlice,
     setTabs,
     setActiveTabId,
-    setPresentationMode,
     setBoardColumns,
     setFocusedTabId,
     bindWorkspaceProject,
@@ -344,35 +343,42 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       // A repeated reveal is an action even if the version and page are equal.
       if (type === 'pdf' && meta?.targetPdfPage !== undefined) meta = { ...meta, pdfRevealId: crypto.randomUUID() };
       const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      const activateTab = (tabId: string) => {
-        rememberPreviewOpener(tabId, opener);
-        // Keep the ref current inside a batched update so immediately-opened
-        // files and replace-mode callers observe the same active identity.
-        activeTabIdRef.current = tabId;
-        setActiveTabId(tabId);
-      };
-
-      setTabs((prevTabs) => {
+      const requestedTabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      updateSlice((current) => {
+        const prevTabs = current.tabs;
+        const activateTab = (tabId: string, nextTabs: PreviewTab[]) => {
+          rememberPreviewOpener(tabId, opener);
+          activeTabIdRef.current = tabId;
+          return {
+            ...current,
+            tabs: nextTabs,
+            activeTabId: tabId,
+            isOpen: true,
+            presentationMode: options?.presentation ?? current.presentationMode,
+          };
+        };
         // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
         const existingTab = findPreviewTabInList(prevTabs, type, new_content, meta);
 
         if (existingTab) {
-          activateTab(existingTab.id);
-          return prevTabs.map((tab) => {
-            if (tab.id !== existingTab.id) return tab;
+          return activateTab(
+            existingTab.id,
+            prevTabs.map((tab) => {
+              if (tab.id !== existingTab.id) return tab;
 
-            // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
-            if (tab.isDirty) {
-              return meta ? { ...tab, metadata: { ...tab.metadata, ...meta } } : tab;
-            }
+              // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
+              if (tab.isDirty) {
+                return meta ? { ...tab, metadata: { ...tab.metadata, ...meta } } : tab;
+              }
 
-            return {
-              ...tab,
-              content: new_content,
-              metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
-              originalContent: new_content,
-            };
-          });
+              return {
+                ...tab,
+                content: new_content,
+                metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
+                originalContent: new_content,
+              };
+            })
+          );
         }
 
         // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
@@ -414,7 +420,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
             : { ...meta, generatedTitleKey: fallbackTitle.key as PreviewDefaultTitleKey };
 
         // 生成唯一 ID / Generate unique ID
-        const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const tabId = requestedTabId;
 
         const newTab: PreviewTab = {
           id: tabId,
@@ -430,47 +436,36 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         // stacking a new one — unless it has unsaved edits, then fall back to a
         // new tab so changes aren't lost.
         if (options?.replace && options.presentation !== 'board') {
-          const activeIdx = activeTabIdRef.current
-            ? prevTabs.findIndex((tab) => tab.id === activeTabIdRef.current)
-            : -1;
+          const activeIdx = current.activeTabId ? prevTabs.findIndex((tab) => tab.id === current.activeTabId) : -1;
           const activePreviewTab = activeIdx >= 0 ? prevTabs[activeIdx] : null;
           if (activePreviewTab && !activePreviewTab.isDirty) {
-            activateTab(activePreviewTab.id);
             const replacedTab: PreviewTab = { ...newTab, id: activePreviewTab.id };
-            return prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab));
+            return activateTab(
+              activePreviewTab.id,
+              prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab))
+            );
           }
         }
 
-        activateTab(tabId);
-        return [...prevTabs, newTab];
+        return activateTab(tabId, [...prevTabs, newTab]);
       });
-
-      setPresentationMode((currentMode) => options?.presentation ?? currentMode);
-      setIsOpen(true);
     },
-    [
-      ownsWorkspace,
-      extractFileName,
-      findPreviewTabInList,
-      rememberPreviewOpener,
-      t,
-      setTabs,
-      setIsOpen,
-      setActiveTabId,
-      setPresentationMode,
-    ]
+    [ownsWorkspace, extractFileName, findPreviewTabInList, rememberPreviewOpener, t, updateSlice]
   );
 
   const closePreview = useCallback(() => {
     if (!ownsWorkspace()) return;
     restorePreviewOpener(activeTabIdRef.current, true);
-    setIsOpen(false);
-    setTabs([]);
-    setActiveTabId(null);
-    setPresentationMode('single');
-    setFocusedTabId(null);
+    updateSlice((current) => ({
+      ...current,
+      isOpen: false,
+      tabs: [],
+      activeTabId: null,
+      presentationMode: 'single',
+      focusedTabId: null,
+    }));
     setDomSnippets([]);
-  }, [ownsWorkspace, restorePreviewOpener, setIsOpen, setTabs, setActiveTabId, setPresentationMode, setFocusedTabId]);
+  }, [ownsWorkspace, restorePreviewOpener, updateSlice]);
 
   // Track last-known mtime per file path for external change detection
   const fileMtimeRef = useRef<Map<string, number>>(new Map());
@@ -480,48 +475,23 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     (tabId: string) => {
       if (!ownsWorkspace()) return;
       restorePreviewOpener(tabId);
-      setTabs((prevTabs) => {
-        // Clean up mtime record for the closed tab
-        const tabToClose = prevTabs.find((tab) => tab.id === tabId);
-        if (tabToClose?.metadata?.file_path) {
-          fileMtimeRef.current.delete(tabToClose.metadata.file_path);
-        }
-
-        const newTabs = prevTabs.filter((tab) => tab.id !== tabId);
-        setFocusedTabId((current) => (current === tabId ? null : current));
-
-        // The board is a multi-file workspace. Once only one file remains,
-        // return to the established full-size single-file preview instead of
-        // leaving that file trapped in a board tile.
-        if (newTabs.length <= 1) {
-          setPresentationMode('single');
-        }
-
-        // 如果关闭的是当前激活的 tab / If closing the active tab
-        if (tabId === activeTabId) {
-          if (newTabs.length > 0) {
-            // 切换到最后一个 tab / Switch to the last tab
-            setActiveTabId(newTabs[newTabs.length - 1].id);
-          } else {
-            // 没有 tab 了，关闭预览面板 / No more tabs, close preview panel
-            setIsOpen(false);
-            setActiveTabId(null);
-          }
-        }
-
-        return newTabs;
+      updateSlice((current) => {
+        const closing = current.tabs.find((tab) => tab.id === tabId);
+        if (closing?.metadata?.file_path) fileMtimeRef.current.delete(closing.metadata.file_path);
+        const nextTabs = current.tabs.filter((tab) => tab.id !== tabId);
+        const nextActive =
+          current.activeTabId === tabId ? (nextTabs[nextTabs.length - 1]?.id ?? null) : current.activeTabId;
+        return {
+          ...current,
+          tabs: nextTabs,
+          activeTabId: nextActive,
+          focusedTabId: current.focusedTabId === tabId ? null : current.focusedTabId,
+          presentationMode: nextTabs.length <= 1 ? 'single' : current.presentationMode,
+          isOpen: nextTabs.length > 0 && current.isOpen,
+        };
       });
     },
-    [
-      ownsWorkspace,
-      activeTabId,
-      restorePreviewOpener,
-      setTabs,
-      setPresentationMode,
-      setActiveTabId,
-      setIsOpen,
-      setFocusedTabId,
-    ]
+    [ownsWorkspace, restorePreviewOpener, updateSlice]
   );
 
   const closePreviewByIdentity = useCallback(

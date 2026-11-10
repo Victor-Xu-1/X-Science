@@ -72,25 +72,30 @@ function usePreviewWorkspaceSlices(
     () => liveGeneration.current.generation === generation && liveGeneration.current.key !== null,
     [generation]
   );
+  const updateSlice = useCallback(
+    (next: SetStateAction<PreviewWorkspaceSlice>) =>
+      setState((current) => {
+        if (current.generation !== generation || current.key === null) return current;
+        const slice = typeof next === 'function' ? next(current.slice) : next;
+        return Object.is(slice, current.slice) ? current : { ...current, slice };
+      }),
+    [generation]
+  );
   const setters = useMemo(() => {
     const field =
       <K extends keyof PreviewWorkspaceSlice>(name: K): Dispatch<SetStateAction<PreviewWorkspaceSlice[K]>> =>
       (next) =>
-        setState((current) => {
-          if (current.generation !== generation || current.key === null) return current;
-          const value = typeof next === 'function' ? next(current.slice[name]) : next;
-          if (Object.is(value, current.slice[name])) return current;
-          return { ...current, slice: { ...current.slice, [name]: value } };
+        updateSlice((current) => {
+          const value = typeof next === 'function' ? next(current[name]) : next;
+          return Object.is(value, current[name]) ? current : { ...current, [name]: value };
         });
     return {
-      setIsOpen: field('isOpen'),
       setTabs: field('tabs'),
       setActiveTabId: field('activeTabId'),
-      setPresentationMode: field('presentationMode'),
       setBoardColumns: field('boardColumns'),
       setFocusedTabId: field('focusedTabId'),
     };
-  }, [generation]);
+  }, [updateSlice]);
   const reset = useCallback(() => {
     setState((current) => ({
       ...current,
@@ -99,7 +104,7 @@ function usePreviewWorkspaceSlices(
       inactive: new Map(),
     }));
   }, []);
-  return { ...state.slice, ...setters, reset, generation, ownsWorkspace };
+  return { ...state.slice, ...setters, updateSlice, reset, generation, ownsWorkspace };
 }
 
 /** Route data is published by the existing conversation reader. A sidebar
