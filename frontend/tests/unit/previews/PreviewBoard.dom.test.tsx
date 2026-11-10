@@ -259,7 +259,7 @@ describe('PreviewBoard', () => {
     const renderBoard = () =>
       render(
         <I18nextProvider i18n={i18n}>
-          <PreviewProvider>
+          <PreviewProvider workspace={{ ownerId: 'board-owner', routeKey: 'board-route', projectId: 'board-project' }}>
             <BoardHarness />
           </PreviewProvider>
         </I18nextProvider>

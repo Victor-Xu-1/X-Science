@@ -13,6 +13,8 @@ import { RealtimeProvider } from '@renderer/hooks/context/RealtimeContext';
 import { BrowserNotificationPreferenceProvider } from '@renderer/hooks/system/notification/BrowserNotificationPreference';
 import { ConversationHistoryProvider } from '@renderer/hooks/context/ConversationHistoryContext';
 import { PreviewProvider } from '@renderer/pages/conversation/Preview/context/PreviewContext';
+import { previewRouteWorkspace } from '@renderer/pages/conversation/Preview/context/previewRouteWorkspace';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import Layout from '@renderer/components/layout/Layout';
 import Sider from '@renderer/components/layout/Sider';
 import { prefetchConversationRoute } from '@renderer/pages/conversation/conversationRoute';
@@ -58,6 +60,8 @@ export const InitialConversationPrefetchAuthority: React.FC = () => {
 };
 
 const AuthenticatedWorkspace: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
   const [realtime, setRealtime] = useState<{
     runtime: ReturnType<typeof createRendererRealtimeRuntime>;
     release: () => void;
@@ -86,7 +90,7 @@ const AuthenticatedWorkspace: React.FC = () => {
 
   return (
     <RealtimeProvider runtime={realtime?.runtime ?? deferredRealtimeRuntime}>
-      <PreviewProvider>
+      <PreviewProvider workspace={previewRouteWorkspace(user?.id ?? '', location)}>
         <ConversationHistoryProvider>
           <InitialConversationPrefetchAuthority />
           <BrowserNotificationPreferenceProvider>

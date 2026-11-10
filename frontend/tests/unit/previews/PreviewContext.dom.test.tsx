@@ -46,7 +46,11 @@ describe('PreviewContext', () => {
   let testI18n: i18n;
   const wrapper = ({ children }: { children: ReactNode }) => (
     <I18nextProvider i18n={testI18n}>
-      <PreviewProvider>{children}</PreviewProvider>
+      <PreviewProvider
+        workspace={{ ownerId: 'preview-test-owner', routeKey: 'preview-test-route', projectId: 'preview-test-project' }}
+      >
+        {children}
+      </PreviewProvider>
     </I18nextProvider>
   );
 

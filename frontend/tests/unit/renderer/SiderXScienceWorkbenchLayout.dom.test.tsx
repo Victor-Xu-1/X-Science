@@ -7,7 +7,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter, useLocation } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const closePreview = vi.hoisted(() => vi.fn());
+beforeEach(() => closePreview.mockClear());
 
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
@@ -22,7 +25,7 @@ vi.mock('@renderer/hooks/context/LayoutContext', () => ({
 }));
 
 vi.mock('@renderer/pages/conversation/Preview/context/PreviewContext', () => ({
-  usePreviewContext: () => ({ closePreview: vi.fn() }),
+  usePreviewContext: () => ({ closePreview }),
 }));
 
 vi.mock('@renderer/hooks/context/AuthContext', () => ({
@@ -57,11 +60,12 @@ vi.mock('@renderer/components/layout/Sider/SiderFooter', () => ({
 }));
 
 vi.mock('@renderer/pages/conversation/GroupedHistory', () => ({
-  default: () => (
+  default: ({ onStartTask }: { onStartTask: (projectId: string) => void }) => (
     <div data-testid='grouped-history'>
       <div data-testid='pinned-section'>置顶</div>
       <div data-testid='project-section'>新建项目</div>
       <div data-testid='task-section'>新建任务</div>
+      <button onClick={() => onStartTask('project-a')}>Start project task</button>
     </div>
   ),
 }));
@@ -86,6 +90,20 @@ const LocationProbe: React.FC = () => {
 };
 
 describe('Sider workbench layout', () => {
+  it('preserves the project canvas when starting another task or navigating to Library', async () => {
+    render(
+      <MemoryRouter initialEntries={['/conversation/a']}>
+        <Sider />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Start project task' }));
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('/guid');
+    expect(closePreview).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('link', { name: 'conversation.libraryWorkbench.title' }));
+    expect(screen.getByTestId('location-probe')).toHaveTextContent('/library');
+    expect(closePreview).not.toHaveBeenCalled();
+  });
   it('uses a compact visible loading state while the conversation history is lazy-loaded', () => {
     render(<SiderHistoryLoading />);
 

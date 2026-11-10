@@ -62,28 +62,9 @@ import NotebookPreviewContent from '../notebook/NotebookPreviewContent';
 import { isNotebookSessionNavigation } from '@/renderer/services/notebook/notebookPreviewNavigation';
 
 const noopToolbarExtras = { setExtras: (): void => undefined };
-const PREVIEW_BOARD_COLUMNS_KEY = 'x-science_preview_board_columns';
 const DocumentWysiwygEditor = React.lazy(() => import('../editors/DocumentWysiwygEditor'));
 
 type PreviewBoardColumns = 1 | 2 | 3;
-
-function readPreviewBoardColumns(): PreviewBoardColumns {
-  try {
-    const stored = Number.parseInt(localStorage.getItem(PREVIEW_BOARD_COLUMNS_KEY) ?? '', 10);
-    return stored === 1 || stored === 2 || stored === 3 ? stored : 2;
-  } catch {
-    return 2;
-  }
-}
-
-function persistPreviewBoardColumns(columns: PreviewBoardColumns): void {
-  try {
-    localStorage.setItem(PREVIEW_BOARD_COLUMNS_KEY, String(columns));
-  } catch {
-    // Storage can be unavailable in privacy-restricted webviews. The selected
-    // layout still applies for the current preview session.
-  }
-}
 
 function getBoardScrollBehavior(): ScrollBehavior {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
@@ -606,16 +587,27 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
     cancelContentEdit,
     artifactEditStates,
     openLatestArtifactEdit,
+    boardColumns,
+    setBoardColumns,
+    focusedTabId,
+    setFocusedTabId,
+    workspaceGeneration,
   } = usePreviewContext();
   const [messageApi, messageContextHolder] = Message.useMessage();
-  const [focusedTabId, setFocusedTabId] = useState<string | null>(null);
   const [isBoardFullscreen, setIsBoardFullscreen] = useState(false);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [regionCommentTabId, setRegionCommentTabId] = useState<string | null>(null);
   const [savingTabId, setSavingTabId] = useState<string | null>(null);
   const [saveAnnouncement, setSaveAnnouncement] = useState('');
-  const [columns, setColumns] = useState<PreviewBoardColumns>(() => (embedded ? 1 : readPreviewBoardColumns()));
+  const columns = boardColumns;
   const tileRefs = useRef(new Map<string, HTMLElement>());
+  useEffect(() => {
+    setIsBoardFullscreen(false);
+    setEditingTabId(null);
+    setRegionCommentTabId(null);
+    setSavingTabId(null);
+    setSaveAnnouncement('');
+  }, [workspaceGeneration]);
 
   useEffect(() => {
     if (focusedTabId && !tabs.some((tab) => tab.id === focusedTabId)) setFocusedTabId(null);
@@ -643,8 +635,7 @@ const PreviewBoard: React.FC<{ conversationId?: string; embedded?: boolean }> = 
   };
 
   const changeColumns = (nextColumns: PreviewBoardColumns) => {
-    setColumns(nextColumns);
-    if (!embedded) persistPreviewBoardColumns(nextColumns);
+    setBoardColumns(nextColumns);
   };
 
   const cancelEdit = (tab: PreviewTab) => {

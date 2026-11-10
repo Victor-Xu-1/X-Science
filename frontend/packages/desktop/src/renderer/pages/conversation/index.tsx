@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
 import useSWR from 'swr';
@@ -8,6 +8,7 @@ import ChatConversation from './components/ChatConversation';
 import ConversationLoadError from './components/ConversationLoadError';
 import ConversationLoadingSurface from './components/ConversationLoadingSurface';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context/PreviewContext';
+import { conversationPreviewWorkspace } from './Preview/context/previewRouteWorkspace';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import {
   getConversationOrNullShared,
@@ -49,25 +50,9 @@ const ChatConversationIndex: React.FC = () => {
   const { runtime: realtimeRuntime } = useRealtime();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { closePreview } = usePreviewContext();
+  const { closePreview, bindWorkspaceProject } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle(user?.id ?? '');
-  const previousConversationIdRef = useRef<string | undefined>(id);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
-
-  useEffect(() => {
-    if (!id) return;
-
-    // The PreviewProvider starts closed, so closing again on mount is both
-    // unnecessary and harmful: layout remounts within the same conversation
-    // would immediately dismiss a preview that was just opened. Only an
-    // actual route-id transition owns closing the previous conversation's
-    // preview.
-    if (previousConversationIdRef.current && previousConversationIdRef.current !== id) {
-      closePreview();
-    }
-
-    previousConversationIdRef.current = id;
-  }, [id, closePreview]);
 
   useEffect(() => {
     if (!id) return;
@@ -81,6 +66,11 @@ const ChatConversationIndex: React.FC = () => {
     () => getConversationOrNullShared(id!),
     { fallbackData: routeSnapshot, revalidateOnMount: !recentRouteDetail }
   );
+
+  useLayoutEffect(() => {
+    const resolved = id ? conversationPreviewWorkspace(id, data ?? routeSnapshot) : null;
+    if (id && resolved) bindWorkspaceProject(id, resolved.projectId, resolved.workspaceId);
+  }, [id, data, routeSnapshot, bindWorkspaceProject]);
 
   useEffect(() => {
     if (data && user?.id) rememberConversationRouteSnapshot(user.id, data, 'detail');
