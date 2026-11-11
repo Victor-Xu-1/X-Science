@@ -348,9 +348,11 @@ describe('Library workbench entry and original HTTP owners', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByText(/receipt is unknown/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('heading', { name: 'Updated paper' })).toBeInTheDocument();
+    // Receipt settlement precedes the independently scheduled readback/render.
+    await waitFor(() => expect(screen.queryByText(/receipt is unknown/)).toBeNull());
     expect(writes).toHaveLength(2);
     expect(writes[0]).toBe(writes[1]);
+    expect(await screen.findByRole('heading', { name: 'Updated paper' })).toBeInTheDocument();
     expect(current.metadata_revision).toBe(2);
     fireEvent.click(await screen.findByRole('button', { name: 'Edit details' }));
     const membership = screen.getByRole('combobox', { name: 'Project membership' });
