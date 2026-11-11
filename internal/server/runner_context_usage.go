@@ -150,15 +150,23 @@ func estimateRunnerRequestUsage(request agentruntime.ModelRequest) ([]runnerCont
 	return rows, hasMedia, nil
 }
 
-func (recorder *sessionContextUsageRecorder) begin(model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
-	return recorder.beginObservation("model_call", model, request, capacities...)
+func (recorder *sessionContextUsageRecorder) begin(ctx context.Context, model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
+	return recorder.beginObservation(ctx, "model_call", model, request, capacities...)
 }
 
-func (recorder *sessionContextUsageRecorder) beginObservation(kind, model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
+func (recorder *sessionContextUsageRecorder) beginObservation(ctx context.Context, kind, model string, request agentruntime.ModelRequest, capacities ...runnerContextCapacity) *runnerContextUsage {
 	if recorder == nil {
 		return nil
 	}
-	if found, err := recorder.contextFrameExists(context.Background(), false); err != nil || !found {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	// Request inspection is optional. Its frame probe and atomic namespace
+	// edit share the live caller's cancellation and one sampling budget, before
+	// the provider owns its transport timer. No delayed write is queued.
+	ctx, cancel := context.WithTimeout(ctx, contextProgressWriteTimeout)
+	defer cancel()
+	if found, err := recorder.contextFrameExists(ctx, true); err != nil || !found {
 		if err != nil {
 			log.Printf("context_usage_frame_check_failed session=%s: %v", recorder.sessionID, err)
 		}
@@ -187,7 +195,7 @@ func (recorder *sessionContextUsageRecorder) beginObservation(kind, model string
 	for _, row := range rows {
 		snapshot.UsedTokens += row.Tokens
 	}
-	if err := recorder.persist(snapshot, false); err != nil {
+	if err := recorder.persist(ctx, snapshot, false); err != nil {
 		log.Printf("context_usage_write_failed session=%s request=%s: %v", recorder.sessionID, snapshot.RequestID, err)
 		return nil
 	}
@@ -221,7 +229,9 @@ func (recorder *sessionContextUsageRecorder) finish(snapshot *runnerContextUsage
 	}
 	// A metrics write must not turn successful model execution into a retry.
 	// On failure the durable request estimate remains explicitly an estimate.
-	if err := recorder.persist(*snapshot, true); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), contextProgressWriteTimeout)
+	defer cancel()
+	if err := recorder.persist(ctx, *snapshot, true); err != nil {
 		log.Printf("context_usage_write_failed session=%s request=%s: %v", recorder.sessionID, snapshot.RequestID, err)
 	}
 }
@@ -278,12 +288,12 @@ func (recorder *sessionContextUsageRecorder) persistProgress(ctx context.Context
 	})
 }
 
-func (recorder *sessionContextUsageRecorder) persist(snapshot runnerContextUsage, completing bool) error {
-	return recorder.store.EditNamespace(contextUsageNamespace(recorder.sessionID), func(entries map[string]runtimekv.Entry) (bool, error) {
+func (recorder *sessionContextUsageRecorder) persist(ctx context.Context, snapshot runnerContextUsage, completing bool) error {
+	return recorder.store.EditNamespaceContext(ctx, contextUsageNamespace(recorder.sessionID), func(entries map[string]runtimekv.Entry) (bool, error) {
 		// Task deletion commits the frame removal before taking this same
 		// runtime-store lock for scoped cleanup. Checking under the lock means
 		// a pending write either precedes cleanup or observes the removed frame.
-		if found, err := recorder.contextFrameExists(context.Background(), false); err != nil || !found {
+		if found, err := recorder.contextFrameExists(ctx, ctx.Done() != nil); err != nil || !found {
 			return false, err
 		}
 		if entry, found := entries["latest"]; found {

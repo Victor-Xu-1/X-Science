@@ -21,7 +21,7 @@ func TestWebContextHistoryRetainsPerRequestWindowInsteadOfOnlyLatest(t *testing.
 	id := webString(p3DecodeObject(t, created)["id"])
 	recorder := newSessionContextUsageRecorder(app, id, 1, SessionRunnerChatOptions{})
 	for _, used := range []int{900, 100} {
-		snapshot := recorder.begin("model", agentruntime.ModelRequest{
+		snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{
 			Messages: []agentruntime.Message{{Role: "user", Content: "private input must not be persisted"}},
 		})
 		if snapshot == nil {

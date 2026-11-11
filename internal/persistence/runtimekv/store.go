@@ -121,42 +121,82 @@ func (s *Store) lockContext(ctx context.Context) error {
 // EditNamespace performs one atomic namespace edit. Values supplied to the
 // callback are detached from SQLite, so changed=false discards nested edits.
 func (s *Store) EditNamespace(namespace string, edit func(map[string]Entry) (bool, error)) error {
+	return s.EditNamespaceContext(context.Background(), namespace, edit)
+}
+
+// EditNamespaceContext keeps the namespace rewrite atomic while honoring ctx
+// at mutex, connection and SQLite writer admission. The callback must honor
+// ctx and must not reenter the Store while its writer is held.
+func (s *Store) EditNamespaceContext(ctx context.Context, namespace string, edit func(map[string]Entry) (bool, error)) error {
 	if err := validateNamespace(namespace); err != nil {
 		return err
 	}
 	if edit == nil {
 		return errors.New("runtime namespace edit callback is required")
 	}
-	s.mu.Lock()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := s.lockContext(ctx); err != nil {
+		return err
+	}
 	defer s.mu.Unlock()
 	if err := s.ensureDatabase(); err != nil {
 		return err
 	}
-	tx, err := s.db.BeginTx(context.Background(), nil)
-	if err != nil {
-		return fmt.Errorf("begin runtime namespace edit: %w", err)
+	if ctx.Done() == nil {
+		// Preserve deferred admission for legacy callbacks that only inspect
+		// the namespace. A reserved SQLite writer must not delay a no-op edit.
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return fmt.Errorf("begin runtime namespace edit: %w", err)
+		}
+		defer func() { _ = tx.Rollback() }()
+		changed, err := s.editNamespace(ctx, tx, namespace, edit)
+		if err != nil || !changed {
+			return err
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("commit runtime namespace edit: %w", err)
+		}
+		return nil
 	}
-	defer func() { _ = tx.Rollback() }()
-	entries, err := listNamespaceTx(tx, namespace)
-	if err != nil {
+	return s.withSQLiteWriterContext(ctx, func(conn *sql.Conn) error {
+		_, err := s.editNamespace(ctx, conn, namespace, edit)
 		return err
+	})
+}
+
+type runtimeNamespaceEditor interface {
+	runtimeListQuerier
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+func (s *Store) editNamespace(ctx context.Context, writer runtimeNamespaceEditor, namespace string, edit func(map[string]Entry) (bool, error)) (bool, error) {
+	listed, err := listRuntimeEntries(ctx, writer, namespace)
+	if err != nil {
+		return false, err
+	}
+	entries := make(map[string]Entry, len(listed))
+	for _, entry := range listed {
+		entries[entry.Key] = entry
 	}
 	changed, err := edit(entries)
 	if err != nil || !changed {
-		return err
+		return false, err
 	}
-	if _, err := tx.Exec(`DELETE FROM runtime_state_entries WHERE namespace=?`, namespace); err != nil {
-		return fmt.Errorf("replace runtime namespace: %w", err)
+	if _, err := writer.ExecContext(ctx, `DELETE FROM runtime_state_entries WHERE namespace=?`, namespace); err != nil {
+		return false, fmt.Errorf("replace runtime namespace: %w", err)
 	}
 	for key, entry := range entries {
 		if err := validateKey(key); err != nil {
-			return err
+			return false, err
 		}
 		if entry.Namespace != "" && entry.Namespace != namespace {
-			return errors.New("runtime namespace edit changed entry namespace")
+			return false, errors.New("runtime namespace edit changed entry namespace")
 		}
 		if entry.Key != "" && entry.Key != key {
-			return errors.New("runtime namespace edit changed entry key")
+			return false, errors.New("runtime namespace edit changed entry key")
 		}
 		if entry.Version <= 0 {
 			entry.Version = 1
@@ -166,20 +206,17 @@ func (s *Store) EditNamespace(namespace string, edit func(map[string]Entry) (boo
 		}
 		raw, cloned, err := encodeValue(entry.Value)
 		if err != nil {
-			return err
+			return false, err
 		}
 		scope := inferScope(namespace, key, cloned)
-		if _, err := tx.Exec(`INSERT INTO runtime_state_entries(
+		if _, err := writer.ExecContext(ctx, `INSERT INTO runtime_state_entries(
 			namespace,entry_key,value_json,version,owner_user_id,project_id,root_frame_id,frame_id,updated_at
 		) VALUES(?,?,?,?,?,?,?,?,?)`, namespace, key, raw, entry.Version,
 			scope.OwnerUserID, scope.ProjectID, scope.RootFrameID, scope.FrameID, entry.UpdatedAt.UTC()); err != nil {
-			return fmt.Errorf("write runtime namespace entry: %w", err)
+			return false, fmt.Errorf("write runtime namespace entry: %w", err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit runtime namespace edit: %w", err)
-	}
-	return nil
+	return true, nil
 }
 
 func (s *Store) Get(namespace string, key string) (Entry, bool, error) {

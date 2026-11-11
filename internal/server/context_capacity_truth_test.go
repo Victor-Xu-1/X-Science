@@ -47,7 +47,7 @@ func TestContextCapacityRetiresLegacyDefaultWithoutChangingReceipt(t *testing.T)
 	srv := New(Options{FileRoot: t.TempDir()})
 	t.Cleanup(func() { _ = srv.Close(context.Background()) })
 	recorder := newSessionContextUsageRecorder(srv, "frame-capacity", 1, SessionRunnerChatOptions{})
-	snapshot := recorder.begin("routed-alias", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "test"}}})
+	snapshot := recorder.begin(t.Context(), "routed-alias", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "test"}}})
 	if snapshot == nil {
 		t.Fatal("no usage record")
 	}

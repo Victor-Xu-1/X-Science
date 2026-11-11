@@ -39,7 +39,7 @@ func TestContext395CallEvidenceCopyHistoryAndFailureBoundaries(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "recorded-details", attempt: 1, limit: 1000, limitSource: "configured"}
 	request := agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "Inspect matched samples."}}}
-	first := recorder.begin("fixture-model", request)
+	first := recorder.begin(t.Context(), "fixture-model", request)
 	usage := agentruntime.ModelUsage{InputTokens: 100, OutputTokens: 10, TotalTokens: 110, CacheReadTokens: 20,
 		Reported:      &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true, CacheRead: true},
 		InvalidFields: agentruntime.ModelUsageFields{CacheWrite: true},
@@ -53,14 +53,14 @@ func TestContext395CallEvidenceCopyHistoryAndFailureBoundaries(t *testing.T) {
 	if err != nil || latest.CallUsage == nil || history.Samples[0].CallUsage == nil || !latest.CallUsage.InvalidFields.CacheWrite || latest.CallUsage.CacheReadTokens != 20 || latest.UsedTokens != 110 {
 		t.Fatalf("typed siblings/history or occupancy changed: latest=%+v history=%+v err=%v", latest, history, err)
 	}
-	second := recorder.begin("fixture-model", request)
+	second := recorder.begin(t.Context(), "fixture-model", request)
 	unsafe := agentruntime.ModelUsage{InputTokens: 10, OutputTokens: 1, TotalTokens: 11, CacheReadTokens: int(^uint(0) >> 1), Reported: &agentruntime.ModelUsageFields{Input: true, Output: true, Total: true}}
 	recorder.finish(second, agentruntime.ModelResponse{Usage: unsafe}, nil)
 	latest, history, _, err = readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || latest.CallUsage != nil || latest.UsedTokens != 11 || latest.Source != "provider" || history.Samples[0].RequestID != first.RequestID || history.Samples[0].CallUsage == nil {
 		t.Fatalf("unrepresentable optional metadata poisoned the old context contract: %+v %v", latest, err)
 	}
-	preflight := recorder.begin("fixture-model", request)
+	preflight := recorder.begin(t.Context(), "fixture-model", request)
 	if preflight.CallUsage != nil {
 		t.Fatal("preflight fabricated completed call evidence")
 	}

@@ -26,7 +26,7 @@ func TestContextInspectorCallFailureKindUsesActualError(t *testing.T) {
 		{"ordinary-error", errors.New("controlled transport failure"), ""},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			request := recorder.begin("failure-kind-fixture", agentruntime.ModelRequest{})
+			request := recorder.begin(t.Context(), "failure-kind-fixture", agentruntime.ModelRequest{})
 			if request == nil {
 				t.Fatal("real usage recorder did not begin the request")
 			}
@@ -57,7 +57,7 @@ func TestContextUsageFailureKindRejectsMalformedAndSuccessfulRecords(t *testing.
 	f := newAgentSaveArtifactsFixture(t)
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID,
 		&sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}, SessionRunnerChatOptions{})
-	request := recorder.begin("failure-wire-fixture", agentruntime.ModelRequest{})
+	request := recorder.begin(t.Context(), "failure-wire-fixture", agentruntime.ModelRequest{})
 	recorder.finish(request, agentruntime.ModelResponse{}, errors.New("controlled failure"))
 	raw, err := json.Marshal(request)
 	if err != nil {

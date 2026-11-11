@@ -153,11 +153,11 @@ func TestContextUsagePersistsLatestRequestAndFencesLateCompletion(t *testing.T) 
 	path := filepath.Join(t.TempDir(), "runtime.sqlite")
 	store := runtimekv.New(path)
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "one", attempt: 1, limit: 1000, limitSource: "configured"}
-	first := recorder.begin("model-one", agentruntime.ModelRequest{})
+	first := recorder.begin(t.Context(), "model-one", agentruntime.ModelRequest{})
 	if first == nil || first.UsedTokens != 0 {
 		t.Fatal("zero usage must be a valid record")
 	}
-	second := recorder.begin("model-two", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "latest"}}})
+	second := recorder.begin(t.Context(), "model-two", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "latest"}}})
 	recorder.finish(second, agentruntime.ModelResponse{Usage: agentruntime.ModelUsage{
 		InputTokens: 12, OutputTokens: 3, CacheReadTokens: 5, TotalTokens: 20,
 	}}, nil)
@@ -168,8 +168,8 @@ func TestContextUsagePersistsLatestRequestAndFencesLateCompletion(t *testing.T) 
 	}
 	newer := *recorder
 	newer.attempt = 2
-	newer.begin("new-attempt", agentruntime.ModelRequest{})
-	recorder.begin("stale-attempt", agentruntime.ModelRequest{})
+	newer.begin(t.Context(), "new-attempt", agentruntime.ModelRequest{})
+	recorder.begin(t.Context(), "stale-attempt", agentruntime.ModelRequest{})
 	if got := readContextUsageTest(t, store, "one"); got.Model != "new-attempt" {
 		t.Fatalf("old attempt replaced current: %+v", got)
 	}
@@ -180,7 +180,7 @@ func TestContextUsagePersistsLatestRequestAndFencesLateCompletion(t *testing.T) 
 	if _, err := store.Set(contextUsageNamespace("one"), "latest", clockSkew); err != nil {
 		t.Fatal(err)
 	}
-	newer.begin("after-clock-correction", agentruntime.ModelRequest{})
+	newer.begin(t.Context(), "after-clock-correction", agentruntime.ModelRequest{})
 	if got := readContextUsageTest(t, store, "one"); got.Model != "after-clock-correction" {
 		t.Fatalf("wall-clock skew blocked current request: %+v", got)
 	}
@@ -193,7 +193,7 @@ func TestContextUsagePersistsLatestRequestAndFencesLateCompletion(t *testing.T) 
 		t.Fatalf("restart lost last request: %+v", got)
 	}
 	newer.store = reopened
-	pending := newer.begin("cancelled", agentruntime.ModelRequest{})
+	pending := newer.begin(t.Context(), "cancelled", agentruntime.ModelRequest{})
 	newer.finish(pending, agentruntime.ModelResponse{}, context.Canceled)
 	if got := readContextUsageTest(t, reopened, "one"); got.State != "failed" || got.Source != "estimated" {
 		t.Fatalf("failed provider call claimed measured usage: %+v", got)
@@ -211,7 +211,7 @@ func TestContextUsageMissingProviderCountersRemainEstimated(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "estimate", limit: 100, limitSource: "runner_default"}
-	current := recorder.begin("model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "hello"}}})
+	current := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "hello"}}})
 	input := current.UsedTokens
 	recorder.finish(current, agentruntime.ModelResponse{Message: agentruntime.Message{Role: "assistant", Content: "hello"}}, nil)
 	got := readContextUsageTest(t, store, "estimate")
