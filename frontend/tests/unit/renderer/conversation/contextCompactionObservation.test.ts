@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { observeContextCompaction } from '@/renderer/services/compaction/contextCompactionObservation';
 import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
 import {
@@ -8,17 +8,23 @@ import {
 
 const events = vi.hoisted(() => ({
   event: null as ((value: Record<string, unknown>) => void) | null,
+  runtime: null as ((value: Record<string, unknown>) => void) | null,
   reconnect: null as (() => void) | null,
   releaseEvent: vi.fn(),
+  releaseRuntime: vi.fn(),
   releaseReconnect: vi.fn(),
 }));
 vi.mock('@/common/adapter/httpBridge', () => ({
   wsEmitter: (kind: string, name: string) => ({
     on: (callback: (value: Record<string, unknown>) => void) => {
       expect(kind).toBe('durable');
-      expect(name).toBe('compaction_status');
-      events.event = callback;
-      return events.releaseEvent;
+      if (name === 'compaction_status') {
+        events.event = callback;
+        return events.releaseEvent;
+      }
+      expect(name).toBe('runtime.statusChanged');
+      events.runtime = callback;
+      return events.releaseRuntime;
     },
   }),
   realtimeReconnectedEmitter: () => ({
@@ -28,6 +34,17 @@ vi.mock('@/common/adapter/httpBridge', () => ({
     },
   }),
 }));
+beforeEach(() => {
+  events.event = null;
+  events.runtime = null;
+  vi.clearAllMocks();
+});
+const runtime = {
+  resource: 'acp_tool',
+  scope: { kind: 'conversation', id: identity.frameId },
+  phase: 'ready',
+  terminal_status: 'completed',
+};
 describe('C11 canonical invalidation only', () => {
   it('filters unrelated and malformed events, and uses same-frame changed root incarnation only for GET invalidation', () => {
     const invalidate = vi.fn();
@@ -63,6 +80,44 @@ describe('C11 canonical invalidation only', () => {
     expect(invalidate).toHaveBeenCalledTimes(3);
     release();
     expect(events.releaseEvent).toHaveBeenCalledTimes(1);
+    expect(events.releaseRuntime).toHaveBeenCalledTimes(1);
     expect(events.releaseReconnect).toHaveBeenCalledTimes(1);
+  });
+  it.each(['waiting_for_lock', 'waiting_input', 'downloading', 'extracting', 'validating', 'ready', 'failed'])(
+    'invalidates the canonical GET for a scoped ordinary lifecycle phase %s',
+    (phase) => {
+      const invalidate = vi.fn();
+      const release = observeContextCompaction(identity, invalidate);
+      events.runtime?.({ ...runtime, phase });
+      expect(invalidate).toHaveBeenCalledTimes(1);
+      release();
+    }
+  );
+  it('accepts a typed attempt boundary as a dirty hint without reading its phase as permission', () => {
+    const invalidate = vi.fn();
+    const release = observeContextCompaction(identity, invalidate);
+    events.runtime?.({ ...runtime, phase: 'waiting_for_lock', boundary_kind: 'attempt' });
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    release();
+  });
+  it.each([
+    { resource: 'node' },
+    { resource: undefined },
+    { scope: { kind: 'mcp', id: identity.frameId } },
+    { scope: { kind: 'conversation', id: 'other-frame' } },
+    { scope: null },
+    { frame_id: 'other-frame' },
+    { root_frame_id: 'other-root' },
+    { phase: 'unknown' },
+    { boundary_kind: 'unknown' },
+    { boundary_kind: 'tool' },
+    { tool_call_id: 'tool-progress' },
+    { tool_name: 'bash' },
+  ])('ignores foreign, malformed or tool-progress runtime payload %j', (patch) => {
+    const invalidate = vi.fn();
+    const release = observeContextCompaction(identity, invalidate);
+    events.runtime?.({ ...runtime, ...patch });
+    expect(invalidate).not.toHaveBeenCalled();
+    release();
   });
 });
