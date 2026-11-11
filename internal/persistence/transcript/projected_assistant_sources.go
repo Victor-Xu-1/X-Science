@@ -23,24 +23,29 @@ type ProjectedAssistantSource struct {
 // ListProjectedAssistantSources reads only the requested page ranges. A real
 // completed or retained-final receipt and the branch's last assistant segment must close each
 // range; arbitrary progress, imported bodies and ID-looking text cannot qualify.
+// The caller bounds its authorized Web page; event scan batch limits do not
+// restrict the number of message ranges in that page.
 func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner string, expected ProjectionSnapshot, ranges []ProjectedAssistantSourceRange) ([]ProjectedAssistantSource, error) {
 	db := r.readDatabase()
 	if db == nil {
 		return nil, ErrSchemaUnavailable
 	}
-	if strings.TrimSpace(owner) == "" || expected.StreamUID == "" || !validTranscriptBranchID(expected.BranchID) || expected.BranchGeneration <= 0 || expected.ThroughPublicationSequence <= 0 || len(ranges) > maxProjectedEvents {
+	if strings.TrimSpace(owner) == "" || expected.StreamUID == "" || !validTranscriptBranchID(expected.BranchID) || expected.BranchGeneration <= 0 || expected.ThroughPublicationSequence <= 0 {
 		return nil, ErrBranchStateStale
 	}
 	if len(ranges) == 0 {
 		return nil, nil
 	}
-	values, args := make([]string, len(ranges)), make([]any, 0, 3*len(ranges)+3)
+	requested := make([][2]int64, len(ranges))
 	for index, span := range ranges {
 		if span.FirstPublicationSequence <= 0 || span.LastPublicationSequence < span.FirstPublicationSequence || span.LastPublicationSequence > expected.ThroughPublicationSequence {
 			return nil, ErrBranchStateStale
 		}
-		values[index] = "(?,?,?)"
-		args = append(args, index, span.FirstPublicationSequence, span.LastPublicationSequence)
+		requested[index] = [2]int64{span.FirstPublicationSequence, span.LastPublicationSequence}
+	}
+	requestedJSON, err := json.Marshal(requested)
+	if err != nil {
+		return nil, err
 	}
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -54,8 +59,9 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 	if kind != string(StreamKindFrameRef) || actual.BranchGeneration != expected.BranchGeneration || expected.ThroughPublicationSequence > actual.ThroughPublicationSequence {
 		return nil, ErrBranchStateStale
 	}
-	args = append(args, expected.StreamUID, expected.BranchID, expected.BranchID)
-	rows, err := tx.QueryContext(ctx, `WITH requested(record_index,first_seq,last_seq) AS (VALUES `+strings.Join(values, ",")+`)
+	rows, err := tx.QueryContext(ctx, `WITH requested(record_index,first_seq,last_seq) AS (
+		SELECT CAST(key AS INTEGER),json_extract(value,'$[0]'),json_extract(value,'$[1]') FROM json_each(?)
+	)
 		SELECT requested.record_index,a.event_id,a.publication_seq,a.client_message_id,a.runner_attempt,a.payload_json,a.created_at,
 			terminal.event_id,terminal.publication_seq,terminal.client_message_id,terminal.payload_json,terminal.created_at,receipt.status
 		FROM requested
@@ -79,7 +85,7 @@ func (r *Repository) ListProjectedAssistantSources(ctx context.Context, owner st
 				ON lm.stream_uid=later.stream_uid AND lm.event_id=later.event_id AND lm.branch_id=am.branch_id
 				WHERE later.stream_uid=a.stream_uid AND later.runner_attempt=a.runner_attempt AND later.event_type='assistant_message'
 				AND later.publication_seq>a.publication_seq AND later.publication_seq<terminal.publication_seq)
-		ORDER BY requested.record_index,a.publication_seq`, append(args, RunnerCleanupFailedReason)...)
+		ORDER BY requested.record_index,a.publication_seq`, string(requestedJSON), expected.StreamUID, expected.BranchID, expected.BranchID, RunnerCleanupFailedReason)
 	if err != nil {
 		return nil, schemaError(err)
 	}

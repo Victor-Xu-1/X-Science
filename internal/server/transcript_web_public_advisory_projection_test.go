@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf16"
 
 	transcriptstore "x-science/internal/persistence/transcript"
@@ -1020,5 +1021,196 @@ func TestCanonicalPublicPagePreservesMoreThanEventBatchOfUserText(t *testing.T) 
 			webString(mapValue(message["content"])["content"]) != body {
 			t.Fatalf("large history page changed user input %d identity or paragraph bytes", index)
 		}
+	}
+}
+
+func canonicalAssistantLargePageFixture(t *testing.T, retained bool) (transcriptWebReadModelServingFixture, transcriptstore.RunnerFinalizationReceipt) {
+	t.Helper()
+	ctx := context.Background()
+	store, repository, db := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, transcriptWebServingOwnerID, transcriptWebServingProjectID, transcriptWebServingFrameID)
+	stream, err := repository.CreateStream(ctx, transcriptstore.CreateStreamInput{
+		UID: transcriptWebServingStreamUID, OwnerID: transcriptWebServingOwnerID,
+		ExternalID: transcriptWebServingFrameID, SessionID: transcriptWebServingFrameID,
+		Kind: transcriptstore.StreamKindFrameRef, ProjectID: transcriptWebServingProjectID,
+		RootFrameID: transcriptWebServingFrameID, FrameID: transcriptWebServingFrameID, Epoch: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		for index := 0; index < 1000; index++ {
+			_, _, created, err := tx.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+				StreamUID: stream.UID, OwnerID: stream.OwnerID,
+				ClientMessageID: fmt.Sprintf("assistant-page-client-%d", index),
+				FrameEventID:    fmt.Sprintf("assistant-page-event-%d", index),
+				MessageUUID:     fmt.Sprintf("assistant-page-message-%d", index),
+				Text:            fmt.Sprintf("Ordinary synthetic input %d.", index),
+			})
+			if err != nil {
+				return err
+			}
+			if !created {
+				return fmt.Errorf("input %d was not created", index)
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	server, readModel, _ := newTranscriptWebReadModelServingServer(t, store, repository, db, stream)
+	claimed, err := repository.ClaimRunner(ctx, transcriptstore.ClaimRunnerInput{
+		StreamUID: stream.UID, OwnerID: stream.OwnerID, RunnerID: "large-page-assistant",
+		TTL: time.Minute, ResumeSource: transcriptstore.ResumeSourceFresh,
+	})
+	if err != nil || !claimed.Claimed {
+		t.Fatalf("claim=%#v err=%v", claimed, err)
+	}
+	const body = "# Ordinary result\n\nKeep this paragraph and its blank separator.\n\n```text\nweb_fetch is a quoted tool identifier.\n\nKeep the example intact.\n```\n\nFinal paragraph."
+	finalization := transcriptRunnerFinalization{Content: body + "<think>private synthetic thought</think>",
+		Status: "completed", Detail: "completed", SegmentOrdinal: 1}
+	if retained {
+		finalization.Status, finalization.Detail = "failed", "synthetic cleanup failed"
+		finalization.ReasonCode, finalization.RetainFinalResponse = transcriptstore.RunnerCleanupFailedReason, true
+	}
+	final, err := server.persistTranscriptRunnerFinalization(ctx,
+		&transcriptRunnerAuthority{Stream: stream, Claim: claimed.Claim}, finalization)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	branch, err := repository.GetBranchState(ctx, stream.UID, stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fence := requireTranscriptWebReadModelFence(t, readModel, stream, branch.ActiveBranchID)
+	if !transcriptWebFenceReady(fence) {
+		t.Fatalf("read-model not ready: %#v", fence)
+	}
+	return transcriptWebReadModelServingFixture{store: store, repository: repository, db: db,
+		readModel: readModel, server: server, stream: stream, fence: fence}, final
+}
+
+func TestCanonicalPublicPagePreservesLargeAssistantSourcePages(t *testing.T) {
+	for _, retained := range []bool{false, true} {
+		name := "completed"
+		if retained {
+			name = "retained-final"
+		}
+		t.Run(name, func(t *testing.T) {
+			f, final := canonicalAssistantLargePageFixture(t, retained)
+			var original map[string]any
+			if err := json.Unmarshal(final.Assistant.PayloadJSON, &original); err != nil {
+				t.Fatal(err)
+			}
+			want := sessionRunnerStripPrivateThinkMarkers(webString(original["text"]))
+			var small map[string]any
+			for _, limit := range []int{2, 1000, maxWebMessagePageSize} {
+				t.Run(fmt.Sprintf("limit-%d", limit), func(t *testing.T) {
+					response := p3JSONRequest(t, f.server, http.MethodGet,
+						fmt.Sprintf("/api/conversations/%s/messages?limit=%d", f.stream.FrameID, limit), nil, f.stream.OwnerID)
+					if response.Code != http.StatusOK {
+						t.Fatalf("history HTTP%d: %s", response.Code, response.Body.String())
+					}
+					var page struct {
+						Items []map[string]any `json:"items"`
+					}
+					if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+						t.Fatal(err)
+					}
+					wantCount := 1001
+					if retained {
+						wantCount++
+					}
+					wantCount = min(wantCount, limit)
+					if len(page.Items) != wantCount {
+						t.Fatalf("history items=%d want=%d", len(page.Items), wantCount)
+					}
+					t.Logf("ready HTTP200 actual page records=%d retained=%t", len(page.Items), retained)
+					found := 0
+					for _, message := range page.Items {
+						if message["id"] != transcriptAssistantMessageID(f.stream.SessionID, 1, 1) {
+							continue
+						}
+						found++
+						if message["position"] != "left" || message["type"] != "text" ||
+							webString(mapValue(message["content"])["content"]) != want {
+							t.Errorf("page records=%d changed canonical assistant identity, role or body: got %q want %q",
+								len(page.Items), webString(mapValue(message["content"])["content"]), want)
+						}
+						if limit == 2 {
+							small = message
+						} else if !reflect.DeepEqual(message, small) {
+							t.Error("large-page assistant differs from the same immutable small-page segment")
+						}
+					}
+					if found != 1 {
+						t.Fatalf("canonical assistant count=%d", found)
+					}
+				})
+			}
+			var persisted []byte
+			if err := f.db.QueryRow(`SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_id=?`,
+				f.stream.UID, final.Assistant.EventID).Scan(&persisted); err != nil || string(persisted) != string(final.Assistant.PayloadJSON) {
+				t.Fatalf("history projection changed immutable assistant payload: %v", err)
+			}
+			assertCanonicalAssistantLargePageSources(t, f, final, retained)
+		})
+	}
+}
+
+func assertCanonicalAssistantLargePageSources(t *testing.T, f transcriptWebReadModelServingFixture, final transcriptstore.RunnerFinalizationReceipt, retained bool) {
+	t.Helper()
+	ctx := context.Background()
+	snapshot, err := f.repository.GetProjectionSnapshot(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, found, err := f.readModel.GetTranscriptWebMessageRange(ctx, transcriptstore.TranscriptWebMessagePageInput{
+		OwnerID: f.stream.OwnerID, StreamUID: f.stream.UID, BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
+		ThroughPublicationSequence: snapshot.ThroughPublicationSequence, SourceRevision: f.fence.SourceRevision, Limit: maxWebMessagePageSize,
+	})
+	if err != nil || !found || len(page.Messages) <= 1000 {
+		t.Fatalf("large source page records=%d found=%t err=%v", len(page.Messages), found, err)
+	}
+	ranges := make([]transcriptstore.ProjectedAssistantSourceRange, len(page.Messages))
+	for index, record := range page.Messages {
+		ranges[index] = transcriptstore.ProjectedAssistantSourceRange{FirstPublicationSequence: record.FirstPublicationSequence, LastPublicationSequence: record.LastPublicationSequence}
+	}
+	sources, err := f.repository.ListProjectedAssistantSources(ctx, f.stream.OwnerID, snapshot, ranges)
+	if err != nil || len(sources) != 1 {
+		t.Fatalf("large-page canonical sources=%d err=%v", len(sources), err)
+	}
+	source := sources[0]
+	if source.RecordIndex != 1000 || source.Assistant.EventID != final.Assistant.EventID || source.Terminal.EventID != final.Terminal.EventID ||
+		string(source.Assistant.PayloadJSON) != string(final.Assistant.PayloadJSON) || source.RetainedAfterFailure != retained {
+		t.Fatal("large-page source changed the original record index, immutable pair or retained-response proof")
+	}
+	for _, name := range []string{"foreign-owner", "foreign-stream", "foreign-branch", "stale-generation", "zero-sequence", "reversed-range", "past-snapshot"} {
+		t.Run(name, func(t *testing.T) {
+			owner, expected := f.stream.OwnerID, snapshot
+			requested := append([]transcriptstore.ProjectedAssistantSourceRange(nil), ranges...)
+			switch name {
+			case "foreign-owner":
+				owner = "foreign-owner"
+			case "foreign-stream":
+				expected.StreamUID = "foreign-stream"
+			case "foreign-branch":
+				expected.BranchID = "br_deadbeef"
+			case "stale-generation":
+				expected.BranchGeneration++
+			case "zero-sequence":
+				requested[0].FirstPublicationSequence = 0
+			case "reversed-range":
+				requested[0].FirstPublicationSequence = requested[0].LastPublicationSequence + 1
+			case "past-snapshot":
+				requested[len(requested)-1].LastPublicationSequence = expected.ThroughPublicationSequence + 1
+			}
+			if proof, err := f.repository.ListProjectedAssistantSources(ctx, owner, expected, requested); err == nil || len(proof) != 0 {
+				t.Fatal("invalid large-page source request received canonical proof")
+			}
+		})
 	}
 }
