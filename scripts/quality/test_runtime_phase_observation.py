@@ -129,7 +129,7 @@ class PhaseObservationBoundaryTests(unittest.TestCase):
         matrix.assert_called_once_with(["fixture/workload"], test_file_counts={"fixture/workload": 258},
                                        profile=active)
         self.assertEqual(json.loads(output.getvalue()),
-                         {"include": [{"index": index, "count": 4} for index in range(4)]})
+                         {"include": [{"index": index, "count": 4, "has_go_packages": True} for index in range(4)]})
         self.assertEqual(diagnostics.getvalue(), "")
 
     def test_matrix_empty_scope_needs_no_profile_and_invalid_profile_fails_closed(self):

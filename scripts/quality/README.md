@@ -293,3 +293,9 @@ coverage. Check the new exact-head artifacts, actual test-step wall time,
 partition spread and batch count before making a performance claim. Full/race
 scheduling and release qualification remain unchanged. Rollback is to revert the
 scheduler/profile change through a reviewed PR; do not remove tests or assertions.
+
+An empty affected-Go scope retains its check worker and required aggregate.
+Only the selector's explicit JSON `has_go_packages: false` skips heavy
+runtime dependency setup; nonempty or unknown values keep setup. An
+unavailable optional reuse fingerprint disables reuse without inventing
+provenance or suppressing the actual scope/verification checks.
