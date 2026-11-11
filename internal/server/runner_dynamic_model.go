@@ -348,7 +348,14 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 	if ctx != nil && ctx.Err() != nil {
 		return agentruntime.ModelResponse{}, ctx.Err()
 	}
+	phases := callPhaseScope(ctx)
+	var initialPhase *runnerCallPhaseRecorder
+	if phases != nil {
+		initialPhase = phases.current
+	}
+	endResolve := initialPhase.span("resolve")
 	resolved, err := client.resolve(ctx)
+	endResolve()
 	if err != nil {
 		return agentruntime.ModelResponse{}, wrapResolvedSessionRunnerModelCallError(err, resolved)
 	}
@@ -362,35 +369,44 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 		}
 		return emit(event)
 	}
-	complete := func(target sessionRunnerResolvedModelClient, actual agentruntime.ModelRequest, progress *contextStreamProgress) (agentruntime.ModelResponse, error) {
+	complete := func(callCtx context.Context, phase *runnerCallPhaseRecorder, target sessionRunnerResolvedModelClient, actual agentruntime.ModelRequest, progress *contextStreamProgress) (agentruntime.ModelResponse, error) {
 		if streaming, ok := target.client.(agentruntime.StreamingModelClient); ok {
-			return streaming.CompleteStream(ctx, actual, func(event agentruntime.ModelStreamEvent) error {
+			return streaming.CompleteStream(callCtx, actual, func(event agentruntime.ModelStreamEvent) error {
+				phase.observeEvent(event)
 				if err := trackedEmit(event); err != nil {
 					return err
 				}
-				progress.observe(ctx, event)
+				progress.observe(callCtx, event)
 				return nil
 			})
 		}
-		return target.client.Complete(ctx, actual)
+		return target.client.Complete(callCtx, actual)
 	}
 	for {
+		phase := phases.nextInvocation()
+		callCtx := phase.transportContext(ctx)
+		endPrepare := phase.span("directory_prepare")
 		actual, err := client.directoryContext.prepare(ctx, request)
+		endPrepare()
 		if err != nil {
 			return agentruntime.ModelResponse{}, err
 		}
 		capacity := contextCapacityForModel(resolved.contextProfile, client.contextOptions)
-		if err := client.contextBudget.beforeCall(ctx, actual, resolved.compactionModel(capacity)); err != nil {
+		endBudget := phase.span("context_budget")
+		budgetErr := client.contextBudget.beforeCall(ctx, actual, resolved.compactionModel(capacity))
+		endBudget()
+		if err := budgetErr; err != nil {
 			client.recordContextPressure(ctx, actual, err, resolved)
 			return agentruntime.ModelResponse{}, err
 		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
 		usage := recorder.begin(ctx, resolved.model, actual, capacity)
+		phase.bind(recorder, usage)
 		if err := ctx.Err(); err != nil {
 			return agentruntime.ModelResponse{}, err
 		}
 		progress := recorder.streamProgress(usage)
-		response, callErr := complete(resolved, actual, progress)
+		response, callErr := complete(callCtx, phase, resolved, actual, progress)
 		progress.finish(response, callErr)
 		if callErr == nil {
 			client.recordSuccess(resolved)

@@ -27,6 +27,7 @@ type contextInspectionCall struct {
 	LimitSource    string                   `json:"limitSource"`
 	OutputTokens   int                      `json:"outputTokens"`
 	CallUsage      *agentruntime.ModelUsage `json:"callUsage,omitempty"`
+	PhaseTiming    *runnerCallPhaseTiming   `json:"phaseTiming,omitempty"`
 }
 
 type contextInspectionTurn struct {
@@ -172,7 +173,7 @@ func projectContextInspection(authority transcriptstore.ContextInspectionSnapsho
 		result.Calls = append(result.Calls, contextInspectionCall{ID: sample.RequestID, InputMessageID: association.InputMessageID,
 			InputEventID: association.InputEventID, InputRevision: association.InputRevision, RunnerAttempt: sample.Attempt,
 			Model: sample.Model, State: sample.State, FailureKind: sample.FailureKind, ObservedAt: sample.ObservedAt, UsedTokens: sample.UsedTokens,
-			LimitTokens: sample.LimitTokens, LimitSource: sample.LimitSource, OutputTokens: sample.OutputTokens, CallUsage: sample.CallUsage})
+			LimitTokens: sample.LimitTokens, LimitSource: sample.LimitSource, OutputTokens: sample.OutputTokens, CallUsage: sample.CallUsage, PhaseTiming: sample.PhaseTiming})
 		turn := &result.Turns[turns[input.EventID]]
 		turn.CallIDs = append(turn.CallIDs, sample.RequestID)
 		if sample.State == "complete" {

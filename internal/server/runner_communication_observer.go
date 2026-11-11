@@ -18,6 +18,7 @@ type sessionRunnerCommunicationObserver struct {
 	before           int
 	now              func() time.Time
 	timing           *runnerCommunicationTiming
+	phases           *runnerCallPhaseScope
 	auxiliary        bool
 }
 
@@ -44,6 +45,8 @@ func (observer *sessionRunnerCommunicationObserver) completeStream(ctx context.C
 	observer.record("private_repair")
 	observer.before = observer.publishedBytes()
 	observer.timing = newRunnerCommunicationTiming(observer.now)
+	observer.phases = newRunnerCallPhaseScope(observer.now)
+	ctx = context.WithValue(ctx, runnerCallPhaseKey{}, observer.phases)
 	streamBytes := 0
 	streaming, ok := observer.delegate.(agentruntime.StreamingModelClient)
 	var response agentruntime.ModelResponse
@@ -71,6 +74,7 @@ func (observer *sessionRunnerCommunicationObserver) completeStream(ctx context.C
 		})
 	}
 	observer.timing.noteResponseFinished()
+	observer.phases.note("delegateFinished")
 	known := map[string]bool{}
 	for _, name := range harnesscontract.RootModelTools() {
 		known[name] = true
@@ -132,11 +136,13 @@ func (observer *sessionRunnerCommunicationObserver) record(decision string) {
 		observer.pending["decision"] = "public_preamble_private_tool_repair"
 	}
 	observer.timing.addTo(observer.pending)
+	observer.phases.freeze()
 	if observer.audit != nil {
 		observer.audit(observer.pending)
 	}
 	observer.pending = nil
 	observer.timing = nil
+	observer.phases = nil
 }
 
 func (observer *sessionRunnerCommunicationObserver) publishedBytes() int {

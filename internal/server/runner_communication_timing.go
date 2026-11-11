@@ -85,6 +85,7 @@ func (observer *sessionRunnerCommunicationObserver) noteProgressReady(source str
 		return
 	}
 	observer.timing.first(&observer.timing.progressReady)
+	observer.phases.note("firstPublicProgressReady")
 	observer.timing.progressSource = source
 }
 
@@ -99,6 +100,7 @@ func (observer *sessionRunnerCommunicationObserver) notePresentationReady() {
 func (observer *sessionRunnerCommunicationObserver) notePublication() {
 	if observer != nil && observer.timing != nil {
 		observer.timing.first(&observer.timing.publication)
+		observer.phases.note("firstDurablePublication")
 	}
 }
 

@@ -18,6 +18,7 @@ type ProviderTransportStopCause string
 // including microsecond offsets; capped values are lower bounds, not exact.
 type ProviderTransportDiagnostics struct {
 	Version                   int                         `json:"version"`
+	DoEnteredAfterUs          *int64                      `json:"doEnteredAfterUs,omitempty"`
 	HeadersReadyAfterUs       *int64                      `json:"headersReadyAfterUs,omitempty"`
 	FirstBodyReadAfterUs      *int64                      `json:"firstBodyReadAfterUs,omitempty"`
 	FirstDecodedGrowthAfterUs *int64                      `json:"firstDecodedGrowthAfterUs,omitempty"`
@@ -29,14 +30,45 @@ type ProviderTransportDiagnostics struct {
 }
 
 type providerTransportObservation struct {
-	mu                         sync.Mutex
-	started                    time.Time
-	parent, request            context.Context
-	headers, firstBody, growth *int64
-	bodyObserved, decoding     bool
-	bodyBytes, growthEvents    int64
-	saturated                  bool
-	format                     ProviderTransportFormat
+	mu                                    sync.Mutex
+	started                               time.Time
+	parent, request                       context.Context
+	doEntered, headers, firstBody, growth *int64
+	bodyObserved, decoding                bool
+	bodyBytes, growthEvents               int64
+	saturated                             bool
+	format                                ProviderTransportFormat
+}
+
+// CompletedTransportAttempt is passive, per-HTTP-attempt evidence. StartedAt
+// retains its monotonic clock for a caller-owned offset projection. It contains
+// no prompt, credential, request header or execution identity.
+type CompletedTransportAttempt struct {
+	Attempt     int
+	Protocol    string
+	StartedAt   time.Time
+	Diagnostics *ProviderTransportDiagnostics
+}
+
+type completedTransportObserverKey struct{}
+
+// WithCompletedTransportObserver never changes the outbound request. The
+// callback belongs to this context, not the reused client, and runs once at the
+// end of each actual attempt. It must not make execution/publication decisions.
+func WithCompletedTransportObserver(ctx context.Context, observe func(CompletedTransportAttempt)) context.Context {
+	return context.WithValue(ctx, completedTransportObserverKey{}, observe)
+}
+
+func (o *providerTransportObservation) publishCompleted(ctx context.Context, attempt int, protocol string) {
+	if observe, ok := ctx.Value(completedTransportObserverKey{}).(func(CompletedTransportAttempt)); ok && observe != nil {
+		observe(CompletedTransportAttempt{Attempt: attempt, Protocol: protocol, StartedAt: o.started, Diagnostics: o.snapshot(nil, nil)})
+	}
+}
+
+func (o *providerTransportObservation) enterDo() {
+	o.mu.Lock()
+	o.doEntered = o.offset()
+	o.mu.Unlock()
 }
 
 func (o *providerTransportObservation) offset() *int64 {
@@ -123,7 +155,7 @@ func (o *providerTransportObservation) snapshot(err error, terminal *bool) *Prov
 		return diagnosticPointer(*value)
 	}
 	o.mu.Lock()
-	value := ProviderTransportDiagnostics{Version: 1, HeadersReadyAfterUs: copyOffset(o.headers),
+	value := ProviderTransportDiagnostics{Version: 1, DoEnteredAfterUs: copyOffset(o.doEntered), HeadersReadyAfterUs: copyOffset(o.headers),
 		FirstBodyReadAfterUs: copyOffset(o.firstBody), FirstDecodedGrowthAfterUs: copyOffset(o.growth)}
 	if o.bodyObserved {
 		value.ResponseBodyBytes = diagnosticPointer(o.bodyBytes)

@@ -2,6 +2,100 @@ import type { ContextCallUsage, ContextUsageSnapshot } from '../contextUsage';
 
 export type ContextCallFailureKind = 'cancelled' | 'deadline';
 
+export const CALL_PHASE_OFFSETS = [
+  'firstPrivateActivity',
+  'firstNativeContent',
+  'firstToolBoundary',
+  'firstPublicProgressReady',
+  'firstDurablePublication',
+  'delegateFinished',
+] as const;
+export const TRANSPORT_PHASE_OFFSETS = [
+  'attemptEntry',
+  'doEntered',
+  'headersReady',
+  'firstBodyRead',
+  'firstDecodedGrowth',
+] as const;
+export type ContextCallPhaseTiming = {
+  version: 1;
+  origin: 'observer_entry';
+  offsetsUs: Partial<Record<(typeof CALL_PHASE_OFFSETS)[number], number>>;
+  preparation?: { stage: 'resolve' | 'directory_prepare' | 'context_budget'; beginUs: number; endUs?: number }[];
+  transportAttempts?: {
+    attempt: number;
+    protocol: string;
+    offsetsUs: Partial<Record<(typeof TRANSPORT_PHASE_OFFSETS)[number], number>>;
+  }[];
+  truncated: boolean;
+  saturated: boolean;
+};
+
+/** A damaged optional diagnostic never removes the original call or usage. */
+export function parseContextCallPhaseTiming(value: unknown, state: unknown): ContextCallPhaseTiming | undefined {
+  if (
+    !object(value) ||
+    !['complete', 'failed'].includes(String(state)) ||
+    value.version !== 1 ||
+    value.origin !== 'observer_entry' ||
+    typeof value.truncated !== 'boolean' ||
+    typeof value.saturated !== 'boolean' ||
+    !object(value.offsetsUs)
+  )
+    return;
+  const offsets = (record: unknown, keys: readonly string[]) =>
+    object(record) && Object.entries(record).every(([key, offset]) => keys.includes(key) && count(offset));
+  if (!offsets(value.offsetsUs, CALL_PHASE_OFFSETS)) return;
+  if (
+    value.preparation !== undefined &&
+    (!Array.isArray(value.preparation) ||
+      value.preparation.length > 64 ||
+      value.preparation.some(
+        (span) =>
+          !object(span) ||
+          !['resolve', 'directory_prepare', 'context_budget'].includes(String(span.stage)) ||
+          !count(span.beginUs) ||
+          (span.endUs !== undefined && (!count(span.endUs) || span.endUs < span.beginUs))
+      ))
+  )
+    return;
+  if (
+    value.transportAttempts !== undefined &&
+    (!Array.isArray(value.transportAttempts) ||
+      value.transportAttempts.length > 64 ||
+      value.transportAttempts.some((attempt) => {
+        if (
+          !object(attempt) ||
+          !count(attempt.attempt) ||
+          attempt.attempt === 0 ||
+          ![
+            'openai-compatible',
+            'openai-responses',
+            'azure-openai',
+            'azure-openai-responses',
+            'anthropic',
+            'gemini',
+          ].includes(String(attempt.protocol)) ||
+          !offsets(attempt.offsetsUs, TRANSPORT_PHASE_OFFSETS) ||
+          !object(attempt.offsetsUs) ||
+          !count(attempt.offsetsUs.attemptEntry)
+        )
+          return true;
+        let previous = attempt.offsetsUs.attemptEntry;
+        for (const key of TRANSPORT_PHASE_OFFSETS) {
+          const offset = attempt.offsetsUs[key];
+          if (offset !== undefined) {
+            if (!count(offset) || offset < previous) return true;
+            previous = offset;
+          }
+        }
+        return false;
+      }))
+  )
+    return;
+  return value as ContextCallPhaseTiming;
+}
+
 /** Only failed requests can carry an explicitly recorded transport reason. */
 export function validContextCallFailureKind(value: unknown, state: unknown): value is ContextCallFailureKind {
   return state === 'failed' && (value === 'cancelled' || value === 'deadline');
@@ -31,6 +125,7 @@ export type ContextInspectionCall = {
   limitSource: 'configured' | 'model_profile' | 'unknown';
   outputTokens: number;
   callUsage?: ContextCallUsage;
+  phaseTiming?: ContextCallPhaseTiming;
 };
 export type ContextInspectionOutcome = {
   id: string;
@@ -133,7 +228,9 @@ export function parseContextInspection(
       (call.callUsage !== undefined && (call.state !== 'complete' || !validCallUsage(call.callUsage)))
     )
       throw new Error('Invalid context inspection call');
-    return call as ContextInspectionCall;
+    const { phaseTiming: rawTiming, ...original } = call;
+    const phaseTiming = parseContextCallPhaseTiming(rawTiming, call.state);
+    return { ...original, ...(phaseTiming ? { phaseTiming } : {}) } as ContextInspectionCall;
   });
   const turns = value.turns.map((turn) => {
     if (
