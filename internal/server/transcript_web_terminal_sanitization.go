@@ -80,7 +80,7 @@ func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream tra
 	preserved := s.transcriptWebExplicitFailureCodes(ctx, stream)
 	users := s.transcriptWebPublicUserSources(ctx, stream, snapshot, records, messages)
 	canonical := map[int]string{}
-	if len(records) == len(messages) && s.transcriptStore != nil {
+	if len(records) == len(messages) && len(records) <= maxWebMessagePageSize && s.transcriptStore != nil {
 		ranges := make([]transcriptstore.ProjectedAssistantSourceRange, len(records))
 		for index, record := range records {
 			ranges[index] = transcriptstore.ProjectedAssistantSourceRange{FirstPublicationSequence: record.FirstPublicationSequence, LastPublicationSequence: record.LastPublicationSequence}

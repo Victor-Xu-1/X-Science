@@ -1383,6 +1383,15 @@ Metadata, hidden control inputs and assistant privacy keep their existing
 publication rules. This response-local proof does not rewrite stored events
 or accept a model-authored role label as authority.
 
+Canonical assistant bodies use the same authorized Web-page boundary rather
+than the projector's event-scan chunk size. Their requested publication ranges
+are encoded in one typed JSON parameter while the original read transaction,
+owner/branch snapshot, completed or retained-final receipt, last assistant
+segment and payload scanner still establish the proof. A large page preserves
+the same public body as a small page, including blank lines and quoted tool
+names. Private reasoning and unproved content retain their original cleanup;
+the source proof is response-local and does not rewrite canonical events.
+
 Preview snapshot completion belongs to its receiving tab, canvas and account
 lifetime. Closing, switching or returning to a prior receiver cannot revive an
 old save. A current save may keep its receiver lease when its own canonical
