@@ -18,6 +18,12 @@ export type LiteratureSelection = Readonly<{
   item_ids: readonly string[];
   total_count: number;
 }>;
+export type LiteratureRestoreTarget = Readonly<{ id: string; metadata_revision: number }>;
+export type LiteratureRestorePreview = Readonly<{
+  schema: 'x-science.literature-restore-preview.v1';
+  items: readonly LiteratureRestoreTarget[];
+  total_count: number;
+}>;
 export type LiteratureScopeInput = {
   query?: string;
   projectId?: string;
@@ -81,5 +87,50 @@ export function decodeLiteratureSelection(value: unknown): LiteratureSelection {
     schema: data.schema,
     item_ids: Object.freeze([...data.item_ids]),
     total_count: data.total_count,
+  });
+}
+
+const invalidRestorePreview = (): never => {
+  throw new Error('Invalid Library restore preview');
+};
+
+/** Complete deleted membership and CAS revisions from one authorized snapshot. */
+export function decodeLiteratureRestorePreview(value: unknown): LiteratureRestorePreview {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return invalidRestorePreview();
+  const data = value as Record<string, unknown>;
+  if (
+    Reflect.ownKeys(data).length !== 3 ||
+    !Reflect.ownKeys(data).every(
+      (key) => typeof key === 'string' && ['schema', 'items', 'total_count'].includes(key)
+    ) ||
+    data.schema !== 'x-science.literature-restore-preview.v1' ||
+    !Array.isArray(data.items) ||
+    !Number.isSafeInteger(data.total_count) ||
+    data.total_count !== data.items.length
+  )
+    return invalidRestorePreview();
+  const ids = new Set<string>();
+  const items = data.items.map((candidate): LiteratureRestoreTarget => {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return invalidRestorePreview();
+    const row = candidate as Record<string, unknown>;
+    if (
+      Reflect.ownKeys(row).length !== 2 ||
+      !Object.hasOwn(row, 'id') ||
+      !Object.hasOwn(row, 'metadata_revision') ||
+      !isLiteratureReadingStatusItemId(row.id) ||
+      ids.has(row.id) ||
+      typeof row.metadata_revision !== 'number' ||
+      !Number.isSafeInteger(row.metadata_revision) ||
+      row.metadata_revision < 1 ||
+      row.metadata_revision === Number.MAX_SAFE_INTEGER
+    )
+      return invalidRestorePreview();
+    ids.add(row.id);
+    return Object.freeze({ id: row.id, metadata_revision: row.metadata_revision });
+  });
+  return Object.freeze({
+    schema: 'x-science.literature-restore-preview.v1',
+    items: Object.freeze(items),
+    total_count: items.length,
   });
 }

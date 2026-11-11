@@ -2644,5 +2644,28 @@
       "limitations": "Study limitations"
     },
     "busy": "Too many overviews are being generated. Please try again shortly."
+  },
+  "libraryRestore": {
+    "entry": "Restore selected",
+    "loading": "Loading the complete Trash selection…",
+    "confirm": "Restore {{count}} references",
+    "confirmDescription": "Restore these {{count}} references with their existing files and project links. Each reference is saved separately; a conflict may leave a partial result.",
+    "previewFailed": "The restore preview could not be loaded. No restore was started.",
+    "selectionChanged": "The Trash selection changed. Review the current references and select again.",
+    "emptyResolved": "No matching references remain in this selection.",
+    "operationFailed": "The restore could not be completed. Confirmed changes are kept; the original pending item must be resolved before continuing.",
+    "activeProgress": "Restoring {{done}} of {{total}} references…",
+    "preparingProgress": "Preparing to restore {{total}} references…",
+    "pausedProgress": "{{done}} of {{total}} restored. The remaining references are paused.",
+    "readyProgress": "{{done}} of {{total}} confirmed. Remaining references can be restored.",
+    "stoppedProgress": "Stopped after restoring {{done}} of {{total}} references. Remaining work was discarded.",
+    "uncertainProgress": "{{done}} of {{total}} confirmed. The original current restore needs confirmation.",
+    "completedProgress": "{{total}} references restored.",
+    "resume": "Resume restore",
+    "stopAfterBatch": "Stop after current reference",
+    "discardRemainder": "Discard remaining restores",
+    "currentBatchPending": "Confirm the original current restore before changing the remaining work.",
+    "previousScope": "This restore belongs to a previous Library view.",
+    "readbackFailed": "Confirmed restores are saved, but the current Library could not be refreshed. Retry the read without sending the confirmed changes again."
   }
 }
