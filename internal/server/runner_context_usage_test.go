@@ -152,6 +152,12 @@ func TestContextUsageProvenanceSurvivesToolRoundAndReplayRebuild(t *testing.T) {
 func TestContextUsagePersistsLatestRequestAndFencesLateCompletion(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "runtime.sqlite")
 	store := runtimekv.New(path)
+	t.Cleanup(func() { _ = store.Close() })
+	// Initialize the lazy SQLite fixture before exercising the bounded optional
+	// sampling write; database setup is not the request-ordering behavior here.
+	if _, found, err := store.GetContext(t.Context(), contextUsageNamespace("one"), "latest"); err != nil || found {
+		t.Fatalf("initialize empty context fixture: found=%v err=%v", found, err)
+	}
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "one", attempt: 1, limit: 1000, limitSource: "configured"}
 	first := recorder.begin(t.Context(), "model-one", agentruntime.ModelRequest{})
 	if first == nil || first.UsedTokens != 0 {
