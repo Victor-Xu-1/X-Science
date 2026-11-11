@@ -13,6 +13,7 @@ type LiteratureExportFormat string
 const (
 	LiteratureExportBibtex LiteratureExportFormat = "bibtex"
 	LiteratureExportRIS    LiteratureExportFormat = "ris"
+	LiteratureExportCSV    LiteratureExportFormat = "csv"
 )
 
 type LiteratureReferenceExport struct {
@@ -26,7 +27,7 @@ type LiteratureReferenceExport struct {
 // attachment access, provider call or partially formatted success is performed.
 func (s *Store) ExportLiteratureReferences(ctx context.Context, owner string, ids []string, format LiteratureExportFormat) (LiteratureReferenceExport, error) {
 	empty := LiteratureReferenceExport{}
-	if !validLiteratureID(owner) || len(ids) == 0 || len(ids) > 200 || (format != LiteratureExportBibtex && format != LiteratureExportRIS) {
+	if !validLiteratureID(owner) || len(ids) == 0 || len(ids) > 200 || (format != LiteratureExportBibtex && format != LiteratureExportRIS && format != LiteratureExportCSV) {
 		return empty, ErrLiteratureInvalid
 	}
 	seen := make(map[string]bool, len(ids))
@@ -66,12 +67,28 @@ func (s *Store) ExportLiteratureReferences(ctx context.Context, owner string, id
 	if err := tx.Commit(); err != nil {
 		return empty, err
 	}
-	return LiteratureReferenceExport{Schema: "x-science.literature-export.v1", ItemIDs: append([]string(nil), ids...), Format: format, Content: strings.Join(entries, "\n\n") + "\n"}, nil
+	content := strings.Join(entries, "\n\n") + "\n"
+	if format == LiteratureExportCSV {
+		header, err := literatureCSVRecord(literatureCSVColumns[:])
+		if err != nil {
+			return empty, err
+		}
+		// Each HTTP batch is complete CSV without a file BOM. The existing
+		// browser transport owns one BOM/header across all successful batches.
+		content = header + "\r\n" + strings.Join(entries, "\r\n") + "\r\n"
+	}
+	return LiteratureReferenceExport{Schema: "x-science.literature-export.v1", ItemIDs: append([]string(nil), ids...), Format: format, Content: content}, nil
 }
 
 func literatureReferenceEntry(item LiteratureItem, format LiteratureExportFormat) (string, error) {
-	if format == LiteratureExportRIS {
+	switch format {
+	case LiteratureExportCSV:
+		return literatureCSVEntry(item)
+	case LiteratureExportRIS:
 		return literatureRISEntry(item)
+	case LiteratureExportBibtex:
+		return literatureBibtexEntry(item)
+	default:
+		return "", ErrLiteratureInvalid
 	}
-	return literatureBibtexEntry(item)
 }

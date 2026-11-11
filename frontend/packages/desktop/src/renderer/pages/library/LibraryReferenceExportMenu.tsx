@@ -2,7 +2,11 @@ import React from 'react';
 import { Dropdown, Menu } from '@arco-design/web-react';
 import { Check, ChevronRight, Download, FileText, LoaderCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { isLiteratureExportFormat } from '@/common/adapter/literatureReferenceExport';
+import {
+  isLiteratureExportFormat,
+  literatureExportFormats,
+  type LiteratureExportFormat,
+} from '@/common/adapter/literatureReferenceExport';
 import { useLibraryExportMenu } from './useLibraryExportMenu';
 import type { LibraryReferenceExportModel } from './useLibraryReferenceExport';
 export function LibraryReferenceExportMenu({
@@ -17,10 +21,10 @@ export function LibraryReferenceExportMenu({
   const { t } = useTranslation();
   const triggerDisabled = scope ? model.triggerDisabled : model.disabled;
   const menu = useLibraryExportMenu(triggerDisabled);
-  const formats = ['bibtex', 'ris'].map((format) => (
+  const formats = (Object.keys(literatureExportFormats) as LiteratureExportFormat[]).map((format) => (
     <Menu.Item key={format} disabled={model.disabled} aria-disabled={model.disabled}>
       <FileText size={14} aria-hidden='true' />
-      {t(format === 'ris' ? 'conversation.libraryExport.ris' : 'conversation.libraryExport.bibtex')}
+      {t(`conversation.libraryExport.${format}`)}
     </Menu.Item>
   ));
   const label = scope

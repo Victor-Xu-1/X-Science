@@ -1,4 +1,5 @@
 import { httpRequest } from '@/common/adapter/httpBridge';
+import { literatureCsvHeader } from '@/common/adapter/literatureReferenceCsv';
 import {
   decodeLiteratureReferenceExport,
   isLiteratureExportFormat,
@@ -42,6 +43,7 @@ export async function loadLiteratureReferenceExport(
   const parts: string[] = [];
   for (const ids of batches) {
     current();
+    // eslint-disable-next-line no-await-in-loop -- Preserve row order and stop before dispatching a later batch after failure or cancellation.
     const raw = await httpRequest<unknown>(
       'POST',
       '/api/literature/export-references',
@@ -49,8 +51,11 @@ export async function loadLiteratureReferenceExport(
       { signal, timeoutMs: 30_000 }
     );
     current();
-    parts.push(decodeLiteratureReferenceExport(raw, ids, format).content.trim());
+    const content = decodeLiteratureReferenceExport(raw, ids, format).content;
+    parts.push(
+      format === 'csv' ? (parts.length ? content.slice(literatureCsvHeader.length) : content) : content.trim()
+    );
   }
   current();
-  return parts.join('\n\n') + '\n';
+  return format === 'csv' ? '\uFEFF' + parts.join('') : parts.join('\n\n') + '\n';
 }
