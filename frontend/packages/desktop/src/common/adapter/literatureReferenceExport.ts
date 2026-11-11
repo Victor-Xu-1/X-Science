@@ -1,6 +1,9 @@
+import { validateLiteratureCsvBatch } from './literatureReferenceCsv';
+
 export const literatureExportFormats = {
   bibtex: { extension: 'bib', mimeType: 'application/x-bibtex;charset=utf-8' },
   ris: { extension: 'ris', mimeType: 'application/x-research-info-systems;charset=utf-8' },
+  csv: { extension: 'csv', mimeType: 'text/csv;charset=utf-8' },
 } as const;
 export type LiteratureExportFormat = keyof typeof literatureExportFormats;
 export type LiteratureReferenceExport = {
@@ -10,7 +13,7 @@ export type LiteratureReferenceExport = {
   content: string;
 };
 export function isLiteratureExportFormat(value: unknown): value is LiteratureExportFormat {
-  return value === 'bibtex' || value === 'ris';
+  return value === 'bibtex' || value === 'ris' || value === 'csv';
 }
 export function decodeLiteratureReferenceExport(
   value: unknown,
@@ -26,9 +29,10 @@ export function decodeLiteratureReferenceExport(
     result.item_ids.length !== itemIds.length ||
     result.item_ids.some((id, index) => id !== itemIds[index]) ||
     typeof result.content !== 'string' ||
-    !result.content.trim()
+    (format === 'csv' ? !result.content : !result.content.trim())
   )
     throw new Error('Invalid Library reference export response');
+  if (format === 'csv') validateLiteratureCsvBatch(result.content, itemIds);
   return result as LiteratureReferenceExport;
 }
 export function literatureExportFilename(stem: string, format: LiteratureExportFormat): string {

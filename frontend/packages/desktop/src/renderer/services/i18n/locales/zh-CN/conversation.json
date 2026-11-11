@@ -2554,6 +2554,7 @@
     "openTrash": "打开回收站"
   },
   "libraryExport": {
+    "csv": "CSV (.csv)",
     "ris": "RIS (.ris)",
     "moreActions": "更多操作",
     "bibtex": "BibTeX (.bib)",

@@ -2554,6 +2554,7 @@
     "openTrash": "Open Trash"
   },
   "libraryExport": {
+    "csv": "CSV (.csv)",
     "ris": "RIS (.ris)",
     "moreActions": "More actions",
     "bibtex": "BibTeX (.bib)",
