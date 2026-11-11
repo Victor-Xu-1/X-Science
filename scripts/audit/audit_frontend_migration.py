@@ -89,7 +89,7 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/renderer/pages/settings/components/settings.css": "Stabilize responsive settings dimensions and shared visual tokens across desktop and narrow layouts.",
     "packages/desktop/src/renderer/services/SpeechToTextService.ts": "Attach the Go double-submit CSRF token to same-origin batch speech uploads without leaking it cross-origin.",
     "packages/desktop/src/renderer/services/authSession.ts": "Monitor session expiry and decorate unsafe same-origin browser requests with the Go CSRF token.",
-    "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog.",
+    "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts": "Regenerate typed locale keys from the existing English and Chinese locale resources with the original i18n generator.",
     "packages/desktop/src/renderer/services/i18n/locales/en-US/guid.json": "Describe required Python/R core runtimes, optional first-run scientific runtimes, and informational storage estimates in the complete English onboarding locale.",
     "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls.",
     "packages/desktop/src/renderer/services/i18n/locales/zh-CN/guid.json": "Describe required Python/R core runtimes, optional first-run scientific runtimes, and informational storage estimates in the complete Simplified Chinese onboarding locale.",
@@ -746,9 +746,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "4ff8eace9da24bd70e342cceb43501e80293ffe787fcac1aa9d9b28624001a7d"
+APPROVED_ADAPTATION_FINGERPRINT = "7c5f80fcbd8c9902761a19f6b187b51f9907375f351c409823ca4f6f44088867"
 APPROVED_REMOVAL_FINGERPRINT = "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96"
-APPROVED_ADDITION_FINGERPRINT = "f6b478af77bb4aa6ef481208e57dd1460df5d38c83ca10d860f05d25ed58d30d"
+APPROVED_ADDITION_FINGERPRINT = "7b31dcb78994caabfd13e8478afad6d7ed72891611ead1b5977ea6d390c8f43c"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {

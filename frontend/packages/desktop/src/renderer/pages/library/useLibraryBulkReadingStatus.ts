@@ -164,6 +164,7 @@ export function useLibraryBulkReadingStatus({
     }
   };
   const start = async (status: LiteratureReadingStatus) => {
+    if (scope.lifecycle === 'deleted') return;
     if (!editable() || (!selection.allMatchingSelected && !selection.selectedIds.length)) return;
     const active: Work = { visit, abort: new AbortController() };
     work.current = active;
@@ -178,7 +179,7 @@ export function useLibraryBulkReadingStatus({
         return;
       }
       targets = resolveLibrarySelection(selection, complete?.item_ids);
-    } catch (error) {
+    } catch {
       if (current(active.visit) && !active.abort.signal.aborted)
         setActivity({ visit, resolving: false, message: 'resolveFailed' });
       if (work.current === active) work.current = undefined;
@@ -244,6 +245,9 @@ export function useLibraryBulkReadingStatus({
   return {
     selection,
     scopeKey,
+    setRemaining: (ids: readonly string[]) => {
+      if (current()) setSelected({ visit, value: explicitLibrarySelection(ids) });
+    },
     resolving,
     message,
     ownedNotice: isLiteratureReadingBulk(view.pending) || isLiteratureReadingBulk(view.action),

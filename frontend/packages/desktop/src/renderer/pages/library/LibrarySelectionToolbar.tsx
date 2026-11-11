@@ -13,6 +13,8 @@ export type LibrarySelectionToolbarProps = {
   busy?: boolean;
   exportControl?: React.ReactNode;
   overviewControl?: React.ReactNode;
+  restoreControl?: React.ReactNode;
+  readingStatus?: boolean;
   resolving?: boolean;
   onSelectAllMatching: () => void;
   onClear: () => void;
@@ -28,6 +30,8 @@ export function LibrarySelectionToolbar({
   busy = false,
   exportControl,
   overviewControl,
+  restoreControl,
+  readingStatus = true,
   resolving = false,
   onSelectAllMatching,
   onClear,
@@ -70,27 +74,30 @@ export function LibrarySelectionToolbar({
       )}
       {exportControl}
       {overviewControl}
-      <label className='library-selection-toolbar__status'>
-        <span className='sr-only'>{t('conversation.librarySelection.readingStatus')}</span>
-        <select
-          aria-label={t('conversation.librarySelection.readingStatus')}
-          value=''
-          disabled={blocked || !hasSelection}
-          onChange={(event) => {
-            const status = literatureReadingStatuses.find((value) => value === event.currentTarget.value);
-            if (!blocked && hasSelection && status) onChangeStatus(status);
-          }}
-        >
-          <option value='' disabled>
-            {t('conversation.librarySelection.changeStatus')}
-          </option>
-          {literatureReadingStatuses.map((status) => (
-            <option key={status} value={status}>
-              {t(`conversation.libraryReadingStatus.${status}`)}
+      {restoreControl}
+      {readingStatus && (
+        <label className='library-selection-toolbar__status'>
+          <span className='sr-only'>{t('conversation.librarySelection.readingStatus')}</span>
+          <select
+            aria-label={t('conversation.librarySelection.readingStatus')}
+            value=''
+            disabled={blocked || !hasSelection}
+            onChange={(event) => {
+              const status = literatureReadingStatuses.find((value) => value === event.currentTarget.value);
+              if (!blocked && hasSelection && status) onChangeStatus(status);
+            }}
+          >
+            <option value='' disabled>
+              {t('conversation.librarySelection.changeStatus')}
             </option>
-          ))}
-        </select>
-      </label>
+            {literatureReadingStatuses.map((status) => (
+              <option key={status} value={status}>
+                {t(`conversation.libraryReadingStatus.${status}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {resolving && (
         <span role='status' className='library-selection-toolbar__working'>
           <LoaderCircle size={14} aria-hidden='true' />

@@ -1,3 +1,13 @@
+import { createLiteratureBulkOperations, type LiteratureBulkHost } from './literatureBulkOperations';
+import type { LiteratureBulkIntent } from './literatureBulkFlow';
+import {
+  createLiteratureRestoreBulk,
+  isLiteratureRestoreBulk,
+  literatureRestoreBulkCodec,
+  type LiteratureRestoreBulkIntent,
+  type LiteratureRestoreCommand,
+} from './literatureRestoreBulkIntent';
+import type { LiteratureRestoreTarget } from '@/common/adapter/literatureSelection';
 import { runLiteratureCandidateCommand } from './literatureCandidates';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { decodeLiteratureReceipt, type LiteratureReceipt } from '@/common/adapter/literatureLibrary';
@@ -19,8 +29,12 @@ import {
   type RendererMutationSlot,
 } from './rendererMutationSlot';
 import { createLiteratureReadingBulkOperations } from './literatureReadingBulkOperations';
-import { isLiteratureReadingBulk } from './literatureReadingBulkIntent';
-import type { LiteratureReadingStatus, LiteratureReadingStatusReceipt } from '@/common/adapter/literatureReadingStatus';
+import { isLiteratureReadingBulk, type LiteratureReadingBulkIntent } from './literatureReadingBulkIntent';
+import type {
+  LiteratureReadingStatus,
+  LiteratureReadingStatusReceipt,
+  LiteratureReadingStatusCommand,
+} from '@/common/adapter/literatureReadingStatus';
 import {
   catalogueUploadFailureCertainty,
   createUploadIntent,
@@ -148,32 +162,59 @@ export class LiteratureMutationController {
   private generation = 0;
   private selectedFile?: { origin: string; file: File };
   private rejectedUpload?: string;
-  private readonly bulkReading = createLiteratureReadingBulkOperations<Flight>({
-    current: () => this.current(),
-    pending: () => this.view.pending,
-    running: () => this.promise,
-    begin: (intent, work, canContinue) =>
-      this.begin(false, work, intent, undefined, canContinue) as Promise<LiteratureReadingStatusReceipt>,
-    checkActive: (flight) => this.requireActive(flight),
-    pauseRequested: (flight) =>
-      Boolean(flight.bulkPause) || Boolean(flight.bulkCanContinue && !flight.bulkCanContinue()),
-    locked: (flight, work) =>
-      this.locked(
-        () =>
-          work({
-            read: () => this.read(),
-            write: (expected, next) => this.write(expected, next, flight),
-            settle: (expected, receipt) => this.settle(expected, true, null, receipt, flight),
-            publish: (update) => this.emit(update, flight),
-          }),
-        flight
-      ),
-    send: (command, flight) => this.dispatch(command, flight.abort.signal),
-    // Authentication/CSRF refusal occurs before the original operation ledger can be consulted.
-    rejected: (error) =>
-      definitelyRejected(error) && isBackendHttpError(error) && error.status !== 401 && error.status !== 403,
-    uuid: () => (this.options.uuid ? this.options.uuid() : crypto.randomUUID()),
-  });
+  private bulkHost<
+    I extends LiteraturePending & LiteratureBulkIntent,
+    C extends LiteratureMutationCommand,
+    R extends LiteratureMutationReceipt,
+  >(): LiteratureBulkHost<Flight, I, C, R> {
+    return {
+      current: () => this.current(),
+      pending: () => this.view.pending,
+      running: () => this.promise,
+      begin: (intent, work, canContinue) => this.begin(false, work, intent, undefined, canContinue) as Promise<R>,
+      checkActive: (flight) => this.requireActive(flight),
+      pauseRequested: (flight) =>
+        Boolean(flight.bulkPause) || Boolean(flight.bulkCanContinue && !flight.bulkCanContinue()),
+      locked: (flight, work) =>
+        this.locked(
+          () =>
+            work({
+              read: () => this.read(),
+              write: (expected, next) => this.write(expected, next, flight),
+              settle: (expected, receipt) => this.settle(expected, true, null, receipt, flight),
+              publish: (update) => this.emit(update, flight),
+            }),
+          flight
+        ),
+      send: (command, flight) => this.dispatch(command, flight.abort.signal),
+      // Authentication/CSRF refusal occurs before the original operation ledger can be consulted.
+      rejected: (error) =>
+        definitelyRejected(error) && isBackendHttpError(error) && error.status !== 401 && error.status !== 403,
+      uuid: () => (this.options.uuid ? this.options.uuid() : crypto.randomUUID()),
+    };
+  }
+  private readonly bulkReading = createLiteratureReadingBulkOperations(
+    this.bulkHost<LiteratureReadingBulkIntent, LiteratureReadingStatusCommand, LiteratureReadingStatusReceipt>()
+  );
+  private readonly bulkRestore = createLiteratureBulkOperations(
+    this.bulkHost<LiteratureRestoreBulkIntent, LiteratureRestoreCommand, LiteratureReceipt>(),
+    literatureRestoreBulkCodec
+  );
+  startRestoreBulk = (items: readonly LiteratureRestoreTarget[], scopeKey: string, canContinue?: () => boolean) =>
+    this.bulkRestore.start(
+      createLiteratureRestoreBulk(items, scopeKey, this.options.uuid ?? (() => crypto.randomUUID())),
+      canContinue
+    );
+  resumeRestoreBulk = (stopAfterCurrent = false, canContinue?: () => boolean) => {
+    if (stopAfterCurrent && this.flight && isLiteratureRestoreBulk(this.flight.pending)) this.flight.bulkPause = true;
+    return this.bulkRestore.resume(stopAfterCurrent, canContinue);
+  };
+  pauseRestoreBulk = (operationId: string) => {
+    if (this.flight && isLiteratureRestoreBulk(this.flight.pending) && this.flight.pending.operation_id === operationId)
+      this.flight.bulkPause = true;
+    return this.bulkRestore.pause(operationId);
+  };
+  discardRestoreBulk = (operationId: string) => this.bulkRestore.discard(operationId);
   startReadingStatusBulk = (
     ids: readonly string[],
     status: LiteratureReadingStatus,
@@ -615,6 +656,7 @@ export class LiteratureMutationController {
     });
     if (!pending) return Promise.reject(new Error('No Library request to retry'));
     if (isLiteratureReadingBulk(pending)) return this.resumeReadingStatusBulk(true);
+    if (isLiteratureRestoreBulk(pending)) return this.resumeRestoreBulk(true);
     if (!isUploadIntent(pending)) return this.submit(pending);
     const expected = pending;
     return this.begin(

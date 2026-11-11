@@ -1,4 +1,9 @@
 import {
+  decodeLiteratureRestoreBulk,
+  isLiteratureRestoreBulk,
+  type LiteratureRestoreBulkIntent,
+} from './literatureRestoreBulkIntent';
+import {
   decodeLiteratureCandidateCommand,
   type LiteratureCandidateCommand,
   type LiteratureCandidateReceipt,
@@ -86,7 +91,11 @@ export type LiteratureUploadIntent = UploadBase &
         readonly catalogue_rejected: boolean;
       }
   );
-export type LiteraturePending = LiteratureMutationCommand | LiteratureUploadIntent | LiteratureReadingBulkIntent;
+export type LiteraturePending =
+  | LiteratureMutationCommand
+  | LiteratureUploadIntent
+  | LiteratureReadingBulkIntent
+  | LiteratureRestoreBulkIntent;
 
 export class OriginalPendingConflict extends Error {
   constructor() {
@@ -160,7 +169,7 @@ export function encodePendingRecord(ownerId: string, pending: LiteraturePending)
   return JSON.stringify(
     isUploadIntent(pending)
       ? { ownerId, upload: pending }
-      : isLiteratureReadingBulk(pending)
+      : isLiteratureReadingBulk(pending) || isLiteratureRestoreBulk(pending)
         ? { ownerId, bulk: pending }
         : { ownerId, command: pending }
   );
@@ -169,7 +178,10 @@ export function decodePendingRecord(value: unknown, ownerId: string): Literature
   if (!record(value) || value.ownerId !== ownerId) return fail();
   if (exactKeys(value, ['ownerId', 'command'])) return decodeMutationCommand(value.command);
   if (exactKeys(value, ['ownerId', 'upload'])) return decodeUploadIntent(value.upload);
-  if (exactKeys(value, ['ownerId', 'bulk'])) return decodeLiteratureReadingBulk(value.bulk);
+  if (exactKeys(value, ['ownerId', 'bulk']))
+    return isLiteratureRestoreBulk(value.bulk)
+      ? decodeLiteratureRestoreBulk(value.bulk)
+      : decodeLiteratureReadingBulk(value.bulk);
   return fail();
 }
 
