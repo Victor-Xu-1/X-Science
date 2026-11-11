@@ -2,7 +2,7 @@ import React from 'react';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { InspectionCallDetails } from '@/renderer/components/xScience/runtime/ContextInspectionDetails';
-import { parseContextInspection } from '@/renderer/services/runtime/contextInspection';
+import { parseContextInspection, type ContextInspectionOutcome } from '@/renderer/services/runtime/contextInspection';
 import { renderWithI18n } from '../i18nTestUtils';
 
 afterEach(cleanup);
@@ -30,6 +30,7 @@ const timing = () => ({
 });
 
 function parsedCall(phaseTiming?: unknown) {
+  const outcomes: ContextInspectionOutcome[] = [];
   const value = {
     version: 1,
     scope: {
@@ -70,7 +71,7 @@ function parsedCall(phaseTiming?: unknown) {
         status: 'running',
         runnerAttempts: [1],
         callIds: ['call'],
-        outcomes: [],
+        outcomes,
       },
     ],
   };
