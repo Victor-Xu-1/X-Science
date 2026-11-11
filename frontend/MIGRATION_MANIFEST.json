@@ -3,15 +3,15 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "f26bc102e99439c41ef73d1052d4d84ca361080858d8770bd5ea0b923cf949c5",
+  "adaptationFingerprintSHA256": "924b14d9d94e2e0737947a21bad577c6492cc9cbc6a0a1a3efc24e63519fb8d9",
   "removalFingerprintSHA256": "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96",
-  "additionFingerprintSHA256": "0b9ac42c9d40fdb3716f483ae5d2ed2ca153eadaa4877049aa3a61f48eb0914a",
+  "additionFingerprintSHA256": "036faa9bb368194333e4d1a07ede2a418b37ffac636fc6205701109717d09e27",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 263,
     "adaptedSourceFiles": 794,
     "removedSourceFiles": 297,
-    "addedFiles": 1525
+    "addedFiles": 1528
   },
   "adaptations": [
     {
@@ -2875,8 +2875,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts",
       "sourceSHA256": "d46e67e7ae9b1a4c53252446bb8e2c6d12141deaac2d253b8c1922afa35ab5d9",
-      "targetSHA256": "1a08a3adaf8b320df51dd7ab8237768bf5e0654ebbc310a2e0b590d6f48dee82",
-      "bytes": 310937,
+      "targetSHA256": "2dd8f56ef0f9a51991ea7baa630f4a3bcfd3dba9544efcf86985ad97e390ef11",
+      "bytes": 312823,
       "reason": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog."
     },
     {
@@ -2910,8 +2910,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json",
       "sourceSHA256": "c6802cdea4137a9a8199f5b9e57c11a99e7b8fde42539065da42dd4db9052b8e",
-      "targetSHA256": "46ff996b2cbd215e695c7c694abc7626eaa15185d86721333a753bc7c0a9b6ab",
-      "bytes": 141645,
+      "targetSHA256": "df0a3af5a8c447b49a84f7cc2605a2b64a03e1ae80966cc5db6c3c8992f83ed8",
+      "bytes": 141670,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -3001,8 +3001,8 @@
     {
       "path": "packages/desktop/src/renderer/services/i18n/locales/zh-CN/conversation.json",
       "sourceSHA256": "cb395d18cb1692e13c849172bf6d957304ef382973fb5ab95fd14723cbc045bd",
-      "targetSHA256": "88eb16f2c9eb1d8ecdaf58cdfdf4259b6c01a74683b794419fab0dd720f9dfc9",
-      "bytes": 133922,
+      "targetSHA256": "0147f9a8a9df75df7b1fb3ee61622db2653940c0536ecce62db9f0c34dfca1d3",
+      "bytes": 133947,
       "reason": "Implement typed Go API clients, complete localization resources, runtime projections, and browser-safe presentation models."
     },
     {
@@ -7759,9 +7759,15 @@
       "reason": "Define personal reading-state values and closed original-operation batch acknowledgements for the existing authenticated Library mutation owner, independent of bibliographic revisions or PDF progress."
     },
     {
+      "path": "packages/desktop/src/common/adapter/literatureReferenceCsv.ts",
+      "sha256": "fbb6a1da7364cba4d26a4d9e24843d6a61186f9cf30231720c35f32cdf4b9d0c",
+      "bytes": 2340,
+      "reason": "Validate complete first-party bibliographic CSV framing and requested row identities for the existing authenticated Library export transport."
+    },
+    {
       "path": "packages/desktop/src/common/adapter/literatureReferenceExport.ts",
-      "sha256": "38b8092fda6f9312cf8d445924f4a530eae7d5a1cf02c393129adf763c1f0cac",
-      "bytes": 1789,
+      "sha256": "2c1bdffe222d4d1a94240576b21a7ff41c48bec8bb5346459dd827c761e10997",
+      "bytes": 2061,
       "reason": "Validate the closed BibTeX/RIS export contract against exact canonical item IDs and normalize reference filenames before the original Web download handoff."
     },
     {
@@ -10274,8 +10280,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/pages/library/LibraryReferenceExportMenu.tsx",
-      "sha256": "05b263f098ef8f39b4ceabffd6782e3fc5af3722cd301f3e316f36f03871a929",
-      "bytes": 4986,
+      "sha256": "657a711414247e309c8321420547c8f46810038894c1cd0783a00cabeb9dc8d1",
+      "bytes": 5045,
       "reason": "Adapt Open Science 8f479374 complete Library reference export menus, format choices and collection actions to compact X-Science controls and the existing Library editor/menu authorities."
     },
     {
@@ -11846,8 +11852,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/runtime/literatureReferenceExport.ts",
-      "sha256": "f700cc8c8d10130c39c3b0ae55f620099d173f51332beae10d82ff633ce1fef9",
-      "bytes": 1926,
+      "sha256": "32f0b83bc77d9b4f0f523e255d69b7e10dc3f0d2de9088790d56d1470fea3ba1",
+      "bytes": 2327,
       "reason": "Read bounded authenticated canonical BibTeX/RIS batches through the existing HTTP and account authority and return content only after every exact reply succeeds."
     },
     {
@@ -14407,6 +14413,12 @@
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
+      "path": "tests/unit/renderer/conversation/literatureReferenceCsv.test.ts",
+      "sha256": "20fb86b5228db66266166098a46a8a78f34c6315341b2db01ca8668d61a67755",
+      "bytes": 6938,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
       "path": "tests/unit/renderer/conversation/literatureReferenceExport.test.ts",
       "sha256": "804d23467aece5d70be70287791c9e1dace7a6b320e6818577e60c16a048b7af",
       "bytes": 5012,
@@ -14878,6 +14890,12 @@
       "path": "tests/unit/renderer/library/LibraryReadingStatusIntegration.dom.test.tsx",
       "sha256": "06d495ee339521500563cbf014b6a600793fd2ae84dd38693b2f6d134a05c817",
       "bytes": 37061,
+      "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
+    },
+    {
+      "path": "tests/unit/renderer/library/LibraryReferenceCsv.dom.test.tsx",
+      "sha256": "d3b02bf433aea6bf95a2c917f9390f0a89f322fcc319202d0453f76088fa16dc",
+      "bytes": 12569,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {
