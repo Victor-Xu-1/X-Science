@@ -8,6 +8,16 @@
 文件预览保留已有最小阅读高度；非有限数值表示进度未知，不显示 NaN、虚假的 0% 或
 100%。未知进度的装饰动画遵循减少动态效果偏好，实际数值及原有合法百分比范围不变。
 
+Local-file polling keeps its existing workspace owner and one in-flight read per
+source. Editing, saving or accepting newer content retires older reads for that
+workspace/path, so a delayed response cannot replace a saved draft. Failed or
+retired body reads leave the changed modification time eligible for the next
+ordinary poll. Artifact versions keep their separate immutable-source behavior.
+
+本地文件轮询沿用原工作区身份与单次在途读取；编辑、保存或接收新正文会撤销同一
+工作区和路径的旧读取，迟到响应不能覆盖已保存的新稿。读取失败或失效时不提前确认
+变更时间，后续由原轮询重试。产物预览继续遵循既有不可变版本身份。
+
 ## Find the implementation · 实现入口
 
 | 行为 | 源码入口 |
