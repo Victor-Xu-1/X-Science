@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "package": "@x-science/workbench-web",
-  "lockfileSHA256": "8e823657589988bcd369336ed0a8fc07907797480e663868df18a25d0874c344",
+  "lockfileSHA256": "528591f1d94b284c996752b766c2ed712545a578305fe6c596e308d12b33e40c",
   "summary": {
     "records": 1132,
     "workspaceLinkRecords": 1,
@@ -1160,7 +1160,7 @@
     },
     {
       "name": "@nodable/entities",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -4331,14 +4331,14 @@
     },
     {
       "name": "fast-xml-builder",
-      "version": "1.3.0",
+      "version": "1.3.1",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
     },
     {
       "name": "fast-xml-parser",
-      "version": "5.10.1",
+      "version": "5.12.0",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -5192,7 +5192,7 @@
     },
     {
       "name": "is-unsafe",
-      "version": "2.0.0",
+      "version": "2.0.3",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7145,7 +7145,7 @@
     },
     {
       "name": "strnum",
-      "version": "2.4.1",
+      "version": "2.5.1",
       "license": "MIT",
       "directKind": null,
       "basis": "package-lock metadata"
@@ -7959,7 +7959,7 @@
   "workspaceLinks": [
     {
       "name": "@x-science/workbench-renderer",
-      "version": "0.5.71",
+      "version": "0.5.72",
       "path": "packages/desktop",
       "basis": "local workspace package; source licensing reviewed separately"
     }
