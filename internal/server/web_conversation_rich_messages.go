@@ -73,6 +73,7 @@ func (s *Server) projectRichWebConversationMessages(
 	subagents := collectRichWebSubagents(frame, rawMessages, frames)
 	subagentEvents := collectRichWebSubagentEvents(frame, rawMessages, frames)
 	mapped := make([]map[string]any, 0, len(rawMessages))
+	userSources := make(map[int]string)
 	createdAt := frame.CreatedAt.UTC().UnixMilli()
 
 	for messageIndex, rawMessage := range rawMessages {
@@ -81,6 +82,7 @@ func (s *Server) projectRichWebConversationMessages(
 			continue
 		}
 		blocks := richWebDisplayBlocks(rawMessage)
+		ordinaryUser := role == "user" && transcriptstore.HiddenConversationControlIntent(rawMessage) == ""
 		sourceID := strings.TrimSpace(webString(rawMessage["_uuid"]))
 		if sourceID == "" {
 			sourceID = strings.TrimSpace(webString(rawMessage["uuid"]))
@@ -101,6 +103,9 @@ func (s *Server) projectRichWebConversationMessages(
 				content := webString(block["text"])
 				if content == "" {
 					continue
+				}
+				if ordinaryUser {
+					userSources[len(mapped)] = completionAdvisorySHA(content)
 				}
 				var branch any
 				if branchID != "" {
@@ -206,7 +211,7 @@ func (s *Server) projectRichWebConversationMessages(
 			}
 		}
 	}
-	s.sanitizeTranscriptWebPublicMessages(mapped)
+	sanitizeTranscriptWebPublicMessagesWithUserSources(mapped, nil, userSources)
 	return mapped, nil
 }
 
