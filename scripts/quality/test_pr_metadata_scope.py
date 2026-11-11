@@ -1,6 +1,7 @@
 """Real Git metadata filtering retains implementation/dependency changes."""
 
 import contextlib
+import hashlib
 import io
 import json
 import re
@@ -73,7 +74,7 @@ class MetadataScopeTest(unittest.TestCase):
                             str(self.repo), str(candidate)], check=True)
             audit = candidate / metadata.AUDIT
             audit.write_text(re.sub(r'(?m)^APPROVED_ADDITION_FINGERPRINT = "[0-9a-f]{64}"$',
-                                    'APPROVED_ADDITION_FINGERPRINT = "' + '0' * 64 + '"', audit.read_text()))
+                                    'APPROVED_ADDITION_FINGERPRINT = "' + '0' * 64 + '"', audit.read_text()), newline='\n')
             subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
                             "commit", "-qam", "invalid derived pin"], cwd=candidate, check=True)
             head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=candidate, text=True).strip()
@@ -136,12 +137,141 @@ class MetadataScopeTest(unittest.TestCase):
                              {'product-identity.json', 'frontend/package.json', 'frontend/package-lock.json',
                               'frontend/packages/desktop/package.json'})
 
+    def test_real_mixed_dependency_delta_keeps_independent_counter_projection_inert(self):
+        with tempfile.TemporaryDirectory(prefix='metadata-mixed-dependency-') as directory:
+            candidate = Path(directory) / 'candidate'
+            subprocess.run(['git', 'clone', '--quiet', '--shared', '--no-hardlinks',
+                            str(self.repo), str(candidate)], check=True)
+            manifest = candidate / 'frontend/package.json'
+            package = json.loads(manifest.read_bytes())
+            lock_path = candidate / 'frontend/package-lock.json'
+            lock = json.loads(lock_path.read_bytes())
+            dependency = lock['packages']['node_modules/fast-xml-parser']
+            version = dependency['version'] + '-scope-fixture'
+            package['overrides']['fast-xml-parser'] = version
+            manifest.write_text(json.dumps(package), encoding='utf-8')
+            dependency['version'] = version
+            lock_path.write_text(json.dumps(lock), encoding='utf-8')
+            subprocess.run(['git', '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                            'commit', '-qam', 'mixed dependency and counter projections'], cwd=candidate, check=True)
+            head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=candidate, text=True).strip()
+
+            projections = metadata.version_projection_paths(candidate, self.base, head)
+            self.assertEqual(projections, {metadata.IDENTITY, 'frontend/packages/desktop/package.json'})
+            paths = scope.changed_paths(candidate, self.base, head)
+            behavior, _, _ = scope.behavior_scope(candidate, self.base, head, paths)
+            inputs = [path for path in behavior if path not in projections and not scope.documentation_only(path)]
+            self.assertIn('frontend/package.json', inputs)
+            self.assertIn('frontend/package-lock.json', inputs)
+            self.assertNotIn('frontend/packages/desktop/package.json', inputs)
+            self.assertTrue(scope.frontend_affected(inputs, candidate))
+            self.assertIsNone(scope.pr_frontend_scope.related_command(inputs))
+
+    def test_real_json_type_changes_never_become_counter_only_proofs(self):
+        renderer = 'frontend/packages/desktop/package.json'
+        prepared_paths = scope.changed_paths(self.repo, self.base, self.head)
+        with tempfile.TemporaryDirectory(prefix='metadata-json-types-') as directory:
+            candidate = Path(directory) / 'candidate'
+            subprocess.run(['git', 'clone', '--quiet', '--shared', '--no-hardlinks',
+                            str(self.repo), str(candidate)], check=True)
+
+            def git(*arguments):
+                return subprocess.check_output(['git', *arguments], cwd=candidate)
+
+            def commit(message):
+                if git('status', '--porcelain').strip():
+                    git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
+                        'commit', '-qam', message)
+                return git('rev-parse', 'HEAD').decode().strip()
+
+            def change_private(value):
+                path = candidate / renderer
+                package = json.loads(path.read_bytes())
+                package['private'] = value
+                raw = (json.dumps(package, indent=2) + '\n').encode()
+                path.write_bytes(raw)
+                manifest = candidate / metadata.MIGRATION
+                migration = json.loads(manifest.read_bytes())
+                records = 0
+                for category, key in [('adaptations', 'targetSHA256'), ('additions', 'sha256')]:
+                    for record in migration[category]:
+                        if record['path'] == renderer.removeprefix('frontend/'):
+                            record[key], record['bytes'] = hashlib.sha256(raw).hexdigest(), len(raw)
+                            records += 1
+                self.assertEqual(records, 1)
+                manifest.write_bytes((json.dumps(migration, indent=2) + '\n').encode())
+
+            for index, (before, after) in enumerate([(True, 1), (1, True), (False, 0), (0, False)]):
+                git('checkout', '-qb', f'json-types-{index}', self.base)
+                change_private(before)
+                base = commit('typed baseline fixture')
+                for path in prepared_paths:
+                    (candidate / path).write_bytes(git('show', self.head + ':' + path))
+                change_private(after)
+                head = commit('counter plus JSON type change')
+                with self.subTest(before=before, after=after, scope='complete-metadata'):
+                    self.assertEqual(metadata.metadata_paths(candidate, base, head), set())
+                    paths = scope.changed_paths(candidate, base, head)
+                    self.assertIn(renderer, metadata.filter_paths(candidate, base, head, paths)[0])
+                with self.subTest(before=before, after=after, scope='counter-projection'):
+                    self.assertNotIn(renderer, metadata.version_projection_paths(candidate, base, head))
+
+                package_path, lock_path = candidate / 'frontend/package.json', candidate / 'frontend/package-lock.json'
+                package, lock = json.loads(package_path.read_bytes()), json.loads(lock_path.read_bytes())
+                dependency = lock['packages']['node_modules/fast-xml-parser']
+                dependency['version'] += '-scope-fixture'
+                package['overrides']['fast-xml-parser'] = dependency['version']
+                package_path.write_bytes((json.dumps(package) + '\n').encode())
+                lock_path.write_bytes((json.dumps(lock) + '\n').encode())
+                mixed = commit('mixed dependency and JSON type change')
+                with self.subTest(before=before, after=after, scope='mixed-projection'):
+                    projections = metadata.version_projection_paths(candidate, base, mixed)
+                    self.assertNotIn(renderer, projections)
+                    inputs = [path for path in scope.changed_paths(candidate, base, mixed) if path not in projections]
+                    self.assertIn('packages/desktop/package.json', scope.pr_frontend_scope.related_command(inputs)[9:])
+
+    def test_nonfinite_json_values_never_prove_complete_documents(self):
+        original_snapshot = metadata.snapshot
+        renderer = 'frontend/packages/desktop/package.json'
+        for value in [float('nan'), float('inf'), float('-inf')]:
+            for target, key in [(metadata.IDENTITY, 'nonstandard'), (metadata.MATRIX, 'nonstandard'),
+                                (renderer, 'nonstandard'), (metadata.MIGRATION, 'nonstandard'),
+                                (metadata.MIGRATION, 'adaptationFingerprintSHA256'),
+                                (metadata.LICENSES, 'nonstandard')]:
+                def changed(repo, revision, path):
+                    raw = original_snapshot(repo, revision, path)
+                    if path == target:
+                        return json.dumps({**json.loads(raw), key: value}).encode()
+                    return raw
+                with self.subTest(value=value, target=target, key=key), patch.object(metadata, 'snapshot', side_effect=changed):
+                    self.assertEqual(metadata.metadata_paths(self.repo, self.base, self.head), set())
+                    if target in {metadata.IDENTITY, metadata.MATRIX, renderer}:
+                        self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head), set())
+
     def test_projection_selection_never_hides_manifest_behavior_or_dependency_edits(self):
         original_snapshot = metadata.snapshot
-        for target in ['frontend/package.json', 'frontend/package-lock.json', metadata.MATRIX, metadata.IDENTITY]:
+        projected = {metadata.IDENTITY, 'frontend/package.json', 'frontend/package-lock.json',
+                     'frontend/packages/desktop/package.json'}
+        for target in [*sorted(projected), metadata.MATRIX]:
             def changed(repo, revision, path):
                 raw = original_snapshot(repo, revision, path)
                 return json.dumps({**json.loads(raw), 'unreviewed': True}).encode() if revision == self.head and path == target else raw
+            with self.subTest(target=target), patch.object(metadata, 'snapshot', side_effect=changed):
+                proved = metadata.version_projection_paths(self.repo, self.base, self.head)
+                self.assertEqual(proved, set() if target in {metadata.MATRIX, metadata.IDENTITY} else projected - {target})
+                self.assertNotIn(target, proved)
+                if target == 'frontend/packages/desktop/package.json':
+                    paths = scope.changed_paths(self.repo, self.base, self.head)
+                    inputs = [path for path in paths if path not in proved and not scope.documentation_only(path)]
+                    self.assertIn('packages/desktop/package.json', scope.pr_frontend_scope.related_command(inputs)[9:])
+
+    def test_duplicate_json_never_proves_partial_projection_scope(self):
+        original_snapshot = metadata.snapshot
+        for target in ['frontend/package.json', 'frontend/package-lock.json',
+                       'frontend/packages/desktop/package.json', metadata.IDENTITY, metadata.MATRIX]:
+            def changed(repo, revision, path):
+                raw = original_snapshot(repo, revision, path)
+                return b'{"duplicate":1,"duplicate":2,' + raw.lstrip()[1:] if revision == self.head and path == target else raw
             with self.subTest(target=target), patch.object(metadata, 'snapshot', side_effect=changed):
                 self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head), set())
 
@@ -168,6 +298,7 @@ class MetadataScopeTest(unittest.TestCase):
         for base, head in [(self.head, self.head), ('0' * 40, self.head), ('main', self.head)]:
             with self.subTest(base=base):
                 self.assertEqual(metadata.metadata_paths(self.repo, base, head), set())
+                self.assertEqual(metadata.version_projection_paths(self.repo, base, head), set())
 
     def test_mixed_dependency_delta_ignores_only_independently_proved_identity_version(self):
         original_snapshot = metadata.snapshot
@@ -201,6 +332,7 @@ class MetadataScopeTest(unittest.TestCase):
                 return mutate(raw) if revision == self.head and path == target else raw
             with self.subTest(target=target), patch.object(metadata, 'snapshot', side_effect=changed):
                 self.assertEqual(metadata.filter_paths(self.repo, self.base, self.head, paths), (paths, []))
+                self.assertEqual(metadata.version_projection_paths(self.repo, self.base, self.head), set())
 
     def test_mixed_identity_proof_does_not_hide_runtime_inputs_or_auditor_code(self):
         original_snapshot = metadata.snapshot
@@ -265,6 +397,8 @@ class MetadataScopeTest(unittest.TestCase):
             with self.subTest(provenance_result=result), patch.object(sys, 'argv', argv), patch.object(
                 metadata, 'snapshot', side_effect=self.schema_transition()), patch.object(
                 scope, 'changed_paths', return_value=paths), patch.object(
+                scope.pr_namespace_scope, 'filter_paths',
+                side_effect=lambda _repo, _base, _head, paths, **_options: paths), patch.object(
                 scope, 'run', return_value=subprocess.CompletedProcess([], result)) as invoke:
                 self.assertEqual(scope.main(), result)
                 self.assertEqual(invoke.call_count, 1)

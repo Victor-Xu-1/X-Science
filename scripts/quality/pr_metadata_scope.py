@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from pathlib import Path
 import subprocess
@@ -17,6 +18,11 @@ MATRIX = "docs/governance/product-identity-consumer-matrix.json"
 PINS = r'(?m)^APPROVED_(ADAPTATION|ADDITION)_FINGERPRINT = "[0-9a-f]{64}"$'
 REFERENCE = "docs/governance/product-identity.json"
 VALIDATOR = "scripts/quality/product_identity_gate.py"
+
+
+def canonical_json(value: dict) -> str:
+    """Keep JSON booleans/numbers distinct and reject nonstandard numeric values."""
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
 def snapshot(repo: Path, revision: str, path: str) -> bytes:
@@ -65,10 +71,10 @@ def matrix_version_authority_compatible(repo: Path, base: str, head: str) -> boo
         old_target = references[0]["current_workspace_schema"]["target"]
         new_target = references[1]["current_workspace_schema"]["target"]
         references[0]["current_workspace_schema"]["target"] = new_target
-        if references[0] != references[1]:
+        if canonical_json(references[0]) != canonical_json(references[1]):
             return False
         if before_raw == after_raw:
-            return True
+            return canonical_json(before) == canonical_json(after)
         # Preserve the prior conservative handling of formatting-only churn.
         # The sole new allowance is the canonically validated numeric update.
         if old_target == new_target:
@@ -78,7 +84,7 @@ def matrix_version_authority_compatible(repo: Path, base: str, head: str) -> boo
         new_stanza = next(item for item in after["consumer_inventory"]
                           if item["surface_id"] == "workspace-schema-and-contracts")
         old_stanza["current_disposition"] = new_stanza["current_disposition"]
-        return before == after
+        return canonical_json(before) == canonical_json(after)
     except (OSError, ValueError, KeyError, TypeError, UnicodeError,
             subprocess.SubprocessError, identity_gate.IdentityError):
         return False
@@ -106,10 +112,13 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
             expected = document(snapshot(repo, base, path))
             for pointer in pointers:
                 replace_pointer(expected, pointer, old, new)
-            if expected != document(proposals[path]):
+            if canonical_json(expected) != canonical_json(document(proposals[path])):
                 return set()
         migration = document(snapshot(repo, base, MIGRATION))
         actual = document(snapshot(repo, head, MIGRATION))
+        # Validate the original envelopes before removing separately audited pins.
+        canonical_json(migration)
+        canonical_json(actual)
         for category, hash_key in (("adaptations", "targetSHA256"), ("additions", "sha256")):
             for record in migration[category]:
                 raw = proposals.get("frontend/" + record["path"])
@@ -119,7 +128,7 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
         for key in ("adaptationFingerprintSHA256", "additionFingerprintSHA256"):
             migration.pop(key)
             actual.pop(key)
-        if migration != actual:
+        if canonical_json(migration) != canonical_json(actual):
             return set()
         audit_before = snapshot(repo, base, AUDIT).decode()
         audit_after = snapshot(repo, head, AUDIT).decode()
@@ -133,7 +142,7 @@ def metadata_paths(repo: Path, base: str, head: str) -> set[str]:
                 if link["version"] != old:
                     return set()
                 link["version"] = new
-        if licenses != document(snapshot(repo, head, LICENSES)):
+        if canonical_json(licenses) != canonical_json(document(snapshot(repo, head, LICENSES))):
             return set()
         notice = snapshot(repo, base, NOTICES)
         previous_lock = hashlib.sha256(snapshot(repo, base, 'frontend/package-lock.json')).hexdigest()
@@ -171,7 +180,7 @@ def identity_version_only(repo: Path, base: str, head: str) -> bool:
         after = document(snapshot(repo, head, IDENTITY))
         require_next_version(before['version'], after['version'])
         replace_pointer(before, '/version', before['version'], after['version'])
-        return before == after
+        return canonical_json(before) == canonical_json(after)
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return False
 
@@ -191,12 +200,13 @@ def version_projection_paths(repo: Path, base: str, head: str) -> set[str]:
                 projected.setdefault(entry["path"], []).append(entry["pointer"])
         old = document(snapshot(repo, base, IDENTITY))["version"]
         new = document(snapshot(repo, head, IDENTITY))["version"]
+        proved = set()
         for path, pointers in projected.items():
             expected = document(snapshot(repo, base, path))
             for pointer in pointers:
                 replace_pointer(expected, pointer, old, new)
-            if expected != document(snapshot(repo, head, path)):
-                return set()
-        return set(projected)
+            if canonical_json(expected) == canonical_json(document(snapshot(repo, head, path))):
+                proved.add(path)
+        return proved
     except (OSError, ValueError, KeyError, TypeError, UnicodeError, subprocess.SubprocessError):
         return set()

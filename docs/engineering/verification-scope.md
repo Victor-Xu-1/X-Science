@@ -41,6 +41,16 @@ schema edit or unknown input keeps conservative coverage. Version/projection,
 fresh provenance and protected security checks still run; this is scope selection,
 not acceptance or a failure waiver.
 
+Each registered frontend version projection is proved independently. A real
+dependency change in one manifest does not invalidate the complete-document
+proof for another manifest whose only change is the approved version pointer.
+Unproved manifests and every actual implementation or build input retain their
+normal owners and checks. Complete JSON comparisons distinguish booleans from
+numbers and reject nonstandard numeric values, including values in separately
+audited provenance fields before those fields are removed for comparison.
+This keeps mixed-change test scope precise without weakening version, identity,
+provenance, dependency, security or protected-merge requirements.
+
 Frontend NOTICE updates are declared static license verification inputs: their
 exact paths run the license inventory/binding checks. Embedded Go ownership
 still takes precedence, and unregistered notice/runtime inputs stay conservative.
