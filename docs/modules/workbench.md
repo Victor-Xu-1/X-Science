@@ -583,6 +583,10 @@ Token 覆盖或关闭设置在界面说明，显式阈值不能超过已声明�
 或地址会清除旧容量声明；下一次调用及未输出的模型接管先解析模型，再共同绑定准入预算
 和用量快照，已发出的请求保持自己的模型/窗口。压缩前后的记录不删除用户可见历史。
 
+手动上下文压缩的资格沿现有 `GET /api/conversations/:id/context-compactions` 读回。普通会话
+生命周期事件只使原观察器失效并合并重读，不把事件本身当作空闲状态或压缩许可。账号、会话、
+代际与原请求身份的校验和迟到响应保护保持；未确认的维护操作仍沿原请求和回执恢复。
+
 ```sh
 go test ./internal/server -run 'TestContextUsage|TestContextProgress|TestContextHistory|TestContextCompactionPolicy|TestWebContextHistory|TestWebContextUsage|TestRequestContextBudget' -count=1
 cd frontend

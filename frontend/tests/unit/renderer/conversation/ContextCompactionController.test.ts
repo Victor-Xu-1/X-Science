@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
+import * as httpBridge from '@/common/adapter/httpBridge';
+import { parseRealtimeMessage } from '@/common/adapter/realtimeProtocol';
+import { observeContextCompaction } from '@/renderer/services/compaction/contextCompactionObservation';
 import {
   ContextCompactionController,
   compactionDependencies,
@@ -32,7 +35,7 @@ const snapshot = (operation: CompactionReceipt | null = null) =>
     identity
   );
 const releases: Array<() => void> = [];
-function setup(operation: CompactionReceipt | null = null) {
+function setup(operation: CompactionReceipt | null = null, realObservation = false) {
   let invalidate = () => {};
   const releaseObservation = vi.fn();
   const dependencies = {
@@ -51,7 +54,7 @@ function setup(operation: CompactionReceipt | null = null) {
     ),
     observe: vi.fn((_identity: typeof identity, listener: () => void) => {
       invalidate = listener;
-      return releaseObservation;
+      return realObservation ? observeContextCompaction(_identity, listener) : releaseObservation;
     }),
   };
   const controller = new ContextCompactionController(identity, dependencies);
@@ -64,7 +67,176 @@ beforeEach(() => {
 });
 afterEach(() => {
   releases.splice(0).forEach((release) => release());
+  vi.restoreAllMocks();
   setRendererAccountOwner(null);
+});
+
+function lifecycleEvents() {
+  const listeners = new Map<string, (event: unknown) => void>();
+  const cleanup = vi.fn();
+  vi.spyOn(httpBridge, 'wsEmitter').mockImplementation(((_kind: string, name: string) => ({
+    on: (listener: (event: unknown) => void) => {
+      listeners.set(name, listener);
+      return () => {
+        listeners.delete(name);
+        cleanup(name);
+      };
+    },
+  })) as typeof httpBridge.wsEmitter);
+  vi.spyOn(httpBridge, 'realtimeReconnectedEmitter').mockReturnValue({
+    on: () => () => cleanup('reconnect'),
+  });
+  return {
+    cleanup,
+    emit: (patch: Record<string, unknown> = {}) => {
+      const wire = parseRealtimeMessage(
+        JSON.stringify({
+          type: 'runtime.statusChanged',
+          _kind: 'fanout',
+          _event_id: 'ordinary-lifecycle',
+          _sequence: 23,
+          resource: 'acp_tool',
+          scope: { kind: 'conversation', id: identity.frameId },
+          phase: 'ready',
+          terminal_status: 'completed',
+          ...patch,
+        })
+      );
+      if (!wire.ok || wire.message.kind !== 'durable') throw new Error('Expected the real durable runtime adapter');
+      listeners.get(wire.message.type)?.(wire.message.payload);
+    },
+  };
+}
+
+describe('ordinary runtime lifecycle canonical eligibility', () => {
+  it('refreshes active eligibility to canonical idle after an ordinary terminal without remounting', async () => {
+    const events = lifecycleEvents();
+    const { controller, dependencies } = setup(null, true);
+    dependencies.read.mockResolvedValueOnce({ ...snapshot(), availability: { available: false, reason: 'active' } });
+    await controller.refresh();
+    expect(controller.getSnapshot().snapshot?.availability.reason).toBe('active');
+    expect(dependencies.read).toHaveBeenCalledTimes(1);
+    events.emit();
+    await Promise.resolve();
+    expect(dependencies.read).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() =>
+      expect(controller.getSnapshot().snapshot?.availability).toEqual({ available: true, reason: 'idle' })
+    );
+    expect(dependencies.observe).toHaveBeenCalledTimes(1);
+    expect(dependencies.submit).not.toHaveBeenCalled();
+    expect(dependencies.cancel).not.toHaveBeenCalled();
+    expect(dependencies.uuid).not.toHaveBeenCalled();
+  });
+  it.each(['active', 'queued', 'waiting', 'archived', 'unavailable'] as const)(
+    'preserves a fresh canonical %s blocker after a late ordinary terminal',
+    async (reason) => {
+      const events = lifecycleEvents();
+      const { controller, dependencies } = setup(null, true);
+      await controller.refresh();
+      dependencies.read.mockResolvedValue({ ...snapshot(), availability: { available: false, reason } });
+      events.emit();
+      await Promise.resolve();
+      expect(dependencies.read).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() =>
+        expect(controller.getSnapshot().snapshot?.availability).toEqual({ available: false, reason })
+      );
+      await controller.start();
+      expect(dependencies.submit).not.toHaveBeenCalled();
+      expect(dependencies.uuid).not.toHaveBeenCalled();
+    }
+  );
+  it.each(['waiting_for_lock', 'waiting_input', 'validating'] as const)(
+    'rechecks cached idle on a new ordinary lifecycle phase %s',
+    async (phase) => {
+      const events = lifecycleEvents();
+      const { controller, dependencies } = setup(null, true);
+      await controller.refresh();
+      dependencies.read.mockResolvedValue({ ...snapshot(), availability: { available: false, reason: 'queued' } });
+      events.emit({
+        phase,
+        terminal_status: undefined,
+        ...(phase === 'waiting_for_lock' ? { boundary_kind: 'attempt' } : {}),
+      });
+      await Promise.resolve();
+      expect(dependencies.read).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(controller.getSnapshot().snapshot?.availability.reason).toBe('queued'));
+      expect(dependencies.submit).not.toHaveBeenCalled();
+    }
+  );
+  it.each(['active', 'draining'] as const)(
+    'retains unresolved maintenance observed as %s after an ordinary terminal',
+    async (execution_observation) => {
+      const events = lifecycleEvents();
+      const original = receipt({
+        execution_observation,
+        ...(execution_observation === 'draining' ? { state: 'committed' as const } : {}),
+      });
+      const { controller, dependencies } = setup(original, true);
+      await controller.refresh();
+      dependencies.read.mockResolvedValue({ ...snapshot(), target: { ...snapshot().target, input_revision: 9 } });
+      events.emit();
+      await Promise.resolve();
+      expect(dependencies.read).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(dependencies.lookup).toHaveBeenCalledTimes(1));
+      expect(controller.retained).toBe(true);
+      expect(controller.getSnapshot().receipt?.execution_observation).toBe(execution_observation);
+      expect(dependencies.submit).not.toHaveBeenCalled();
+    }
+  );
+  it('coalesces lifecycle hints during one read and reads today rather than applying a late terminal phase', async () => {
+    const events = lifecycleEvents();
+    const { controller, dependencies } = setup(null, true);
+    await controller.refresh();
+    const pending = deferred<ReturnType<typeof snapshot>>();
+    dependencies.read
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue({ ...snapshot(), availability: { available: false, reason: 'active' } });
+    events.emit();
+    events.emit({ phase: 'waiting_for_lock', terminal_status: undefined, boundary_kind: 'attempt' });
+    events.emit();
+    await Promise.resolve();
+    expect(dependencies.read).toHaveBeenCalledTimes(2);
+    pending.resolve(snapshot());
+    await vi.waitFor(() => expect(dependencies.read).toHaveBeenCalledTimes(3));
+    await vi.waitFor(() => expect(controller.getSnapshot().snapshot?.availability.reason).toBe('active'));
+    expect(dependencies.submit).not.toHaveBeenCalled();
+  });
+  it('keeps failed eligibility reads gated and rejects late results after an account change', async () => {
+    const events = lifecycleEvents();
+    const { controller, dependencies } = setup(null, true);
+    await controller.refresh();
+    dependencies.read.mockRejectedValueOnce(new Error('read unavailable'));
+    events.emit();
+    await vi.waitFor(() => expect(controller.getSnapshot().error).toBe('read'));
+    await controller.start();
+    expect(dependencies.submit).not.toHaveBeenCalled();
+    const pending = deferred<ReturnType<typeof snapshot>>();
+    dependencies.read.mockReturnValueOnce(pending.promise);
+    events.emit();
+    await Promise.resolve();
+    expect(dependencies.read).toHaveBeenCalledTimes(3);
+    setRendererAccountOwner('replacement-owner');
+    pending.resolve({ ...snapshot(), availability: { available: false, reason: 'active' } });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(controller.getSnapshot().error).toBe('read');
+    events.emit();
+    expect(dependencies.read).toHaveBeenCalledTimes(3);
+    expect(dependencies.uuid).not.toHaveBeenCalled();
+  });
+  it('ignores foreign and tool-progress hints and releases the runtime subscription on unmount', async () => {
+    const events = lifecycleEvents();
+    const { controller, dependencies, release } = setup(null, true);
+    await controller.refresh();
+    events.emit({ scope: { kind: 'conversation', id: 'other-frame' } });
+    events.emit({ boundary_kind: 'tool', tool_call_id: 'tool-progress', tool_name: 'bash' });
+    await Promise.resolve();
+    expect(dependencies.read).toHaveBeenCalledTimes(1);
+    release();
+    expect(events.cleanup).toHaveBeenCalledWith('runtime.statusChanged');
+    events.emit();
+    expect(dependencies.read).toHaveBeenCalledTimes(1);
+  });
 });
 describe('C11 composer-owned maintenance lifecycle', () => {
   it('does not wait for an optional bootstrap before handing an ordinary Stop back to its owner', async () => {
@@ -131,7 +303,7 @@ describe('C11 composer-owned maintenance lifecycle', () => {
     });
     const { controller, dependencies } = setup(terminal);
     await controller.refresh();
-    const ordinary = {
+    const ordinary: ReturnType<typeof snapshot> = {
       ...snapshot(),
       target: { ...snapshot().target, input_revision: 9, through_publication_seq: 30 },
       availability: { available: false, reason: 'active' as const },

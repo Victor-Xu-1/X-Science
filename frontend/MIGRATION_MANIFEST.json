@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8e5f6a8bce8e3c3eb4e713c00017e50d6c872c8dae10ba2f29695f412d187398",
+  "adaptationFingerprintSHA256": "5eb8d881af8bf041282af4b746cfeaf6d1b875d2f1e2228a4715999de36bee84",
   "removalFingerprintSHA256": "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96",
-  "additionFingerprintSHA256": "20eafedf47dcfacb47f4ee0c9fe4e03555cf147129961ecdd0147983e7c1081a",
+  "additionFingerprintSHA256": "6640e971837a9723cb862be35a53c1d1ebc4be32c35b914ae71d04a945d2aeb1",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 263,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "8e18151b8ed611e125f3e242ff22f661ed3343fbff19f26a7dce9ea2bb32dc00",
+      "targetSHA256": "f8721cb078dcddf2d9d6fb3ade553cdc175db35b78bffc276456f2c38cf7ca53",
       "bytes": 4712,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "c2c7113e6e43ea79f3a6e28a7de47af6849b8017f647eaa309754f10364dae78",
+      "targetSHA256": "e25e30f60fc273bbb0d3e7a168e140e73c8e81822e32be1128036c4d4f4d2c00",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -7610,7 +7610,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "d02d75603eb44fbc4be1ffb09cb938eae60b4cc52540286745d120d96c790373",
+      "sha256": "f780438da3871fb59ec029eebfc0affe16502e355b1740b5e84d450de889c8ee",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -11408,8 +11408,8 @@
     },
     {
       "path": "packages/desktop/src/renderer/services/compaction/contextCompactionObservation.ts",
-      "sha256": "88e72d24fc44e80d48963a9f3402fcf98eeb6bfe3c48690b9d25f495a0dddd2d",
-      "bytes": 873,
+      "sha256": "acd60803a2d72f592720082e4d0a4a586a4fbea681da9a860d6d9ea1a1307375",
+      "bytes": 1808,
       "reason": "Retire only proven terminal maintenance observations without equating unrelated task busy state with compaction."
     },
     {
@@ -14174,8 +14174,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/ContextCompactionController.test.ts",
-      "sha256": "b179e41e4fa06d734cc156425c6468fc15e9cfef97997a9d02c717f735258e4c",
-      "bytes": 25969,
+      "sha256": "e6da302ba030bd116616ebd47383002e1fe28f639b4fa41ee8f3ba5c67a6bc13",
+      "bytes": 34067,
       "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in ContextCompactionController.test.ts, without scientific task replay or user artifacts."
     },
     {
@@ -14306,8 +14306,8 @@
     },
     {
       "path": "tests/unit/renderer/conversation/contextCompactionObservation.test.ts",
-      "sha256": "27c9b227b4ea561c4ee643f1aa20bc97378ea945a9ba2d41d8f4ec72240611eb",
-      "bytes": 2688,
+      "sha256": "c2b465b4fb8f2a4bac34eda3d733e818a11e207c960f01b1ae0abc1b67769443",
+      "bytes": 4761,
       "reason": "Verify or support the directly scoped context-compaction lifecycle and interaction contract in contextCompactionObservation.test.ts, without scientific task replay or user artifacts."
     },
     {
