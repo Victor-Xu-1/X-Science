@@ -3,7 +3,7 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "67ed9bbe57f2935150e63ca6caf3289422aa42a70b2ae37e48e7317637b678a7",
+  "adaptationFingerprintSHA256": "77d6ce122035e51b3ad332e681963eed544223d9414829f00aadff77ef468f95",
   "removalFingerprintSHA256": "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96",
   "additionFingerprintSHA256": "279c236ff3f332414ee04cdc1a071dec07b962cad4e1577b3c779879fff9f0e2",
   "summary": {
@@ -1812,8 +1812,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "e68b20e15d7d410e18a093c157b776cc42b39d9e480eacc652ade294053351dc",
-      "bytes": 12830,
+      "targetSHA256": "999ac0ec091447775bf8b9c7b639eb6bd9a79d36c55377d0c1bb476347a5fa63",
+      "bytes": 12935,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
