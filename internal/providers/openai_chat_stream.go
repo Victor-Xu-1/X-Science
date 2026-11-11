@@ -159,6 +159,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
 	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
 	observation.transport = &providerTransportObservation{started: started, parent: ctx, request: requestCtx}
+	defer observation.transport.publishCompleted(ctx, attempt, c.profile.Provider.Protocol)
 	defer cancelRequest(nil)
 	defer planning.Stop()
 
@@ -173,6 +174,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	outboundRequestID := httpRequest.Header.Get("X-Request-ID")
 
 	stopHeaders := providerStreamHeaderDeadline(request, firstByteTimeout, cancelRequest)
+	observation.transport.enterDo()
 	response, err := c.httpClient.Do(httpRequest)
 	stopHeaders()
 	if err != nil {
@@ -221,7 +223,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIChatStreamAttempt(ctx contex
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 		observation.transport.beginDecode("sse")
-		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
+		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth, observation.transport)
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readObservedOpenAIChatStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit, observation, request.Tools,
@@ -305,6 +307,7 @@ type openAIChatStreamIdleReader struct {
 	reader           io.Reader
 	semanticProgress bool
 	decodedGrowth    func(int64)
+	transport        *providerTransportObservation
 	awaitingGrowth   bool
 	timeout          time.Duration
 	cancel           context.CancelCauseFunc
@@ -314,9 +317,12 @@ type openAIChatStreamIdleReader struct {
 	stopped          bool
 }
 
-func newOpenAIChatStreamIdleReader(reader io.Reader, timeout time.Duration, cancel context.CancelCauseFunc, initialGrowth func(int64)) *openAIChatStreamIdleReader {
+func newOpenAIChatStreamIdleReader(reader io.Reader, timeout time.Duration, cancel context.CancelCauseFunc, initialGrowth func(int64), observations ...*providerTransportObservation) *openAIChatStreamIdleReader {
 	idleReader := &openAIChatStreamIdleReader{reader: reader, timeout: timeout, cancel: cancel, semanticProgress: true,
 		decodedGrowth: initialGrowth, awaitingGrowth: initialGrowth != nil}
+	if len(observations) > 0 {
+		idleReader.transport = observations[0]
+	}
 	// The initial-generation observer owns cancellation until decoder-confirmed
 	// growth. Starting a second equal idle timer makes the error class depend on
 	// scheduler order and can turn a recoverable no-action response into failure.
@@ -528,9 +534,6 @@ func readObservedOpenAIChatStream(reader io.Reader, limit int64, emit func(agent
 			}
 			if semanticDeltaBytes > 0 || firstTerminal {
 				recordProviderStreamProgress(reader, semanticDeltaBytes)
-				if observation != nil {
-					observation.transport.observeGrowth(semanticDeltaBytes, false)
-				}
 			}
 			if choice.Delta.Content != "" {
 				if !accumulator.roleBound || accumulator.role != "assistant" || accumulator.requestID == "" {

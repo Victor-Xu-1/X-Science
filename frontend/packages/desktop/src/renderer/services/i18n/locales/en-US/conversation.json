@@ -997,6 +997,27 @@
     "queueTooLarge": "Queue data is too large to persist safely. Remove some queued commands first."
   },
   "contextInspector": {
+    "phaseTiming": {
+      "title": "Recorded call phases",
+      "notRecorded": "Not recorded",
+      "help": "Offsets start at communication observer entry. Do entered is a client-call boundary, not a network-send measurement. A tool-call boundary is generation, not completed execution.",
+      "partial": "Some phase facts were not retained or reached a numeric bound.",
+      "resolve": "Model resolution",
+      "directory_prepare": "Request preparation",
+      "context_budget": "Context budget check",
+      "firstPrivateActivity": "First decoded private activity",
+      "firstNativeContent": "First native text",
+      "firstToolBoundary": "First generated tool-call boundary",
+      "firstPublicProgressReady": "First valid public progress",
+      "firstDurablePublication": "First durable publication",
+      "delegateFinished": "Model delegate returned",
+      "httpAttempt": "HTTP attempt {{count}}",
+      "attemptEntry": "Transport attempt entered",
+      "doEntered": "HTTP client Do entered",
+      "headersReady": "Response headers received",
+      "firstBodyRead": "First response body read",
+      "firstDecodedGrowth": "First positive decoded growth"
+    },
     "title": "Context window",
     "description": "Inspect submitted turns and recorded model calls in this conversation.",
     "close": "Close context window",

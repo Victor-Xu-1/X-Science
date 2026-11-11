@@ -38,6 +38,7 @@ type runnerContextUsage struct {
 	CallUsage       *agentruntime.ModelUsage                `json:"callUsage,omitempty"`
 	Association     *transcriptstore.ContextCallAssociation `json:"association,omitempty"`
 	ObservationKind string                                  `json:"observationKind,omitempty"`
+	PhaseTiming     *runnerCallPhaseTiming                  `json:"phaseTiming,omitempty"`
 }
 
 type runnerContextUsageRow struct {
@@ -318,10 +319,17 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	raw, err := json.Marshal(entry.Value)
 	var fields map[string]json.RawMessage
 	if err == nil {
-		err = json.Unmarshal(raw, &snapshot)
-	}
-	if err == nil {
 		err = json.Unmarshal(raw, &fields)
+	}
+	// Decode optional diagnostic metadata independently. A damaged optional
+	// object must not erase the original call, token usage or other history.
+	phaseRaw := fields["phaseTiming"]
+	delete(fields, "phaseTiming")
+	if err == nil {
+		raw, err = json.Marshal(fields)
+		if err == nil {
+			err = json.Unmarshal(raw, &snapshot)
+		}
 	}
 	if err != nil {
 		return snapshot, fmt.Errorf("decode context usage: %w", err)
@@ -332,6 +340,12 @@ func decodeRunnerContextUsage(entry runtimekv.Entry) (runnerContextUsage, error)
 	}
 	if _, present := fields["observationKind"]; present && snapshot.ObservationKind != "model_call" && snapshot.ObservationKind != "context_preparation" {
 		return snapshot, errors.New("invalid context observation kind")
+	}
+	if len(phaseRaw) > 0 {
+		if snapshot.ObservationKind == "model_call" &&
+			(snapshot.State == "complete" || snapshot.State == "failed") && validContextAssociation(snapshot.Association) {
+			snapshot.PhaseTiming = decodeRunnerCallPhaseTiming(phaseRaw)
+		}
 	}
 	if _, present := fields["failureKind"]; present && (snapshot.State != "failed" ||
 		(snapshot.FailureKind != "cancelled" && snapshot.FailureKind != "deadline")) {

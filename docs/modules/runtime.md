@@ -54,6 +54,20 @@ discovery does not introduce a mandatory listing step.
 原请求输入估算，总量仍标为估算。缓存是否另计由协议适配器声明，总量不重复加缓存。
 这些遥测变化不改模型容量、压缩策略或任务执行权限，也不因指标写入失败重试模型副作用。
 
+Recorded phases in the existing Calls details describe an ended model invocation.
+They use offsets from communication-observer entry, separating request preparation,
+HTTP client entry, received headers/body, decoded activity and durable publication.
+HTTP client entry is not proof that bytes reached the provider; generated tool-call
+boundaries are not completed tool execution. Missing facts remain unrecorded, while
+an observed zero is retained. Historical or damaged optional timing never removes
+the original call or usage. Timing follows the existing durable call association;
+it does not create a live execution authority, renew a lease or retry a model call.
+
+现有“调用”详情中的分段时序只描述已结束的模型调用，以通信观察器入口为相对起点。
+准备、进入 HTTP 客户端、响应头/正文、解码活动和持久发布分别记录；进入客户端不等于
+请求已经发到上游，生成工具调用边界也不等于工具执行完成。缺失事实显示未记录，真实
+零值保留。旧记录或损坏的可选时序不影响原调用及用量，不改变执行、取消或重试规则。
+
 模型正文和工具提案继续严格解码。只有声明为可选的用量对象和缓存明细容器，才将合法
 JSON 中非 null 的非对象值转为对应计数的固定类型异常；不保留原值，也不丢弃有效主结果。
 缺失与 null 保持未知，不冒充实测零；损坏的缓存明细不抹除基础计数、独立总量或已知下界。

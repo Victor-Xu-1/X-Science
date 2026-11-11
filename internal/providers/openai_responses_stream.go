@@ -81,9 +81,12 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 		return agentruntime.ModelResponse{}, false, false, err
 	}
 
-	startedAt := time.Now().UTC()
+	started := time.Now()
+	startedAt := started.UTC()
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
 	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
+	transport := &providerTransportObservation{started: started, parent: ctx, request: requestCtx}
+	defer transport.publishCompleted(ctx, attempt, c.profile.Provider.Protocol)
 	defer cancelRequest(nil)
 	defer planning.Stop()
 
@@ -98,6 +101,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	outboundRequestID := httpRequest.Header.Get("X-Request-ID")
 
 	stopHeaders := providerStreamHeaderDeadline(request, firstByteTimeout, cancelRequest)
+	transport.enterDo()
 	response, err := c.httpClient.Do(httpRequest)
 	stopHeaders()
 	if err != nil {
@@ -111,6 +115,7 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
 	planning.HeadersReceived()
+	response.Body = transport.observeHeaders(response.Body)
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -144,7 +149,8 @@ func (c *streamingRuntimeModelClient) completeOpenAIResponsesStreamAttempt(ctx c
 	var usage providerTokenUsage
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
-		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
+		transport.beginDecode("sse")
+		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth, transport)
 		defer idleReader.Stop()
 		decoded, requestID, usage, emitted, err = readOpenAIResponsesStream(
 			idleReader, c.profile.Request.MaxResponseBytes, emit, c.openAIResponsesTypedResponse,

@@ -12,6 +12,7 @@ import {
   type ContextInspectionTurnPoint,
 } from './contextInspectionModel';
 import styles from './ContextWindowInspector.module.css';
+import ContextCallPhaseTiming from './ContextCallPhaseTiming';
 
 const PREFIX = 'conversation.contextInspector.';
 
@@ -160,6 +161,7 @@ export function InspectionCallDetails({ call, index }: { call: ContextInspection
           })}
         </dl>
       </div>
+      <ContextCallPhaseTiming timing={call.phaseTiming} />
     </section>
   );
 }
