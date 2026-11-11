@@ -78,6 +78,7 @@ func (s *Server) sanitizeTranscriptWebPublicMessagesForTask(
 // Message IDs, status labels and model-authored fields never supply this proof.
 func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream transcriptstore.Stream, snapshot transcriptstore.ProjectionSnapshot, records []transcriptstore.TranscriptWebMessageRecord, messages []map[string]any) {
 	preserved := s.transcriptWebExplicitFailureCodes(ctx, stream)
+	users := s.transcriptWebPublicUserSources(ctx, stream, snapshot, records, messages)
 	canonical := map[int]string{}
 	if len(records) == len(messages) && s.transcriptStore != nil {
 		ranges := make([]transcriptstore.ProjectedAssistantSourceRange, len(records))
@@ -126,6 +127,9 @@ func (s *Server) sanitizeTranscriptWebPublicPage(ctx context.Context, stream tra
 		if kind != "text" && kind != "assistant" && kind != "thinking" {
 			continue
 		}
+		if sanitizeTranscriptWebPublicUserMessage(message, preserved, users[index]) {
+			continue
+		}
 		digest, proved := canonical[index]
 		proved = proved && completionAdvisorySHA(webString(mapValue(message["content"])["content"])) == digest
 		sanitizeTranscriptWebPublicMessagePolicy(message, preserved, proved)
@@ -142,9 +146,16 @@ func sanitizeTranscriptWebPublicMessagesWithCodes(
 	messages []map[string]any,
 	preservedCodes map[string]struct{},
 ) {
-	for _, message := range messages {
+	sanitizeTranscriptWebPublicMessagesWithUserSources(messages, preservedCodes, nil)
+}
+
+func sanitizeTranscriptWebPublicMessagesWithUserSources(messages []map[string]any, preservedCodes map[string]struct{}, users map[int]string) {
+	for index, message := range messages {
 		messageType := strings.ToLower(strings.TrimSpace(webString(message["type"])))
 		if messageType != "text" && messageType != "assistant" && messageType != "thinking" {
+			continue
+		}
+		if sanitizeTranscriptWebPublicUserMessage(message, preservedCodes, users[index]) {
 			continue
 		}
 		sanitizeTranscriptWebPublicMessage(message, preservedCodes)

@@ -1362,6 +1362,15 @@ responses, clears rows only on an actual source/branch/generation advance, and
 does not infer terminal delivery from a partial page. Navigation cancels the
 same route-owned retry; a pending anchor while idle wakes that existing owner.
 
+Ordinary user history text is preserved only from its exact immutable source
+event, owner, branch and current message-page snapshot. The publication reader
+matches source identities and the canonical body before exempting that body
+from historical assistant cleanup. Its bounded bulk source query follows the
+existing Web page limit; event-scan chunk sizes do not truncate user export pages.
+Metadata, hidden control inputs and assistant privacy keep their existing
+publication rules. This response-local proof does not rewrite stored events
+or accept a model-authored role label as authority.
+
 Preview snapshot completion belongs to its receiving tab, canvas and account
 lifetime. Closing, switching or returning to a prior receiver cannot revive an
 old save. A current save may keep its receiver lease when its own canonical

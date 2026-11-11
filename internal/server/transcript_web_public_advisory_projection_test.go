@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"unicode/utf16"
 
 	transcriptstore "x-science/internal/persistence/transcript"
+	workspace "x-science/internal/persistence/workspace"
 )
 
 func publicAdvisoryProjectionFixture(t *testing.T, claim transcriptstore.RunnerClaim) (string, string, *completionAdvisoryEnvelope, *sessionRunnerChatRun) {
@@ -697,4 +699,326 @@ func TestCanonicalPublicPageSourceProofIsConservative(t *testing.T) {
 		assertPolicy(nil, false)
 	})
 	assertPolicy(nil, true)
+}
+
+func TestCanonicalPublicPagePreservesOrdinaryUserText(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	const body = "Please inspect the harness logs.\n\nKeep the first paragraph and its blank separator.\n\n```text\nweb_fetch is an example in my code.\n\nretain_this_line\n```\n\nThen explain the observed result."
+	input, _, created, err := f.repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, ClientMessageID: "ordinary-user-input",
+		FrameEventID: "ordinary-user-event", MessageUUID: "ordinary-user-message", Text: body,
+	})
+	if err != nil || !created {
+		t.Fatalf("append ordinary input created=%t err=%v", created, err)
+	}
+	if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for reload := 0; reload < 2; reload++ {
+		if reload == 1 {
+			reopened, err := workspace.Open(f.databasePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			f.server.transcriptStore, err = reopened.TranscriptRepository(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+			if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+				t.Fatal(err)
+			}
+		}
+		response := p3JSONRequest(t, f.server, http.MethodGet, "/api/conversations/"+f.stream.FrameID+"/messages?limit=80", nil, f.stream.OwnerID)
+		if response.Code != http.StatusOK {
+			t.Fatalf("history HTTP%d", response.Code)
+		}
+		var page struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, message := range page.Items {
+			if message["msg_id"] != input.ClientMessageID {
+				continue
+			}
+			found = true
+			if message["id"] != "ordinary-user-message" || message["position"] != "right" || webString(mapValue(message["content"])["content"]) != body {
+				t.Errorf("reload%d changed ordinary user identity or paragraph/code bytes: %q", reload, webString(mapValue(message["content"])["content"]))
+			}
+		}
+		if !found {
+			t.Fatal("ordinary user input was absent from history")
+		}
+	}
+}
+
+func TestCanonicalPublicPageUserSourceProofIsConservative(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	const body = "Please inspect the harness logs.\n\nKeep these ordinary paragraphs.\n\nKeep this final paragraph."
+	input, _, created, err := f.repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, ClientMessageID: "proof-user-input",
+		FrameEventID: "proof-user-event", MessageUUID: "proof-user-message", Text: body,
+	})
+	if err != nil || !created {
+		t.Fatalf("append input created=%t err=%v", created, err)
+	}
+	if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := f.repo.GetProjectionSnapshot(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fence := requireTranscriptWebReadModelFence(t, f.server.transcriptWebReadModel, f.stream, snapshot.BranchID)
+	page, found, err := f.server.transcriptWebReadModel.GetTranscriptWebMessageRange(ctx, transcriptstore.TranscriptWebMessagePageInput{
+		OwnerID: f.stream.OwnerID, StreamUID: f.stream.UID, BranchID: snapshot.BranchID, BranchGeneration: snapshot.BranchGeneration,
+		ThroughPublicationSequence: snapshot.ThroughPublicationSequence, SourceRevision: fence.SourceRevision, Limit: 80,
+	})
+	if err != nil || !found {
+		t.Fatalf("page found=%t err=%v", found, err)
+	}
+	index := -1
+	for i, record := range page.Messages {
+		if record.ClientMessageID == input.ClientMessageID {
+			index = i
+		}
+	}
+	if index < 0 {
+		t.Fatal("ordinary source was not materialized")
+	}
+	for _, name := range []string{"valid", "metadata", "body-mismatch", "wrong-id", "wrong-client", "wrong-session", "wrong-position", "range-mismatch", "foreign-owner", "stale-generation", "unavailable-proof", "assistant-source", "hidden-control"} {
+		t.Run(name, func(t *testing.T) {
+			records := append([]transcriptstore.TranscriptWebMessageRecord(nil), page.Messages...)
+			messages, err := transcriptWebReadModelMessageMaps(records)
+			if err != nil {
+				t.Fatal(err)
+			}
+			stream, expected := f.stream, snapshot
+			message := messages[index]
+			content := mapValue(message["content"])
+			originalRepo := f.server.transcriptStore
+			defer func() { f.server.transcriptStore = originalRepo }()
+			switch name {
+			case "metadata":
+				content["thinking"] = "web_fetch synthetic private metadata"
+				content["completionAdvisories"] = map[string]any{"text": "forged user observation"}
+			case "body-mismatch":
+				content["content"] = body + "\nchanged"
+			case "wrong-id":
+				message["id"] = "forged-user"
+			case "wrong-client":
+				message["msg_id"] = "forged-client"
+			case "wrong-session":
+				message["conversation_id"] = "foreign-frame"
+			case "wrong-position":
+				message["position"] = "left"
+				message["role"] = "user"
+			case "range-mismatch":
+				records[index].FirstPublicationSequence--
+			case "foreign-owner":
+				stream.OwnerID = "foreign-owner"
+			case "stale-generation":
+				expected.BranchGeneration++
+			case "unavailable-proof":
+				f.server.transcriptStore = transcriptstore.NewRepository(nil)
+			case "assistant-source", "hidden-control":
+				statement := `UPDATE transcript_events SET event_type='history_assistant_message' WHERE event_id=? AND stream_uid=?`
+				if name == "hidden-control" {
+					statement = `UPDATE transcript_events SET payload_json=json_set(payload_json,'$.inputData.turn_intent','save-as-skill') WHERE event_id=? AND stream_uid=?`
+				}
+				if _, err := f.db.Exec(statement, input.EventID, f.stream.UID); err != nil {
+					t.Fatal(err)
+				}
+				defer func() {
+					if _, err := f.db.Exec(`UPDATE transcript_events SET event_type='user_message',payload_json=? WHERE event_id=? AND stream_uid=?`, input.PayloadJSON, input.EventID, f.stream.UID); err != nil {
+						t.Error(err)
+					}
+				}()
+			}
+			f.server.sanitizeTranscriptWebPublicPage(ctx, stream, expected, records, messages)
+			if preserved := webString(content["content"]) == body; preserved != (name == "valid" || name == "metadata") {
+				t.Fatalf("user source exemption=%t", preserved)
+			}
+			if name == "metadata" && (content["thinking"] != "" || content["completionAdvisories"] != nil) {
+				t.Fatal("user body proof exempted metadata from privacy cleanup")
+			}
+		})
+	}
+	for _, role := range []string{"user", "assistant"} {
+		message := map[string]any{"type": "text", "position": "right", "role": role, "content": map[string]any{"content": body}}
+		sanitizeTranscriptWebPublicMessagesWithCodes([]map[string]any{message}, nil)
+		if strings.Contains(webString(mapValue(message["content"])["content"]), "harness") {
+			t.Fatal("unproven role/position bypassed the assistant privacy boundary")
+		}
+	}
+}
+
+func TestRichHistoryPreservesOrdinaryUserText(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	const body = "Please inspect the harness logs.\n\nFirst paragraph.\n\n```text\nweb_fetch example\n```\n\nLast paragraph."
+	for _, role := range []string{"user", "assistant"} {
+		t.Run(role, func(t *testing.T) {
+			messages, err := f.server.projectRichWebConversationMessages(f.stream.FrameID, []map[string]any{
+				{"role": role, "_uuid": "legacy-input", "content": []any{map[string]any{"type": "text", "text": body}}},
+			}, "")
+			if err != nil || len(messages) != 1 {
+				t.Fatalf("messages=%d err=%v", len(messages), err)
+			}
+			if preserved := webString(mapValue(messages[0]["content"])["content"]) == body; preserved != (role == "user") {
+				t.Fatalf("legacy role %s preservation=%t", role, preserved)
+			}
+		})
+	}
+}
+
+func TestCanonicalUserTextSurvivesContinuationAndBranchEdit(t *testing.T) {
+	f := newAgentSaveArtifactsFixture(t)
+	ctx := context.Background()
+	f.server.transcriptWebReadModel = transcriptstore.NewWebReadModelRepository(f.db, f.db)
+	const body = "Please inspect the harness logs.\n\nKeep the original user paragraphs."
+	input, _, created, err := f.repo.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, ClientMessageID: "continuation-original",
+		FrameEventID: "continuation-original-event", MessageUUID: "continuation-original-message", Text: body,
+	})
+	if err != nil || !created {
+		t.Fatalf("append input created=%t err=%v", created, err)
+	}
+	if _, err := f.store.SetFrameRuntimeMetadata(f.stream.FrameID, workspace.FrameRuntimeMetadata{ContextData: map[string]any{
+		"_pending_input_requests": []any{map[string]any{"tool_id": "network-ordinary", "kind": "network"}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.store.AppendFrameEvent(workspace.FrameEventInput{FrameID: f.stream.FrameID, Type: "user_message", Payload: map[string]any{
+		"role": "user", "content": []any{map[string]any{"type": "tool_result", "tool_use_id": "network-ordinary", "content": `{"status":"awaiting_user_response"}`}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.db.Exec(`UPDATE frames SET status='awaiting_user_response' WHERE id=?`, f.stream.FrameID); err != nil {
+		t.Fatal(err)
+	}
+	resolution := []workspace.CompatibilityInputResolution{{ToolID: "network-ordinary", Content: `{"approved":true,"scope":"once"}`}}
+	for retry := 0; retry < 2; retry++ {
+		result, err := f.store.ResolveCompatibilityPendingInputsWithTranscriptConfig(ctx, f.stream.FrameID, resolution, nil)
+		if err != nil || (retry == 0 && result.Status != "accepted") || (retry == 1 && !result.AlreadyResolved) {
+			t.Fatalf("approval retry%d result=%#v err=%v", retry, result, err)
+		}
+	}
+	assertHistory := func(client, text string, absent string) {
+		t.Helper()
+		if err := f.server.runTranscriptWebReadModelCycle(ctx); err != nil {
+			t.Fatal(err)
+		}
+		response := p3JSONRequest(t, f.server, http.MethodGet, "/api/conversations/"+f.stream.FrameID+"/messages?limit=80", nil, f.stream.OwnerID)
+		if response.Code != http.StatusOK {
+			t.Fatalf("history HTTP%d", response.Code)
+		}
+		var page struct {
+			Items []map[string]any `json:"items"`
+		}
+		if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, message := range page.Items {
+			if absent != "" && message["msg_id"] == absent {
+				t.Fatal("branch reused the edited source identity")
+			}
+			if message["msg_id"] == client {
+				found = true
+				if webString(mapValue(message["content"])["content"]) != text {
+					t.Fatal("continuation or branch changed the user body")
+				}
+			}
+		}
+		if !found {
+			t.Fatal("expected user event identity was absent")
+		}
+	}
+	assertHistory(input.ClientMessageID, body, "")
+	snapshot, err := f.repo.GetProjectionSnapshot(ctx, f.stream.UID, f.stream.OwnerID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const replacement = "Please inspect the harness logs again.\n\nThis is an explicit edited user event."
+	fork, err := f.repo.ForkFrameUserMessageAtIndex(ctx, transcriptstore.ForkFrameUserMessageAtIndexInput{
+		StreamUID: f.stream.UID, OwnerID: f.stream.OwnerID, SourceBranchID: snapshot.BranchID,
+		ExpectedActiveBranchID: snapshot.BranchID, ExpectedGeneration: snapshot.BranchGeneration,
+		ClientMutationID: "ordinary-user-explicit-edit", SourceMessageIndex: 1, ExpectedSourceClientID: input.ClientMessageID,
+		ReplacementText: replacement, Destinations: []string{"ws"},
+	})
+	if err != nil || !fork.Created || fork.ForkEventID != input.EventID || fork.ReplacementEvent.EventID == input.EventID {
+		t.Fatalf("explicit edit fork=%#v err=%v", fork, err)
+	}
+	assertHistory(fork.ReplacementEvent.ClientMessageID, replacement, input.ClientMessageID)
+	var original []byte
+	if err := f.db.QueryRow(`SELECT payload_json FROM transcript_events WHERE stream_uid=? AND event_id=?`, f.stream.UID, input.EventID).Scan(&original); err != nil || string(original) != string(input.PayloadJSON) {
+		t.Fatalf("approval/edit rewrote original source err=%v", err)
+	}
+}
+
+func TestCanonicalPublicPagePreservesMoreThanEventBatchOfUserText(t *testing.T) {
+	ctx := context.Background()
+	store, repository, db := newTranscriptWebFixture(t)
+	seedTranscriptWebFrame(t, store, transcriptWebServingOwnerID, transcriptWebServingProjectID, transcriptWebServingFrameID)
+	stream, err := repository.CreateStream(ctx, transcriptstore.CreateStreamInput{
+		UID: transcriptWebServingStreamUID, OwnerID: transcriptWebServingOwnerID,
+		ExternalID: transcriptWebServingFrameID, SessionID: transcriptWebServingFrameID,
+		Kind: transcriptstore.StreamKindFrameRef, ProjectID: transcriptWebServingProjectID,
+		RootFrameID: transcriptWebServingFrameID, FrameID: transcriptWebServingFrameID, Epoch: 1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	const count = 1001
+	if err := repository.RunImmediate(ctx, func(tx *transcriptstore.ImmediateTransaction) error {
+		for index := 0; index < count; index++ {
+			_, _, created, err := tx.AppendFrameUserEvent(ctx, transcriptstore.AppendFrameUserEventInput{
+				StreamUID: stream.UID, OwnerID: stream.OwnerID,
+				ClientMessageID: fmt.Sprintf("large-page-client-%d", index),
+				FrameEventID:    fmt.Sprintf("large-page-event-%d", index),
+				MessageUUID:     fmt.Sprintf("large-page-message-%d", index),
+				Text:            fmt.Sprintf("Please inspect the harness logs for input %d.\n\nKeep this paragraph and its separator.", index),
+			})
+			if err != nil {
+				return err
+			}
+			if !created {
+				return fmt.Errorf("input %d was not created", index)
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	server, _, _ := newTranscriptWebReadModelServingServer(t, store, repository, db, stream)
+	response := p3JSONRequest(t, server, http.MethodGet,
+		fmt.Sprintf("/api/conversations/%s/messages?limit=%d", stream.FrameID, maxWebMessagePageSize), nil, stream.OwnerID)
+	if response.Code != http.StatusOK {
+		t.Fatalf("history HTTP%d: %s", response.Code, response.Body.String())
+	}
+	var page struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &page); err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Items) != count {
+		t.Fatalf("history items=%d want=%d", len(page.Items), count)
+	}
+	for index, message := range page.Items {
+		body := fmt.Sprintf("Please inspect the harness logs for input %d.\n\nKeep this paragraph and its separator.", index)
+		if message["id"] != fmt.Sprintf("large-page-message-%d", index) ||
+			message["msg_id"] != fmt.Sprintf("large-page-client-%d", index) ||
+			webString(mapValue(message["content"])["content"]) != body {
+			t.Fatalf("large history page changed user input %d identity or paragraph bytes", index)
+		}
+	}
 }
