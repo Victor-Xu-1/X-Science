@@ -941,6 +941,31 @@ selection read remains visible independently of a retained historical receipt.
 只阻止后续批次，已提交的当前批次仍须取得真实回执，未知响应不能通过清槽或另造
 请求来掩盖。阅读选择器将未结束的批量操作引回文献库原控制界面，不隐式执行余批。
 
+## Library bulk restore · 文献批量恢复
+
+Trash uses the same explicit, current-page and all-matching selection as the
+Library table. Before confirmation, an authenticated read resolves the selected
+deleted references and their current metadata revisions in one snapshot. The
+preview respects excluded matches; cancelling it performs no writes. A changed
+account, view or selection invalidates an unconfirmed preview.
+
+Confirmation retains the frozen plan in the original account-scoped pending
+slot. Each reference uses its original edit operation ID and expected revision;
+confirmed progress comes from validated server receipts. The plan is sequential,
+not atomic as a group. A conflict or unknown reply stops the remaining work,
+and retry replays the same uncertain operation before proceeding. Stopping
+allows the current request to settle and prevents later requests; it does not
+undo committed restores. Refresh can recover the unconfirmed suffix without
+repeating confirmed writes. A failed list readback does not undo a confirmed
+restore or make it necessary to send the write again.
+
+回收站复用文献表格的逐项、当前页和全部匹配选择。确认前一次读取选中文献及其真实
+修订号，再排除“全部匹配”中取消选择的项目；取消预览不发送恢复请求。账号、视图或选择
+变化后，旧预览不能再提交。确认后的计划保留在原账号待确认槽中，逐项取得真实回执，
+不宣称整组原子提交。修订冲突或未知响应会停止后续项，重试先核验同一个原请求。
+停止只阻止后续项，不撤销已提交的恢复；刷新可接续未确认部分。列表读回失败时，
+已确认的恢复仍然有效，重试读取不会重发已确认写入。
+
 ## Library detail header · 文献详情页头
 
 The compact detail header keeps Edit and Close visible while scrolling. Editing
