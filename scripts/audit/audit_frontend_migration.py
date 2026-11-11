@@ -89,7 +89,7 @@ ALLOWED_ADAPTATIONS = {
     "packages/desktop/src/renderer/pages/settings/components/settings.css": "Stabilize responsive settings dimensions and shared visual tokens across desktop and narrow layouts.",
     "packages/desktop/src/renderer/services/SpeechToTextService.ts": "Attach the Go double-submit CSRF token to same-origin batch speech uploads without leaking it cross-origin.",
     "packages/desktop/src/renderer/services/authSession.ts": "Monitor session expiry and decorate unsafe same-origin browser requests with the Go CSRF token.",
-    "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts": "Regenerate typed locale keys for required Python/R core runtimes and the optional first-run scientific-runtime catalog.",
+    "packages/desktop/src/renderer/services/i18n/i18n-keys.d.ts": "Regenerate typed locale keys from the existing English and Chinese locale resources with the original i18n generator.",
     "packages/desktop/src/renderer/services/i18n/locales/en-US/guid.json": "Describe required Python/R core runtimes, optional first-run scientific runtimes, and informational storage estimates in the complete English onboarding locale.",
     "packages/desktop/src/renderer/services/i18n/locales/en-US/preview.json": "Add English labels for unified structure composition, collapsed 2D panels, and format-neutral interaction controls.",
     "packages/desktop/src/renderer/services/i18n/locales/zh-CN/guid.json": "Describe required Python/R core runtimes, optional first-run scientific runtimes, and informational storage estimates in the complete Simplified Chinese onboarding locale.",
