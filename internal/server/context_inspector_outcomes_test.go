@@ -12,7 +12,7 @@ func TestContextInspectorPreservesErrorAndLaterCompletionOutcomes(t *testing.T) 
 	f := newAgentSaveArtifactsFixture(t)
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	first := recorder.begin("first-model", agentruntime.ModelRequest{})
+	first := recorder.begin(t.Context(), "first-model", agentruntime.ModelRequest{})
 	recorder.finish(first, agentruntime.ModelResponse{}, nil)
 	failed, _, _, err := f.repo.FinishRunner(t.Context(), transcriptstore.FinishRunnerInput{Claim: f.claim,
 		ClientMessageID: "inspect-error-outcome", Status: "failed", PayloadJSON: []byte(`{"detail":"controlled fixture failure"}`)})
@@ -41,7 +41,7 @@ func TestContextInspectorPreservesErrorAndLaterCompletionOutcomes(t *testing.T) 
 	}
 	run.Transcript.Claim = retry.Claim
 	next := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	second := next.begin("second-model", agentruntime.ModelRequest{})
+	second := next.begin(t.Context(), "second-model", agentruntime.ModelRequest{})
 	next.finish(second, agentruntime.ModelResponse{}, nil)
 	completed, _, _, err := f.repo.FinishRunner(t.Context(), transcriptstore.FinishRunnerInput{Claim: retry.Claim,
 		ClientMessageID: "inspect-completed-outcome", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)})
@@ -91,7 +91,7 @@ func TestContextInspectorQueuedBatchDoesNotInventTerminal(t *testing.T) {
 	}
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: batch.Claim}}
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	call := recorder.begin("batch-model", agentruntime.ModelRequest{})
+	call := recorder.begin(t.Context(), "batch-model", agentruntime.ModelRequest{})
 	recorder.finish(call, agentruntime.ModelResponse{}, nil)
 	if _, _, _, err := f.repo.FinishRunner(t.Context(), transcriptstore.FinishRunnerInput{Claim: batch.Claim, ClientMessageID: "inspect-batch-finished", Status: "completed", PayloadJSON: []byte(`{"text":"done"}`)}); err != nil {
 		t.Fatal(err)

@@ -1335,6 +1335,18 @@ healthy stream may exceed several idle windows while producing meaningful
 progress. Explicit caller cancellation/deadlines still apply; stalled streams
 remain bounded, and non-streaming calls retain provider request deadlines.
 
+Optional context observations share the existing short sampling budget across
+their frame probe, lock admission and atomic history/latest edit. Before model
+dispatch they inherit caller cancellation; after a real provider response the
+optional terminal observation has its own bounded attempt. Unavailable sampling
+does not retry the model, replace its result or queue a late observation. The
+last request estimate remains an estimate when final measurement cannot commit.
+The existing request/attempt and deletion fences still select valid writes.
+Namespace edits preserve the original background/deferred no-op behavior while
+cancellable edits use the existing SQLite writer owner. Once a commit starts,
+its actual outcome is settled; the sampling budget is not an absolute OS-I/O
+or primary task-settlement deadline.
+
 Contract, persistence, kernel-host, confined provider proxy, SSH/Slurm,
 approval-resume, plan approval, artifact-retention and source-routing behavior
 are verified by their corresponding executable tests. Local protocol tests do

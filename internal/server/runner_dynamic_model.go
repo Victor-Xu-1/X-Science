@@ -313,7 +313,10 @@ func (client *sessionRunnerDynamicModelClient) Complete(
 			return agentruntime.ModelResponse{}, err
 		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, actual, capacity)
+		usage := recorder.begin(ctx, resolved.model, actual, capacity)
+		if err := ctx.Err(); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
 		response, callErr := resolved.client.Complete(ctx, actual)
 		recorder.finish(usage, response, callErr)
 		if callErr == nil {
@@ -382,7 +385,10 @@ func (client *sessionRunnerDynamicModelClient) CompleteStream(
 			return agentruntime.ModelResponse{}, err
 		}
 		recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
-		usage := recorder.begin(resolved.model, actual, capacity)
+		usage := recorder.begin(ctx, resolved.model, actual, capacity)
+		if err := ctx.Err(); err != nil {
+			return agentruntime.ModelResponse{}, err
+		}
 		progress := recorder.streamProgress(usage)
 		response, callErr := complete(resolved, actual, progress)
 		progress.finish(response, callErr)

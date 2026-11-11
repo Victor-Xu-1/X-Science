@@ -121,24 +121,6 @@ func scanEntry(scanner entryScanner) (Entry, error) {
 	return entry, nil
 }
 
-func listNamespaceTx(tx *sql.Tx, namespace string) (map[string]Entry, error) {
-	rows, err := tx.Query(`SELECT namespace,entry_key,value_json,version,updated_at
-		FROM runtime_state_entries WHERE namespace=? ORDER BY entry_key`, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("read runtime namespace: %w", err)
-	}
-	defer rows.Close()
-	entries := map[string]Entry{}
-	for rows.Next() {
-		entry, err := scanEntry(rows)
-		if err != nil {
-			return nil, err
-		}
-		entries[entry.Key] = entry
-	}
-	return entries, rows.Err()
-}
-
 func encodeValue(value any) ([]byte, any, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {

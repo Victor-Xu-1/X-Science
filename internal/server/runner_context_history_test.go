@@ -16,7 +16,7 @@ func TestContextHistoryBoundedRetentionPreservesProviderPeakAndScope(t *testing.
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "history-session", attempt: 1, limit: 10000, limitSource: "model_profile"}
 	var firstID string
 	for index := 0; index < contextHistoryRetention+3; index++ {
-		snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+		snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 		used := 100 + index
 		if index == 0 {
 			used, firstID = 9000, snapshot.RequestID
@@ -42,11 +42,11 @@ func TestContextHistoryLiveProjectionAndLateCompletionKeepRequestIdentity(t *tes
 	store := runtimekv.New(filepath.Join(t.TempDir(), "history.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "history-session", attempt: 1, limit: 100, limitSource: "configured"}
-	first := recorder.begin("first-model", agentruntime.ModelRequest{})
+	first := recorder.begin(t.Context(), "first-model", agentruntime.ModelRequest{})
 	recorder.finish(first, agentruntime.ModelResponse{Usage: agentruntime.ModelUsage{InputTokens: 80, TotalTokens: 80}}, nil)
-	second := recorder.begin("second-model", agentruntime.ModelRequest{}, runnerContextCapacity{Source: "unknown"})
+	second := recorder.begin(t.Context(), "second-model", agentruntime.ModelRequest{}, runnerContextCapacity{Source: "unknown"})
 	second.Progress = &runnerContextProgress{Phase: "generating", ObservedAt: time.Now().UTC(), UsedTokens: second.UsedTokens + 5, OutputTokens: 5}
-	if err := recorder.persist(*second, true); err != nil {
+	if err := recorder.persist(t.Context(), *second, true); err != nil {
 		t.Fatal(err)
 	}
 	latest, history, _, err := readRunnerContextUsage(t.Context(), store, recorder.sessionID)
@@ -59,10 +59,10 @@ func TestContextHistoryLiveProjectionAndLateCompletionKeepRequestIdentity(t *tes
 		t.Fatalf("late completion replaced a newer request: %v %+v", err, history)
 	}
 	second.Progress = &runnerContextProgress{Phase: "compacting", ObservedAt: time.Now().UTC(), UsedTokens: second.UsedTokens}
-	if err := recorder.persist(*second, true); err != nil {
+	if err := recorder.persist(t.Context(), *second, true); err != nil {
 		t.Fatal(err)
 	}
-	third := recorder.begin("second-model", agentruntime.ModelRequest{}, runnerContextCapacity{Source: "unknown"})
+	third := recorder.begin(t.Context(), "second-model", agentruntime.ModelRequest{}, runnerContextCapacity{Source: "unknown"})
 	_, history, _, err = readRunnerContextUsage(t.Context(), store, recorder.sessionID)
 	if err != nil || history.Samples[1].Progress == nil || history.Samples[1].Progress.Phase != "compacting" || history.Samples[2].RequestID != third.RequestID {
 		t.Fatalf("observed compaction pressure lost: %v %+v", err, history)
@@ -73,7 +73,7 @@ func TestContextHistoryLegacyCoverageAndInvalidHistoryAreExplicit(t *testing.T) 
 	store := runtimekv.New(filepath.Join(t.TempDir(), "history.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "history-session", limit: 100, limitSource: "configured"}
-	snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+	snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 	if _, err := store.Delete(contextUsageNamespace(recorder.sessionID), "history"); err != nil {
 		t.Fatal(err)
 	}
@@ -95,9 +95,9 @@ func TestContextHistoryNextRequestRetainsInterruptedStreamProjection(t *testing.
 	path := filepath.Join(t.TempDir(), "history.sqlite")
 	store := runtimekv.New(path)
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "interrupted-history", attempt: 1, limit: 1000, limitSource: "configured"}
-	first := recorder.begin("model", agentruntime.ModelRequest{})
+	first := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 	first.Progress = &runnerContextProgress{Phase: "generating", ObservedAt: time.Now().UTC(), UsedTokens: first.UsedTokens + 123, OutputTokens: 123}
-	if err := recorder.persist(*first, true); err != nil {
+	if err := recorder.persist(t.Context(), *first, true); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.Close(); err != nil {
@@ -107,7 +107,7 @@ func TestContextHistoryNextRequestRetainsInterruptedStreamProjection(t *testing.
 	store = runtimekv.New(path)
 	t.Cleanup(func() { _ = store.Close() })
 	recorder = &sessionContextUsageRecorder{store: store, sessionID: first.SessionID, attempt: 2, limit: 1000, limitSource: "configured"}
-	second := recorder.begin("model", agentruntime.ModelRequest{})
+	second := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 	if second == nil {
 		t.Fatal("next request not recorded")
 	}

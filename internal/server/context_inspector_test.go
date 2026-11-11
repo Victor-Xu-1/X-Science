@@ -47,7 +47,7 @@ func TestContextInspectorLegacyCallsNeverInventPromptAssociation(t *testing.T) {
 	}
 	app := New(Options{Workspace: store, Transcript: repo, FileRoot: t.TempDir()})
 	recorder := newSessionContextUsageRecorder(app, "inspect-frame", 1, SessionRunnerChatOptions{})
-	request := recorder.begin("fixture-model", agentruntime.ModelRequest{})
+	request := recorder.begin(t.Context(), "fixture-model", agentruntime.ModelRequest{})
 	if request == nil {
 		t.Fatal("fixture recorder did not begin")
 	}
@@ -74,7 +74,7 @@ func TestContextInspectorClaimedInputAndCommittedTerminal(t *testing.T) {
 	if recorder == nil || recorder.association == nil {
 		t.Fatal("live claim did not capture an admitted input")
 	}
-	first := recorder.begin("model-a", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "fixture"}}})
+	first := recorder.begin(t.Context(), "model-a", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "fixture"}}})
 	if first == nil || first.Association.InputMessageID != "save-user-message" {
 		t.Fatalf("rendered message identity lost: %+v", first)
 	}

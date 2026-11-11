@@ -23,7 +23,7 @@ func TestContextProgressPublishesToolBoundaryPhaseInsideThrottle(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "phase-transition", attempt: 1, limit: 1000, limitSource: "configured"}
-	snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+	snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 	tracker := recorder.streamProgress(snapshot)
 	now := snapshot.ObservedAt
 	tracker.now = func() time.Time { return now }
@@ -50,7 +50,7 @@ func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "fences", attempt: 1, limit: 1000, limitSource: "configured"}
-	snapshot := recorder.begin("model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "input"}}})
+	snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "input"}}})
 	tracker := recorder.streamProgress(snapshot)
 	now := time.Now()
 	tracker.now = func() time.Time { return now }
@@ -85,8 +85,8 @@ func TestContextProgressThrottleFailureAndLateSampleFences(t *testing.T) {
 	if readContextUsageTest(t, store, "fences").State != "failed" {
 		t.Fatal("late stream reopened request")
 	}
-	next := recorder.begin("next", agentruntime.ModelRequest{})
-	_ = recorder.persist(*snapshot, true)
+	next := recorder.begin(t.Context(), "next", agentruntime.ModelRequest{})
+	_ = recorder.persist(t.Context(), *snapshot, true)
 	if err := recorder.persistProgress(t.Context(), late); err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +318,7 @@ func TestContextProgressBacksOffAcrossPhaseChangesAfterBusyWrite(t *testing.T) {
 	store := runtimekv.New(filepath.Join(t.TempDir(), "runtime.sqlite"))
 	t.Cleanup(func() { _ = store.Close() })
 	recorder := &sessionContextUsageRecorder{store: store, sessionID: "backoff", attempt: 1, limit: 1000, limitSource: "configured"}
-	snapshot := recorder.begin("model", agentruntime.ModelRequest{})
+	snapshot := recorder.begin(t.Context(), "model", agentruntime.ModelRequest{})
 	tracker := recorder.streamProgress(snapshot)
 	now := snapshot.ObservedAt
 	tracker.now = func() time.Time { return now }

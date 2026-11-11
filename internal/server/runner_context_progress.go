@@ -129,12 +129,14 @@ func (client *sessionRunnerDynamicModelClient) recordContextPressure(ctx context
 	}
 	recorder := contextUsageRecorderForCall(ctx, client.contextUsage)
 	// Admission runs after model resolution, before provider dispatch.
-	snapshot := recorder.beginObservation("context_preparation", resolved.model, request, contextCapacityForModel(resolved.contextProfile, client.contextOptions))
+	ctx, cancel := context.WithTimeout(ctx, contextProgressWriteTimeout)
+	defer cancel()
+	snapshot := recorder.beginObservation(ctx, "context_preparation", resolved.model, request, contextCapacityForModel(resolved.contextProfile, client.contextOptions))
 	if snapshot == nil {
 		return
 	}
 	snapshot.Progress = &runnerContextProgress{Phase: "compacting", ObservedAt: time.Now().UTC(), UsedTokens: snapshot.UsedTokens}
-	if err := recorder.persist(*snapshot, true); err != nil {
+	if err := recorder.persist(ctx, *snapshot, true); err != nil {
 		log.Printf("context_usage_pressure_write_failed session=%s: %v", recorder.sessionID, err)
 	}
 }

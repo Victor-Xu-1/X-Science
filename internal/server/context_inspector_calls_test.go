@@ -81,7 +81,7 @@ func TestContextInspectorControlResumePreservesEarlierCallAssociation(t *testing
 	f := newAgentSaveArtifactsFixture(t)
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	first := recorder.begin("before-control", agentruntime.ModelRequest{})
+	first := recorder.begin(t.Context(), "before-control", agentruntime.ModelRequest{})
 	recorder.finish(first, agentruntime.ModelResponse{}, nil)
 	checkpoint, _, _, err := f.repo.PauseRunnerForInput(t.Context(), transcriptstore.AppendRunnerCheckpointInput{Claim: f.claim,
 		ClientMessageID: "inspect-control-question", Phase: transcriptstore.RunnerPhaseWaitingUser, Resumable: true,
@@ -103,7 +103,7 @@ func TestContextInspectorControlResumePreservesEarlierCallAssociation(t *testing
 	}
 	run.Transcript.Claim = resumed.Claim
 	after := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	second := after.begin("after-control", agentruntime.ModelRequest{})
+	second := after.begin(t.Context(), "after-control", agentruntime.ModelRequest{})
 	after.finish(second, agentruntime.ModelResponse{}, nil)
 	inspection := readContextInspectorFixture(t, f.server, f.stream.SessionID, f.stream.OwnerID)
 	if len(inspection["calls"].([]any)) != 2 || len(inspection["turns"].([]any)) != 1 || len(inspection["turns"].([]any)[0].(map[string]any)["callIds"].([]any)) != 2 {
@@ -118,7 +118,7 @@ func TestContextInspectorRejectsForgedAssociationAndAnotherScope(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	sample := recorder.begin("fixture-model", agentruntime.ModelRequest{})
+	sample := recorder.begin(t.Context(), "fixture-model", agentruntime.ModelRequest{})
 	if sample == nil || sample.Association == nil {
 		t.Fatal("missing captured association")
 	}
@@ -180,7 +180,7 @@ func TestContextInspectorPinsRuntimeRequestSetBeforeJournalRead(t *testing.T) {
 	f := newAgentSaveArtifactsFixture(t)
 	run := &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: f.stream, Claim: f.claim}}
 	recorder := f.server.newClaimedContextUsageRecorder(t.Context(), f.stream.SessionID, run, SessionRunnerChatOptions{})
-	sample := recorder.begin("fixture-model", agentruntime.ModelRequest{})
+	sample := recorder.begin(t.Context(), "fixture-model", agentruntime.ModelRequest{})
 	if sample == nil || sample.Association == nil {
 		t.Fatal("missing captured association")
 	}
@@ -206,7 +206,7 @@ func TestContextInspectorPinsRuntimeRequestSetBeforeJournalRead(t *testing.T) {
 		order = append(order, "journal")
 		// Real recorder retention advances between the two readers; it must
 		// never replace the owned request-ID set of this inspection response.
-		later = recorder.begin("next-request", agentruntime.ModelRequest{})
+		later = recorder.begin(t.Context(), "next-request", agentruntime.ModelRequest{})
 		if _, _, _, err := f.repo.AppendRunnerCheckpoint(t.Context(), transcriptstore.AppendRunnerCheckpointInput{Claim: f.claim,
 			ClientMessageID: "inspection-between-readers", Phase: transcriptstore.RunnerPhaseExecuting, Resumable: true,
 			PayloadJSON: []byte(`{"status":"running"}`)}); err != nil {

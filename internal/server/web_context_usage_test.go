@@ -39,7 +39,7 @@ func TestWebContextUsageMissingRecordIsExplicit(t *testing.T) {
 		t.Fatalf("foreign context access HTTP %d", foreign.Code)
 	}
 	recorder := newSessionContextUsageRecorder(app, id, 1, SessionRunnerChatOptions{})
-	if recorder.begin("model", agentruntime.ModelRequest{}) == nil {
+	if recorder.begin(t.Context(), "model", agentruntime.ModelRequest{}) == nil {
 		t.Fatal("record context usage")
 	}
 	ready := p3JSONRequest(t, app, http.MethodGet, "/api/conversations/"+id+"/context-usage", nil, "")
@@ -66,7 +66,7 @@ func TestWebContextUsageMissingRecordIsExplicit(t *testing.T) {
 	if deleted.Code != http.StatusOK {
 		t.Fatalf("delete HTTP %d: %s", deleted.Code, deleted.Body.String())
 	}
-	if recorder.begin("late-model", agentruntime.ModelRequest{}) != nil {
+	if recorder.begin(t.Context(), "late-model", agentruntime.ModelRequest{}) != nil {
 		t.Fatal("late model call recreated a deleted task usage record")
 	}
 	if _, found, err := app.runtimeStore.Get(contextUsageNamespace(id), "latest"); err != nil || found {
@@ -101,7 +101,7 @@ func TestWebContextUsageLegacyRecordIsUnavailableUntilNextRequest(t *testing.T) 
 		t.Fatalf("legacy three-category record fabricated five buckets: HTTP %d body=%s", before.Code, before.Body.String())
 	}
 	recorder := newSessionContextUsageRecorder(app, id, 1, SessionRunnerChatOptions{})
-	if recorder.begin("new-model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "fresh"}}}) == nil {
+	if recorder.begin(t.Context(), "new-model", agentruntime.ModelRequest{Messages: []agentruntime.Message{{Role: "user", Content: "fresh"}}}) == nil {
 		t.Fatal("new request could not replace legacy projection")
 	}
 	after := p3JSONRequest(t, app, http.MethodGet, "/api/conversations/"+id+"/context-usage", nil, "")
@@ -216,7 +216,7 @@ func TestWebContextUsageConcurrentDeleteFencesPendingWrite(t *testing.T) {
 	recorder := newSessionContextUsageRecorder(app, id, 1, SessionRunnerChatOptions{})
 	go func() {
 		defer close(done)
-		recorder.begin("model", agentruntime.ModelRequest{Tools: []agentruntime.ToolSchema{{
+		recorder.begin(t.Context(), "model", agentruntime.ModelRequest{Tools: []agentruntime.ToolSchema{{
 			Name: "test", Parameters: map[string]any{"properties": contextUsageBlockingSchema{started, release}},
 		}}})
 	}()
