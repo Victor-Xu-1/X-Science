@@ -40,9 +40,12 @@ func (c *streamingRuntimeModelClient) completeNativeStream(ctx context.Context, 
 }
 
 func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Context, request agentruntime.ModelRequest, emit func(agentruntime.ModelStreamEvent) error, attempt int, endpoint string, payload []byte, decode nativeJSONDecoder, readStream nativeStreamReader) (agentruntime.ModelResponse, bool, bool, error) {
-	startedAt := time.Now().UTC()
+	started := time.Now()
+	startedAt := started.UTC()
 	firstByteTimeout, idleTimeout := openAIChatStreamTimeouts(c.profile.Request.Timeout)
 	requestCtx, cancelRequest, emit, planning := toolPlanningStreamContext(ctx, request, idleTimeout, emit)
+	transport := &providerTransportObservation{started: started, parent: ctx, request: requestCtx}
+	defer transport.publishCompleted(ctx, attempt, c.profile.Provider.Protocol)
 	defer cancelRequest(nil)
 	defer planning.Stop()
 
@@ -56,6 +59,7 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	c.applyHeaders(httpRequest, request.Headers)
 	outboundRequestID := httpRequest.Header.Get("X-Request-ID")
 	stopHeaders := providerStreamHeaderDeadline(request, firstByteTimeout, cancelRequest)
+	transport.enterDo()
 	response, err := c.httpClient.Do(httpRequest)
 	stopHeaders()
 	if err != nil {
@@ -69,6 +73,7 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 		return agentruntime.ModelResponse{}, ctx.Err() == nil && !IsProviderEmptyResponse(err), false, err
 	}
 	planning.HeadersReceived()
+	response.Body = transport.observeHeaders(response.Body)
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -102,7 +107,8 @@ func (c *streamingRuntimeModelClient) completeNativeStreamAttempt(ctx context.Co
 	var usage providerTokenUsage
 	var emitted bool
 	if strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
-		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth)
+		transport.beginDecode("sse")
+		idleReader := newOpenAIChatStreamIdleReader(response.Body, idleTimeout, cancelRequest, planning.ObserveGrowth, transport)
 		defer idleReader.Stop()
 		response.Body = &providerStreamIdleReadCloser{reader: idleReader, closer: response.Body}
 		decoded, requestID, usage, emitted, err = readStream(c.runtimeModelClient, *response, emit)

@@ -25,6 +25,7 @@ func (reader *openAIChatStreamIdleReader) recordProgress(growth int64) {
 	if growth > 0 && reader.decodedGrowth != nil {
 		reader.decodedGrowth(growth)
 	}
+	reader.transport.observeGrowth(growth, false)
 	reader.reset()
 }
 
