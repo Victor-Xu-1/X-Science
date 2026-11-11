@@ -243,7 +243,16 @@ export function mergeLoadedPageWithCurrent(
     return !(message.type === 'text' && represented?.type === 'text' && isTextPublicationCovered(represented, message));
   });
 
-  if (liveOnly.length) return [...mergedMessages, ...liveOnly];
+  if (liveOnly.length) {
+    // A replaced historical object can survive the initial baseline filter.
+    // Retain its known live neighbors while the durable page owns base order;
+    // only an unmatched tail belongs after the complete page.
+    const liveOnlyIds = new Set(liveOnly.map((message) => message.id));
+    const liveOrder = sameConversation
+      .map((message) => resolvedForLiveIds.get(message.id) ?? message)
+      .filter((message) => liveOnlyIds.has(message.id) || loadedIds.has(message.id));
+    return insertRecoveredMessagesInPageOrder(mergedMessages, liveOrder);
+  }
   if (
     mergedMessages.length === sameConversation.length &&
     mergedMessages.every((message, index) => message === sameConversation[index]) &&

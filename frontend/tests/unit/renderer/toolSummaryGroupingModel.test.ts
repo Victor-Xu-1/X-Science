@@ -1,6 +1,14 @@
 import { readFileSync } from 'node:fs';
-import type { IMessageToolCall, IMessageToolGroup } from '@/common/chat/chatLib';
+import {
+  composeMessage,
+  transformMessage,
+  type IMessageToolCall,
+  type IMessageToolGroup,
+  type TMessage,
+} from '@/common/chat/chatLib';
 import { normalizeToolMessages } from '@/common/chat/normalizeToolCall';
+import { mergeLoadedPageWithCurrent } from '@/renderer/pages/conversation/Messages/messageWindowReconciliation';
+import { buildMessagePresentationList } from '@/renderer/pages/conversation/Messages/messageListProjection';
 import { describe, expect, it } from 'vitest';
 import {
   collapseNestedConnectorDispatches,
@@ -406,3 +414,127 @@ describe('tool summary grouping boundaries', () => {
 function normalizeForTest(message: IMessageToolCall) {
   return normalizeToolMessages([message]);
 }
+
+const scopedStreamTool = (attempt: number, call: string, createdAt: number, status = 'completed'): IMessageToolCall =>
+  transformMessage({
+    type: 'tool_call',
+    msg_id: `transcript-tool:frame:synthetic:${attempt}:${call}`,
+    conversation_id: 'scope-conversation',
+    created_at: createdAt,
+    data: {
+      call_id: call,
+      name: 'bash',
+      args: { command: `synthetic ${call}` },
+      status,
+      attempt,
+      operation_id: call,
+      revision: status === 'running' ? 1 : 2,
+      xScience: { branchId: 'br_00000001', messageIndex: attempt, blockIndex: 0 },
+    },
+  } as Parameters<typeof transformMessage>[0]) as IMessageToolCall;
+
+describe('live/history tool group execution scope', () => {
+  it('keeps a replaced old history observation before the new page and out of its current group', () => {
+    const oldRunning = scopedStreamTool(7, 'old-operation', 10, 'running');
+    const initialBaseline = new Set([oldRunning]);
+    const oldFinished = scopedStreamTool(7, 'old-operation', 10, 'error');
+    const currentTool = scopedStreamTool(9, 'current-operation', 30, 'running');
+    let live = composeMessage(oldFinished, [oldRunning]);
+    live = composeMessage(currentTool, live);
+    const liveWindow = live.filter((message) => !initialBaseline.has(message as IMessageToolCall));
+    const merged = mergeLoadedPageWithCurrent('scope-conversation', [currentTool], liveWindow, true, false);
+    const groups = buildMessagePresentationList(merged, []).filter((row) => row.type === 'tool_summary');
+    const active = groups.find((row) => row.sourceMessageIds.includes(currentTool.id));
+    expect(active).toBeDefined();
+    expect(normalizeToolMessages(active!.messages).map((tool) => [tool.attempt, tool.messageId])).toEqual([
+      [9, currentTool.id],
+    ]);
+    expect(merged.map((message) => message.id)).toEqual([oldFinished.id, currentTool.id]);
+    expect(groups.flatMap((row) => row.sourceMessageIds)).toEqual([oldFinished.id, currentTool.id]);
+  });
+
+  it('keeps same-attempt parallel operations together through terminal hydration and repeated refresh', () => {
+    const first = scopedStreamTool(9, 'parallel-first', 30, 'running');
+    const second = scopedStreamTool(9, 'parallel-second', 31, 'running');
+    const completed = scopedStreamTool(9, 'parallel-first', 30);
+    let live = composeMessage(first, []);
+    live = composeMessage(second, live);
+    const merged = mergeLoadedPageWithCurrent('scope-conversation', [completed], live, true, false);
+    const refreshed = mergeLoadedPageWithCurrent('scope-conversation', [completed], merged, true, true);
+    expect(refreshed.map((message) => message.id)).toEqual([first.id, second.id]);
+    const groups = buildMessagePresentationList(refreshed, []).filter((row) => row.type === 'tool_summary');
+    expect(groups).toHaveLength(1);
+    expect(normalizeToolMessages(groups[0].messages).map((tool) => [tool.messageId, tool.status])).toEqual([
+      [first.id, 'completed'],
+      [second.id, 'running'],
+    ]);
+    expect(buildMessagePresentationList(refreshed, [])).toEqual(buildMessagePresentationList(merged, []));
+  });
+
+  it.each(['attempt', 'branch', 'conversation'] as const)(
+    'keeps adjacent same-family operations in separate %s owners even when arrival order is reversed',
+    (scope) => {
+      const current = scopedStreamTool(9, 'current-operation', 30);
+      const historical = scopedStreamTool(scope === 'attempt' ? 7 : 9, 'historical-operation', 10, 'error');
+      if (scope === 'branch') historical.content.xScience!.branchId = 'br_00000002';
+      if (scope === 'conversation') historical.conversation_id = 'another-conversation';
+      const groups = buildMessagePresentationList([current, historical], []).filter(
+        (row) => row.type === 'tool_summary'
+      );
+      expect(groups).toHaveLength(2);
+      expect(groups.map((group) => group.sourceMessageIds)).toEqual([[historical.id], [current.id]]);
+      expect(groups.map((group) => normalizeToolMessages(group.messages).map((tool) => tool.messageId))).toEqual([
+        [historical.id],
+        [current.id],
+      ]);
+    }
+  );
+
+  it('does not borrow a native attempt for an observation without execution scope', () => {
+    const current = scopedStreamTool(9, 'current-operation', 30);
+    const unbound = toolCall('legacy-operation', 'bash');
+    unbound.conversation_id = current.conversation_id;
+    unbound.created_at = 10;
+    const groups = buildMessagePresentationList([current, unbound], []).filter((row) => row.type === 'tool_summary');
+    expect(groups).toHaveLength(2);
+    expect(groups.every((group) => group.sourceMessageIds.length === 1)).toBe(true);
+  });
+
+  it('retains late historical errors in their own round through current completion and a fresh page', () => {
+    const oldRunning = scopedStreamTool(7, 'old-operation', 10, 'running');
+    const oldFailed = scopedStreamTool(7, 'old-operation', 10, 'error');
+    const current = scopedStreamTool(9, 'current-operation', 30, 'running');
+    const currentFinished = scopedStreamTool(9, 'current-operation', 30);
+    const terminal = {
+      id: 'current-final',
+      msg_id: 'current-final',
+      conversation_id: current.conversation_id,
+      type: 'text',
+      position: 'left',
+      created_at: 40,
+      terminal_status: 'completed',
+      content: { content: 'Current operation finished.' },
+    } as TMessage;
+    const late = mergeLoadedPageWithCurrent('scope-conversation', [oldFailed], [oldRunning, current], true, true);
+    const complete = mergeLoadedPageWithCurrent('scope-conversation', [currentFinished, terminal], late, true, false);
+    const reload = buildMessagePresentationList([oldFailed, currentFinished, terminal], []);
+    expect(complete.map((message) => message.id)).toEqual([oldFailed.id, current.id, terminal.id]);
+    expect(buildMessagePresentationList(complete, [])).toEqual(reload);
+    const groups = reload.filter((row) => row.type === 'tool_summary');
+    expect(groups.map((group) => normalizeToolMessages(group.messages).map((tool) => tool.status))).toEqual([
+      ['error'],
+      ['completed'],
+    ]);
+  });
+
+  it('keeps the original unanchored live tail and conversation replacement behavior', () => {
+    const history = scopedStreamTool(7, 'history-operation', 10);
+    const current = scopedStreamTool(9, 'current-operation', 30, 'running');
+    expect(mergeLoadedPageWithCurrent('scope-conversation', [history], [current], true, false)).toEqual([
+      history,
+      current,
+    ]);
+    const foreign = { ...current, conversation_id: 'other-conversation' };
+    expect(mergeLoadedPageWithCurrent('other-conversation', [foreign], [current], true, false)).toEqual([foreign]);
+  });
+});

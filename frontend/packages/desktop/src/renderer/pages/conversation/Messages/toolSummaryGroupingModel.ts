@@ -161,8 +161,15 @@ function toolOperationIdentity(tool: NormalizedToolCall, operationId: string): s
  */
 export function startsNewToolSummary(current: ToolSummaryMessage[], next: ToolSummaryMessage): boolean {
   if (current.length === 0) return false;
+  if (current.some((message) => message.conversation_id !== next.conversation_id)) return true;
   const currentTools = collapseNestedConnectorDispatches(normalizedMessageTools(current));
-  const combinedTools = collapseNestedConnectorDispatches(normalizedMessageTools([...current, next]));
+  const normalized = normalizedMessageTools([...current, next]);
+  const owner = normalized[0];
+  // Semantic work phases cannot combine observations from different execution
+  // owners. Reuse normalized protocol scope; display IDs do not supply it.
+  if (owner && normalized.some((tool) => tool.branchId !== owner.branchId || tool.attempt !== owner.attempt))
+    return true;
+  const combinedTools = collapseNestedConnectorDispatches(normalized);
   if (combinedTools.length === currentTools.length) return false;
   const nextTools = combinedTools.slice(currentTools.length);
   if (currentTools.length === 0 || nextTools.length === 0) return true;
