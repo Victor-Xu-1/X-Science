@@ -1392,6 +1392,13 @@ the same public body as a small page, including blank lines and quoted tool
 names. Private reasoning and unproved content retain their original cleanup;
 the source proof is response-local and does not rewrite canonical events.
 
+Response enrichment loads the original parent Frame/root snapshot only when
+the shared delegation/notification plan can use that lineage. Ordinary canonical
+tool bodies keep their full content without unrelated lineage I/O. The original
+authentication, branch/source, receipt, visibility and privacy fences remain
+with their existing owners, and caller cancellation is preserved. This changes
+neither exact-history consistency nor catch-up ownership.
+
 Preview snapshot completion belongs to its receiving tab, canvas and account
 lifetime. Closing, switching or returning to a prior receiver cannot revive an
 old save. A current save may keep its receiver lease when its own canonical
