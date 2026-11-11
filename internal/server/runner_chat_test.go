@@ -981,12 +981,11 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 	if got := sessionRunnerTaskStartedAt(sessionstore.Session{CreatedAt: sessionStarted}, run); !got.Equal(streamStarted) {
 		t.Fatalf("task started at = %s, want %s", got, streamStarted)
 	}
-	context := sessionRunnerTrustedRuntimeContext(now, streamStarted, sessionstore.Session{
+	context := sessionRunnerTrustedRuntimeContext(sessionstore.Session{
 		ID:      "frame-identity",
 		Project: &sessionstore.Project{ID: "project-identity"},
 	}, nil)
 	for _, required := range []string{
-		"current_time_utc: 2026-08-01T02:03:04.0000005Z",
 		"project_id: project-identity",
 		"root_frame_id: frame-identity",
 		"frame_id: frame-identity",
@@ -996,9 +995,6 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 		"TaskGet and TaskList read only the separate delegated/background task store",
 		"Never pass project_id, root_frame_id, or frame_id to those tools",
 		"answer questions about the current project or task directly from this trusted context",
-		"current_date: 2026-08-01",
-		"task_started_at: 2026-07-31T17:07:32Z",
-		"retrieval_as_of: 2026-08-01T02:03:04.0000005Z",
 		"explicitly provisional hypotheses only",
 		"Discovery lists, snippets, and bibliographic identity alone do not prove a scientific proposition",
 		"exact successful tool_call_id",
@@ -1019,10 +1015,13 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 			t.Fatalf("trusted context missing %q:\n%s", required, context)
 		}
 	}
-	temporal := sessionRunnerTemporalGroundingContext(now)
+	temporal := sessionRunnerTemporalGroundingContext(now, streamStarted)
 	for _, required := range []string{
 		"Trusted temporal grounding (server supplied)",
+		"current_time_utc: 2026-08-01T02:03:04.0000005Z",
 		"current_date: 2026-08-01",
+		"timezone: UTC",
+		"task_started_at: 2026-07-31T17:07:32Z",
 		"retrieval_as_of: 2026-08-01T02:03:04.0000005Z",
 		"past N years against current_date",
 		"conflicting cutoff is stale task data",
@@ -1039,7 +1038,7 @@ func TestSessionRunnerTrustedRuntimeContextUsesServerTimeAndDurableTaskStart(t *
 	if got := sessionRunnerTaskStartedAt(sessionstore.Session{CreatedAt: sessionStarted}, nil); !got.Equal(sessionStarted) {
 		t.Fatalf("session fallback started at = %s, want %s", got, sessionStarted)
 	}
-	childContext := sessionRunnerTrustedRuntimeContext(now, streamStarted, sessionstore.Session{
+	childContext := sessionRunnerTrustedRuntimeContext(sessionstore.Session{
 		ID:      "root-session",
 		Project: &sessionstore.Project{ID: "fallback-project"},
 	}, &sessionRunnerChatRun{Transcript: &transcriptRunnerAuthority{Stream: transcriptstore.Stream{

@@ -218,9 +218,8 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	}
 	preparationSubstage = "build_provider_messages"
 	trustedRuntimeNow := time.Now().UTC()
-	trustedRuntimeContext := sessionRunnerTrustedRuntimeContext(
-		trustedRuntimeNow, sessionRunnerTaskStartedAt(session, run), session, run,
-	)
+	trustedTaskStartedAt := sessionRunnerTaskStartedAt(session, run)
+	trustedRuntimeContext := sessionRunnerTrustedRuntimeContext(session, run)
 	messages, err := sessionEntriesToProviderMessages(
 		appendSessionRunnerTrustedRuntimeContext(options.SystemPrompt, trustedRuntimeContext), entries,
 	)
@@ -740,7 +739,7 @@ func (s *Server) runSessionRunnerChat(ctx context.Context, options SessionRunner
 	if implementationAuthority := selectedImplementationAuthorityContext(run); implementationAuthority != "" {
 		messages = appendRuntimeTerminalPolicyContextMessage(messages, implementationAuthority)
 	}
-	if temporalGrounding := sessionRunnerTemporalGroundingContext(trustedRuntimeNow); temporalGrounding != "" {
+	if temporalGrounding := sessionRunnerTemporalGroundingContext(trustedRuntimeNow, trustedTaskStartedAt); temporalGrounding != "" {
 		messages = appendRuntimeTerminalPolicyContextMessage(messages, temporalGrounding)
 	}
 	// Keep the collaboration contract adjacent to the active conversation. It
