@@ -7,7 +7,7 @@ Code is bundled/minified for browser use; upstream package implementations are n
 
 This notice covers packages in the browser bundle and the copied RDKit runtime.
 Other components and optional scientific runtimes have separate notices in this directory.
-Package lock SHA-256: faaa11c7bd9ce77354f0d5aab803926a6ab14476dec1cec8b63bfee6ffc80ad1
+Package lock SHA-256: 0df10e044c91f0acda4d0b44dd11d5a99e400a86c6e2930bf999fa0893446a17
 
 Package index
 -------------
@@ -397,8 +397,8 @@ eventemitter3@5.0.1 — notice 26
   Source: https://registry.npmjs.org/eventemitter3/-/eventemitter3-5.0.1.tgz
 extend@3.0.2 — notice 115
   Source: https://registry.npmjs.org/extend/-/extend-3.0.2.tgz
-fast-xml-parser@5.10.1 — notice 66
-  Source: https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-5.10.1.tgz
+fast-xml-parser@5.12.0 — notice 66
+  Source: https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-5.12.0.tgz
 fastdom@1.0.12 — notice 136
   Source: https://registry.npmjs.org/fastdom/-/fastdom-1.0.12.tgz
 fault@1.0.4 — notice 54
