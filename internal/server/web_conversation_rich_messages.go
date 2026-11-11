@@ -70,8 +70,9 @@ func (s *Server) projectRichWebConversationMessages(
 	}
 	frames := snapshot.Frames
 	toolResults := collectRichWebToolResults(rawMessages)
-	subagents := collectRichWebSubagents(frame, rawMessages, frames)
-	subagentEvents := collectRichWebSubagentEvents(frame, rawMessages, frames)
+	lineagePlan := planRichWebSubagentEnrichment(rawMessages)
+	subagents := collectRichWebSubagents(frame, lineagePlan, frames)
+	subagentEvents := collectRichWebSubagentEvents(frame, lineagePlan, frames)
 	mapped := make([]map[string]any, 0, len(rawMessages))
 	userSources := make(map[int]string)
 	createdAt := frame.CreatedAt.UTC().UnixMilli()
@@ -215,6 +216,8 @@ func (s *Server) projectRichWebConversationMessages(
 	return mapped, nil
 }
 
+type transcriptWebMessageLineageLoader func(context.Context, string) (workspace.Frame, []workspace.Frame, error)
+
 // enrichTranscriptWebConversationMessages restores delegation and
 // notification semantics after a rich history crosses the typed Transcript
 // bootstrap boundary. The read model remains the sole message authority; this
@@ -224,7 +227,19 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 	frameID, branchID string,
 	messages []map[string]any,
 ) error {
+	return s.enrichTranscriptWebConversationMessagesWithLineage(ctx, frameID, branchID, messages, s.loadTranscriptWebMessageLineage)
+}
+
+func (s *Server) enrichTranscriptWebConversationMessagesWithLineage(
+	ctx context.Context,
+	frameID, branchID string,
+	messages []map[string]any,
+	loadLineage transcriptWebMessageLineageLoader,
+) error {
 	noteTranscriptWebReadStage(ctx, webReadEnrich)
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := s.enrichTranscriptWebArtifactPresentation(ctx, frameID, messages); err != nil {
 		return err
 	}
@@ -268,22 +283,16 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 	if !hasToolCall {
 		return nil
 	}
-	if s == nil || s.workspaceStore == nil {
-		return errors.New("workspace runtime is not configured")
+	lineagePlan := planRichWebSubagentEnrichment(rawMessages)
+	if len(lineagePlan.calls) == 0 && len(lineagePlan.results) == 0 {
+		return nil
 	}
-	frame, found, err := s.workspaceStore.GetFrameWithContext(ctx, frameID)
+	frame, frames, err := loadLineage(ctx, frameID)
 	if err != nil {
 		return err
 	}
-	if !found {
-		return errors.New("conversation frame not found")
-	}
-	snapshot, err := s.workspaceStore.GetFrameTraceSnapshotWithContext(ctx, frame.RootFrameID, nil)
-	if err != nil {
-		return err
-	}
-	subagents := collectRichWebSubagents(frame, rawMessages, snapshot.Frames)
-	subagentEvents := collectRichWebSubagentEvents(frame, rawMessages, snapshot.Frames)
+	subagents := collectRichWebSubagents(frame, lineagePlan, frames)
+	subagentEvents := collectRichWebSubagentEvents(frame, lineagePlan, frames)
 	for _, message := range messages {
 		if webString(message["type"]) != "tool_call" {
 			continue
@@ -308,6 +317,21 @@ func (s *Server) enrichTranscriptWebConversationMessages(
 		}
 	}
 	return nil
+}
+
+func (s *Server) loadTranscriptWebMessageLineage(ctx context.Context, frameID string) (workspace.Frame, []workspace.Frame, error) {
+	if s == nil || s.workspaceStore == nil {
+		return workspace.Frame{}, nil, errors.New("workspace runtime is not configured")
+	}
+	frame, found, err := s.workspaceStore.GetFrameWithContext(ctx, frameID)
+	if err != nil {
+		return workspace.Frame{}, nil, err
+	}
+	if !found {
+		return workspace.Frame{}, nil, errors.New("conversation frame not found")
+	}
+	snapshot, err := s.workspaceStore.GetFrameTraceSnapshotWithContext(ctx, frame.RootFrameID, nil)
+	return frame, snapshot.Frames, err
 }
 
 func (s *Server) writeRichWebMessagePage(w http.ResponseWriter, r *http.Request, messages []map[string]any, limit int) {
@@ -562,9 +586,67 @@ func collectRichWebToolResults(messages []map[string]any) map[string]richWebTool
 	return results
 }
 
+// The plan owns the original lineage admission rules for both response-only
+// enrichment and legacy rich projection. Collectors consume it directly, so
+// avoiding an unnecessary trace read cannot drift from their tool semantics.
+type richWebSubagentEnrichmentPlan struct {
+	calls          []richWebPlannedSubagentCall
+	results        []richWebPlannedSubagentResult
+	resultChildIDs map[string]string
+}
+
+type richWebPlannedSubagentCall struct {
+	callID       string
+	inputChildID string
+	input        map[string]any
+}
+
+type richWebPlannedSubagentResult struct {
+	callID    string
+	envelopes []map[string]any
+}
+
+func planRichWebSubagentEnrichment(messages []map[string]any) richWebSubagentEnrichmentPlan {
+	var plan richWebSubagentEnrichmentPlan
+	for _, message := range messages {
+		for _, block := range richWebRawBlocks(message["content"]) {
+			switch webString(block["type"]) {
+			case "tool_use":
+				if message["_harness_notice"] == true {
+					continue
+				}
+				callID := strings.TrimSpace(webString(block["id"]))
+				name := richWebNormalizedToolName(webString(block["name"]))
+				input, _ := block["input"].(map[string]any)
+				if input == nil {
+					input = map[string]any{}
+				}
+				inputChildID := strings.TrimSpace(webString(input["child_frame_id"]))
+				delegation := name == "delegate" || (name == "agent" && strings.TrimSpace(webString(input["delegate_name"])) != "")
+				childMessage := name == "send_message" && inputChildID != ""
+				if callID != "" && (delegation || childMessage) {
+					plan.calls = append(plan.calls, richWebPlannedSubagentCall{callID: callID, inputChildID: inputChildID, input: input})
+				}
+			case "tool_result":
+				callID := strings.TrimSpace(webString(block["tool_use_id"]))
+				if callID == "" {
+					continue
+				}
+				if envelopes := richWebNotificationEnvelopes(block["content"]); len(envelopes) > 0 {
+					plan.results = append(plan.results, richWebPlannedSubagentResult{callID: callID, envelopes: envelopes})
+				}
+			}
+		}
+	}
+	if len(plan.calls) > 0 {
+		plan.resultChildIDs = collectRichWebResultChildIDs(messages)
+	}
+	return plan
+}
+
 func collectRichWebSubagents(
 	parent workspace.Frame,
-	messages []map[string]any,
+	plan richWebSubagentEnrichmentPlan,
 	frames []workspace.Frame,
 ) map[string]map[string]any {
 	frameByID := make(map[string]workspace.Frame, len(frames))
@@ -572,87 +654,67 @@ func collectRichWebSubagents(
 		frameByID[frame.ID] = frame
 	}
 	contextMapping, _ := parent.ContextData["_tool_id_to_frame_id"].(map[string]any)
-	resultMapping := collectRichWebResultChildIDs(messages)
-	entries := make([]richWebSubagentEntry, 0)
-	ordinal := 0
-	for _, message := range messages {
-		if message["_harness_notice"] == true {
-			continue
+	resultMapping := plan.resultChildIDs
+	entries := make([]richWebSubagentEntry, 0, len(plan.calls))
+	for index, call := range plan.calls {
+		callID, input, inputChildID := call.callID, call.input, call.inputChildID
+		ordinal := index + 1
+		childID := strings.TrimSpace(webString(contextMapping[callID]))
+		if childID == "" {
+			childID = inputChildID
 		}
-		for _, block := range richWebRawBlocks(message["content"]) {
-			if webString(block["type"]) != "tool_use" {
-				continue
-			}
-			callID := strings.TrimSpace(webString(block["id"]))
-			name := richWebNormalizedToolName(webString(block["name"]))
-			input, _ := block["input"].(map[string]any)
-			if input == nil {
-				input = map[string]any{}
-			}
-			inputChildID := strings.TrimSpace(webString(input["child_frame_id"]))
-			delegation := name == "delegate" || (name == "agent" && strings.TrimSpace(webString(input["delegate_name"])) != "")
-			childMessage := name == "send_message" && inputChildID != ""
-			if callID == "" || (!delegation && !childMessage) {
-				continue
-			}
-			ordinal++
-			childID := strings.TrimSpace(webString(contextMapping[callID]))
-			if childID == "" {
-				childID = inputChildID
-			}
-			if childID == "" {
-				childID = resultMapping[callID]
-			}
-			child, hasChild := frameByID[childID]
-			fallbackName := strings.TrimSpace(webString(input["delegate_name"]))
-			if fallbackName == "" {
-				fallbackName = strings.TrimSpace(webString(input["name"]))
-			}
-			if fallbackName == "" {
-				fallbackName = strings.TrimSpace(webString(input["agent_name"]))
-			}
-			projectionOrdinal := ordinal
-			if hasChild && child.RootSequence > 0 {
-				projectionOrdinal = int(child.RootSequence)
-			}
-			projection := map[string]any{"ordinal": projectionOrdinal, "superseded": false}
-			if childID != "" {
-				projection["frameId"] = childID
-			}
-			if hasChild {
-				projection["rootFrameId"] = child.RootFrameID
-				if child.ParentFrameID != "" {
-					projection["parentFrameId"] = child.ParentFrameID
-				}
-				if child.AgentName != "" {
-					projection["agentName"] = child.AgentName
-				}
-				delegateName := child.DelegateName
-				if delegateName == "" {
-					delegateName = fallbackName
-				}
-				if delegateName != "" {
-					projection["delegateName"] = delegateName
-				}
-				projection["status"] = child.Status
-				projection["messageCount"] = child.MessageCount
-				if child.StatusDescription != "" {
-					projection["statusDescription"] = child.StatusDescription
-				}
-				if child.TaskSummary != "" {
-					projection["taskSummary"] = child.TaskSummary
-				}
-				if latestAction := richWebLatestSubagentAction(child); latestAction != "" {
-					projection["latestAction"] = latestAction
-				}
-			} else {
-				projection["status"] = "processing"
-				if fallbackName != "" {
-					projection["delegateName"] = fallbackName
-				}
-			}
-			entries = append(entries, richWebSubagentEntry{callID: callID, childFrameID: childID, projection: projection})
+		if childID == "" {
+			childID = resultMapping[callID]
 		}
+		child, hasChild := frameByID[childID]
+		fallbackName := strings.TrimSpace(webString(input["delegate_name"]))
+		if fallbackName == "" {
+			fallbackName = strings.TrimSpace(webString(input["name"]))
+		}
+		if fallbackName == "" {
+			fallbackName = strings.TrimSpace(webString(input["agent_name"]))
+		}
+		projectionOrdinal := ordinal
+		if hasChild && child.RootSequence > 0 {
+			projectionOrdinal = int(child.RootSequence)
+		}
+		projection := map[string]any{"ordinal": projectionOrdinal, "superseded": false}
+		if childID != "" {
+			projection["frameId"] = childID
+		}
+		if hasChild {
+			projection["rootFrameId"] = child.RootFrameID
+			if child.ParentFrameID != "" {
+				projection["parentFrameId"] = child.ParentFrameID
+			}
+			if child.AgentName != "" {
+				projection["agentName"] = child.AgentName
+			}
+			delegateName := child.DelegateName
+			if delegateName == "" {
+				delegateName = fallbackName
+			}
+			if delegateName != "" {
+				projection["delegateName"] = delegateName
+			}
+			projection["status"] = child.Status
+			projection["messageCount"] = child.MessageCount
+			if child.StatusDescription != "" {
+				projection["statusDescription"] = child.StatusDescription
+			}
+			if child.TaskSummary != "" {
+				projection["taskSummary"] = child.TaskSummary
+			}
+			if latestAction := richWebLatestSubagentAction(child); latestAction != "" {
+				projection["latestAction"] = latestAction
+			}
+		} else {
+			projection["status"] = "processing"
+			if fallbackName != "" {
+				projection["delegateName"] = fallbackName
+			}
+		}
+		entries = append(entries, richWebSubagentEntry{callID: callID, childFrameID: childID, projection: projection})
 	}
 	latestToolByChild := map[string]string{}
 	for _, entry := range entries {
@@ -692,7 +754,7 @@ func collectRichWebResultChildIDs(messages []map[string]any) map[string]string {
 
 func collectRichWebSubagentEvents(
 	parent workspace.Frame,
-	messages []map[string]any,
+	plan richWebSubagentEnrichmentPlan,
 	frames []workspace.Frame,
 ) map[string][]map[string]any {
 	children := make([]workspace.Frame, 0)
@@ -718,35 +780,27 @@ func collectRichWebSubagentEvents(
 		ordinalByID[child.ID] = ordinal
 	}
 	result := map[string][]map[string]any{}
-	for _, message := range messages {
-		for _, block := range richWebRawBlocks(message["content"]) {
-			if webString(block["type"]) != "tool_result" {
-				continue
-			}
-			callID := strings.TrimSpace(webString(block["tool_use_id"]))
-			if callID == "" {
-				continue
-			}
-			events := make([]map[string]any, 0)
-			for _, envelope := range richWebNotificationEnvelopes(block["content"]) {
-				if notifications, ok := envelope["notifications"].([]any); ok {
-					for _, notification := range notifications {
-						if parsed := richWebSubagentNotification(notification, childByID, ordinalByID); parsed != nil {
-							events = append(events, parsed)
-						}
-					}
-				}
-				if collected, ok := envelope["_collected"].([]any); ok {
-					for _, completion := range collected {
-						if parsed := richWebCollectedCompletion(completion, childByID, ordinalByID); parsed != nil {
-							events = append(events, parsed)
-						}
+	for _, planned := range plan.results {
+		callID := planned.callID
+		events := make([]map[string]any, 0)
+		for _, envelope := range planned.envelopes {
+			if notifications, ok := envelope["notifications"].([]any); ok {
+				for _, notification := range notifications {
+					if parsed := richWebSubagentNotification(notification, childByID, ordinalByID); parsed != nil {
+						events = append(events, parsed)
 					}
 				}
 			}
-			if len(events) > 0 {
-				result[callID] = events
+			if collected, ok := envelope["_collected"].([]any); ok {
+				for _, completion := range collected {
+					if parsed := richWebCollectedCompletion(completion, childByID, ordinalByID); parsed != nil {
+						events = append(events, parsed)
+					}
+				}
 			}
+		}
+		if len(events) > 0 {
+			result[callID] = events
 		}
 	}
 	return result
