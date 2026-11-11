@@ -4,9 +4,15 @@ import {
   getRendererAccountScopeToken,
   registerRendererAccountReset,
 } from '@/renderer/services/rendererAccountScope';
-import { getLiteratureMutationController } from '@/renderer/services/runtime/LiteratureMutationController';
+import {
+  getLiteratureMutationController,
+  type LiteratureMutationView,
+} from '@/renderer/services/runtime/LiteratureMutationController';
 
-export function useLiteratureMutation() {
+type ViewProjection = (next: LiteratureMutationView, previous: LiteratureMutationView) => LiteratureMutationView;
+const identityView: ViewProjection = (next) => next;
+
+export function useLiteratureMutation(project: ViewProjection = identityView) {
   const [account, setAccount] = useState(getRendererAccountScopeToken);
   const key = useId();
   useEffect(
@@ -14,6 +20,15 @@ export function useLiteratureMutation() {
     [key]
   );
   const controller = useMemo(() => getLiteratureMutationController(getRendererAccountOwnerId()), [account]);
-  const view = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot);
+  // A projection cache belongs to this exact account controller and pure selector.
+  // The default returns the controller's original snapshot without alteration.
+  const snapshot = useMemo(() => {
+    let previous = controller.getSnapshot();
+    return () => {
+      previous = project(controller.getSnapshot(), previous);
+      return previous;
+    };
+  }, [controller, project]);
+  const view = useSyncExternalStore(controller.subscribe, snapshot, snapshot);
   return { controller, view };
 }

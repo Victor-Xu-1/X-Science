@@ -1,3 +1,6 @@
+import { LibraryRestoreSelectionControl } from './LibraryRestoreSelectionControl';
+import { useLibraryRestoreSelection, projectLibraryRestoreSummary } from './useLibraryRestoreSelection';
+import { isLiteratureRestoreBulk } from '@/renderer/services/runtime/literatureRestoreBulkIntent';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -110,7 +113,7 @@ export default function LibraryPage() {
   const railOwner = useMemo(() => ({}), [reads.account]);
   useLayoutEffect(() => rail?.register(railOwner, reads.account), [rail?.register, railOwner, reads.account]);
   const libraryColumns = useLibraryColumnPreferences(reads.account, true, true, true);
-  const mutation = useLiteratureMutation();
+  const mutation = useLiteratureMutation(projectLibraryRestoreSummary);
   const lifecycleVisit = useLibraryLifecycleVisit(reads.account, params.toString());
   const [action, setAction] = useState<{ account: string; failed: boolean; operationId: string | null }>({
     account: reads.account,
@@ -178,9 +181,19 @@ export default function LibraryPage() {
     sort,
     rows: items,
     readReady: listReady,
-    blocked: trash || baseBusy || Boolean(visibleEditor),
+    blocked: baseBusy || Boolean(visibleEditor),
     controller: mutation.controller,
     view: mutation.view,
+  });
+  const restore = useLibraryRestoreSelection({
+    account: reads.account,
+    scope: { query, collectionId, projectId, readingStatus, lifecycle },
+    route: params.toString(),
+    selection: bulk.selection,
+    blocked: !trash || baseBusy || !listReady || Boolean(visibleEditor),
+    controller: mutation.controller,
+    view: mutation.view,
+    setRemaining: bulk.setRemaining,
   });
   const overviewTrigger = useRef<HTMLButtonElement>(null);
   const overview = useLibraryStudyBatch(
@@ -305,6 +318,18 @@ export default function LibraryPage() {
   useEffect(() => {
     const receipt = mutation.view.receipt;
     if (!receipt || observedReceipt.current === receipt || reads.account !== getRendererAccountScopeToken()) return;
+    if (
+      receipt.schema === 'x-science.literature-receipt.v1' &&
+      (isLiteratureRestoreBulk(mutation.view.action) || restore.isReceipt(receipt))
+    ) {
+      if (mutation.view.mutating) return;
+      observedReceipt.current = receipt;
+      const owned = isLiteratureRestoreBulk(mutation.view.action) && restore.owns(mutation.view.action.operation_id);
+      if (owned && (document.activeElement === document.body || listElement.current?.contains(document.activeElement)))
+        listElement.current?.focus();
+      reads.refreshData();
+      return;
+    }
     // One current readback after a bulk run/stop; individual child ACKs remain real receipts.
     if (
       receipt.schema === 'x-science.literature-reading-status-receipt.v1' &&
@@ -367,6 +392,8 @@ export default function LibraryPage() {
   }, [
     mutation.view.receipt,
     lifecycleVisit.owns,
+    restore.isReceipt,
+    restore.owns,
     mutation.view.action,
     mutation.view.mutating,
     reads.refresh,
@@ -448,7 +475,13 @@ export default function LibraryPage() {
         );
     }
   };
-  const busy = baseBusy || bulk.resolving || referenceExport.pending || overview.busy;
+  const busy =
+    baseBusy ||
+    bulk.resolving ||
+    restore.loading ||
+    restore.count !== undefined ||
+    referenceExport.pending ||
+    overview.busy;
   const rowActions = useLibraryRowActions({
     account: reads.account,
     readKey: reads.list.key,
@@ -554,7 +587,14 @@ export default function LibraryPage() {
   );
   const mutationNotice = (
     <LibraryMutationNotice
-      hidden={manualOpen || lookupOpen || pdfImport.noticeOwned || publicationNoticeOwned || bulk.ownedNotice}
+      hidden={
+        manualOpen ||
+        lookupOpen ||
+        pdfImport.noticeOwned ||
+        publicationNoticeOwned ||
+        bulk.ownedNotice ||
+        restore.ownedNotice
+      }
       error={mutation.view.error}
       failed={actionFailed}
       mutating={mutation.view.mutating}
@@ -820,31 +860,37 @@ export default function LibraryPage() {
               }}
             />
           )}
-          {!trash && (bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
+          {(bulk.selection.allMatchingSelected || bulk.selection.selectedIds.length > 0) && (
             <LibrarySelectionToolbar
+              readingStatus={!trash}
+              restoreControl={trash ? <LibraryRestoreSelectionControl model={restore} /> : undefined}
               overviewControl={
-                <button
-                  ref={overviewTrigger}
-                  type='button'
-                  disabled={
-                    busy ||
-                    !listReady ||
-                    Boolean(visibleEditor) ||
-                    !!overviewUnfinished ||
-                    (overviewSelectionCount !== undefined && overviewSelectionCount > overviewLimit)
-                  }
-                  title={t('conversation.libraryStudyBatch.limit', { count: overviewLimit })}
-                  onClick={() => void overview.start(resolveOverviewSelection)}
-                >
-                  <Sparkles size={13} aria-hidden='true' />
-                  {t('conversation.libraryStudyBatch.generate')}
-                </button>
+                !trash ? (
+                  <button
+                    ref={overviewTrigger}
+                    type='button'
+                    disabled={
+                      busy ||
+                      !listReady ||
+                      Boolean(visibleEditor) ||
+                      !!overviewUnfinished ||
+                      (overviewSelectionCount !== undefined && overviewSelectionCount > overviewLimit)
+                    }
+                    title={t('conversation.libraryStudyBatch.limit', { count: overviewLimit })}
+                    onClick={() => void overview.start(resolveOverviewSelection)}
+                  >
+                    <Sparkles size={13} aria-hidden='true' />
+                    {t('conversation.libraryStudyBatch.generate')}
+                  </button>
+                ) : undefined
               }
               exportControl={
-                <LibraryReferenceExportMenu
-                  key={referenceExport.selected.identityKey}
-                  model={referenceExport.selected}
-                />
+                !trash ? (
+                  <LibraryReferenceExportMenu
+                    key={referenceExport.selected.identityKey}
+                    model={referenceExport.selected}
+                  />
+                ) : undefined
               }
               busy={referenceExport.pending}
               selection={bulk.selection}
@@ -862,13 +908,17 @@ export default function LibraryPage() {
             />
           )}
           <LibraryBulkProgress
+            controller={mutation.controller}
             view={mutation.view}
             scopeKey={bulk.scopeKey}
             message={bulk.message}
-            resume={bulk.resume}
-            pause={bulk.pause}
-            discard={bulk.discard}
+            resume={restore.ownedNotice ? restore.resume : bulk.resume}
+            pause={restore.ownedNotice ? restore.pause : bulk.pause}
+            discard={restore.ownedNotice ? restore.discard : bulk.discard}
           />
+          {restore.ownedNotice && reads.list.refreshError && (
+            <p role='alert'>{t('conversation.libraryRestore.readbackFailed')}</p>
+          )}
           <LibraryStudyBatchPanel
             account={reads.account}
             model={overview}
@@ -909,18 +959,14 @@ export default function LibraryPage() {
                   refreshError={reads.list.refreshError}
                   selectedId={selectedId}
                   preferences={libraryColumns.preferences}
-                  selection={
-                    trash
-                      ? undefined
-                      : {
-                          selected: bulk.isSelected,
-                          toggle: bulk.toggle,
-                          pageChecked: bulk.pageChecked,
-                          pageMixed: bulk.pageMixed,
-                          togglePage: bulk.togglePage,
-                          disabled: busy || !listReady || Boolean(visibleEditor),
-                        }
-                  }
+                  selection={{
+                    selected: bulk.isSelected,
+                    toggle: bulk.toggle,
+                    pageChecked: bulk.pageChecked,
+                    pageMixed: bulk.pageMixed,
+                    togglePage: bulk.togglePage,
+                    disabled: busy || !listReady || Boolean(visibleEditor),
+                  }}
                   actionsCell={(item) => (
                     <LibraryRowActions
                       key={JSON.stringify([reads.account, reads.list.key, item.id])}

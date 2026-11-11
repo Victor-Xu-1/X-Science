@@ -47,6 +47,11 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 				return
 			}
+		case "restore_preview":
+			if values[0] != "true" || query.Get("all_item_ids") != "true" || query.Get("lifecycle") != "deleted" {
+				writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+				return
+			}
 		default:
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
 			return
@@ -56,6 +61,15 @@ func (s *Server) handleLiteratureItemsRead(w http.ResponseWriter, r *http.Reques
 	if query.Get("all_item_ids") == "true" {
 		if query.Has("cursor") || query.Has("limit") {
 			writeLiteratureError(w, workspace.ErrLiteratureInvalid)
+			return
+		}
+		if query.Get("restore_preview") == "true" {
+			preview, err := s.workspaceStore.PreviewLiteratureRestore(r.Context(), owner, filters, workspace.LiteratureSelectionReadOptions{Order: workspace.LiteratureSelectionReadOrder(query.Get("order"))})
+			if err != nil {
+				writeLiteratureError(w, err)
+				return
+			}
+			writeWorkspaceJSON(w, http.StatusOK, preview)
 			return
 		}
 		selection, err := s.workspaceStore.ListLiteratureItemIDsWithReadOptions(r.Context(), owner, filters, workspace.LiteratureSelectionReadOptions{Order: workspace.LiteratureSelectionReadOrder(query.Get("order"))})

@@ -2665,5 +2665,28 @@
       "limitations": "研究局限"
     },
     "busy": "当前概览生成较多，请稍后重试。"
+  },
+  "libraryRestore": {
+    "entry": "恢复选中文献",
+    "loading": "正在读取完整的回收站选区…",
+    "confirm": "恢复 {{count}} 篇文献",
+    "confirmDescription": "恢复这 {{count}} 篇文献及其原有文件和项目关联。每篇单独保存；发生冲突时可能仅完成一部分。",
+    "previewFailed": "无法读取恢复预览，尚未开始恢复。",
+    "selectionChanged": "回收站选区已变化，请查看当前文献并重新选择。",
+    "emptyResolved": "该选区中已无匹配文献。",
+    "operationFailed": "未能完成恢复。已确认的更改会保留；继续前需核实原待处理文献。",
+    "activeProgress": "正在恢复 {{done}} / {{total}} 篇文献…",
+    "preparingProgress": "正在准备恢复 {{total}} 篇文献…",
+    "pausedProgress": "已恢复 {{done}} / {{total}} 篇，其余文献已暂停。",
+    "readyProgress": "已确认 {{done}} / {{total}} 篇，可以继续恢复其余文献。",
+    "stoppedProgress": "恢复 {{done}} / {{total}} 篇后已停止，其余恢复操作已放弃。",
+    "uncertainProgress": "已确认 {{done}} / {{total}} 篇，当前原恢复操作仍需核实。",
+    "completedProgress": "已恢复 {{total}} 篇文献。",
+    "resume": "继续恢复",
+    "stopAfterBatch": "当前文献完成后停止",
+    "discardRemainder": "放弃其余恢复操作",
+    "currentBatchPending": "更改其余操作前，请先核实当前原恢复操作。",
+    "previousScope": "此恢复计划属于之前的文献库视图。",
+    "readbackFailed": "已确认的恢复已保存，但当前文献库刷新失败。可重试读取，无需再次提交已确认的更改。"
   }
 }

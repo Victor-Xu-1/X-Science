@@ -24,14 +24,50 @@ const LiteratureSelectionTitleAscending LiteratureSelectionReadOrder = "title-as
 
 type LiteratureSelectionReadOptions struct{ Order LiteratureSelectionReadOrder }
 
+type LiteratureRestoreTarget struct {
+	ID               string `json:"id"`
+	MetadataRevision int64  `json:"metadata_revision"`
+}
+
+type LiteratureRestorePreview struct {
+	Schema     string                    `json:"schema"`
+	Items      []LiteratureRestoreTarget `json:"items"`
+	TotalCount int64                     `json:"total_count"`
+}
+
 func (s *Store) ListLiteratureItemIDsInLifecycle(ctx context.Context, owner string, filters LiteratureQueryFilters) (LiteratureSelection, error) {
 	return s.ListLiteratureItemIDsWithReadOptions(ctx, owner, filters, LiteratureSelectionReadOptions{})
 }
 
 // Read options never enter catalogue mutation payloads or their durable identities.
 func (s *Store) ListLiteratureItemIDsWithReadOptions(ctx context.Context, owner string, filters LiteratureQueryFilters, options LiteratureSelectionReadOptions) (LiteratureSelection, error) {
-
 	empty := LiteratureSelection{Schema: "x-science.literature-selection.v1", ItemIDs: []string{}}
+	items, err := s.literatureSelectionSnapshot(ctx, owner, filters, options, false)
+	if err != nil {
+		return empty, err
+	}
+	ids := make([]string, len(items))
+	for index, item := range items {
+		ids[index] = item.ID
+	}
+	return LiteratureSelection{Schema: empty.Schema, ItemIDs: ids, TotalCount: int64(len(ids))}, nil
+}
+
+// Preview uses the same authorized read snapshot without hydrating deleted details.
+func (s *Store) PreviewLiteratureRestore(ctx context.Context, owner string, filters LiteratureQueryFilters, options LiteratureSelectionReadOptions) (LiteratureRestorePreview, error) {
+	empty := LiteratureRestorePreview{Schema: "x-science.literature-restore-preview.v1", Items: []LiteratureRestoreTarget{}}
+	if filters.Lifecycle != LiteratureLifecycleDeleted {
+		return empty, ErrLiteratureInvalid
+	}
+	items, err := s.literatureSelectionSnapshot(ctx, owner, filters, options, true)
+	if err != nil {
+		return empty, err
+	}
+	return LiteratureRestorePreview{Schema: empty.Schema, Items: items, TotalCount: int64(len(items))}, nil
+}
+
+func (s *Store) literatureSelectionSnapshot(ctx context.Context, owner string, filters LiteratureQueryFilters, options LiteratureSelectionReadOptions, revisions bool) ([]LiteratureRestoreTarget, error) {
+	var empty []LiteratureRestoreTarget
 	if options.Order != "" && options.Order != LiteratureSelectionTitleAscending {
 		return empty, ErrLiteratureInvalid
 	}
@@ -56,18 +92,29 @@ func (s *Store) ListLiteratureItemIDsWithReadOptions(ctx context.Context, owner 
 	if options.Order == LiteratureSelectionTitleAscending {
 		order = "i.title ASC,i.id ASC"
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT i.id`+statement+` ORDER BY `+order, args...)
+	columns := "i.id"
+	if revisions {
+		columns += ",i.metadata_revision"
+	}
+	rows, err := tx.QueryContext(ctx, `SELECT `+columns+statement+` ORDER BY `+order, args...)
 	if err != nil {
 		return empty, err
 	}
 	defer rows.Close()
-	ids := []string{}
+	items := []LiteratureRestoreTarget{}
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var item LiteratureRestoreTarget
+		fields := []any{&item.ID}
+		if revisions {
+			fields = append(fields, &item.MetadataRevision)
+		}
+		if err := rows.Scan(fields...); err != nil {
 			return empty, err
 		}
-		ids = append(ids, id)
+		if revisions && item.MetadataRevision < 1 {
+			return empty, ErrLiteratureInvalid
+		}
+		items = append(items, item)
 	}
 	if err := rows.Err(); err != nil {
 		return empty, err
@@ -81,5 +128,5 @@ func (s *Store) ListLiteratureItemIDsWithReadOptions(ctx context.Context, owner 
 	if err := tx.Commit(); err != nil {
 		return empty, err
 	}
-	return LiteratureSelection{Schema: empty.Schema, ItemIDs: ids, TotalCount: int64(len(ids))}, nil
+	return items, nil
 }
