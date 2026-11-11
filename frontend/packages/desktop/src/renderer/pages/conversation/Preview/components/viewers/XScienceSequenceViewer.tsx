@@ -78,8 +78,9 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
   }, [content, contentUrl, filename]);
 
   return (
-    <section className='size-full min-h-500px flex flex-col bg-1' aria-label={t('preview.scientific.sequence.preview')}>
-      <div className='min-h-46px px-12px py-7px flex flex-wrap items-center gap-10px border-b border-solid border-[var(--color-border-2)] bg-fill-1'>
+    <section className='size-full min-h-0 flex flex-col bg-1' aria-label={t('preview.scientific.sequence.preview')}>
+      {/* Wrapped controls keep their height; only the canvas scrolls in constrained preview tiles. */}
+      <div className='shrink-0 min-h-46px px-12px py-7px flex flex-wrap items-center gap-10px border-b border-solid border-[var(--color-border-2)] bg-fill-1'>
         {document ? (
           <span className='min-w-0 max-w-240px truncate text-11px text-t-secondary' title={document.name}>
             {document.name}
@@ -144,7 +145,7 @@ const XScienceSequenceViewer: React.FC<XScienceSequenceViewerProps> = ({ filenam
         ) : null}
       </div>
 
-      <div className='relative min-h-500px flex-1 overflow-auto bg-white'>
+      <div className='relative min-h-0 flex-1 overflow-auto bg-white'>
         {document ? (
           <div data-testid='x-science-sequence-host' className='min-w-720px min-h-500px p-12px'>
             {document.type === 'unknown' ? (

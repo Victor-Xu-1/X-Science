@@ -3,9 +3,9 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "67ed9bbe57f2935150e63ca6caf3289422aa42a70b2ae37e48e7317637b678a7",
+  "adaptationFingerprintSHA256": "ec53e537e5868ec4af9947c652ec3c5bd458079c06afc7e7a15386af9604f6a0",
   "removalFingerprintSHA256": "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96",
-  "additionFingerprintSHA256": "279c236ff3f332414ee04cdc1a071dec07b962cad4e1577b3c779879fff9f0e2",
+  "additionFingerprintSHA256": "35e591c4c3c06fa2f9fd839bef4b19f9966602d14b06cec6c748c9e894eaf56b",
   "summary": {
     "sourceFiles": 1354,
     "unchangedSourceFiles": 263,
@@ -17,14 +17,14 @@
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "c10a8991b4e57f31c76eba76bd8e2554581be648aa1e1d16ecafcffc22212b37",
+      "targetSHA256": "f96aa4d94213528b0e4370cc5942f4c53613bf6b7aa1b86b1006a7b226103b3a",
       "bytes": 4712,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "fc9be0244ac0f02d639a09beb8824454cb1481e9311cbdc045c6bcff3938575d",
+      "targetSHA256": "ede486aa41960b29d9bcda376b7dabbce59a8cdd4796e507f5d1b8445b400ce0",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1812,8 +1812,8 @@
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/XScienceSequenceViewer.tsx",
       "originalPath": "packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/SynonBiomedSequenceViewer.tsx",
       "sourceSHA256": "eac3d5e7c1bebcdb91eef6b3e226a406380864fc754df294c018a429d51d3419",
-      "targetSHA256": "e68b20e15d7d410e18a093c157b776cc42b39d9e480eacc652ade294053351dc",
-      "bytes": 12830,
+      "targetSHA256": "999ac0ec091447775bf8b9c7b639eb6bd9a79d36c55377d0c1bb476347a5fa63",
+      "bytes": 12935,
       "reason": "Move genuine imported source to the current X-Science namespace. Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -7610,7 +7610,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "6dc1b5ad775198331b671c4b5e4cd80c266f29d7b6c2a49f98a0713c800170e8",
+      "sha256": "0f5986cfb3e32f72296bec8ebed56cb7c3087114c0503b3481f10815272b480d",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
