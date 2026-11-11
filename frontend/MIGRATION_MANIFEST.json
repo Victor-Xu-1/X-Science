@@ -3,28 +3,28 @@
   "source": "/home/victor_1/synonbiomed-workbench/frontend",
   "sourceMutationPolicy": "read-only",
   "sourceImportManifestSHA256": "8770763a377788d436e3f5a24cd0cb0cf3331f61a3515447d0a2046bb370982e",
-  "adaptationFingerprintSHA256": "8018ee1632f40b32bab9a4c647a6708615f52a317287f7381715877a7e947f43",
-  "removalFingerprintSHA256": "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0",
-  "additionFingerprintSHA256": "225c1dad3cf50f8cec756f0e1b70b05d394b3b5e57c896bd7ac1859abe92e506",
+  "adaptationFingerprintSHA256": "63de1fba0ca83f8138b929ecae06d7f9464e765d1136da7f48a28110690a3f37",
+  "removalFingerprintSHA256": "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96",
+  "additionFingerprintSHA256": "c568439f02ea24cea05dbc441c29f6655d1dd0dba43a49c05a766a46db88cfa5",
   "summary": {
     "sourceFiles": 1354,
-    "unchangedSourceFiles": 264,
-    "adaptedSourceFiles": 795,
-    "removedSourceFiles": 295,
+    "unchangedSourceFiles": 263,
+    "adaptedSourceFiles": 794,
+    "removedSourceFiles": 297,
     "addedFiles": 1525
   },
   "adaptations": [
     {
       "path": "package.json",
       "sourceSHA256": "9921d8f5e2298102ac043d12895f11b794fc0edaed2baa781dd2bb0f2a188a77",
-      "targetSHA256": "6f469cb389e0d48bb45d523f05baa9bc5ca03e0d185b3e3de28aeb9aa0da8849",
+      "targetSHA256": "ccf2133727527db0e1a4f1793d127c60520cb4fc198a0bc19d285b9efefe380f",
       "bytes": 4712,
       "reason": "Replace Bun/WebHost workspace runtime with a browser-only npm build package and exact dependency boundary."
     },
     {
       "path": "packages/desktop/package.json",
       "sourceSHA256": "852963d14f069dee2d9aee5b14b0ce82defeda967c801ffd137d0c528626e784",
-      "targetSHA256": "3199f9e29effe64a0cfefce8f88a60850c605adc0e5557a250c324674c3c610f",
+      "targetSHA256": "76d5d8ab0ce0d54d95ebcfc21dab1fc54e2c3aa1ca7d3f01fa01c1b150f304c5",
       "bytes": 157,
       "reason": "Remove @x-science/web-host workspace dependency and identify the browser-only renderer."
     },
@@ -1613,17 +1613,10 @@
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
-      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewHistoryDropdown.tsx",
-      "sourceSHA256": "946bb6f11e490b9f7d977ccbbb42d54d6aefced46a1e9e9ffc9e21c42671e811",
-      "targetSHA256": "c4f4d1594b24b916d1a7fb7348c1d3be38b453fe12a341ea0d18d140a6aa5731",
-      "bytes": 3917,
-      "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
-    },
-    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel.tsx",
       "sourceSHA256": "10c226da920132b34cbec848a0c83997c1477132b93449e4d3a7140f0b819404",
-      "targetSHA256": "02dd2341b97c487b6d7cf1f716ca6d42f6ee2a629a1170c27b778d329194a61c",
-      "bytes": 28584,
+      "targetSHA256": "ff14ff917d48120e0db38d28781da58b74eef5ee7e86ce2622b9fc85eab3107e",
+      "bytes": 28565,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1638,6 +1631,13 @@
       "sourceSHA256": "c72df866553d45d0f8e35f895853abf975759fbef7380648e93ca31d71ea8c8d",
       "targetSHA256": "403dd8881ffdec01dfb4b4e0ec7621cc7a8b7671c9eba41e14a085d66c4d581c",
       "bytes": 10112,
+      "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
+    },
+    {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/index.ts",
+      "sourceSHA256": "7c8ce81b793f44e2bd56d09b38264d575ff7e04bc57c9af6bc1e99757e465a46",
+      "targetSHA256": "f22c2486c6c53ac93f86b60877e24c506b6b232405498d9868847818741512b3",
+      "bytes": 611,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -1920,8 +1920,8 @@
     {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewHistory.ts",
       "sourceSHA256": "dda9a8db659844c129f805b406c691e9719fccddea0c7c4f4ad5f873e5302fb4",
-      "targetSHA256": "d02884a87058dfe7c7e851a258fa476398bdff74b6063176c44ea6f349dd6470",
-      "bytes": 12209,
+      "targetSHA256": "9ee1a703b7cd356037e4438664c63f39786928b7c7916d102546ff2272f7bf0a",
+      "bytes": 6646,
       "reason": "Migrate preview history and real scientific, office, document, and media viewers with safe parsing and responsive controls."
     },
     {
@@ -4185,13 +4185,6 @@
       "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
-      "path": "tests/unit/previews/PreviewHistoryDropdown.dom.test.tsx",
-      "sourceSHA256": "7ec0ed4e459ca21de7caa6a93972e812a6b167a838ef7521c05a440b29dae7c0",
-      "targetSHA256": "b2b9d07c14f71176345e7545a499bed3655bcf3be031d3070423dac2063e57c6",
-      "bytes": 2308,
-      "reason": "Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
-    },
-    {
       "path": "tests/unit/previews/PreviewPanel.dom.test.tsx",
       "sourceSHA256": "fdf5da9df9c125fd4bc5399787c42a470e36d0ecd0a7cefa4842ad18da8787a2",
       "targetSHA256": "11c38d6d6029485df7f6a1706cb8a624c8c238e2e6914175d77d63f33035a197",
@@ -4330,8 +4323,8 @@
       "path": "tests/unit/previews/xSciencePreviewHistory.dom.test.tsx",
       "originalPath": "tests/unit/previews/synonBiomedPreviewHistory.dom.test.tsx",
       "sourceSHA256": "8c5f3d6dfd87ca3ead936f8eea16eae00c0ca4e3c77dcc99d60f9dd367034b81",
-      "targetSHA256": "d843c9210ea6e128d3cdcf0f74c693b8014c2a1bd5577f812a1b5b287a664d49",
-      "bytes": 6625,
+      "targetSHA256": "c16223d94debc481c91dac2f9f375793f1701f671bd788fe500de98dbfd99a82",
+      "bytes": 5525,
       "reason": "Move genuine imported source to the current X-Science namespace. Align behavioral tests with the migrated Go contracts, full localization, responsive states, and deterministic test isolation."
     },
     {
@@ -5973,6 +5966,12 @@
       "reason": "Remove the competing DOM, RAF, read-cursor, and virtual-list scroll authority after Virtuoso assumed sole geometry ownership."
     },
     {
+      "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewHistoryDropdown.tsx",
+      "sourceSHA256": "946bb6f11e490b9f7d977ccbbb42d54d6aefced46a1e9e9ffc9e21c42671e811",
+      "sourceBytes": 3366,
+      "reason": "Retire the unmounted snapshot dropdown after its only barrel export and unconsumed preview-history reads are removed; preserve the canonical ArtifactPreview version-history page and original import provenance."
+    },
+    {
       "path": "packages/desktop/src/renderer/pages/conversation/Preview/components/editors/HTMLEditor.tsx",
       "sourceSHA256": "2d9a9f4035ab69231a0688ac472b82aa643932cacd86d652facc988caa76790d",
       "sourceBytes": 3712,
@@ -7462,6 +7461,12 @@
       "reason": "Retire the duplicate legacy scheduled-task Web pages and their isolated UI tests while the Go routine scheduler and governed task runtime remain authoritative."
     },
     {
+      "path": "tests/unit/previews/PreviewHistoryDropdown.dom.test.tsx",
+      "sourceSHA256": "7ec0ed4e459ca21de7caa6a93972e812a6b167a838ef7521c05a440b29dae7c0",
+      "sourceBytes": 951,
+      "reason": "Retire the standalone regression for the unmounted preview-history dropdown with that component; retain the active version-history page and receiver-scoped save regressions."
+    },
+    {
       "path": "tests/unit/renderer/ProjectWorkbench.dom.test.tsx",
       "sourceSHA256": "d8c789f8505b1a64ec3e04917e14dc630371c2f935cbcc089e5601ad4ef22db1",
       "sourceBytes": 16547,
@@ -7605,7 +7610,7 @@
     },
     {
       "path": "package-lock.json",
-      "sha256": "090e7d60c554e26316252dbc72855114c41dbb0dc056745350a367aa2d70da86",
+      "sha256": "faaa11c7bd9ce77354f0d5aab803926a6ab14476dec1cec8b63bfee6ffc80ad1",
       "bytes": 559096,
       "reason": "Deterministic npm build dependency lock."
     },
@@ -13347,8 +13352,8 @@
     },
     {
       "path": "tests/unit/previews/PreviewHistorySaveLifetime.dom.test.tsx",
-      "sha256": "c61ca108927f3fc36fdd6fcb73906e6727d87efe0d13ae67374d24210315e93e",
-      "bytes": 13833,
+      "sha256": "744e823f2d1e476549fd4dad069f32752ccf47bcb3371d3923242092a7cd6af7",
+      "bytes": 10429,
       "reason": "Add focused regression and real-browser coverage for the migrated product behavior."
     },
     {

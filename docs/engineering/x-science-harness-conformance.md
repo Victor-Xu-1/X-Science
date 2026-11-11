@@ -1364,13 +1364,19 @@ same route-owned retry; a pending anchor while idle wakes that existing owner.
 
 Preview snapshot completion belongs to its receiving tab, canvas and account
 lifetime. Closing, switching or returning to a prior receiver cannot revive an
-old save, history read or selection. A current save may keep its receiver lease
-when its own canonical acknowledgement advances the artifact version; history
-reads and selections remain version-bound. Single-flight state, feedback and
+old save. A current save may keep its receiver lease when its own canonical
+acknowledgement advances the artifact version. Single-flight state, feedback and
 local debounce follow the current receiver, and stale completion cannot clear
 its successor. Existing server publication and version-conflict authorities
 remain unchanged; presentation errors do not turn a committed write into a
 reported server-write failure.
+
+Version browsing uses the existing ArtifactPreview versions page and its
+version-bound metadata reader. The snapshot-save hook has no mounted history
+list or selection consumer, so opening a preview or saving it does not fetch
+an unused history list. Its unmounted dropdown and dead export are retired.
+Existing backend history and local IPC contracts remain available to their
+actual consumers; saved versions and historical message links are preserved.
 
 A conditional artifact-version save also notifies the existing workspace
 refresh owner after a usable commit acknowledgement in the same account scope.

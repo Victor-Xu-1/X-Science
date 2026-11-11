@@ -525,6 +525,8 @@ ALLOWED_ADDITION_RULES = (
 )
 
 ALLOWED_REMOVALS = {
+    "tests/unit/previews/PreviewHistoryDropdown.dom.test.tsx": "Retire the standalone regression for the unmounted preview-history dropdown with that component; retain the active version-history page and receiver-scoped save regressions.",
+    "packages/desktop/src/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewHistoryDropdown.tsx": "Retire the unmounted snapshot dropdown after its only barrel export and unconsumed preview-history reads are removed; preserve the canonical ArtifactPreview version-history page and original import provenance.",
     "packages/desktop/src/renderer/hooks/file/useWorkspaceSelector.ts": "Retire the unconsumed legacy native workspace selector after all conversation file intake uses the existing browser/project picker or explicit host-grant controls; preserve original import history.",
     "packages/desktop/src/renderer/pages/conversation/Messages/components/SkillSuggestCard.tsx": "Retire the competing synchronous Skill author/install button; preserve historical suggestions as read-only content and use the sole typed conversation action.",
     "public/pwa/icon-180.png": "Retire the superseded product artwork after the original approved touch icon became the only current browser reference.",
@@ -743,9 +745,9 @@ ALLOWED_ADAPTATION_RULES = (
     ),
 )
 
-APPROVED_ADAPTATION_FINGERPRINT = "8018ee1632f40b32bab9a4c647a6708615f52a317287f7381715877a7e947f43"
-APPROVED_REMOVAL_FINGERPRINT = "61490d06fb2aef55e653ccf0ae1f4ed19bb141ac90622553eb5b3a94b2ef19b0"
-APPROVED_ADDITION_FINGERPRINT = "225c1dad3cf50f8cec756f0e1b70b05d394b3b5e57c896bd7ac1859abe92e506"
+APPROVED_ADAPTATION_FINGERPRINT = "63de1fba0ca83f8138b929ecae06d7f9464e765d1136da7f48a28110690a3f37"
+APPROVED_REMOVAL_FINGERPRINT = "8d00f40d086f136ef3de646c52909b16a72e44b2d5d1f4fedf50c7e601167a96"
+APPROVED_ADDITION_FINGERPRINT = "c568439f02ea24cea05dbc441c29f6655d1dd0dba43a49c05a766a46db88cfa5"
 
 MANUAL_LICENSES = {
     "@nightingale-elements/nightingale-msa": {
