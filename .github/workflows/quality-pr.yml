@@ -90,6 +90,7 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Set up runtime test dependencies
+        if: ${{ toJSON(matrix.has_go_packages) != 'false' }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes bubblewrap poppler-utils

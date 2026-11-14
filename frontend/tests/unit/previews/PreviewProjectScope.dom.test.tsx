@@ -40,8 +40,43 @@ const session = (conversationId: string): PreviewWorkspace => ({
   routeKey: `/conversation/${conversationId}`,
 });
 
-const calls = vi.hoisted(() => ({ loadArtifact: vi.fn() }));
-vi.mock('@/common', () => ({ ipcBridge: { fs: {} } }));
+const localNote = (workspace = '/synthetic') => ({
+  file_name: 'notes.md',
+  file_path: 'notes.md',
+  workspace,
+});
+
+const pendingLocalRead = () => {
+  let resolve!: (content: string) => void;
+  const promise = new Promise<string>((finish) => (resolve = finish));
+  return { promise, resolve };
+};
+
+async function localCanvas(projectId: string) {
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  vi.useFakeTimers();
+  return canvas(project(projectId));
+}
+
+const advanceLocalClock = async (milliseconds: number) => {
+  await act(async () => vi.advanceTimersByTimeAsync(milliseconds));
+};
+
+const calls = vi.hoisted(() => ({
+  loadArtifact: vi.fn(),
+  metadata: vi.fn(),
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+}));
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    fs: {
+      getFileMetadata: { invoke: calls.metadata },
+      readFile: { invoke: calls.readFile },
+      writeFile: { invoke: calls.writeFile },
+    },
+  },
+}));
 vi.mock('@/renderer/services/xScienceGateway', () => ({ loadXScienceArtifact: calls.loadArtifact }));
 vi.mock('@/renderer/utils/emitter', () => ({ emitter: { on: vi.fn(), off: vi.fn() } }));
 
@@ -49,6 +84,9 @@ beforeEach(() => {
   localStorage.clear();
   resetRendererAccountScopeForTest();
   calls.loadArtifact.mockReset();
+  calls.metadata.mockReset();
+  calls.readFile.mockReset();
+  calls.writeFile.mockReset();
 });
 afterEach(() => {
   cleanup();
@@ -57,6 +95,114 @@ afterEach(() => {
 });
 
 describe('project preview scope', () => {
+  it('keeps a newer saved local draft when an older polling read arrives after the save marker expires', async () => {
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    vi.useFakeTimers();
+    let finishOldRead!: (content: string) => void;
+    calls.metadata.mockResolvedValueOnce({ lastModified: 1 }).mockResolvedValue({ lastModified: 2 });
+    calls.readFile.mockReturnValue(new Promise<string>((resolve) => (finishOldRead = resolve)));
+    calls.writeFile.mockResolvedValue(true);
+    const view = await canvas(project('poll-save'));
+    await act(async () => {
+      view.result.current.openPreview('original local text', 'markdown', {
+        file_name: 'notes.md',
+        file_path: '/synthetic/notes.md',
+        workspace: '/synthetic',
+      });
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(1000));
+    expect(calls.readFile).toHaveBeenCalledExactlyOnceWith({
+      path: '/synthetic/notes.md',
+      workspace: '/synthetic',
+    });
+    act(() => view.result.current.updateContent('newer saved local text'));
+    await act(async () => {
+      expect(await view.result.current.saveContent()).toBe(true);
+    });
+    expect(view.result.current.activeTab).toMatchObject({
+      content: 'newer saved local text',
+      originalContent: 'newer saved local text',
+      isDirty: false,
+    });
+    await act(async () => vi.advanceTimersByTimeAsync(501));
+    await act(async () => finishOldRead('older filesystem response'));
+    expect(view.result.current.activeTab).toMatchObject({
+      content: 'newer saved local text',
+      originalContent: 'newer saved local text',
+      isDirty: false,
+    });
+  });
+  it('keeps current local content after a failed read and retries the same changed mtime', async () => {
+    const view = await localCanvas('read-failure');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    calls.metadata.mockResolvedValueOnce({ lastModified: 1 }).mockResolvedValue({ lastModified: 2 });
+    calls.readFile.mockRejectedValueOnce(new Error('synthetic read failed')).mockResolvedValueOnce('fresh disk text');
+    await act(async () => view.result.current.openPreview('known local text', 'markdown', localNote()));
+    await advanceLocalClock(1000);
+    expect(view.result.current.activeTab).toMatchObject({
+      content: 'known local text',
+      originalContent: 'known local text',
+      isDirty: false,
+    });
+    await advanceLocalClock(1000);
+    expect(calls.readFile).toHaveBeenCalledTimes(2);
+    expect(view.result.current.activeTab).toMatchObject({
+      content: 'fresh disk text',
+      originalContent: 'fresh disk text',
+      isDirty: false,
+    });
+  });
+
+  it.each(['refused', 'rejected'] as const)(
+    'keeps an unsaved local draft when save is %s and an older read finishes',
+    async (failure) => {
+      const view = await localCanvas(`save-${failure}`);
+      const oldRead = pendingLocalRead();
+      calls.metadata.mockResolvedValueOnce({ lastModified: 1 }).mockResolvedValue({ lastModified: 2 });
+      calls.readFile.mockReturnValue(oldRead.promise);
+      if (failure === 'refused') calls.writeFile.mockResolvedValue(false);
+      else calls.writeFile.mockRejectedValue(new Error('synthetic write failed'));
+      await act(async () => view.result.current.openPreview('known local text', 'markdown', localNote()));
+      await advanceLocalClock(1000);
+      expect(calls.readFile).toHaveBeenCalledTimes(1);
+      act(() => view.result.current.updateContent('unsaved local draft'));
+      await act(async () => {
+        if (failure === 'refused') expect(await view.result.current.saveContent()).toBe(false);
+        else await expect(view.result.current.saveContent()).rejects.toThrow('synthetic write failed');
+      });
+      await advanceLocalClock(501);
+      await act(async () => oldRead.resolve('older filesystem response'));
+      expect(view.result.current.activeTab).toMatchObject({
+        content: 'unsaved local draft',
+        originalContent: 'known local text',
+        isDirty: true,
+      });
+    }
+  );
+
+  it.each(['source', 'project'] as const)(
+    'ignores an old local polling read after a %s switch and ABA return',
+    async (kind) => {
+      const view = await localCanvas('local-aba-a');
+      const oldRead = pendingLocalRead();
+      calls.metadata.mockResolvedValueOnce({ lastModified: 1 }).mockResolvedValue({ lastModified: 2 });
+      calls.readFile.mockReturnValue(oldRead.promise);
+      await act(async () => view.result.current.openPreview('original a', 'markdown', localNote('/synthetic-a')));
+      await advanceLocalClock(1000);
+      expect(calls.readFile).toHaveBeenCalledTimes(1);
+      if (kind === 'project') view.move(project('local-aba-b'));
+      await act(async () => view.result.current.openPreview('current b', 'markdown', localNote('/synthetic-b')));
+      if (kind === 'project') view.move(project('local-aba-a'));
+      await act(async () => view.result.current.openPreview('current a', 'markdown', localNote('/synthetic-a')));
+      await act(async () => oldRead.resolve('older a response'));
+      expect(view.result.current.activeTab).toMatchObject({
+        content: 'current a',
+        originalContent: 'current a',
+        metadata: { workspace: '/synthetic-a' },
+        isDirty: false,
+      });
+    }
+  );
   it('keeps live project switching usable when browser persistence is unavailable', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('storage blocked');

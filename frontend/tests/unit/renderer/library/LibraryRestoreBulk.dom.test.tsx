@@ -145,7 +145,11 @@ it('restores an explicit Trash selection after a complete revision preview and c
   fireEvent.click(screen.getByRole('button', { name: 'Restore selected' }));
   fireEvent.click(await screen.findByRole('menuitem', { name: 'Restore selected' }));
   const confirm = await screen.findByRole('button', { name: 'Restore 2 references' });
-  expect(screen.queryByRole('menu')).toBeNull();
+  // Arco removes the dismissed popup after its exit transition.
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Restore selected' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
   expect(f.writes).toHaveLength(0);
   fireEvent.click(confirm);
   await waitFor(() => expect(f.writes).toHaveLength(2));

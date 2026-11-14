@@ -67,7 +67,7 @@ def job_matrix(packages: list[str], *, test_file_counts: dict[str, int] | None =
         target_ms = BATCH_SIZE * active.default_test_ms + active.default_batch_ms
         budget = (estimated_ms + target_ms - 1) // target_ms
         count = min(MAX_SHARDS, max(count, min(units, budget)))
-    return {"include": [{"index": index, "count": count} for index in range(count)]}
+    return {"include": [{"index": index, "count": count, "has_go_packages": bool(packages)} for index in range(count)]}
 
 
 def canonical_inventory(inventory: dict[str, list[str]]) -> dict[str, list[str]]:

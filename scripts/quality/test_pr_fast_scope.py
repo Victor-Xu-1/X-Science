@@ -1,7 +1,10 @@
 """Real Git/Go regressions for pull-request test scope and checkout depth."""
 
 from pathlib import Path
+import contextlib
+import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -250,6 +253,72 @@ class FrontendProvenanceGateTests(unittest.TestCase):
         self.assertEqual(commands[-1], tuple(fixture))
         self.assertNotIn(('npm', 'run', 'build'), commands)
         self.assertNotIn(('npm', 'run', 'test:packaged'), commands)
+
+
+class EmptyGoRuntimeSetupTests(unittest.TestCase):
+    """The placeholder keeps checks/evidence; only explicit JSON false skips setup."""
+    def test_workflow_conditions_only_heavy_setup_on_explicit_json_false(self):
+        workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/quality-pr.yml").read_text()
+        go_job = workflow.split("  pr-go-shards:\n", 1)[1].split("\n  pr-go-tests:", 1)[0]
+        dependencies = go_job.split("      - name: Set up runtime test dependencies\n", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("        if: ${{ toJSON(matrix.has_go_packages) != 'false' }}\n", dependencies)
+        self.assertIn("sudo apt-get install --yes bubblewrap poppler-utils", dependencies)
+        self.assertIn("--requirement assets/optional/mcp-servers/bio-tools/requirements-test.txt", dependencies)
+        closure = go_job.split("      - name: Test changed Go dependency closure\n", 1)[1].split("      - name:", 1)[0]
+        self.assertNotIn("        if:", closure)
+        self.assertIn("python3 scripts/quality/pr_fast_scope.py", closure)
+        aggregate = workflow.split("  pr-go-tests:\n", 1)[1].split("\n  pr-frontend-plan:", 1)[0]
+        self.assertIn("name: PR changed Go packages", aggregate)
+        self.assertIn("needs: [pr-quality, pr-go-shards]", aggregate)
+        self.assertIn("test '${{ needs.pr-go-shards.result }}' = 'success'", aggregate)
+        self.assertIn("needs: [pr-frontend-tests, pr-go-tests, pr-quality]", workflow)
+        for supplied in [{}, {"has_go_packages": None}, {"has_go_packages": False},
+                         {"has_go_packages": True}, {"has_go_packages": "false"},
+                         {"has_go_packages": 0}, {"has_go_packages": []}, {"has_go_packages": {}}]:
+            with self.subTest(matrix=supplied):
+                # toJSON preserves type; missing properties are null, not false.
+                installed = json.dumps(supplied.get("has_go_packages"), separators=(",", ":")) != "false"
+                self.assertEqual(installed, supplied.get("has_go_packages") is not False)
+
+    def test_empty_scope_keeps_checks_and_artifacts_when_optional_capture_tools_are_missing(self):
+        canonical = Path(__file__).resolve().parents[2]
+        changed = ["docs/licenses/frontend-bundle/NOTICE.txt", "scripts/audit/audit_frontend_migration.py"]
+        groups = scope.verification_scope.matched(canonical, changed)
+        self.assertEqual({group["name"] for group in groups}, {"frontend-license-notices", "frontend-provenance"})
+        for missing in [ModuleNotFoundError("missing scientific Python distribution"), FileNotFoundError("bwrap unavailable")]:
+            with self.subTest(missing=type(missing).__name__), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder); repo = root / "source"; repo.mkdir(); evidence = root / "evidence"
+                base, head = "a" * 40, "b" * 40
+                binding = {"base": base, "head": head, "checkout_head": head, "anchor_epoch": 1,
+                           "source_state": "clean", "environment": {}}
+                args = ["pr_fast_scope.py", "--repo", str(repo), "--base", base, "--head", head, "--log-dir", str(evidence)]
+                def forbidden(*args, **kwargs):
+                    raise AssertionError("Empty-scope fixture attempted a process")
+                with patch.dict(os.environ, {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": "pull_request"}), \
+                     patch.object(sys, "argv", args), patch.object(scope, "changed_paths", return_value=changed), \
+                     patch.object(scope, "behavior_scope", return_value=(changed, [], [])), \
+                     patch.object(scope.verification_scope, "matched", return_value=groups), \
+                     patch.object(scope, "resolve_packages", return_value=([], "proved empty")), \
+                     patch.object(scope, "planning_inputs", return_value=(binding, scope.pr_test_partition.CostProfile())), \
+                     patch.object(scope, "run", return_value=subprocess.CompletedProcess([], 0)) as checks, \
+                     patch.object(scope, "discover", side_effect=AssertionError("Empty scope discovered Go")), \
+                     patch.object(scope.pr_go_reuse.pr_reuse_inputs, "capture", side_effect=missing) as capture, \
+                     patch.object(subprocess, "run", side_effect=forbidden), \
+                     patch.object(subprocess, "check_output", side_effect=forbidden), \
+                     patch.object(subprocess, "Popen", side_effect=forbidden), \
+                     contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(scope.main(), 0)
+                self.assertEqual([list(call.args[1:]) for call in checks.call_args_list], scope.verification_scope.checks(groups))
+                capture.assert_called_once_with(repo)
+                self.assertIn("PR input capture unavailable", output.getvalue())
+                self.assertIn("PR provenance unavailable", output.getvalue())
+                self.assertEqual(json.loads((evidence / "scope.json").read_text())["packages"], [])
+                self.assertEqual(json.loads((evidence / "plan.json").read_text())["commands"], [])
+                self.assertEqual((evidence / "events.jsonl").read_text(), "")
+                summary = json.loads((evidence / "summary.json").read_text())
+                self.assertEqual(summary["exit_code"], 0)
+                self.assertEqual(summary["planned_process_batches"], 0)
+                self.assertFalse((evidence / "provenance.json").exists())
 
 
 class PlanningEvidenceTests(unittest.TestCase):

@@ -14,12 +14,17 @@ from scripts.quality.runtime_test_shards import execute
 
 class AffectedPartitionTests(unittest.TestCase):
     def test_matrix_is_bounded_and_zero_scope_retains_one_checker_job(self):
-        self.assertEqual(shard.job_matrix([]), {"include": [{"index": 0, "count": 1}]})
-        self.assertEqual(len(shard.job_matrix([str(i) for i in range(200)])["include"]), 4)
+        self.assertEqual(shard.job_matrix([]), {"include": [{"index": 0, "count": 1, "has_go_packages": False}]})
+        nonempty = shard.job_matrix([str(i) for i in range(200)])["include"]
+        self.assertEqual(len(nonempty), 4)
+        self.assertTrue(all(row["has_go_packages"] is True for row in nonempty))
+        self.assertIs(shard.job_matrix(["fixture/compile"], test_file_counts={"fixture/compile": 0})["include"][0]["has_go_packages"], True)
+        with self.assertRaises(TypeError):
+            shard.job_matrix(None)
 
     def test_large_single_package_uses_workload_without_discovering_inventory(self):
         matrix = shard.job_matrix(["fixture/large"], test_file_counts={"fixture/large": 257})
-        self.assertEqual(matrix, {"include": [{"index": index, "count": 4} for index in range(4)]})
+        self.assertEqual(matrix, {"include": [{"index": index, "count": 4, "has_go_packages": True} for index in range(4)]})
         inventory = {"fixture/large": [f"TestCase{i:04d}" for i in range(1001)], "fixture/empty": []}
         count = shard.job_matrix(list(inventory), test_file_counts={"fixture/large": 257,
                                                                    "fixture/empty": 0})["include"][0]["count"]
