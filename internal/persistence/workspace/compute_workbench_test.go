@@ -356,3 +356,81 @@ func TestComputeJobMutationsAreOwnerScoped(t *testing.T) {
 		}
 	}
 }
+
+func TestComputeOwnershipReadsPreserveOpenResultsAndReturnTypedClosedErrors(t *testing.T) {
+	assertClosed := func(t *testing.T, store *Store) {
+		t.Helper()
+		owned, err := store.ComputeRootOwnedBy("owner", "root")
+		if owned || !errors.Is(err, ErrWorkspaceStoreClosed) {
+			t.Fatalf("closed ownership read: owned=%v err=%v", owned, err)
+		}
+		root, found, err := store.ComputeProjectRoot("owner", "project")
+		if root != "" || found || !errors.Is(err, ErrWorkspaceStoreClosed) {
+			t.Fatalf("closed project root read: root=%q found=%v err=%v", root, found, err)
+		}
+	}
+	t.Run("nil_receiver", func(t *testing.T) { assertClosed(t, nil) })
+
+	store, err := Open(filepath.Join(t.TempDir(), "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := false
+	t.Cleanup(func() {
+		if !closed {
+			if err := store.Close(); err != nil {
+				t.Errorf("close synthetic Store: %v", err)
+			}
+		}
+	})
+	for _, projectID := range []string{"project", "empty-project"} {
+		if _, err := store.CreateProject(CreateProjectInput{ID: projectID, UserID: "owner", Name: "Ownership fixture"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := store.CreateFrame(CreateFrameInput{ID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFrame(CreateFrameInput{ID: "child", ParentFrameID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, fixture := range []struct {
+		name, owner, root string
+		owned             bool
+	}{
+		{name: "owned_root", owner: "owner", root: "root", owned: true},
+		{name: "other_owner", owner: "other", root: "root"},
+		{name: "missing_root", owner: "owner", root: "missing"},
+		{name: "non_root", owner: "owner", root: "child"},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			owned, err := store.ComputeRootOwnedBy(fixture.owner, fixture.root)
+			if err != nil || owned != fixture.owned {
+				t.Fatalf("open ownership read: owned=%v want=%v err=%v", owned, fixture.owned, err)
+			}
+		})
+	}
+	for _, fixture := range []struct {
+		name, owner, project, root string
+		found                      bool
+	}{
+		{name: "owned_project", owner: "owner", project: "project", root: "root", found: true},
+		{name: "other_project_owner", owner: "other", project: "project"},
+		{name: "missing_project", owner: "owner", project: "missing"},
+		{name: "project_without_root", owner: "owner", project: "empty-project"},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			root, found, err := store.ComputeProjectRoot(fixture.owner, fixture.project)
+			if err != nil || found != fixture.found || root != fixture.root {
+				t.Fatalf("open project root read: root=%q want=%q found=%v want=%v err=%v", root, fixture.root, found, fixture.found, err)
+			}
+		})
+	}
+	// Close completes before either read. This is not a concurrent-lifetime test.
+	err = store.Close()
+	closed = true
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("after_completed_close", func(t *testing.T) { assertClosed(t, store) })
+}
