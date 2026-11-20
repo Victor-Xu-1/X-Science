@@ -82,15 +82,18 @@ export interface PreviewTab {
   originalContent?: string; // 原始内容，用于对比 / Original content for comparison
 }
 
+const localPreviewFileKey = (metadata?: PreviewMetadata): string | null => {
+  const path = metadata?.file_path;
+  if (!path || metadata?.artifactId || metadata?.contentUrl || path.startsWith('x-science://')) return null;
+  return JSON.stringify([metadata?.workspace ?? '', path]);
+};
+
 export const shouldPollPreviewFileMetadata = (
   tab: PreviewTab | null,
   visibilityState: DocumentVisibilityState = 'visible'
 ): boolean => {
   if (visibilityState !== 'visible') return false;
-  const metadata = tab?.metadata;
-  const filePath = metadata?.file_path;
-  if (!filePath || metadata?.artifactId || metadata?.contentUrl) return false;
-  return !filePath.startsWith('x-science://');
+  return localPreviewFileKey(tab?.metadata) !== null;
 };
 
 export interface OpenPreviewOptions {
@@ -199,6 +202,15 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   const { t, i18n } = useTranslation();
   const activeTabIdRef = useRef<string | null>(activeTabId);
   activeTabIdRef.current = activeTabId;
+  const liveTabsRef = useRef(tabs);
+  liveTabsRef.current = tabs;
+  // Passive epochs retire filesystem results; the original workspace and
+  // single-flight polling owner still decide whether a result can apply.
+  const fileReadEpochsRef = useRef(new Map<string, object>());
+  const retireLocalFileRead = useCallback((metadata?: PreviewMetadata) => {
+    const key = localPreviewFileKey(metadata);
+    if (key) fileReadEpochsRef.current.set(key, {});
+  }, []);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
   const previewFocusIds = useMemo(() => tabs.map((tab) => tab.id), [tabs]);
@@ -216,6 +228,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     setPdfReadingOwner(null);
     setDomSnippets([]);
     sendBoxHandler.current = null;
+    fileReadEpochsRef.current.clear();
   }, [workspaceGeneration]);
   const previewFocusScopeId = scope === 'embedded' ? embeddedFocusId : undefined;
   const { remember: rememberPreviewOpener, restore: restorePreviewOpener } = usePreviewFocusReturn(
@@ -340,6 +353,9 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   const openPreview = useCallback(
     (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
       if (!ownsWorkspace()) return;
+      retireLocalFileRead(
+        localPreviewFileKey(meta) ? meta : findPreviewTabInList(liveTabsRef.current, type, new_content, meta)?.metadata
+      );
       // A repeated reveal is an action even if the version and page are equal.
       if (type === 'pdf' && meta?.targetPdfPage !== undefined) meta = { ...meta, pdfRevealId: crypto.randomUUID() };
       const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -450,11 +466,12 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         return activateTab(tabId, [...prevTabs, newTab]);
       });
     },
-    [ownsWorkspace, extractFileName, findPreviewTabInList, rememberPreviewOpener, t, updateSlice]
+    [ownsWorkspace, extractFileName, findPreviewTabInList, rememberPreviewOpener, t, updateSlice, retireLocalFileRead]
   );
 
   const closePreview = useCallback(() => {
     if (!ownsWorkspace()) return;
+    fileReadEpochsRef.current.clear();
     restorePreviewOpener(activeTabIdRef.current, true);
     updateSlice((current) => ({
       ...current,
@@ -477,7 +494,11 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       restorePreviewOpener(tabId);
       updateSlice((current) => {
         const closing = current.tabs.find((tab) => tab.id === tabId);
-        if (closing?.metadata?.file_path) fileMtimeRef.current.delete(closing.metadata.file_path);
+        const sourceKey = localPreviewFileKey(closing?.metadata);
+        if (sourceKey) {
+          fileMtimeRef.current.delete(sourceKey);
+          fileReadEpochsRef.current.delete(sourceKey);
+        }
         const nextTabs = current.tabs.filter((tab) => tab.id !== tabId);
         const nextActive =
           current.activeTabId === tabId ? (nextTabs[nextTabs.length - 1]?.id ?? null) : current.activeTabId;
@@ -507,9 +528,10 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
   const updateTabContent = useCallback(
     (tabId: string, new_content: string) => {
       // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
-      if (typeof new_content !== 'string') {
+      if (typeof new_content !== 'string' || !ownsWorkspace()) {
         return;
       }
+      retireLocalFileRead(liveTabsRef.current.find((tab) => tab.id === tabId)?.metadata);
 
       setTabs((prevTabs) =>
         prevTabs.map((tab) => {
@@ -521,7 +543,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         })
       );
     },
-    [setTabs]
+    [setTabs, ownsWorkspace, retireLocalFileRead]
   );
 
   const updateContent = useCallback(
@@ -534,7 +556,8 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
 
   const commitTabContent = useCallback(
     (tabId: string, content: string, metadata?: Partial<PreviewMetadata>) => {
-      if (typeof content !== 'string') return;
+      if (typeof content !== 'string' || !ownsWorkspace()) return;
+      retireLocalFileRead(liveTabsRef.current.find((tab) => tab.id === tabId)?.metadata);
       setTabs((prevTabs) =>
         prevTabs.map((tab) =>
           tab.id === tabId
@@ -549,12 +572,13 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         )
       );
     },
-    [setTabs]
+    [setTabs, ownsWorkspace, retireLocalFileRead]
   );
 
   const markContentSaved = useCallback(
     (metadata?: Partial<PreviewMetadata>) => {
-      if (!activeTabId) return;
+      if (!activeTabId || !ownsWorkspace()) return;
+      retireLocalFileRead(liveTabsRef.current.find((tab) => tab.id === activeTabId)?.metadata);
       setTabs((prevTabs) =>
         prevTabs.map((tab) =>
           tab.id === activeTabId
@@ -568,7 +592,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
         )
       );
     },
-    [activeTabId, setTabs]
+    [activeTabId, setTabs, ownsWorkspace, retireLocalFileRead]
   );
 
   const commitArtifactEdit = useCallback(
@@ -619,6 +643,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       if (tab.metadata?.file_path && tab.metadata?.workspace) {
         try {
           const file_path = tab.metadata.file_path;
+          retireLocalFileRead(tab.metadata);
 
           // 标记文件正在保存（避免触发文件监听回调）/ Mark file as being saved (to avoid triggering file watch callback)
           savingFilesRef.current.add(file_path);
@@ -651,7 +676,7 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
       }
       return false;
     },
-    [ownsWorkspace, activeTabId, tabs, commitTabContent, artifactEdits.save]
+    [ownsWorkspace, activeTabId, tabs, commitTabContent, artifactEdits.save, retireLocalFileRead]
   );
 
   const addToSendBox = useCallback(
@@ -701,28 +726,42 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
     async (tab: PreviewTab) => {
       if (!ownsWorkspace()) return;
       const file_path = tab.metadata?.file_path;
+      const sourceKey = localPreviewFileKey(tab.metadata);
       if (
         !shouldPollPreviewFileMetadata(tab, document.visibilityState) ||
         !file_path ||
+        !sourceKey ||
         tab.isDirty ||
         savingFilesRef.current.has(file_path) ||
-        fileMetadataChecksRef.current.has(file_path)
+        fileMetadataChecksRef.current.has(sourceKey)
       ) {
         return;
       }
 
-      fileMetadataChecksRef.current.add(file_path);
+      fileMetadataChecksRef.current.add(sourceKey);
+      let epoch = fileReadEpochsRef.current.get(sourceKey);
+      if (!epoch) {
+        epoch = {};
+        fileReadEpochsRef.current.set(sourceKey, epoch);
+      }
+      const isCurrentRead = () => ownsWorkspace() && fileReadEpochsRef.current.get(sourceKey) === epoch;
       try {
         const metadata = await ipcBridge.fs.getFileMetadata.invoke({
           path: file_path,
           workspace: tab.metadata?.workspace,
         });
-        if (!ownsWorkspace() || !metadata) return;
-        const prevMtime = fileMtimeRef.current.get(file_path);
-        fileMtimeRef.current.set(file_path, metadata.lastModified);
-        if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
+        if (!isCurrentRead() || !metadata) return;
+        const prevMtime = fileMtimeRef.current.get(sourceKey);
+        if (prevMtime === undefined) {
+          fileMtimeRef.current.set(sourceKey, metadata.lastModified);
+          return;
+        }
+        if (metadata.lastModified === prevMtime) return;
 
-        if (['pdf', 'word', 'excel', 'ppt', 'audio', 'video', 'hdf5', 'unsupported'].includes(tab.content_type)) return;
+        if (['pdf', 'word', 'excel', 'ppt', 'audio', 'video', 'hdf5', 'unsupported'].includes(tab.content_type)) {
+          fileMtimeRef.current.set(sourceKey, metadata.lastModified);
+          return;
+        }
         const content =
           tab.content_type === 'image'
             ? await ipcBridge.fs.getImageBase64.invoke({
@@ -733,18 +772,25 @@ const PreviewProviderSession: React.FC<PreviewProviderProps> = ({ children, scop
                 path: file_path,
                 workspace: tab.metadata?.workspace,
               });
-        if (!ownsWorkspace() || content == null) return;
-        setTabs((latest) =>
-          latest.map((candidate) => {
-            if (candidate.metadata?.file_path !== file_path) return candidate;
+        if (!isCurrentRead() || content == null) return;
+        setTabs((latest) => {
+          if (!isCurrentRead()) return latest;
+          let applied = false;
+          const next = latest.map((candidate) => {
+            if (localPreviewFileKey(candidate.metadata) !== sourceKey) return candidate;
             if (savingFilesRef.current.has(file_path) || candidate.isDirty) return candidate;
+            applied = true;
             return { ...candidate, content, originalContent: content, isDirty: false };
-          })
-        );
+          });
+          // Only accepted body reads acknowledge changed mtime. Failures and
+          // retired reads remain eligible for the next ordinary polling tick.
+          if (applied) fileMtimeRef.current.set(sourceKey, metadata.lastModified);
+          return applied ? next : latest;
+        });
       } catch (error) {
         console.error('[PreviewContext] Failed to refresh file metadata:', file_path, error);
       } finally {
-        fileMetadataChecksRef.current.delete(file_path);
+        fileMetadataChecksRef.current.delete(sourceKey);
       }
     },
     [setTabs, ownsWorkspace]

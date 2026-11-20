@@ -509,7 +509,7 @@ func validateStep(step *yaml.Node, state *workflowState, bootstrapJob, requireCh
 	if step.Kind != yaml.MappingNode {
 		return errors.New("actions_workflow_invalid")
 	}
-	if mappingValue(step, "if") != nil && !relatedFrontendStepCondition(step, state) &&
+	if mappingValue(step, "if") != nil && !relatedFrontendStepCondition(step, state) && !prRuntimeDependencyStepCondition(step, state) &&
 		(!state.policy.Requirements.UnconditionalTestEvidenceAllowed || requireCheckout || requireGate || !unconditionalTestEvidenceStep(step)) {
 		return errors.New("actions_conditional_forbidden")
 	}

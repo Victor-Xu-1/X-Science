@@ -141,12 +141,23 @@ class RuntimePhaseEvidenceTests(unittest.TestCase):
         argv = ["pr_fast_scope.py", "--repo", str(self.repo), "--base", "a" * 40,
                 "--head", "b" * 40, "--log-dir", str(self.log_dir)]
         calls = []
+        scope_input = {}
 
         def operation(label):
             calls.append(label)
             subprocess.run([sys.executable, "-c", "import time; time.sleep(0.01)"], check=True)
 
-        def selected(*args):
+        def behavior(repo, base, head, paths, *, prose_candidates):
+            self.assertEqual((repo, base, head, paths), (self.repo, "a" * 40, "b" * 40, []))
+            self.assertIsInstance(prose_candidates, dict)
+            self.assertEqual(prose_candidates, {}, "an empty changed-path set has no prose candidates")
+            scope_input["prose_candidates"] = prose_candidates
+            return [], [], []
+
+        def selected(repo, base, head, paths, *, prose_candidates):
+            self.assertEqual((repo, base, head, paths), (self.repo, "a" * 40, "b" * 40, []))
+            self.assertIs(prose_candidates, scope_input["prose_candidates"])
+            self.assertEqual(prose_candidates, {}, "the same namespace-proof inputs must reach package scope")
             operation("scope")
             return [PACKAGE], "fixture"
 
@@ -159,7 +170,7 @@ class RuntimePhaseEvidenceTests(unittest.TestCase):
         command, _ = child_command()
         plan = child_plan([command], ["TestChild"])
         with patch.object(sys, "argv", argv), patch.object(scope, "changed_paths", return_value=[]), \
-             patch.object(scope, "behavior_scope", return_value=([], [], [])), \
+             patch.object(scope, "behavior_scope", side_effect=behavior), \
              patch.object(scope.verification_scope, "matched", return_value=[]), \
              patch.object(scope, "resolve_packages", side_effect=selected), \
              patch.object(scope, "planning_inputs", return_value=({}, None)), \
