@@ -168,6 +168,53 @@ func TestComputeSessionStateRequiresRealOwnedRootAndPreservesStorageFailure(t *t
 	}
 }
 
+func TestComputeSessionStateReturnsStructuredErrorAfterWorkspaceClose(t *testing.T) {
+	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed := false
+	t.Cleanup(func() {
+		if !closed {
+			if err := store.Close(); err != nil {
+				t.Errorf("close workspace fixture: %v", err)
+			}
+		}
+	})
+	if _, err := store.CreateProject(workspace.CreateProjectInput{ID: "project", UserID: "owner", Name: "Closed store fixture"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.CreateFrame(workspace.CreateFrameInput{ID: "root", ProjectID: "project", AgentName: "OPERON", Status: "completed", ConversationType: "chat"}); err != nil {
+		t.Fatal(err)
+	}
+	server := New(Options{Workspace: store})
+	mux := http.NewServeMux()
+	server.registerComputeWorkbenchRoutes(mux)
+	const path = "/api/compute/session/root/state"
+	if response := requestCompute(t, mux, http.MethodGet, path, nil, "owner"); response.Code != http.StatusOK {
+		t.Fatalf("open store status=%d body=%s", response.Code, response.Body.String())
+	}
+
+	// No requests are in flight when the fixture store closes.
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	closed = true
+	response := requestCompute(t, mux, http.MethodGet, path, nil, "owner")
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("closed store status=%d body=%s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Detail string `json:"detail"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode closed store error: %v", err)
+	}
+	if body.Detail != workspace.ErrWorkspaceStoreClosed.Error() {
+		t.Fatalf("closed store error detail=%q", body.Detail)
+	}
+}
+
 func TestComputeWorkbenchHTTPContractsAndOwnerIsolation(t *testing.T) {
 	store, err := workspace.Open(filepath.Join(t.TempDir(), "workspace.db"))
 	if err != nil {
