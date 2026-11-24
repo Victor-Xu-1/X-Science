@@ -1026,7 +1026,13 @@ func (s *Store) GetComputeJobLog(userID, jobID, stream string, tail int) (Comput
 	return ComputeJobLog{Exists: true, Size: int64(len(data)), Truncated: start > 0, Text: string(data[start:])}, true, nil
 }
 
+// The ownership-read guards cover nil receivers and reads after Close returns.
+// Callers must still quiesce Store use before Close; these guards do not
+// synchronize Close with active operations.
 func (s *Store) ComputeRootOwnedBy(userID, rootID string) (bool, error) {
+	if s == nil || s.db == nil {
+		return false, ErrWorkspaceStoreClosed
+	}
 	var found int
 	err := s.db.QueryRowContext(context.Background(), `SELECT 1 FROM frames f JOIN projects p ON p.id=f.project_id WHERE f.id=? AND f.root_frame_id=f.id AND p.user_id=?`, strings.TrimSpace(rootID), strings.TrimSpace(userID)).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -1036,6 +1042,9 @@ func (s *Store) ComputeRootOwnedBy(userID, rootID string) (bool, error) {
 }
 
 func (s *Store) ComputeProjectRoot(userID, projectID string) (string, bool, error) {
+	if s == nil || s.db == nil {
+		return "", false, ErrWorkspaceStoreClosed
+	}
 	var rootID string
 	err := s.db.QueryRowContext(context.Background(), `SELECT f.id FROM frames f JOIN projects p ON p.id=f.project_id WHERE p.user_id=? AND p.id=? AND f.id=f.root_frame_id ORDER BY f.created_at,f.id LIMIT 1`, strings.TrimSpace(userID), strings.TrimSpace(projectID)).Scan(&rootID)
 	if errors.Is(err, sql.ErrNoRows) {
