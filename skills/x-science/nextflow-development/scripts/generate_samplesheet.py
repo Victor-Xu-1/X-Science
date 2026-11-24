@@ -167,29 +167,30 @@ def _process_fastq_files(files, config: Dict, single_end: bool) -> List[Dict]:
     if not pairs:
         return []
 
-    # Check for unpaired files
-    unpaired = [k for k, v in pairs.items() if v.get('r1') and not v.get('r2')]
-    if unpaired and not single_end:
-        print(f"\nNote: {len(unpaired)} samples appear to be single-end (no R2)")
+    orphan_r2 = [pair['r2'] for pair in pairs.values() if not pair['r1']]
+    if orphan_r2:
+        raise ValueError("No matching R1 for: " + ", ".join(orphan_r2))
+
+    single_reads = [pair['r1'] for pair in pairs.values() if not pair['r2']]
+    if single_reads and not single_end:
+        print(f"\nNote: {len(single_reads)} files appear to be single-end (no R2):")
+        for path in single_reads:
+            print(f"  - {path}")
 
     rows = []
     columns = config.get("samplesheet", {}).get("columns", [])
 
-    for sample_key, pair_info in sorted(pairs.items()):
-        if not pair_info.get('r1'):
-            continue  # Skip entries with only R2
-
-        info = pair_info.get('info', {})
-
+    for _, pair_info in sorted(pairs.items()):
+        info = pair_info['info']
         row = {
-            'sample': info.get('sample', sample_key),
+            'sample': info['sample'],
             'fastq_1': str(Path(pair_info['r1']).absolute()),
-            'fastq_2': str(Path(pair_info['r2']).absolute()) if pair_info.get('r2') else '',
+            'fastq_2': str(Path(pair_info['r2']).absolute()) if pair_info['r2'] else '',
         }
 
         # Add additional info from filename
         if 'patient' in [c['name'] for c in columns]:
-            row['patient'] = info.get('patient', info.get('sample', sample_key))
+            row['patient'] = info.get('patient', info['sample'])
 
         if 'lane' in [c['name'] for c in columns]:
             row['lane'] = info.get('lane', 'L001')

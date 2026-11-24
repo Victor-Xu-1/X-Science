@@ -182,27 +182,31 @@ def _get_pattern_score(filename: str, patterns: List[Tuple[str, int]]) -> int:
     return max_score
 
 
-def _get_sample_key(filepath: str) -> str:
-    """Generate a key for grouping related files."""
-    info = extract_sample_info(filepath)
-    sample = info['sample']
-    lane = info.get('lane', 'L001')
+def _get_pair_key(filepath: str, info: Dict[str, str]) -> Tuple[str, str, str, str]:
+    """Keep sample metadata separate from the location and chunk of a pair."""
+    chunk = re.search(
+        r'(?:[_.]R|_)[12][_.](\d{3})(?=\.(?:fastq|fq)(?:\.gz)?$)',
+        os.path.basename(filepath),
+        re.IGNORECASE,
+    )
+    return (
+        info['sample'],
+        info['lane'],
+        os.path.normcase(os.path.dirname(os.path.abspath(filepath))),
+        chunk.group(1) if chunk else '',
+    )
 
-    # Include lane in key for multi-lane samples
-    if lane != "L001":
-        return f"{sample}_{lane}"
-    return sample
 
-
-def match_read_pairs(files) -> Dict[str, Dict]:
+def match_read_pairs(files) -> Dict[Tuple[str, str, str, str], Dict]:
     """
     Match R1/R2 read pairs using scored pattern matching.
 
     Args:
         files: List of FileInfo objects (from file_discovery)
-
     Returns:
-        Dict mapping sample_key to {'r1': path, 'r2': path, 'info': dict}
+        Dict keyed by sample, lane, parent directory, and optional read chunk.
+    Raises:
+        ValueError: If multiple files claim the same mate slot.
     """
     # Classify files
     r1_files = []
@@ -223,40 +227,20 @@ def match_read_pairs(files) -> Dict[str, Dict]:
             # No clear indicator - assume R1 (single-end or non-standard naming)
             r1_files.append((filepath, 0))
 
-    # Build pairs by matching sample keys
     pairs = {}
-
-    # Process R1 files first
-    for r1_path, score in r1_files:
-        key = _get_sample_key(r1_path)
-        info = extract_sample_info(r1_path)
-
-        if key not in pairs:
-            pairs[key] = {
-                'r1': r1_path,
-                'r2': None,
-                'info': info,
-                'score': score
-            }
-        else:
-            # Multiple R1 files for same sample (should not happen)
-            pairs[key]['r1'] = r1_path
-
-    # Match R2 files
-    for r2_path, score in r2_files:
-        key = _get_sample_key(r2_path)
-        info = extract_sample_info(r2_path)
-
-        if key in pairs:
-            pairs[key]['r2'] = r2_path
-        else:
-            # R2 without matching R1
-            pairs[key] = {
-                'r1': None,
-                'r2': r2_path,
-                'info': info,
-                'score': score
-            }
+    for mate, mate_files in (('r1', r1_files), ('r2', r2_files)):
+        for path, score in mate_files:
+            info = extract_sample_info(path)
+            key = _get_pair_key(path, info)
+            pair = pairs.setdefault(
+                key, {'r1': None, 'r2': None, 'info': info, 'score': score}
+            )
+            if pair[mate] is not None:
+                raise ValueError(
+                    f"Ambiguous {mate.upper()} files for sample '{info['sample']}', "
+                    f"lane {info['lane']}: {pair[mate]} and {path}"
+                )
+            pair[mate] = path
 
     return pairs
 
